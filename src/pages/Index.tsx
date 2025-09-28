@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { HomeScreen } from "@/components/HomeScreen";
 import { LobbyScreen } from "@/components/LobbyScreen";
+import { VideoSubmissionScreen } from "@/components/VideoSubmissionScreen";
 import { useToast } from "@/hooks/use-toast";
+import { VideoClip } from "@/lib/videoStorage";
 
 interface Player {
   id: string;
@@ -9,13 +11,14 @@ interface Player {
   isHost: boolean;
 }
 
-type GameState = "home" | "lobby" | "playing";
+type GameState = "home" | "lobby" | "preparation" | "playing";
 
 const Index = () => {
   const [gameState, setGameState] = useState<GameState>("home");
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [lobbyCode, setLobbyCode] = useState("");
+  const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
   const { toast } = useToast();
 
   // Generate random 4-character lobby code
@@ -31,7 +34,7 @@ const Index = () => {
   const handleCreateGame = (playerName: string) => {
     const newLobbyCode = generateLobbyCode();
     const hostPlayer: Player = {
-      id: "host",
+      id: "host-" + Date.now(),
       name: playerName,
       isHost: true,
     };
@@ -51,7 +54,7 @@ const Index = () => {
     // In a real implementation, this would connect to the host via WebRTC
     // For now, we'll simulate joining a game
     const newPlayer: Player = {
-      id: Date.now().toString(),
+      id: "player-" + Date.now(),
       name: playerName,
       isHost: false,
     };
@@ -74,11 +77,28 @@ const Index = () => {
   };
 
   const handleStartGame = () => {
+    setGameState("preparation");
+    
     toast({
-      title: "Lancement de la partie !",
-      description: "La partie va commencer dans quelques secondes...",
+      title: "Phase de préparation !",
+      description: "Préparez vos défis vidéo pour la partie.",
     });
-    // TODO: Implement game start logic
+  };
+
+  const handleSubmitChallenges = (challenges: VideoClip[]) => {
+    setSubmittedChallenges(challenges);
+    
+    toast({
+      title: "Défis soumis !",
+      description: `${challenges.length} défi(s) envoyé(s). En attente des autres joueurs...`,
+    });
+    
+    // TODO: Implement game start logic when all players have submitted
+  };
+
+  const handleBackToLobby = () => {
+    setGameState("lobby");
+    setSubmittedChallenges([]);
   };
 
   const handleLeaveGame = () => {
@@ -86,6 +106,7 @@ const Index = () => {
     setPlayers([]);
     setCurrentPlayer(null);
     setLobbyCode("");
+    setSubmittedChallenges([]);
     
     toast({
       title: "Partie quittée",
@@ -111,6 +132,16 @@ const Index = () => {
         currentPlayer={currentPlayer}
         onStartGame={handleStartGame}
         onLeaveGame={handleLeaveGame}
+      />
+    );
+  }
+
+  if (gameState === "preparation" && currentPlayer) {
+    return (
+      <VideoSubmissionScreen
+        currentPlayer={currentPlayer}
+        onBackToLobby={handleBackToLobby}
+        onSubmitChallenges={handleSubmitChallenges}
       />
     );
   }
