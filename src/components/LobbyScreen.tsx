@@ -1,7 +1,9 @@
 import { GameLogo } from "@/components/GameLogo";
 import { PlayersList } from "@/components/PlayersList";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { DeviceSettings } from "@/components/DeviceSettings";
+import { ArrowLeft, Settings } from "lucide-react";
+import { useState } from "react";
 
 interface Player {
   id: string;
@@ -26,9 +28,11 @@ export const LobbyScreen = ({
   onStartGame, 
   onLeaveGame 
 }: LobbyScreenProps) => {
+  const [showSettings, setShowSettings] = useState(false);
+
   return (
     <div className="min-h-screen animated-bg flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-2xl space-y-8 animate-fadeIn">
+      <div className="w-full max-w-4xl space-y-8 animate-fadeIn">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
@@ -39,7 +43,14 @@ export const LobbyScreen = ({
             Quitter
           </Button>
           <GameLogo size="md" />
-          <div className="w-20" /> {/* Spacer for centering */}
+          <Button
+            variant="ghost"
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            Audio/Vidéo
+          </Button>
         </div>
 
         <div className="text-center space-y-4">
@@ -54,13 +65,21 @@ export const LobbyScreen = ({
           </p>
         </div>
 
-        <div className="flex justify-center">
-          <PlayersList
-            players={players}
-            lobbyCode={lobbyCode}
-            isHost={isHost}
-            onStartGame={onStartGame}
-          />
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="flex justify-center">
+            <PlayersList
+              players={players}
+              lobbyCode={lobbyCode}
+              isHost={isHost}
+              onStartGame={onStartGame}
+            />
+          </div>
+
+          {showSettings && (
+            <div className="animate-fadeIn">
+              <DeviceSettings showPreview={true} />
+            </div>
+          )}
         </div>
       </div>
     </div>
