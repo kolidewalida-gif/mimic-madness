@@ -25,23 +25,63 @@ export const useLobbySync = () => {
 
   // Create a new lobby
   const createLobby = useCallback(async (hostId: string, hostName: string) => {
+    if (!hostId || !hostName) {
+      toast({
+        title: "Erreur",
+        description: "Informations manquantes",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     setIsLoading(true);
     try {
       // Generate a unique 6-character code
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      let code = '';
+      let attempts = 0;
+      let lobbyData = null;
 
-      // Create lobby
-      const { data: lobbyData, error: lobbyError } = await supabase
-        .from('lobbies')
-        .insert({
-          code,
-          host_id: hostId,
-          status: 'waiting'
-        })
-        .select()
-        .single();
+      // Try up to 5 times to generate a unique code
+      while (attempts < 5 && !lobbyData) {
+        code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        // Check if code already exists
+        const { data: existingLobby } = await supabase
+          .from('lobbies')
+          .select('id')
+          .eq('code', code)
+          .maybeSingle();
 
-      if (lobbyError) throw lobbyError;
+        if (!existingLobby) {
+          // Code is unique, create lobby
+          const { data, error: lobbyError } = await supabase
+            .from('lobbies')
+            .insert({
+              code,
+              host_id: hostId,
+              status: 'waiting'
+            })
+            .select()
+            .single();
+
+          if (lobbyError) {
+            if (lobbyError.code === '23505') {
+              // Duplicate key, try again
+              attempts++;
+              continue;
+            }
+            throw lobbyError;
+          }
+
+          lobbyData = data;
+        } else {
+          attempts++;
+        }
+      }
+
+      if (!lobbyData) {
+        throw new Error('Impossible de générer un code unique');
+      }
 
       // Add host as first player
       const { error: playerError } = await supabase
@@ -49,25 +89,29 @@ export const useLobbySync = () => {
         .insert({
           lobby_id: lobbyData.id,
           player_id: hostId,
-          player_name: hostName,
+          player_name: hostName.trim(),
           is_host: true
         });
 
-      if (playerError) throw playerError;
+      if (playerError) {
+        // Rollback: delete the lobby
+        await supabase.from('lobbies').delete().eq('id', lobbyData.id);
+        throw playerError;
+      }
 
       setLobby(lobbyData);
       
       toast({
-        title: "Lobby créé",
-        description: `Code: ${code}`,
+        title: "Lobby créé !",
+        description: `Code du lobby: ${code}`,
       });
 
       return { lobby: lobbyData, code };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating lobby:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer le lobby",
+        description: error.message || "Impossible de créer le lobby",
         variant: "destructive",
       });
       return null;
@@ -78,61 +122,93 @@ export const useLobbySync = () => {
 
   // Join an existing lobby
   const joinLobby = useCallback(async (code: string, playerId: string, playerName: string) => {
+    if (!code || !playerId || !playerName) {
+      toast({
+        title: "Erreur",
+        description: "Informations manquantes",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     setIsLoading(true);
     try {
+      const normalizedCode = code.trim().toUpperCase();
+      
       // Find lobby by code
       const { data: lobbyData, error: lobbyError } = await supabase
         .from('lobbies')
-        .select()
-        .eq('code', code.toUpperCase())
-        .single();
+        .select('*')
+        .eq('code', normalizedCode)
+        .maybeSingle();
 
-      if (lobbyError) throw lobbyError;
+      if (lobbyError) {
+        console.error('Lobby lookup error:', lobbyError);
+        throw new Error('Erreur lors de la recherche du lobby');
+      }
 
       if (!lobbyData) {
         toast({
-          title: "Erreur",
-          description: "Lobby introuvable",
+          title: "Lobby introuvable",
+          description: `Le code "${normalizedCode}" ne correspond à aucun lobby`,
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      // Check if lobby is full (max 8 players)
+      const { data: existingPlayers, error: countError } = await supabase
+        .from('lobby_players')
+        .select('player_id')
+        .eq('lobby_id', lobbyData.id);
+
+      if (countError) {
+        console.error('Error counting players:', countError);
+        throw new Error('Erreur lors de la vérification du lobby');
+      }
+
+      if (existingPlayers && existingPlayers.length >= 8) {
+        toast({
+          title: "Lobby complet",
+          description: "Ce lobby a atteint le nombre maximum de joueurs",
           variant: "destructive",
         });
         return null;
       }
 
       // Check if player already in lobby
-      const { data: existingPlayer } = await supabase
-        .from('lobby_players')
-        .select()
-        .eq('lobby_id', lobbyData.id)
-        .eq('player_id', playerId)
-        .maybeSingle();
+      const alreadyInLobby = existingPlayers?.some(p => p.player_id === playerId);
 
-      if (!existingPlayer) {
+      if (!alreadyInLobby) {
         // Add player to lobby
         const { error: playerError } = await supabase
           .from('lobby_players')
           .insert({
             lobby_id: lobbyData.id,
             player_id: playerId,
-            player_name: playerName,
+            player_name: playerName.trim(),
             is_host: false
           });
 
-        if (playerError) throw playerError;
+        if (playerError) {
+          console.error('Error adding player:', playerError);
+          throw new Error('Impossible de rejoindre le lobby');
+        }
       }
 
       setLobby(lobbyData);
 
       toast({
-        title: "Connecté",
-        description: "Vous avez rejoint le lobby",
+        title: "Connecté !",
+        description: `Bienvenue dans le lobby ${normalizedCode}`,
       });
 
       return { lobby: lobbyData };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error joining lobby:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de rejoindre le lobby",
+        description: error.message || "Impossible de rejoindre le lobby",
         variant: "destructive",
       });
       return null;
@@ -175,10 +251,50 @@ export const useLobbySync = () => {
 
   // Subscribe to lobby changes
   useEffect(() => {
-    if (!lobby) return;
+    if (!lobby) {
+      setPlayers([]);
+      return;
+    }
 
+    let isSubscribed = true;
+
+    const fetchPlayers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('lobby_players')
+          .select('*')
+          .eq('lobby_id', lobby.id)
+          .order('joined_at', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching players:', error);
+          return;
+        }
+
+        if (data && isSubscribed) {
+          setPlayers(
+            data.map((p) => ({
+              id: p.player_id,
+              name: p.player_name,
+              isHost: p.is_host,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Error in fetchPlayers:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchPlayers();
+
+    // Subscribe to realtime changes
     const newChannel = supabase
-      .channel(`lobby:${lobby.id}`)
+      .channel(`lobby:${lobby.id}`, {
+        config: {
+          broadcast: { self: true },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -187,51 +303,38 @@ export const useLobbySync = () => {
           table: 'lobby_players',
           filter: `lobby_id=eq.${lobby.id}`
         },
-        async () => {
-          // Fetch updated players list
-          const { data } = await supabase
-            .from('lobby_players')
-            .select('*')
-            .eq('lobby_id', lobby.id)
-            .order('joined_at', { ascending: true });
-
-          if (data) {
-            setPlayers(
-              data.map((p) => ({
-                id: p.player_id,
-                name: p.player_name,
-                isHost: p.is_host,
-              }))
-            );
+        (payload) => {
+          console.log('Realtime event:', payload);
+          // Refetch players on any change
+          fetchPlayers();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'lobbies',
+          filter: `id=eq.${lobby.id}`
+        },
+        (payload) => {
+          console.log('Lobby updated:', payload);
+          if (payload.new && isSubscribed) {
+            setLobby(payload.new as Lobby);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Channel status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to lobby:', lobby.id);
+        }
+      });
 
     setChannel(newChannel);
 
-    // Initial fetch
-    const fetchPlayers = async () => {
-      const { data } = await supabase
-        .from('lobby_players')
-        .select('*')
-        .eq('lobby_id', lobby.id)
-        .order('joined_at', { ascending: true });
-
-      if (data) {
-        setPlayers(
-          data.map((p) => ({
-            id: p.player_id,
-            name: p.player_name,
-            isHost: p.is_host,
-          }))
-        );
-      }
-    };
-
-    fetchPlayers();
-
     return () => {
+      isSubscribed = false;
       if (newChannel) {
         supabase.removeChannel(newChannel);
       }
