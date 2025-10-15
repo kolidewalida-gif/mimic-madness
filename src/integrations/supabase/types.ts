@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           host_id: string
           id: string
+          max_players: number | null
           status: string
           updated_at: string
         }
@@ -28,6 +29,7 @@ export type Database = {
           created_at?: string
           host_id: string
           id?: string
+          max_players?: number | null
           status?: string
           updated_at?: string
         }
@@ -36,6 +38,7 @@ export type Database = {
           created_at?: string
           host_id?: string
           id?: string
+          max_players?: number | null
           status?: string
           updated_at?: string
         }
@@ -81,7 +84,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_lobbies: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
