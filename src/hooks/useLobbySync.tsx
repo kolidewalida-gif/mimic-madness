@@ -43,7 +43,8 @@ export const useLobbySync = () => {
 
       // Try up to 5 times to generate a unique code
       while (attempts < 5 && !lobbyData) {
-        code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        // Generate 4-character code (easier to type and share)
+        code = Math.random().toString(36).substring(2, 6).toUpperCase();
         
         // Check if code already exists
         const { data: existingLobby } = await supabase
@@ -135,12 +136,16 @@ export const useLobbySync = () => {
     try {
       const normalizedCode = code.trim().toUpperCase();
       
+      console.log('Attempting to join lobby with code:', normalizedCode);
+      
       // Find lobby by code
       const { data: lobbyData, error: lobbyError } = await supabase
         .from('lobbies')
         .select('*')
         .eq('code', normalizedCode)
         .maybeSingle();
+      
+      console.log('Lobby lookup result:', { lobbyData, lobbyError });
 
       if (lobbyError) {
         console.error('Lobby lookup error:', lobbyError);

@@ -51,7 +51,7 @@ export const PlayersList = ({
           <div className="text-center space-y-2">
             <p className="text-foreground-secondary text-sm">Code du lobby</p>
             <div className="flex items-center justify-center gap-2">
-              <span className="text-3xl font-bold text-gradient tracking-widest">
+              <span className="text-4xl font-bold text-gradient tracking-[0.3em]">
                 {lobbyCode}
               </span>
               <Button
@@ -65,7 +65,7 @@ export const PlayersList = ({
               </Button>
             </div>
             <p className="text-xs text-foreground-secondary">
-              Partagez ce code pour inviter des joueurs
+              Code court et facile à partager (4 caractères)
             </p>
           </div>
         )}

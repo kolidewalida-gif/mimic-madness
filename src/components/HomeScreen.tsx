@@ -108,6 +108,7 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                       }
                     }}
                     maxLength={4}
+                    className="text-center text-xl tracking-widest uppercase font-bold"
                   />
                 </div>
                 
