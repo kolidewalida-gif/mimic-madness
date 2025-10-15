@@ -1,4 +1,4 @@
-import { useState, useRef, ChangeEvent } from "react";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GameCard } from "@/components/GameCard";
@@ -34,11 +34,6 @@ export const VideoUpload = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Load saved clips on component mount
-  useState(() => {
-    loadSavedClips();
-  });
-
   const loadSavedClips = async () => {
     try {
       await videoStorage.init();
@@ -48,6 +43,11 @@ export const VideoUpload = ({
       console.error("Error loading clips:", error);
     }
   };
+
+  // Load saved clips on component mount
+  useEffect(() => {
+    loadSavedClips();
+  }, [playerId]);
 
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

@@ -227,6 +227,8 @@ export const useLobbySync = () => {
     if (!lobby) return;
 
     try {
+      console.log('Player leaving lobby:', playerId);
+      
       // Remove player from lobby
       await supabase
         .from('lobby_players')
@@ -236,6 +238,7 @@ export const useLobbySync = () => {
 
       // If host leaves, delete the lobby
       if (lobby.host_id === playerId) {
+        console.log('Host leaving, deleting lobby');
         await supabase
           .from('lobbies')
           .delete()
@@ -253,6 +256,21 @@ export const useLobbySync = () => {
       console.error('Error leaving lobby:', error);
     }
   }, [lobby, channel]);
+
+  // Update lobby status
+  const updateLobbyStatus = useCallback(async (status: string) => {
+    if (!lobby) return;
+
+    try {
+      console.log('Updating lobby status to:', status);
+      await supabase
+        .from('lobbies')
+        .update({ status })
+        .eq('id', lobby.id);
+    } catch (error) {
+      console.error('Error updating lobby status:', error);
+    }
+  }, [lobby]);
 
   // Subscribe to lobby changes
   useEffect(() => {
@@ -353,5 +371,6 @@ export const useLobbySync = () => {
     createLobby,
     joinLobby,
     leaveLobby,
+    updateLobbyStatus,
   };
 };
