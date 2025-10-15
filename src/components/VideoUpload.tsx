@@ -153,20 +153,36 @@ export const VideoUpload = ({
   const saveVideoClip = async () => {
     if (!selectedFile || !videoRef.current) return;
 
+    // Validate clip name
+    if (!clipName.trim()) {
+      toast({
+        title: "Nom requis",
+        description: "Veuillez donner un nom à votre extrait vidéo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate duration
+    if (endTime - startTime > 10) {
+      toast({
+        title: "Durée invalide",
+        description: "La durée maximale d'un extrait est de 10 secondes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Create canvas to extract video frame
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d")!;
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      console.log('Saving video clip:', clipName);
       
-      // Create the clipped video blob
-      const videoBlob = selectedFile.slice(0, selectedFile.size, selectedFile.type);
+      // Store the entire video file as blob
+      const videoBlob = selectedFile;
       
       const clip: VideoClip = {
         id: `${playerId}-${Date.now()}`,
-        name: clipName || selectedFile.name,
+        name: clipName.trim(),
         originalFile: selectedFile,
         startTime,
         endTime,
@@ -175,14 +191,25 @@ export const VideoUpload = ({
         playerId,
       };
 
+      await videoStorage.init();
       await videoStorage.saveVideoClip(clip, videoBlob);
-      setSavedClips([...savedClips, clip]);
+      
+      // Reload clips to get the updated list
+      const updatedClips = await videoStorage.getVideoClipsByPlayer(playerId);
+      setSavedClips(updatedClips);
+      
       onVideoSaved?.(clip);
 
       // Reset form
       setSelectedFile(null);
       setIsEditing(false);
       setClipName("");
+      setStartTime(0);
+      setEndTime(10);
+      
+      if (videoRef.current) {
+        videoRef.current.src = "";
+      }
       
       toast({
         title: "Vidéo sauvegardée !",
@@ -203,8 +230,11 @@ export const VideoUpload = ({
 
   const deleteClip = async (clipId: string) => {
     try {
+      console.log('Deleting clip:', clipId);
       await videoStorage.deleteVideoClip(clipId);
-      setSavedClips(savedClips.filter(clip => clip.id !== clipId));
+      
+      // Reload clips to get updated list
+      await loadSavedClips();
       
       toast({
         title: "Vidéo supprimée",
@@ -369,10 +399,10 @@ export const VideoUpload = ({
               {savedClips.map((clip) => (
                 <div
                   key={clip.id}
-                  className="flex items-center justify-between p-3 bg-background-secondary/30 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-background-secondary/30 rounded-lg group hover:bg-background-secondary/50 transition-colors"
                 >
-                  <div className="flex-1">
-                    <p className="font-medium">{clip.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{clip.name}</p>
                     <p className="text-sm text-foreground-secondary">
                       {formatTime(clip.duration)} • {clip.createdAt.toLocaleDateString()}
                     </p>
@@ -382,7 +412,7 @@ export const VideoUpload = ({
                     variant="ghost"
                     size="icon"
                     onClick={() => deleteClip(clip.id)}
-                    className="text-destructive hover:bg-destructive/20"
+                    className="text-destructive hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

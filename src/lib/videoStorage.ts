@@ -52,22 +52,32 @@ class VideoStorageManager {
   async saveVideoClip(clip: VideoClip, videoBlob: Blob): Promise<void> {
     if (!this.db) throw new Error("Database not initialized");
     
-    const transaction = this.db.transaction(["videoClips", "videoFiles"], "readwrite");
-    
-    // Save clip metadata
-    const clipStore = transaction.objectStore("videoClips");
-    const clipData = {
-      ...clip,
-      originalFile: null, // Don't store file object, just metadata
-      fileName: clip.originalFile.name,
-      fileSize: clip.originalFile.size,
-      fileType: clip.originalFile.type,
-    };
-    await clipStore.put(clipData);
-    
-    // Save video file as blob
-    const fileStore = transaction.objectStore("videoFiles");
-    await fileStore.put({ id: clip.id, blob: videoBlob });
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(["videoClips", "videoFiles"], "readwrite");
+      
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      
+      // Save clip metadata
+      const clipStore = transaction.objectStore("videoClips");
+      const clipData = {
+        id: clip.id,
+        name: clip.name,
+        startTime: clip.startTime,
+        endTime: clip.endTime,
+        duration: clip.duration,
+        createdAt: clip.createdAt.toISOString(),
+        playerId: clip.playerId,
+        fileName: clip.originalFile.name,
+        fileSize: clip.originalFile.size,
+        fileType: clip.originalFile.type,
+      };
+      clipStore.put(clipData);
+      
+      // Save video file as blob
+      const fileStore = transaction.objectStore("videoFiles");
+      fileStore.put({ id: clip.id, blob: videoBlob });
+    });
   }
 
   async getVideoClipsByPlayer(playerId: string): Promise<VideoClip[]> {
@@ -109,13 +119,24 @@ class VideoStorageManager {
   async deleteVideoClip(clipId: string): Promise<void> {
     if (!this.db) throw new Error("Database not initialized");
     
-    const transaction = this.db.transaction(["videoClips", "videoFiles"], "readwrite");
-    
-    const clipStore = transaction.objectStore("videoClips");
-    await clipStore.delete(clipId);
-    
-    const fileStore = transaction.objectStore("videoFiles");
-    await fileStore.delete(clipId);
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(["videoClips", "videoFiles"], "readwrite");
+      
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      
+      const clipStore = transaction.objectStore("videoClips");
+      clipStore.delete(clipId);
+      
+      const fileStore = transaction.objectStore("videoFiles");
+      fileStore.delete(clipId);
+    });
+  }
+
+  async getVideoUrl(clipId: string): Promise<string | null> {
+    const blob = await this.getVideoBlob(clipId);
+    if (!blob) return null;
+    return URL.createObjectURL(blob);
   }
 
   async getAllClips(): Promise<VideoClip[]> {
