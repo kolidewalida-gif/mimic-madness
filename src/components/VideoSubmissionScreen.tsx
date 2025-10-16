@@ -79,14 +79,19 @@ export const VideoSubmissionScreen = ({
     
     try {
       const clipsToSubmit = savedClips.filter(clip => selectedClips.includes(clip.id));
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+      
+      console.log('Submitting challenges:', clipsToSubmit);
       
       onSubmitChallenges(clipsToSubmit);
       
       toast({
-        title: "Défis soumis !",
-        description: `${selectedClips.length} défi(s) envoyé(s) avec succès.`,
+        title: "✅ Défis soumis avec succès !",
+        description: `${selectedClips.length} défi(s) envoyé(s). Vos vidéos sont prêtes pour la partie !`,
       });
+      
+      // Clear selection after successful submit
+      setSelectedClips([]);
+      
     } catch (error) {
       console.error("Error submitting challenges:", error);
       toast({

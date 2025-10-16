@@ -73,11 +73,11 @@ export const VideoUpload = ({
       return;
     }
 
-    // Check file size (max 50MB)
-    if (file.size > 50 * 1024 * 1024) {
+    // Check file size (max 400MB)
+    if (file.size > 400 * 1024 * 1024) {
       toast({
         title: "Fichier trop volumineux",
-        description: "La taille maximale est de 50 Mo.",
+        description: "La taille maximale est de 400 Mo.",
         variant: "destructive",
       });
       return;

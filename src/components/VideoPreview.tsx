@@ -16,9 +16,40 @@ export const VideoPreview = ({ clipId, startTime, endTime, className = "" }: Vid
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    let mounted = true;
+    
+    const loadVideo = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        await videoStorage.init();
+        const url = await videoStorage.getVideoUrl(clipId);
+        
+        if (!mounted) return;
+        
+        if (!url) {
+          setError("Vidéo introuvable");
+          return;
+        }
+        
+        setVideoUrl(url);
+      } catch (err) {
+        console.error("Error loading video:", err);
+        if (mounted) {
+          setError("Erreur de chargement");
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
     loadVideo();
     
     return () => {
+      mounted = false;
       // Cleanup blob URL when component unmounts
       if (videoUrl) {
         URL.revokeObjectURL(videoUrl);
@@ -26,27 +57,6 @@ export const VideoPreview = ({ clipId, startTime, endTime, className = "" }: Vid
     };
   }, [clipId]);
 
-  const loadVideo = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      await videoStorage.init();
-      const url = await videoStorage.getVideoUrl(clipId);
-      
-      if (!url) {
-        setError("Vidéo introuvable");
-        return;
-      }
-      
-      setVideoUrl(url);
-    } catch (err) {
-      console.error("Error loading video:", err);
-      setError("Erreur de chargement");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLoadedData = () => {
     if (videoRef.current && startTime > 0) {
