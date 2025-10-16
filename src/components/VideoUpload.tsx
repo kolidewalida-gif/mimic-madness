@@ -90,7 +90,12 @@ export const VideoUpload = ({
     // Create video URL and load it
     const videoUrl = URL.createObjectURL(file);
     if (videoRef.current) {
+      // Clean up previous video URL if any
+      if (videoRef.current.src) {
+        URL.revokeObjectURL(videoRef.current.src);
+      }
       videoRef.current.src = videoUrl;
+      videoRef.current.load(); // Force video to load
     }
   };
 
@@ -99,7 +104,7 @@ export const VideoUpload = ({
       const duration = videoRef.current.duration;
       setVideoDuration(duration);
       setStartTime(0);
-      setEndTime(Math.min(10, duration));
+      setEndTime(Math.min(25, duration));
     }
   };
 
@@ -138,11 +143,11 @@ export const VideoUpload = ({
 
   const handleEndTimeChange = (value: string) => {
     const time = parseFloat(value);
-    if (time - startTime > 10) {
-      setEndTime(startTime + 10);
+    if (time - startTime > 25) {
+      setEndTime(startTime + 25);
       toast({
         title: "Durée limitée",
-        description: "La durée maximale d'un extrait est de 10 secondes.",
+        description: "La durée maximale d'un extrait est de 25 secondes.",
         variant: "destructive",
       });
     } else {
@@ -164,10 +169,10 @@ export const VideoUpload = ({
     }
 
     // Validate duration
-    if (endTime - startTime > 10) {
+    if (endTime - startTime > 25) {
       toast({
         title: "Durée invalide",
-        description: "La durée maximale d'un extrait est de 10 secondes.",
+        description: "La durée maximale d'un extrait est de 25 secondes.",
         variant: "destructive",
       });
       return;
@@ -205,10 +210,19 @@ export const VideoUpload = ({
       setIsEditing(false);
       setClipName("");
       setStartTime(0);
-      setEndTime(10);
+      setEndTime(25);
       
       if (videoRef.current) {
+        // Clean up video URL
+        if (videoRef.current.src) {
+          URL.revokeObjectURL(videoRef.current.src);
+        }
         videoRef.current.src = "";
+      }
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
       
       toast({
@@ -360,8 +374,8 @@ export const VideoUpload = ({
                 <div className="text-center space-y-2">
                   <p className="text-sm text-foreground-secondary">
                     Durée de l'extrait: {formatTime(endTime - startTime)} 
-                    {endTime - startTime > 10 && (
-                      <span className="text-destructive ml-2">⚠️ Max 10 secondes</span>
+                    {endTime - startTime > 25 && (
+                      <span className="text-destructive ml-2">⚠️ Max 25 secondes</span>
                     )}
                   </p>
                 </div>
@@ -378,7 +392,7 @@ export const VideoUpload = ({
                   <Button
                     variant="hero"
                     onClick={saveVideoClip}
-                    disabled={isLoading || endTime - startTime > 10 || !clipName.trim()}
+                    disabled={isLoading || endTime - startTime > 25 || !clipName.trim()}
                     className="flex-1"
                   >
                     <Check className="h-4 w-4" />

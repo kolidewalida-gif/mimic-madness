@@ -6,6 +6,8 @@ import { GameCard } from "@/components/GameCard";
 import { ArrowLeft, Send, Clock } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorage";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { SubmissionStatus } from "@/components/SubmissionStatus";
 
 interface Player {
   id: string;
@@ -15,14 +17,22 @@ interface Player {
 
 interface VideoSubmissionScreenProps {
   currentPlayer: Player;
+  lobbyId: string;
+  players: Player[];
+  isHost: boolean;
   onBackToLobby: () => void;
   onSubmitChallenges: (selectedClips: VideoClip[]) => void;
+  onStartActualGame: () => void;
 }
 
 export const VideoSubmissionScreen = ({ 
-  currentPlayer, 
+  currentPlayer,
+  lobbyId,
+  players,
+  isHost,
   onBackToLobby, 
-  onSubmitChallenges 
+  onSubmitChallenges,
+  onStartActualGame
 }: VideoSubmissionScreenProps) => {
   const [savedClips, setSavedClips] = useState<VideoClip[]>([]);
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
@@ -82,6 +92,23 @@ export const VideoSubmissionScreen = ({
       
       console.log('Submitting challenges:', clipsToSubmit);
       
+      // Save submission to database
+      const { error } = await supabase
+        .from('player_submissions')
+        .upsert({
+          lobby_id: lobbyId,
+          player_id: currentPlayer.id,
+          player_name: currentPlayer.name,
+          challenges_count: clipsToSubmit.length,
+        }, {
+          onConflict: 'lobby_id,player_id'
+        });
+      
+      if (error) {
+        console.error('Error saving submission:', error);
+        throw error;
+      }
+      
       onSubmitChallenges(clipsToSubmit);
       
       toast({
@@ -129,7 +156,7 @@ export const VideoSubmissionScreen = ({
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           {/* Video Upload Section */}
           <div className="space-y-4">
             <VideoUpload
@@ -218,6 +245,16 @@ export const VideoSubmissionScreen = ({
                 )}
               </div>
             </GameCard>
+          </div>
+          
+          {/* Submission Status Section */}
+          <div className="space-y-4">
+            <SubmissionStatus
+              lobbyId={lobbyId}
+              players={players}
+              isHost={isHost}
+              onStartGame={onStartActualGame}
+            />
           </div>
         </div>
       </div>

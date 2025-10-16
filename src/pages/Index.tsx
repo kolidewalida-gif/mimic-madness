@@ -124,8 +124,17 @@ const Index = () => {
       title: "Défis soumis !",
       description: `${challenges.length} défi(s) envoyé(s). En attente des autres joueurs...`,
     });
+  };
+  
+  const handleStartActualGame = () => {
+    setGameState("playing");
     
-    // TODO: Implement game start logic when all players have submitted
+    toast({
+      title: "🎮 Que le jeu commence !",
+      description: "Tous les joueurs sont prêts. C'est parti !",
+    });
+    
+    // TODO: Implement actual game logic
   };
 
   const handleBackToLobby = () => {
@@ -169,12 +178,16 @@ const Index = () => {
     );
   }
 
-  if (gameState === "preparation" && currentPlayer) {
+  if (gameState === "preparation" && currentPlayer && lobby) {
     return (
       <VideoSubmissionScreen
         currentPlayer={currentPlayer}
+        lobbyId={lobby.id}
+        players={players}
+        isHost={currentPlayer.isHost}
         onBackToLobby={handleBackToLobby}
         onSubmitChallenges={handleSubmitChallenges}
+        onStartActualGame={handleStartActualGame}
       />
     );
   }

@@ -79,6 +79,41 @@ export type Database = {
           },
         ]
       }
+      player_submissions: {
+        Row: {
+          challenges_count: number
+          id: string
+          lobby_id: string
+          player_id: string
+          player_name: string
+          submitted_at: string
+        }
+        Insert: {
+          challenges_count?: number
+          id?: string
+          lobby_id: string
+          player_id: string
+          player_name: string
+          submitted_at?: string
+        }
+        Update: {
+          challenges_count?: number
+          id?: string
+          lobby_id?: string
+          player_id?: string
+          player_name?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_submissions_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
