@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { HomeScreen } from "@/components/HomeScreen";
 import { LobbyScreen } from "@/components/LobbyScreen";
 import { VideoSubmissionScreen } from "@/components/VideoSubmissionScreen";
+import { GamePlayScreen } from "@/components/GamePlayScreen";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorage";
 import { useLobbySync } from "@/hooks/useLobbySync";
@@ -188,6 +189,17 @@ const Index = () => {
         onBackToLobby={handleBackToLobby}
         onSubmitChallenges={handleSubmitChallenges}
         onStartActualGame={handleStartActualGame}
+      />
+    );
+  }
+
+  if (gameState === "playing" && currentPlayer && submittedChallenges.length > 0) {
+    return (
+      <GamePlayScreen
+        currentPlayer={currentPlayer}
+        players={players}
+        challenges={submittedChallenges}
+        onEndGame={handleLeaveGame}
       />
     );
   }
