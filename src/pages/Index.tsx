@@ -38,15 +38,23 @@ const Index = () => {
           filter: `id=eq.${lobby.id}`
         },
         (payload: any) => {
-          console.log('Lobby status changed:', payload);
-          if (payload.new.status === 'playing') {
-            if (gameState === 'lobby') {
-              setGameState('preparation');
-              toast({
-                title: "La partie commence !",
-                description: "Préparez vos défis vidéo.",
-              });
-            }
+          console.log('Lobby update:', payload);
+          const newPhase = payload.new.game_phase;
+          
+          if (newPhase === 'preparation' && gameState !== 'preparation') {
+            console.log('Transitioning to preparation');
+            setGameState('preparation');
+            toast({
+              title: "La partie commence !",
+              description: "Préparez vos défis vidéo.",
+            });
+          } else if (newPhase === 'playing' && gameState !== 'playing') {
+            console.log('Transitioning to playing');
+            setGameState('playing');
+            toast({
+              title: "🎮 Que le jeu commence !",
+              description: "Tous les joueurs sont prêts. C'est parti !",
+            });
           }
         }
       )
@@ -100,24 +108,22 @@ const Index = () => {
   const handleStartGame = async () => {
     console.log('Starting game...');
     
-    // Update lobby status
+    // Update lobby status and phase
     if (lobby && currentPlayer?.isHost) {
       try {
         await supabase
           .from('lobbies')
-          .update({ status: 'playing' })
+          .update({ 
+            status: 'playing',
+            game_phase: 'preparation'
+          })
           .eq('id', lobby.id);
       } catch (error) {
         console.error('Error updating lobby status:', error);
       }
     }
     
-    setGameState("preparation");
-    
-    toast({
-      title: "Phase de préparation !",
-      description: "Préparez vos défis vidéo pour la partie.",
-    });
+    // Don't set state here - let the realtime listener handle it
   };
 
   const handleSubmitChallenges = (challenges: VideoClip[]) => {
@@ -129,15 +135,19 @@ const Index = () => {
     });
   };
   
-  const handleStartActualGame = () => {
-    setGameState("playing");
+  const handleStartActualGame = async () => {
+    if (lobby && currentPlayer?.isHost) {
+      try {
+        await supabase
+          .from('lobbies')
+          .update({ game_phase: 'playing' })
+          .eq('id', lobby.id);
+      } catch (error) {
+        console.error('Error updating game phase:', error);
+      }
+    }
     
-    toast({
-      title: "🎮 Que le jeu commence !",
-      description: "Tous les joueurs sont prêts. C'est parti !",
-    });
-    
-    // TODO: Implement actual game logic
+    // Don't set state here - let the realtime listener handle it
   };
 
   const handleBackToLobby = () => {

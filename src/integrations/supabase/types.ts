@@ -94,6 +94,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string
+          game_phase: string | null
           host_id: string
           id: string
           max_players: number | null
@@ -103,6 +104,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string
+          game_phase?: string | null
           host_id: string
           id?: string
           max_players?: number | null
@@ -112,6 +114,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string
+          game_phase?: string | null
           host_id?: string
           id?: string
           max_players?: number | null

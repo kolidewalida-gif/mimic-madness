@@ -213,7 +213,7 @@ export const VotingPhase = ({
             <VideoPreview
               clipId={currentImitation.clipId}
               startTime={0}
-              endTime={25}
+              endTime={30}
               className="w-full aspect-video rounded-lg mx-auto max-w-3xl"
             />
           ) : (

@@ -8,7 +8,7 @@ import { videoStorage, VideoClip } from "@/lib/videoStorage";
 
 interface VideoUploadProps {
   playerId: string;
-  playerName: string;
+  playerName?: string;
   maxVideos?: number;
   onVideoSaved?: (clip: VideoClip) => void;
 }
@@ -104,7 +104,7 @@ export const VideoUpload = ({
       const duration = videoRef.current.duration;
       setVideoDuration(duration);
       setStartTime(0);
-      setEndTime(Math.min(25, duration));
+      setEndTime(Math.min(30, duration));
     }
   };
 
@@ -143,11 +143,11 @@ export const VideoUpload = ({
 
   const handleEndTimeChange = (value: string) => {
     const time = parseFloat(value);
-    if (time - startTime > 25) {
-      setEndTime(startTime + 25);
+    if (time - startTime > 30) {
+      setEndTime(startTime + 30);
       toast({
         title: "Durée limitée",
-        description: "La durée maximale d'un extrait est de 25 secondes.",
+        description: "La durée maximale d'un extrait est de 30 secondes.",
         variant: "destructive",
       });
     } else {
@@ -169,10 +169,10 @@ export const VideoUpload = ({
     }
 
     // Validate duration
-    if (endTime - startTime > 25) {
+    if (endTime - startTime > 30) {
       toast({
         title: "Durée invalide",
-        description: "La durée maximale d'un extrait est de 25 secondes.",
+        description: "La durée maximale d'un extrait est de 30 secondes.",
         variant: "destructive",
       });
       return;
@@ -210,7 +210,7 @@ export const VideoUpload = ({
       setIsEditing(false);
       setClipName("");
       setStartTime(0);
-      setEndTime(25);
+      setEndTime(30);
       
       if (videoRef.current) {
         // Clean up video URL
@@ -374,8 +374,8 @@ export const VideoUpload = ({
                 <div className="text-center space-y-2">
                   <p className="text-sm text-foreground-secondary">
                     Durée de l'extrait: {formatTime(endTime - startTime)} 
-                    {endTime - startTime > 25 && (
-                      <span className="text-destructive ml-2">⚠️ Max 25 secondes</span>
+                    {endTime - startTime > 30 && (
+                      <span className="text-destructive ml-2">⚠️ Max 30 secondes</span>
                     )}
                   </p>
                 </div>
@@ -392,7 +392,7 @@ export const VideoUpload = ({
                   <Button
                     variant="hero"
                     onClick={saveVideoClip}
-                    disabled={isLoading || endTime - startTime > 25 || !clipName.trim()}
+                    disabled={isLoading || endTime - startTime > 30 || !clipName.trim()}
                     className="flex-1"
                   >
                     <Check className="h-4 w-4" />

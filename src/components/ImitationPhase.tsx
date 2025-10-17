@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { VideoPreview } from "@/components/VideoPreview";
 import { VideoUpload } from "@/components/VideoUpload";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { Play, Check, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -152,14 +153,25 @@ export const ImitationPhase = ({
 
         {/* Recording Interface */}
         <GameCard>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <h3 className="text-xl font-semibold">Votre Imitation</h3>
-            <VideoUpload
-              playerId={currentPlayer.id}
-              playerName={currentPlayer.name}
-              maxVideos={1}
-              onVideoSaved={handleVideoSaved}
-            />
+            
+            {/* Voice Recorder */}
+            <div className="flex justify-center py-4">
+              <VoiceRecorder
+                onRecordingStart={() => console.log("Started recording")}
+                onRecordingStop={() => console.log("Stopped recording")}
+              />
+            </div>
+
+            {/* Video Upload */}
+            <div className="border-t border-border pt-4">
+              <VideoUpload
+                playerId={currentPlayer.id}
+                maxVideos={1}
+                onVideoSaved={handleVideoSaved}
+              />
+            </div>
             
             <div className="space-y-3 pt-4">
               <Button
