@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GameLogo } from "@/components/GameLogo";
 import { Button } from "@/components/ui/button";
-import { GameCard } from "@/components/GameCard";
-import { VideoPreview } from "@/components/VideoPreview";
-import { ArrowLeft, Play } from "lucide-react";
-import { VideoClip } from "@/lib/videoStorage";
+import { ImitationPhase } from "@/components/ImitationPhase";
+import { VotingPhase } from "@/components/VotingPhase";
+import { ResultsPhase } from "@/components/ResultsPhase";
+import { ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { videoStorage } from "@/lib/videoStorage";
 
 interface Player {
   id: string;
@@ -15,31 +18,184 @@ interface Player {
 interface GamePlayScreenProps {
   currentPlayer: Player;
   players: Player[];
-  challenges: VideoClip[];
+  lobbyId: string;
   onEndGame: () => void;
+}
+
+type GamePhase = "imitation" | "voting" | "results";
+
+interface CurrentChallenge {
+  id: string;
+  playerId: string;
+  playerName: string;
 }
 
 export const GamePlayScreen = ({
   currentPlayer,
   players,
-  challenges,
+  lobbyId,
   onEndGame
 }: GamePlayScreenProps) => {
-  const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
-  
-  const currentChallenge = challenges[currentChallengeIndex];
+  const [gamePhase, setGamePhase] = useState<GamePhase>("imitation");
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [currentChallenge, setCurrentChallenge] = useState<CurrentChallenge | null>(null);
+  const { toast } = useToast();
 
-  const handleNextChallenge = () => {
-    if (currentChallengeIndex < challenges.length - 1) {
-      setCurrentChallengeIndex(prev => prev + 1);
+  // Initialize game round
+  useEffect(() => {
+    const initializeRound = async () => {
+      try {
+        // Check if round already exists
+        const { data: existingRound } = await supabase
+          .from('game_rounds')
+          .select('*')
+          .eq('lobby_id', lobbyId)
+          .eq('round_number', roundNumber)
+          .maybeSingle();
+
+        if (existingRound) {
+          // Load existing round
+          setCurrentChallenge({
+            id: existingRound.current_challenge_id,
+            playerId: existingRound.challenge_player_id,
+            playerName: players.find(p => p.id === existingRound.challenge_player_id)?.name || "Joueur"
+          });
+          setGamePhase(existingRound.phase as GamePhase);
+          return;
+        }
+
+        // Create new round (only host)
+        if (currentPlayer.isHost) {
+          // Pick a random challenge from all players' submissions
+          const allClips = await videoStorage.getAllClips();
+          if (allClips.length === 0) {
+            toast({
+              title: "Erreur",
+              description: "Aucun défi disponible",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const randomClip = allClips[Math.floor(Math.random() * allClips.length)];
+          const challengePlayer = players.find(p => p.id === randomClip.playerId);
+
+          const { error } = await supabase
+            .from('game_rounds')
+            .insert({
+              lobby_id: lobbyId,
+              round_number: roundNumber,
+              current_challenge_id: randomClip.id,
+              challenge_player_id: randomClip.playerId,
+              phase: 'imitation'
+            });
+
+          if (error) throw error;
+
+          setCurrentChallenge({
+            id: randomClip.id,
+            playerId: randomClip.playerId,
+            playerName: challengePlayer?.name || "Joueur"
+          });
+        }
+      } catch (error) {
+        console.error('Error initializing round:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible d'initialiser la manche",
+          variant: "destructive",
+        });
+      }
+    };
+
+    initializeRound();
+
+    // Subscribe to game round updates
+    const channel = supabase
+      .channel(`game-round:${lobbyId}:${roundNumber}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'game_rounds',
+          filter: `lobby_id=eq.${lobbyId}`
+        },
+        (payload: any) => {
+          console.log('Game round update:', payload);
+          if (payload.new && payload.new.round_number === roundNumber) {
+            setGamePhase(payload.new.phase);
+            if (!currentChallenge) {
+              setCurrentChallenge({
+                id: payload.new.current_challenge_id,
+                playerId: payload.new.challenge_player_id,
+                playerName: players.find((p: Player) => p.id === payload.new.challenge_player_id)?.name || "Joueur"
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [lobbyId, roundNumber, currentPlayer.isHost, players, currentChallenge, toast]);
+
+  const handleAllReady = async () => {
+    if (currentPlayer.isHost) {
+      try {
+        await supabase
+          .from('game_rounds')
+          .update({ phase: 'voting' })
+          .eq('lobby_id', lobbyId)
+          .eq('round_number', roundNumber);
+
+        toast({
+          title: "Phase de vote !",
+          description: "Tous les joueurs sont prêts. Votez pour les meilleures imitations !",
+        });
+      } catch (error) {
+        console.error('Error updating phase:', error);
+      }
     }
   };
 
-  const handlePrevChallenge = () => {
-    if (currentChallengeIndex > 0) {
-      setCurrentChallengeIndex(prev => prev - 1);
+  const handleVotingComplete = async () => {
+    if (currentPlayer.isHost) {
+      try {
+        await supabase
+          .from('game_rounds')
+          .update({ phase: 'results' })
+          .eq('lobby_id', lobbyId)
+          .eq('round_number', roundNumber);
+      } catch (error) {
+        console.error('Error updating phase:', error);
+      }
     }
   };
+
+  const handleNextRound = async () => {
+    setRoundNumber(prev => prev + 1);
+    setGamePhase("imitation");
+    setCurrentChallenge(null);
+    
+    toast({
+      title: "Nouvelle manche !",
+      description: "Préparez-vous pour le prochain défi !",
+    });
+  };
+
+  if (!currentChallenge) {
+    return (
+      <div className="min-h-screen animated-bg p-6 flex items-center justify-center">
+        <div className="text-center">
+          <GameLogo size="lg" />
+          <p className="mt-4 text-foreground-secondary">Chargement de la manche...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen animated-bg p-6">
@@ -51,119 +207,46 @@ export const GamePlayScreen = ({
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Quitter la Partie
+            Quitter
           </Button>
           <GameLogo size="md" />
-          <div className="w-32" /> {/* Spacer */}
-        </div>
-
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl font-bold text-gradient">
-            🎮 Partie en Cours
-          </h2>
-          <p className="text-foreground-secondary text-lg">
-            {players.length} joueur(s) • {challenges.length} défi(s)
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Players List */}
-          <div>
-            <GameCard>
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-gradient">
-                  Joueurs
-                </h3>
-                <div className="space-y-2">
-                  {players.map((player) => (
-                    <div
-                      key={player.id}
-                      className={`p-3 rounded-lg ${
-                        player.id === currentPlayer.id
-                          ? "bg-primary/20 border border-primary"
-                          : "bg-background-secondary/30"
-                      }`}
-                    >
-                      <p className="font-medium">{player.name}</p>
-                      {player.isHost && (
-                        <span className="text-xs text-secondary">👑 Hôte</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </GameCard>
-          </div>
-
-          {/* Current Challenge */}
-          <div className="md:col-span-2">
-            <GameCard>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold text-gradient">
-                    Défi {currentChallengeIndex + 1}/{challenges.length}
-                  </h3>
-                  <Play className="h-5 w-5 text-secondary" />
-                </div>
-
-                {currentChallenge ? (
-                  <div className="space-y-4">
-                    <div className="bg-background-secondary/30 p-4 rounded-lg">
-                      <h4 className="font-semibold text-lg mb-2">{currentChallenge.name}</h4>
-                      <p className="text-sm text-foreground-secondary mb-4">
-                        Durée: {Math.round(currentChallenge.duration)}s
-                      </p>
-                      
-                      <VideoPreview
-                        clipId={currentChallenge.id}
-                        startTime={currentChallenge.startTime}
-                        endTime={currentChallenge.endTime}
-                        className="w-full aspect-video"
-                      />
-                    </div>
-
-                    <div className="flex gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={handlePrevChallenge}
-                        disabled={currentChallengeIndex === 0}
-                        className="flex-1"
-                      >
-                        ← Précédent
-                      </Button>
-                      
-                      <Button
-                        variant="hero"
-                        onClick={handleNextChallenge}
-                        disabled={currentChallengeIndex === challenges.length - 1}
-                        className="flex-1"
-                      >
-                        Suivant →
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-foreground-secondary">
-                    <p>Aucun défi disponible</p>
-                  </div>
-                )}
-              </div>
-            </GameCard>
-
-            {/* Game Instructions */}
-            <GameCard className="mt-6">
-              <div className="space-y-3">
-                <h4 className="font-semibold text-lg">📋 Instructions</h4>
-                <ul className="space-y-2 text-sm text-foreground-secondary">
-                  <li>• Regardez la vidéo du défi actuel</li>
-                  <li>• Imitez les mouvements ou actions de la vidéo</li>
-                  <li>• Les autres joueurs évaluent votre performance</li>
-                  <li>• Passez au défi suivant quand vous êtes prêt</li>
-                </ul>
-              </div>
-            </GameCard>
+          <div className="text-right">
+            <p className="text-sm text-foreground-secondary">Manche</p>
+            <p className="text-2xl font-bold text-gradient">{roundNumber}</p>
           </div>
         </div>
+
+        {gamePhase === "imitation" && (
+          <ImitationPhase
+            lobbyId={lobbyId}
+            roundNumber={roundNumber}
+            currentPlayer={currentPlayer}
+            players={players}
+            currentChallenge={currentChallenge}
+            onAllReady={handleAllReady}
+          />
+        )}
+
+        {gamePhase === "voting" && (
+          <VotingPhase
+            lobbyId={lobbyId}
+            roundNumber={roundNumber}
+            currentPlayer={currentPlayer}
+            players={players}
+            onVotingComplete={handleVotingComplete}
+          />
+        )}
+
+        {gamePhase === "results" && (
+          <ResultsPhase
+            lobbyId={lobbyId}
+            roundNumber={roundNumber}
+            players={players}
+            currentPlayer={currentPlayer}
+            onNextRound={handleNextRound}
+            onEndGame={onEndGame}
+          />
+        )}
       </div>
     </div>
   );

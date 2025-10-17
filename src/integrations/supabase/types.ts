@@ -14,6 +14,82 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_rounds: {
+        Row: {
+          challenge_player_id: string
+          created_at: string
+          current_challenge_id: string
+          id: string
+          lobby_id: string
+          phase: string
+          round_number: number
+        }
+        Insert: {
+          challenge_player_id: string
+          created_at?: string
+          current_challenge_id: string
+          id?: string
+          lobby_id: string
+          phase?: string
+          round_number?: number
+        }
+        Update: {
+          challenge_player_id?: string
+          created_at?: string
+          current_challenge_id?: string
+          id?: string
+          lobby_id?: string
+          phase?: string
+          round_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_rounds_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imitation_votes: {
+        Row: {
+          created_at: string
+          id: string
+          imitation_player_id: string
+          lobby_id: string
+          round_number: number
+          vote_type: string
+          voter_player_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imitation_player_id: string
+          lobby_id: string
+          round_number?: number
+          vote_type: string
+          voter_player_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imitation_player_id?: string
+          lobby_id?: string
+          round_number?: number
+          vote_type?: string
+          voter_player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imitation_votes_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lobbies: {
         Row: {
           code: string
@@ -72,6 +148,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "lobby_players_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_imitations: {
+        Row: {
+          created_at: string
+          id: string
+          is_ready: boolean
+          lobby_id: string
+          player_id: string
+          player_name: string
+          round_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_ready?: boolean
+          lobby_id: string
+          player_id: string
+          player_name: string
+          round_number?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_ready?: boolean
+          lobby_id?: string
+          player_id?: string
+          player_name?: string
+          round_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_imitations_lobby_id_fkey"
             columns: ["lobby_id"]
             isOneToOne: false
             referencedRelation: "lobbies"

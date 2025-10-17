@@ -39,12 +39,14 @@ const Index = () => {
         },
         (payload: any) => {
           console.log('Lobby status changed:', payload);
-          if (payload.new.status === 'playing' && gameState === 'lobby') {
-            setGameState('preparation');
-            toast({
-              title: "La partie commence !",
-              description: "Préparez vos défis vidéo.",
-            });
+          if (payload.new.status === 'playing') {
+            if (gameState === 'lobby') {
+              setGameState('preparation');
+              toast({
+                title: "La partie commence !",
+                description: "Préparez vos défis vidéo.",
+              });
+            }
           }
         }
       )
@@ -53,7 +55,7 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [lobby?.id, gameState]);
+  }, [lobby?.id, gameState, toast]);
 
   const handleCreateGame = async (playerName: string) => {
     console.log('Creating game for:', playerName);
@@ -193,12 +195,12 @@ const Index = () => {
     );
   }
 
-  if (gameState === "playing" && currentPlayer && submittedChallenges.length > 0) {
+  if (gameState === "playing" && currentPlayer && lobby) {
     return (
       <GamePlayScreen
         currentPlayer={currentPlayer}
         players={players}
-        challenges={submittedChallenges}
+        lobbyId={lobby.id}
         onEndGame={handleLeaveGame}
       />
     );
