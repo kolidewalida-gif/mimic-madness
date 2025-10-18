@@ -1,16 +1,24 @@
 import { useEffect, useState, useRef } from "react";
-import { videoStorage } from "@/lib/videoStorage";
-import { Play, AlertCircle } from "lucide-react";
+import { videoStorage } from "@/lib/videoStorageSupabase";
+import { AlertCircle } from "lucide-react";
 
 interface VideoPreviewProps {
   clipId: string;
-  startTime: number;
-  endTime: number;
+  startTime?: number;
+  endTime?: number;
   className?: string;
+  muted?: boolean;
 }
 
-export const VideoPreview = ({ clipId, startTime, endTime, className = "" }: VideoPreviewProps) => {
+export const VideoPreview = ({ 
+  clipId, 
+  startTime, 
+  endTime, 
+  className = "",
+  muted = false 
+}: VideoPreviewProps) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [clipData, setClipData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -23,10 +31,16 @@ export const VideoPreview = ({ clipId, startTime, endTime, className = "" }: Vid
         setIsLoading(true);
         setError(null);
         
-        await videoStorage.init();
-        const url = await videoStorage.getVideoUrl(clipId);
-        
+        const clip = await videoStorage.getVideoClip(clipId);
         if (!mounted) return;
+        
+        if (!clip) {
+          setError("Vidéo introuvable");
+          return;
+        }
+
+        setClipData(clip);
+        const url = await videoStorage.getVideoUrl(clipId);
         
         if (!url) {
           setError("Vidéo introuvable");
@@ -50,24 +64,28 @@ export const VideoPreview = ({ clipId, startTime, endTime, className = "" }: Vid
     
     return () => {
       mounted = false;
-      // Cleanup blob URL when component unmounts
-      if (videoUrl) {
-        URL.revokeObjectURL(videoUrl);
-      }
     };
   }, [clipId]);
 
 
   const handleLoadedData = () => {
-    if (videoRef.current && startTime > 0) {
-      videoRef.current.currentTime = startTime;
+    if (videoRef.current) {
+      const effectiveStartTime = startTime ?? clipData?.startTime ?? 0;
+      if (effectiveStartTime > 0) {
+        videoRef.current.currentTime = effectiveStartTime;
+      }
     }
   };
 
   const handleTimeUpdate = () => {
-    if (videoRef.current && videoRef.current.currentTime >= endTime) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = startTime;
+    if (videoRef.current) {
+      const effectiveStartTime = startTime ?? clipData?.startTime ?? 0;
+      const effectiveEndTime = endTime ?? clipData?.endTime ?? videoRef.current.duration;
+      
+      if (videoRef.current.currentTime >= effectiveEndTime) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = effectiveStartTime;
+      }
     }
   };
 
@@ -93,6 +111,8 @@ export const VideoPreview = ({ clipId, startTime, endTime, className = "" }: Vid
     );
   }
 
+  const shouldBeMuted = muted || clipData?.isMuted || false;
+
   return (
     <div className={`relative ${className}`}>
       {videoUrl && (
@@ -103,6 +123,7 @@ export const VideoPreview = ({ clipId, startTime, endTime, className = "" }: Vid
           onTimeUpdate={handleTimeUpdate}
           className="w-full h-full object-cover rounded-lg"
           controls
+          muted={shouldBeMuted}
         />
       )}
     </div>

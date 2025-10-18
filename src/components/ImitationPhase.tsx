@@ -144,8 +144,6 @@ export const ImitationPhase = ({
             </div>
             <VideoPreview
               clipId={currentChallenge.id}
-              startTime={0}
-              endTime={25}
               className="w-full aspect-video rounded-lg"
             />
           </div>
@@ -168,8 +166,10 @@ export const ImitationPhase = ({
             <div className="border-t border-border pt-4">
               <VideoUpload
                 playerId={currentPlayer.id}
+                playerName={currentPlayer.name}
                 maxVideos={1}
                 onVideoSaved={handleVideoSaved}
+                lobbyId={lobbyId}
               />
             </div>
             

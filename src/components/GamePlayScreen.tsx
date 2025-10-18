@@ -7,7 +7,7 @@ import { ResultsPhase } from "@/components/ResultsPhase";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { videoStorage } from "@/lib/videoStorage";
+import { videoStorage } from "@/lib/videoStorageSupabase";
 
 interface Player {
   id: string;
@@ -67,7 +67,7 @@ export const GamePlayScreen = ({
         // Create new round (only host)
         if (currentPlayer.isHost) {
           // Pick a random challenge from all players' submissions
-          const allClips = await videoStorage.getAllClips();
+          const allClips = await videoStorage.getAllClipsByLobby(lobbyId);
           if (allClips.length === 0) {
             toast({
               title: "Erreur",

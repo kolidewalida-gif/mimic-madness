@@ -5,7 +5,7 @@ import { VideoPreview } from "@/components/VideoPreview";
 import { ThumbsUp, ThumbsDown, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { videoStorage } from "@/lib/videoStorage";
+import { videoStorage } from "@/lib/videoStorageSupabase";
 
 interface Player {
   id: string;
@@ -212,8 +212,6 @@ export const VotingPhase = ({
           {currentImitation.clipId ? (
             <VideoPreview
               clipId={currentImitation.clipId}
-              startTime={0}
-              endTime={30}
               className="w-full aspect-video rounded-lg mx-auto max-w-3xl"
             />
           ) : (

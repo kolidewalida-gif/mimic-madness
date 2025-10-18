@@ -4,7 +4,7 @@ import { VideoUpload } from "@/components/VideoUpload";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { ArrowLeft, Send, Clock } from "lucide-react";
-import { videoStorage, VideoClip } from "@/lib/videoStorage";
+import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
@@ -45,7 +45,6 @@ export const VideoSubmissionScreen = ({
 
   const loadPlayerClips = async () => {
     try {
-      await videoStorage.init();
       const clips = await videoStorage.getVideoClipsByPlayer(currentPlayer.id);
       setSavedClips(clips);
     } catch (error) {
@@ -164,6 +163,7 @@ export const VideoSubmissionScreen = ({
               playerName={currentPlayer.name}
               maxVideos={5}
               onVideoSaved={handleClipSaved}
+              lobbyId={lobbyId}
             />
           </div>
 

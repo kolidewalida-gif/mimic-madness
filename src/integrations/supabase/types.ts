@@ -231,6 +231,56 @@ export type Database = {
           },
         ]
       }
+      video_clips: {
+        Row: {
+          created_at: string
+          duration: number
+          end_time: number
+          id: string
+          is_muted: boolean
+          lobby_id: string | null
+          name: string
+          player_id: string
+          player_name: string
+          start_time: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          duration: number
+          end_time: number
+          id: string
+          is_muted?: boolean
+          lobby_id?: string | null
+          name: string
+          player_id: string
+          player_name: string
+          start_time?: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          duration?: number
+          end_time?: number
+          id?: string
+          is_muted?: boolean
+          lobby_id?: string | null
+          name?: string
+          player_id?: string
+          player_name?: string
+          start_time?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_clips_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

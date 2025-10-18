@@ -1,23 +1,26 @@
 import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { GameCard } from "@/components/GameCard";
-import { Upload, Play, Pause, Scissors, Trash2, Check } from "lucide-react";
+import { Upload, Play, Pause, Scissors, Trash2, Check, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { videoStorage, VideoClip } from "@/lib/videoStorage";
+import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 
 interface VideoUploadProps {
   playerId: string;
   playerName?: string;
   maxVideos?: number;
   onVideoSaved?: (clip: VideoClip) => void;
+  lobbyId?: string;
 }
 
 export const VideoUpload = ({ 
   playerId, 
-  playerName, 
+  playerName,
   maxVideos = 5,
-  onVideoSaved 
+  onVideoSaved,
+  lobbyId
 }: VideoUploadProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -27,6 +30,7 @@ export const VideoUpload = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [clipName, setClipName] = useState("");
+  const [isMuted, setIsMuted] = useState(false);
   const [savedClips, setSavedClips] = useState<VideoClip[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,7 +40,6 @@ export const VideoUpload = ({
 
   const loadSavedClips = async () => {
     try {
-      await videoStorage.init();
       const clips = await videoStorage.getVideoClipsByPlayer(playerId);
       setSavedClips(clips);
     } catch (error) {
@@ -182,26 +185,19 @@ export const VideoUpload = ({
     try {
       console.log('Saving video clip:', clipName);
       
-      // Store the entire video file as blob
-      const videoBlob = selectedFile;
-      
-      const clip: VideoClip = {
+      const clip = await videoStorage.uploadVideo(selectedFile, {
         id: `${playerId}-${Date.now()}`,
         name: clipName.trim(),
-        originalFile: selectedFile,
+        playerId,
+        playerName: playerName || 'Joueur',
         startTime,
         endTime,
-        duration: endTime - startTime,
-        createdAt: new Date(),
-        playerId,
-      };
-
-      await videoStorage.init();
-      await videoStorage.saveVideoClip(clip, videoBlob);
+        isMuted,
+        lobbyId,
+      });
       
       // Reload clips to get the updated list
-      const updatedClips = await videoStorage.getVideoClipsByPlayer(playerId);
-      setSavedClips(updatedClips);
+      await loadSavedClips();
       
       onVideoSaved?.(clip);
 
@@ -209,6 +205,7 @@ export const VideoUpload = ({
       setSelectedFile(null);
       setIsEditing(false);
       setClipName("");
+      setIsMuted(false);
       setStartTime(0);
       setEndTime(30);
       
@@ -314,6 +311,21 @@ export const VideoUpload = ({
                     onChange={(e) => setClipName(e.target.value)}
                     placeholder="Donnez un nom à votre extrait..."
                   />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="mute"
+                    checked={isMuted}
+                    onCheckedChange={(checked) => setIsMuted(checked === true)}
+                  />
+                  <label
+                    htmlFor="mute"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                  >
+                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                    Couper le son pour les autres joueurs
+                  </label>
                 </div>
 
                 <div className="relative">

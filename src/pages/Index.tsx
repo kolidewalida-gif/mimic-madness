@@ -4,7 +4,7 @@ import { LobbyScreen } from "@/components/LobbyScreen";
 import { VideoSubmissionScreen } from "@/components/VideoSubmissionScreen";
 import { GamePlayScreen } from "@/components/GamePlayScreen";
 import { useToast } from "@/hooks/use-toast";
-import { VideoClip } from "@/lib/videoStorage";
+import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
 import { supabase } from "@/integrations/supabase/client";
 
