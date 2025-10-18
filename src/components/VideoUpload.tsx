@@ -56,16 +56,6 @@ export const VideoUpload = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check if we've reached the limit
-    if (savedClips.length >= maxVideos) {
-      toast({
-        title: "Limite atteinte",
-        description: `Vous ne pouvez importer que ${maxVideos} vidéos maximum.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Validate file type
     if (!file.type.startsWith("video/")) {
       toast({
@@ -333,7 +323,7 @@ export const VideoUpload = ({
                     ref={videoRef}
                     onLoadedData={handleVideoLoaded}
                     onTimeUpdate={handleTimeUpdate}
-                    className="w-full max-h-64 rounded-lg bg-black"
+                    className="w-full aspect-video rounded-lg bg-black"
                     controls={false}
                   />
                   

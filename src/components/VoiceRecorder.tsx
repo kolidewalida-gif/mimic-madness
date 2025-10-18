@@ -20,7 +20,7 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      if (audioContextRef.current) {
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close();
       }
     };
@@ -73,7 +73,7 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
       cancelAnimationFrame(animationFrameRef.current);
     }
 
-    if (audioContextRef.current) {
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close();
     }
 

@@ -7,6 +7,7 @@ import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { Play, Check, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { videoStorage } from "@/lib/videoStorageSupabase";
 
 interface Player {
   id: string;
@@ -40,6 +41,9 @@ export const ImitationPhase = ({
   const [hasRecorded, setHasRecorded] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
+  const [recordedClipId, setRecordedClipId] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [uploadKey, setUploadKey] = useState(0);
   const { toast } = useToast();
 
   // Subscribe to ready status
@@ -115,12 +119,30 @@ export const ImitationPhase = ({
     }
   };
 
-  const handleVideoSaved = () => {
+  const handleVideoSaved = (clip: any) => {
     setHasRecorded(true);
+    setRecordedClipId(clip.id);
+    setShowPreview(true);
     toast({
       title: "Vidéo enregistrée !",
-      description: "Vous pouvez recommencer ou terminer.",
+      description: "Écoutez votre imitation et recommencez si besoin.",
     });
+  };
+
+  const handleRetry = async () => {
+    // Delete existing clip if any
+    if (recordedClipId) {
+      try {
+        await videoStorage.deleteVideoClip(recordedClipId);
+      } catch (error) {
+        console.error('Error deleting clip:', error);
+      }
+    }
+    
+    setShowPreview(false);
+    setHasRecorded(false);
+    setRecordedClipId(null);
+    setUploadKey(prev => prev + 1); // Force remount VideoUpload
   };
 
   return (
@@ -154,43 +176,71 @@ export const ImitationPhase = ({
           <div className="space-y-6">
             <h3 className="text-xl font-semibold">Votre Imitation</h3>
             
-            {/* Voice Recorder */}
-            <div className="flex justify-center py-4">
-              <VoiceRecorder
-                onRecordingStart={() => console.log("Started recording")}
-                onRecordingStop={() => console.log("Stopped recording")}
-              />
-            </div>
+            {!showPreview ? (
+              <>
+                {/* Voice Recorder */}
+                <div className="flex justify-center py-4">
+                  <VoiceRecorder
+                    onRecordingStart={() => console.log("Started recording")}
+                    onRecordingStop={() => console.log("Stopped recording")}
+                  />
+                </div>
 
-            {/* Video Upload */}
-            <div className="border-t border-border pt-4">
-              <VideoUpload
-                playerId={currentPlayer.id}
-                playerName={currentPlayer.name}
-                maxVideos={1}
-                onVideoSaved={handleVideoSaved}
-                lobbyId={lobbyId}
-              />
-            </div>
-            
-            <div className="space-y-3 pt-4">
-              <Button
-                onClick={handleMarkReady}
-                disabled={!hasRecorded || isReady}
-                variant="hero"
-                className="w-full"
-                size="lg"
-              >
-                <Check className="h-5 w-5 mr-2" />
-                {isReady ? "En attente..." : "Terminer"}
-              </Button>
+                {/* Video Upload */}
+                <div className="border-t border-border pt-4">
+                  <VideoUpload
+                    key={uploadKey}
+                    playerId={currentPlayer.id}
+                    playerName={currentPlayer.name}
+                    maxVideos={1}
+                    onVideoSaved={handleVideoSaved}
+                    lobbyId={lobbyId}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Preview Recorded Imitation */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Votre Imitation</h4>
+                    <Button
+                      onClick={handleRetry}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Recommencer
+                    </Button>
+                  </div>
+                  
+                  {recordedClipId && (
+                    <VideoPreview
+                      clipId={recordedClipId}
+                      className="w-full aspect-video rounded-lg"
+                    />
+                  )}
+                </div>
+                
+                <div className="space-y-3 pt-4">
+                  <Button
+                    onClick={handleMarkReady}
+                    disabled={isReady}
+                    variant="hero"
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Check className="h-5 w-5 mr-2" />
+                    {isReady ? "En attente..." : "Terminer"}
+                  </Button>
 
-              {isReady && (
-                <p className="text-center text-sm text-foreground-secondary">
-                  ⏳ Attente des autres joueurs ({readyPlayers.length}/{players.length})
-                </p>
-              )}
-            </div>
+                  {isReady && (
+                    <p className="text-center text-sm text-foreground-secondary">
+                      ⏳ Attente des autres joueurs ({readyPlayers.length}/{players.length})
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </GameCard>
       </div>
