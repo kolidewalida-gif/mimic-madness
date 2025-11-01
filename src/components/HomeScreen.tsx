@@ -36,7 +36,7 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
   return (
     <div className="min-h-screen animated-bg flex items-center justify-center p-6">
-      <div className="w-full max-w-md space-y-8 animate-fadeIn">
+      <div className="w-full max-w-2xl space-y-8 animate-fadeIn">
         <div className="text-center">
           <GameLogo className="justify-center mb-6" />
           <p className="text-foreground-secondary text-lg">

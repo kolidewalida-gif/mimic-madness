@@ -32,7 +32,7 @@ export const LobbyScreen = ({
 
   return (
     <div className="min-h-screen animated-bg flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-4xl space-y-8 animate-fadeIn">
+      <div className="w-full max-w-7xl space-y-8 animate-fadeIn">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"

@@ -73,7 +73,7 @@ export const ResultsPhase = ({
   const winner = results[0];
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       <div className="text-center space-y-4">
         <Trophy className="h-16 w-16 text-secondary mx-auto animate-bounce" />
         <h2 className="text-4xl font-bold text-gradient">

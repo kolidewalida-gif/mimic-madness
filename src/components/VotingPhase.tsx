@@ -186,7 +186,7 @@ export const VotingPhase = ({
   const isOwnVideo = currentImitation.playerId === currentPlayer.id;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-bold text-gradient">
           🗳️ Phase de Vote

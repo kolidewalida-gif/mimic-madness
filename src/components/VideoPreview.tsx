@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useImperativeHandle, forwardRef, Ref } from "react";
 import { videoStorage } from "@/lib/videoStorageSupabase";
 import { AlertCircle } from "lucide-react";
 
@@ -8,6 +8,7 @@ interface VideoPreviewProps {
   endTime?: number;
   className?: string;
   muted?: boolean;
+  videoRef?: Ref<HTMLVideoElement>;
 }
 
 export const VideoPreview = ({ 
@@ -15,13 +16,17 @@ export const VideoPreview = ({
   startTime, 
   endTime, 
   className = "",
-  muted = false 
+  muted = false,
+  videoRef: externalVideoRef
 }: VideoPreviewProps) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [clipData, setClipData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const internalVideoRef = useRef<HTMLVideoElement>(null);
+  
+  // Use external ref if provided, otherwise use internal ref
+  const videoRef = (externalVideoRef as any) || internalVideoRef;
 
   useEffect(() => {
     let mounted = true;

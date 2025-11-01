@@ -132,7 +132,7 @@ export const VideoSubmissionScreen = ({
 
   return (
     <div className="min-h-screen animated-bg p-6">
-      <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
+      <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"

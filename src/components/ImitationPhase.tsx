@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { VideoPreview } from "@/components/VideoPreview";
@@ -45,6 +45,7 @@ export const ImitationPhase = ({
   const [showPreview, setShowPreview] = useState(false);
   const [uploadKey, setUploadKey] = useState(0);
   const { toast } = useToast();
+  const challengeVideoRef = useRef<HTMLVideoElement>(null);
 
   // Subscribe to ready status
   useEffect(() => {
@@ -145,8 +146,16 @@ export const ImitationPhase = ({
     setUploadKey(prev => prev + 1); // Force remount VideoUpload
   };
 
+  const handleRecordingStart = () => {
+    // Restart the challenge video when recording starts
+    if (challengeVideoRef.current) {
+      challengeVideoRef.current.currentTime = 0;
+      challengeVideoRef.current.play();
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-bold text-gradient">
           🎬 Phase d'Imitation
@@ -167,6 +176,7 @@ export const ImitationPhase = ({
             <VideoPreview
               clipId={currentChallenge.id}
               className="w-full aspect-video rounded-lg"
+              videoRef={challengeVideoRef}
             />
           </div>
         </GameCard>
@@ -181,7 +191,7 @@ export const ImitationPhase = ({
                 {/* Voice Recorder */}
                 <div className="flex justify-center py-4">
                   <VoiceRecorder
-                    onRecordingStart={() => console.log("Started recording")}
+                    onRecordingStart={handleRecordingStart}
                     onRecordingStop={() => console.log("Stopped recording")}
                   />
                 </div>
