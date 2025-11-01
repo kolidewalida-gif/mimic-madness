@@ -74,22 +74,28 @@ export const VideoPreview = ({
 
 
   const handleLoadedData = () => {
-    if (videoRef.current) {
-      const effectiveStartTime = startTime ?? clipData?.startTime ?? 0;
+    const el = (videoRef as any).current as HTMLVideoElement | null;
+    if (el) {
+      const duration = Number.isFinite(el.duration) ? el.duration : 0;
+      const rawStart = startTime ?? clipData?.startTime ?? 0;
+      const effectiveStartTime = Math.min(Math.max(0, rawStart), Math.max(0, duration - 0.1));
       if (effectiveStartTime > 0) {
-        videoRef.current.currentTime = effectiveStartTime;
+        el.currentTime = effectiveStartTime;
       }
     }
   };
 
   const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const effectiveStartTime = startTime ?? clipData?.startTime ?? 0;
-      const effectiveEndTime = endTime ?? clipData?.endTime ?? videoRef.current.duration;
-      
-      if (videoRef.current.currentTime >= effectiveEndTime) {
-        videoRef.current.pause();
-        videoRef.current.currentTime = effectiveStartTime;
+    const el = (videoRef as any).current as HTMLVideoElement | null;
+    if (el) {
+      const duration = Number.isFinite(el.duration) ? el.duration : 0;
+      const rawStart = startTime ?? clipData?.startTime ?? 0;
+      const rawEnd = endTime ?? clipData?.endTime ?? duration;
+      const effectiveStartTime = Math.min(Math.max(0, rawStart), Math.max(0, duration - 0.1));
+      const effectiveEndTime = Math.min(Math.max(effectiveStartTime, rawEnd), duration || Number.MAX_SAFE_INTEGER);
+      if (el.currentTime >= effectiveEndTime) {
+        el.pause();
+        el.currentTime = effectiveStartTime;
       }
     }
   };
@@ -125,10 +131,15 @@ export const VideoPreview = ({
           ref={videoRef}
           src={videoUrl}
           onLoadedData={handleLoadedData}
+          onLoadedMetadata={handleLoadedData}
           onTimeUpdate={handleTimeUpdate}
+          onError={() => setError("Erreur de lecture de la vidéo")}
           className="w-full h-full object-cover rounded-lg"
           controls
+          playsInline
+          preload="metadata"
           muted={shouldBeMuted}
+          crossOrigin="anonymous"
         />
       )}
     </div>

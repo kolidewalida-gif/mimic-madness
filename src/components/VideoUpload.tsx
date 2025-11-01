@@ -85,9 +85,20 @@ export const VideoUpload = ({
     if (videoRef.current) {
       // Clean up previous video URL if any
       if (videoRef.current.src) {
-        URL.revokeObjectURL(videoRef.current.src);
+        try { URL.revokeObjectURL(videoRef.current.src); } catch {}
       }
+      setIsPlaying(false);
+      setCurrentTime(0);
+      videoRef.current.preload = "metadata";
       videoRef.current.src = videoUrl;
+      videoRef.current.onloadedmetadata = handleVideoLoaded;
+      videoRef.current.onerror = () => {
+        toast({
+          title: "Erreur de lecture",
+          description: "Impossible de charger la vidéo. Essayez un autre fichier.",
+          variant: "destructive",
+        });
+      };
       videoRef.current.load(); // Force video to load
     }
   };
@@ -322,17 +333,21 @@ export const VideoUpload = ({
                   <video
                     ref={videoRef}
                     onLoadedData={handleVideoLoaded}
+                    onLoadedMetadata={handleVideoLoaded}
                     onTimeUpdate={handleTimeUpdate}
                     className="w-full aspect-video rounded-lg bg-black"
-                    controls={false}
+                    controls
+                    playsInline
+                    preload="metadata"
                   />
                   
-                  <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2">
+                  {/* Custom controls - keep for quick access */}
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 pointer-events-none">
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={handlePlayPause}
-                      className="bg-black/50 hover:bg-black/70"
+                      className="bg-black/50 hover:bg-black/70 pointer-events-auto"
                     >
                       {isPlaying ? (
                         <Pause className="h-4 w-4 text-white" />
