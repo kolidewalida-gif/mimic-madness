@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface VoiceRecorderProps {
   onRecordingStart?: () => void;
@@ -10,10 +11,12 @@ interface VoiceRecorderProps {
 export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     return () => {
@@ -41,7 +44,25 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Check if mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Microphone non disponible",
+          description: "Votre navigateur ne supporte pas l'accès au microphone.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      setPermissionDenied(false);
       
       // Set up audio context for visualization
       audioContextRef.current = new AudioContext();
@@ -58,8 +79,27 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
       updateAudioLevel();
       onRecordingStart?.();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error accessing microphone:", error);
+      setPermissionDenied(true);
+      
+      let errorMessage = "Impossible d'accéder au microphone.";
+      
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        errorMessage = "Vous devez autoriser l'accès au microphone dans votre navigateur pour enregistrer.";
+      } else if (error.name === "NotFoundError") {
+        errorMessage = "Aucun microphone détecté. Veuillez connecter un microphone.";
+      } else if (error.name === "NotReadableError") {
+        errorMessage = "Le microphone est déjà utilisé par une autre application.";
+      } else if (error.name === "OverconstrainedError") {
+        errorMessage = "Impossible d'accéder au microphone avec les paramètres demandés.";
+      }
+      
+      toast({
+        title: "Erreur Microphone",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
@@ -94,12 +134,14 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
     <div className="flex flex-col items-center gap-4">
       <Button
         onClick={toggleRecording}
-        variant={isRecording ? "destructive" : "hero"}
+        variant={isRecording ? "destructive" : permissionDenied ? "outline" : "hero"}
         size="lg"
         className="relative w-20 h-20 rounded-full"
       >
         {isRecording ? (
           <MicOff className="h-8 w-8" />
+        ) : permissionDenied ? (
+          <AlertCircle className="h-8 w-8" />
         ) : (
           <Mic className="h-8 w-8" />
         )}
@@ -141,8 +183,10 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
         </div>
       )}
 
-      <p className="text-sm text-foreground-secondary">
-        {isRecording ? "🎤 Enregistrement en cours..." : "Appuyez pour imiter"}
+      <p className="text-sm text-foreground-secondary text-center max-w-xs">
+        {isRecording ? "🎤 Enregistrement en cours..." : 
+         permissionDenied ? "⚠️ Permission microphone refusée. Cliquez pour réessayer." :
+         "Appuyez pour imiter"}
       </p>
     </div>
   );
