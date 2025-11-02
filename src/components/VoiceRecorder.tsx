@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMediaDevices } from "@/hooks/useMediaDevices";
 
 interface VoiceRecorderProps {
   onRecordingStart?: () => void;
@@ -17,6 +18,7 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const { toast } = useToast();
+  const { selectedAudioId, audioInputs } = useMediaDevices();
 
   useEffect(() => {
     return () => {
@@ -54,12 +56,20 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
         return;
       }
 
+      // Use selected audio device if available
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      };
+
+      // Add device ID if a specific device is selected
+      if (selectedAudioId) {
+        audioConstraints.deviceId = { exact: selectedAudioId };
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        } 
+        audio: audioConstraints
       });
       
       setPermissionDenied(false);

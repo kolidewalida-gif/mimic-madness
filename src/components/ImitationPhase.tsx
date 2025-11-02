@@ -4,7 +4,8 @@ import { GameCard } from "@/components/GameCard";
 import { VideoPreview } from "@/components/VideoPreview";
 import { VideoUpload } from "@/components/VideoUpload";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
-import { Play, Check, Users } from "lucide-react";
+import { DeviceSettings } from "@/components/DeviceSettings";
+import { Play, Check, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -44,6 +45,7 @@ export const ImitationPhase = ({
   const [recordedClipId, setRecordedClipId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [uploadKey, setUploadKey] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -156,14 +158,34 @@ export const ImitationPhase = ({
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-3xl font-bold text-gradient">
-          🎬 Phase d'Imitation
-        </h2>
-        <p className="text-foreground-secondary">
-          Imitez la vidéo de <span className="font-semibold text-secondary">{currentChallenge.playerName}</span>
-        </p>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex-1" />
+        <div className="text-center space-y-2 flex-1">
+          <h2 className="text-3xl font-bold text-gradient">
+            🎬 Phase d'Imitation
+          </h2>
+          <p className="text-foreground-secondary">
+            Imitez la vidéo de <span className="font-semibold text-secondary">{currentChallenge.playerName}</span>
+          </p>
+        </div>
+        <div className="flex-1 flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            Audio
+          </Button>
+        </div>
       </div>
+
+      {showSettings && (
+        <div className="animate-fadeIn mb-6">
+          <DeviceSettings onClose={() => setShowSettings(false)} showPreview={false} />
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Challenge Video */}
