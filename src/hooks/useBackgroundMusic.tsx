@@ -34,22 +34,38 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
       });
     }
 
+    // Try to start on first user interaction (autoplay policies)
+    const tryStartOnGesture = () => {
+      if (audioRef.current && isPlaying) {
+        audioRef.current.play().catch(() => {});
+      }
+      document.removeEventListener('pointerdown', tryStartOnGesture);
+      document.removeEventListener('keydown', tryStartOnGesture);
+      document.removeEventListener('touchstart', tryStartOnGesture);
+    };
+    document.addEventListener('pointerdown', tryStartOnGesture, { once: true } as any);
+    document.addEventListener('keydown', tryStartOnGesture, { once: true } as any);
+    document.addEventListener('touchstart', tryStartOnGesture, { once: true } as any);
+
     return () => {
+      document.removeEventListener('pointerdown', tryStartOnGesture);
+      document.removeEventListener('keydown', tryStartOnGesture);
+      document.removeEventListener('touchstart', tryStartOnGesture);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [isPlaying, volume]);
 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.src = musicTracks[currentTrackIndex];
       if (isPlaying) {
-        audioRef.current.play().catch(console.error);
+        audioRef.current.play().catch(() => {});
       }
     }
-  }, [currentTrackIndex]);
+  }, [currentTrackIndex, isPlaying]);
 
   useEffect(() => {
     if (audioRef.current) {

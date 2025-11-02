@@ -86,10 +86,23 @@ export const DeviceSettings = ({ onClose, showPreview = true }: DeviceSettingsPr
 
         {/* Audio Input Selection */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <Mic className="h-4 w-4 text-secondary" />
-            Microphone
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Mic className="h-4 w-4 text-secondary" />
+              Microphone
+            </label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await getMediaStream({ audio: true, video: false });
+                stopStream();
+              }}
+              disabled={isLoading}
+            >
+              Autoriser
+            </Button>
+          </div>
           <Select
             value={selectedAudioId}
             onValueChange={changeAudioInput}

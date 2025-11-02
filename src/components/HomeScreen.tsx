@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { GameLogo } from "@/components/GameLogo";
 import { GameCard } from "@/components/GameCard";
 import { VolumeControl } from "@/components/VolumeControl";
-import { UserPlus, Users } from "lucide-react";
+import { DeviceSettings } from "@/components/DeviceSettings";
+import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
+import { UserPlus, Users, Settings } from "lucide-react";
 
 interface HomeScreenProps {
   onCreateGame: (playerName: string) => void;
@@ -17,15 +19,19 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
   const [playerName, setPlayerName] = useState("");
   const [lobbyCode, setLobbyCode] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("home");
+  const [showSettings, setShowSettings] = useState(false);
+  const { play } = useBackgroundMusic();
 
   const handleCreateGame = () => {
     if (playerName.trim()) {
+      play();
       onCreateGame(playerName.trim());
     }
   };
 
   const handleJoinGame = () => {
     if (playerName.trim() && lobbyCode.trim()) {
+      play();
       onJoinGame(playerName.trim(), lobbyCode.trim().toUpperCase());
     }
   };
@@ -93,8 +99,19 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                   </Button>
                 </div>
 
-                <div className="pt-2 border-t border-border">
+                <div className="pt-2 border-t border-border space-y-3">
                   <VolumeControl />
+                  <div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSettings(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Paramètres audio/vidéo
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -140,6 +157,11 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
             )}
           </div>
         </GameCard>
+        {showSettings && (
+          <div className="animate-fadeIn">
+            <DeviceSettings showPreview={true} onClose={() => setShowSettings(false)} />
+          </div>
+        )}
       </div>
     </div>
   );
