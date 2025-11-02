@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GameLogo } from "@/components/GameLogo";
 import { GameCard } from "@/components/GameCard";
+import { VolumeControl } from "@/components/VolumeControl";
 import { UserPlus, Users } from "lucide-react";
 
 interface HomeScreenProps {
@@ -67,28 +68,34 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
             </div>
 
             {viewMode === "home" && (
-              <div className="space-y-3">
-                <Button
-                  variant="hero"
-                  size="lg"
-                  onClick={handleCreateGame}
-                  disabled={!playerName.trim()}
-                  className="w-full"
-                >
-                  <UserPlus className="h-5 w-5" />
-                  Créer une Partie
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => setViewMode("join")}
-                  disabled={!playerName.trim()}
-                  className="w-full"
-                >
-                  <Users className="h-5 w-5" />
-                  Rejoindre une Partie
-                </Button>
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <Button
+                    variant="hero"
+                    size="lg"
+                    onClick={handleCreateGame}
+                    disabled={!playerName.trim()}
+                    className="w-full"
+                  >
+                    <UserPlus className="h-5 w-5" />
+                    Créer une Partie
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => setViewMode("join")}
+                    disabled={!playerName.trim()}
+                    className="w-full"
+                  >
+                    <Users className="h-5 w-5" />
+                    Rejoindre une Partie
+                  </Button>
+                </div>
+
+                <div className="pt-2 border-t border-border">
+                  <VolumeControl />
+                </div>
               </div>
             )}
 

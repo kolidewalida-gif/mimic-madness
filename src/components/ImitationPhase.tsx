@@ -9,6 +9,7 @@ import { Play, Check, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
+import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 
 interface Player {
   id: string;
@@ -47,7 +48,16 @@ export const ImitationPhase = ({
   const [uploadKey, setUploadKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
+  const { pause, play } = useBackgroundMusic();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Pause music during imitation phase
+  useEffect(() => {
+    pause();
+    return () => {
+      play();
+    };
+  }, [pause, play]);
 
   // Subscribe to ready status
   useEffect(() => {
