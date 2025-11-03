@@ -41,7 +41,7 @@ export const ImitationPhase = ({
   onAllReady
 }: ImitationPhaseProps) => {
   const [hasRecorded, setHasRecorded] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
   const [recordedClipId, setRecordedClipId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -103,7 +103,7 @@ export const ImitationPhase = ({
     }
   }, [readyPlayers.length, players.length, onAllReady]);
 
-  const handleMarkReady = async () => {
+  const handleSubmit = async () => {
     try {
       const { error } = await supabase
         .from('player_imitations')
@@ -117,16 +117,16 @@ export const ImitationPhase = ({
 
       if (error) throw error;
 
-      setIsReady(true);
+      setHasSubmitted(true);
       toast({
-        title: "Prêt !",
+        title: "Imitation soumise !",
         description: "En attente des autres joueurs...",
       });
     } catch (error) {
-      console.error('Error marking ready:', error);
+      console.error('Error submitting:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de marquer comme prêt",
+        description: "Impossible de soumettre",
         variant: "destructive",
       });
     }
@@ -239,6 +239,26 @@ export const ImitationPhase = ({
                     lobbyId={lobbyId}
                   />
                 </div>
+
+                {/* Submit Button - always visible */}
+                <div className="border-t border-border pt-4">
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={hasSubmitted}
+                    variant="hero"
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Check className="h-5 w-5 mr-2" />
+                    {hasSubmitted ? "Soumis" : "Soumettre mon imitation"}
+                  </Button>
+                  
+                  {hasSubmitted && (
+                    <p className="text-center text-sm text-foreground-secondary mt-3">
+                      ⏳ Attente des autres joueurs ({readyPlayers.length}/{players.length})
+                    </p>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -250,6 +270,7 @@ export const ImitationPhase = ({
                       onClick={handleRetry}
                       variant="outline"
                       size="sm"
+                      disabled={hasSubmitted}
                     >
                       Recommencer
                     </Button>
@@ -265,17 +286,17 @@ export const ImitationPhase = ({
                 
                 <div className="space-y-3 pt-4">
                   <Button
-                    onClick={handleMarkReady}
-                    disabled={isReady}
+                    onClick={handleSubmit}
+                    disabled={hasSubmitted}
                     variant="hero"
                     className="w-full"
                     size="lg"
                   >
                     <Check className="h-5 w-5 mr-2" />
-                    {isReady ? "En attente..." : "Terminer"}
+                    {hasSubmitted ? "Soumis" : "Soumettre mon imitation"}
                   </Button>
 
-                  {isReady && (
+                  {hasSubmitted && (
                     <p className="text-center text-sm text-foreground-secondary">
                       ⏳ Attente des autres joueurs ({readyPlayers.length}/{players.length})
                     </p>
@@ -308,7 +329,7 @@ export const ImitationPhase = ({
                 >
                   <p className="font-medium text-sm truncate">{player.name}</p>
                   <p className="text-xs mt-1">
-                    {ready ? "✅ Prêt" : "⏳ En cours"}
+                    {ready ? "✅ Soumis" : "⏳ En cours"}
                   </p>
                 </div>
               );

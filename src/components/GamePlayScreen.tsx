@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { GameLogo } from "@/components/GameLogo";
 import { Button } from "@/components/ui/button";
+import { ChallengePreviewPhase } from "@/components/ChallengePreviewPhase";
 import { ImitationPhase } from "@/components/ImitationPhase";
 import { VotingPhase } from "@/components/VotingPhase";
 import { ResultsPhase } from "@/components/ResultsPhase";
@@ -22,7 +23,7 @@ interface GamePlayScreenProps {
   onEndGame: () => void;
 }
 
-type GamePhase = "imitation" | "voting" | "results";
+type GamePhase = "preview" | "imitation" | "voting" | "results";
 
 interface CurrentChallenge {
   id: string;
@@ -36,7 +37,7 @@ export const GamePlayScreen = ({
   lobbyId,
   onEndGame
 }: GamePlayScreenProps) => {
-  const [gamePhase, setGamePhase] = useState<GamePhase>("imitation");
+  const [gamePhase, setGamePhase] = useState<GamePhase>("preview");
   const [roundNumber, setRoundNumber] = useState(1);
   const [currentChallenge, setCurrentChallenge] = useState<CurrentChallenge | null>(null);
   const { toast } = useToast();
@@ -87,7 +88,7 @@ export const GamePlayScreen = ({
               round_number: roundNumber,
               current_challenge_id: randomClip.id,
               challenge_player_id: randomClip.playerId,
-              phase: 'imitation'
+              phase: 'preview'
             });
 
           if (error) throw error;
@@ -142,7 +143,33 @@ export const GamePlayScreen = ({
     };
   }, [lobbyId, roundNumber, currentPlayer.isHost, players, currentChallenge, toast]);
 
-  const handleAllReady = async () => {
+  const handlePreviewReady = async () => {
+    if (currentPlayer.isHost) {
+      try {
+        // Clear ready status for imitation phase
+        await supabase
+          .from('player_imitations')
+          .delete()
+          .eq('lobby_id', lobbyId)
+          .eq('round_number', roundNumber);
+
+        await supabase
+          .from('game_rounds')
+          .update({ phase: 'imitation' })
+          .eq('lobby_id', lobbyId)
+          .eq('round_number', roundNumber);
+
+        toast({
+          title: "Phase d'imitation !",
+          description: "Tous les joueurs ont vu la vidéo. À vous d'imiter !",
+        });
+      } catch (error) {
+        console.error('Error updating phase:', error);
+      }
+    }
+  };
+
+  const handleImitationReady = async () => {
     if (currentPlayer.isHost) {
       try {
         await supabase
@@ -153,7 +180,7 @@ export const GamePlayScreen = ({
 
         toast({
           title: "Phase de vote !",
-          description: "Tous les joueurs sont prêts. Votez pour les meilleures imitations !",
+          description: "Tous les joueurs ont soumis. Votez pour les meilleures imitations !",
         });
       } catch (error) {
         console.error('Error updating phase:', error);
@@ -177,7 +204,7 @@ export const GamePlayScreen = ({
 
   const handleNextRound = async () => {
     setRoundNumber(prev => prev + 1);
-    setGamePhase("imitation");
+    setGamePhase("preview");
     setCurrentChallenge(null);
     
     toast({
@@ -216,6 +243,17 @@ export const GamePlayScreen = ({
           </div>
         </div>
 
+        {gamePhase === "preview" && (
+          <ChallengePreviewPhase
+            lobbyId={lobbyId}
+            roundNumber={roundNumber}
+            currentPlayer={currentPlayer}
+            players={players}
+            currentChallenge={currentChallenge}
+            onAllReady={handlePreviewReady}
+          />
+        )}
+
         {gamePhase === "imitation" && (
           <ImitationPhase
             lobbyId={lobbyId}
@@ -223,7 +261,7 @@ export const GamePlayScreen = ({
             currentPlayer={currentPlayer}
             players={players}
             currentChallenge={currentChallenge}
-            onAllReady={handleAllReady}
+            onAllReady={handleImitationReady}
           />
         )}
 
