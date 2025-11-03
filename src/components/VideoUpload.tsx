@@ -137,28 +137,45 @@ export const VideoUpload = ({
     }
   };
 
+  // Helpers to parse localized numbers and clamp values
+  const toNumber = (s: string) => {
+    const v = parseFloat(s.replace(',', '.'));
+    return Number.isFinite(v) ? v : null;
+  };
+  const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
+
   const handleStartTimeChange = (value: string) => {
-    const time = parseFloat(value);
+    const parsed = toNumber(value);
+    if (parsed === null) return;
+    const time = clamp(parsed, 0, videoDuration);
     setStartTime(time);
     if (time >= endTime) {
       setEndTime(Math.min(time + 1, videoDuration));
     }
+    if (videoRef.current && isPlaying) {
+      videoRef.current.currentTime = time;
+    }
   };
 
   const handleEndTimeChange = (value: string) => {
-    const time = parseFloat(value);
+    const parsed = toNumber(value);
+    if (parsed === null) return;
+    let time = clamp(parsed, 0, videoDuration);
     if (time - startTime > 30) {
-      setEndTime(startTime + 30);
+      time = startTime + 30;
+      setEndTime(time);
       toast({
         title: "Durée limitée",
         description: "La durée maximale d'un extrait est de 30 secondes.",
         variant: "destructive",
       });
+    } else if (time <= startTime) {
+      time = Math.min(startTime + 0.1, videoDuration);
+      setEndTime(time);
     } else {
       setEndTime(time);
     }
   };
-
   const saveVideoClip = async () => {
     if (!selectedFile || !videoRef.current) return;
 

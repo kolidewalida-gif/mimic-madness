@@ -56,7 +56,8 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
         audioRef.current = null;
       }
     };
-  }, [isPlaying, volume]);
+  }, []);
+
 
   useEffect(() => {
     if (audioRef.current) {
