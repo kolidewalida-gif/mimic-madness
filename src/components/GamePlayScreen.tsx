@@ -146,18 +146,21 @@ export const GamePlayScreen = ({
   const handlePreviewReady = async () => {
     if (currentPlayer.isHost) {
       try {
-        // Clear ready status for imitation phase
+        // Clear ALL player_imitations entries for this round before starting imitation phase
         await supabase
           .from('player_imitations')
           .delete()
           .eq('lobby_id', lobbyId)
           .eq('round_number', roundNumber);
 
+        // Update to imitation phase
         await supabase
           .from('game_rounds')
           .update({ phase: 'imitation' })
           .eq('lobby_id', lobbyId)
           .eq('round_number', roundNumber);
+
+        setGamePhase('imitation');
 
         toast({
           title: "Phase d'imitation !",
@@ -177,6 +180,8 @@ export const GamePlayScreen = ({
           .update({ phase: 'voting' })
           .eq('lobby_id', lobbyId)
           .eq('round_number', roundNumber);
+
+        setGamePhase('voting');
 
         toast({
           title: "Phase de vote !",
