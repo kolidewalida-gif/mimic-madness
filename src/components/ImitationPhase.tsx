@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { VideoPreview } from "@/components/VideoPreview";
-import { VideoUpload } from "@/components/VideoUpload";
+import { VideoUploadSimple } from "@/components/VideoUploadSimple";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
+import { MicrophonePermission } from "@/components/MicrophonePermission";
 import { Play, Check, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +48,7 @@ export const ImitationPhase = ({
   const [showPreview, setShowPreview] = useState(false);
   const [uploadKey, setUploadKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [micPermissionGranted, setMicPermissionGranted] = useState(false);
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
@@ -218,7 +220,9 @@ export const ImitationPhase = ({
           <div className="space-y-6">
             <h3 className="text-xl font-semibold">Votre Imitation</h3>
             
-            {!showPreview ? (
+            {!micPermissionGranted ? (
+              <MicrophonePermission onPermissionGranted={() => setMicPermissionGranted(true)} />
+            ) : !showPreview ? (
               <>
                 {/* Voice Recorder */}
                 <div className="flex justify-center py-4">
@@ -230,7 +234,7 @@ export const ImitationPhase = ({
 
                 {/* Video Upload */}
                 <div className="border-t border-border pt-4">
-                  <VideoUpload
+                  <VideoUploadSimple
                     key={uploadKey}
                     playerId={currentPlayer.id}
                     playerName={currentPlayer.name}

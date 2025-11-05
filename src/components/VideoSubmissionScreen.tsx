@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { GameLogo } from "@/components/GameLogo";
-import { VideoUpload } from "@/components/VideoUpload";
+import { VideoUploadSimple } from "@/components/VideoUploadSimple";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { ArrowLeft, Send, Clock } from "lucide-react";
@@ -158,7 +158,7 @@ export const VideoSubmissionScreen = ({
         <div className="grid md:grid-cols-3 gap-8">
           {/* Video Upload Section */}
           <div className="space-y-4">
-            <VideoUpload
+            <VideoUploadSimple
               playerId={currentPlayer.id}
               playerName={currentPlayer.name}
               maxVideos={5}

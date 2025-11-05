@@ -81,14 +81,17 @@ export const GamePlayScreen = ({
           const randomClip = allClips[Math.floor(Math.random() * allClips.length)];
           const challengePlayer = players.find(p => p.id === randomClip.playerId);
 
+          // Use upsert to avoid duplicate key error
           const { error } = await supabase
             .from('game_rounds')
-            .insert({
+            .upsert({
               lobby_id: lobbyId,
               round_number: roundNumber,
               current_challenge_id: randomClip.id,
               challenge_player_id: randomClip.playerId,
               phase: 'preview'
+            }, {
+              onConflict: 'lobby_id,round_number'
             });
 
           if (error) throw error;
