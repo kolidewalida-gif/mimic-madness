@@ -28,33 +28,63 @@ export const VideoUploadSimple = ({
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [startTime, setStartTime] = useState<number>(0);
   const [endTime, setEndTime] = useState<number>(0);
+  const videoPreviewRef = useState<HTMLVideoElement | null>(null)[0];
+  const videoRef = { current: videoPreviewRef };
   
   const { toast } = useToast();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('video/')) {
-      const objectUrl = URL.createObjectURL(file);
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.onloadedmetadata = () => {
-        URL.revokeObjectURL(video.src);
-        setSelectedFile(file);
-        setVideoName(file.name.replace(/\.[^/.]+$/, ""));
-        setPreviewUrl(objectUrl);
-        const duration = Number.isFinite(video.duration) ? video.duration : 0;
-        setVideoDuration(duration);
-        setStartTime(0);
-        setEndTime(duration);
-      };
-      video.src = objectUrl;
-    } else {
+    if (!file) return;
+
+    // Vérifier que c'est une vidéo (accepter formats courants)
+    const validTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-matroska'];
+    const isVideo = file.type.startsWith('video/') || validTypes.includes(file.type);
+    
+    if (!isVideo) {
       toast({
-        title: "Fichier invalide",
-        description: "Veuillez sélectionner un fichier vidéo",
+        title: "Format invalide",
+        description: "Formats acceptés: MP4, WebM, MOV, MKV, OGG",
         variant: "destructive",
       });
+      return;
     }
+
+    const objectUrl = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      toast({
+        title: "Erreur de lecture",
+        description: "Impossible de lire cette vidéo. Essayez un autre format (MP4 recommandé).",
+        variant: "destructive",
+      });
+    };
+
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      
+      if (duration === 0) {
+        URL.revokeObjectURL(objectUrl);
+        toast({
+          title: "Vidéo invalide",
+          description: "Cette vidéo semble corrompue ou vide",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedFile(file);
+      setVideoName(file.name.replace(/\.[^/.]+$/, ""));
+      setPreviewUrl(objectUrl);
+      setVideoDuration(duration);
+      setStartTime(0);
+      setEndTime(duration);
+    };
+    
+    video.src = objectUrl;
   };
 
   const handleSaveClip = async () => {
@@ -138,7 +168,7 @@ export const VideoUploadSimple = ({
         </div>
 
         <p className="text-sm text-foreground-secondary">
-          Téléchargez une vidéo de votre choix (aucune limite de taille)
+          Téléchargez une vidéo (MP4, WebM, MOV recommandés)
         </p>
 
         {/* File Upload */}
@@ -161,22 +191,23 @@ export const VideoUploadSimple = ({
             <div className="space-y-3">
               {previewUrl && (
                 <video
+                  ref={(el) => {
+                    if (el) (videoRef as any).current = el;
+                  }}
                   src={previewUrl}
-                  className="w-full aspect-video rounded-lg"
+                  className="w-full aspect-video rounded-lg bg-black"
                   controls
                   onTimeUpdate={(e) => {
                     const el = e.currentTarget as HTMLVideoElement;
-                    const end = endTime || videoDuration || 0;
-                    const start = startTime || 0;
-                    if (el.currentTime >= end) {
+                    if (el.currentTime >= endTime) {
                       el.pause();
-                      el.currentTime = start;
+                      el.currentTime = startTime;
                     }
                   }}
                   onLoadedMetadata={(e) => {
                     const el = e.currentTarget as HTMLVideoElement;
                     const dur = Number.isFinite(el.duration) ? el.duration : 0;
-                    if (!videoDuration && dur) {
+                    if (dur > 0) {
                       setVideoDuration(dur);
                       setStartTime(0);
                       setEndTime(dur);
@@ -193,6 +224,7 @@ export const VideoUploadSimple = ({
                   setStartTime(s);
                   setEndTime(e);
                 }}
+                videoRef={videoRef as any}
               />
             </div>
 

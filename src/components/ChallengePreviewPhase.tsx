@@ -91,6 +91,8 @@ export const ChallengePreviewPhase = ({
           player_id: currentPlayer.id,
           player_name: currentPlayer.name,
           is_ready: true
+        }, {
+          onConflict: 'lobby_id,round_number,player_id'
         });
 
       if (error) throw error;
