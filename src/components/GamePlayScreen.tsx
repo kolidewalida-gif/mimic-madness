@@ -127,15 +127,16 @@ export const GamePlayScreen = ({
         },
         (payload: any) => {
           console.log('Game round update:', payload);
-          if (payload.new && payload.new.round_number === roundNumber) {
-            setGamePhase(payload.new.phase);
-            if (!currentChallenge) {
-              setCurrentChallenge({
-                id: payload.new.current_challenge_id,
-                playerId: payload.new.challenge_player_id,
-                playerName: players.find((p: Player) => p.id === payload.new.challenge_player_id)?.name || "Joueur"
-              });
-            }
+          if (payload.new) {
+            const newRound = payload.new.round_number;
+            const newPhase = payload.new.phase as GamePhase;
+            setRoundNumber(newRound);
+            setGamePhase(newPhase);
+            setCurrentChallenge({
+              id: payload.new.current_challenge_id,
+              playerId: payload.new.challenge_player_id,
+              playerName: players.find((p: Player) => p.id === payload.new.challenge_player_id)?.name || "Joueur"
+            });
           }
         }
       )
@@ -149,10 +150,10 @@ export const GamePlayScreen = ({
   const handlePreviewReady = async () => {
     if (currentPlayer.isHost) {
       try {
-        // Clear ALL player_imitations entries for this round before starting imitation phase
+        // Reset all player_imitations readiness for this round (avoid RLS delete issues)
         await supabase
           .from('player_imitations')
-          .delete()
+          .update({ is_ready: false })
           .eq('lobby_id', lobbyId)
           .eq('round_number', roundNumber);
 

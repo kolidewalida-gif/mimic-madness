@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Save, Trash2, Video } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
-
+import { VideoTrimEditor } from "@/components/VideoTrimEditor";
 interface VideoUploadSimpleProps {
   playerId: string;
   playerName: string;
@@ -24,33 +24,34 @@ export const VideoUploadSimple = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videoName, setVideoName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [startTime, setStartTime] = useState<number>(0);
+  const [endTime, setEndTime] = useState<number>(0);
   
   const { toast } = useToast();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('video/')) {
-      // Vérifier la durée max (30 secondes)
+      const objectUrl = URL.createObjectURL(file);
       const video = document.createElement('video');
       video.preload = 'metadata';
       video.onloadedmetadata = () => {
         URL.revokeObjectURL(video.src);
-        if (video.duration > 30) {
-          toast({
-            title: "Vidéo trop longue",
-            description: "Veuillez sélectionner une vidéo de maximum 30 secondes",
-            variant: "destructive",
-          });
-          return;
-        }
         setSelectedFile(file);
         setVideoName(file.name.replace(/\.[^/.]+$/, ""));
+        setPreviewUrl(objectUrl);
+        const duration = Number.isFinite(video.duration) ? video.duration : 0;
+        setVideoDuration(duration);
+        setStartTime(0);
+        setEndTime(duration);
       };
-      video.src = URL.createObjectURL(file);
+      video.src = objectUrl;
     } else {
       toast({
         title: "Fichier invalide",
-        description: "Veuillez sélectionner un fichier vidéo (max 30s)",
+        description: "Veuillez sélectionner un fichier vidéo",
         variant: "destructive",
       });
     }
@@ -71,26 +72,18 @@ export const VideoUploadSimple = ({
     try {
       console.log('Saving video clip:', videoName);
       
-      // Obtenir la durée de la vidéo
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      
-      await new Promise<void>((resolve) => {
-        video.onloadedmetadata = () => {
-          URL.revokeObjectURL(video.src);
-          resolve();
-        };
-        video.src = URL.createObjectURL(selectedFile);
-      });
+      const safeStart = Math.max(0, Math.min(startTime, videoDuration || Number.MAX_SAFE_INTEGER));
+      const safeEnd = Math.max(safeStart, Math.min(endTime, videoDuration || Number.MAX_SAFE_INTEGER));
+      const trimmedDuration = Math.max(0.1, safeEnd - safeStart);
       
       const clipData = {
         id: `${playerId}-${Date.now()}`,
         name: videoName,
         playerId,
         playerName,
-        startTime: 0,
-        endTime: video.duration,
-        duration: video.duration,
+        startTime: safeStart,
+        endTime: safeEnd,
+        duration: trimmedDuration,
         isMuted: false,
         lobbyId
       };
@@ -100,8 +93,13 @@ export const VideoUploadSimple = ({
       onVideoSaved?.(savedClip);
       
       // Reset form
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
       setSelectedFile(null);
       setVideoName("");
+      setStartTime(0);
+      setEndTime(0);
+      setVideoDuration(0);
       
       toast({
         title: "✅ Vidéo sauvegardée !",
@@ -120,8 +118,13 @@ export const VideoUploadSimple = ({
   };
 
   const handleClear = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
     setSelectedFile(null);
     setVideoName("");
+    setStartTime(0);
+    setEndTime(0);
+    setVideoDuration(0);
   };
 
   return (
@@ -135,7 +138,7 @@ export const VideoUploadSimple = ({
         </div>
 
         <p className="text-sm text-foreground-secondary">
-          Téléchargez une vidéo courte (max 30 secondes)
+          Téléchargez une vidéo de votre choix (aucune limite de taille)
         </p>
 
         {/* File Upload */}
@@ -154,6 +157,45 @@ export const VideoUploadSimple = ({
 
         {selectedFile && (
           <>
+            {/* Trim Preview */}
+            <div className="space-y-3">
+              {previewUrl && (
+                <video
+                  src={previewUrl}
+                  className="w-full aspect-video rounded-lg"
+                  controls
+                  onTimeUpdate={(e) => {
+                    const el = e.currentTarget as HTMLVideoElement;
+                    const end = endTime || videoDuration || 0;
+                    const start = startTime || 0;
+                    if (el.currentTime >= end) {
+                      el.pause();
+                      el.currentTime = start;
+                    }
+                  }}
+                  onLoadedMetadata={(e) => {
+                    const el = e.currentTarget as HTMLVideoElement;
+                    const dur = Number.isFinite(el.duration) ? el.duration : 0;
+                    if (!videoDuration && dur) {
+                      setVideoDuration(dur);
+                      setStartTime(0);
+                      setEndTime(dur);
+                    }
+                  }}
+                />
+              )}
+
+              <VideoTrimEditor
+                duration={videoDuration}
+                start={startTime}
+                end={endTime}
+                onChange={(s, e) => {
+                  setStartTime(s);
+                  setEndTime(e);
+                }}
+              />
+            </div>
+
             {/* Video Name */}
             <div>
               <label htmlFor="video-name" className="block mb-2 text-sm font-medium">
