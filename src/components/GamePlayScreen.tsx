@@ -212,14 +212,58 @@ export const GamePlayScreen = ({
   };
 
   const handleNextRound = async () => {
-    setRoundNumber(prev => prev + 1);
-    setGamePhase("preview");
-    setCurrentChallenge(null);
+    if (!currentPlayer.isHost) return;
     
-    toast({
-      title: "Nouvelle manche !",
-      description: "Préparez-vous pour le prochain défi !",
-    });
+    const newRoundNumber = roundNumber + 1;
+    
+    try {
+      // Pick a random challenge for the new round
+      const allClips = await videoStorage.getAllClipsByLobby(lobbyId);
+      if (allClips.length === 0) {
+        toast({
+          title: "Erreur",
+          description: "Aucun défi disponible",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const randomClip = allClips[Math.floor(Math.random() * allClips.length)];
+
+      // Create new round in database - this will trigger real-time sync for all players
+      const { error } = await supabase
+        .from('game_rounds')
+        .upsert({
+          lobby_id: lobbyId,
+          round_number: newRoundNumber,
+          current_challenge_id: randomClip.id,
+          challenge_player_id: randomClip.playerId,
+          phase: 'preview'
+        }, {
+          onConflict: 'lobby_id,round_number'
+        });
+
+      if (error) throw error;
+
+      // Reset imitation status for all players
+      await supabase
+        .from('player_imitations')
+        .update({ is_ready: false })
+        .eq('lobby_id', lobbyId)
+        .eq('round_number', roundNumber);
+
+      toast({
+        title: "Nouvelle manche !",
+        description: "Préparez-vous pour le prochain défi !",
+      });
+    } catch (error) {
+      console.error('Error creating next round:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la nouvelle manche",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!currentChallenge) {
