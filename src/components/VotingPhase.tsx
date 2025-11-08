@@ -213,6 +213,7 @@ export const VotingPhase = ({
             <VideoPreview
               clipId={currentImitation.clipId}
               className="w-full aspect-video rounded-lg mx-auto max-w-3xl"
+              muted={false}
             />
           ) : (
             <div className="aspect-video bg-background-secondary/30 rounded-lg flex items-center justify-center">

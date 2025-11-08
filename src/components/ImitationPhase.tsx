@@ -49,9 +49,25 @@ export const ImitationPhase = ({
   const [uploadKey, setUploadKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [micPermissionGranted, setMicPermissionGranted] = useState(false);
+  const [challengeClipData, setChallengeClipData] = useState<any>(null);
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Load challenge clip data
+  useEffect(() => {
+    const loadChallengeData = async () => {
+      try {
+        const clip = await videoStorage.getVideoClip(currentChallenge.id);
+        if (clip) {
+          setChallengeClipData(clip);
+        }
+      } catch (error) {
+        console.error('Error loading challenge clip:', error);
+      }
+    };
+    loadChallengeData();
+  }, [currentChallenge.id]);
 
   // Pause music during imitation phase
   useEffect(() => {
@@ -163,9 +179,10 @@ export const ImitationPhase = ({
   };
 
   const handleRecordingStart = () => {
-    // Restart the challenge video when recording starts
+    // Restart the challenge video at the correct start time when recording starts
     if (challengeVideoRef.current) {
-      challengeVideoRef.current.currentTime = 0;
+      const startTime = challengeClipData?.startTime ?? 0;
+      challengeVideoRef.current.currentTime = startTime;
       challengeVideoRef.current.play();
     }
   };
