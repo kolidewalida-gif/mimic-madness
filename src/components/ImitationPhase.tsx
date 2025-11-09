@@ -2,10 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { VideoPreview } from "@/components/VideoPreview";
-import { VideoUploadSimple } from "@/components/VideoUploadSimple";
-import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { VideoRecorder } from "@/components/VideoRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
-import { MicrophonePermission } from "@/components/MicrophonePermission";
 import { Play, Check, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +46,6 @@ export const ImitationPhase = ({
   const [showPreview, setShowPreview] = useState(false);
   const [uploadKey, setUploadKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
-  const [micPermissionGranted, setMicPermissionGranted] = useState(false);
   const [challengeClipData, setChallengeClipData] = useState<any>(null);
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
@@ -239,32 +236,21 @@ export const ImitationPhase = ({
           <div className="space-y-6">
             <h3 className="text-xl font-semibold">Votre Imitation</h3>
             
-            {!micPermissionGranted ? (
-              <MicrophonePermission onPermissionGranted={() => setMicPermissionGranted(true)} />
-            ) : !showPreview ? (
+            {!showPreview ? (
               <>
-                {/* Voice Recorder */}
-                <div className="flex justify-center py-4">
-                  <VoiceRecorder
-                    onRecordingStart={handleRecordingStart}
-                    onRecordingStop={() => console.log("Stopped recording")}
-                  />
-                </div>
-
-                {/* Video Upload */}
-                <div className="border-t border-border pt-4">
-                  <VideoUploadSimple
-                    key={uploadKey}
-                    playerId={currentPlayer.id}
-                    playerName={currentPlayer.name}
-                    maxVideos={1}
-                    onVideoSaved={handleVideoSaved}
-                    lobbyId={lobbyId}
-                  />
-                </div>
+                {/* Video Recorder with audio */}
+                <VideoRecorder
+                  key={uploadKey}
+                  playerId={currentPlayer.id}
+                  playerName={currentPlayer.name}
+                  onVideoSaved={handleVideoSaved}
+                  lobbyId={lobbyId}
+                  onRecordingStart={handleRecordingStart}
+                  onRecordingStop={() => console.log("Stopped recording")}
+                />
 
                 {/* Submit Button - always visible */}
-                <div className="border-t border-border pt-4">
+                <div className="border-t border-border pt-4 mt-4">
                   <Button
                     onClick={handleSubmit}
                     disabled={hasSubmitted}
