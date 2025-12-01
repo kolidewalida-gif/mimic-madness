@@ -21,17 +21,22 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     return saved ? parseFloat(saved) : 0.3;
   });
   const [isPlaying, setIsPlaying] = useState(true);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(() => {
+    // Start with random track
+    return Math.floor(Math.random() * musicTracks.length);
+  });
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio(musicTracks[0]);
+      audioRef.current = new Audio(musicTracks[currentTrackIndex]);
       audioRef.current.loop = false;
       audioRef.current.volume = volume;
       
       audioRef.current.addEventListener('ended', () => {
-        setCurrentTrackIndex((prev) => (prev + 1) % musicTracks.length);
+        // Pick a random track (different from current)
+        const nextIndex = Math.floor(Math.random() * musicTracks.length);
+        setCurrentTrackIndex(nextIndex);
       });
     }
 
