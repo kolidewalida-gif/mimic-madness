@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { VideoPreview } from "@/components/VideoPreview";
-import { VideoRecorder } from "@/components/VideoRecorder";
+import { AudioRecorder } from "@/components/AudioRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { Play, Check, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -238,12 +238,12 @@ export const ImitationPhase = ({
             
             {!showPreview ? (
               <>
-                {/* Video Recorder with audio */}
-                <VideoRecorder
+                {/* Audio Recorder */}
+                <AudioRecorder
                   key={uploadKey}
                   playerId={currentPlayer.id}
                   playerName={currentPlayer.name}
-                  onVideoSaved={handleVideoSaved}
+                  onAudioSaved={handleVideoSaved}
                   lobbyId={lobbyId}
                   onRecordingStart={handleRecordingStart}
                   onRecordingStop={() => console.log("Stopped recording")}
