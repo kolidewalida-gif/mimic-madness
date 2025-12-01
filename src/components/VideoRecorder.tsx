@@ -80,10 +80,14 @@ export const VideoRecorder = ({
         liveVideoRef.current.play();
       }
 
-      // Setup MediaRecorder with audio+video
-      const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+      // Setup MediaRecorder with audio+video - try multiple formats
+      let options: MediaRecorderOptions = { mimeType: 'video/webm;codecs=vp9,opus' };
+      
       if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options.mimeType = 'video/webm';
+        options = { mimeType: 'video/webm;codecs=vp8,opus' };
+      }
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm' };
       }
 
       mediaRecorderRef.current = new MediaRecorder(mediaStream, options);
@@ -281,6 +285,8 @@ export const VideoRecorder = ({
               src={previewUrl}
               className="w-full aspect-video rounded-lg bg-black"
               controls
+              playsInline
+              preload="metadata"
               onLoadedMetadata={(e) => {
                 const el = e.currentTarget as HTMLVideoElement;
                 const dur = Number.isFinite(el.duration) ? el.duration : 0;
@@ -290,9 +296,18 @@ export const VideoRecorder = ({
                   setEndTime(dur);
                 }
               }}
+              onLoadedData={(e) => {
+                const el = e.currentTarget as HTMLVideoElement;
+                const dur = Number.isFinite(el.duration) ? el.duration : 0;
+                if (dur > 0 && videoDuration === 0) {
+                  setVideoDuration(dur);
+                  setStartTime(0);
+                  setEndTime(dur);
+                }
+              }}
               onTimeUpdate={(e) => {
                 const el = e.currentTarget as HTMLVideoElement;
-                if (el.currentTime >= endTime) {
+                if (endTime > 0 && el.currentTime >= endTime) {
                   el.pause();
                   el.currentTime = startTime;
                 }
