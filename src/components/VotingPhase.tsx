@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
-import { VideoPreview } from "@/components/VideoPreview";
+import { AudioPreview } from "@/components/AudioPreview";
 import { ThumbsUp, ThumbsDown, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
+import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 
 interface Player {
   id: string;
@@ -41,6 +42,15 @@ export const VotingPhase = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasVotedAll, setHasVotedAll] = useState(false);
   const { toast } = useToast();
+  const { pause, play } = useBackgroundMusic();
+
+  // Pause music during voting phase
+  useEffect(() => {
+    pause();
+    return () => {
+      play();
+    };
+  }, [pause, play]);
 
   // Load imitations and their clips
   useEffect(() => {
@@ -210,14 +220,14 @@ export const VotingPhase = ({
           </div>
 
           {currentImitation.clipId ? (
-            <VideoPreview
+            <AudioPreview
               clipId={currentImitation.clipId}
-              className="w-full aspect-video rounded-lg mx-auto max-w-3xl"
-              muted={false}
+              className="w-full mx-auto max-w-3xl"
+              autoPlay={true}
             />
           ) : (
             <div className="aspect-video bg-background-secondary/30 rounded-lg flex items-center justify-center">
-              <p className="text-foreground-secondary">Aucune vidéo disponible</p>
+              <p className="text-foreground-secondary">Aucun audio disponible</p>
             </div>
           )}
 

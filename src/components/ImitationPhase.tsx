@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
+import { AudioPreview } from "@/components/AudioPreview";
 import { VideoPreview } from "@/components/VideoPreview";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
@@ -286,9 +287,9 @@ export const ImitationPhase = ({
                   </div>
                   
                   {recordedClipId && (
-                    <VideoPreview
+                    <AudioPreview
                       clipId={recordedClipId}
-                      className="w-full aspect-video rounded-lg"
+                      className="w-full"
                     />
                   )}
                 </div>
