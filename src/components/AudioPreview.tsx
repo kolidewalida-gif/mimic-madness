@@ -90,19 +90,27 @@ export const AudioPreview = ({
   }
 
   return (
-    <div className={`relative bg-background-secondary/50 rounded-lg p-8 ${className}`}>
+    <div className={`relative bg-background-secondary/50 rounded-lg ${className}`}>
       {audioUrl && (
-        <div className="space-y-4">
+        <div className="space-y-4 p-4">
           <div className="flex items-center justify-center">
             <div className="text-6xl">🎤</div>
           </div>
-          <audio
+          <video
+            key={audioUrl}
             src={audioUrl}
-            className="w-full"
+            className="w-full rounded-lg"
             controls
             autoPlay={autoPlay}
-            crossOrigin="anonymous"
-            onError={() => setError("Erreur de lecture de l'audio")}
+            playsInline
+            muted={false}
+            onError={(e) => {
+              console.error("Video playback error:", e);
+              setError("Erreur de lecture");
+            }}
+            onLoadedMetadata={(e) => {
+              console.log("Video metadata loaded:", e.currentTarget.duration);
+            }}
           />
         </div>
       )}

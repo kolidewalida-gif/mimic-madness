@@ -230,18 +230,28 @@ export const VotingPhase = ({
   };
 
   const handleNext = async () => {
-    if (!votingSessionId) return;
+    if (!votingSessionId) {
+      console.error('No voting session ID');
+      return;
+    }
 
     const nextIndex = currentIndex + 1;
+    
+    console.log('Moving to next imitation:', nextIndex, 'of', imitations.length);
     
     // Update voting session for all players
     const { error } = await supabase
       .from('voting_session')
-      .update({ current_imitation_index: nextIndex })
+      .update({ 
+        current_imitation_index: nextIndex,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', votingSessionId);
 
     if (error) {
       console.error('Error updating voting session:', error);
+    } else {
+      console.log('Successfully updated voting session to index:', nextIndex);
     }
   };
 

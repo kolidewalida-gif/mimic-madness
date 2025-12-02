@@ -5,7 +5,7 @@ import { AudioPreview } from "@/components/AudioPreview";
 import { VideoPreview } from "@/components/VideoPreview";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
-import { Play, Check, Users, Settings } from "lucide-react";
+import { Play, Check, Users, Settings, StopCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -48,9 +48,11 @@ export const ImitationPhase = ({
   const [uploadKey, setUploadKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [challengeClipData, setChallengeClipData] = useState<any>(null);
+  const [isRecording, setIsRecording] = useState(false);
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
+  const audioRecorderRef = useRef<any>(null);
 
   // Load challenge clip data
   useEffect(() => {
@@ -154,8 +156,9 @@ export const ImitationPhase = ({
     setHasRecorded(true);
     setRecordedClipId(clip.id);
     setShowPreview(true);
+    setIsRecording(false);
     toast({
-      title: "Vidéo enregistrée !",
+      title: "Audio enregistré !",
       description: "Écoutez votre imitation et recommencez si besoin.",
     });
   };
@@ -173,16 +176,24 @@ export const ImitationPhase = ({
     setShowPreview(false);
     setHasRecorded(false);
     setRecordedClipId(null);
-    setUploadKey(prev => prev + 1); // Force remount VideoUpload
+    setUploadKey(prev => prev + 1);
   };
 
   const handleRecordingStart = () => {
+    setIsRecording(true);
     // Restart the challenge video at the correct start time when recording starts
     if (challengeVideoRef.current) {
       const startTime = challengeClipData?.startTime ?? 0;
       challengeVideoRef.current.currentTime = startTime;
       challengeVideoRef.current.play();
     }
+  };
+
+  const handleStopRecording = () => {
+    if (audioRecorderRef.current?.stopRecording) {
+      audioRecorderRef.current.stopRecording();
+    }
+    setIsRecording(false);
   };
 
   return (
@@ -242,19 +253,33 @@ export const ImitationPhase = ({
                 {/* Audio Recorder */}
                 <AudioRecorder
                   key={uploadKey}
+                  ref={audioRecorderRef}
                   playerId={currentPlayer.id}
                   playerName={currentPlayer.name}
                   onAudioSaved={handleVideoSaved}
                   lobbyId={lobbyId}
                   onRecordingStart={handleRecordingStart}
-                  onRecordingStop={() => console.log("Stopped recording")}
+                  onRecordingStop={() => setIsRecording(false)}
                 />
 
-                {/* Submit Button - always visible */}
+                {/* Stop Recording Button when recording */}
+                {isRecording && (
+                  <Button
+                    onClick={handleStopRecording}
+                    variant="destructive"
+                    className="w-full"
+                    size="lg"
+                  >
+                    <StopCircle className="h-5 w-5 mr-2" />
+                    Arrêter l'enregistrement
+                  </Button>
+                )}
+
+                {/* Submit Button */}
                 <div className="border-t border-border pt-4 mt-4">
                   <Button
                     onClick={handleSubmit}
-                    disabled={hasSubmitted}
+                    disabled={hasSubmitted || !hasRecorded}
                     variant="hero"
                     className="w-full"
                     size="lg"
@@ -290,6 +315,7 @@ export const ImitationPhase = ({
                     <AudioPreview
                       clipId={recordedClipId}
                       className="w-full"
+                      autoPlay={true}
                     />
                   )}
                 </div>
