@@ -58,9 +58,8 @@ export const VotingPhase = ({
       const imitationsData: ImitationWithClip[] = [];
       
       for (const player of players) {
-        // Get the most recent clip for this player
-        const clips = await videoStorage.getVideoClipsByPlayer(player.id);
-        const latestClip = clips.length > 0 ? clips[clips.length - 1] : null;
+        // Get the most recent clip for this player in THIS lobby
+        const latestClip = await videoStorage.getLatestClipByPlayerInLobby(player.id, lobbyId);
 
         // Get votes for this player
         const { data: votes } = await supabase

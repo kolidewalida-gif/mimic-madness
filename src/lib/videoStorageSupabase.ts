@@ -197,6 +197,36 @@ class VideoStorageSupabase {
       lobbyId: clip.lobby_id,
     }));
   }
+
+  async getLatestClipByPlayerInLobby(playerId: string, lobbyId: string): Promise<VideoClip | null> {
+    const { data, error } = await supabase
+      .from('video_clips')
+      .select('*')
+      .eq('player_id', playerId)
+      .eq('lobby_id', lobbyId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      console.error('Error fetching latest clip:', error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      playerId: data.player_id,
+      playerName: data.player_name,
+      startTime: data.start_time,
+      endTime: data.end_time,
+      duration: data.duration,
+      isMuted: data.is_muted,
+      storagePath: data.storage_path,
+      createdAt: new Date(data.created_at),
+      lobbyId: data.lobby_id,
+    };
+  }
 }
 
 export const videoStorage = new VideoStorageSupabase();
