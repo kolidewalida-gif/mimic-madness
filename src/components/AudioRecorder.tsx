@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, MicOff, Save, Trash2, Play } from "lucide-react";
+import { Mic, MicOff, Save, Trash2 } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 
 interface AudioRecorderProps {
@@ -15,14 +15,14 @@ interface AudioRecorderProps {
   onRecordingStop?: () => void;
 }
 
-export const AudioRecorder = ({
+export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
   playerId,
   playerName,
   onAudioSaved,
   lobbyId,
   onRecordingStart,
   onRecordingStop
-}: AudioRecorderProps) => {
+}, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [audioName, setAudioName] = useState("");
@@ -38,6 +38,16 @@ export const AudioRecorder = ({
   const animationFrameRef = useRef<number | null>(null);
   
   const { toast } = useToast();
+
+  // Expose stopRecording via ref
+  React.useImperativeHandle(ref, () => ({
+    stopRecording: () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+      }
+    }
+  }));
 
   // Cleanup on unmount
   useEffect(() => {
@@ -352,4 +362,6 @@ export const AudioRecorder = ({
       </div>
     </Card>
   );
-};
+});
+
+AudioRecorder.displayName = 'AudioRecorder';
