@@ -25,17 +25,24 @@ export const AudioPreview = ({
         setIsLoading(true);
         setError(null);
         
+        console.log('Loading audio clip:', clipId);
+        
         const clip = await videoStorage.getVideoClip(clipId);
+        console.log('Clip data:', clip);
+        
         if (!mounted) return;
         
         if (!clip) {
+          console.error('Clip not found:', clipId);
           setError("Audio introuvable");
           return;
         }
 
         const url = await videoStorage.getVideoUrl(clipId);
+        console.log('Audio URL:', url);
         
         if (!url) {
+          console.error('URL not found for clip:', clipId);
           setError("Audio introuvable");
           return;
         }

@@ -281,6 +281,41 @@ export type Database = {
           },
         ]
       }
+      voting_session: {
+        Row: {
+          created_at: string
+          current_imitation_index: number
+          id: string
+          lobby_id: string
+          round_number: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_imitation_index?: number
+          id?: string
+          lobby_id: string
+          round_number?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_imitation_index?: number
+          id?: string
+          lobby_id?: string
+          round_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voting_session_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

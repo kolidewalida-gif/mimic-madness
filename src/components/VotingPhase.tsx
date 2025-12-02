@@ -41,6 +41,7 @@ export const VotingPhase = ({
   const [imitations, setImitations] = useState<ImitationWithClip[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasVotedAll, setHasVotedAll] = useState(false);
+  const [votingSessionId, setVotingSessionId] = useState<string | null>(null);
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
 
@@ -51,6 +52,77 @@ export const VotingPhase = ({
       play();
     };
   }, [pause, play]);
+
+  // Initialize or join voting session
+  useEffect(() => {
+    const initVotingSession = async () => {
+      // Check if voting session exists
+      const { data: existingSession } = await supabase
+        .from('voting_session')
+        .select('*')
+        .eq('lobby_id', lobbyId)
+        .eq('round_number', roundNumber)
+        .maybeSingle();
+
+      if (existingSession) {
+        setVotingSessionId(existingSession.id);
+        setCurrentIndex(existingSession.current_imitation_index);
+      } else if (currentPlayer.isHost) {
+        // Host creates the voting session
+        const { data: newSession, error } = await supabase
+          .from('voting_session')
+          .insert({
+            lobby_id: lobbyId,
+            round_number: roundNumber,
+            current_imitation_index: 0
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating voting session:', error);
+        } else {
+          setVotingSessionId(newSession.id);
+        }
+      }
+    };
+
+    initVotingSession();
+  }, [lobbyId, roundNumber, currentPlayer.isHost]);
+
+  // Subscribe to voting session changes
+  useEffect(() => {
+    if (!votingSessionId) return;
+
+    const channel = supabase
+      .channel(`voting_session:${votingSessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'voting_session',
+          filter: `id=eq.${votingSessionId}`
+        },
+        (payload) => {
+          const newIndex = payload.new.current_imitation_index;
+          setCurrentIndex(newIndex);
+          
+          // Check if voting is complete
+          if (newIndex >= imitations.length && imitations.length > 0) {
+            setHasVotedAll(true);
+            setTimeout(() => {
+              onVotingComplete();
+            }, 3000);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [votingSessionId, imitations.length, onVotingComplete]);
 
   // Load imitations and their clips
   useEffect(() => {
@@ -92,6 +164,7 @@ export const VotingPhase = ({
         });
       }
 
+      console.log('Loaded imitations:', imitationsData);
       setImitations(imitationsData);
     };
 
@@ -122,7 +195,7 @@ export const VotingPhase = ({
   const handleVote = async (voteType: 'like' | 'dislike') => {
     const currentImitation = imitations[currentIndex];
     if (!currentImitation || currentImitation.playerId === currentPlayer.id) {
-      // Can't vote for yourself
+      // Can't vote for yourself, go to next
       handleNext();
       return;
     }
@@ -156,33 +229,33 @@ export const VotingPhase = ({
     }
   };
 
-  const handleNext = () => {
-    if (currentIndex < imitations.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      setHasVotedAll(true);
-      toast({
-        title: "Votes terminés !",
-        description: "En attente des résultats...",
-      });
-      // Auto navigate to results after 3 seconds
-      setTimeout(() => {
-        onVotingComplete();
-      }, 3000);
+  const handleNext = async () => {
+    if (!votingSessionId) return;
+
+    const nextIndex = currentIndex + 1;
+    
+    // Update voting session for all players
+    const { error } = await supabase
+      .from('voting_session')
+      .update({ current_imitation_index: nextIndex })
+      .eq('id', votingSessionId);
+
+    if (error) {
+      console.error('Error updating voting session:', error);
     }
   };
 
   const currentImitation = imitations[currentIndex];
 
-  if (!currentImitation) {
+  if (!currentImitation || imitations.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-foreground-secondary">Chargement...</p>
+        <p className="text-foreground-secondary">Chargement des imitations...</p>
       </div>
     );
   }
 
-  if (hasVotedAll) {
+  if (hasVotedAll || currentIndex >= imitations.length) {
     return (
       <div className="text-center py-12 space-y-4">
         <Trophy className="h-16 w-16 text-secondary mx-auto" />
@@ -202,6 +275,9 @@ export const VotingPhase = ({
         </h2>
         <p className="text-foreground-secondary">
           Imitation {currentIndex + 1}/{imitations.length}
+        </p>
+        <p className="text-sm text-secondary">
+          Tous les joueurs votent en même temps
         </p>
       </div>
 
@@ -274,7 +350,7 @@ export const VotingPhase = ({
               index < currentIndex
                 ? "bg-secondary"
                 : index === currentIndex
-                ? "bg-primary"
+                ? "bg-primary animate-pulse"
                 : "bg-background-secondary"
             }`}
           />
