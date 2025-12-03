@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, MicOff, Save, Trash2 } from "lucide-react";
+import { Mic, StopCircle, Save, Trash2, Play, RotateCcw } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 
 interface AudioRecorderProps {
@@ -267,14 +267,9 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
-                <Button
-                  onClick={stopRecording}
-                  variant="destructive"
-                  size="lg"
-                  className="w-32 h-32 rounded-full"
-                >
-                  <MicOff className="h-12 w-12" />
-                </Button>
+                <div className="w-32 h-32 rounded-full bg-destructive/20 flex items-center justify-center">
+                  <Mic className="h-12 w-12 text-destructive animate-pulse" />
+                </div>
                 
                 {/* Animated waves */}
                 <span
@@ -282,14 +277,6 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
                   style={{
                     opacity: audioLevel / 100,
                     animationDuration: '1s'
-                  }}
-                />
-                <span
-                  className="absolute inset-0 rounded-full border-4 border-destructive animate-ping"
-                  style={{
-                    opacity: audioLevel / 150,
-                    animationDuration: '1.5s',
-                    animationDelay: '0.3s'
                   }}
                 />
               </div>
@@ -307,54 +294,63 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
                 ))}
               </div>
 
-              <p className="text-lg font-semibold text-secondary animate-pulse">
+              <p className="text-lg font-semibold text-destructive animate-pulse">
                 🎤 Enregistrement en cours...
               </p>
+
+              {/* STOP BUTTON - clearly visible */}
+              <Button
+                onClick={stopRecording}
+                variant="destructive"
+                size="lg"
+                className="w-full mt-4"
+              >
+                <StopCircle className="h-5 w-5 mr-2" />
+                Arrêter l'enregistrement
+              </Button>
             </div>
           </div>
         )}
 
         {recordedBlob && previewUrl && (
           <div className="space-y-4">
-            {/* Audio preview */}
-            <div className="p-4 bg-background/50 rounded-lg">
+            <p className="text-center text-sm text-foreground-secondary">
+              ✅ Enregistrement terminé ! Écoutez et sauvegardez.
+            </p>
+
+            {/* Audio preview with play button */}
+            <div className="p-4 bg-background/50 rounded-lg space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-secondary">
+                <Play className="h-4 w-4" />
+                Écouter votre imitation
+              </div>
               <audio
                 src={previewUrl}
                 className="w-full"
                 controls
+                autoPlay={false}
               />
             </div>
 
-            {/* Audio Name */}
-            <div>
-              <label htmlFor="audio-name" className="block mb-2 text-sm font-medium">
-                Nom de votre imitation
-              </label>
-              <Input
-                id="audio-name"
-                value={audioName}
-                onChange={(e) => setAudioName(e.target.value)}
-                placeholder="Ex: Mon imitation"
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button
-                variant="hero"
-                onClick={handleSaveClip}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isLoading ? "Sauvegarde..." : "Sauvegarder"}
-              </Button>
+            {/* Action Buttons - Clear layout */}
+            <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
                 onClick={handleClear}
                 disabled={isLoading}
+                className="w-full"
               >
-                <Trash2 className="h-4 w-4" />
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Recommencer
+              </Button>
+              <Button
+                variant="hero"
+                onClick={handleSaveClip}
+                disabled={isLoading}
+                className="w-full"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isLoading ? "..." : "Sauvegarder"}
               </Button>
             </div>
           </div>
