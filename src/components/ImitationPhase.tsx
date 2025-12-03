@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
-import { AudioPreview } from "@/components/AudioPreview";
 import { VideoPreview } from "@/components/VideoPreview";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
+import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
 import { Play, Check, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -253,7 +253,7 @@ export const ImitationPhase = ({
               </>
             ) : (
               <>
-                {/* Preview Recorded Imitation */}
+                {/* Preview Recorded Imitation - Video with Audio overlay */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">✅ Imitation Enregistrée</h4>
@@ -267,11 +267,11 @@ export const ImitationPhase = ({
                     </Button>
                   </div>
                   
+                  {/* Video with recorded audio overlay */}
                   {recordedClipId && (
-                    <AudioPreview
-                      clipId={recordedClipId}
-                      className="w-full"
-                      autoPlay={false}
+                    <VideoWithAudioOverlay
+                      videoClipId={currentChallenge.id}
+                      audioClipId={recordedClipId}
                     />
                   )}
                 </div>
