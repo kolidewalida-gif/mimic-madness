@@ -5,7 +5,7 @@ import { AudioPreview } from "@/components/AudioPreview";
 import { VideoPreview } from "@/components/VideoPreview";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
-import { Play, Check, Users, Settings, StopCircle } from "lucide-react";
+import { Play, Check, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -44,7 +44,6 @@ export const ImitationPhase = ({
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
   const [recordedClipId, setRecordedClipId] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
   const [uploadKey, setUploadKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [challengeClipData, setChallengeClipData] = useState<any>(null);
@@ -52,7 +51,6 @@ export const ImitationPhase = ({
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
-  const audioRecorderRef = useRef<any>(null);
 
   // Load challenge clip data
   useEffect(() => {
@@ -153,13 +151,13 @@ export const ImitationPhase = ({
   };
 
   const handleVideoSaved = (clip: any) => {
+    console.log("Imitation saved:", clip);
     setHasRecorded(true);
     setRecordedClipId(clip.id);
-    setShowPreview(true);
     setIsRecording(false);
     toast({
-      title: "Audio enregistré !",
-      description: "Écoutez votre imitation et recommencez si besoin.",
+      title: "✅ Imitation enregistrée !",
+      description: "Vous pouvez maintenant la soumettre ou recommencer.",
     });
   };
 
@@ -173,7 +171,6 @@ export const ImitationPhase = ({
       }
     }
     
-    setShowPreview(false);
     setHasRecorded(false);
     setRecordedClipId(null);
     setUploadKey(prev => prev + 1);
@@ -187,13 +184,6 @@ export const ImitationPhase = ({
       challengeVideoRef.current.currentTime = startTime;
       challengeVideoRef.current.play();
     }
-  };
-
-  const handleStopRecording = () => {
-    if (audioRecorderRef.current?.stopRecording) {
-      audioRecorderRef.current.stopRecording();
-    }
-    setIsRecording(false);
   };
 
   return (
@@ -248,12 +238,11 @@ export const ImitationPhase = ({
           <div className="space-y-6">
             <h3 className="text-xl font-semibold">Votre Imitation</h3>
             
-            {!showPreview ? (
+            {!hasRecorded ? (
               <>
-                {/* Audio Recorder */}
+                {/* Audio Recorder - handles recording AND saving internally */}
                 <AudioRecorder
                   key={uploadKey}
-                  ref={audioRecorderRef}
                   playerId={currentPlayer.id}
                   playerName={currentPlayer.name}
                   onAudioSaved={handleVideoSaved}
@@ -261,46 +250,13 @@ export const ImitationPhase = ({
                   onRecordingStart={handleRecordingStart}
                   onRecordingStop={() => setIsRecording(false)}
                 />
-
-                {/* Stop Recording Button when recording */}
-                {isRecording && (
-                  <Button
-                    onClick={handleStopRecording}
-                    variant="destructive"
-                    className="w-full"
-                    size="lg"
-                  >
-                    <StopCircle className="h-5 w-5 mr-2" />
-                    Arrêter l'enregistrement
-                  </Button>
-                )}
-
-                {/* Submit Button */}
-                <div className="border-t border-border pt-4 mt-4">
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={hasSubmitted || !hasRecorded}
-                    variant="hero"
-                    className="w-full"
-                    size="lg"
-                  >
-                    <Check className="h-5 w-5 mr-2" />
-                    {hasSubmitted ? "Soumis" : "Soumettre mon imitation"}
-                  </Button>
-                  
-                  {hasSubmitted && (
-                    <p className="text-center text-sm text-foreground-secondary mt-3">
-                      ⏳ Attente des autres joueurs ({readyPlayers.length}/{players.length})
-                    </p>
-                  )}
-                </div>
               </>
             ) : (
               <>
                 {/* Preview Recorded Imitation */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Votre Imitation</h4>
+                    <h4 className="font-medium">✅ Imitation Enregistrée</h4>
                     <Button
                       onClick={handleRetry}
                       variant="outline"
@@ -315,7 +271,7 @@ export const ImitationPhase = ({
                     <AudioPreview
                       clipId={recordedClipId}
                       className="w-full"
-                      autoPlay={true}
+                      autoPlay={false}
                     />
                   )}
                 </div>
@@ -329,7 +285,7 @@ export const ImitationPhase = ({
                     size="lg"
                   >
                     <Check className="h-5 w-5 mr-2" />
-                    {hasSubmitted ? "Soumis" : "Soumettre mon imitation"}
+                    {hasSubmitted ? "Soumis ✅" : "Soumettre mon imitation"}
                   </Button>
 
                   {hasSubmitted && (
