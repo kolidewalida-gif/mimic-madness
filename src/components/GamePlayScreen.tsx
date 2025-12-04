@@ -324,6 +324,7 @@ export const GamePlayScreen = ({
             roundNumber={roundNumber}
             currentPlayer={currentPlayer}
             players={players}
+            challengeVideoClipId={currentChallenge.id}
             onVotingComplete={handleVotingComplete}
           />
         )}
