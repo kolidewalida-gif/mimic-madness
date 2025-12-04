@@ -137,13 +137,29 @@ class VideoStorageSupabase {
 
   async getVideoUrl(clipId: string): Promise<string | null> {
     const clip = await this.getVideoClip(clipId);
-    if (!clip) return null;
+    if (!clip) {
+      console.error('Clip not found:', clipId);
+      return null;
+    }
 
-    const { data } = supabase.storage
+    console.log('Getting URL for clip:', clipId, 'path:', clip.storagePath);
+
+    // Use signed URL for more reliability
+    const { data, error } = await supabase.storage
       .from('video-challenges')
-      .getPublicUrl(clip.storagePath);
+      .createSignedUrl(clip.storagePath, 3600); // 1 hour expiry
 
-    return data.publicUrl;
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      // Fallback to public URL
+      const { data: publicData } = supabase.storage
+        .from('video-challenges')
+        .getPublicUrl(clip.storagePath);
+      return publicData.publicUrl;
+    }
+
+    console.log('Signed URL created:', data.signedUrl);
+    return data.signedUrl;
   }
 
   async deleteVideoClip(clipId: string): Promise<void> {
