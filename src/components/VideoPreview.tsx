@@ -133,13 +133,15 @@ export const VideoPreview = ({
           onLoadedData={handleLoadedData}
           onLoadedMetadata={handleLoadedData}
           onTimeUpdate={handleTimeUpdate}
-          onError={() => setError("Erreur de lecture de la vidéo")}
+          onError={(e) => {
+            console.error("Video error:", e);
+            setError("Erreur de lecture de la vidéo");
+          }}
           className="w-full h-full object-cover rounded-lg"
           controls
           playsInline
-          preload="metadata"
+          preload="auto"
           muted={shouldBeMuted}
-          crossOrigin="anonymous"
         />
       )}
     </div>
