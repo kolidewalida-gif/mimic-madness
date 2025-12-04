@@ -57,6 +57,8 @@ export const VotingPhase = ({
 
   // Initialize or join voting session
   useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
     const initVotingSession = async () => {
       // Check if voting session exists
       const { data: existingSession } = await supabase
@@ -69,6 +71,8 @@ export const VotingPhase = ({
       if (existingSession) {
         setVotingSessionId(existingSession.id);
         setCurrentIndex(existingSession.current_imitation_index);
+        if (interval) clearInterval(interval);
+        return true;
       } else if (currentPlayer.isHost) {
         // Host creates the voting session
         const { data: newSession, error } = await supabase
@@ -85,11 +89,26 @@ export const VotingPhase = ({
           console.error('Error creating voting session:', error);
         } else {
           setVotingSessionId(newSession.id);
+          if (interval) clearInterval(interval);
+          return true;
         }
       }
+      return false;
     };
 
     initVotingSession();
+    
+    // Poll for session if non-host doesn't find it
+    if (!currentPlayer.isHost) {
+      interval = setInterval(async () => {
+        const found = await initVotingSession();
+        if (found && interval) clearInterval(interval);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [lobbyId, roundNumber, currentPlayer.isHost]);
 
   // Subscribe to voting session changes
@@ -324,6 +343,7 @@ export const VotingPhase = ({
                 onClick={handleNext}
                 variant="hero"
                 size="lg"
+                disabled={!votingSessionId}
               >
                 Passer
               </Button>
@@ -334,6 +354,7 @@ export const VotingPhase = ({
                   variant="outline"
                   size="lg"
                   className="flex-1 max-w-xs"
+                  disabled={!votingSessionId}
                 >
                   <ThumbsDown className="h-6 w-6 mr-2" />
                   Dislike
@@ -343,6 +364,7 @@ export const VotingPhase = ({
                   variant="hero"
                   size="lg"
                   className="flex-1 max-w-xs"
+                  disabled={!votingSessionId}
                 >
                   <ThumbsUp className="h-6 w-6 mr-2" />
                   Like
