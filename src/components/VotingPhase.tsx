@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
-import { AudioPreview } from "@/components/AudioPreview";
+import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
 import { ThumbsUp, ThumbsDown, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ interface VotingPhaseProps {
   roundNumber: number;
   currentPlayer: Player;
   players: Player[];
+  challengeVideoClipId: string;
   onVotingComplete: () => void;
 }
 
@@ -36,6 +37,7 @@ export const VotingPhase = ({
   roundNumber,
   currentPlayer,
   players,
+  challengeVideoClipId,
   onVotingComplete
 }: VotingPhaseProps) => {
   const [imitations, setImitations] = useState<ImitationWithClip[]>([]);
@@ -305,10 +307,10 @@ export const VotingPhase = ({
           </div>
 
           {currentImitation.clipId ? (
-            <AudioPreview
-              clipId={currentImitation.clipId}
+            <VideoWithAudioOverlay
+              videoClipId={challengeVideoClipId}
+              audioClipId={currentImitation.clipId}
               className="w-full mx-auto max-w-3xl"
-              autoPlay={true}
             />
           ) : (
             <div className="aspect-video bg-background-secondary/30 rounded-lg flex items-center justify-center">
