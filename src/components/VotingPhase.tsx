@@ -213,11 +213,18 @@ export const VotingPhase = ({
     };
   }, [lobbyId, roundNumber, players, currentPlayer.id]);
 
+  const [hasVotedCurrent, setHasVotedCurrent] = useState(false);
+
+  // Reset hasVotedCurrent when index changes
+  useEffect(() => {
+    setHasVotedCurrent(false);
+  }, [currentIndex]);
+
   const handleVote = async (voteType: 'like' | 'dislike') => {
     const currentImitation = imitations[currentIndex];
     if (!currentImitation || currentImitation.playerId === currentPlayer.id) {
-      // Can't vote for yourself, go to next
-      handleNext();
+      // Can't vote for yourself
+      setHasVotedCurrent(true);
       return;
     }
 
@@ -239,7 +246,7 @@ export const VotingPhase = ({
         description: `Vote enregistré pour ${currentImitation.playerName}`,
       });
 
-      handleNext();
+      setHasVotedCurrent(true);
     } catch (error) {
       console.error('Error voting:', error);
       toast({
@@ -250,15 +257,16 @@ export const VotingPhase = ({
     }
   };
 
+  // Only host can advance to next imitation
   const handleNext = async () => {
-    if (!votingSessionId) {
-      console.error('No voting session ID');
+    if (!votingSessionId || !currentPlayer.isHost) {
+      console.error('Only host can advance to next imitation');
       return;
     }
 
     const nextIndex = currentIndex + 1;
     
-    console.log('Moving to next imitation:', nextIndex, 'of', imitations.length);
+    console.log('Host moving to next imitation:', nextIndex, 'of', imitations.length);
     
     // Update voting session for all players
     const { error } = await supabase
@@ -337,18 +345,10 @@ export const VotingPhase = ({
             </div>
           )}
 
-          <div className="flex gap-4 justify-center pt-4">
-            {isOwnVideo ? (
-              <Button
-                onClick={handleNext}
-                variant="hero"
-                size="lg"
-                disabled={!votingSessionId}
-              >
-                Passer
-              </Button>
-            ) : (
-              <>
+          <div className="flex flex-col gap-4 items-center pt-4">
+            {/* Voting buttons for non-own videos */}
+            {!isOwnVideo && !hasVotedCurrent && (
+              <div className="flex gap-4 justify-center">
                 <Button
                   onClick={() => handleVote('dislike')}
                   variant="outline"
@@ -369,7 +369,26 @@ export const VotingPhase = ({
                   <ThumbsUp className="h-6 w-6 mr-2" />
                   Like
                 </Button>
-              </>
+              </div>
+            )}
+
+            {/* Status after voting or for own video */}
+            {(hasVotedCurrent || isOwnVideo) && !currentPlayer.isHost && (
+              <p className="text-foreground-secondary text-center">
+                ✅ {isOwnVideo ? "C'est votre imitation" : "Vote enregistré"} - En attente de l'hôte...
+              </p>
+            )}
+
+            {/* Host controls */}
+            {currentPlayer.isHost && (
+              <Button
+                onClick={handleNext}
+                variant="hero"
+                size="lg"
+                disabled={!votingSessionId}
+              >
+                Imitation Suivante →
+              </Button>
             )}
           </div>
         </div>
