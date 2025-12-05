@@ -5,7 +5,7 @@ import { ChallengePreviewPhase } from "@/components/ChallengePreviewPhase";
 import { ImitationPhase } from "@/components/ImitationPhase";
 import { VotingPhase } from "@/components/VotingPhase";
 import { ResultsPhase } from "@/components/ResultsPhase";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -46,7 +46,6 @@ export const GamePlayScreen = ({
   useEffect(() => {
     const initializeRound = async () => {
       try {
-        // Check if round already exists
         const { data: existingRound } = await supabase
           .from('game_rounds')
           .select('*')
@@ -55,7 +54,6 @@ export const GamePlayScreen = ({
           .maybeSingle();
 
         if (existingRound) {
-          // Load existing round
           setCurrentChallenge({
             id: existingRound.current_challenge_id,
             playerId: existingRound.challenge_player_id,
@@ -65,9 +63,7 @@ export const GamePlayScreen = ({
           return;
         }
 
-        // Create new round (only host)
         if (currentPlayer.isHost) {
-          // Pick a random challenge from all players' submissions
           const allClips = await videoStorage.getAllClipsByLobby(lobbyId);
           if (allClips.length === 0) {
             toast({
@@ -81,7 +77,6 @@ export const GamePlayScreen = ({
           const randomClip = allClips[Math.floor(Math.random() * allClips.length)];
           const challengePlayer = players.find(p => p.id === randomClip.playerId);
 
-          // Use upsert to avoid duplicate key error
           const { error } = await supabase
             .from('game_rounds')
             .upsert({
@@ -114,7 +109,6 @@ export const GamePlayScreen = ({
 
     initializeRound();
 
-    // Subscribe to game round updates
     const channel = supabase
       .channel(`game-round:${lobbyId}:${roundNumber}`)
       .on(
@@ -126,7 +120,6 @@ export const GamePlayScreen = ({
           filter: `lobby_id=eq.${lobbyId}`
         },
         (payload: any) => {
-          console.log('Game round update:', payload);
           if (payload.new) {
             const newRound = payload.new.round_number;
             const newPhase = payload.new.phase as GamePhase;
@@ -150,14 +143,12 @@ export const GamePlayScreen = ({
   const handlePreviewReady = async () => {
     if (currentPlayer.isHost) {
       try {
-        // Reset all player_imitations readiness for this round (avoid RLS delete issues)
         await supabase
           .from('player_imitations')
           .update({ is_ready: false })
           .eq('lobby_id', lobbyId)
           .eq('round_number', roundNumber);
 
-        // Update to imitation phase
         await supabase
           .from('game_rounds')
           .update({ phase: 'imitation' })
@@ -165,11 +156,6 @@ export const GamePlayScreen = ({
           .eq('round_number', roundNumber);
 
         setGamePhase('imitation');
-
-        toast({
-          title: "Phase d'imitation !",
-          description: "Tous les joueurs ont vu la vidéo. À vous d'imiter !",
-        });
       } catch (error) {
         console.error('Error updating phase:', error);
       }
@@ -186,11 +172,6 @@ export const GamePlayScreen = ({
           .eq('round_number', roundNumber);
 
         setGamePhase('voting');
-
-        toast({
-          title: "Phase de vote !",
-          description: "Tous les joueurs ont soumis. Votez pour les meilleures imitations !",
-        });
       } catch (error) {
         console.error('Error updating phase:', error);
       }
@@ -217,7 +198,6 @@ export const GamePlayScreen = ({
     const newRoundNumber = roundNumber + 1;
     
     try {
-      // Pick a random challenge for the new round
       const allClips = await videoStorage.getAllClipsByLobby(lobbyId);
       if (allClips.length === 0) {
         toast({
@@ -230,7 +210,6 @@ export const GamePlayScreen = ({
 
       const randomClip = allClips[Math.floor(Math.random() * allClips.length)];
 
-      // Create new round in database - this will trigger real-time sync for all players
       const { error } = await supabase
         .from('game_rounds')
         .upsert({
@@ -245,7 +224,6 @@ export const GamePlayScreen = ({
 
       if (error) throw error;
 
-      // Update local state - the realtime subscription will also update it
       setRoundNumber(newRoundNumber);
       setGamePhase('preview');
       setCurrentChallenge({
@@ -256,7 +234,7 @@ export const GamePlayScreen = ({
 
       toast({
         title: "Nouvelle manche !",
-        description: "Préparez-vous pour le prochain défi !",
+        description: "Préparez-vous !",
       });
     } catch (error) {
       console.error('Error creating next round:', error);
@@ -270,34 +248,45 @@ export const GamePlayScreen = ({
 
   if (!currentChallenge) {
     return (
-      <div className="min-h-screen animated-bg p-6 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen animated-bg flex items-center justify-center p-6">
+        <div className="text-center space-y-4">
           <GameLogo size="lg" />
-          <p className="mt-4 text-foreground-secondary">Chargement de la manche...</p>
+          <div className="w-12 h-12 mx-auto rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-foreground-secondary font-body">Chargement...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen animated-bg p-6">
-      <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen animated-bg p-6 relative">
+      {/* Decorative elements */}
+      <div className="absolute top-20 right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl animate-float pointer-events-none" />
+      <div className="absolute bottom-20 left-10 w-48 h-48 bg-secondary/10 rounded-full blur-3xl animate-float pointer-events-none" style={{ animationDelay: '1.5s' }} />
+
+      <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn relative z-10">
+        {/* Header */}
+        <header className="flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={onEndGame}
-            className="flex items-center gap-2"
+            className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Quitter
+            <span className="hidden sm:inline">Quitter</span>
           </Button>
-          <GameLogo size="md" />
-          <div className="text-right">
-            <p className="text-sm text-foreground-secondary">Manche</p>
-            <p className="text-2xl font-bold text-gradient">{roundNumber}</p>
+          
+          <GameLogo size="sm" />
+          
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/30">
+            <Zap className="h-4 w-4 text-primary" />
+            <span className="font-display font-bold text-primary">
+              MANCHE {roundNumber}
+            </span>
           </div>
-        </div>
+        </header>
 
+        {/* Game Phases */}
         {gamePhase === "preview" && (
           <ChallengePreviewPhase
             lobbyId={lobbyId}

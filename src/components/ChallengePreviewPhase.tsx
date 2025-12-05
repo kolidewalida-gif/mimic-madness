@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { VideoPreview } from "@/components/VideoPreview";
-import { Play, Check, Users } from "lucide-react";
+import { Play, Check, Users, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Player {
@@ -103,47 +103,74 @@ export const ChallengePreviewPhase = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-3xl font-bold text-gradient">
-          🎬 Aperçu du Défi
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/30">
+          <Eye className="h-4 w-4 text-secondary" />
+          <span className="text-sm font-display uppercase tracking-wider text-secondary">
+            Phase d'observation
+          </span>
+        </div>
+        
+        <h2 className="text-4xl font-display font-black text-gradient">
+          Aperçu du Défi
         </h2>
-        <p className="text-foreground-secondary text-lg">
-          Regardez la vidéo de <span className="font-semibold text-secondary">{currentChallenge.playerName}</span>
+        
+        <p className="text-foreground-secondary font-body text-lg">
+          Vidéo de <span className="font-semibold text-primary neon-text">{currentChallenge.playerName}</span>
         </p>
-        <p className="text-sm text-foreground-secondary">
-          Attention : Cette vidéo peut être <span className="font-medium">sans son</span>
+        
+        <p className="text-sm text-foreground-muted">
+          ⚠️ La vidéo peut être sans son
         </p>
       </div>
 
-      <GameCard>
+      {/* Video Card */}
+      <GameCard variant="highlight">
         <div className="space-y-6">
-          <div className="flex items-center gap-2 justify-center">
-            <Play className="h-6 w-6 text-secondary" />
-            <h3 className="text-xl font-semibold">Vidéo à Imiter</h3>
+          <div className="flex items-center gap-3 justify-center">
+            <div className="p-2 rounded-xl bg-secondary/20">
+              <Play className="h-5 w-5 text-secondary" />
+            </div>
+            <h3 className="text-xl font-display font-bold">Vidéo à Imiter</h3>
           </div>
           
-          <VideoPreview
-            clipId={currentChallenge.id}
-            className="w-full aspect-video rounded-lg"
-          />
+          <div className="rounded-xl overflow-hidden border border-glass-border">
+            <VideoPreview
+              clipId={currentChallenge.id}
+              className="w-full aspect-video"
+            />
+          </div>
 
           <div className="text-center space-y-4">
             <Button
               onClick={handleReady}
               disabled={isReady}
-              variant="hero"
-              size="lg"
+              variant={isReady ? "outline" : "hero"}
+              size="xl"
               className="w-full max-w-md"
             >
-              <Check className="h-5 w-5 mr-2" />
-              {isReady ? "En attente..." : "J'ai vu la vidéo, je suis prêt !"}
+              {isReady ? (
+                <>
+                  <Check className="h-5 w-5" />
+                  En attente des autres...
+                </>
+              ) : (
+                <>
+                  <Check className="h-5 w-5" />
+                  J'ai vu, je suis prêt !
+                </>
+              )}
             </Button>
 
             {isReady && (
-              <p className="text-sm text-foreground-secondary">
-                ⏳ Attente des autres joueurs ({readyPlayers.length}/{players.length})
-              </p>
+              <div className="flex items-center justify-center gap-2 text-foreground-secondary">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-sm font-body">
+                  {readyPlayers.length}/{players.length} joueurs prêts
+                </span>
+              </div>
             )}
           </div>
         </div>
@@ -151,26 +178,33 @@ export const ChallengePreviewPhase = ({
 
       {/* Players Status */}
       <GameCard>
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-secondary" />
-            <h3 className="font-semibold">Statut des Joueurs</h3>
+            <Users className="h-5 w-5 text-primary" />
+            <h3 className="font-display font-bold uppercase tracking-wider text-sm">
+              Statut des Joueurs
+            </h3>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {players.map((player) => {
               const ready = readyPlayers.includes(player.id);
               return (
                 <div
                   key={player.id}
-                  className={`p-3 rounded-lg text-center transition-all ${
+                  className={`p-3 rounded-xl text-center transition-all border ${
                     ready
-                      ? "bg-secondary/20 border border-secondary"
-                      : "bg-background-secondary/30"
+                      ? "bg-success/10 border-success/30"
+                      : "bg-background-secondary/30 border-transparent"
                   }`}
                 >
-                  <p className="font-medium text-sm truncate">{player.name}</p>
-                  <p className="text-xs mt-1">
-                    {ready ? "✅ Prêt" : "⏳ Regarde"}
+                  <p className="font-semibold text-sm truncate font-body">{player.name}</p>
+                  <p className="text-xs mt-1 font-display">
+                    {ready ? (
+                      <span className="text-success">✓ PRÊT</span>
+                    ) : (
+                      <span className="text-foreground-muted">En cours...</span>
+                    )}
                   </p>
                 </div>
               );
