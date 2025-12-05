@@ -286,6 +286,7 @@ export type Database = {
           created_at: string
           current_imitation_index: number
           id: string
+          is_playing: boolean
           lobby_id: string
           round_number: number
           updated_at: string
@@ -294,6 +295,7 @@ export type Database = {
           created_at?: string
           current_imitation_index?: number
           id?: string
+          is_playing?: boolean
           lobby_id: string
           round_number?: number
           updated_at?: string
@@ -302,6 +304,7 @@ export type Database = {
           created_at?: string
           current_imitation_index?: number
           id?: string
+          is_playing?: boolean
           lobby_id?: string
           round_number?: number
           updated_at?: string

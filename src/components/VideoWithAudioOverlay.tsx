@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw, AlertCircle } from "lucide-react";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -7,13 +7,25 @@ interface VideoWithAudioOverlayProps {
   videoClipId: string;
   audioClipId: string;
   className?: string;
+  externalControl?: boolean;
+  isPlayingExternal?: boolean;
+  onPlayStateChange?: (isPlaying: boolean) => void;
 }
 
-export const VideoWithAudioOverlay = ({
+export interface VideoWithAudioOverlayRef {
+  play: () => Promise<void>;
+  pause: () => void;
+  restart: () => Promise<void>;
+}
+
+export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoWithAudioOverlayProps>(({
   videoClipId,
   audioClipId,
-  className = ""
-}: VideoWithAudioOverlayProps) => {
+  className = "",
+  externalControl = false,
+  isPlayingExternal = false,
+  onPlayStateChange
+}, ref) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -78,10 +90,8 @@ export const VideoWithAudioOverlay = ({
 
   const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
     console.error("Audio error:", e);
-    // Don't show error for audio - just play video without audio
   };
 
-  // Sync video and audio
   const handlePlay = async () => {
     if (!videoRef.current) return;
     
@@ -104,6 +114,7 @@ export const VideoWithAudioOverlay = ({
       }
       
       setIsPlaying(true);
+      onPlayStateChange?.(true);
     } catch (err) {
       console.error("Play error:", err);
       setError("Erreur de lecture");
@@ -118,6 +129,7 @@ export const VideoWithAudioOverlay = ({
       audioRef.current.pause();
     }
     setIsPlaying(false);
+    onPlayStateChange?.(false);
   };
 
   const handleRestart = async () => {
@@ -142,14 +154,33 @@ export const VideoWithAudioOverlay = ({
       }
       
       setIsPlaying(true);
+      onPlayStateChange?.(true);
     } catch (err) {
       console.error("Restart error:", err);
     }
   };
 
-  // Handle video end
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    play: handlePlay,
+    pause: handlePause,
+    restart: handleRestart
+  }));
+
+  // Sync with external control
+  useEffect(() => {
+    if (!externalControl || !mediaReady.video) return;
+    
+    if (isPlayingExternal && !isPlaying) {
+      handlePlay();
+    } else if (!isPlayingExternal && isPlaying) {
+      handlePause();
+    }
+  }, [isPlayingExternal, externalControl, mediaReady.video]);
+
   const handleVideoEnded = () => {
     setIsPlaying(false);
+    onPlayStateChange?.(false);
     if (audioRef.current) {
       audioRef.current.pause();
     }
@@ -200,8 +231,8 @@ export const VideoWithAudioOverlay = ({
           onError={handleVideoError}
         />
         
-        {/* Overlay play button when paused */}
-        {!isPlaying && mediaReady.video && (
+        {/* Overlay play button when paused - only show if not externally controlled */}
+        {!isPlaying && mediaReady.video && !externalControl && (
           <div 
             className="absolute inset-0 bg-black/30 flex items-center justify-center cursor-pointer"
             onClick={handlePlay}
@@ -231,34 +262,36 @@ export const VideoWithAudioOverlay = ({
         />
       )}
 
-      {/* Controls */}
-      <div className="flex gap-2 justify-center">
-        {isPlaying ? (
-          <Button variant="outline" size="sm" onClick={handlePause}>
-            <Pause className="h-4 w-4 mr-2" />
-            Pause
-          </Button>
-        ) : (
+      {/* Controls - only show if not externally controlled */}
+      {!externalControl && (
+        <div className="flex gap-2 justify-center">
+          {isPlaying ? (
+            <Button variant="outline" size="sm" onClick={handlePause}>
+              <Pause className="h-4 w-4 mr-2" />
+              Pause
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handlePlay}
+              disabled={!mediaReady.video}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Lire
+            </Button>
+          )}
           <Button 
-            variant="outline" 
+            variant="ghost" 
             size="sm" 
-            onClick={handlePlay}
+            onClick={handleRestart}
             disabled={!mediaReady.video}
           >
-            <Play className="h-4 w-4 mr-2" />
-            Lire
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Rejouer
           </Button>
-        )}
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleRestart}
-          disabled={!mediaReady.video}
-        >
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Rejouer
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
-};
+});
