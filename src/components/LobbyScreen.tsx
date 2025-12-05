@@ -2,7 +2,7 @@ import { GameLogo } from "@/components/GameLogo";
 import { PlayersList } from "@/components/PlayersList";
 import { Button } from "@/components/ui/button";
 import { DeviceSettings } from "@/components/DeviceSettings";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft, Settings, Wifi } from "lucide-react";
 import { useState } from "react";
 
 interface Player {
@@ -31,41 +31,58 @@ export const LobbyScreen = ({
   const [showSettings, setShowSettings] = useState(false);
 
   return (
-    <div className="min-h-screen animated-bg flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-7xl space-y-8 animate-fadeIn">
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen animated-bg flex flex-col p-6 relative">
+      {/* Decorative elements */}
+      <div className="absolute top-40 right-20 w-48 h-48 bg-primary/10 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-40 left-20 w-56 h-56 bg-secondary/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
+
+      <div className="w-full max-w-6xl mx-auto space-y-8 animate-fadeIn relative z-10">
+        {/* Header */}
+        <header className="flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={onLeaveGame}
-            className="flex items-center gap-2"
+            className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Quitter
+            <span className="hidden sm:inline">Quitter</span>
           </Button>
+          
           <GameLogo size="md" />
+          
           <Button
             variant="ghost"
             onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-2"
+            className="gap-2"
           >
             <Settings className="h-4 w-4" />
-            Audio/Vidéo
+            <span className="hidden sm:inline">Audio/Vidéo</span>
           </Button>
-        </div>
+        </header>
 
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold text-foreground">
-            Lobby de la partie
+        {/* Status Banner */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30">
+            <Wifi className="h-4 w-4 text-primary animate-pulse" />
+            <span className="text-sm font-medium text-primary">
+              {isHost ? "Vous êtes l'hôte" : "Connecté au lobby"}
+            </span>
+          </div>
+          
+          <h2 className="text-2xl font-display font-bold text-foreground">
+            Salle d'attente
           </h2>
-          <p className="text-foreground-secondary">
+          <p className="text-foreground-secondary font-body">
             {isHost 
-              ? "Vous êtes l'hôte de cette partie. Attendez que d'autres joueurs rejoignent." 
+              ? "Partagez le code avec vos amis et lancez la partie quand tout le monde est prêt" 
               : "En attente que l'hôte lance la partie..."
             }
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* Main Content */}
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
+          {/* Players List */}
           <div className="flex justify-center">
             <PlayersList
               players={players}
@@ -75,8 +92,9 @@ export const LobbyScreen = ({
             />
           </div>
 
+          {/* Settings Panel */}
           {showSettings && (
-            <div className="animate-fadeIn">
+            <div className="animate-slideInRight">
               <DeviceSettings showPreview={true} />
             </div>
           )}
