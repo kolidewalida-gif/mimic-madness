@@ -245,12 +245,14 @@ export const GamePlayScreen = ({
 
       if (error) throw error;
 
-      // Reset imitation status for all players
-      await supabase
-        .from('player_imitations')
-        .update({ is_ready: false })
-        .eq('lobby_id', lobbyId)
-        .eq('round_number', roundNumber);
+      // Update local state - the realtime subscription will also update it
+      setRoundNumber(newRoundNumber);
+      setGamePhase('preview');
+      setCurrentChallenge({
+        id: randomClip.id,
+        playerId: randomClip.playerId,
+        playerName: players.find(p => p.id === randomClip.playerId)?.name || "Joueur"
+      });
 
       toast({
         title: "Nouvelle manche !",

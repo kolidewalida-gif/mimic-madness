@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
-import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
-import { ThumbsUp, ThumbsDown, Trophy } from "lucide-react";
+import { VideoWithAudioOverlay, VideoWithAudioOverlayRef } from "@/components/VideoWithAudioOverlay";
+import { ThumbsUp, ThumbsDown, Trophy, Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -44,8 +44,11 @@ export const VotingPhase = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasVotedAll, setHasVotedAll] = useState(false);
   const [votingSessionId, setVotingSessionId] = useState<string | null>(null);
+  const [isPlayingSynced, setIsPlayingSynced] = useState(false);
+  const [hasVotedCurrent, setHasVotedCurrent] = useState(false);
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
+  const videoRef = useRef<VideoWithAudioOverlayRef>(null);
 
   // Pause music during voting phase
   useEffect(() => {
@@ -60,7 +63,6 @@ export const VotingPhase = ({
     let interval: NodeJS.Timeout | null = null;
     
     const initVotingSession = async () => {
-      // Check if voting session exists
       const { data: existingSession } = await supabase
         .from('voting_session')
         .select('*')
@@ -71,10 +73,10 @@ export const VotingPhase = ({
       if (existingSession) {
         setVotingSessionId(existingSession.id);
         setCurrentIndex(existingSession.current_imitation_index);
+        setIsPlayingSynced((existingSession as any).is_playing ?? false);
         if (interval) clearInterval(interval);
         return true;
       } else if (currentPlayer.isHost) {
-        // Host creates the voting session
         const { data: newSession, error } = await supabase
           .from('voting_session')
           .insert({
@@ -98,7 +100,6 @@ export const VotingPhase = ({
 
     initVotingSession();
     
-    // Poll for session if non-host doesn't find it
     if (!currentPlayer.isHost) {
       interval = setInterval(async () => {
         const found = await initVotingSession();
@@ -111,7 +112,7 @@ export const VotingPhase = ({
     };
   }, [lobbyId, roundNumber, currentPlayer.isHost]);
 
-  // Subscribe to voting session changes
+  // Subscribe to voting session changes (index AND is_playing)
   useEffect(() => {
     if (!votingSessionId) return;
 
@@ -126,10 +127,13 @@ export const VotingPhase = ({
           filter: `id=eq.${votingSessionId}`
         },
         (payload) => {
-          const newIndex = payload.new.current_imitation_index;
-          setCurrentIndex(newIndex);
+          const newData = payload.new as any;
+          const newIndex = newData.current_imitation_index;
+          const newIsPlaying = newData.is_playing ?? false;
           
-          // Check if voting is complete
+          setCurrentIndex(newIndex);
+          setIsPlayingSynced(newIsPlaying);
+          
           if (newIndex >= imitations.length && imitations.length > 0) {
             setHasVotedAll(true);
             setTimeout(() => {
@@ -151,10 +155,8 @@ export const VotingPhase = ({
       const imitationsData: ImitationWithClip[] = [];
       
       for (const player of players) {
-        // Get the most recent clip for this player in THIS lobby
         const latestClip = await videoStorage.getLatestClipByPlayerInLobby(player.id, lobbyId);
 
-        // Get votes for this player
         const { data: votes } = await supabase
           .from('imitation_votes')
           .select('vote_type')
@@ -165,7 +167,6 @@ export const VotingPhase = ({
         const likes = votes?.filter(v => v.vote_type === 'like').length || 0;
         const dislikes = votes?.filter(v => v.vote_type === 'dislike').length || 0;
 
-        // Get user's vote
         const { data: userVote } = await supabase
           .from('imitation_votes')
           .select('vote_type')
@@ -191,7 +192,6 @@ export const VotingPhase = ({
 
     loadImitations();
 
-    // Subscribe to vote changes
     const channel = supabase
       .channel(`votes:${lobbyId}:${roundNumber}`)
       .on(
@@ -213,8 +213,6 @@ export const VotingPhase = ({
     };
   }, [lobbyId, roundNumber, players, currentPlayer.id]);
 
-  const [hasVotedCurrent, setHasVotedCurrent] = useState(false);
-
   // Reset hasVotedCurrent when index changes
   useEffect(() => {
     setHasVotedCurrent(false);
@@ -223,7 +221,6 @@ export const VotingPhase = ({
   const handleVote = async (voteType: 'like' | 'dislike') => {
     const currentImitation = imitations[currentIndex];
     if (!currentImitation || currentImitation.playerId === currentPlayer.id) {
-      // Can't vote for yourself
       setHasVotedCurrent(true);
       return;
     }
@@ -257,30 +254,45 @@ export const VotingPhase = ({
     }
   };
 
+  // Host controls play/pause for everyone
+  const handleTogglePlay = async () => {
+    if (!votingSessionId || !currentPlayer.isHost) return;
+
+    const newIsPlaying = !isPlayingSynced;
+    
+    const { error } = await supabase
+      .from('voting_session')
+      .update({ 
+        is_playing: newIsPlaying,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', votingSessionId);
+
+    if (error) {
+      console.error('Error updating play state:', error);
+    }
+  };
+
   // Only host can advance to next imitation
   const handleNext = async () => {
     if (!votingSessionId || !currentPlayer.isHost) {
-      console.error('Only host can advance to next imitation');
       return;
     }
 
     const nextIndex = currentIndex + 1;
     
-    console.log('Host moving to next imitation:', nextIndex, 'of', imitations.length);
-    
-    // Update voting session for all players
+    // Stop playing and advance
     const { error } = await supabase
       .from('voting_session')
       .update({ 
         current_imitation_index: nextIndex,
+        is_playing: false,
         updated_at: new Date().toISOString()
       })
       .eq('id', votingSessionId);
 
     if (error) {
       console.error('Error updating voting session:', error);
-    } else {
-      console.log('Successfully updated voting session to index:', nextIndex);
     }
   };
 
@@ -316,7 +328,7 @@ export const VotingPhase = ({
           Imitation {currentIndex + 1}/{imitations.length}
         </p>
         <p className="text-sm text-secondary">
-          Tous les joueurs votent en même temps
+          {currentPlayer.isHost ? "Contrôlez la lecture pour tous les joueurs" : "L'hôte contrôle la lecture"}
         </p>
       </div>
 
@@ -335,13 +347,40 @@ export const VotingPhase = ({
 
           {currentImitation.clipId ? (
             <VideoWithAudioOverlay
+              ref={videoRef}
               videoClipId={challengeVideoClipId}
               audioClipId={currentImitation.clipId}
               className="w-full mx-auto max-w-3xl"
+              externalControl={true}
+              isPlayingExternal={isPlayingSynced}
             />
           ) : (
             <div className="aspect-video bg-background-secondary/30 rounded-lg flex items-center justify-center">
               <p className="text-foreground-secondary">Aucun audio disponible</p>
+            </div>
+          )}
+
+          {/* Host playback controls */}
+          {currentPlayer.isHost && (
+            <div className="flex justify-center gap-4">
+              <Button
+                onClick={handleTogglePlay}
+                variant="outline"
+                size="lg"
+                disabled={!votingSessionId}
+              >
+                {isPlayingSynced ? (
+                  <>
+                    <Pause className="h-5 w-5 mr-2" />
+                    Pause
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5 mr-2" />
+                    Lancer pour tous
+                  </>
+                )}
+              </Button>
             </div>
           )}
 
