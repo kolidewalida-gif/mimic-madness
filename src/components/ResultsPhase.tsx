@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { Trophy, ThumbsUp, ThumbsDown, ArrowRight, Medal, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface Player {
   id: string;
@@ -36,6 +37,12 @@ export const ResultsPhase = ({
   onEndGame
 }: ResultsPhaseProps) => {
   const [results, setResults] = useState<PlayerResult[]>([]);
+  const { playSound } = useSoundEffects();
+
+  // Play success sound when results are shown
+  useEffect(() => {
+    playSound('success');
+  }, [playSound]);
 
   useEffect(() => {
     let isMounted = true;
