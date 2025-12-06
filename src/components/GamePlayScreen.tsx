@@ -9,6 +9,7 @@ import { ArrowLeft, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface Player {
   id: string;
@@ -41,6 +42,7 @@ export const GamePlayScreen = ({
   const [roundNumber, setRoundNumber] = useState(1);
   const [currentChallenge, setCurrentChallenge] = useState<CurrentChallenge | null>(null);
   const { toast } = useToast();
+  const { playSound } = useSoundEffects();
 
   // Initialize game round
   useEffect(() => {
@@ -134,6 +136,12 @@ export const GamePlayScreen = ({
           if (payload.new) {
             const newRound = payload.new.round_number;
             const newPhase = payload.new.phase as GamePhase;
+            
+            // Play transition sound when phase changes
+            if (newPhase !== gamePhase) {
+              playSound('transition');
+            }
+            
             setRoundNumber(newRound);
             setGamePhase(newPhase);
             setCurrentChallenge({

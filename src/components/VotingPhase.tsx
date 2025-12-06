@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
-
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 interface Player {
   id: string;
   name: string;
@@ -49,6 +49,7 @@ export const VotingPhase = ({
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const videoRef = useRef<VideoWithAudioOverlayRef>(null);
+  const { playSound } = useSoundEffects();
 
   // Pause music during voting phase
   useEffect(() => {
@@ -248,6 +249,8 @@ export const VotingPhase = ({
     }
 
     try {
+      playSound('vote');
+      
       const { error } = await supabase
         .from('imitation_votes')
         .upsert({
