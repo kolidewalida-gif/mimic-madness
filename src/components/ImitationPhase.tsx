@@ -77,6 +77,8 @@ export const ImitationPhase = ({
 
   // Subscribe to ready status
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchReadyPlayers = async () => {
       const { data } = await supabase
         .from('player_imitations')
@@ -84,7 +86,7 @@ export const ImitationPhase = ({
         .eq('lobby_id', lobbyId)
         .eq('round_number', roundNumber);
 
-      if (data) {
+      if (data && isMounted) {
         setReadyPlayers(data.filter(p => p.is_ready).map(p => p.player_id));
       }
     };
@@ -102,12 +104,13 @@ export const ImitationPhase = ({
           filter: `lobby_id=eq.${lobbyId}`
         },
         () => {
-          fetchReadyPlayers();
+          if (isMounted) fetchReadyPlayers();
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
   }, [lobbyId, roundNumber]);

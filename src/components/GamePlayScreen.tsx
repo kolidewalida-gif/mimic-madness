@@ -44,6 +44,8 @@ export const GamePlayScreen = ({
 
   // Initialize game round
   useEffect(() => {
+    let isMounted = true;
+    
     const initializeRound = async () => {
       try {
         const { data: existingRound } = await supabase
@@ -52,6 +54,8 @@ export const GamePlayScreen = ({
           .eq('lobby_id', lobbyId)
           .eq('round_number', roundNumber)
           .maybeSingle();
+
+        if (!isMounted) return;
 
         if (existingRound) {
           setCurrentChallenge({
@@ -65,6 +69,8 @@ export const GamePlayScreen = ({
 
         if (currentPlayer.isHost) {
           const allClips = await videoStorage.getAllClipsByLobby(lobbyId);
+          if (!isMounted) return;
+          
           if (allClips.length === 0) {
             toast({
               title: "Erreur",
@@ -91,19 +97,23 @@ export const GamePlayScreen = ({
 
           if (error) throw error;
 
-          setCurrentChallenge({
-            id: randomClip.id,
-            playerId: randomClip.playerId,
-            playerName: challengePlayer?.name || "Joueur"
-          });
+          if (isMounted) {
+            setCurrentChallenge({
+              id: randomClip.id,
+              playerId: randomClip.playerId,
+              playerName: challengePlayer?.name || "Joueur"
+            });
+          }
         }
       } catch (error) {
         console.error('Error initializing round:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible d'initialiser la manche",
-          variant: "destructive",
-        });
+        if (isMounted) {
+          toast({
+            title: "Erreur",
+            description: "Impossible d'initialiser la manche",
+            variant: "destructive",
+          });
+        }
       }
     };
 
@@ -120,6 +130,7 @@ export const GamePlayScreen = ({
           filter: `lobby_id=eq.${lobbyId}`
         },
         (payload: any) => {
+          if (!isMounted) return;
           if (payload.new) {
             const newRound = payload.new.round_number;
             const newPhase = payload.new.phase as GamePhase;
@@ -136,9 +147,10 @@ export const GamePlayScreen = ({
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [lobbyId, roundNumber, currentPlayer.isHost, players, currentChallenge, toast]);
+  }, [lobbyId, roundNumber, currentPlayer.isHost, players, toast]);
 
   const handlePreviewReady = async () => {
     if (currentPlayer.isHost) {

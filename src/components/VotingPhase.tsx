@@ -149,13 +149,32 @@ export const VotingPhase = ({
     };
   }, [votingSessionId, imitations.length, onVotingComplete]);
 
-  // Load imitations and their clips
+  // Load imitations and their clips - only clips created during THIS round's imitation phase
   useEffect(() => {
+    let isMounted = true;
+    
     const loadImitations = async () => {
       const imitationsData: ImitationWithClip[] = [];
       
+      // Get the imitation records for this round to find the correct clips
+      const { data: imitationRecords } = await supabase
+        .from('player_imitations')
+        .select('player_id, player_name, created_at')
+        .eq('lobby_id', lobbyId)
+        .eq('round_number', roundNumber)
+        .eq('is_ready', true);
+      
       for (const player of players) {
-        const latestClip = await videoStorage.getLatestClipByPlayerInLobby(player.id, lobbyId);
+        // Find if player submitted an imitation for this round
+        const imitationRecord = imitationRecords?.find(r => r.player_id === player.id);
+        
+        let clipId: string | null = null;
+        
+        if (imitationRecord) {
+          // Get the clip created during this imitation phase (most recent clip by this player)
+          const latestClip = await videoStorage.getLatestClipByPlayerInLobby(player.id, lobbyId);
+          clipId = latestClip?.id || null;
+        }
 
         const { data: votes } = await supabase
           .from('imitation_votes')
@@ -179,15 +198,17 @@ export const VotingPhase = ({
         imitationsData.push({
           playerId: player.id,
           playerName: player.name,
-          clipId: latestClip?.id || null,
+          clipId,
           likes,
           dislikes,
           userVote: userVote?.vote_type as 'like' | 'dislike' | null
         });
       }
 
-      console.log('Loaded imitations:', imitationsData);
-      setImitations(imitationsData);
+      if (isMounted) {
+        console.log('Loaded imitations:', imitationsData);
+        setImitations(imitationsData);
+      }
     };
 
     loadImitations();
@@ -203,12 +224,13 @@ export const VotingPhase = ({
           filter: `lobby_id=eq.${lobbyId}`
         },
         () => {
-          loadImitations();
+          if (isMounted) loadImitations();
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
   }, [lobbyId, roundNumber, players, currentPlayer.id]);
