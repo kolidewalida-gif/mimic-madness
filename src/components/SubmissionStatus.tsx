@@ -32,7 +32,30 @@ export const SubmissionStatus = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadSubmissions();
+    let isMounted = true;
+    
+    const loadSubmissionsData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('player_submissions')
+          .select('*')
+          .eq('lobby_id', lobbyId);
+
+        if (error) throw error;
+
+        if (isMounted) {
+          setSubmissions(data || []);
+        }
+      } catch (error) {
+        console.error('Error loading submissions:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadSubmissionsData();
 
     // Subscribe to real-time updates
     const channel = supabase
@@ -47,32 +70,16 @@ export const SubmissionStatus = ({
         },
         (payload) => {
           console.log('Submission update:', payload);
-          loadSubmissions();
+          if (isMounted) loadSubmissionsData();
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
   }, [lobbyId]);
-
-  const loadSubmissions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('player_submissions')
-        .select('*')
-        .eq('lobby_id', lobbyId);
-
-      if (error) throw error;
-
-      setSubmissions(data || []);
-    } catch (error) {
-      console.error('Error loading submissions:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const allPlayersSubmitted = players.length > 0 && 
     players.every(player => 
@@ -87,6 +94,16 @@ export const SubmissionStatus = ({
     const submission = submissions.find(sub => sub.player_id === playerId);
     return submission?.challenges_count || 0;
   };
+
+  if (isLoading) {
+    return (
+      <GameCard>
+        <div className="flex items-center justify-center py-8">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </div>
+      </GameCard>
+    );
+  }
 
   return (
     <GameCard>

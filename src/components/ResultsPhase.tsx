@@ -38,6 +38,8 @@ export const ResultsPhase = ({
   const [results, setResults] = useState<PlayerResult[]>([]);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const loadResults = async () => {
       const resultsData: PlayerResult[] = [];
 
@@ -62,12 +64,18 @@ export const ResultsPhase = ({
         });
       }
 
-      // Sort by score (highest first)
-      resultsData.sort((a, b) => b.score - a.score);
-      setResults(resultsData);
+      if (isMounted) {
+        // Sort by score (highest first)
+        resultsData.sort((a, b) => b.score - a.score);
+        setResults(resultsData);
+      }
     };
 
     loadResults();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [lobbyId, roundNumber, players]);
 
   const winner = results[0];
