@@ -167,13 +167,18 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
     restart: handleRestart
   }));
 
-  // Sync with external control
+  // Sync with external control - properly handle play/pause from parent
   useEffect(() => {
-    if (!externalControl || !mediaReady.video) return;
+    if (!externalControl) return;
     
-    if (isPlayingExternal && !isPlaying) {
-      handlePlay();
-    } else if (!isPlayingExternal && isPlaying) {
+    console.log("External control sync:", { isPlayingExternal, mediaReady, isPlaying });
+    
+    if (isPlayingExternal) {
+      // Wait for media to be ready before playing
+      if (mediaReady.video) {
+        handlePlay();
+      }
+    } else {
       handlePause();
     }
   }, [isPlayingExternal, externalControl, mediaReady.video]);
