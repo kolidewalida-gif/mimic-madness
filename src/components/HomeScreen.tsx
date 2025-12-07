@@ -6,6 +6,7 @@ import { GameCard } from "@/components/GameCard";
 import { VolumeControl } from "@/components/VolumeControl";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
+import { SolarSystem3D } from "@/components/SolarSystem3D";
 import { Sparkles, Users, Settings, Gamepad2 } from "lucide-react";
 
 interface HomeScreenProps {
@@ -43,6 +44,9 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative z-10">
+      {/* 3D Solar System - top right corner */}
+      <SolarSystem3D />
+      
       {/* Decorative elements */}
       <div className="absolute top-20 left-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl animate-float pointer-events-none" />
       <div className="absolute bottom-20 right-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl animate-float pointer-events-none" style={{ animationDelay: '1s' }} />
