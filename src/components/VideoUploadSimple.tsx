@@ -3,9 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Save, Trash2, Video } from "lucide-react";
+import { Upload, Save, Trash2, Video, Sparkles, Loader2 } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { VideoTrimEditor } from "@/components/VideoTrimEditor";
+import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Subtitle {
+  start: number;
+  end: number;
+  text: string;
+}
+
 interface VideoUploadSimpleProps {
   playerId: string;
   playerName: string;
@@ -28,6 +37,10 @@ export const VideoUploadSimple = ({
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [startTime, setStartTime] = useState<number>(0);
   const [endTime, setEndTime] = useState<number>(0);
+  const [enableAISubtitles, setEnableAISubtitles] = useState(false);
+  const [isGeneratingSubtitles, setIsGeneratingSubtitles] = useState(false);
+  const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
+  const [currentSubtitle, setCurrentSubtitle] = useState<string>("");
   const videoPreviewRef = useState<HTMLVideoElement | null>(null)[0];
   const videoRef = { current: videoPreviewRef };
   
@@ -85,6 +98,47 @@ export const VideoUploadSimple = ({
     };
     
     video.src = objectUrl;
+  };
+
+  const generateAISubtitles = async () => {
+    if (!videoDuration) return;
+    
+    setIsGeneratingSubtitles(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-subtitles', {
+        body: {
+          videoDescription: videoName || "Vidéo de défi d'imitation",
+          duration: endTime - startTime
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.subtitles) {
+        setSubtitles(data.subtitles);
+        toast({
+          title: "🎬 Sous-titres générés !",
+          description: "Les sous-titres IA ont été ajoutés à votre vidéo",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error generating subtitles:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de générer les sous-titres",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingSubtitles(false);
+    }
+  };
+
+  const updateCurrentSubtitle = (currentTime: number) => {
+    const relativeTime = currentTime - startTime;
+    const active = subtitles.find(
+      sub => relativeTime >= sub.start && relativeTime <= sub.end
+    );
+    setCurrentSubtitle(active?.text || "");
   };
 
   const handleSaveClip = async () => {
@@ -155,6 +209,9 @@ export const VideoUploadSimple = ({
     setStartTime(0);
     setEndTime(0);
     setVideoDuration(0);
+    setSubtitles([]);
+    setCurrentSubtitle("");
+    setEnableAISubtitles(false);
   };
 
   return (
@@ -187,33 +244,46 @@ export const VideoUploadSimple = ({
 
         {selectedFile && (
           <>
-            {/* Trim Preview */}
+            {/* Trim Preview with Subtitles */}
             <div className="space-y-3">
               {previewUrl && (
-                <video
-                  ref={(el) => {
-                    if (el) (videoRef as any).current = el;
-                  }}
-                  src={previewUrl}
-                  className="w-full aspect-video rounded-lg bg-black"
-                  controls
-                  onTimeUpdate={(e) => {
-                    const el = e.currentTarget as HTMLVideoElement;
-                    if (el.currentTime >= endTime) {
-                      el.pause();
-                      el.currentTime = startTime;
-                    }
-                  }}
-                  onLoadedMetadata={(e) => {
-                    const el = e.currentTarget as HTMLVideoElement;
-                    const dur = Number.isFinite(el.duration) ? el.duration : 0;
-                    if (dur > 0) {
-                      setVideoDuration(dur);
-                      setStartTime(0);
-                      setEndTime(dur);
-                    }
-                  }}
-                />
+                <div className="relative">
+                  <video
+                    ref={(el) => {
+                      if (el) (videoRef as any).current = el;
+                    }}
+                    src={previewUrl}
+                    className="w-full aspect-video rounded-lg bg-black"
+                    controls
+                    onTimeUpdate={(e) => {
+                      const el = e.currentTarget as HTMLVideoElement;
+                      if (el.currentTime >= endTime) {
+                        el.pause();
+                        el.currentTime = startTime;
+                      }
+                      updateCurrentSubtitle(el.currentTime);
+                    }}
+                    onLoadedMetadata={(e) => {
+                      const el = e.currentTarget as HTMLVideoElement;
+                      const dur = Number.isFinite(el.duration) ? el.duration : 0;
+                      if (dur > 0) {
+                        setVideoDuration(dur);
+                        setStartTime(0);
+                        setEndTime(dur);
+                      }
+                    }}
+                  />
+                  {/* Subtitle Overlay - Bande Rythmo Style */}
+                  {currentSubtitle && (
+                    <div className="absolute bottom-12 left-0 right-0 flex justify-center pointer-events-none">
+                      <div className="bg-gradient-to-r from-primary/90 via-secondary/90 to-accent/90 px-4 py-2 rounded-lg shadow-lg border border-white/20">
+                        <p className="text-white font-bold text-lg text-center drop-shadow-lg animate-pulse">
+                          {currentSubtitle}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
 
               <VideoTrimEditor
@@ -227,6 +297,59 @@ export const VideoUploadSimple = ({
                 videoRef={videoRef as any}
               />
             </div>
+
+            {/* AI Subtitles Option */}
+            <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium text-foreground">Sous-titres IA</p>
+                  <p className="text-xs text-foreground-secondary">Bande rythmo générée automatiquement</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={enableAISubtitles}
+                  onCheckedChange={setEnableAISubtitles}
+                />
+                {enableAISubtitles && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={generateAISubtitles}
+                    disabled={isGeneratingSubtitles}
+                    className="gap-2"
+                  >
+                    {isGeneratingSubtitles ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Générer
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Generated Subtitles Preview */}
+            {subtitles.length > 0 && (
+              <div className="space-y-2 p-3 rounded-lg bg-background-secondary/50 border border-glass-border">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Sous-titres générés ({subtitles.length})
+                </p>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {subtitles.map((sub, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      <span className="text-foreground-secondary text-xs font-mono">
+                        {sub.start.toFixed(1)}s - {sub.end.toFixed(1)}s
+                      </span>
+                      <span className="text-foreground">{sub.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Video Name */}
             <div>
