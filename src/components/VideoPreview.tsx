@@ -30,16 +30,27 @@ export const VideoPreview = ({
 
   useEffect(() => {
     let mounted = true;
+    let retryTimeout: NodeJS.Timeout | null = null;
     
-    const loadVideo = async () => {
+    const loadVideo = async (retryCount = 0) => {
+      if (!mounted) return;
+      
       try {
         setIsLoading(true);
         setError(null);
+        
+        console.log(`Loading video (attempt ${retryCount + 1}):`, clipId);
         
         const clip = await videoStorage.getVideoClip(clipId);
         if (!mounted) return;
         
         if (!clip) {
+          // Retry if clip not found
+          if (retryCount < 3) {
+            console.log(`Clip not found, retrying in ${(retryCount + 1) * 1000}ms...`);
+            retryTimeout = setTimeout(() => loadVideo(retryCount + 1), (retryCount + 1) * 1000);
+            return;
+          }
           setError("Vidéo introuvable");
           return;
         }
@@ -47,7 +58,14 @@ export const VideoPreview = ({
         setClipData(clip);
         const url = await videoStorage.getVideoUrl(clipId);
         
+        if (!mounted) return;
+        
         if (!url) {
+          if (retryCount < 3) {
+            console.log(`URL not found, retrying in ${(retryCount + 1) * 1000}ms...`);
+            retryTimeout = setTimeout(() => loadVideo(retryCount + 1), (retryCount + 1) * 1000);
+            return;
+          }
           setError("Vidéo introuvable");
           return;
         }
@@ -55,6 +73,11 @@ export const VideoPreview = ({
         setVideoUrl(url);
       } catch (err) {
         console.error("Error loading video:", err);
+        if (retryCount < 3 && mounted) {
+          console.log(`Error loading, retrying in ${(retryCount + 1) * 1000}ms...`);
+          retryTimeout = setTimeout(() => loadVideo(retryCount + 1), (retryCount + 1) * 1000);
+          return;
+        }
         if (mounted) {
           setError("Erreur de chargement");
         }
@@ -69,6 +92,7 @@ export const VideoPreview = ({
     
     return () => {
       mounted = false;
+      if (retryTimeout) clearTimeout(retryTimeout);
     };
   }, [clipId]);
 

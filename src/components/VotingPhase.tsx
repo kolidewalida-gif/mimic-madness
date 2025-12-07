@@ -153,8 +153,9 @@ export const VotingPhase = ({
   // Load imitations and their clips - only clips created during THIS round's imitation phase
   useEffect(() => {
     let isMounted = true;
+    let retryTimeout: NodeJS.Timeout | null = null;
     
-    const loadImitations = async () => {
+    const loadImitations = async (retryCount = 0) => {
       const imitationsData: ImitationWithClip[] = [];
       
       // Get the imitation records for this round to find the correct clips
@@ -165,16 +166,27 @@ export const VotingPhase = ({
         .eq('round_number', roundNumber)
         .eq('is_ready', true);
       
-      for (const player of players) {
+      // Process all players in parallel for faster loading
+      const playerPromises = players.map(async (player) => {
         // Find if player submitted an imitation for this round
         const imitationRecord = imitationRecords?.find(r => r.player_id === player.id);
         
         let clipId: string | null = null;
         
         if (imitationRecord) {
-          // Get the clip created during this imitation phase (most recent clip by this player)
-          const latestClip = await videoStorage.getLatestClipByPlayerInLobby(player.id, lobbyId);
-          clipId = latestClip?.id || null;
+          // Get the clip created after the imitation record was started (more accurate)
+          const imitationTime = new Date(imitationRecord.created_at);
+          // Look for clips created within 10 minutes before the imitation record
+          const searchTime = new Date(imitationTime.getTime() - 10 * 60 * 1000);
+          const latestClip = await videoStorage.getClipByPlayerAfterTime(player.id, lobbyId, searchTime);
+          
+          if (!latestClip) {
+            // Fallback to regular method
+            const fallbackClip = await videoStorage.getLatestClipByPlayerInLobby(player.id, lobbyId);
+            clipId = fallbackClip?.id || null;
+          } else {
+            clipId = latestClip.id;
+          }
         }
 
         const { data: votes } = await supabase
@@ -196,17 +208,32 @@ export const VotingPhase = ({
           .eq('voter_player_id', currentPlayer.id)
           .maybeSingle();
 
-        imitationsData.push({
+        return {
           playerId: player.id,
           playerName: player.name,
           clipId,
           likes,
           dislikes,
           userVote: userVote?.vote_type as 'like' | 'dislike' | null
-        });
-      }
+        };
+      });
+
+      const results = await Promise.all(playerPromises);
+      imitationsData.push(...results);
 
       if (isMounted) {
+        // Check if any imitations with records are missing clips - retry if so
+        const hasMissingClips = imitationsData.some(im => {
+          const hasRecord = imitationRecords?.some(r => r.player_id === im.playerId);
+          return hasRecord && !im.clipId;
+        });
+
+        if (hasMissingClips && retryCount < 3) {
+          console.log(`Retrying imitations load (attempt ${retryCount + 1}) - missing clips detected`);
+          retryTimeout = setTimeout(() => loadImitations(retryCount + 1), 1000);
+          return;
+        }
+
         console.log('Loaded imitations:', imitationsData);
         setImitations(imitationsData);
       }
@@ -232,6 +259,7 @@ export const VotingPhase = ({
 
     return () => {
       isMounted = false;
+      if (retryTimeout) clearTimeout(retryTimeout);
       supabase.removeChannel(channel);
     };
   }, [lobbyId, roundNumber, players, currentPlayer.id]);

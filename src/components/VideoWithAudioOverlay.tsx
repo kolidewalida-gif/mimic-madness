@@ -37,15 +37,20 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Load URLs
+  // Load URLs with retry logic
   useEffect(() => {
-    const loadUrls = async () => {
+    let isMounted = true;
+    let retryTimeout: NodeJS.Timeout | null = null;
+    
+    const loadUrls = async (retryCount = 0) => {
+      if (!isMounted) return;
+      
       setIsLoading(true);
       setError(null);
       setMediaReady({ video: false, audio: false });
       
       try {
-        console.log("Loading media for video:", videoClipId, "audio:", audioClipId);
+        console.log(`Loading media (attempt ${retryCount + 1}) for video:`, videoClipId, "audio:", audioClipId);
         
         const [vUrl, aUrl, clipData] = await Promise.all([
           videoStorage.getVideoUrl(videoClipId),
@@ -53,9 +58,17 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
           videoStorage.getVideoClip(videoClipId)
         ]);
         
+        if (!isMounted) return;
+        
         console.log("Loaded URLs - video:", vUrl, "audio:", aUrl);
         
         if (!vUrl || !aUrl) {
+          // Retry if URLs not found
+          if (retryCount < 3) {
+            console.log(`URLs not found, retrying in ${(retryCount + 1) * 1000}ms...`);
+            retryTimeout = setTimeout(() => loadUrls(retryCount + 1), (retryCount + 1) * 1000);
+            return;
+          }
           setError("Impossible de charger les médias");
           return;
         }
@@ -65,12 +78,27 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
         setVideoClipData(clipData);
       } catch (err) {
         console.error("Error loading media:", err);
-        setError("Erreur de chargement des médias");
+        if (retryCount < 3 && isMounted) {
+          console.log(`Error loading, retrying in ${(retryCount + 1) * 1000}ms...`);
+          retryTimeout = setTimeout(() => loadUrls(retryCount + 1), (retryCount + 1) * 1000);
+          return;
+        }
+        if (isMounted) {
+          setError("Erreur de chargement des médias");
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
+    
     loadUrls();
+    
+    return () => {
+      isMounted = false;
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
   }, [videoClipId, audioClipId]);
 
   const handleVideoCanPlay = () => {
