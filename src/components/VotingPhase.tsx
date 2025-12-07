@@ -426,7 +426,6 @@ export const VotingPhase = ({
             <PlayerAvatar
               playerId={currentImitation.playerId}
               playerName={currentImitation.playerName}
-              lobbyId={lobbyId}
               size="lg"
             />
             <h3 className="text-2xl font-display font-bold">

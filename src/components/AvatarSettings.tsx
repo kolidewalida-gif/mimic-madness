@@ -2,19 +2,18 @@ import { useState, useRef } from 'react';
 import { GameCard } from '@/components/GameCard';
 import { Button } from '@/components/ui/button';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
-import { usePlayerAvatar } from '@/hooks/usePlayerAvatar';
+import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
 import { Upload, Trash2, Palette, Image, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AvatarSettingsProps {
   playerId: string;
   playerName: string;
-  lobbyId: string;
   onClose?: () => void;
 }
 
-export const AvatarSettings = ({ playerId, playerName, lobbyId, onClose }: AvatarSettingsProps) => {
-  const { avatarData, isLoading, setAvatarImage, setAvatarColor, clearAvatar, DEFAULT_COLORS } = usePlayerAvatar(playerId, lobbyId);
+export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettingsProps) => {
+  const { avatarData, isLoading, setAvatarImage, setAvatarColor, clearAvatar, DEFAULT_COLORS } = useGlobalPlayerAvatar(playerId);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -55,7 +54,7 @@ export const AvatarSettings = ({ playerId, playerName, lobbyId, onClose }: Avata
         
         toast({
           title: "Avatar mis à jour !",
-          description: "Tous les joueurs peuvent voir votre avatar",
+          description: "Votre avatar est sauvegardé définitivement",
         });
         setIsUploading(false);
       };
@@ -126,13 +125,12 @@ export const AvatarSettings = ({ playerId, playerName, lobbyId, onClose }: Avata
           <PlayerAvatar
             playerId={playerId}
             playerName={playerName}
-            lobbyId={lobbyId}
             size="xl"
             animated
           />
           <p className="font-display text-foreground">{playerName}</p>
           <p className="text-xs text-foreground-muted text-center">
-            Tous les joueurs verront cet avatar
+            Votre avatar est sauvegardé définitivement
           </p>
         </div>
 

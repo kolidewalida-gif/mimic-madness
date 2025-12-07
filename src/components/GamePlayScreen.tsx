@@ -70,7 +70,8 @@ export const GamePlayScreen = ({
         }
 
         if (currentPlayer.isHost) {
-          const allClips = await videoStorage.getAllClipsByLobby(lobbyId);
+          // Use getChallengeClipsByLobby to only get original challenges, not imitations
+          const allClips = await videoStorage.getChallengeClipsByLobby(lobbyId);
           if (!isMounted) return;
           
           if (allClips.length === 0) {
@@ -218,7 +219,8 @@ export const GamePlayScreen = ({
     const newRoundNumber = roundNumber + 1;
     
     try {
-      const allClips = await videoStorage.getAllClipsByLobby(lobbyId);
+      // Use getChallengeClipsByLobby to only get original challenges, not imitations
+      const allClips = await videoStorage.getChallengeClipsByLobby(lobbyId);
       if (allClips.length === 0) {
         toast({
           title: "Erreur",

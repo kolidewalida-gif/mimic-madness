@@ -18,20 +18,20 @@ const DEFAULT_COLORS = [
   'hsl(30 100% 55%)',   // Orange
 ];
 
-export const usePlayerAvatar = (playerId: string, lobbyId?: string) => {
+// Global avatar hook - persists across lobbies/sessions
+export const useGlobalPlayerAvatar = (playerId: string) => {
   const [avatarData, setAvatarData] = useState<PlayerAvatarData>({ type: 'initials' });
   const [isLoading, setIsLoading] = useState(false);
 
   // Load avatar from database
   useEffect(() => {
-    if (!lobbyId) return;
+    if (!playerId) return;
 
     const loadAvatar = async () => {
       const { data } = await supabase
-        .from('player_avatars')
+        .from('player_global_avatars')
         .select('*')
         .eq('player_id', playerId)
-        .eq('lobby_id', lobbyId)
         .maybeSingle();
 
       if (data) {
@@ -47,17 +47,17 @@ export const usePlayerAvatar = (playerId: string, lobbyId?: string) => {
 
     // Subscribe to realtime updates
     const channel = supabase
-      .channel(`avatar:${playerId}:${lobbyId}`)
+      .channel(`global-avatar:${playerId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'player_avatars',
+          table: 'player_global_avatars',
           filter: `player_id=eq.${playerId}`
         },
         (payload) => {
-          if (payload.new && (payload.new as any).lobby_id === lobbyId) {
+          if (payload.new) {
             const newData = payload.new as any;
             setAvatarData({
               type: newData.avatar_type as 'initials' | 'image',
@@ -72,24 +72,23 @@ export const usePlayerAvatar = (playerId: string, lobbyId?: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [playerId, lobbyId]);
+  }, [playerId]);
 
   const setAvatarImage = useCallback(async (imageUrl: string) => {
-    if (!lobbyId) return;
+    if (!playerId) return;
     
     setIsLoading(true);
     try {
       await supabase
-        .from('player_avatars')
+        .from('player_global_avatars')
         .upsert({
           player_id: playerId,
-          lobby_id: lobbyId,
           avatar_type: 'image',
           image_url: imageUrl,
           background_color: null,
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'player_id,lobby_id'
+          onConflict: 'player_id'
         });
       
       setAvatarData({ type: 'image', imageUrl });
@@ -98,24 +97,23 @@ export const usePlayerAvatar = (playerId: string, lobbyId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [playerId, lobbyId]);
+  }, [playerId]);
 
   const setAvatarColor = useCallback(async (backgroundColor: string) => {
-    if (!lobbyId) return;
+    if (!playerId) return;
     
     setIsLoading(true);
     try {
       await supabase
-        .from('player_avatars')
+        .from('player_global_avatars')
         .upsert({
           player_id: playerId,
-          lobby_id: lobbyId,
           avatar_type: 'initials',
           image_url: null,
           background_color: backgroundColor,
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'player_id,lobby_id'
+          onConflict: 'player_id'
         });
       
       setAvatarData({ type: 'initials', backgroundColor });
@@ -124,18 +122,17 @@ export const usePlayerAvatar = (playerId: string, lobbyId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [playerId, lobbyId]);
+  }, [playerId]);
 
   const clearAvatar = useCallback(async () => {
-    if (!lobbyId) return;
+    if (!playerId) return;
     
     setIsLoading(true);
     try {
       await supabase
-        .from('player_avatars')
+        .from('player_global_avatars')
         .delete()
-        .eq('player_id', playerId)
-        .eq('lobby_id', lobbyId);
+        .eq('player_id', playerId);
       
       setAvatarData({ type: 'initials' });
     } catch (error) {
@@ -143,7 +140,7 @@ export const usePlayerAvatar = (playerId: string, lobbyId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [playerId, lobbyId]);
+  }, [playerId]);
 
   const getRandomColor = () => {
     return DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)];
@@ -160,18 +157,18 @@ export const usePlayerAvatar = (playerId: string, lobbyId?: string) => {
   };
 };
 
-// Hook to get all avatars for a lobby (for displaying other players)
-export const useLobbyAvatars = (lobbyId: string) => {
+// Hook to get avatars for multiple players (for lobby display)
+export const useMultiplePlayerAvatars = (playerIds: string[]) => {
   const [avatars, setAvatars] = useState<Map<string, PlayerAvatarData>>(new Map());
 
   useEffect(() => {
-    if (!lobbyId) return;
+    if (!playerIds.length) return;
 
     const loadAvatars = async () => {
       const { data } = await supabase
-        .from('player_avatars')
+        .from('player_global_avatars')
         .select('*')
-        .eq('lobby_id', lobbyId);
+        .in('player_id', playerIds);
 
       if (data) {
         const avatarMap = new Map<string, PlayerAvatarData>();
@@ -188,16 +185,15 @@ export const useLobbyAvatars = (lobbyId: string) => {
 
     loadAvatars();
 
-    // Subscribe to all avatar changes in this lobby
+    // Subscribe to all avatar changes for these players
     const channel = supabase
-      .channel(`lobby-avatars:${lobbyId}`)
+      .channel(`multi-avatars:${playerIds.join(',')}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'player_avatars',
-          filter: `lobby_id=eq.${lobbyId}`
+          table: 'player_global_avatars'
         },
         () => {
           loadAvatars();
@@ -208,7 +204,7 @@ export const useLobbyAvatars = (lobbyId: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [lobbyId]);
+  }, [playerIds.join(',')]);
 
   const getAvatar = (playerId: string): PlayerAvatarData => {
     return avatars.get(playerId) || { type: 'initials' };

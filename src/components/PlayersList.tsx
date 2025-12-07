@@ -123,7 +123,6 @@ export const PlayersList = ({
                     <PlayerAvatar
                       playerId={player.id}
                       playerName={player.name}
-                      lobbyId={lobbyId}
                       size="md"
                       isHost={player.isHost}
                     />
