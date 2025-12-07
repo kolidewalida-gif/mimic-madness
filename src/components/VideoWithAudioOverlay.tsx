@@ -10,6 +10,7 @@ interface VideoWithAudioOverlayProps {
   externalControl?: boolean;
   isPlayingExternal?: boolean;
   onPlayStateChange?: (isPlaying: boolean) => void;
+  includeOriginalAudio?: boolean;
 }
 
 export interface VideoWithAudioOverlayRef {
@@ -24,7 +25,8 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
   className = "",
   externalControl = false,
   isPlayingExternal = false,
-  onPlayStateChange
+  onPlayStateChange,
+  includeOriginalAudio = false
 }, ref) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -256,7 +258,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
           ref={videoRef}
           src={videoUrl}
           className="w-full aspect-video object-cover"
-          muted
+          muted={!includeOriginalAudio}
           playsInline
           preload="auto"
           onCanPlay={handleVideoCanPlay}

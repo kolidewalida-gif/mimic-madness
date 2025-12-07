@@ -295,6 +295,37 @@ class VideoStorageSupabase {
       lobbyId: data.lobby_id,
     };
   }
+
+  async getClipByPlayerAndRound(playerId: string, lobbyId: string, roundNumber: number): Promise<VideoClip | null> {
+    // First try to get clip by round_number
+    const { data: roundData, error: roundError } = await supabase
+      .from('video_clips')
+      .select('*')
+      .eq('player_id', playerId)
+      .eq('lobby_id', lobbyId)
+      .eq('round_number', roundNumber)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!roundError && roundData) {
+      return {
+        id: roundData.id,
+        name: roundData.name,
+        playerId: roundData.player_id,
+        playerName: roundData.player_name,
+        startTime: roundData.start_time,
+        endTime: roundData.end_time,
+        duration: roundData.duration,
+        isMuted: roundData.is_muted,
+        storagePath: roundData.storage_path,
+        createdAt: new Date(roundData.created_at),
+        lobbyId: roundData.lobby_id,
+      };
+    }
+
+    return null;
+  }
 }
 
 export const videoStorage = new VideoStorageSupabase();

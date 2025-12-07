@@ -162,6 +162,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          include_original_audio: boolean
           is_ready: boolean
           lobby_id: string
           player_id: string
@@ -171,6 +172,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          include_original_audio?: boolean
           is_ready?: boolean
           lobby_id: string
           player_id: string
@@ -180,6 +182,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          include_original_audio?: boolean
           is_ready?: boolean
           lobby_id?: string
           player_id?: string
@@ -242,6 +245,7 @@ export type Database = {
           name: string
           player_id: string
           player_name: string
+          round_number: number | null
           start_time: number
           storage_path: string
         }
@@ -255,6 +259,7 @@ export type Database = {
           name: string
           player_id: string
           player_name: string
+          round_number?: number | null
           start_time?: number
           storage_path: string
         }
@@ -268,6 +273,7 @@ export type Database = {
           name?: string
           player_id?: string
           player_name?: string
+          round_number?: number | null
           start_time?: number
           storage_path?: string
         }
