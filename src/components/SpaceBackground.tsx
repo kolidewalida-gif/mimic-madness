@@ -1,28 +1,42 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Twinkling stars
-const Stars = ({ count = 500 }) => {
+// Bright twinkling stars with multiple colors
+const Stars = ({ count = 800 }) => {
   const mesh = useRef<THREE.Points>(null);
   
-  const [positions, sizes] = useMemo(() => {
+  const [positions, colors, sizes] = useMemo(() => {
     const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
+    
+    const starColors = [
+      new THREE.Color('#ffffff'),
+      new THREE.Color('#ffffcc'),
+      new THREE.Color('#ffcc66'),
+      new THREE.Color('#ff9944'),
+      new THREE.Color('#aaccff'),
+    ];
     
     for (let i = 0; i < count; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
-      const radius = 20 + Math.random() * 80;
+      const radius = 15 + Math.random() * 85;
       
       positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
       positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
       positions[i * 3 + 2] = radius * Math.cos(phi);
       
-      sizes[i] = Math.random() * 2 + 0.5;
+      const color = starColors[Math.floor(Math.random() * starColors.length)];
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+      
+      sizes[i] = Math.random() * 3 + 1;
     }
     
-    return [positions, sizes];
+    return [positions, colors, sizes];
   }, [count]);
 
   useFrame(({ clock }) => {
@@ -32,7 +46,8 @@ const Stars = ({ count = 500 }) => {
       const sizeAttr = geometry.getAttribute('size') as THREE.BufferAttribute;
       
       for (let i = 0; i < count; i++) {
-        sizeAttr.array[i] = sizes[i] * (0.8 + 0.4 * Math.sin(time * 2 + i * 0.1));
+        const baseSize = sizes[i];
+        sizeAttr.array[i] = baseSize * (0.6 + 0.6 * Math.sin(time * 3 + i * 0.5));
       }
       sizeAttr.needsUpdate = true;
     }
@@ -41,184 +56,305 @@ const Stars = ({ count = 500 }) => {
   return (
     <points ref={mesh}>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          count={count}
-          array={sizes}
-          itemSize={1}
-        />
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+        <bufferAttribute attach="attributes-color" count={count} array={colors} itemSize={3} />
+        <bufferAttribute attach="attributes-size" count={count} array={sizes} itemSize={1} />
       </bufferGeometry>
-      <pointsMaterial
-        size={0.15}
-        color="#ffcc66"
-        transparent
-        opacity={0.9}
-        sizeAttenuation
-      />
+      <pointsMaterial size={0.2} vertexColors transparent opacity={1} sizeAttenuation />
     </points>
   );
 };
 
-// Glowing sun
-const Sun = () => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
+// Lens flare effect
+const LensFlare = () => {
+  const groupRef = useRef<THREE.Group>(null);
   
   useFrame(({ clock }) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = clock.getElapsedTime() * 0.05;
-    }
-    if (glowRef.current) {
-      const scale = 1 + Math.sin(clock.getElapsedTime() * 2) * 0.05;
-      glowRef.current.scale.setScalar(scale);
+    if (groupRef.current) {
+      const time = clock.getElapsedTime();
+      groupRef.current.children.forEach((child, i) => {
+        if (child instanceof THREE.Mesh) {
+          const scale = 1 + Math.sin(time * 2 + i) * 0.2;
+          child.scale.setScalar(scale);
+        }
+      });
     }
   });
 
+  const flares = [
+    { size: 12, opacity: 0.08, color: '#ff6600', pos: [0, 0, -8] },
+    { size: 8, opacity: 0.1, color: '#ff9933', pos: [2, -1, -6] },
+    { size: 5, opacity: 0.15, color: '#ffcc00', pos: [-3, 2, -10] },
+    { size: 3, opacity: 0.2, color: '#ffffff', pos: [4, 3, -12] },
+    { size: 6, opacity: 0.1, color: '#ff4400', pos: [-5, -2, -9] },
+  ];
+
   return (
-    <group position={[0, 0, -10]}>
-      {/* Core sun */}
-      <mesh ref={meshRef}>
-        <sphereGeometry args={[3, 64, 64]} />
-        <meshBasicMaterial color="#ffcc00" />
-      </mesh>
-      
-      {/* Inner glow */}
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[3.5, 32, 32]} />
-        <meshBasicMaterial 
-          color="#ff9900" 
-          transparent 
-          opacity={0.4}
-        />
-      </mesh>
-      
-      {/* Outer glow */}
-      <mesh>
-        <sphereGeometry args={[5, 32, 32]} />
-        <meshBasicMaterial 
-          color="#ff6600" 
-          transparent 
-          opacity={0.15}
-        />
-      </mesh>
-      
-      {/* Largest glow */}
-      <mesh>
-        <sphereGeometry args={[8, 32, 32]} />
-        <meshBasicMaterial 
-          color="#ff4400" 
-          transparent 
-          opacity={0.05}
-        />
-      </mesh>
-      
-      <pointLight color="#ff9944" intensity={3} distance={100} decay={1} />
+    <group ref={groupRef} position={[8, 5, -15]}>
+      {flares.map((flare, i) => (
+        <mesh key={i} position={flare.pos as [number, number, number]}>
+          <circleGeometry args={[flare.size, 32]} />
+          <meshBasicMaterial color={flare.color} transparent opacity={flare.opacity} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
     </group>
   );
 };
 
-// Orbiting planet
+// Glowing sun with corona
+const Sun = () => {
+  const coreRef = useRef<THREE.Mesh>(null);
+  const coronaRef = useRef<THREE.Group>(null);
+  
+  useFrame(({ clock }) => {
+    const time = clock.getElapsedTime();
+    if (coreRef.current) {
+      coreRef.current.rotation.y = time * 0.03;
+    }
+    if (coronaRef.current) {
+      coronaRef.current.rotation.z = time * 0.02;
+      coronaRef.current.children.forEach((child, i) => {
+        if (child instanceof THREE.Mesh) {
+          const scale = 1 + Math.sin(time * 1.5 + i * 0.8) * 0.15;
+          child.scale.setScalar(scale);
+        }
+      });
+    }
+  });
+
+  return (
+    <group position={[10, 6, -25]}>
+      {/* Core */}
+      <mesh ref={coreRef}>
+        <sphereGeometry args={[4, 64, 64]} />
+        <meshBasicMaterial color="#ffee00" />
+      </mesh>
+      
+      {/* Corona layers */}
+      <group ref={coronaRef}>
+        <mesh>
+          <sphereGeometry args={[5, 48, 48]} />
+          <meshBasicMaterial color="#ffcc00" transparent opacity={0.6} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[6.5, 48, 48]} />
+          <meshBasicMaterial color="#ff9900" transparent opacity={0.4} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[8.5, 48, 48]} />
+          <meshBasicMaterial color="#ff6600" transparent opacity={0.25} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[12, 48, 48]} />
+          <meshBasicMaterial color="#ff4400" transparent opacity={0.12} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[18, 32, 32]} />
+          <meshBasicMaterial color="#ff2200" transparent opacity={0.05} />
+        </mesh>
+      </group>
+      
+      {/* Light rays */}
+      {[...Array(8)].map((_, i) => (
+        <mesh key={i} rotation={[0, 0, (i * Math.PI) / 4]}>
+          <planeGeometry args={[1.5, 40]} />
+          <meshBasicMaterial color="#ffaa33" transparent opacity={0.08} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+      
+      <pointLight color="#ff9944" intensity={5} distance={150} decay={1} />
+    </group>
+  );
+};
+
+// Detailed planet with atmosphere
 interface PlanetProps {
   orbitRadius: number;
   size: number;
   speed: number;
   color: string;
+  atmosphere?: string;
   hasRing?: boolean;
+  ringColor?: string;
   initialAngle?: number;
+  orbitCenter?: [number, number, number];
 }
 
-const Planet = ({ orbitRadius, size, speed, color, hasRing, initialAngle = 0 }: PlanetProps) => {
+const Planet = ({ 
+  orbitRadius, size, speed, color, atmosphere, hasRing, ringColor = '#ddaa77', initialAngle = 0, 
+  orbitCenter = [10, 6, -25] 
+}: PlanetProps) => {
   const groupRef = useRef<THREE.Group>(null);
   const angle = useRef(initialAngle);
 
   useFrame((_, delta) => {
     angle.current += speed * delta;
     if (groupRef.current) {
-      groupRef.current.position.x = Math.cos(angle.current) * orbitRadius;
-      groupRef.current.position.z = Math.sin(angle.current) * orbitRadius - 10;
+      groupRef.current.position.x = orbitCenter[0] + Math.cos(angle.current) * orbitRadius;
+      groupRef.current.position.y = orbitCenter[1] + Math.sin(angle.current * 0.3) * 2;
+      groupRef.current.position.z = orbitCenter[2] + Math.sin(angle.current) * orbitRadius;
+      groupRef.current.rotation.y += delta * 0.5;
     }
   });
 
   return (
     <group ref={groupRef}>
+      {/* Planet surface */}
       <mesh>
-        <sphereGeometry args={[size, 32, 32]} />
+        <sphereGeometry args={[size, 48, 48]} />
         <meshStandardMaterial 
           color={color}
           emissive={color}
-          emissiveIntensity={0.2}
+          emissiveIntensity={0.15}
+          roughness={0.7}
+          metalness={0.2}
         />
       </mesh>
+      
+      {/* Atmosphere glow */}
+      {atmosphere && (
+        <>
+          <mesh>
+            <sphereGeometry args={[size * 1.08, 32, 32]} />
+            <meshBasicMaterial color={atmosphere} transparent opacity={0.25} />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[size * 1.15, 32, 32]} />
+            <meshBasicMaterial color={atmosphere} transparent opacity={0.1} />
+          </mesh>
+        </>
+      )}
+      
+      {/* Rings */}
       {hasRing && (
-        <mesh rotation={[Math.PI / 2.5, 0, 0]}>
-          <ringGeometry args={[size * 1.4, size * 2.2, 64]} />
-          <meshBasicMaterial 
-            color="#d4a574" 
-            transparent 
-            opacity={0.6} 
-            side={THREE.DoubleSide}
-          />
-        </mesh>
+        <group rotation={[Math.PI / 2.2, 0.2, 0]}>
+          <mesh>
+            <ringGeometry args={[size * 1.5, size * 2.5, 128]} />
+            <meshBasicMaterial color={ringColor} transparent opacity={0.7} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh>
+            <ringGeometry args={[size * 1.3, size * 1.5, 128]} />
+            <meshBasicMaterial color="#ffddaa" transparent opacity={0.4} side={THREE.DoubleSide} />
+          </mesh>
+        </group>
       )}
     </group>
   );
 };
 
-// Nebula dust particles
-const NebulaDust = () => {
-  const mesh = useRef<THREE.Points>(null);
-  
-  const positions = useMemo(() => {
-    const positions = new Float32Array(2000 * 3);
-    for (let i = 0; i < 2000; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 100;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 60;
-      positions[i * 3 + 2] = -20 - Math.random() * 60;
+// Orbit paths with glow
+const OrbitPath = ({ radius, center = [10, 6, -25] }: { radius: number; center?: [number, number, number] }) => {
+  const points = useMemo(() => {
+    const pts = [];
+    for (let i = 0; i <= 128; i++) {
+      const angle = (i / 128) * Math.PI * 2;
+      pts.push(new THREE.Vector3(
+        center[0] + Math.cos(angle) * radius,
+        center[1],
+        center[2] + Math.sin(angle) * radius
+      ));
     }
-    return positions;
+    return pts;
+  }, [radius, center]);
+
+  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points]);
+
+  return (
+    <primitive object={new THREE.Line(geometry, new THREE.LineBasicMaterial({ 
+      color: '#ff9944', 
+      opacity: 0.15, 
+      transparent: true 
+    }))} />
+  );
+};
+
+// Nebula clouds with vibrant colors
+const NebulaClouds = () => {
+  const groupRef = useRef<THREE.Group>(null);
+  
+  const clouds = useMemo(() => {
+    const result = [];
+    for (let i = 0; i < 30; i++) {
+      result.push({
+        position: [
+          (Math.random() - 0.5) * 120,
+          (Math.random() - 0.5) * 80,
+          -30 - Math.random() * 50
+        ] as [number, number, number],
+        scale: 5 + Math.random() * 20,
+        color: ['#ff6600', '#ff3300', '#ff9933', '#cc4400', '#ffaa00'][Math.floor(Math.random() * 5)],
+        opacity: 0.03 + Math.random() * 0.08,
+      });
+    }
+    return result;
   }, []);
 
   useFrame(({ clock }) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.z = Math.sin(clock.getElapsedTime() * 0.05) * 0.1;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {clouds.map((cloud, i) => (
+        <mesh key={i} position={cloud.position}>
+          <sphereGeometry args={[cloud.scale, 16, 16]} />
+          <meshBasicMaterial color={cloud.color} transparent opacity={cloud.opacity} />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+// Dust particles
+const DustParticles = ({ count = 3000 }) => {
+  const mesh = useRef<THREE.Points>(null);
+  
+  const [positions, colors] = useMemo(() => {
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 150;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+      positions[i * 3 + 2] = -10 - Math.random() * 80;
+      
+      const brightness = 0.3 + Math.random() * 0.7;
+      colors[i * 3] = brightness;
+      colors[i * 3 + 1] = brightness * 0.6;
+      colors[i * 3 + 2] = brightness * 0.3;
+    }
+    return [positions, colors];
+  }, [count]);
+
+  useFrame(({ clock }) => {
     if (mesh.current) {
-      mesh.current.rotation.z = clock.getElapsedTime() * 0.01;
+      mesh.current.rotation.y = clock.getElapsedTime() * 0.008;
+      mesh.current.rotation.x = Math.sin(clock.getElapsedTime() * 0.01) * 0.05;
     }
   });
 
   return (
     <points ref={mesh}>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={2000}
-          array={positions}
-          itemSize={3}
-        />
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+        <bufferAttribute attach="attributes-color" count={count} array={colors} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial
-        size={0.3}
-        color="#ff6633"
-        transparent
-        opacity={0.3}
-        sizeAttenuation
-      />
+      <pointsMaterial size={0.15} vertexColors transparent opacity={0.6} sizeAttenuation />
     </points>
   );
 };
 
-// Camera animation
+// Camera subtle movement
 const CameraAnimation = () => {
   const { camera } = useThree();
   
   useFrame(({ clock }) => {
     const time = clock.getElapsedTime();
-    camera.position.x = Math.sin(time * 0.1) * 2;
-    camera.position.y = Math.cos(time * 0.15) * 1;
+    camera.position.x = Math.sin(time * 0.08) * 3;
+    camera.position.y = Math.cos(time * 0.1) * 2;
+    camera.lookAt(10, 5, -25);
   });
 
   return null;
@@ -227,29 +363,35 @@ const CameraAnimation = () => {
 // Main scene
 const SpaceScene = () => {
   const planets = [
-    { orbitRadius: 6, size: 0.3, speed: 0.4, color: '#8899aa', initialAngle: 0 },
-    { orbitRadius: 8, size: 0.5, speed: 0.3, color: '#ddbb77', initialAngle: 1.5 },
-    { orbitRadius: 10, size: 0.55, speed: 0.25, color: '#4488cc', initialAngle: 3 },
-    { orbitRadius: 12, size: 0.4, speed: 0.2, color: '#cc6644', initialAngle: 4.5 },
-    { orbitRadius: 15, size: 1.2, speed: 0.12, color: '#ddaa77', initialAngle: 2 },
-    { orbitRadius: 19, size: 1, speed: 0.08, color: '#eedd99', hasRing: true, initialAngle: 5 },
-    { orbitRadius: 23, size: 0.7, speed: 0.06, color: '#88cccc', initialAngle: 1 },
-    { orbitRadius: 27, size: 0.65, speed: 0.04, color: '#5566cc', initialAngle: 3.5 },
+    { orbitRadius: 8, size: 0.4, speed: 0.5, color: '#aabbcc', initialAngle: 0 },
+    { orbitRadius: 11, size: 0.7, speed: 0.35, color: '#eebb66', atmosphere: '#ffcc88', initialAngle: 1.8 },
+    { orbitRadius: 14, size: 0.8, speed: 0.28, color: '#4499dd', atmosphere: '#66bbff', initialAngle: 3.2 },
+    { orbitRadius: 18, size: 0.55, speed: 0.22, color: '#dd6644', atmosphere: '#ff8866', initialAngle: 5 },
+    { orbitRadius: 24, size: 1.8, speed: 0.12, color: '#ddaa66', atmosphere: '#ffcc99', initialAngle: 2.2 },
+    { orbitRadius: 32, size: 1.5, speed: 0.08, color: '#eedd88', hasRing: true, ringColor: '#ddbb77', initialAngle: 4.5 },
+    { orbitRadius: 40, size: 1, speed: 0.05, color: '#88dddd', atmosphere: '#aaffff', initialAngle: 1.2 },
+    { orbitRadius: 48, size: 0.9, speed: 0.035, color: '#5577dd', atmosphere: '#7799ff', initialAngle: 3.8 },
   ];
 
   return (
     <>
-      <color attach="background" args={['#0a0505']} />
-      <fog attach="fog" args={['#1a0a00', 30, 100]} />
+      <color attach="background" args={['#050208']} />
+      <fog attach="fog" args={['#150505', 40, 120]} />
       
-      <ambientLight intensity={0.1} />
+      <ambientLight intensity={0.15} color="#ffaa88" />
       
-      <NebulaDust />
-      <Stars count={600} />
+      <NebulaClouds />
+      <DustParticles count={4000} />
+      <Stars count={1000} />
+      <LensFlare />
       <Sun />
       
       {planets.map((planet, i) => (
-        <Planet key={i} {...planet} />
+        <OrbitPath key={`orbit-${i}`} radius={planet.orbitRadius} />
+      ))}
+      
+      {planets.map((planet, i) => (
+        <Planet key={`planet-${i}`} {...planet} />
       ))}
       
       <CameraAnimation />
@@ -260,21 +402,36 @@ const SpaceScene = () => {
 export const SpaceBackground = () => {
   return (
     <div className="fixed inset-0 -z-10">
-      {/* Gradient overlay for warmth */}
+      {/* Vivid gradient overlays */}
       <div 
         className="absolute inset-0 z-10 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse 80% 60% at 60% 30%, rgba(255, 120, 50, 0.15) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 40% at 70% 40%, rgba(255, 80, 0, 0.1) 0%, transparent 50%),
-            linear-gradient(to bottom, transparent 0%, rgba(10, 5, 5, 0.5) 100%)
+            radial-gradient(ellipse 100% 80% at 70% 25%, rgba(255, 100, 20, 0.25) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 50% at 75% 35%, rgba(255, 150, 50, 0.2) 0%, transparent 40%),
+            radial-gradient(ellipse 40% 30% at 80% 30%, rgba(255, 200, 100, 0.15) 0%, transparent 35%),
+            radial-gradient(ellipse 80% 60% at 20% 70%, rgba(100, 50, 150, 0.1) 0%, transparent 50%),
+            radial-gradient(ellipse 50% 40% at 10% 80%, rgba(80, 40, 120, 0.08) 0%, transparent 40%)
+          `
+        }}
+      />
+      
+      {/* Light reflection streaks */}
+      <div 
+        className="absolute inset-0 z-10 pointer-events-none opacity-30"
+        style={{
+          background: `
+            linear-gradient(135deg, transparent 40%, rgba(255, 180, 100, 0.1) 45%, transparent 50%),
+            linear-gradient(145deg, transparent 50%, rgba(255, 200, 150, 0.08) 55%, transparent 60%),
+            linear-gradient(125deg, transparent 60%, rgba(255, 220, 180, 0.05) 65%, transparent 70%)
           `
         }}
       />
       
       <Canvas
-        camera={{ position: [0, 0, 20], fov: 60 }}
+        camera={{ position: [0, 0, 25], fov: 55 }}
         gl={{ antialias: true, alpha: false }}
+        dpr={[1, 2]}
       >
         <SpaceScene />
       </Canvas>
