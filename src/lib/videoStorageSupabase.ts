@@ -215,17 +215,69 @@ class VideoStorageSupabase {
   }
 
   async getLatestClipByPlayerInLobby(playerId: string, lobbyId: string): Promise<VideoClip | null> {
+    // Retry logic for better reliability
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const { data, error } = await supabase
+          .from('video_clips')
+          .select('*')
+          .eq('player_id', playerId)
+          .eq('lobby_id', lobbyId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          lastError = new Error(error.message);
+          console.warn(`Attempt ${attempt + 1} failed fetching clip:`, error);
+          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+          continue;
+        }
+
+        if (!data) {
+          console.log(`No clip found for player ${playerId} in lobby ${lobbyId}`);
+          return null;
+        }
+
+        return {
+          id: data.id,
+          name: data.name,
+          playerId: data.player_id,
+          playerName: data.player_name,
+          startTime: data.start_time,
+          endTime: data.end_time,
+          duration: data.duration,
+          isMuted: data.is_muted,
+          storagePath: data.storage_path,
+          createdAt: new Date(data.created_at),
+          lobbyId: data.lobby_id,
+        };
+      } catch (err) {
+        lastError = err as Error;
+        console.warn(`Attempt ${attempt + 1} exception:`, err);
+        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+      }
+    }
+    
+    console.error('All retries failed fetching latest clip:', lastError);
+    return null;
+  }
+
+  async getClipByPlayerAfterTime(playerId: string, lobbyId: string, afterTime: Date): Promise<VideoClip | null> {
     const { data, error } = await supabase
       .from('video_clips')
       .select('*')
       .eq('player_id', playerId)
       .eq('lobby_id', lobbyId)
+      .gte('created_at', afterTime.toISOString())
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error || !data) {
-      console.error('Error fetching latest clip:', error);
       return null;
     }
 
