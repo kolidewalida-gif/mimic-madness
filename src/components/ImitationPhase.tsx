@@ -5,6 +5,8 @@ import { VideoPreview } from "@/components/VideoPreview";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
+import { VolumeSlider } from "@/components/VolumeSlider";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Play, Check, Users, Settings, Mic, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +53,7 @@ export const ImitationPhase = ({
   const [challengeClipData, setChallengeClipData] = useState<any>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [includeOriginalAudio, setIncludeOriginalAudio] = useState(false);
+  const [originalAudioVolume, setOriginalAudioVolume] = useState(50);
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
@@ -143,7 +146,8 @@ export const ImitationPhase = ({
           player_id: currentPlayer.id,
           player_name: currentPlayer.name,
           is_ready: true,
-          include_original_audio: includeOriginalAudio
+          include_original_audio: includeOriginalAudio,
+          original_audio_volume: originalAudioVolume
         }, {
           onConflict: 'lobby_id,round_number,player_id'
         });
@@ -301,35 +305,48 @@ export const ImitationPhase = ({
                       videoClipId={currentChallenge.id}
                       audioClipId={recordedClipId}
                       includeOriginalAudio={includeOriginalAudio}
+                      originalAudioVolume={originalAudioVolume}
                     />
                   </div>
                 )}
 
                 {/* Option pour inclure l'audio original */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-background-secondary/50 border border-glass-border">
-                  <div className="flex items-center gap-3">
-                    {includeOriginalAudio ? (
-                      <Volume2 className="h-5 w-5 text-primary" />
-                    ) : (
-                      <VolumeX className="h-5 w-5 text-foreground-muted" />
-                    )}
-                    <div>
-                      <Label htmlFor="include-audio" className="font-display text-sm cursor-pointer">
-                        Audio original de la vidéo
-                      </Label>
-                      <p className="text-xs text-foreground-muted">
-                        {includeOriginalAudio 
-                          ? "L'audio de la vidéo sera joué avec votre imitation" 
-                          : "Seule votre imitation sera entendue"}
-                      </p>
+                <div className="space-y-3 p-4 rounded-xl bg-background-secondary/50 border border-glass-border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {includeOriginalAudio ? (
+                        <Volume2 className="h-5 w-5 text-primary" />
+                      ) : (
+                        <VolumeX className="h-5 w-5 text-foreground-muted" />
+                      )}
+                      <div>
+                        <Label htmlFor="include-audio" className="font-display text-sm cursor-pointer">
+                          Audio original de la vidéo
+                        </Label>
+                        <p className="text-xs text-foreground-muted">
+                          {includeOriginalAudio 
+                            ? "L'audio de la vidéo sera joué avec votre imitation" 
+                            : "Seule votre imitation sera entendue"}
+                        </p>
+                      </div>
                     </div>
+                    <Switch
+                      id="include-audio"
+                      checked={includeOriginalAudio}
+                      onCheckedChange={setIncludeOriginalAudio}
+                      disabled={hasSubmitted}
+                    />
                   </div>
-                  <Switch
-                    id="include-audio"
-                    checked={includeOriginalAudio}
-                    onCheckedChange={setIncludeOriginalAudio}
-                    disabled={hasSubmitted}
-                  />
+                  
+                  {/* Volume Control - only show when audio is enabled */}
+                  {includeOriginalAudio && (
+                    <VolumeSlider
+                      value={originalAudioVolume}
+                      onChange={setOriginalAudioVolume}
+                      disabled={hasSubmitted}
+                      label="Volume de l'audio original"
+                    />
+                  )}
                 </div>
                 
                 <Button
@@ -378,14 +395,22 @@ export const ImitationPhase = ({
                       : "bg-background-secondary/30 border-transparent"
                   }`}
                 >
-                  <p className="font-semibold text-sm truncate font-body">{player.name}</p>
-                  <p className="text-xs mt-1 font-display">
-                    {ready ? (
-                      <span className="text-success">✓ SOUMIS</span>
-                    ) : (
-                      <span className="text-foreground-muted">En cours...</span>
-                    )}
-                  </p>
+                  <div className="flex flex-col items-center gap-2">
+                    <PlayerAvatar
+                      playerId={player.id}
+                      playerName={player.name}
+                      size="sm"
+                      isHost={player.isHost}
+                    />
+                    <p className="font-semibold text-sm truncate font-body">{player.name}</p>
+                    <p className="text-xs font-display">
+                      {ready ? (
+                        <span className="text-success">✓ SOUMIS</span>
+                      ) : (
+                        <span className="text-foreground-muted">En cours...</span>
+                      )}
+                    </p>
+                  </div>
                 </div>
               );
             })}

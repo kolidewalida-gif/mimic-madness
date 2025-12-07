@@ -1,6 +1,7 @@
 import { Users, Crown, Copy, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
@@ -115,15 +116,14 @@ export const PlayersList = ({
                   className="flex items-center justify-between p-3 rounded-xl bg-background-secondary/40 border border-transparent hover:border-primary/20 transition-all animate-slideInLeft"
                   style={{ animationDelay: `${index * 80}ms` }}
                 >
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
                     {/* Avatar */}
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-display font-bold text-sm ${
-                      player.isHost 
-                        ? 'bg-gradient-neon text-primary-foreground shadow-neon' 
-                        : 'bg-accent/20 text-accent'
-                    }`}>
-                      {player.name.charAt(0).toUpperCase()}
-                    </div>
+                    <PlayerAvatar
+                      playerId={player.id}
+                      playerName={player.name}
+                      size="md"
+                      isHost={player.isHost}
+                    />
                     
                     <div className="flex flex-col">
                       <span className="font-semibold text-foreground font-body">

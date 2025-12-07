@@ -31,6 +31,7 @@ interface ImitationWithClip {
   dislikes: number;
   userVote: 'like' | 'dislike' | null;
   includeOriginalAudio: boolean;
+  originalAudioVolume: number;
 }
 
 export const VotingPhase = ({
@@ -162,7 +163,7 @@ export const VotingPhase = ({
       // Get the imitation records for this round to find the correct clips
       const { data: imitationRecords } = await supabase
         .from('player_imitations')
-        .select('player_id, player_name, created_at, include_original_audio')
+        .select('player_id, player_name, created_at, include_original_audio, original_audio_volume')
         .eq('lobby_id', lobbyId)
         .eq('round_number', roundNumber)
         .eq('is_ready', true);
@@ -176,6 +177,7 @@ export const VotingPhase = ({
         
         let clipId: string | null = null;
         const includeOriginalAudio = (imitationRecord as any)?.include_original_audio ?? false;
+        const originalAudioVolume = (imitationRecord as any)?.original_audio_volume ?? 50;
         
         if (imitationRecord) {
           // First try to get clip by round_number (most accurate)
@@ -228,7 +230,8 @@ export const VotingPhase = ({
           likes,
           dislikes,
           userVote: userVote?.vote_type as 'like' | 'dislike' | null,
-          includeOriginalAudio
+          includeOriginalAudio,
+          originalAudioVolume
         };
       });
 
@@ -443,6 +446,7 @@ export const VotingPhase = ({
                 externalControl={true}
                 isPlayingExternal={isPlayingSynced}
                 includeOriginalAudio={currentImitation.includeOriginalAudio}
+                originalAudioVolume={currentImitation.originalAudioVolume}
               />
             </div>
           ) : (
