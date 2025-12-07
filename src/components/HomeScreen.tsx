@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GameLogo } from "@/components/GameLogo";
 import { GameCard } from "@/components/GameCard";
-import { VolumeControl } from "@/components/VolumeControl";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { SolarSystem3D } from "@/components/SolarSystem3D";
+import { MusicPlayer } from "@/components/MusicPlayer";
 import { Sparkles, Users, Settings, Gamepad2 } from "lucide-react";
 
 interface HomeScreenProps {
@@ -120,8 +120,7 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                   </Button>
                 </div>
 
-                <div className="pt-4 border-t border-border/50 space-y-4">
-                  <VolumeControl />
+                <div className="pt-4 border-t border-border/50">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -183,6 +182,9 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
           </div>
         )}
       </div>
+      
+      {/* Music Player - Bottom Bar */}
+      <MusicPlayer />
     </div>
   );
 };
