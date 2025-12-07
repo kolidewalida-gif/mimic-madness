@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Sphere, Ring, Stars } from '@react-three/drei';
 import * as THREE from 'three';
@@ -82,29 +82,12 @@ const Planet = ({ orbitRadius, size, speed, color, emissiveColor, hasRing, ringC
   );
 };
 
-// Orbit ring
+// Orbit ring using Ring geometry instead of Line
 const OrbitRing = ({ radius }: { radius: number }) => {
-  const points = useMemo(() => {
-    const pts: THREE.Vector3[] = [];
-    for (let i = 0; i <= 128; i++) {
-      const angle = (i / 128) * Math.PI * 2;
-      pts.push(new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
-    }
-    return pts;
-  }, [radius]);
-
   return (
-    <line>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={points.length}
-          array={new Float32Array(points.flatMap(p => [p.x, p.y, p.z]))}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <lineBasicMaterial color="#ffffff" transparent opacity={0.08} />
-    </line>
+    <Ring args={[radius - 0.02, radius + 0.02, 128]} rotation={[-Math.PI / 2, 0, 0]}>
+      <meshBasicMaterial color="#ffffff" transparent opacity={0.1} side={THREE.DoubleSide} />
+    </Ring>
   );
 };
 
