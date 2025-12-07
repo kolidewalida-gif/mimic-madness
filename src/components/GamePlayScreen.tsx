@@ -70,20 +70,31 @@ export const GamePlayScreen = ({
         }
 
         if (currentPlayer.isHost) {
-          // Use getChallengeClipsByLobby to only get original challenges, not imitations
+          // Get all original challenge clips from all players
           const allClips = await videoStorage.getChallengeClipsByLobby(lobbyId);
           if (!isMounted) return;
           
-          if (allClips.length === 0) {
+          // Get already used challenge IDs from previous rounds
+          const { data: previousRounds } = await supabase
+            .from('game_rounds')
+            .select('current_challenge_id')
+            .eq('lobby_id', lobbyId);
+          
+          const usedChallengeIds = new Set(previousRounds?.map(r => r.current_challenge_id) || []);
+          
+          // Filter out already used challenges
+          const availableClips = allClips.filter(clip => !usedChallengeIds.has(clip.id));
+          
+          if (availableClips.length === 0) {
             toast({
-              title: "Erreur",
-              description: "Aucun défi disponible",
-              variant: "destructive",
+              title: "Partie terminée !",
+              description: "Tous les défis ont été joués !",
             });
             return;
           }
 
-          const randomClip = allClips[Math.floor(Math.random() * allClips.length)];
+          // Pick a random clip from available ones
+          const randomClip = availableClips[Math.floor(Math.random() * availableClips.length)];
           const challengePlayer = players.find(p => p.id === randomClip.playerId);
 
           const { error } = await supabase
@@ -219,18 +230,30 @@ export const GamePlayScreen = ({
     const newRoundNumber = roundNumber + 1;
     
     try {
-      // Use getChallengeClipsByLobby to only get original challenges, not imitations
+      // Get all original challenge clips from all players
       const allClips = await videoStorage.getChallengeClipsByLobby(lobbyId);
-      if (allClips.length === 0) {
+      
+      // Get already used challenge IDs from all previous rounds (including current)
+      const { data: previousRounds } = await supabase
+        .from('game_rounds')
+        .select('current_challenge_id')
+        .eq('lobby_id', lobbyId);
+      
+      const usedChallengeIds = new Set(previousRounds?.map(r => r.current_challenge_id) || []);
+      
+      // Filter out already used challenges
+      const availableClips = allClips.filter(clip => !usedChallengeIds.has(clip.id));
+      
+      if (availableClips.length === 0) {
         toast({
-          title: "Erreur",
-          description: "Aucun défi disponible",
-          variant: "destructive",
+          title: "Partie terminée !",
+          description: "Tous les défis ont été joués ! Bravo à tous !",
         });
         return;
       }
 
-      const randomClip = allClips[Math.floor(Math.random() * allClips.length)];
+      // Pick a random clip from available ones
+      const randomClip = availableClips[Math.floor(Math.random() * availableClips.length)];
 
       const { error } = await supabase
         .from('game_rounds')
