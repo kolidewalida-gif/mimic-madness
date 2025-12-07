@@ -199,6 +199,36 @@ export type Database = {
           },
         ]
       }
+      player_global_avatars: {
+        Row: {
+          avatar_type: string
+          background_color: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          player_id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_type?: string
+          background_color?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          player_id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_type?: string
+          background_color?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          player_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       player_imitations: {
         Row: {
           created_at: string

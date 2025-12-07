@@ -63,7 +63,7 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
     };
   }, []);
 
-  const showAvatarTab = playerId && playerName && lobbyId;
+  const showAvatarTab = playerId && playerName;
 
   return (
     <GameCard>
@@ -103,7 +103,7 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
             </TabsContent>
             
             <TabsContent value="avatar" className="mt-4">
-              <AvatarSettings playerId={playerId} playerName={playerName} lobbyId={lobbyId} />
+              <AvatarSettings playerId={playerId} playerName={playerName} />
             </TabsContent>
           </Tabs>
         ) : (

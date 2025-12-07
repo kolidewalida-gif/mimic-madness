@@ -160,7 +160,6 @@ export const ResultsPhase = ({
                   <PlayerAvatar
                     playerId={result.playerId}
                     playerName={result.playerName}
-                    lobbyId={lobbyId}
                     size="md"
                   />
                   

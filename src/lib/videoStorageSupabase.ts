@@ -214,6 +214,35 @@ class VideoStorageSupabase {
     }));
   }
 
+  // Get only original challenge clips (not imitations)
+  async getChallengeClipsByLobby(lobbyId: string): Promise<VideoClip[]> {
+    const { data, error } = await supabase
+      .from('video_clips')
+      .select('*')
+      .eq('lobby_id', lobbyId)
+      .is('round_number', null) // Only original challenges have no round_number
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching challenge clips:', error);
+      return [];
+    }
+
+    return (data || []).map(clip => ({
+      id: clip.id,
+      name: clip.name,
+      playerId: clip.player_id,
+      playerName: clip.player_name,
+      startTime: clip.start_time,
+      endTime: clip.end_time,
+      duration: clip.duration,
+      isMuted: clip.is_muted,
+      storagePath: clip.storage_path,
+      createdAt: new Date(clip.created_at),
+      lobbyId: clip.lobby_id,
+    }));
+  }
+
   async getLatestClipByPlayerInLobby(playerId: string, lobbyId: string): Promise<VideoClip | null> {
     // Retry logic for better reliability
     const maxRetries = 3;

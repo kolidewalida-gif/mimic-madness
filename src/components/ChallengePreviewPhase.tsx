@@ -206,7 +206,6 @@ export const ChallengePreviewPhase = ({
                     <PlayerAvatar
                       playerId={player.id}
                       playerName={player.name}
-                      lobbyId={lobbyId}
                       size="sm"
                       isHost={player.isHost}
                     />
