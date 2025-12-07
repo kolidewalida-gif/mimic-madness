@@ -11,6 +11,7 @@ interface VideoWithAudioOverlayProps {
   isPlayingExternal?: boolean;
   onPlayStateChange?: (isPlaying: boolean) => void;
   includeOriginalAudio?: boolean;
+  originalAudioVolume?: number;
 }
 
 export interface VideoWithAudioOverlayRef {
@@ -26,7 +27,8 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
   externalControl = false,
   isPlayingExternal = false,
   onPlayStateChange,
-  includeOriginalAudio = false
+  includeOriginalAudio = false,
+  originalAudioVolume = 50
 }, ref) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -39,7 +41,13 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Load URLs with retry logic
+  // Update video volume when originalAudioVolume changes
+  useEffect(() => {
+    if (videoRef.current && includeOriginalAudio) {
+      videoRef.current.volume = originalAudioVolume / 100;
+    }
+  }, [originalAudioVolume, includeOriginalAudio]);
+
   useEffect(() => {
     let isMounted = true;
     let retryTimeout: NodeJS.Timeout | null = null;

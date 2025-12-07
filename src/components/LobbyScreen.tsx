@@ -95,7 +95,11 @@ export const LobbyScreen = ({
           {/* Settings Panel */}
           {showSettings && (
             <div className="animate-slideInRight">
-              <DeviceSettings showPreview={true} />
+              <DeviceSettings 
+                showPreview={true} 
+                playerId={currentPlayer.id}
+                playerName={currentPlayer.name}
+              />
             </div>
           )}
         </div>

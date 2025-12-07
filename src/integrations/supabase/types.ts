@@ -165,6 +165,7 @@ export type Database = {
           include_original_audio: boolean
           is_ready: boolean
           lobby_id: string
+          original_audio_volume: number
           player_id: string
           player_name: string
           round_number: number
@@ -175,6 +176,7 @@ export type Database = {
           include_original_audio?: boolean
           is_ready?: boolean
           lobby_id: string
+          original_audio_volume?: number
           player_id: string
           player_name: string
           round_number?: number
@@ -185,6 +187,7 @@ export type Database = {
           include_original_audio?: boolean
           is_ready?: boolean
           lobby_id?: string
+          original_audio_volume?: number
           player_id?: string
           player_name?: string
           round_number?: number
