@@ -5,11 +5,13 @@ import { VideoPreview } from "@/components/VideoPreview";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
-import { Play, Check, Users, Settings, Mic } from "lucide-react";
+import { Play, Check, Users, Settings, Mic, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface Player {
   id: string;
@@ -48,6 +50,7 @@ export const ImitationPhase = ({
   const [showSettings, setShowSettings] = useState(false);
   const [challengeClipData, setChallengeClipData] = useState<any>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [includeOriginalAudio, setIncludeOriginalAudio] = useState(false);
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
@@ -124,6 +127,14 @@ export const ImitationPhase = ({
 
   const handleSubmit = async () => {
     try {
+      // Update the clip with round_number for better tracking
+      if (recordedClipId) {
+        await supabase
+          .from('video_clips')
+          .update({ round_number: roundNumber })
+          .eq('id', recordedClipId);
+      }
+
       const { error } = await supabase
         .from('player_imitations')
         .upsert({
@@ -131,7 +142,8 @@ export const ImitationPhase = ({
           round_number: roundNumber,
           player_id: currentPlayer.id,
           player_name: currentPlayer.name,
-          is_ready: true
+          is_ready: true,
+          include_original_audio: includeOriginalAudio
         }, {
           onConflict: 'lobby_id,round_number,player_id'
         });
@@ -288,9 +300,37 @@ export const ImitationPhase = ({
                     <VideoWithAudioOverlay
                       videoClipId={currentChallenge.id}
                       audioClipId={recordedClipId}
+                      includeOriginalAudio={includeOriginalAudio}
                     />
                   </div>
                 )}
+
+                {/* Option pour inclure l'audio original */}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-background-secondary/50 border border-glass-border">
+                  <div className="flex items-center gap-3">
+                    {includeOriginalAudio ? (
+                      <Volume2 className="h-5 w-5 text-primary" />
+                    ) : (
+                      <VolumeX className="h-5 w-5 text-foreground-muted" />
+                    )}
+                    <div>
+                      <Label htmlFor="include-audio" className="font-display text-sm cursor-pointer">
+                        Audio original de la vidéo
+                      </Label>
+                      <p className="text-xs text-foreground-muted">
+                        {includeOriginalAudio 
+                          ? "L'audio de la vidéo sera joué avec votre imitation" 
+                          : "Seule votre imitation sera entendue"}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="include-audio"
+                    checked={includeOriginalAudio}
+                    onCheckedChange={setIncludeOriginalAudio}
+                    disabled={hasSubmitted}
+                  />
+                </div>
                 
                 <Button
                   onClick={handleSubmit}

@@ -30,6 +30,7 @@ interface ImitationWithClip {
   likes: number;
   dislikes: number;
   userVote: 'like' | 'dislike' | null;
+  includeOriginalAudio: boolean;
 }
 
 export const VotingPhase = ({
@@ -150,7 +151,7 @@ export const VotingPhase = ({
     };
   }, [votingSessionId, imitations.length, onVotingComplete]);
 
-  // Load imitations and their clips - only clips created during THIS round's imitation phase
+  // Load imitations and their clips - using round_number for accurate tracking
   useEffect(() => {
     let isMounted = true;
     let retryTimeout: NodeJS.Timeout | null = null;
@@ -161,10 +162,12 @@ export const VotingPhase = ({
       // Get the imitation records for this round to find the correct clips
       const { data: imitationRecords } = await supabase
         .from('player_imitations')
-        .select('player_id, player_name, created_at')
+        .select('player_id, player_name, created_at, include_original_audio')
         .eq('lobby_id', lobbyId)
         .eq('round_number', roundNumber)
         .eq('is_ready', true);
+
+      console.log(`Loading imitations for round ${roundNumber}:`, imitationRecords);
       
       // Process all players in parallel for faster loading
       const playerPromises = players.map(async (player) => {
@@ -172,20 +175,30 @@ export const VotingPhase = ({
         const imitationRecord = imitationRecords?.find(r => r.player_id === player.id);
         
         let clipId: string | null = null;
+        const includeOriginalAudio = (imitationRecord as any)?.include_original_audio ?? false;
         
         if (imitationRecord) {
-          // Get the clip created after the imitation record was started (more accurate)
-          const imitationTime = new Date(imitationRecord.created_at);
-          // Look for clips created within 10 minutes before the imitation record
-          const searchTime = new Date(imitationTime.getTime() - 10 * 60 * 1000);
-          const latestClip = await videoStorage.getClipByPlayerAfterTime(player.id, lobbyId, searchTime);
+          // First try to get clip by round_number (most accurate)
+          const roundClip = await videoStorage.getClipByPlayerAndRound(player.id, lobbyId, roundNumber);
           
-          if (!latestClip) {
-            // Fallback to regular method
-            const fallbackClip = await videoStorage.getLatestClipByPlayerInLobby(player.id, lobbyId);
-            clipId = fallbackClip?.id || null;
+          if (roundClip) {
+            clipId = roundClip.id;
+            console.log(`Found clip for player ${player.name} by round: ${clipId}`);
           } else {
-            clipId = latestClip.id;
+            // Fallback: Get clip created around the imitation time
+            const imitationTime = new Date(imitationRecord.created_at);
+            const searchTime = new Date(imitationTime.getTime() - 10 * 60 * 1000);
+            const timeClip = await videoStorage.getClipByPlayerAfterTime(player.id, lobbyId, searchTime);
+            
+            if (timeClip) {
+              clipId = timeClip.id;
+              console.log(`Found clip for player ${player.name} by time: ${clipId}`);
+            } else {
+              // Last resort: get latest clip
+              const latestClip = await videoStorage.getLatestClipByPlayerInLobby(player.id, lobbyId);
+              clipId = latestClip?.id || null;
+              console.log(`Fallback clip for player ${player.name}: ${clipId}`);
+            }
           }
         }
 
@@ -214,7 +227,8 @@ export const VotingPhase = ({
           clipId,
           likes,
           dislikes,
-          userVote: userVote?.vote_type as 'like' | 'dislike' | null
+          userVote: userVote?.vote_type as 'like' | 'dislike' | null,
+          includeOriginalAudio
         };
       });
 
@@ -228,9 +242,9 @@ export const VotingPhase = ({
           return hasRecord && !im.clipId;
         });
 
-        if (hasMissingClips && retryCount < 3) {
+        if (hasMissingClips && retryCount < 5) {
           console.log(`Retrying imitations load (attempt ${retryCount + 1}) - missing clips detected`);
-          retryTimeout = setTimeout(() => loadImitations(retryCount + 1), 1000);
+          retryTimeout = setTimeout(() => loadImitations(retryCount + 1), 1500);
           return;
         }
 
@@ -428,6 +442,7 @@ export const VotingPhase = ({
                 className="w-full"
                 externalControl={true}
                 isPlayingExternal={isPlayingSynced}
+                includeOriginalAudio={currentImitation.includeOriginalAudio}
               />
             </div>
           ) : (
