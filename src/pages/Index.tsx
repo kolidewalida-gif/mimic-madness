@@ -3,6 +3,7 @@ import { HomeScreen } from "@/components/HomeScreen";
 import { LobbyScreen } from "@/components/LobbyScreen";
 import { VideoSubmissionScreen } from "@/components/VideoSubmissionScreen";
 import { GamePlayScreen } from "@/components/GamePlayScreen";
+import { DynamicBackground } from "@/components/DynamicBackground";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
@@ -171,58 +172,73 @@ const Index = () => {
 
   if (gameState === "home") {
     return (
-      <HomeScreen 
-        onCreateGame={handleCreateGame}
-        onJoinGame={handleJoinGame}
-      />
+      <>
+        <DynamicBackground />
+        <HomeScreen 
+          onCreateGame={handleCreateGame}
+          onJoinGame={handleJoinGame}
+        />
+      </>
     );
   }
 
   if (gameState === "lobby" && currentPlayer && lobby) {
     return (
-      <LobbyScreen
-        players={players}
-        lobbyCode={lobby.code}
-        lobbyId={lobby.id}
-        isHost={currentPlayer.isHost}
-        currentPlayer={currentPlayer}
-        onStartGame={handleStartGame}
-        onLeaveGame={handleLeaveGame}
-      />
+      <>
+        <DynamicBackground />
+        <LobbyScreen
+          players={players}
+          lobbyCode={lobby.code}
+          lobbyId={lobby.id}
+          isHost={currentPlayer.isHost}
+          currentPlayer={currentPlayer}
+          onStartGame={handleStartGame}
+          onLeaveGame={handleLeaveGame}
+        />
+      </>
     );
   }
 
   if (gameState === "preparation" && currentPlayer && lobby) {
     return (
-      <VideoSubmissionScreen
-        currentPlayer={currentPlayer}
-        lobbyId={lobby.id}
-        players={players}
-        isHost={currentPlayer.isHost}
-        onBackToLobby={handleBackToLobby}
-        onSubmitChallenges={handleSubmitChallenges}
-        onStartActualGame={handleStartActualGame}
-      />
+      <>
+        <DynamicBackground />
+        <VideoSubmissionScreen
+          currentPlayer={currentPlayer}
+          lobbyId={lobby.id}
+          players={players}
+          isHost={currentPlayer.isHost}
+          onBackToLobby={handleBackToLobby}
+          onSubmitChallenges={handleSubmitChallenges}
+          onStartActualGame={handleStartActualGame}
+        />
+      </>
     );
   }
 
   if (gameState === "playing" && currentPlayer && lobby) {
     return (
-      <GamePlayScreen
-        currentPlayer={currentPlayer}
-        players={players}
-        lobbyId={lobby.id}
-        onEndGame={handleLeaveGame}
-      />
+      <>
+        <DynamicBackground />
+        <GamePlayScreen
+          currentPlayer={currentPlayer}
+          players={players}
+          lobbyId={lobby.id}
+          onEndGame={handleLeaveGame}
+        />
+      </>
     );
   }
 
   // Fallback to home screen
   return (
-    <HomeScreen 
-      onCreateGame={handleCreateGame}
-      onJoinGame={handleJoinGame}
-    />
+    <>
+      <DynamicBackground />
+      <HomeScreen 
+        onCreateGame={handleCreateGame}
+        onJoinGame={handleJoinGame}
+      />
+    </>
   );
 };
 
