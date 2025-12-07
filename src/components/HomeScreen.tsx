@@ -42,11 +42,11 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
   };
 
   return (
-    <div className="min-h-screen animated-bg flex items-center justify-center p-6 relative">
+    <div className="min-h-screen flex items-center justify-center p-6 relative z-10">
       {/* Decorative elements */}
-      <div className="absolute top-20 left-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
-      <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-accent/10 rounded-full blur-2xl animate-float" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-20 left-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl animate-float pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl animate-float pointer-events-none" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-accent/10 rounded-full blur-2xl animate-float pointer-events-none" style={{ animationDelay: '2s' }} />
 
       <div className="w-full max-w-lg space-y-8 animate-fadeIn relative z-10">
         {/* Logo Section */}
