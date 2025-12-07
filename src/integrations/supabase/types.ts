@@ -158,6 +158,47 @@ export type Database = {
           },
         ]
       }
+      player_avatars: {
+        Row: {
+          avatar_type: string
+          background_color: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          lobby_id: string
+          player_id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_type?: string
+          background_color?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          lobby_id: string
+          player_id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_type?: string
+          background_color?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          lobby_id?: string
+          player_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_avatars_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_imitations: {
         Row: {
           created_at: string

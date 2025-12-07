@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VideoWithAudioOverlay, VideoWithAudioOverlayRef } from "@/components/VideoWithAudioOverlay";
 import { ThumbsUp, ThumbsDown, Trophy, Play, Pause, Vote, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -421,7 +422,13 @@ export const VotingPhase = ({
       {/* Video Card */}
       <GameCard variant="highlight">
         <div className="space-y-6">
-          <div className="text-center">
+          <div className="text-center flex flex-col items-center gap-3">
+            <PlayerAvatar
+              playerId={currentImitation.playerId}
+              playerName={currentImitation.playerName}
+              lobbyId={lobbyId}
+              size="lg"
+            />
             <h3 className="text-2xl font-display font-bold">
               {isOwnVideo ? (
                 <span className="text-secondary">Votre imitation</span>
@@ -430,7 +437,7 @@ export const VotingPhase = ({
               )}
             </h3>
             {isOwnVideo && (
-              <p className="text-sm text-foreground-muted font-body mt-1">
+              <p className="text-sm text-foreground-muted font-body">
                 Vous ne pouvez pas voter pour vous-même
               </p>
             )}

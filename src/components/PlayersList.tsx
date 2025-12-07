@@ -14,13 +14,15 @@ interface Player {
 interface PlayersListProps {
   players: Player[];
   lobbyCode?: string;
+  lobbyId?: string;
   isHost?: boolean;
   onStartGame?: () => void;
 }
 
 export const PlayersList = ({ 
   players, 
-  lobbyCode, 
+  lobbyCode,
+  lobbyId,
   isHost = false, 
   onStartGame 
 }: PlayersListProps) => {
@@ -121,6 +123,7 @@ export const PlayersList = ({
                     <PlayerAvatar
                       playerId={player.id}
                       playerName={player.name}
+                      lobbyId={lobbyId}
                       size="md"
                       isHost={player.isHost}
                     />

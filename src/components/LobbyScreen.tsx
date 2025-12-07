@@ -14,6 +14,7 @@ interface Player {
 interface LobbyScreenProps {
   players: Player[];
   lobbyCode: string;
+  lobbyId: string;
   isHost: boolean;
   currentPlayer: Player;
   onStartGame: () => void;
@@ -22,7 +23,8 @@ interface LobbyScreenProps {
 
 export const LobbyScreen = ({ 
   players, 
-  lobbyCode, 
+  lobbyCode,
+  lobbyId,
   isHost, 
   currentPlayer, 
   onStartGame, 
@@ -87,6 +89,7 @@ export const LobbyScreen = ({
             <PlayersList
               players={players}
               lobbyCode={lobbyCode}
+              lobbyId={lobbyId}
               isHost={isHost}
               onStartGame={onStartGame}
             />
@@ -99,6 +102,7 @@ export const LobbyScreen = ({
                 showPreview={true} 
                 playerId={currentPlayer.id}
                 playerName={currentPlayer.name}
+                lobbyId={lobbyId}
               />
             </div>
           )}

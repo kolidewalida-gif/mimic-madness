@@ -12,9 +12,10 @@ interface DeviceSettingsProps {
   showPreview?: boolean;
   playerId?: string;
   playerName?: string;
+  lobbyId?: string;
 }
 
-export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerName }: DeviceSettingsProps) => {
+export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerName, lobbyId }: DeviceSettingsProps) => {
   const {
     audioInputs,
     videoInputs,
@@ -62,7 +63,7 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
     };
   }, []);
 
-  const showAvatarTab = playerId && playerName;
+  const showAvatarTab = playerId && playerName && lobbyId;
 
   return (
     <GameCard>
@@ -102,7 +103,7 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
             </TabsContent>
             
             <TabsContent value="avatar" className="mt-4">
-              <AvatarSettings playerId={playerId} playerName={playerName} />
+              <AvatarSettings playerId={playerId} playerName={playerName} lobbyId={lobbyId} />
             </TabsContent>
           </Tabs>
         ) : (

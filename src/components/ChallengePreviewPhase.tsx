@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { VideoPreview } from "@/components/VideoPreview";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Play, Check, Users, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -201,14 +202,23 @@ export const ChallengePreviewPhase = ({
                       : "bg-background-secondary/30 border-transparent"
                   }`}
                 >
-                  <p className="font-semibold text-sm truncate font-body">{player.name}</p>
-                  <p className="text-xs mt-1 font-display">
-                    {ready ? (
-                      <span className="text-success">✓ PRÊT</span>
-                    ) : (
-                      <span className="text-foreground-muted">En cours...</span>
-                    )}
-                  </p>
+                  <div className="flex flex-col items-center gap-2">
+                    <PlayerAvatar
+                      playerId={player.id}
+                      playerName={player.name}
+                      lobbyId={lobbyId}
+                      size="sm"
+                      isHost={player.isHost}
+                    />
+                    <p className="font-semibold text-sm truncate font-body">{player.name}</p>
+                    <p className="text-xs font-display">
+                      {ready ? (
+                        <span className="text-success">✓ PRÊT</span>
+                      ) : (
+                        <span className="text-foreground-muted">En cours...</span>
+                      )}
+                    </p>
+                  </div>
                 </div>
               );
             })}
