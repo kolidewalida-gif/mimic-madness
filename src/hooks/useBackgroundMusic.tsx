@@ -2,9 +2,6 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import music1 from '@/assets/background-music-1.mp3';
 import music2 from '@/assets/background-music-2.mp3';
 import music3 from '@/assets/background-music-3.mp3';
-import music4 from '@/assets/background-music-4.mp3';
-import music5 from '@/assets/background-music-5.mp3';
-import music6 from '@/assets/background-music-6.mp3';
 
 interface BackgroundMusicContextType {
   volume: number;
@@ -12,22 +9,11 @@ interface BackgroundMusicContextType {
   isPlaying: boolean;
   pause: () => void;
   play: () => void;
-  skip: () => void;
-  currentTrackIndex: number;
-  trackNames: string[];
 }
 
 const BackgroundMusicContext = createContext<BackgroundMusicContextType | undefined>(undefined);
 
-const musicTracks = [music1, music2, music3, music4, music5, music6];
-const trackNames = [
-  "Cosmic Voyage",
-  "Neon Dreams",
-  "Digital Horizon",
-  "Stellar Wave",
-  "Electric Pulse",
-  "Midnight Glow"
-];
+const musicTracks = [music1, music2, music3];
 
 export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) => {
   const [volume, setVolume] = useState(() => {
@@ -36,6 +22,7 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   });
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(() => {
+    // Start with random track
     return Math.floor(Math.random() * musicTracks.length);
   });
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -47,11 +34,13 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
       audioRef.current.volume = volume;
       
       audioRef.current.addEventListener('ended', () => {
-        const nextIndex = (currentTrackIndex + 1) % musicTracks.length;
+        // Pick a random track (different from current)
+        const nextIndex = Math.floor(Math.random() * musicTracks.length);
         setCurrentTrackIndex(nextIndex);
       });
     }
 
+    // Try to start on first user interaction (autoplay policies)
     const tryStartOnGesture = () => {
       if (audioRef.current && isPlaying) {
         audioRef.current.play().catch(() => {});
@@ -75,15 +64,6 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     };
   }, []);
 
-  useEffect(() => {
-    if (audioRef.current) {
-      // Update ended listener for sequential playback
-      audioRef.current.onended = () => {
-        const nextIndex = (currentTrackIndex + 1) % musicTracks.length;
-        setCurrentTrackIndex(nextIndex);
-      };
-    }
-  }, [currentTrackIndex]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -115,22 +95,8 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     }
   };
 
-  const skip = () => {
-    const nextIndex = (currentTrackIndex + 1) % musicTracks.length;
-    setCurrentTrackIndex(nextIndex);
-  };
-
   return (
-    <BackgroundMusicContext.Provider value={{ 
-      volume, 
-      setVolume, 
-      isPlaying, 
-      pause, 
-      play, 
-      skip, 
-      currentTrackIndex,
-      trackNames 
-    }}>
+    <BackgroundMusicContext.Provider value={{ volume, setVolume, isPlaying, pause, play }}>
       {children}
     </BackgroundMusicContext.Provider>
   );
