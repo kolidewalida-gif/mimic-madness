@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getPlayerAvatarData, PlayerAvatarData } from '@/hooks/usePlayerAvatar';
+import { PlayerAvatarData } from '@/hooks/usePlayerAvatar';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface PlayerAvatarProps {
   playerId: string;
   playerName: string;
+  lobbyId?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   isHost?: boolean;
   className?: string;
@@ -21,6 +23,7 @@ const sizeClasses = {
 export const PlayerAvatar = ({
   playerId,
   playerName,
+  lobbyId,
   size = 'md',
   isHost = false,
   className,
@@ -29,28 +32,59 @@ export const PlayerAvatar = ({
   const [avatarData, setAvatarData] = useState<PlayerAvatarData>({ type: 'initials' });
   const [imageError, setImageError] = useState(false);
 
+  // Load avatar from database
   useEffect(() => {
-    const data = getPlayerAvatarData(playerId);
-    setAvatarData(data);
-    setImageError(false);
-  }, [playerId]);
+    if (!lobbyId) return;
 
-  // Listen for storage changes
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const data = getPlayerAvatarData(playerId);
-      setAvatarData(data);
-      setImageError(false);
+    const loadAvatar = async () => {
+      const { data } = await supabase
+        .from('player_avatars')
+        .select('*')
+        .eq('player_id', playerId)
+        .eq('lobby_id', lobbyId)
+        .maybeSingle();
+
+      if (data) {
+        setAvatarData({
+          type: data.avatar_type as 'initials' | 'image',
+          imageUrl: data.image_url || undefined,
+          backgroundColor: data.background_color || undefined,
+        });
+        setImageError(false);
+      }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('avatar-updated', handleStorageChange);
-    
+    loadAvatar();
+
+    // Subscribe to realtime updates for this player's avatar
+    const channel = supabase
+      .channel(`avatar-display:${playerId}:${lobbyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'player_avatars',
+          filter: `player_id=eq.${playerId}`
+        },
+        (payload) => {
+          if (payload.new && (payload.new as any).lobby_id === lobbyId) {
+            const newData = payload.new as any;
+            setAvatarData({
+              type: newData.avatar_type as 'initials' | 'image',
+              imageUrl: newData.image_url || undefined,
+              backgroundColor: newData.background_color || undefined,
+            });
+            setImageError(false);
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('avatar-updated', handleStorageChange);
+      supabase.removeChannel(channel);
     };
-  }, [playerId]);
+  }, [playerId, lobbyId]);
 
   const initials = playerName.charAt(0).toUpperCase();
 
@@ -82,9 +116,9 @@ export const PlayerAvatar = ({
       className={cn(
         baseClasses,
         animated && 'hover:scale-110',
-        isHost ? 'bg-gradient-neon text-primary-foreground shadow-neon' : 'bg-accent/20 text-accent'
+        !avatarData.backgroundColor && (isHost ? 'bg-gradient-neon text-primary-foreground shadow-neon' : 'bg-accent/20 text-accent')
       )}
-      style={avatarData.backgroundColor ? { backgroundColor: avatarData.backgroundColor } : undefined}
+      style={avatarData.backgroundColor ? { backgroundColor: avatarData.backgroundColor, color: 'white' } : undefined}
     >
       {initials}
     </div>

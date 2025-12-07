@@ -9,11 +9,12 @@ import { useToast } from '@/hooks/use-toast';
 interface AvatarSettingsProps {
   playerId: string;
   playerName: string;
+  lobbyId: string;
   onClose?: () => void;
 }
 
-export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettingsProps) => {
-  const { avatarData, setAvatarImage, setAvatarInitials, clearAvatar, DEFAULT_COLORS } = usePlayerAvatar(playerId);
+export const AvatarSettings = ({ playerId, playerName, lobbyId, onClose }: AvatarSettingsProps) => {
+  const { avatarData, isLoading, setAvatarImage, setAvatarColor, clearAvatar, DEFAULT_COLORS } = usePlayerAvatar(playerId, lobbyId);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -33,11 +34,11 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (max 2MB for base64 storage)
+    if (file.size > 2 * 1024 * 1024) {
       toast({
         title: "Fichier trop volumineux",
-        description: "L'image ne doit pas dépasser 5 Mo",
+        description: "L'image ne doit pas dépasser 2 Mo",
         variant: "destructive",
       });
       return;
@@ -46,18 +47,15 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
     setIsUploading(true);
 
     try {
-      // Convert to base64 for local storage
+      // Convert to base64 for database storage
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const result = e.target?.result as string;
-        setAvatarImage(result);
-        
-        // Dispatch custom event to notify other components
-        window.dispatchEvent(new Event('avatar-updated'));
+        await setAvatarImage(result);
         
         toast({
           title: "Avatar mis à jour !",
-          description: "Votre nouvel avatar est prêt",
+          description: "Tous les joueurs peuvent voir votre avatar",
         });
         setIsUploading(false);
       };
@@ -86,18 +84,16 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
     }
   };
 
-  const handleColorSelect = (color: string) => {
-    setAvatarInitials(color);
-    window.dispatchEvent(new Event('avatar-updated'));
+  const handleColorSelect = async (color: string) => {
+    await setAvatarColor(color);
     toast({
       title: "Couleur changée !",
       description: "Votre avatar a été mis à jour",
     });
   };
 
-  const handleClearAvatar = () => {
-    clearAvatar();
-    window.dispatchEvent(new Event('avatar-updated'));
+  const handleClearAvatar = async () => {
+    await clearAvatar();
     toast({
       title: "Avatar réinitialisé",
       description: "Votre avatar a été remis par défaut",
@@ -130,10 +126,14 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
           <PlayerAvatar
             playerId={playerId}
             playerName={playerName}
+            lobbyId={lobbyId}
             size="xl"
             animated
           />
           <p className="font-display text-foreground">{playerName}</p>
+          <p className="text-xs text-foreground-muted text-center">
+            Tous les joueurs verront cet avatar
+          </p>
         </div>
 
         {/* Upload Image */}
@@ -153,7 +153,7 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
             onClick={() => fileInputRef.current?.click()}
             variant="outline"
             className="w-full"
-            disabled={isUploading}
+            disabled={isUploading || isLoading}
           >
             {isUploading ? (
               <>
@@ -168,7 +168,7 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
             )}
           </Button>
           <p className="text-xs text-foreground-muted">
-            JPG, PNG, GIF ou WebP • Max 5 Mo
+            JPG, PNG, GIF ou WebP • Max 2 Mo
           </p>
         </div>
 
@@ -183,6 +183,7 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
               <button
                 key={index}
                 onClick={() => handleColorSelect(color)}
+                disabled={isLoading}
                 className={`w-full aspect-square rounded-xl transition-all hover:scale-110 hover:ring-2 hover:ring-white/50 ${
                   avatarData.backgroundColor === color ? 'ring-2 ring-white scale-110' : ''
                 }`}
@@ -198,6 +199,7 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
             onClick={handleClearAvatar}
             variant="ghost"
             className="w-full text-foreground-muted hover:text-destructive"
+            disabled={isLoading}
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Réinitialiser l'avatar

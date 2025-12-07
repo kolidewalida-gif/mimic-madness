@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Trophy, ThumbsUp, ThumbsDown, ArrowRight, Medal, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
@@ -155,6 +156,13 @@ export const ResultsPhase = ({
                   <div className="w-10 flex justify-center">
                     {getMedalIcon(index)}
                   </div>
+                  
+                  <PlayerAvatar
+                    playerId={result.playerId}
+                    playerName={result.playerName}
+                    lobbyId={lobbyId}
+                    size="md"
+                  />
                   
                   <div>
                     <p className={`font-semibold font-body ${

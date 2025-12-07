@@ -183,6 +183,7 @@ const Index = () => {
       <LobbyScreen
         players={players}
         lobbyCode={lobby.code}
+        lobbyId={lobby.id}
         isHost={currentPlayer.isHost}
         currentPlayer={currentPlayer}
         onStartGame={handleStartGame}
