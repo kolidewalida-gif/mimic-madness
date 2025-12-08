@@ -33,11 +33,11 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
       return;
     }
 
-    // Validate file size (max 2MB for base64 storage)
-    if (file.size > 2 * 1024 * 1024) {
+    // Validate file size (max 25MB)
+    if (file.size > 25 * 1024 * 1024) {
       toast({
         title: "Fichier trop volumineux",
-        description: "L'image ne doit pas dépasser 2 Mo",
+        description: "L'image ne doit pas dépasser 25 Mo",
         variant: "destructive",
       });
       return;
@@ -166,7 +166,7 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
             )}
           </Button>
           <p className="text-xs text-foreground-muted">
-            JPG, PNG, GIF ou WebP • Max 2 Mo
+            JPG, PNG, GIF ou WebP • Max 25 Mo
           </p>
         </div>
 
