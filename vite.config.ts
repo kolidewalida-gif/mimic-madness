@@ -45,7 +45,9 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        // Exclude large audio files from precache
+        navigateFallback: null,
       },
     }),
   ].filter(Boolean),
