@@ -7,6 +7,7 @@ import { VolumeControl } from "@/components/VolumeControl";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { Sparkles, Users, Settings, Gamepad2 } from "lucide-react";
+
 interface HomeScreenProps {
   onCreateGame: (playerName: string) => void;
   onJoinGame: (playerName: string, lobbyCode: string) => void;

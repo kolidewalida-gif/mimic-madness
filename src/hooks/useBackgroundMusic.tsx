@@ -2,8 +2,6 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import music1 from '@/assets/background-music-1.mp3';
 import music2 from '@/assets/background-music-2.mp3';
 import music3 from '@/assets/background-music-3.mp3';
-import music4 from '@/assets/background-music-4.mp3';
-import music5 from '@/assets/background-music-5.mp3';
 
 interface BackgroundMusicContextType {
   volume: number;
@@ -15,7 +13,7 @@ interface BackgroundMusicContextType {
 
 const BackgroundMusicContext = createContext<BackgroundMusicContextType | undefined>(undefined);
 
-const musicTracks = [music1, music2, music3, music4, music5];
+const musicTracks = [music1, music2, music3];
 
 export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) => {
   const [volume, setVolume] = useState(() => {
