@@ -35,11 +35,18 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
       audioRef.current.loop = false;
       audioRef.current.volume = volume;
       
-      audioRef.current.addEventListener('ended', () => {
-        // Pick a random track (different from current)
-        const nextIndex = Math.floor(Math.random() * musicTracks.length);
-        setCurrentTrackIndex(nextIndex);
-      });
+      const handleEnded = () => {
+        // Pick a random track different from current
+        setCurrentTrackIndex(prev => {
+          let nextIndex;
+          do {
+            nextIndex = Math.floor(Math.random() * musicTracks.length);
+          } while (nextIndex === prev && musicTracks.length > 1);
+          return nextIndex;
+        });
+      };
+      
+      audioRef.current.addEventListener('ended', handleEnded);
     }
 
     // Try to start on first user interaction (autoplay policies)
@@ -70,11 +77,12 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.src = musicTracks[currentTrackIndex];
+      audioRef.current.load();
       if (isPlaying) {
         audioRef.current.play().catch(() => {});
       }
     }
-  }, [currentTrackIndex, isPlaying]);
+  }, [currentTrackIndex]);
 
   useEffect(() => {
     if (audioRef.current) {
