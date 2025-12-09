@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          lobby_id: string
+          message_type: string
+          player_id: string
+          player_name: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          lobby_id: string
+          message_type?: string
+          player_id: string
+          player_name: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          lobby_id?: string
+          message_type?: string
+          player_id?: string
+          player_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_rounds: {
         Row: {
           challenge_player_id: string

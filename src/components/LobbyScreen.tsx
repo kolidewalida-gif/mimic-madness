@@ -1,5 +1,6 @@
 import { GameLogo } from "@/components/GameLogo";
 import { PlayersList } from "@/components/PlayersList";
+import { LobbyChat } from "@/components/LobbyChat";
 import { Button } from "@/components/ui/button";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { ArrowLeft, Settings, Wifi } from "lucide-react";
@@ -108,6 +109,13 @@ export const LobbyScreen = ({
           )}
         </div>
       </div>
+
+      {/* Lobby Chat */}
+      <LobbyChat
+        lobbyId={lobbyId}
+        playerId={currentPlayer.id}
+        playerName={currentPlayer.name}
+      />
     </div>
   );
 };
