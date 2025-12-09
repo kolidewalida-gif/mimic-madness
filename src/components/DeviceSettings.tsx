@@ -1,12 +1,14 @@
 import { GameCard } from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mic, Video, Settings, RefreshCw, User } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX } from "lucide-react";
 import { useMediaDevices, MediaDeviceInfo } from "@/hooks/useMediaDevices";
+import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
 import { useEffect, useRef, useState } from "react";
 import { AvatarSettings } from "@/components/AvatarSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { cn } from "@/lib/utils";
 interface DeviceSettingsProps {
   onClose?: () => void;
   showPreview?: boolean;
@@ -30,6 +32,15 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
     changeVideoInput,
     reloadDevices,
   } = useMediaDevices();
+
+  const {
+    isTesting: isMicTesting,
+    audioLevel,
+    noiseSuppressionEnabled,
+    startTest: startMicTest,
+    stopTest: stopMicTest,
+    toggleNoiseSuppression,
+  } = useMicrophoneTest({ selectedAudioId });
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPreviewActive, setIsPreviewActive] = useState(false);
@@ -99,6 +110,12 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
                 onChangeVideoInput={changeVideoInput}
                 onStartPreview={startPreview}
                 onStopPreview={handleStopPreview}
+                isMicTesting={isMicTesting}
+                audioLevel={audioLevel}
+                noiseSuppressionEnabled={noiseSuppressionEnabled}
+                onStartMicTest={startMicTest}
+                onStopMicTest={stopMicTest}
+                onToggleNoiseSuppression={toggleNoiseSuppression}
               />
             </TabsContent>
             
@@ -142,6 +159,12 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
               onChangeVideoInput={changeVideoInput}
               onStartPreview={startPreview}
               onStopPreview={handleStopPreview}
+              isMicTesting={isMicTesting}
+              audioLevel={audioLevel}
+              noiseSuppressionEnabled={noiseSuppressionEnabled}
+              onStartMicTest={startMicTest}
+              onStopMicTest={stopMicTest}
+              onToggleNoiseSuppression={toggleNoiseSuppression}
             />
           </>
         )}
@@ -177,6 +200,12 @@ interface DeviceSettingsContentProps {
   onChangeVideoInput: (deviceId: string) => void;
   onStartPreview: () => void;
   onStopPreview: () => void;
+  isMicTesting: boolean;
+  audioLevel: number;
+  noiseSuppressionEnabled: boolean;
+  onStartMicTest: () => void;
+  onStopMicTest: () => void;
+  onToggleNoiseSuppression: () => void;
 }
 
 const DeviceSettingsContent = ({
@@ -196,6 +225,12 @@ const DeviceSettingsContent = ({
   onChangeVideoInput,
   onStartPreview,
   onStopPreview,
+  isMicTesting,
+  audioLevel,
+  noiseSuppressionEnabled,
+  onStartMicTest,
+  onStopMicTest,
+  onToggleNoiseSuppression,
 }: DeviceSettingsContentProps) => {
   return (
     <>
@@ -240,6 +275,77 @@ const DeviceSettingsContent = ({
             ))}
           </SelectContent>
         </Select>
+
+        {/* Noise Suppression Toggle */}
+        <div className="flex items-center justify-between p-3 rounded-lg bg-background-secondary/30 border border-glass-border">
+          <div className="flex items-center gap-2">
+            {noiseSuppressionEnabled ? (
+              <VolumeX className="h-4 w-4 text-success" />
+            ) : (
+              <Volume2 className="h-4 w-4 text-foreground-secondary" />
+            )}
+            <span className="text-sm">Suppression de bruit</span>
+          </div>
+          <Switch
+            checked={noiseSuppressionEnabled}
+            onCheckedChange={onToggleNoiseSuppression}
+          />
+        </div>
+
+        {/* Microphone Test */}
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            {!isMicTesting ? (
+              <Button
+                onClick={onStartMicTest}
+                disabled={isLoading || !selectedAudioId}
+                className="flex-1"
+                variant="outline"
+              >
+                <Mic className="h-4 w-4 mr-2" />
+                Tester le Micro
+              </Button>
+            ) : (
+              <Button
+                onClick={onStopMicTest}
+                className="flex-1"
+                variant="destructive"
+              >
+                <VolumeX className="h-4 w-4 mr-2" />
+                Arrêter le Test
+              </Button>
+            )}
+          </div>
+
+          {/* Audio Level Meter */}
+          {isMicTesting && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-foreground-secondary">
+                <Volume2 className="h-3 w-3" />
+                <span>Niveau audio</span>
+              </div>
+              <div className="relative h-4 bg-background-secondary rounded-full overflow-hidden border border-glass-border">
+                <div
+                  className={cn(
+                    "h-full transition-all duration-75 rounded-full",
+                    audioLevel > 70 ? "bg-destructive" : audioLevel > 40 ? "bg-warning" : "bg-success"
+                  )}
+                  style={{ width: `${audioLevel}%` }}
+                />
+                {/* Level markers */}
+                <div className="absolute inset-0 flex">
+                  <div className="flex-1 border-r border-background/30" />
+                  <div className="flex-1 border-r border-background/30" />
+                  <div className="flex-1 border-r border-background/30" />
+                  <div className="flex-1" />
+                </div>
+              </div>
+              <p className="text-xs text-center text-foreground-muted">
+                🎧 Parlez dans le micro - vous devriez entendre votre voix
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Video Input Selection */}
