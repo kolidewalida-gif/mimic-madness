@@ -123,8 +123,9 @@ export const PlayersList = ({
                     <PlayerAvatar
                       playerId={player.id}
                       playerName={player.name}
-                      size="md"
+                      size="lg"
                       isHost={player.isHost}
+                      animated
                     />
                     
                     <div className="flex flex-col">
