@@ -12,17 +12,17 @@ interface PlayerAvatarProps {
 }
 
 const sizeClasses = {
-  sm: 'w-8 h-8 text-xs',
-  md: 'w-12 h-12 text-sm',
-  lg: 'w-16 h-16 text-lg',
-  xl: 'w-24 h-24 text-2xl',
+  sm: 'w-10 h-10 text-sm',
+  md: 'w-14 h-14 text-base',
+  lg: 'w-20 h-20 text-xl',
+  xl: 'w-28 h-28 text-3xl',
 };
 
 const crownSizes = {
-  sm: 'w-3 h-3 -top-1 -right-1',
-  md: 'w-4 h-4 -top-1 -right-1',
-  lg: 'w-5 h-5 -top-2 -right-2',
-  xl: 'w-6 h-6 -top-2 -right-2',
+  sm: 'w-4 h-4 -top-1 -right-1',
+  md: 'w-5 h-5 -top-1 -right-1',
+  lg: 'w-6 h-6 -top-2 -right-2',
+  xl: 'w-8 h-8 -top-2 -right-2',
 };
 
 export const PlayerAvatar = ({
@@ -59,8 +59,9 @@ export const PlayerAvatar = ({
           "rounded-full overflow-hidden",
           "flex items-center justify-center",
           "font-display font-bold text-white",
-          "border-2 border-glass-border",
-          animated && "transition-all hover:scale-110 hover:ring-2 hover:ring-primary/50"
+          "border-3 border-primary/40 shadow-lg shadow-primary/20",
+          "ring-2 ring-background/50",
+          animated && "transition-all hover:scale-110 hover:ring-4 hover:ring-primary/50"
         )}
         style={{
           backgroundColor: avatarData.type === 'initials' ? backgroundColor : undefined,
