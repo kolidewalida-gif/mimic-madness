@@ -194,13 +194,13 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
       {!isExpanded && (
         <Button
           onClick={() => setIsExpanded(true)}
-          className="relative gap-3 px-5 py-3 shadow-xl bg-card border border-border hover:bg-card/90 hover:scale-105 transition-all duration-200 rounded-2xl"
+          className="relative gap-2 px-4 py-2 shadow-lg bg-card border border-border hover:bg-card-hover rounded-lg"
           variant="outline"
         >
           <MessageCircle className="h-5 w-5 text-primary" />
-          <span className="font-medium">Chat</span>
+          <span className="font-medium text-sm">Chat</span>
           {unreadCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse shadow-lg">
+            <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
@@ -209,41 +209,37 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
 
       {/* Expanded Chat Window */}
       {isExpanded && (
-        <div className="w-[340px] sm:w-[400px] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4">
+        <div className="w-[360px] bg-card border border-border rounded-lg shadow-2xl overflow-hidden animate-scaleIn">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background-secondary">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <MessageCircle className="h-5 w-5 text-primary" />
-              </div>
+              <MessageCircle className="h-5 w-5 text-primary" />
               <div>
-                <h3 className="font-semibold text-foreground">Chat</h3>
-                <p className="text-xs text-muted-foreground">{messages.length} messages</p>
+                <h3 className="font-semibold text-sm text-foreground">Chat du Lobby</h3>
+                <p className="text-xs text-foreground-muted">{messages.length} messages</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-xl hover:bg-muted"
+              className="h-8 w-8"
               onClick={() => setIsExpanded(false)}
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Messages Area */}
-          <ScrollArea className="h-80 px-4 py-4" ref={scrollRef}>
+          <ScrollArea className="h-80 p-4" ref={scrollRef}>
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-8">
-                <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
-                  <MessageCircle className="h-8 w-8 opacity-50" />
-                </div>
-                <p className="font-medium">Aucun message</p>
-                <p className="text-sm opacity-70">Soyez le premier à écrire !</p>
+              <div className="flex flex-col items-center justify-center h-full text-foreground-muted py-8">
+                <MessageCircle className="h-10 w-10 opacity-30 mb-3" />
+                <p className="font-medium text-sm">Aucun message</p>
+                <p className="text-xs opacity-70">Soyez le premier à écrire</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -261,25 +257,25 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
                         playerId={msg.playerId}
                         playerName={msg.playerName}
                         size="sm"
-                        className="flex-shrink-0 mt-1"
+                        className="flex-shrink-0"
                       />
                       <div
                         className={cn(
-                          'max-w-[75%] rounded-2xl px-4 py-3 shadow-sm',
+                          'max-w-[75%] rounded-lg px-3 py-2',
                           isOwnMessage
-                            ? 'bg-primary text-primary-foreground rounded-tr-md'
-                            : 'bg-muted text-foreground rounded-tl-md'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-foreground'
                         )}
                       >
                         {!isOwnMessage && (
-                          <p className="text-xs font-semibold mb-1.5 opacity-80">
+                          <p className="text-xs font-semibold mb-1 opacity-70">
                             {msg.playerName}
                           </p>
                         )}
                         {renderMessageContent(msg)}
                         <p
                           className={cn(
-                            'text-[10px] mt-2 opacity-60',
+                            'text-[10px] mt-1.5 opacity-50',
                             isOwnMessage ? 'text-right' : 'text-left'
                           )}
                         >
@@ -294,8 +290,8 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="px-4 py-4 border-t border-border bg-muted/20">
-            <div className="flex items-center gap-3">
+          <div className="px-4 py-3 border-t border-border bg-background-secondary">
+            <div className="flex items-center gap-2">
               {/* Image Upload */}
               <input
                 type="file"
@@ -307,11 +303,11 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 flex-shrink-0 rounded-xl hover:bg-muted"
+                className="h-9 w-9 flex-shrink-0"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isSending}
               >
-                <ImageIcon className="h-5 w-5" />
+                <ImageIcon className="h-4 w-4" />
               </Button>
 
               {/* GIF Picker */}
@@ -320,36 +316,33 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 flex-shrink-0 rounded-xl hover:bg-muted"
+                    className="h-9 w-9 flex-shrink-0"
                     disabled={isSending}
                   >
-                    <span className="text-sm font-bold text-primary">GIF</span>
+                    <span className="text-xs font-bold text-primary">GIF</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
-                  className="w-[320px] p-4 bg-card border border-border rounded-2xl shadow-xl" 
+                  className="w-[320px] p-4 bg-card border border-border rounded-lg shadow-xl" 
                   side="top" 
                   align="start"
-                  sideOffset={12}
+                  sideOffset={8}
                 >
-                  <div className="mb-3">
-                    <h4 className="font-semibold text-sm text-foreground">Choisir un GIF</h4>
-                  </div>
-                  <ScrollArea className="h-[280px]">
-                    <div className="grid grid-cols-2 gap-3 pr-2">
+                  <h4 className="font-semibold text-sm text-foreground mb-3">Choisir un GIF</h4>
+                  <ScrollArea className="h-[260px]">
+                    <div className="grid grid-cols-2 gap-2 pr-2">
                       {GIPHY_GIFS.map((gif, index) => (
                         <button
                           key={index}
-                          className="relative group overflow-hidden rounded-xl aspect-square bg-muted/50 hover:ring-2 hover:ring-primary transition-all duration-200"
+                          className="relative group overflow-hidden rounded-md aspect-square bg-muted hover:ring-2 hover:ring-primary transition-all"
                           onClick={() => handleSendGif(gif)}
                         >
                           <img
                             src={gif}
                             alt={`GIF ${index + 1}`}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                             loading="lazy"
                           />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                         </button>
                       ))}
                     </div>
@@ -363,7 +356,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Votre message..."
-                className="flex-1 h-10 text-sm rounded-xl border-muted bg-background/50 focus:bg-background"
+                className="flex-1 h-9 text-sm bg-muted border-border focus:border-primary"
                 disabled={isSending}
               />
 
@@ -371,13 +364,13 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
               <Button
                 onClick={handleSendMessage}
                 size="icon"
-                className="h-10 w-10 flex-shrink-0 rounded-xl"
+                className="h-9 w-9 flex-shrink-0"
                 disabled={!inputValue.trim() || isSending}
               >
                 {isSending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Send className="h-5 w-5" />
+                  <Send className="h-4 w-4" />
                 )}
               </Button>
             </div>

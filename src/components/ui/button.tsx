@@ -6,27 +6,27 @@ import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold font-display tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 uppercase",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold font-body transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover hover:shadow-neon active:scale-95",
-        primary: "bg-primary text-primary-foreground hover:bg-primary-hover hover:shadow-neon active:scale-95",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary-hover hover:shadow-neon-pink active:scale-95",
-        outline: "border-2 border-primary/50 bg-transparent text-primary hover:bg-primary/10 hover:border-primary hover:shadow-neon active:scale-95",
-        ghost: "text-foreground-secondary hover:text-primary hover:bg-primary/10 active:scale-95",
-        glass: "glass border border-glass-border text-foreground hover:bg-card-hover hover:shadow-neon/50 active:scale-95",
-        hero: "bg-gradient-neon text-primary-foreground font-bold hover:scale-105 hover:shadow-neon shadow-lg active:scale-100",
-        destructive: "bg-destructive text-white hover:bg-destructive/90 hover:shadow-[0_0_20px_hsl(0_100%_60%/0.5)] active:scale-95",
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover active:scale-[0.98]",
+        primary: "bg-primary text-primary-foreground hover:bg-primary-hover active:scale-[0.98]",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary-hover active:scale-[0.98]",
+        outline: "border border-border bg-transparent text-foreground hover:bg-muted hover:border-foreground-muted active:scale-[0.98]",
+        ghost: "text-foreground-secondary hover:text-foreground hover:bg-muted active:scale-[0.98]",
+        glass: "bg-card border border-border text-foreground hover:bg-card-hover active:scale-[0.98]",
+        hero: "bg-primary text-primary-foreground font-bold hover:bg-primary-hover hover:shadow-glow active:scale-[0.98]",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:scale-[0.98]",
         link: "text-primary underline-offset-4 hover:underline hover:text-primary-hover",
-        accent: "bg-accent text-accent-foreground hover:bg-accent/90 hover:shadow-neon-purple active:scale-95",
+        accent: "bg-accent text-accent-foreground hover:bg-accent/90 active:scale-[0.98]",
       },
       size: {
-        default: "h-12 px-6 py-3",
-        sm: "h-10 rounded-lg px-4 text-xs",
-        lg: "h-14 rounded-xl px-8 text-base",
-        xl: "h-16 rounded-2xl px-10 text-lg",
-        icon: "h-12 w-12 rounded-xl",
+        default: "h-11 px-5 py-2",
+        sm: "h-9 rounded-md px-4 text-xs",
+        lg: "h-12 rounded-md px-6 text-base",
+        xl: "h-14 rounded-lg px-8 text-lg",
+        icon: "h-10 w-10 rounded-md",
       },
     },
     defaultVariants: {
@@ -40,7 +40,7 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
-  soundEffect?: 'click' | 'success' | 'vote' | 'transition' | 'countdown' | 'error' | 'whoosh' | 'none';
+  soundEffect?: 'click' | 'success' | 'vote' | 'transition' | 'countdown' | 'error' | 'whoosh' | 'message' | 'none';
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

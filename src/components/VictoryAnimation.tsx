@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Trophy, Sparkles, Star, PartyPopper } from "lucide-react";
+import { Trophy, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface VictoryAnimationProps {
@@ -13,9 +13,9 @@ export const VictoryAnimation = ({ winnerName, isTeam, teamPlayers }: VictoryAni
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
-    // Generate confetti particles
-    const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#9B59B6', '#3498DB', '#E91E63'];
-    const newParticles = Array.from({ length: 50 }, (_, i) => ({
+    // Generate confetti particles with Netflix-like colors
+    const colors = ['#E50914', '#B20710', '#FFD700', '#FFFFFF', '#FF4444'];
+    const newParticles = Array.from({ length: 40 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: -10,
@@ -31,11 +31,14 @@ export const VictoryAnimation = ({ winnerName, isTeam, teamPlayers }: VictoryAni
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none overflow-hidden">
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-background/80" />
+      
       {/* Confetti particles */}
       {particles.map((particle) => (
         <div
           key={particle.id}
-          className="absolute w-3 h-3 rounded-sm animate-confetti"
+          className="absolute w-2 h-2 rounded-sm animate-confetti"
           style={{
             left: `${particle.x}%`,
             backgroundColor: particle.color,
@@ -45,47 +48,37 @@ export const VictoryAnimation = ({ winnerName, isTeam, teamPlayers }: VictoryAni
         />
       ))}
 
-      {/* Glow effect */}
-      <div className="absolute inset-0 bg-gradient-radial from-secondary/20 via-transparent to-transparent animate-pulse" />
-
       {/* Main content */}
       {showContent && (
-        <div className="text-center space-y-6 animate-scale-in">
-          {/* Trophy with effects */}
+        <div className="relative text-center space-y-6 animate-scale-in">
+          {/* Trophy with glow */}
           <div className="relative inline-block">
-            <div className="absolute inset-0 bg-secondary/50 blur-3xl rounded-full scale-150 animate-pulse" />
+            <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full scale-150" />
             <div className="relative animate-bounce-slow">
-              <Trophy className="h-32 w-32 text-secondary drop-shadow-glow" />
-              <Sparkles className="absolute -top-4 -right-4 h-10 w-10 text-primary animate-spin-slow" />
-              <Sparkles className="absolute -bottom-4 -left-4 h-8 w-8 text-accent animate-spin-slow" style={{ animationDirection: 'reverse' }} />
-              <Star className="absolute top-0 left-0 h-6 w-6 text-yellow-400 animate-ping" />
-              <Star className="absolute bottom-0 right-0 h-6 w-6 text-yellow-400 animate-ping" style={{ animationDelay: '0.5s' }} />
+              <Trophy className="h-24 w-24 text-primary drop-shadow-glow" />
+              <Star className="absolute -top-2 -right-2 h-6 w-6 text-yellow-400 animate-ping" />
             </div>
           </div>
 
           {/* Winner text */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-center gap-3">
-              <PartyPopper className="h-8 w-8 text-secondary animate-bounce" />
-              <h1 className="text-5xl font-display font-black text-gradient animate-pulse">
-                VICTOIRE !
-              </h1>
-              <PartyPopper className="h-8 w-8 text-secondary animate-bounce" style={{ animationDelay: '0.2s' }} />
-            </div>
+          <div className="space-y-4">
+            <h1 className="text-5xl font-display text-white tracking-wider">
+              VICTOIRE
+            </h1>
             
             {isTeam && teamPlayers ? (
               <div className="space-y-2">
-                <p className="text-3xl font-display font-bold text-secondary neon-text-pink">
+                <p className="text-2xl font-semibold text-primary">
                   {teamPlayers.join(' & ')}
                 </p>
-                <p className="text-xl text-foreground-secondary">remportent la manche !</p>
+                <p className="text-lg text-foreground-secondary">remportent la manche</p>
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-3xl font-display font-bold text-secondary neon-text-pink">
+                <p className="text-2xl font-semibold text-primary">
                   {winnerName}
                 </p>
-                <p className="text-xl text-foreground-secondary">remporte la manche !</p>
+                <p className="text-lg text-foreground-secondary">remporte la manche</p>
               </div>
             )}
           </div>
