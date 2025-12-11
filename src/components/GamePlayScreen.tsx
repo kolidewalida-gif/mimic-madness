@@ -5,6 +5,7 @@ import { ChallengePreviewPhase } from "@/components/ChallengePreviewPhase";
 import { ImitationPhase } from "@/components/ImitationPhase";
 import { VotingPhase } from "@/components/VotingPhase";
 import { ResultsPhase } from "@/components/ResultsPhase";
+import { LobbyChat } from "@/components/LobbyChat";
 import { ArrowLeft, Zap, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -394,6 +395,13 @@ export const GamePlayScreen = ({
           />
         )}
       </div>
+
+      {/* Global Chat */}
+      <LobbyChat
+        lobbyId={lobbyId}
+        playerId={currentPlayer.id}
+        playerName={currentPlayer.name}
+      />
     </div>
   );
 };
