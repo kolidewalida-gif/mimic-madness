@@ -90,6 +90,41 @@ export type Database = {
           },
         ]
       }
+      game_teams: {
+        Row: {
+          created_at: string
+          id: string
+          lobby_id: string
+          player_id: string
+          player_name: string
+          team_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lobby_id: string
+          player_id: string
+          player_name: string
+          team_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lobby_id?: string
+          player_id?: string
+          player_name?: string
+          team_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_teams_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       imitation_votes: {
         Row: {
           created_at: string
@@ -132,6 +167,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string
+          game_mode: string
           game_phase: string | null
           host_id: string
           id: string
@@ -142,6 +178,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string
+          game_mode?: string
           game_phase?: string | null
           host_id: string
           id?: string
@@ -152,6 +189,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string
+          game_mode?: string
           game_phase?: string | null
           host_id?: string
           id?: string

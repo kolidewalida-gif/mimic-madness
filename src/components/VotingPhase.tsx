@@ -15,12 +15,19 @@ interface Player {
   isHost: boolean;
 }
 
+interface Team {
+  teamNumber: number;
+  players: { id: string; name: string }[];
+}
+
 interface VotingPhaseProps {
   lobbyId: string;
   roundNumber: number;
   currentPlayer: Player;
   players: Player[];
   challengeVideoClipId: string;
+  gameMode?: 'normal' | '2v2';
+  teams?: Team[];
   onVotingComplete: () => void;
 }
 
@@ -41,6 +48,8 @@ export const VotingPhase = ({
   currentPlayer,
   players,
   challengeVideoClipId,
+  gameMode = 'normal',
+  teams = [],
   onVotingComplete
 }: VotingPhaseProps) => {
   const [imitations, setImitations] = useState<ImitationWithClip[]>([]);
