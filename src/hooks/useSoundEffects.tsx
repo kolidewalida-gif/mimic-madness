@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 
-type SoundType = 'click' | 'success' | 'vote' | 'transition' | 'countdown' | 'error' | 'whoosh';
+type SoundType = 'click' | 'success' | 'vote' | 'transition' | 'countdown' | 'error' | 'whoosh' | 'message';
 
 export const useSoundEffects = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -94,6 +94,16 @@ export const useSoundEffects = () => {
           oscillator.start(now);
           oscillator.stop(now + 0.35);
           break;
+          
+        case 'message':
+          oscillator.frequency.setValueAtTime(880, now);
+          oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+          oscillator.type = 'sine';
+          gainNode.gain.setValueAtTime(volume * 0.4, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+          oscillator.start(now);
+          oscillator.stop(now + 0.12);
+          break;
       }
     } catch (e) {
       console.warn('Sound effect failed:', e);
@@ -182,17 +192,27 @@ export const playSoundEffect = (type: SoundType, volume: number = 0.3) => {
         oscillator.stop(now + 0.3);
         break;
         
-      case 'whoosh':
-        oscillator.frequency.setValueAtTime(100, now);
-        oscillator.frequency.exponentialRampToValueAtTime(2000, now + 0.15);
-        oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.3);
-        oscillator.type = 'sine';
-        gainNode.gain.setValueAtTime(volume * 0.3, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-        oscillator.start(now);
-        oscillator.stop(now + 0.35);
-        break;
-    }
+        case 'whoosh':
+          oscillator.frequency.setValueAtTime(100, now);
+          oscillator.frequency.exponentialRampToValueAtTime(2000, now + 0.15);
+          oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+          oscillator.type = 'sine';
+          gainNode.gain.setValueAtTime(volume * 0.3, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+          oscillator.start(now);
+          oscillator.stop(now + 0.35);
+          break;
+          
+        case 'message':
+          oscillator.frequency.setValueAtTime(880, now);
+          oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+          oscillator.type = 'sine';
+          gainNode.gain.setValueAtTime(volume * 0.4, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+          oscillator.start(now);
+          oscillator.stop(now + 0.12);
+          break;
+      }
   } catch (e) {
     console.warn('Sound effect failed:', e);
   }
