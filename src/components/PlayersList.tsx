@@ -17,6 +17,8 @@ interface PlayersListProps {
   lobbyId?: string;
   isHost?: boolean;
   onStartGame?: () => void;
+  canStart?: boolean;
+  gameMode?: 'normal' | '2v2';
 }
 
 export const PlayersList = ({ 
@@ -24,11 +26,13 @@ export const PlayersList = ({
   lobbyCode,
   lobbyId,
   isHost = false, 
-  onStartGame 
+  onStartGame,
+  canStart: externalCanStart,
+  gameMode = 'normal',
 }: PlayersListProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const canStart = players.length >= 2 && players.length <= 8;
+  const canStart = externalCanStart ?? (players.length >= 2 && players.length <= 8);
 
   const copyLobbyCode = async () => {
     if (!lobbyCode) return;
@@ -158,16 +162,18 @@ export const PlayersList = ({
               disabled={!canStart}
               className="w-full"
             >
-              {players.length < 2 
-                ? "En attente de joueurs..." 
-                : players.length > 8
-                ? "Trop de joueurs"
-                : `Lancer la Partie`
+              {!canStart 
+                ? gameMode === '2v2' 
+                  ? "Conditions 2v2 non remplies"
+                  : "En attente de joueurs..." 
+                : `Lancer la Partie ${gameMode === '2v2' ? '2v2' : ''}`
               }
             </Button>
-            {players.length < 2 && (
+            {!canStart && (
               <p className="text-xs text-center text-foreground-muted font-body">
-                Minimum 2 joueurs requis
+                {gameMode === '2v2' 
+                  ? "Min. 4 joueurs pairs + équipes formées" 
+                  : "Minimum 2 joueurs requis"}
               </p>
             )}
           </div>

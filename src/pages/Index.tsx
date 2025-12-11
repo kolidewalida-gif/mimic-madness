@@ -16,11 +16,13 @@ interface Player {
 }
 
 type GameState = "home" | "lobby" | "preparation" | "playing";
+type GameMode = "normal" | "2v2";
 
 const Index = () => {
   const [gameState, setGameState] = useState<GameState>("home");
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
+  const [gameMode, setGameMode] = useState<GameMode>("normal");
   const { toast } = useToast();
   const { lobby, players, createLobby, joinLobby, leaveLobby, updateLobbyStatus } = useLobbySync();
 
@@ -41,6 +43,12 @@ const Index = () => {
         (payload: any) => {
           console.log('Lobby update:', payload);
           const newPhase = payload.new.game_phase;
+          const newMode = payload.new.game_mode;
+          
+          // Update game mode if changed
+          if (newMode && newMode !== gameMode) {
+            setGameMode(newMode as GameMode);
+          }
           
           if (newPhase === 'preparation' && gameState !== 'preparation') {
             console.log('Transitioning to preparation');
@@ -64,7 +72,7 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [lobby?.id, gameState, toast]);
+  }, [lobby?.id, gameState, gameMode, toast]);
 
   const handleCreateGame = async (playerName: string) => {
     console.log('Creating game for:', playerName);
@@ -106,8 +114,9 @@ const Index = () => {
     }
   };
 
-  const handleStartGame = async () => {
-    console.log('Starting game...');
+  const handleStartGame = async (mode: GameMode = 'normal') => {
+    console.log('Starting game with mode:', mode);
+    setGameMode(mode);
     
     // Update lobby status and phase
     if (lobby && currentPlayer?.isHost) {
@@ -116,7 +125,8 @@ const Index = () => {
           .from('lobbies')
           .update({ 
             status: 'playing',
-            game_phase: 'preparation'
+            game_phase: 'preparation',
+            game_mode: mode
           })
           .eq('id', lobby.id);
       } catch (error) {
@@ -224,6 +234,7 @@ const Index = () => {
           currentPlayer={currentPlayer}
           players={players}
           lobbyId={lobby.id}
+          gameMode={gameMode}
           onEndGame={handleLeaveGame}
         />
       </>

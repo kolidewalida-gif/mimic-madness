@@ -1,10 +1,15 @@
 import { GameLogo } from "@/components/GameLogo";
 import { PlayersList } from "@/components/PlayersList";
 import { LobbyChat } from "@/components/LobbyChat";
+import { GameModeSelector } from "@/components/GameModeSelector";
+import { TeamDisplay } from "@/components/TeamDisplay";
 import { Button } from "@/components/ui/button";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { ArrowLeft, Settings, Wifi } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useGameTeams } from "@/hooks/useGameTeams";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Player {
   id: string;
@@ -18,7 +23,7 @@ interface LobbyScreenProps {
   lobbyId: string;
   isHost: boolean;
   currentPlayer: Player;
-  onStartGame: () => void;
+  onStartGame: (gameMode: 'normal' | '2v2') => void;
   onLeaveGame: () => void;
 }
 
@@ -32,6 +37,93 @@ export const LobbyScreen = ({
   onLeaveGame 
 }: LobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
+  const [gameMode, setGameMode] = useState<'normal' | '2v2'>('normal');
+  const { teams, isLoading: teamsLoading, assignRandomTeams } = useGameTeams(lobbyId);
+  const { toast } = useToast();
+
+  // Subscribe to game mode changes from the lobby
+  useEffect(() => {
+    const fetchGameMode = async () => {
+      const { data } = await supabase
+        .from('lobbies')
+        .select('game_mode')
+        .eq('id', lobbyId)
+        .single();
+      
+      if (data?.game_mode) {
+        setGameMode(data.game_mode as 'normal' | '2v2');
+      }
+    };
+
+    fetchGameMode();
+
+    const channel = supabase
+      .channel(`lobby-mode:${lobbyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'lobbies',
+          filter: `id=eq.${lobbyId}`
+        },
+        (payload: any) => {
+          if (payload.new.game_mode) {
+            setGameMode(payload.new.game_mode as 'normal' | '2v2');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [lobbyId]);
+
+  const handleGameModeChange = async (mode: 'normal' | '2v2') => {
+    if (!isHost) return;
+
+    try {
+      await supabase
+        .from('lobbies')
+        .update({ game_mode: mode })
+        .eq('id', lobbyId);
+
+      setGameMode(mode);
+
+      // Auto-assign teams if switching to 2v2
+      if (mode === '2v2' && players.length >= 4 && players.length % 2 === 0) {
+        await assignRandomTeams(players);
+      }
+    } catch (error) {
+      console.error('Error updating game mode:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de changer le mode de jeu",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShuffleTeams = async () => {
+    await assignRandomTeams(players);
+  };
+
+  const handleStartGame = () => {
+    if (gameMode === '2v2' && teams.length === 0) {
+      toast({
+        title: "Équipes requises",
+        description: "Veuillez d'abord former les équipes",
+        variant: "destructive",
+      });
+      return;
+    }
+    onStartGame(gameMode);
+  };
+
+  const canStart = gameMode === 'normal' 
+    ? players.length >= 2 
+    : (players.length >= 4 && players.length % 2 === 0 && teams.length > 0);
 
   return (
     <div className="min-h-screen animated-bg flex flex-col p-6 relative">
@@ -77,7 +169,7 @@ export const LobbyScreen = ({
           </h2>
           <p className="text-foreground-secondary font-body">
             {isHost 
-              ? "Partagez le code avec vos amis et lancez la partie quand tout le monde est prêt" 
+              ? "Choisissez le mode de jeu et lancez la partie quand tout le monde est prêt" 
               : "En attente que l'hôte lance la partie..."
             }
           </p>
@@ -85,28 +177,57 @@ export const LobbyScreen = ({
 
         {/* Main Content */}
         <div className="grid lg:grid-cols-2 gap-6 items-start">
-          {/* Players List */}
-          <div className="flex justify-center">
+          {/* Left Column - Players List */}
+          <div className="space-y-6">
             <PlayersList
               players={players}
               lobbyCode={lobbyCode}
               lobbyId={lobbyId}
               isHost={isHost}
-              onStartGame={onStartGame}
+              onStartGame={handleStartGame}
+              canStart={canStart}
+              gameMode={gameMode}
             />
           </div>
 
-          {/* Settings Panel */}
-          {showSettings && (
-            <div className="animate-slideInRight">
-              <DeviceSettings 
-                showPreview={true} 
-                playerId={currentPlayer.id}
-                playerName={currentPlayer.name}
-                lobbyId={lobbyId}
+          {/* Right Column - Game Mode & Teams / Settings */}
+          <div className="space-y-6">
+            {isHost && (
+              <GameModeSelector
+                gameMode={gameMode}
+                onGameModeChange={handleGameModeChange}
+                playerCount={players.length}
               />
-            </div>
-          )}
+            )}
+
+            {!isHost && gameMode === '2v2' && (
+              <div className="text-center p-4 rounded-xl bg-secondary/10 border border-secondary/20">
+                <p className="text-secondary font-display font-bold">Mode 2v2 sélectionné</p>
+              </div>
+            )}
+
+            {gameMode === '2v2' && (
+              <TeamDisplay
+                teams={teams}
+                currentPlayerId={currentPlayer.id}
+                lobbyId={lobbyId}
+                isHost={isHost}
+                onShuffleTeams={handleShuffleTeams}
+                isLoading={teamsLoading}
+              />
+            )}
+
+            {showSettings && (
+              <div className="animate-slideInRight">
+                <DeviceSettings 
+                  showPreview={true} 
+                  playerId={currentPlayer.id}
+                  playerName={currentPlayer.name}
+                  lobbyId={lobbyId}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

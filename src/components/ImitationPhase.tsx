@@ -33,6 +33,8 @@ interface ImitationPhaseProps {
   currentPlayer: Player;
   players: Player[];
   currentChallenge: Challenge;
+  gameMode?: 'normal' | '2v2';
+  getTeammate?: (playerId: string) => { id: string; name: string } | null;
   onAllReady: () => void;
 }
 
@@ -42,6 +44,8 @@ export const ImitationPhase = ({
   currentPlayer,
   players,
   currentChallenge,
+  gameMode = 'normal',
+  getTeammate,
   onAllReady
 }: ImitationPhaseProps) => {
   const [hasRecorded, setHasRecorded] = useState(false);

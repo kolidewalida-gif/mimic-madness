@@ -5,11 +5,12 @@ import { ChallengePreviewPhase } from "@/components/ChallengePreviewPhase";
 import { ImitationPhase } from "@/components/ImitationPhase";
 import { VotingPhase } from "@/components/VotingPhase";
 import { ResultsPhase } from "@/components/ResultsPhase";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft, Zap, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useGameTeams } from "@/hooks/useGameTeams";
 
 interface Player {
   id: string;
@@ -21,6 +22,7 @@ interface GamePlayScreenProps {
   currentPlayer: Player;
   players: Player[];
   lobbyId: string;
+  gameMode?: 'normal' | '2v2';
   onEndGame: () => void;
 }
 
@@ -36,6 +38,7 @@ export const GamePlayScreen = ({
   currentPlayer,
   players,
   lobbyId,
+  gameMode = 'normal',
   onEndGame
 }: GamePlayScreenProps) => {
   const [gamePhase, setGamePhase] = useState<GamePhase>("preview");
@@ -43,6 +46,7 @@ export const GamePlayScreen = ({
   const [currentChallenge, setCurrentChallenge] = useState<CurrentChallenge | null>(null);
   const { toast } = useToast();
   const { playSound } = useSoundEffects();
+  const { teams, getTeammate, getPlayerTeam } = useGameTeams(lobbyId);
 
   // Initialize game round
   useEffect(() => {
@@ -323,11 +327,19 @@ export const GamePlayScreen = ({
           
           <GameLogo size="sm" />
           
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/30">
-            <Zap className="h-4 w-4 text-primary" />
-            <span className="font-display font-bold text-primary">
-              MANCHE {roundNumber}
-            </span>
+          <div className="flex items-center gap-3">
+            {gameMode === '2v2' && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary/10 border border-secondary/30">
+                <Swords className="h-4 w-4 text-secondary" />
+                <span className="font-display font-bold text-secondary text-sm">2v2</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/30">
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="font-display font-bold text-primary">
+                MANCHE {roundNumber}
+              </span>
+            </div>
           </div>
         </header>
 
@@ -350,6 +362,8 @@ export const GamePlayScreen = ({
             currentPlayer={currentPlayer}
             players={players}
             currentChallenge={currentChallenge}
+            gameMode={gameMode}
+            getTeammate={getTeammate}
             onAllReady={handleImitationReady}
           />
         )}
@@ -361,6 +375,8 @@ export const GamePlayScreen = ({
             currentPlayer={currentPlayer}
             players={players}
             challengeVideoClipId={currentChallenge.id}
+            gameMode={gameMode}
+            teams={teams}
             onVotingComplete={handleVotingComplete}
           />
         )}
