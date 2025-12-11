@@ -17,26 +17,23 @@ export const GameCard = ({
   variant = "default"
 }: GameCardProps) => {
   const variantClasses = {
-    default: "border-glass-border",
+    default: "border-border",
     accent: "border-primary/30",
-    highlight: "border-secondary/30"
+    highlight: "border-primary/50"
   };
 
   return (
     <div 
       className={cn(
-        "relative rounded-2xl p-6 backdrop-blur-xl",
-        "bg-gradient-to-br from-card/80 to-background-secondary/60",
+        "relative rounded-lg p-6",
+        "bg-card",
         "border",
         variantClasses[variant],
-        animated && "animate-scaleIn hover-lift",
-        glowing && "shadow-neon animate-glow-pulse",
+        animated && "animate-scaleIn transition-all duration-300 hover:bg-card-hover",
+        glowing && "shadow-glow",
         className
       )}
     >
-      {/* Subtle inner highlight */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-      
       {/* Content */}
       <div className="relative z-10">
         {children}

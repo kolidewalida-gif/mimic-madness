@@ -6,7 +6,7 @@ import { GameCard } from "@/components/GameCard";
 import { VolumeControl } from "@/components/VolumeControl";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
-import { Sparkles, Users, Settings, Gamepad2 } from "lucide-react";
+import { Play, Users, Settings, User } from "lucide-react";
 
 interface HomeScreenProps {
   onCreateGame: (playerName: string) => void;
@@ -43,35 +43,28 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative z-10">
-      {/* Decorative elements */}
-      <div className="absolute top-20 left-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl animate-float pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl animate-float pointer-events-none" style={{ animationDelay: '1s' }} />
-      <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-accent/10 rounded-full blur-2xl animate-float pointer-events-none" style={{ animationDelay: '2s' }} />
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
 
-      <div className="w-full max-w-lg space-y-8 animate-fadeIn relative z-10">
+      <div className="w-full max-w-md space-y-8 animate-fadeIn relative z-10">
         {/* Logo Section */}
-        <div className="text-center space-y-4">
-          <GameLogo className="justify-center mb-8" />
-          <p className="text-foreground-secondary text-lg font-body">
+        <div className="text-center space-y-6">
+          <GameLogo className="justify-center mb-6" />
+          <p className="text-foreground-secondary text-base font-body">
             Le jeu d'imitation multijoueur ultime
           </p>
-          <div className="flex items-center justify-center gap-2 text-primary/80">
-            <Sparkles className="h-4 w-4" />
-            <span className="text-sm font-medium">Créez • Imitez • Votez</span>
-            <Sparkles className="h-4 w-4" />
-          </div>
         </div>
 
         {/* Main Card */}
-        <GameCard glowing variant="accent">
-          <div className="space-y-6">
+        <GameCard variant="default" glowing={false} animated={false}>
+          <div className="space-y-5">
             {/* Player Name Input */}
             <div className="space-y-2">
-              <label className="text-foreground font-display text-sm tracking-wider uppercase">
-                Votre Pseudo
+              <label className="text-foreground-secondary text-sm font-medium">
+                Votre pseudo
               </label>
               <div className="relative">
-                <Gamepad2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/60" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
                 <Input
                   placeholder="Entrez votre pseudo..."
                   value={playerName}
@@ -85,44 +78,42 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                       }
                     }
                   }}
-                  className="pl-12 h-14 text-lg bg-background-secondary/50 border-primary/20 focus:border-primary focus:shadow-neon/50 rounded-xl font-body"
+                  className="pl-10 h-12 text-base bg-muted border-border focus:border-primary focus:ring-primary/20"
                 />
               </div>
             </div>
 
             {viewMode === "home" && (
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <Button
-                    variant="hero"
-                    size="xl"
-                    onClick={handleCreateGame}
-                    disabled={!playerName.trim()}
-                    className="w-full"
-                  >
-                    <Sparkles className="h-5 w-5" />
-                    Créer une Partie
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={() => setViewMode("join")}
-                    disabled={!playerName.trim()}
-                    className="w-full"
-                  >
-                    <Users className="h-5 w-5" />
-                    Rejoindre une Partie
-                  </Button>
-                </div>
+              <div className="space-y-3 pt-2">
+                <Button
+                  variant="hero"
+                  size="lg"
+                  onClick={handleCreateGame}
+                  disabled={!playerName.trim()}
+                  className="w-full"
+                >
+                  <Play className="h-5 w-5" fill="currentColor" />
+                  Créer une Partie
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setViewMode("join")}
+                  disabled={!playerName.trim()}
+                  className="w-full"
+                >
+                  <Users className="h-5 w-5" />
+                  Rejoindre une Partie
+                </Button>
 
-                <div className="pt-4 border-t border-border/50 space-y-4">
+                <div className="pt-4 border-t border-border space-y-3">
                   <VolumeControl />
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowSettings(true)}
-                    className="w-full justify-start text-foreground-secondary"
+                    className="w-full justify-start text-foreground-muted hover:text-foreground"
                   >
                     <Settings className="h-4 w-4" />
                     Paramètres audio/vidéo
@@ -132,9 +123,9 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
             )}
 
             {viewMode === "join" && (
-              <div className="space-y-4">
+              <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <label className="text-foreground font-display text-sm tracking-wider uppercase">
+                  <label className="text-foreground-secondary text-sm font-medium">
                     Code du Lobby
                   </label>
                   <Input
@@ -147,7 +138,7 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                       }
                     }}
                     maxLength={4}
-                    className="text-center text-3xl tracking-[0.5em] uppercase font-display font-bold h-16 bg-background-secondary/50 border-secondary/30 focus:border-secondary focus:shadow-neon-pink/50 rounded-xl"
+                    className="text-center text-2xl tracking-[0.4em] uppercase font-bold h-14 bg-muted border-border focus:border-primary"
                   />
                 </div>
                 
@@ -160,7 +151,7 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                     Retour
                   </Button>
                   <Button
-                    variant="secondary"
+                    variant="primary"
                     onClick={handleJoinGame}
                     disabled={!playerName.trim() || !lobbyCode.trim()}
                     className="flex-1"

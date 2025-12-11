@@ -12,21 +12,10 @@ interface Particle {
   pulseSpeed: number;
 }
 
-interface ShootingStar {
-  x: number;
-  y: number;
-  length: number;
-  speed: number;
-  angle: number;
-  alpha: number;
-  active: boolean;
-}
-
 export const DynamicBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const particlesRef = useRef<Particle[]>([]);
-  const shootingStarsRef = useRef<ShootingStar[]>([]);
   const mouseRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -44,97 +33,32 @@ export const DynamicBackground = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Colors from design system
+    // Netflix-style colors - subtle and elegant
     const colors = [
-      'hsl(180, 100%, 50%)',  // Cyan primary
-      'hsl(320, 100%, 60%)',  // Pink secondary
-      'hsl(270, 100%, 65%)',  // Purple accent
-      'hsl(150, 100%, 45%)',  // Green success
+      'hsl(357, 92%, 47%)',  // Netflix red
+      'hsl(0, 0%, 40%)',      // Gray
+      'hsl(357, 92%, 35%)',   // Darker red
     ];
 
-    // Initialize particles
+    // Initialize particles - fewer and more subtle
     const initParticles = () => {
       const particles: Particle[] = [];
-      const particleCount = Math.min(80, Math.floor((canvas.width * canvas.height) / 15000));
+      const particleCount = Math.min(40, Math.floor((canvas.width * canvas.height) / 30000));
       
       for (let i = 0; i < particleCount; i++) {
         particles.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
-          size: Math.random() * 3 + 1,
+          vx: (Math.random() - 0.5) * 0.2,
+          vy: (Math.random() - 0.5) * 0.2,
+          size: Math.random() * 2 + 0.5,
           color: colors[Math.floor(Math.random() * colors.length)],
-          alpha: Math.random() * 0.5 + 0.2,
+          alpha: Math.random() * 0.3 + 0.1,
           pulse: Math.random() * Math.PI * 2,
-          pulseSpeed: Math.random() * 0.02 + 0.01,
+          pulseSpeed: Math.random() * 0.01 + 0.005,
         });
       }
       particlesRef.current = particles;
-    };
-
-    // Initialize shooting stars
-    const initShootingStars = () => {
-      shootingStarsRef.current = Array(3).fill(null).map(() => ({
-        x: 0,
-        y: 0,
-        length: 0,
-        speed: 0,
-        angle: 0,
-        alpha: 0,
-        active: false,
-      }));
-    };
-
-    const spawnShootingStar = () => {
-      const star = shootingStarsRef.current.find(s => !s.active);
-      if (star && Math.random() < 0.002) {
-        star.x = Math.random() * canvas.width;
-        star.y = Math.random() * canvas.height * 0.5;
-        star.length = Math.random() * 80 + 40;
-        star.speed = Math.random() * 8 + 4;
-        star.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.3;
-        star.alpha = 1;
-        star.active = true;
-      }
-    };
-
-    const updateShootingStars = () => {
-      shootingStarsRef.current.forEach(star => {
-        if (star.active) {
-          star.x += Math.cos(star.angle) * star.speed;
-          star.y += Math.sin(star.angle) * star.speed;
-          star.alpha -= 0.015;
-          
-          if (star.alpha <= 0 || star.x > canvas.width || star.y > canvas.height) {
-            star.active = false;
-          }
-        }
-      });
-    };
-
-    const drawShootingStars = () => {
-      shootingStarsRef.current.forEach(star => {
-        if (star.active) {
-          const gradient = ctx.createLinearGradient(
-            star.x, star.y,
-            star.x - Math.cos(star.angle) * star.length,
-            star.y - Math.sin(star.angle) * star.length
-          );
-          gradient.addColorStop(0, `hsla(180, 100%, 80%, ${star.alpha})`);
-          gradient.addColorStop(1, 'hsla(180, 100%, 80%, 0)');
-          
-          ctx.beginPath();
-          ctx.strokeStyle = gradient;
-          ctx.lineWidth = 2;
-          ctx.moveTo(star.x, star.y);
-          ctx.lineTo(
-            star.x - Math.cos(star.angle) * star.length,
-            star.y - Math.sin(star.angle) * star.length
-          );
-          ctx.stroke();
-        }
-      });
     };
 
     // Mouse interaction
@@ -144,21 +68,20 @@ export const DynamicBackground = () => {
     window.addEventListener('mousemove', handleMouseMove);
 
     initParticles();
-    initShootingStars();
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw connecting lines between close particles
+      // Draw subtle connecting lines between close particles
       particlesRef.current.forEach((p1, i) => {
         particlesRef.current.slice(i + 1).forEach(p2 => {
           const dx = p1.x - p2.x;
           const dy = p1.y - p2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           
-          if (dist < 120) {
+          if (dist < 150) {
             ctx.beginPath();
-            ctx.strokeStyle = `hsla(180, 100%, 50%, ${0.1 * (1 - dist / 120)})`;
+            ctx.strokeStyle = `hsla(357, 92%, 47%, ${0.05 * (1 - dist / 150)})`;
             ctx.lineWidth = 0.5;
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
@@ -169,14 +92,14 @@ export const DynamicBackground = () => {
 
       // Update and draw particles
       particlesRef.current.forEach(p => {
-        // Mouse attraction
+        // Subtle mouse attraction
         const dx = mouseRef.current.x - p.x;
         const dy = mouseRef.current.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
         if (dist < 200 && dist > 0) {
-          p.vx += (dx / dist) * 0.02;
-          p.vy += (dy / dist) * 0.02;
+          p.vx += (dx / dist) * 0.01;
+          p.vy += (dy / dist) * 0.01;
         }
 
         // Update position
@@ -194,18 +117,18 @@ export const DynamicBackground = () => {
         if (p.y < 0) p.y = canvas.height;
         if (p.y > canvas.height) p.y = 0;
 
-        // Draw particle with pulsing glow
-        const pulseAlpha = p.alpha + Math.sin(p.pulse) * 0.2;
-        const pulseSize = p.size + Math.sin(p.pulse) * 0.5;
+        // Draw particle with subtle pulsing
+        const pulseAlpha = p.alpha + Math.sin(p.pulse) * 0.1;
+        const pulseSize = p.size + Math.sin(p.pulse) * 0.3;
         
-        // Outer glow
-        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, pulseSize * 4);
-        gradient.addColorStop(0, p.color.replace(')', `, ${pulseAlpha * 0.5})`).replace('hsl', 'hsla'));
+        // Subtle outer glow
+        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, pulseSize * 3);
+        gradient.addColorStop(0, p.color.replace(')', `, ${pulseAlpha * 0.3})`).replace('hsl', 'hsla'));
         gradient.addColorStop(1, 'transparent');
         
         ctx.beginPath();
         ctx.fillStyle = gradient;
-        ctx.arc(p.x, p.y, pulseSize * 4, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, pulseSize * 3, 0, Math.PI * 2);
         ctx.fill();
 
         // Core
@@ -214,11 +137,6 @@ export const DynamicBackground = () => {
         ctx.arc(p.x, p.y, pulseSize, 0, Math.PI * 2);
         ctx.fill();
       });
-
-      // Shooting stars
-      spawnShootingStar();
-      updateShootingStars();
-      drawShootingStars();
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -238,7 +156,7 @@ export const DynamicBackground = () => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ opacity: 0.7 }}
+      style={{ opacity: 0.5 }}
     />
   );
 };

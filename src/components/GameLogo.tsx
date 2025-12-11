@@ -1,4 +1,4 @@
-import { Zap } from "lucide-react";
+import { Play } from "lucide-react";
 
 interface GameLogoProps {
   className?: string;
@@ -7,39 +7,35 @@ interface GameLogoProps {
 
 export const GameLogo = ({ className = "", size = "lg" }: GameLogoProps) => {
   const sizeClasses = {
-    sm: "text-xl",
-    md: "text-3xl", 
-    lg: "text-5xl"
+    sm: "text-lg",
+    md: "text-2xl", 
+    lg: "text-4xl"
   };
 
   const iconSizes = {
-    sm: 20,
-    md: 28,
-    lg: 40
+    sm: 16,
+    md: 20,
+    lg: 28
   };
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <div className="relative">
-        {/* Outer glow ring */}
-        <div className="absolute inset-0 bg-gradient-neon rounded-2xl blur-xl opacity-60 animate-pulse-slow scale-150" />
-        
-        {/* Icon container */}
-        <div className="relative bg-gradient-neon p-3 rounded-2xl shadow-neon">
-          <Zap 
-            className="text-primary-foreground" 
+    <div className={`flex items-center gap-2 ${className}`}>
+      {/* Netflix-style M icon */}
+      <div className="relative flex items-center justify-center">
+        <div className="bg-primary rounded p-1.5">
+          <Play 
+            className="text-white" 
             size={iconSizes[size]} 
-            strokeWidth={2.5}
             fill="currentColor"
           />
         </div>
       </div>
       
-      <div className="flex flex-col">
-        <h1 className={`font-display font-black ${sizeClasses[size]} text-gradient tracking-wider`}>
+      <div className="flex flex-col leading-none">
+        <h1 className={`font-display ${sizeClasses[size]} text-white tracking-wider`}>
           MIMIC
         </h1>
-        <span className={`font-display font-bold ${size === 'lg' ? 'text-2xl' : size === 'md' ? 'text-lg' : 'text-sm'} text-secondary neon-text-pink -mt-1`}>
+        <span className={`font-display ${size === 'lg' ? 'text-xl' : size === 'md' ? 'text-base' : 'text-xs'} text-primary tracking-widest`}>
           MASTER
         </span>
       </div>

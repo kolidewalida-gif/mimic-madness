@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Orbitron', 'sans-serif'],
-        body: ['Outfit', 'sans-serif'],
+        display: ['Bebas Neue', 'Inter', 'sans-serif'],
+        body: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -43,7 +43,15 @@ export default {
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--primary-foreground))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
         },
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
@@ -52,13 +60,13 @@ export default {
           hover: "hsl(var(--card-hover))",
           foreground: "hsl(var(--card-foreground))",
         },
-        glass: "hsl(var(--glass))",
-        "glass-border": "hsl(var(--glass-border))",
+        glass: "hsl(var(--card))",
+        "glass-border": "hsl(var(--border))",
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 4px)",
-        sm: "calc(var(--radius) - 8px)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
         "accordion-down": {
@@ -73,22 +81,17 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
-        "border-beam": {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         shimmer: "shimmer 2s linear infinite",
-        "border-beam": "border-beam 4s linear infinite",
       },
       boxShadow: {
-        neon: "0 0 20px hsl(180 100% 50% / 0.5), 0 0 40px hsl(180 100% 50% / 0.3)",
-        "neon-pink": "0 0 20px hsl(320 100% 60% / 0.5), 0 0 40px hsl(320 100% 60% / 0.3)",
-        "neon-purple": "0 0 20px hsl(270 100% 65% / 0.5), 0 0 40px hsl(270 100% 65% / 0.3)",
-        glow: "0 0 30px hsl(180 100% 50% / 0.4)",
+        glow: "0 0 30px rgba(229, 9, 20, 0.3)",
+        "glow-lg": "0 0 50px rgba(229, 9, 20, 0.4)",
+        card: "0 4px 16px rgba(0, 0, 0, 0.5)",
+        "card-hover": "0 8px 32px rgba(0, 0, 0, 0.6)",
       },
     },
   },
