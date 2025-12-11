@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VideoWithAudioOverlay, VideoWithAudioOverlayRef } from "@/components/VideoWithAudioOverlay";
-import { ThumbsUp, ThumbsDown, Trophy, Play, Pause, Vote, ChevronRight } from "lucide-react";
+import { TeamVideoOverlay, TeamVideoOverlayRef } from "@/components/TeamVideoOverlay";
+import { ThumbsUp, ThumbsDown, Trophy, Play, Pause, Vote, ChevronRight, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -42,6 +43,17 @@ interface ImitationWithClip {
   originalAudioVolume: number;
 }
 
+interface TeamImitation {
+  teamNumber: number;
+  players: { id: string; name: string }[];
+  clipIds: (string | null)[];
+  likes: number;
+  dislikes: number;
+  userVote: 'like' | 'dislike' | null;
+  includeOriginalAudio: boolean;
+  originalAudioVolume: number;
+}
+
 export const VotingPhase = ({
   lobbyId,
   roundNumber,
@@ -53,6 +65,7 @@ export const VotingPhase = ({
   onVotingComplete
 }: VotingPhaseProps) => {
   const [imitations, setImitations] = useState<ImitationWithClip[]>([]);
+  const [teamImitations, setTeamImitations] = useState<TeamImitation[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasVotedAll, setHasVotedAll] = useState(false);
   const [votingSessionId, setVotingSessionId] = useState<string | null>(null);
@@ -61,7 +74,12 @@ export const VotingPhase = ({
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const videoRef = useRef<VideoWithAudioOverlayRef>(null);
+  const teamVideoRef = useRef<TeamVideoOverlayRef>(null);
   const { playSound } = useSoundEffects();
+
+  // Determine what to show based on game mode
+  const displayItems = gameMode === '2v2' ? teamImitations : imitations;
+  const totalItems = displayItems.length;
 
   // Pause music during voting phase
   useEffect(() => {
@@ -291,12 +309,96 @@ export const VotingPhase = ({
     };
   }, [lobbyId, roundNumber, players, currentPlayer.id]);
 
+  // Group imitations by team for 2v2 mode
+  useEffect(() => {
+    if (gameMode !== '2v2' || teams.length === 0 || imitations.length === 0) {
+      setTeamImitations([]);
+      return;
+    }
+
+    const grouped: TeamImitation[] = teams.map(team => {
+      const teamPlayers = team.players;
+      const teamImitationsData = teamPlayers.map(p => 
+        imitations.find(im => im.playerId === p.id)
+      );
+      
+      // Calculate team votes (sum of both players)
+      const totalLikes = teamImitationsData.reduce((sum, im) => sum + (im?.likes || 0), 0);
+      const totalDislikes = teamImitationsData.reduce((sum, im) => sum + (im?.dislikes || 0), 0);
+      
+      // Check if current player voted for any team member
+      const userVote = teamImitationsData.find(im => im?.userVote)?.userVote || null;
+      
+      // Use first player's audio settings
+      const firstImitation = teamImitationsData[0];
+      
+      return {
+        teamNumber: team.teamNumber,
+        players: teamPlayers,
+        clipIds: teamImitationsData.map(im => im?.clipId || null),
+        likes: totalLikes,
+        dislikes: totalDislikes,
+        userVote,
+        includeOriginalAudio: firstImitation?.includeOriginalAudio ?? false,
+        originalAudioVolume: firstImitation?.originalAudioVolume ?? 50,
+      };
+    }).filter(team => team.clipIds.some(id => id !== null)); // Only show teams with at least one clip
+
+    setTeamImitations(grouped);
+  }, [gameMode, teams, imitations]);
+
   // Reset hasVotedCurrent when index changes
   useEffect(() => {
     setHasVotedCurrent(false);
   }, [currentIndex]);
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
+    if (gameMode === '2v2') {
+      // Vote for team
+      const currentTeam = teamImitations[currentIndex];
+      if (!currentTeam) return;
+      
+      // Check if current player is in this team
+      const isOwnTeam = currentTeam.players.some(p => p.id === currentPlayer.id);
+      if (isOwnTeam) {
+        setHasVotedCurrent(true);
+        return;
+      }
+
+      try {
+        playSound('vote');
+        
+        // Vote for all team members
+        for (const player of currentTeam.players) {
+          await supabase
+            .from('imitation_votes')
+            .upsert({
+              lobby_id: lobbyId,
+              round_number: roundNumber,
+              imitation_player_id: player.id,
+              voter_player_id: currentPlayer.id,
+              vote_type: voteType
+            });
+        }
+
+        toast({
+          title: voteType === 'like' ? "👍 Like !" : "👎 Dislike",
+          description: `Vote pour l'équipe enregistré`,
+        });
+
+        setHasVotedCurrent(true);
+      } catch (error) {
+        console.error('Error voting:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible d'enregistrer le vote",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // Normal mode voting
     const currentImitation = imitations[currentIndex];
     if (!currentImitation || currentImitation.playerId === currentPlayer.id) {
       setHasVotedCurrent(true);
@@ -377,8 +479,12 @@ export const VotingPhase = ({
   };
 
   const currentImitation = imitations[currentIndex];
+  const currentTeamImitation = gameMode === '2v2' ? teamImitations[currentIndex] : null;
+  const displayLength = gameMode === '2v2' ? teamImitations.length : imitations.length;
 
-  if (!currentImitation || imitations.length === 0) {
+  // Loading state
+  if ((gameMode === 'normal' && (!currentImitation || imitations.length === 0)) ||
+      (gameMode === '2v2' && teamImitations.length === 0)) {
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -387,7 +493,8 @@ export const VotingPhase = ({
     );
   }
 
-  if (hasVotedAll || currentIndex >= imitations.length) {
+  // Completed state
+  if (hasVotedAll || currentIndex >= displayLength) {
     return (
       <div className="text-center py-12 space-y-4">
         <div className="relative inline-block">
@@ -402,7 +509,10 @@ export const VotingPhase = ({
     );
   }
 
-  const isOwnVideo = currentImitation.playerId === currentPlayer.id;
+  // Determine if it's own video/team
+  const isOwnVideo = gameMode === '2v2' 
+    ? currentTeamImitation?.players.some(p => p.id === currentPlayer.id) ?? false
+    : currentImitation?.playerId === currentPlayer.id;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -411,16 +521,16 @@ export const VotingPhase = ({
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/30">
           <Vote className="h-4 w-4 text-accent" />
           <span className="text-sm font-display uppercase tracking-wider text-accent">
-            Phase de vote
+            Phase de vote {gameMode === '2v2' && '• 2v2'}
           </span>
         </div>
         
         <h2 className="text-3xl font-display font-black text-gradient-purple">
-          Votez !
+          Votez {gameMode === '2v2' && 'pour les équipes'} !
         </h2>
         
         <p className="text-foreground-secondary font-body">
-          Imitation <span className="font-display text-primary">{currentIndex + 1}</span>/{imitations.length}
+          {gameMode === '2v2' ? 'Équipe' : 'Imitation'} <span className="font-display text-primary">{currentIndex + 1}</span>/{displayLength}
         </p>
         
         <p className="text-sm text-foreground-muted">
@@ -431,27 +541,80 @@ export const VotingPhase = ({
       {/* Video Card */}
       <GameCard variant="highlight">
         <div className="space-y-6">
-          <div className="text-center flex flex-col items-center gap-3">
-            <PlayerAvatar
-              playerId={currentImitation.playerId}
-              playerName={currentImitation.playerName}
-              size="lg"
-            />
-            <h3 className="text-2xl font-display font-bold">
-              {isOwnVideo ? (
-                <span className="text-secondary">Votre imitation</span>
-              ) : (
-                currentImitation.playerName
+          {/* Header - Different for team vs individual */}
+          {gameMode === '2v2' && currentTeamImitation ? (
+            <div className="text-center space-y-4">
+              <div className="flex justify-center items-center gap-4">
+                {currentTeamImitation.players.map((player, idx) => (
+                  <div key={player.id} className="flex flex-col items-center gap-1">
+                    <PlayerAvatar
+                      playerId={player.id}
+                      playerName={player.name}
+                      size="lg"
+                    />
+                    <span className="text-sm font-medium">{player.name}</span>
+                    {idx === 0 && currentTeamImitation.players.length > 1 && (
+                      <span className="text-secondary font-bold">+</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Swords className="h-5 w-5 text-secondary" />
+                <h3 className="text-2xl font-display font-bold text-secondary">
+                  {isOwnVideo ? "Votre équipe" : `Équipe ${currentTeamImitation.teamNumber}`}
+                </h3>
+              </div>
+              {isOwnVideo && (
+                <p className="text-sm text-foreground-muted font-body">
+                  Vous ne pouvez pas voter pour votre équipe
+                </p>
               )}
-            </h3>
-            {isOwnVideo && (
-              <p className="text-sm text-foreground-muted font-body">
-                Vous ne pouvez pas voter pour vous-même
-              </p>
-            )}
-          </div>
+            </div>
+          ) : currentImitation ? (
+            <div className="text-center flex flex-col items-center gap-3">
+              <PlayerAvatar
+                playerId={currentImitation.playerId}
+                playerName={currentImitation.playerName}
+                size="lg"
+              />
+              <h3 className="text-2xl font-display font-bold">
+                {isOwnVideo ? (
+                  <span className="text-secondary">Votre imitation</span>
+                ) : (
+                  currentImitation.playerName
+                )}
+              </h3>
+              {isOwnVideo && (
+                <p className="text-sm text-foreground-muted font-body">
+                  Vous ne pouvez pas voter pour vous-même
+                </p>
+              )}
+            </div>
+          ) : null}
 
-          {currentImitation.clipId ? (
+          {/* Video player - Team or Individual */}
+          {gameMode === '2v2' && currentTeamImitation ? (
+            currentTeamImitation.clipIds[0] ? (
+              <div className="rounded-xl overflow-hidden border border-glass-border">
+                <TeamVideoOverlay
+                  ref={teamVideoRef}
+                  videoClipId={challengeVideoClipId}
+                  audioClipId1={currentTeamImitation.clipIds[0]}
+                  audioClipId2={currentTeamImitation.clipIds[1] || null}
+                  className="w-full"
+                  externalControl={true}
+                  isPlayingExternal={isPlayingSynced}
+                  includeOriginalAudio={currentTeamImitation.includeOriginalAudio}
+                  originalAudioVolume={currentTeamImitation.originalAudioVolume}
+                />
+              </div>
+            ) : (
+              <div className="aspect-video bg-background-secondary/30 rounded-xl flex items-center justify-center border border-glass-border">
+                <p className="text-foreground-muted font-body">Aucun audio d'équipe disponible</p>
+              </div>
+            )
+          ) : currentImitation?.clipId ? (
             <div className="rounded-xl overflow-hidden border border-glass-border">
               <VideoWithAudioOverlay
                 ref={videoRef}
@@ -460,8 +623,8 @@ export const VotingPhase = ({
                 className="w-full"
                 externalControl={true}
                 isPlayingExternal={isPlayingSynced}
-                includeOriginalAudio={currentImitation.includeOriginalAudio}
-                originalAudioVolume={currentImitation.originalAudioVolume}
+                includeOriginalAudio={currentImitation?.includeOriginalAudio ?? false}
+                originalAudioVolume={currentImitation?.originalAudioVolume ?? 50}
               />
             </div>
           ) : (
