@@ -8,6 +8,7 @@ import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
+import { LobbyChat } from "@/components/LobbyChat";
 
 interface Player {
   id: string;
@@ -258,6 +259,13 @@ export const VideoSubmissionScreen = ({
           </div>
         </div>
       </div>
+
+      {/* Global Chat */}
+      <LobbyChat
+        lobbyId={lobbyId}
+        playerId={currentPlayer.id}
+        playerName={currentPlayer.name}
+      />
     </div>
   );
 };
