@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { GameCard } from "@/components/GameCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Users, Send, Check, Clock } from "lucide-react";
+import { Users, Send, Check, Clock, Mic, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,12 @@ interface TeamMessage {
   createdAt: Date;
 }
 
+interface TeammateStatus {
+  isRecording: boolean;
+  audioLevel: number;
+  timestamp: number;
+}
+
 export const TeammateStatusPanel = ({
   currentPlayerId,
   currentPlayerName,
@@ -37,17 +43,33 @@ export const TeammateStatusPanel = ({
 }: TeammateStatusPanelProps) => {
   const [messages, setMessages] = useState<TeamMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [teammateStatus, setTeammateStatus] = useState<TeammateStatus>({
+    isRecording: false,
+    audioLevel: 0,
+    timestamp: 0
+  });
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // For team chat, we use a simple channel approach
+  // For team chat and status sync
   useEffect(() => {
     if (!teammate) return;
 
-    const channelName = `team-chat:${lobbyId}:${roundNumber}:${[currentPlayerId, teammate.id].sort().join('-')}`;
+    const channelName = `team-sync:${lobbyId}:${roundNumber}:${[currentPlayerId, teammate.id].sort().join('-')}`;
     
     const channel = supabase.channel(channelName)
       .on('broadcast', { event: 'team_message' }, (payload) => {
         const msg = payload.payload as TeamMessage;
         setMessages(prev => [...prev, { ...msg, createdAt: new Date(msg.createdAt) }]);
+      })
+      .on('broadcast', { event: 'recording_status' }, (payload) => {
+        const status = payload.payload as TeammateStatus & { playerId: string };
+        if (status.playerId === teammate.id) {
+          setTeammateStatus({
+            isRecording: status.isRecording,
+            audioLevel: status.audioLevel,
+            timestamp: status.timestamp
+          });
+        }
       })
       .subscribe();
 
@@ -56,10 +78,17 @@ export const TeammateStatusPanel = ({
     };
   }, [lobbyId, roundNumber, currentPlayerId, teammate?.id]);
 
+  // Auto scroll to bottom
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !teammate) return;
 
-    const channelName = `team-chat:${lobbyId}:${roundNumber}:${[currentPlayerId, teammate.id].sort().join('-')}`;
+    const channelName = `team-sync:${lobbyId}:${roundNumber}:${[currentPlayerId, teammate.id].sort().join('-')}`;
     
     const message: TeamMessage = {
       id: crypto.randomUUID(),
@@ -102,14 +131,24 @@ export const TeammateStatusPanel = ({
           "p-4 rounded-xl border-2 transition-all",
           teammateReady 
             ? "bg-success/10 border-success/30" 
+            : teammateStatus.isRecording
+            ? "bg-primary/10 border-primary/30"
             : "bg-background-secondary/30 border-glass-border"
         )}>
           <div className="flex items-center gap-4">
-            <PlayerAvatar
-              playerId={teammate.id}
-              playerName={teammate.name}
-              size="lg"
-            />
+            <div className="relative">
+              <PlayerAvatar
+                playerId={teammate.id}
+                playerName={teammate.name}
+                size="lg"
+              />
+              {/* Recording indicator */}
+              {teammateStatus.isRecording && !teammateReady && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive animate-pulse flex items-center justify-center">
+                  <Mic className="h-2 w-2 text-white" />
+                </div>
+              )}
+            </div>
             <div className="flex-1">
               <p className="font-display font-bold text-lg">{teammate.name}</p>
               <div className="flex items-center gap-2 mt-1">
@@ -118,15 +157,51 @@ export const TeammateStatusPanel = ({
                     <Check className="h-4 w-4 text-success" />
                     <span className="text-sm text-success font-medium">Prêt !</span>
                   </>
+                ) : teammateStatus.isRecording ? (
+                  <>
+                    <Radio className="h-4 w-4 text-destructive animate-pulse" />
+                    <span className="text-sm text-destructive font-medium">Enregistre en ce moment</span>
+                  </>
                 ) : (
                   <>
                     <Clock className="h-4 w-4 text-foreground-muted animate-pulse" />
-                    <span className="text-sm text-foreground-muted">En cours d'enregistrement...</span>
+                    <span className="text-sm text-foreground-muted">En attente...</span>
                   </>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Real-time audio level visualization */}
+          {teammateStatus.isRecording && !teammateReady && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Mic className="h-4 w-4 text-primary" />
+                <span className="text-xs text-foreground-muted font-display uppercase">Activité Audio</span>
+              </div>
+              <div className="flex gap-1 h-8 items-end">
+                {Array.from({ length: 16 }).map((_, i) => {
+                  const barHeight = Math.max(
+                    10,
+                    Math.min(100, (teammateStatus.audioLevel * 100) * (1 + Math.sin(Date.now() / 100 + i) * 0.3))
+                  );
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 bg-gradient-to-t from-primary to-secondary rounded-t transition-all duration-75"
+                      style={{
+                        height: `${barHeight}%`,
+                        opacity: 0.5 + (barHeight / 200)
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <p className="text-xs text-center text-foreground-muted">
+                🎤 En train d'imiter...
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Your Status */}
@@ -151,7 +226,7 @@ export const TeammateStatusPanel = ({
             Chat d'équipe
           </p>
           
-          <ScrollArea className="h-32 rounded-lg bg-background-secondary/30 p-2">
+          <ScrollArea className="h-32 rounded-lg bg-background-secondary/30 p-2" ref={scrollRef}>
             {messages.length === 0 ? (
               <p className="text-xs text-foreground-muted text-center py-4">
                 Communiquez avec votre coéquipier
@@ -211,4 +286,31 @@ export const TeammateStatusPanel = ({
       </div>
     </GameCard>
   );
+};
+
+// Hook to broadcast recording status to teammate
+export const useBroadcastRecordingStatus = (
+  lobbyId: string,
+  roundNumber: number,
+  currentPlayerId: string,
+  teammateId: string | null
+) => {
+  const broadcastStatus = async (isRecording: boolean, audioLevel: number = 0) => {
+    if (!teammateId) return;
+    
+    const channelName = `team-sync:${lobbyId}:${roundNumber}:${[currentPlayerId, teammateId].sort().join('-')}`;
+    
+    await supabase.channel(channelName).send({
+      type: 'broadcast',
+      event: 'recording_status',
+      payload: {
+        playerId: currentPlayerId,
+        isRecording,
+        audioLevel,
+        timestamp: Date.now()
+      }
+    });
+  };
+
+  return { broadcastStatus };
 };

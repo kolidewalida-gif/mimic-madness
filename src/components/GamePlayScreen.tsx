@@ -387,6 +387,8 @@ export const GamePlayScreen = ({
             roundNumber={roundNumber}
             players={players}
             currentPlayer={currentPlayer}
+            gameMode={gameMode}
+            teams={teams}
             onNextRound={handleNextRound}
             onEndGame={onEndGame}
           />

@@ -164,13 +164,6 @@ export const VotingPhase = ({
           
           setCurrentIndex(newIndex);
           setIsPlayingSynced(newIsPlaying);
-          
-          if (newIndex >= imitations.length && imitations.length > 0) {
-            setHasVotedAll(true);
-            setTimeout(() => {
-              onVotingComplete();
-            }, 3000);
-          }
         }
       )
       .subscribe();
@@ -178,7 +171,18 @@ export const VotingPhase = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [votingSessionId, imitations.length, onVotingComplete]);
+  }, [votingSessionId]);
+
+  // Check for voting completion - separate effect to handle both modes
+  useEffect(() => {
+    const totalItems = gameMode === '2v2' ? teamImitations.length : imitations.length;
+    if (currentIndex >= totalItems && totalItems > 0) {
+      setHasVotedAll(true);
+      setTimeout(() => {
+        onVotingComplete();
+      }, 2000);
+    }
+  }, [currentIndex, gameMode, teamImitations.length, imitations.length, onVotingComplete]);
 
   // Load imitations and their clips - using round_number for accurate tracking
   useEffect(() => {

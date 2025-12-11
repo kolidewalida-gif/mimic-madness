@@ -7,7 +7,7 @@ import { DeviceSettings } from "@/components/DeviceSettings";
 import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
 import { VolumeSlider } from "@/components/VolumeSlider";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { TeammateStatusPanel } from "@/components/TeammateStatusPanel";
+import { TeammateStatusPanel, useBroadcastRecordingStatus } from "@/components/TeammateStatusPanel";
 import { Play, Check, Users, Settings, Mic, Volume2, VolumeX, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +62,15 @@ export const ImitationPhase = ({
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Get teammate info for 2v2 mode
+  const teammate = gameMode === '2v2' && getTeammate ? getTeammate(currentPlayer.id) : null;
+  const { broadcastStatus } = useBroadcastRecordingStatus(
+    lobbyId,
+    roundNumber,
+    currentPlayer.id,
+    teammate?.id || null
+  );
 
   // Load challenge clip data
   useEffect(() => {
@@ -201,6 +210,7 @@ export const ImitationPhase = ({
 
   const handleRecordingStart = () => {
     setIsRecording(true);
+    broadcastStatus(true, 0.5);
     if (challengeVideoRef.current) {
       const startTime = challengeClipData?.startTime ?? 0;
       challengeVideoRef.current.currentTime = startTime;
@@ -208,8 +218,11 @@ export const ImitationPhase = ({
     }
   };
 
-  // Get teammate info for 2v2 mode
-  const teammate = gameMode === '2v2' && getTeammate ? getTeammate(currentPlayer.id) : null;
+  const handleRecordingStop = () => {
+    setIsRecording(false);
+    broadcastStatus(false, 0);
+  };
+
   const teammateReady = teammate ? readyPlayers.includes(teammate.id) : false;
 
   return (
@@ -296,7 +309,7 @@ export const ImitationPhase = ({
                 onAudioSaved={handleVideoSaved}
                 lobbyId={lobbyId}
                 onRecordingStart={handleRecordingStart}
-                onRecordingStop={() => setIsRecording(false)}
+                onRecordingStop={handleRecordingStop}
               />
             ) : (
               <div className="space-y-4">
