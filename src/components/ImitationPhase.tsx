@@ -7,7 +7,8 @@ import { DeviceSettings } from "@/components/DeviceSettings";
 import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
 import { VolumeSlider } from "@/components/VolumeSlider";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { Play, Check, Users, Settings, Mic, Volume2, VolumeX } from "lucide-react";
+import { TeammateStatusPanel } from "@/components/TeammateStatusPanel";
+import { Play, Check, Users, Settings, Mic, Volume2, VolumeX, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -207,6 +208,10 @@ export const ImitationPhase = ({
     }
   };
 
+  // Get teammate info for 2v2 mode
+  const teammate = gameMode === '2v2' && getTeammate ? getTeammate(currentPlayer.id) : null;
+  const teammateReady = teammate ? readyPlayers.includes(teammate.id) : false;
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -216,7 +221,7 @@ export const ImitationPhase = ({
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30">
             <Mic className="h-4 w-4 text-primary animate-pulse" />
             <span className="text-sm font-display uppercase tracking-wider text-primary">
-              Phase d'imitation
+              Phase d'imitation {gameMode === '2v2' && '• 2v2'}
             </span>
           </div>
           
@@ -226,6 +231,12 @@ export const ImitationPhase = ({
           
           <p className="text-foreground-secondary font-body">
             Imitez <span className="font-semibold text-secondary neon-text-pink">{currentChallenge.playerName}</span>
+            {gameMode === '2v2' && teammate && (
+              <span className="block text-sm mt-1">
+                <Swords className="h-3 w-3 inline mr-1" />
+                Avec <span className="text-secondary">{teammate.name}</span>
+              </span>
+            )}
           </p>
         </div>
         <div className="flex-1 flex justify-end">
@@ -378,18 +389,34 @@ export const ImitationPhase = ({
         </GameCard>
       </div>
 
+      {/* 2v2 Mode - Teammate Panel */}
+      {gameMode === '2v2' && teammate && (
+        <TeammateStatusPanel
+          currentPlayerId={currentPlayer.id}
+          currentPlayerName={currentPlayer.name}
+          teammate={teammate}
+          lobbyId={lobbyId}
+          roundNumber={roundNumber}
+          isReady={hasSubmitted}
+          teammateReady={teammateReady}
+        />
+      )}
+
       {/* Players Status */}
       <GameCard>
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
             <h3 className="font-display font-bold uppercase tracking-wider text-sm">
-              Progression
+              Progression {gameMode === '2v2' && '(Équipes)'}
             </h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {players.map((player) => {
               const ready = readyPlayers.includes(player.id);
+              const isTeammate = teammate?.id === player.id;
+              const isCurrentPlayer = player.id === currentPlayer.id;
+              
               return (
                 <div
                   key={player.id}
@@ -397,7 +424,7 @@ export const ImitationPhase = ({
                     ready
                       ? "bg-success/10 border-success/30"
                       : "bg-background-secondary/30 border-transparent"
-                  }`}
+                  } ${isTeammate || isCurrentPlayer ? "ring-2 ring-secondary/50" : ""}`}
                 >
                   <div className="flex flex-col items-center gap-2">
                     <PlayerAvatar
@@ -406,7 +433,10 @@ export const ImitationPhase = ({
                       size="sm"
                       isHost={player.isHost}
                     />
-                    <p className="font-semibold text-sm truncate font-body">{player.name}</p>
+                    <p className="font-semibold text-sm truncate font-body">
+                      {player.name}
+                      {isTeammate && <span className="text-secondary ml-1">🤝</span>}
+                    </p>
                     <p className="text-xs font-display">
                       {ready ? (
                         <span className="text-success">✓ SOUMIS</span>
