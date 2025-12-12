@@ -4,10 +4,12 @@ import { LobbyScreen } from "@/components/LobbyScreen";
 import { VideoSubmissionScreen } from "@/components/VideoSubmissionScreen";
 import { GamePlayScreen } from "@/components/GamePlayScreen";
 import { DynamicBackground } from "@/components/DynamicBackground";
+import { ScreenTransition } from "@/components/ScreenTransition";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
 import { supabase } from "@/integrations/supabase/client";
+import { playSoundEffect } from "@/hooks/useSoundEffects";
 
 interface Player {
   id: string;
@@ -52,6 +54,7 @@ const Index = () => {
           
           if (newPhase === 'preparation' && gameState !== 'preparation') {
             console.log('Transitioning to preparation');
+            playSoundEffect('transition', 0.4);
             setGameState('preparation');
             toast({
               title: "La partie commence !",
@@ -59,6 +62,7 @@ const Index = () => {
             });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             console.log('Transitioning to playing');
+            playSoundEffect('start', 0.5);
             setGameState('playing');
             toast({
               title: "🎮 Que le jeu commence !",
@@ -76,6 +80,7 @@ const Index = () => {
 
   const handleCreateGame = async (playerName: string) => {
     console.log('Creating game for:', playerName);
+    playSoundEffect('success', 0.4);
     const playerId = crypto.randomUUID();
     const hostPlayer: Player = {
       id: playerId,
@@ -91,6 +96,7 @@ const Index = () => {
       setGameState("lobby");
     } else {
       console.error('Failed to create lobby');
+      playSoundEffect('error', 0.4);
     }
   };
 
@@ -108,14 +114,17 @@ const Index = () => {
     
     if (result) {
       console.log('Joined lobby, changing state to lobby');
+      playSoundEffect('join', 0.4);
       setGameState("lobby");
     } else {
       console.error('Failed to join lobby');
+      playSoundEffect('error', 0.4);
     }
   };
 
   const handleStartGame = async (mode: GameMode = 'normal') => {
     console.log('Starting game with mode:', mode);
+    playSoundEffect('start', 0.5);
     setGameMode(mode);
     
     // Update lobby status and phase
@@ -133,12 +142,11 @@ const Index = () => {
         console.error('Error updating lobby status:', error);
       }
     }
-    
-    // Don't set state here - let the realtime listener handle it
   };
 
   const handleSubmitChallenges = (challenges: VideoClip[]) => {
     setSubmittedChallenges(challenges);
+    playSoundEffect('success', 0.4);
     
     toast({
       title: "Défis soumis !",
@@ -157,16 +165,16 @@ const Index = () => {
         console.error('Error updating game phase:', error);
       }
     }
-    
-    // Don't set state here - let the realtime listener handle it
   };
 
   const handleBackToLobby = () => {
+    playSoundEffect('whoosh', 0.3);
     setGameState("lobby");
     setSubmittedChallenges([]);
   };
 
   const handleLeaveGame = async () => {
+    playSoundEffect('leave', 0.4);
     if (currentPlayer) {
       await leaveLobby(currentPlayer.id);
     }
@@ -180,22 +188,18 @@ const Index = () => {
     });
   };
 
-  if (gameState === "home") {
-    return (
-      <>
-        <DynamicBackground />
+  const renderContent = () => {
+    if (gameState === "home") {
+      return (
         <HomeScreen 
           onCreateGame={handleCreateGame}
           onJoinGame={handleJoinGame}
         />
-      </>
-    );
-  }
+      );
+    }
 
-  if (gameState === "lobby" && currentPlayer && lobby) {
-    return (
-      <>
-        <DynamicBackground />
+    if (gameState === "lobby" && currentPlayer && lobby) {
+      return (
         <LobbyScreen
           players={players}
           lobbyCode={lobby.code}
@@ -205,14 +209,11 @@ const Index = () => {
           onStartGame={handleStartGame}
           onLeaveGame={handleLeaveGame}
         />
-      </>
-    );
-  }
+      );
+    }
 
-  if (gameState === "preparation" && currentPlayer && lobby) {
-    return (
-      <>
-        <DynamicBackground />
+    if (gameState === "preparation" && currentPlayer && lobby) {
+      return (
         <VideoSubmissionScreen
           currentPlayer={currentPlayer}
           lobbyId={lobby.id}
@@ -222,14 +223,11 @@ const Index = () => {
           onSubmitChallenges={handleSubmitChallenges}
           onStartActualGame={handleStartActualGame}
         />
-      </>
-    );
-  }
+      );
+    }
 
-  if (gameState === "playing" && currentPlayer && lobby) {
-    return (
-      <>
-        <DynamicBackground />
+    if (gameState === "playing" && currentPlayer && lobby) {
+      return (
         <GamePlayScreen
           currentPlayer={currentPlayer}
           players={players}
@@ -237,18 +235,24 @@ const Index = () => {
           gameMode={gameMode}
           onEndGame={handleLeaveGame}
         />
-      </>
-    );
-  }
+      );
+    }
 
-  // Fallback to home screen
-  return (
-    <>
-      <DynamicBackground />
+    // Fallback to home screen
+    return (
       <HomeScreen 
         onCreateGame={handleCreateGame}
         onJoinGame={handleJoinGame}
       />
+    );
+  };
+
+  return (
+    <>
+      <DynamicBackground />
+      <ScreenTransition screenKey={gameState}>
+        {renderContent()}
+      </ScreenTransition>
     </>
   );
 };
