@@ -4,6 +4,7 @@ import { GameCard } from "@/components/GameCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VideoWithAudioOverlay, VideoWithAudioOverlayRef } from "@/components/VideoWithAudioOverlay";
 import { TeamVideoOverlay, TeamVideoOverlayRef } from "@/components/TeamVideoOverlay";
+import { CountdownOverlay } from "@/components/CountdownOverlay";
 import { ThumbsUp, ThumbsDown, Trophy, Play, Pause, Vote, ChevronRight, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +72,8 @@ export const VotingPhase = ({
   const [votingSessionId, setVotingSessionId] = useState<string | null>(null);
   const [isPlayingSynced, setIsPlayingSynced] = useState(false);
   const [hasVotedCurrent, setHasVotedCurrent] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [pendingPlay, setPendingPlay] = useState(false);
   const { toast } = useToast();
   const { pause, play } = useBackgroundMusic();
   const videoRef = useRef<VideoWithAudioOverlayRef>(null);
@@ -440,24 +443,74 @@ export const VotingPhase = ({
     }
   };
 
-  // Host controls play/pause for everyone
+  // Host controls play/pause for everyone - with countdown
   const handleTogglePlay = async () => {
     if (!votingSessionId || !currentPlayer.isHost) return;
 
-    const newIsPlaying = !isPlayingSynced;
-    
-    const { error } = await supabase
-      .from('voting_session')
-      .update({ 
-        is_playing: newIsPlaying,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', votingSessionId);
+    if (!isPlayingSynced) {
+      // Starting playback - show countdown for all
+      setPendingPlay(true);
+      
+      // Broadcast countdown start to all players
+      await supabase.channel(`countdown:${lobbyId}:${roundNumber}`).send({
+        type: 'broadcast',
+        event: 'countdown_start',
+        payload: { startTime: Date.now() }
+      });
+      
+      setShowCountdown(true);
+    } else {
+      // Pausing - no countdown needed
+      const { error } = await supabase
+        .from('voting_session')
+        .update({ 
+          is_playing: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', votingSessionId);
 
-    if (error) {
-      console.error('Error updating play state:', error);
+      if (error) {
+        console.error('Error updating play state:', error);
+      }
     }
   };
+
+  // Handle countdown completion
+  const handleCountdownComplete = async () => {
+    setShowCountdown(false);
+    setPendingPlay(false);
+    
+    if (currentPlayer.isHost && votingSessionId) {
+      const { error } = await supabase
+        .from('voting_session')
+        .update({ 
+          is_playing: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', votingSessionId);
+
+      if (error) {
+        console.error('Error updating play state:', error);
+      }
+    }
+  };
+
+  // Listen for countdown broadcasts (for non-host players)
+  useEffect(() => {
+    if (!lobbyId || currentPlayer.isHost) return;
+
+    const channel = supabase
+      .channel(`countdown:${lobbyId}:${roundNumber}`)
+      .on('broadcast', { event: 'countdown_start' }, () => {
+        setShowCountdown(true);
+        setPendingPlay(true);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [lobbyId, roundNumber, currentPlayer.isHost]);
 
   // Only host can advance to next imitation
   const handleNext = async () => {
@@ -519,7 +572,16 @@ export const VotingPhase = ({
     : currentImitation?.playerId === currentPlayer.id;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <>
+      {/* Countdown overlay for synchronized video start */}
+      <CountdownOverlay 
+        isActive={showCountdown}
+        onComplete={handleCountdownComplete}
+        duration={3}
+        title="La vidéo commence dans..."
+      />
+
+      <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/30">
@@ -730,5 +792,6 @@ export const VotingPhase = ({
         ))}
       </div>
     </div>
+    </>
   );
 };
