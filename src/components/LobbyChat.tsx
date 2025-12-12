@@ -124,10 +124,14 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (isExpanded) {
-      scrollToBottom();
+    if (isExpanded && messages.length > 0) {
+      // Use timeout to ensure DOM is updated
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [messages, isExpanded]);
+  }, [messages.length, isExpanded]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isSending) return;
