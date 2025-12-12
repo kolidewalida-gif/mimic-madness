@@ -48,7 +48,11 @@ export const TeammateStatusPanel = ({
     audioLevel: 0,
     timestamp: 0
   });
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // For team chat and status sync
   useEffect(() => {
@@ -80,9 +84,7 @@ export const TeammateStatusPanel = ({
 
   // Auto scroll to bottom
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
 
   const sendMessage = async () => {
@@ -110,12 +112,7 @@ export const TeammateStatusPanel = ({
 
     setNewMessage("");
     
-    // Auto-scroll after sending
-    setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }
-    }, 100);
+    setTimeout(scrollToBottom, 100);
   };
 
   if (!teammate) {
@@ -233,7 +230,7 @@ export const TeammateStatusPanel = ({
             Chat d'équipe
           </p>
           
-          <ScrollArea className="h-32 rounded-lg bg-background-secondary/30 p-2" ref={scrollRef}>
+          <ScrollArea className="h-32 rounded-lg bg-background-secondary/30 p-2">
             {messages.length === 0 ? (
               <p className="text-xs text-foreground-muted text-center py-4">
                 Communiquez avec votre coéquipier
@@ -256,6 +253,7 @@ export const TeammateStatusPanel = ({
                     <p>{msg.content}</p>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </ScrollArea>

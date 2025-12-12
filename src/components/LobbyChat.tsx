@@ -80,10 +80,14 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
   const [inputValue, setInputValue] = useState('');
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastMessageCountRef = useRef(0);
   const hasInitializedRef = useRef(false);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Play sound on new message from others
   useEffect(() => {
@@ -120,8 +124,8 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollRef.current && isExpanded) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (isExpanded) {
+      scrollToBottom();
     }
   }, [messages, isExpanded]);
 
@@ -129,12 +133,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
     if (!inputValue.trim() || isSending) return;
     await sendMessage(inputValue, 'text');
     setInputValue('');
-    // Auto-scroll after sending
-    setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }
-    }, 100);
+    setTimeout(scrollToBottom, 100);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -147,12 +146,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
   const handleSendGif = async (gifUrl: string) => {
     await sendMessage(gifUrl, 'gif');
     setShowGifPicker(false);
-    // Auto-scroll after sending
-    setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }
-    }, 100);
+    setTimeout(scrollToBottom, 100);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,12 +166,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
     reader.onload = async () => {
       const base64 = reader.result as string;
       await sendMessage(base64, 'image');
-      // Auto-scroll after sending
-      setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      }, 100);
+      setTimeout(scrollToBottom, 100);
     };
     reader.readAsDataURL(file);
 
@@ -248,7 +237,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
           </div>
 
           {/* Messages Area */}
-          <ScrollArea className="h-80 p-4" ref={scrollRef}>
+          <ScrollArea className="h-80 p-4">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -303,6 +292,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
                     </div>
                   );
                 })}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </ScrollArea>
