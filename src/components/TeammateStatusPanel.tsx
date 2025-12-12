@@ -84,8 +84,13 @@ export const TeammateStatusPanel = ({
 
   // Auto scroll to bottom
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (messages.length > 0) {
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !teammate) return;
