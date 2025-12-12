@@ -129,6 +129,12 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
     if (!inputValue.trim() || isSending) return;
     await sendMessage(inputValue, 'text');
     setInputValue('');
+    // Auto-scroll after sending
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -141,6 +147,12 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
   const handleSendGif = async (gifUrl: string) => {
     await sendMessage(gifUrl, 'gif');
     setShowGifPicker(false);
+    // Auto-scroll after sending
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,6 +172,12 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
     reader.onload = async () => {
       const base64 = reader.result as string;
       await sendMessage(base64, 'image');
+      // Auto-scroll after sending
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 100);
     };
     reader.readAsDataURL(file);
 

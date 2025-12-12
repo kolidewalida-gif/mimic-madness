@@ -109,6 +109,13 @@ export const TeammateStatusPanel = ({
     });
 
     setNewMessage("");
+    
+    // Auto-scroll after sending
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   if (!teammate) {
