@@ -288,6 +288,63 @@
   }
 }
 
+/* Screen transition animations */
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes floatParticle {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx, 50px), var(--ty, -100px)) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes wipeIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes wipeOut {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes zoomBurst {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+@keyframes panelSlide {
+  0% { transform: translateY(-100%); }
+  50% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes gridFade {
+  0% { opacity: 0; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+@keyframes rippleExpand {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
 .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
 .animate-scaleIn { animation: scaleIn 0.3s ease-out forwards; }
 .animate-slideInLeft { animation: slideInFromLeft 0.4s ease-out forwards; }
@@ -299,6 +356,9 @@
 .animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
 .animate-spin-slow { animation: spin-slow 8s linear infinite; }
 .animate-scale-in { animation: scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-wipe-in { animation: wipeIn 0.5s cubic-bezier(0.76, 0, 0.24, 1) forwards; }
+.animate-wipe-out { animation: wipeOut 0.5s cubic-bezier(0.76, 0, 0.24, 1) forwards; }
+.animate-shimmer { animation: shimmer 0.8s ease-out forwards; }
 
 .drop-shadow-glow {
   filter: drop-shadow(0 0 15px rgba(229, 9, 20, 0.5));
