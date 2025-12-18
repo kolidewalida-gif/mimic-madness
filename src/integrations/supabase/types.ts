@@ -442,8 +442,10 @@ export type Database = {
           difficulty: string
           id: string
           lobby_id: string
+          options: string[] | null
           phase: string
           question_text: string
+          question_type: string | null
           round_number: number
           started_at: string | null
         }
@@ -454,8 +456,10 @@ export type Database = {
           difficulty?: string
           id?: string
           lobby_id: string
+          options?: string[] | null
           phase?: string
           question_text: string
+          question_type?: string | null
           round_number?: number
           started_at?: string | null
         }
@@ -466,8 +470,10 @@ export type Database = {
           difficulty?: string
           id?: string
           lobby_id?: string
+          options?: string[] | null
           phase?: string
           question_text?: string
+          question_type?: string | null
           round_number?: number
           started_at?: string | null
         }

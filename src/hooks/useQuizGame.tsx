@@ -14,6 +14,7 @@ interface QuizQuestion {
   options: string[];
   category: string;
   difficulty: string;
+  questionType: 'qcm' | 'text';
 }
 
 interface QuizScore {
@@ -110,24 +111,17 @@ export const useQuizGame = (
           if (payload.new) {
             const newRound = payload.new;
             setCurrentRound(newRound.round_number);
-            // Parse options from the question_text if stored, or generate from answer
-            let options: string[] = [];
-            try {
-              // Try to parse options if they were stored as JSON in a field
-              const storedOptions = newRound.options;
-              if (storedOptions && Array.isArray(storedOptions)) {
-                options = storedOptions;
-              }
-            } catch {
-              options = [];
-            }
+            // Get options from the database
+            const options: string[] = newRound.options || [];
+            const questionType = newRound.question_type || 'qcm';
             
             setCurrentQuestion({
               question: newRound.question_text,
               answer: newRound.correct_answer,
               options: options,
               category: newRound.category,
-              difficulty: newRound.difficulty
+              difficulty: newRound.difficulty,
+              questionType: questionType as 'qcm' | 'text'
             });
             
             if (newRound.phase === 'countdown') {
@@ -234,12 +228,17 @@ export const useQuizGame = (
       if (error) throw error;
       
       setPreviousQuestions(prev => [...prev, data.question]);
+      
+      // 70% chance QCM, 30% chance text input
+      const questionType: 'qcm' | 'text' = Math.random() < 0.7 ? 'qcm' : 'text';
+      
       return {
         question: data.question,
         answer: data.answer,
         options: data.options || [],
         category: data.category,
-        difficulty: data.difficulty
+        difficulty: data.difficulty,
+        questionType
       } as QuizQuestion;
     } catch (error) {
       console.error('Error generating question:', error);
@@ -249,7 +248,8 @@ export const useQuizGame = (
         answer: "Paris",
         options: ["Paris", "Lyon", "Marseille", "Bordeaux"],
         category: "geographie",
-        difficulty: "facile"
+        difficulty: "facile",
+        questionType: 'qcm'
       };
     } finally {
       setIsLoading(false);
@@ -267,12 +267,14 @@ export const useQuizGame = (
     const question = await generateQuestion(category);
     if (!question) return;
 
-    // Save round to database
+    // Save round to database with options
     await supabase.from('quiz_rounds').insert({
       lobby_id: lobbyId,
       round_number: currentRound,
       question_text: question.question,
       correct_answer: question.answer,
+      options: question.options,
+      question_type: question.questionType,
       category: question.category,
       difficulty: question.difficulty,
       phase: 'countdown',
