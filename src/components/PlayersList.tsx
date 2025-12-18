@@ -18,7 +18,7 @@ interface PlayersListProps {
   isHost?: boolean;
   onStartGame?: () => void;
   canStart?: boolean;
-  gameMode?: 'normal' | '2v2';
+  gameMode?: 'normal' | '2v2' | 'quiz';
 }
 
 export const PlayersList = ({ 

@@ -23,7 +23,7 @@ interface LobbyScreenProps {
   lobbyId: string;
   isHost: boolean;
   currentPlayer: Player;
-  onStartGame: (gameMode: 'normal' | '2v2') => void;
+  onStartGame: (gameMode: 'normal' | '2v2' | 'quiz') => void;
   onLeaveGame: () => void;
 }
 
@@ -37,7 +37,7 @@ export const LobbyScreen = ({
   onLeaveGame 
 }: LobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
-  const [gameMode, setGameMode] = useState<'normal' | '2v2'>('normal');
+  const [gameMode, setGameMode] = useState<'normal' | '2v2' | 'quiz'>('normal');
   const { teams, isLoading: teamsLoading, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
 
@@ -51,7 +51,7 @@ export const LobbyScreen = ({
         .single();
       
       if (data?.game_mode) {
-        setGameMode(data.game_mode as 'normal' | '2v2');
+        setGameMode(data.game_mode as 'normal' | '2v2' | 'quiz');
       }
     };
 
@@ -69,7 +69,7 @@ export const LobbyScreen = ({
         },
         (payload: any) => {
           if (payload.new.game_mode) {
-            setGameMode(payload.new.game_mode as 'normal' | '2v2');
+            setGameMode(payload.new.game_mode as 'normal' | '2v2' | 'quiz');
           }
         }
       )
@@ -80,7 +80,7 @@ export const LobbyScreen = ({
     };
   }, [lobbyId]);
 
-  const handleGameModeChange = async (mode: 'normal' | '2v2') => {
+  const handleGameModeChange = async (mode: 'normal' | '2v2' | 'quiz') => {
     if (!isHost) return;
 
     try {
@@ -121,7 +121,7 @@ export const LobbyScreen = ({
     onStartGame(gameMode);
   };
 
-  const canStart = gameMode === 'normal' 
+  const canStart = gameMode === 'normal' || gameMode === 'quiz'
     ? players.length >= 2 
     : (players.length >= 4 && players.length % 2 === 0 && teams.length > 0);
 
