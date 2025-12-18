@@ -5,27 +5,63 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CATEGORIES = [
-  'culture',
-  'histoire', 
-  'youtube_fr',
-  'musique',
-  'sport',
-  'cinema',
-  'science',
-  'geographie'
-];
-
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  culture: "Culture générale (connaissances diverses, actualités, société)",
-  histoire: "Histoire de France et du monde (dates, personnages, événements)",
-  youtube_fr: "YouTube France (Squeezie, Cyprien, Norman, MrBeast traduit, Gotaga, Michou, Inoxtag, Amixem, etc.)",
-  musique: "Musique française et internationale (artistes, chansons, groupes)",
-  sport: "Sport (football, basketball, tennis, Jeux Olympiques, etc.)",
-  cinema: "Cinéma et séries (films, acteurs, réalisateurs, séries populaires)",
-  science: "Sciences et technologies (inventions, découvertes, espace)",
-  geographie: "Géographie (capitales, pays, monuments, océans)"
+// Open Trivia Database category IDs
+const OTDB_CATEGORIES: Record<string, number> = {
+  culture: 9,        // General Knowledge
+  histoire: 23,      // History
+  musique: 12,       // Music
+  sport: 21,         // Sports
+  cinema: 11,        // Film
+  science: 17,       // Science & Nature
+  geographie: 22,    // Geography
+  jeux_video: 15,    // Video Games
+  animaux: 27,       // Animals
+  art: 25,           // Art
 };
+
+const CATEGORY_NAMES: Record<string, string> = {
+  culture: 'Culture générale',
+  histoire: 'Histoire',
+  musique: 'Musique',
+  sport: 'Sport',
+  cinema: 'Cinéma',
+  science: 'Science',
+  geographie: 'Géographie',
+  jeux_video: 'Jeux vidéo',
+  animaux: 'Animaux',
+  art: 'Art',
+};
+
+const DIFFICULTY_MAP: Record<string, string> = {
+  easy: 'easy',
+  medium: 'medium',
+  hard: 'hard',
+};
+
+// Decode HTML entities
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&eacute;/g, 'é')
+    .replace(/&egrave;/g, 'è')
+    .replace(/&agrave;/g, 'à')
+    .replace(/&ccedil;/g, 'ç')
+    .replace(/&ocirc;/g, 'ô')
+    .replace(/&uuml;/g, 'ü')
+    .replace(/&ntilde;/g, 'ñ')
+    .replace(/&ldquo;/g, '"')
+    .replace(/&rdquo;/g, '"')
+    .replace(/&lsquo;/g, "'")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&hellip;/g, '...')
+    .replace(/&ndash;/g, '-')
+    .replace(/&mdash;/g, '-');
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -34,118 +70,66 @@ serve(async (req) => {
   }
 
   try {
-    const { category, difficulty, previousQuestions } = await req.json();
+    const { category, difficulty } = await req.json();
     
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
-    }
-
-    // Select category - random if not specified
-    const selectedCategory = category && CATEGORIES.includes(category) 
+    // Select random category if not specified
+    const categoryKeys = Object.keys(OTDB_CATEGORIES);
+    const selectedCategory = category && OTDB_CATEGORIES[category] 
       ? category 
-      : CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+      : categoryKeys[Math.floor(Math.random() * categoryKeys.length)];
     
-    const selectedDifficulty = difficulty || ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)];
+    const categoryId = OTDB_CATEGORIES[selectedCategory];
+    const selectedDifficulty = difficulty && DIFFICULTY_MAP[difficulty] 
+      ? DIFFICULTY_MAP[difficulty] 
+      : ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)];
     
-    const categoryDescription = CATEGORY_DESCRIPTIONS[selectedCategory];
+    console.log(`Fetching question from Open Trivia DB - Category: ${selectedCategory} (${categoryId}), Difficulty: ${selectedDifficulty}`);
+
+    // Fetch question from Open Trivia Database
+    const otdbUrl = `https://opentdb.com/api.php?amount=1&category=${categoryId}&difficulty=${selectedDifficulty}&type=multiple`;
     
-    // Build prompt with previous questions to avoid duplicates
-    const previousQuestionsText = previousQuestions && previousQuestions.length > 0
-      ? `\n\nATTENTION: Ne pose PAS ces questions déjà posées:\n${previousQuestions.map((q: string) => `- ${q}`).join('\n')}`
-      : '';
-
-    const systemPrompt = `Tu es un générateur de questions de quiz en français. Tu dois générer UNE SEULE question originale et intéressante.
-
-RÈGLES IMPORTANTES:
-1. La question doit être en français
-2. La réponse doit être courte (1 à 3 mots maximum)
-3. La réponse doit être sans ambiguïté
-4. Niveau de difficulté: ${selectedDifficulty} (easy = très facile, medium = moyen, hard = difficile)
-5. La question doit être engageante et fun
-
-Tu dois répondre UNIQUEMENT avec un JSON valide dans ce format exact, sans aucun texte avant ou après:
-{"question": "Ta question ici ?", "answer": "Réponse courte"}`;
-
-    const userPrompt = `Génère une question de quiz sur le thème: ${categoryDescription}
-Niveau: ${selectedDifficulty}${previousQuestionsText}
-
-Réponds UNIQUEMENT avec le JSON, rien d'autre.`;
-
-    console.log(`Generating quiz question - Category: ${selectedCategory}, Difficulty: ${selectedDifficulty}`);
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-      }),
-    });
-
+    const response = await fetch(otdbUrl);
+    
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded, please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'Payment required, please add funds.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      throw new Error(`AI API error: ${response.status}`);
+      throw new Error(`Open Trivia DB error: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
     
-    console.log('AI response:', content);
+    console.log('OTDB response:', JSON.stringify(data));
 
-    if (!content) {
-      throw new Error('No content in AI response');
-    }
-
-    // Parse the JSON response - handle potential markdown code blocks
-    let cleanContent = content.trim();
-    if (cleanContent.startsWith('```json')) {
-      cleanContent = cleanContent.slice(7);
-    }
-    if (cleanContent.startsWith('```')) {
-      cleanContent = cleanContent.slice(3);
-    }
-    if (cleanContent.endsWith('```')) {
-      cleanContent = cleanContent.slice(0, -3);
-    }
-    cleanContent = cleanContent.trim();
-
-    let parsedQuestion;
-    try {
-      parsedQuestion = JSON.parse(cleanContent);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError, 'Content:', cleanContent);
-      throw new Error('Failed to parse AI response as JSON');
+    if (data.response_code !== 0 || !data.results || data.results.length === 0) {
+      // Fallback: try without difficulty filter
+      console.log('Retrying without difficulty filter...');
+      const fallbackUrl = `https://opentdb.com/api.php?amount=1&category=${categoryId}&type=multiple`;
+      const fallbackResponse = await fetch(fallbackUrl);
+      const fallbackData = await fallbackResponse.json();
+      
+      if (fallbackData.response_code !== 0 || !fallbackData.results || fallbackData.results.length === 0) {
+        throw new Error('No questions available from Open Trivia DB');
+      }
+      
+      data.results = fallbackData.results;
     }
 
-    if (!parsedQuestion.question || !parsedQuestion.answer) {
-      throw new Error('Invalid question format from AI');
+    const questionData = data.results[0];
+    const question = decodeHtmlEntities(questionData.question);
+    const correctAnswer = decodeHtmlEntities(questionData.correct_answer);
+    const incorrectAnswers = questionData.incorrect_answers.map((a: string) => decodeHtmlEntities(a));
+    
+    // Shuffle all answers
+    const allAnswers = [correctAnswer, ...incorrectAnswers];
+    for (let i = allAnswers.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allAnswers[i], allAnswers[j]] = [allAnswers[j], allAnswers[i]];
     }
 
     const result = {
-      question: parsedQuestion.question,
-      answer: parsedQuestion.answer,
+      question: question,
+      answer: correctAnswer,
+      options: allAnswers,
       category: selectedCategory,
+      categoryName: CATEGORY_NAMES[selectedCategory] || selectedCategory,
       difficulty: selectedDifficulty
     };
 
