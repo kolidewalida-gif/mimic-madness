@@ -7,14 +7,14 @@ export interface ChatMessage {
   playerId: string;
   playerName: string;
   content: string;
-  messageType: 'text' | 'image' | 'gif';
+  messageType: 'text' | 'image' | 'gif' | 'voice';
   createdAt: string;
 }
 
 interface UseLobbyChat {
   messages: ChatMessage[];
   isLoading: boolean;
-  sendMessage: (content: string, messageType?: 'text' | 'image' | 'gif') => Promise<void>;
+  sendMessage: (content: string, messageType?: 'text' | 'image' | 'gif' | 'voice') => Promise<void>;
   isSending: boolean;
 }
 
@@ -57,7 +57,7 @@ export const useLobbyChat = (
           playerId: msg.player_id,
           playerName: msg.player_name,
           content: msg.content,
-          messageType: msg.message_type as 'text' | 'image' | 'gif',
+          messageType: msg.message_type as 'text' | 'image' | 'gif' | 'voice',
           createdAt: msg.created_at,
         }));
 
@@ -99,7 +99,7 @@ export const useLobbyChat = (
             playerId: newMsg.player_id,
             playerName: newMsg.player_name,
             content: newMsg.content,
-            messageType: newMsg.message_type as 'text' | 'image' | 'gif',
+            messageType: newMsg.message_type as 'text' | 'image' | 'gif' | 'voice',
             createdAt: newMsg.created_at,
           };
 
@@ -125,7 +125,7 @@ export const useLobbyChat = (
   }, [lobbyId]);
 
   const sendMessage = useCallback(
-    async (content: string, messageType: 'text' | 'image' | 'gif' = 'text') => {
+    async (content: string, messageType: 'text' | 'image' | 'gif' | 'voice' = 'text') => {
       if (!lobbyId || !content.trim()) return;
 
       setIsSending(true);
