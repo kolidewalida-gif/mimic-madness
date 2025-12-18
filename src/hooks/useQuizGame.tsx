@@ -71,7 +71,7 @@ export const useQuizGame = (
   const [currentRound, setCurrentRound] = useState(1);
   const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(ANSWER_TIME_MS);
-  const [questionStartTime, setQuestionStartTime] = useState<number | null>(null);
+  const [serverStartTime, setServerStartTime] = useState<string | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [scores, setScores] = useState<QuizScore[]>([]);
   const [roundAnswers, setRoundAnswers] = useState<QuizAnswer[]>([]);
@@ -95,10 +95,46 @@ export const useQuizGame = (
     setScores(initialScores);
   }, [players]);
 
-  // Subscribe to quiz round updates
+  // Fetch scores from database to ensure sync
+  const fetchScoresFromDB = useCallback(async () => {
+    const { data: answersData } = await supabase
+      .from('quiz_answers')
+      .select('*')
+      .eq('lobby_id', lobbyId);
+    
+    if (answersData) {
+      const scoreMap: Record<string, { points: number; correct: number; times: number[] }> = {};
+      
+      players.forEach(p => {
+        scoreMap[p.id] = { points: 0, correct: 0, times: [] };
+      });
+      
+      answersData.forEach(a => {
+        if (scoreMap[a.player_id]) {
+          scoreMap[a.player_id].points += a.points_earned;
+          scoreMap[a.player_id].correct += a.is_correct ? 1 : 0;
+          scoreMap[a.player_id].times.push(a.response_time_ms);
+        }
+      });
+      
+      const newScores: QuizScore[] = players.map(p => ({
+        player_id: p.id,
+        player_name: p.name,
+        total_points: scoreMap[p.id]?.points || 0,
+        correct_answers: scoreMap[p.id]?.correct || 0,
+        average_time_ms: scoreMap[p.id]?.times.length 
+          ? Math.round(scoreMap[p.id].times.reduce((a, b) => a + b, 0) / scoreMap[p.id].times.length)
+          : 0
+      }));
+      
+      setScores(newScores);
+    }
+  }, [lobbyId, players]);
+
+  // Subscribe to quiz round updates - SYNCHRONIZED
   useEffect(() => {
     const channel = supabase
-      .channel(`quiz-${lobbyId}`)
+      .channel(`quiz-sync-${lobbyId}`)
       .on(
         'postgres_changes',
         {
@@ -107,11 +143,13 @@ export const useQuizGame = (
           table: 'quiz_rounds',
           filter: `lobby_id=eq.${lobbyId}`
         },
-        (payload: any) => {
+        async (payload: any) => {
           if (payload.new) {
             const newRound = payload.new;
+            console.log('[Quiz] Round update:', newRound.phase, 'round:', newRound.round_number);
+            
             setCurrentRound(newRound.round_number);
-            // Get options from the database
+            
             const options: string[] = newRound.options || [];
             const questionType = newRound.question_type || 'qcm';
             
@@ -126,18 +164,37 @@ export const useQuizGame = (
             
             if (newRound.phase === 'countdown') {
               setPhase('countdown');
+              setHasAnswered(false);
+              setAnsweredPlayers([]);
+              setRoundAnswers([]);
               playSoundEffect('quizReveal', 0.5);
             } else if (newRound.phase === 'answering') {
               setPhase('answering');
-              setQuestionStartTime(Date.now());
-              setTimeRemaining(ANSWER_TIME_MS);
+              setServerStartTime(newRound.started_at);
               setHasAnswered(false);
-              setAnsweredPlayers([]);
+              
+              // Calculate time remaining based on server time
+              if (newRound.started_at) {
+                const startTime = new Date(newRound.started_at).getTime();
+                const now = Date.now();
+                const elapsed = now - startTime;
+                const remaining = Math.max(0, ANSWER_TIME_MS - elapsed);
+                setTimeRemaining(remaining);
+              } else {
+                setTimeRemaining(ANSWER_TIME_MS);
+              }
             } else if (newRound.phase === 'reveal') {
               setPhase('reveal');
+              await fetchScoresFromDB();
               playSoundEffect('reveal', 0.5);
             } else if (newRound.phase === 'scores') {
               setPhase('scores');
+              await fetchScoresFromDB();
+              playSoundEffect('transition', 0.4);
+            } else if (newRound.phase === 'final') {
+              setPhase('final');
+              await fetchScoresFromDB();
+              playSoundEffect('celebration', 0.6);
             }
           }
         }
@@ -151,16 +208,43 @@ export const useQuizGame = (
           filter: `lobby_id=eq.${lobbyId}`
         },
         (payload: any) => {
-          if (payload.new && payload.new.round_number === currentRound) {
-            setAnsweredPlayers(prev => [...prev, payload.new.player_id]);
-            setRoundAnswers(prev => [...prev, {
-              player_id: payload.new.player_id,
-              player_name: payload.new.player_name,
-              answer: payload.new.answer,
-              response_time_ms: payload.new.response_time_ms,
-              is_correct: payload.new.is_correct,
-              points_earned: payload.new.points_earned
-            }]);
+          if (payload.new) {
+            console.log('[Quiz] New answer from:', payload.new.player_name);
+            
+            // Update answered players list
+            setAnsweredPlayers(prev => {
+              if (!prev.includes(payload.new.player_id)) {
+                return [...prev, payload.new.player_id];
+              }
+              return prev;
+            });
+            
+            // Update round answers
+            setRoundAnswers(prev => {
+              const exists = prev.some(a => a.player_id === payload.new.player_id);
+              if (!exists) {
+                return [...prev, {
+                  player_id: payload.new.player_id,
+                  player_name: payload.new.player_name,
+                  answer: payload.new.answer,
+                  response_time_ms: payload.new.response_time_ms,
+                  is_correct: payload.new.is_correct,
+                  points_earned: payload.new.points_earned
+                }];
+              }
+              return prev;
+            });
+
+            // Update local scores immediately for responsive UI
+            setScores(prev => prev.map(s => 
+              s.player_id === payload.new.player_id
+                ? {
+                    ...s,
+                    total_points: s.total_points + payload.new.points_earned,
+                    correct_answers: s.correct_answers + (payload.new.is_correct ? 1 : 0)
+                  }
+                : s
+            ));
           }
         }
       )
@@ -169,36 +253,40 @@ export const useQuizGame = (
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [lobbyId, currentRound]);
+  }, [lobbyId, fetchScoresFromDB]);
 
-  // Timer effect
+  // Synchronized Timer - based on server time
   useEffect(() => {
-    if (phase === 'answering' && timeRemaining > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeRemaining(prev => {
-          const newTime = prev - 100;
-          
-          // Play tick sound every second
-          if (newTime % 1000 === 0 && newTime > 0) {
-            if (newTime <= 5000) {
-              playSoundEffect('quizRush', 0.3);
-            } else {
-              playSoundEffect('quizTick', 0.15);
-            }
+    if (phase === 'answering' && serverStartTime) {
+      const updateTimer = () => {
+        const startTime = new Date(serverStartTime).getTime();
+        const now = Date.now();
+        const elapsed = now - startTime;
+        const remaining = Math.max(0, ANSWER_TIME_MS - elapsed);
+        
+        setTimeRemaining(remaining);
+        
+        // Play tick sounds
+        const seconds = Math.ceil(remaining / 1000);
+        if (remaining % 1000 < 100 && remaining > 0) {
+          if (seconds <= 5) {
+            playSoundEffect('quizRush', 0.3);
+          } else if (seconds <= 30) {
+            playSoundEffect('quizTick', 0.1);
           }
-          
-          // Time's up
-          if (newTime <= 0) {
-            playSoundEffect('quizTimeUp', 0.5);
-            if (currentPlayer.isHost) {
-              advanceToReveal();
-            }
-            return 0;
+        }
+        
+        // Time's up
+        if (remaining <= 0) {
+          playSoundEffect('quizTimeUp', 0.5);
+          if (currentPlayer.isHost) {
+            advanceToReveal();
           }
-          
-          return newTime;
-        });
-      }, 100);
+        }
+      };
+      
+      updateTimer(); // Initial call
+      timerRef.current = setInterval(updateTimer, 100);
     }
 
     return () => {
@@ -206,13 +294,12 @@ export const useQuizGame = (
         clearInterval(timerRef.current);
       }
     };
-  }, [phase, currentPlayer.isHost]);
+  }, [phase, serverStartTime, currentPlayer.isHost]);
 
   // Generate a new question using the edge function
   const generateQuestion = useCallback(async (category: string = 'mixed'): Promise<QuizQuestion | null> => {
     setIsLoading(true);
     try {
-      // If mixed, pick random category
       const categories = ['general', 'anime', 'histoire', 'sport', 'musique', 'cinema', 'science', 'geographie', 'jeux_video', 'art'];
       const categoryToUse = category === 'mixed' 
         ? categories[Math.floor(Math.random() * categories.length)]
@@ -242,7 +329,6 @@ export const useQuizGame = (
       } as QuizQuestion;
     } catch (error) {
       console.error('Error generating question:', error);
-      // Fallback question if API fails
       return {
         question: "Quelle est la capitale de la France ?",
         answer: "Paris",
@@ -257,20 +343,26 @@ export const useQuizGame = (
   }, [previousQuestions]);
 
   // Start a new round (host only)
-  const startRound = useCallback(async (category: string = selectedCategory) => {
+  const startRound = useCallback(async (category: string = selectedCategory, roundNum: number = currentRound) => {
     if (!currentPlayer.isHost) return;
     
+    console.log('[Quiz] Host starting round:', roundNum);
     setRoundAnswers([]);
     setAnsweredPlayers([]);
     
-    // Generate question
     const question = await generateQuestion(category);
     if (!question) return;
 
-    // Save round to database with options
+    // Delete any existing round data for this round
+    await supabase.from('quiz_rounds')
+      .delete()
+      .eq('lobby_id', lobbyId)
+      .eq('round_number', roundNum);
+
+    // Insert new round with countdown phase
     await supabase.from('quiz_rounds').insert({
       lobby_id: lobbyId,
-      round_number: currentRound,
+      round_number: roundNum,
       question_text: question.question,
       correct_answer: question.answer,
       options: question.options,
@@ -278,27 +370,32 @@ export const useQuizGame = (
       category: question.category,
       difficulty: question.difficulty,
       phase: 'countdown',
-      started_at: new Date().toISOString()
+      started_at: null
     });
 
-    // Start countdown then transition to answering
+    // After countdown, transition to answering
     setTimeout(async () => {
+      const now = new Date().toISOString();
       await supabase.from('quiz_rounds')
-        .update({ phase: 'answering' })
+        .update({ 
+          phase: 'answering',
+          started_at: now
+        })
         .eq('lobby_id', lobbyId)
-        .eq('round_number', currentRound);
-    }, 3000);
+        .eq('round_number', roundNum);
+    }, 3500);
   }, [currentPlayer.isHost, lobbyId, currentRound, generateQuestion, selectedCategory]);
 
   // Submit an answer
   const submitAnswer = useCallback(async (answer: string) => {
-    if (hasAnswered || !questionStartTime || !currentQuestion) return;
+    if (hasAnswered || !serverStartTime || !currentQuestion) return;
     
-    const responseTime = Date.now() - questionStartTime;
+    const startTime = new Date(serverStartTime).getTime();
+    const responseTime = Date.now() - startTime;
     const normalizedUserAnswer = normalizeAnswer(answer);
     const normalizedCorrectAnswer = normalizeAnswer(currentQuestion.answer);
     
-    // Check if answer is correct (partial match)
+    // Check if answer is correct
     const isCorrect = normalizedCorrectAnswer.includes(normalizedUserAnswer) || 
                       normalizedUserAnswer.includes(normalizedCorrectAnswer) ||
                       normalizedUserAnswer === normalizedCorrectAnswer;
@@ -324,23 +421,13 @@ export const useQuizGame = (
       is_correct: isCorrect,
       points_earned: points
     });
-
-    // Update local scores
-    setScores(prev => prev.map(s => 
-      s.player_id === currentPlayer.id
-        ? {
-            ...s,
-            total_points: s.total_points + points,
-            correct_answers: s.correct_answers + (isCorrect ? 1 : 0)
-          }
-        : s
-    ));
-  }, [hasAnswered, questionStartTime, currentQuestion, lobbyId, currentRound, currentPlayer]);
+  }, [hasAnswered, serverStartTime, currentQuestion, lobbyId, currentRound, currentPlayer]);
 
   // Advance to reveal phase (host only)
   const advanceToReveal = useCallback(async () => {
     if (!currentPlayer.isHost) return;
     
+    console.log('[Quiz] Advancing to reveal');
     await supabase.from('quiz_rounds')
       .update({ phase: 'reveal' })
       .eq('lobby_id', lobbyId)
@@ -351,40 +438,7 @@ export const useQuizGame = (
   const advanceToScores = useCallback(async () => {
     if (!currentPlayer.isHost) return;
     
-    // Fetch all answers for this round and update scores
-    const { data: answers } = await supabase
-      .from('quiz_answers')
-      .select('*')
-      .eq('lobby_id', lobbyId)
-      .eq('round_number', currentRound);
-    
-    if (answers) {
-      setRoundAnswers(answers.map(a => ({
-        player_id: a.player_id,
-        player_name: a.player_name,
-        answer: a.answer,
-        response_time_ms: a.response_time_ms,
-        is_correct: a.is_correct,
-        points_earned: a.points_earned
-      })));
-      
-      // Update scores
-      setScores(prev => {
-        const newScores = [...prev];
-        answers.forEach(a => {
-          const scoreIndex = newScores.findIndex(s => s.player_id === a.player_id);
-          if (scoreIndex !== -1) {
-            newScores[scoreIndex] = {
-              ...newScores[scoreIndex],
-              total_points: newScores[scoreIndex].total_points + a.points_earned,
-              correct_answers: newScores[scoreIndex].correct_answers + (a.is_correct ? 1 : 0)
-            };
-          }
-        });
-        return newScores;
-      });
-    }
-    
+    console.log('[Quiz] Advancing to scores');
     await supabase.from('quiz_rounds')
       .update({ phase: 'scores' })
       .eq('lobby_id', lobbyId)
@@ -396,19 +450,27 @@ export const useQuizGame = (
     if (!currentPlayer.isHost) return;
     
     if (currentRound >= TOTAL_ROUNDS) {
-      setPhase('final');
-      playSoundEffect('celebration', 0.6);
+      console.log('[Quiz] Moving to final results');
+      await supabase.from('quiz_rounds')
+        .update({ phase: 'final' })
+        .eq('lobby_id', lobbyId)
+        .eq('round_number', currentRound);
     } else {
-      setCurrentRound(prev => prev + 1);
-      startRound();
+      const nextRoundNum = currentRound + 1;
+      console.log('[Quiz] Moving to round:', nextRoundNum);
+      setCurrentRound(nextRoundNum);
+      setHasAnswered(false);
+      startRound(selectedCategory, nextRoundNum);
     }
-  }, [currentPlayer.isHost, currentRound, startRound]);
+  }, [currentPlayer.isHost, currentRound, lobbyId, startRound, selectedCategory]);
 
   // Start the quiz game (host only)
   const startQuiz = useCallback(async (category: string = 'mixed') => {
     if (!currentPlayer.isHost) return;
     
-    // Clean up any existing quiz data for this lobby
+    console.log('[Quiz] Starting quiz with category:', category);
+    
+    // Clean up any existing quiz data
     await supabase.from('quiz_rounds').delete().eq('lobby_id', lobbyId);
     await supabase.from('quiz_answers').delete().eq('lobby_id', lobbyId);
     await supabase.from('quiz_scores').delete().eq('lobby_id', lobbyId);
@@ -423,7 +485,7 @@ export const useQuizGame = (
       average_time_ms: 0
     })));
     
-    startRound(category);
+    startRound(category, 1);
   }, [currentPlayer.isHost, lobbyId, players, startRound]);
 
   return {
