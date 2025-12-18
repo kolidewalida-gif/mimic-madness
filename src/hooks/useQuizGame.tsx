@@ -62,7 +62,8 @@ const normalizeAnswer = (answer: string): string => {
 export const useQuizGame = (
   lobbyId: string,
   currentPlayer: Player,
-  players: Player[]
+  players: Player[],
+  selectedCategory: string = 'mixed'
 ) => {
   const [phase, setPhase] = useState<QuizPhase>('waiting');
   const [currentRound, setCurrentRound] = useState(1);
@@ -200,15 +201,18 @@ export const useQuizGame = (
   }, [phase, currentPlayer.isHost]);
 
   // Generate a new question using the edge function
-  const generateQuestion = useCallback(async (): Promise<QuizQuestion | null> => {
+  const generateQuestion = useCallback(async (category: string = 'mixed'): Promise<QuizQuestion | null> => {
     setIsLoading(true);
     try {
-      const categories = ['culture', 'histoire', 'youtube_fr', 'musique', 'sport', 'cinema', 'science', 'geographie'];
-      const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+      // If mixed, pick random category
+      const categories = ['general', 'anime', 'histoire', 'sport', 'musique', 'cinema', 'science', 'geographie', 'jeux_video', 'art'];
+      const categoryToUse = category === 'mixed' 
+        ? categories[Math.floor(Math.random() * categories.length)]
+        : category;
       
       const { data, error } = await supabase.functions.invoke('generate-quiz-question', {
         body: { 
-          category: randomCategory,
+          category: categoryToUse,
           previousQuestions 
         }
       });
@@ -224,7 +228,7 @@ export const useQuizGame = (
         question: "Quelle est la capitale de la France ?",
         answer: "Paris",
         category: "geographie",
-        difficulty: "easy"
+        difficulty: "facile"
       };
     } finally {
       setIsLoading(false);
@@ -232,14 +236,14 @@ export const useQuizGame = (
   }, [previousQuestions]);
 
   // Start a new round (host only)
-  const startRound = useCallback(async () => {
+  const startRound = useCallback(async (category: string = selectedCategory) => {
     if (!currentPlayer.isHost) return;
     
     setRoundAnswers([]);
     setAnsweredPlayers([]);
     
     // Generate question
-    const question = await generateQuestion();
+    const question = await generateQuestion(category);
     if (!question) return;
 
     // Save round to database
@@ -261,7 +265,7 @@ export const useQuizGame = (
         .eq('lobby_id', lobbyId)
         .eq('round_number', currentRound);
     }, 3000);
-  }, [currentPlayer.isHost, lobbyId, currentRound, generateQuestion]);
+  }, [currentPlayer.isHost, lobbyId, currentRound, generateQuestion, selectedCategory]);
 
   // Submit an answer
   const submitAnswer = useCallback(async (answer: string) => {
@@ -378,7 +382,7 @@ export const useQuizGame = (
   }, [currentPlayer.isHost, currentRound, startRound]);
 
   // Start the quiz game (host only)
-  const startQuiz = useCallback(async () => {
+  const startQuiz = useCallback(async (category: string = 'mixed') => {
     if (!currentPlayer.isHost) return;
     
     // Clean up any existing quiz data for this lobby
@@ -396,7 +400,7 @@ export const useQuizGame = (
       average_time_ms: 0
     })));
     
-    startRound();
+    startRound(category);
   }, [currentPlayer.isHost, lobbyId, players, startRound]);
 
   return {
