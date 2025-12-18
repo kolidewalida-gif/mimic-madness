@@ -11,7 +11,8 @@ interface ScreenTransitionProps {
 type TransitionStyle = 
   | 'wipe' | 'zoom' | 'slide' | 'dissolve' 
   | 'glitch' | 'portal' | 'matrix' | 'shatter' 
-  | 'liquid' | 'neon' | 'cube' | 'particles';
+  | 'liquid' | 'neon' | 'cube' | 'particles'
+  | 'vortex' | 'electric' | 'morph' | 'hologram';
 
 export const ScreenTransition = ({ children, screenKey, className }: ScreenTransitionProps) => {
   const [displayedKey, setDisplayedKey] = useState(screenKey);
@@ -24,7 +25,8 @@ export const ScreenTransition = ({ children, screenKey, className }: ScreenTrans
     const styles: TransitionStyle[] = [
       'wipe', 'zoom', 'slide', 'dissolve',
       'glitch', 'portal', 'matrix', 'shatter',
-      'liquid', 'neon', 'cube', 'particles'
+      'liquid', 'neon', 'cube', 'particles',
+      'vortex', 'electric', 'morph', 'hologram'
     ];
     return styles[Math.floor(Math.random() * styles.length)];
   };
@@ -39,6 +41,10 @@ export const ScreenTransition = ({ children, screenKey, className }: ScreenTrans
       case 'neon': return 'powerUp';
       case 'cube': return 'whoosh';
       case 'particles': return 'reveal';
+      case 'vortex': return 'vortex';
+      case 'electric': return 'electric';
+      case 'morph': return 'morph';
+      case 'hologram': return 'hologram';
       default: return 'transition';
     }
   };

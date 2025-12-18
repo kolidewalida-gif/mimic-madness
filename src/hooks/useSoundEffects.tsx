@@ -3,10 +3,14 @@ import { useCallback, useRef } from 'react';
 type SoundType = 
   | 'click' | 'success' | 'vote' | 'transition' | 'countdown' | 'error' | 'whoosh' 
   | 'message' | 'join' | 'leave' | 'start' | 'record' | 'stop' | 'ding' | 'pop'
-  // New professional sounds
+  // Professional sounds
   | 'messageSend' | 'messageReceive' | 'gifSend' | 'imageSend'
   | 'transitionGlitch' | 'transitionPortal' | 'transitionSwoosh' | 'transitionImpact'
-  | 'dramatic' | 'reveal' | 'tension' | 'celebration' | 'cyber' | 'powerUp';
+  | 'dramatic' | 'reveal' | 'tension' | 'celebration' | 'cyber' | 'powerUp'
+  // Quiz sounds
+  | 'quizCorrect' | 'quizWrong' | 'quizTick' | 'quizReveal' | 'quizRush' | 'quizBuzz' | 'scoreUp'
+  // New transition sounds
+  | 'vortex' | 'electric' | 'hologram' | 'morph';
 
 // Create sophisticated sounds using multiple oscillators, filters, and effects
 const createRichSound = (ctx: AudioContext, type: SoundType, volume: number) => {
@@ -982,6 +986,317 @@ const createRichSound = (ctx: AudioContext, type: SoundType, volume: number) => 
       
       osc.start(now);
       osc.stop(now + 0.12);
+      break;
+    }
+    
+    // Quiz Sound Effects
+    case 'quizCorrect': {
+      // Triumphant arpeggio ascending
+      const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.frequency.setValueAtTime(freq, now + i * 0.06);
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.setValueAtTime(volume * 0.5, now + i * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5 + i * 0.05);
+        osc.start(now + i * 0.06);
+        osc.stop(now + 0.6);
+      });
+      // Sparkle effect
+      for (let i = 0; i < 5; i++) {
+        const sparkle = ctx.createOscillator();
+        const sparkleGain = ctx.createGain();
+        sparkle.connect(sparkleGain);
+        sparkleGain.connect(masterGain);
+        sparkle.frequency.setValueAtTime(2000 + Math.random() * 2000, now + 0.2 + i * 0.04);
+        sparkle.type = 'sine';
+        sparkleGain.gain.setValueAtTime(volume * 0.15, now + 0.2 + i * 0.04);
+        sparkleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35 + i * 0.04);
+        sparkle.start(now + 0.2 + i * 0.04);
+        sparkle.stop(now + 0.4 + i * 0.04);
+      }
+      masterGain.gain.setValueAtTime(1, now);
+      break;
+    }
+    
+    case 'quizWrong': {
+      // Descending buzz
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(filter);
+      filter.connect(masterGain);
+      
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, now);
+      
+      osc1.frequency.setValueAtTime(200, now);
+      osc1.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+      osc1.type = 'sawtooth';
+      
+      osc2.frequency.setValueAtTime(203, now);
+      osc2.frequency.exponentialRampToValueAtTime(82, now + 0.3);
+      osc2.type = 'sawtooth';
+      
+      gain.gain.setValueAtTime(volume * 0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      
+      masterGain.gain.setValueAtTime(1, now);
+      
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.35);
+      osc2.stop(now + 0.35);
+      break;
+    }
+    
+    case 'quizTick': {
+      // Mechanical tick
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(masterGain);
+      
+      osc.frequency.setValueAtTime(1800, now);
+      osc.frequency.exponentialRampToValueAtTime(800, now + 0.02);
+      osc.type = 'square';
+      
+      gain.gain.setValueAtTime(volume * 0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      
+      masterGain.gain.setValueAtTime(1, now);
+      
+      osc.start(now);
+      osc.stop(now + 0.04);
+      break;
+    }
+    
+    case 'quizReveal': {
+      // Fanfare reveal
+      const notes = [392, 523.25, 659.25, 783.99];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.frequency.setValueAtTime(freq, now + i * 0.1);
+        osc.type = 'triangle';
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.setValueAtTime(volume * 0.4, now + i * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        osc.start(now + i * 0.1);
+        osc.stop(now + 0.9);
+      });
+      // Shimmer
+      const shimmer = ctx.createOscillator();
+      const shimmerGain = ctx.createGain();
+      shimmer.connect(shimmerGain);
+      shimmerGain.connect(masterGain);
+      shimmer.frequency.setValueAtTime(3000, now + 0.3);
+      shimmer.type = 'sine';
+      shimmerGain.gain.setValueAtTime(volume * 0.1, now + 0.3);
+      shimmerGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      shimmer.start(now + 0.3);
+      shimmer.stop(now + 0.7);
+      masterGain.gain.setValueAtTime(1, now);
+      break;
+    }
+    
+    case 'quizRush': {
+      // Urgent pulsing alarm
+      for (let i = 0; i < 4; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.frequency.setValueAtTime(800 + i * 50, now + i * 0.08);
+        osc.type = 'square';
+        gain.gain.setValueAtTime(volume * 0.25, now + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06 + i * 0.08);
+        osc.start(now + i * 0.08);
+        osc.stop(now + 0.08 + i * 0.08);
+      }
+      masterGain.gain.setValueAtTime(1, now);
+      break;
+    }
+    
+    case 'quizBuzz': {
+      // Time's up buzzer
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(masterGain);
+      
+      osc1.frequency.setValueAtTime(150, now);
+      osc1.type = 'sawtooth';
+      osc2.frequency.setValueAtTime(153, now);
+      osc2.type = 'sawtooth';
+      
+      gain.gain.setValueAtTime(volume * 0.4, now);
+      gain.gain.setValueAtTime(0, now + 0.15);
+      gain.gain.setValueAtTime(volume * 0.4, now + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      
+      masterGain.gain.setValueAtTime(1, now);
+      
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.5);
+      osc2.stop(now + 0.5);
+      break;
+    }
+    
+    case 'scoreUp': {
+      // Coin collection sound with whoosh
+      const notes = [880, 1108.73, 1318.51];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.frequency.setValueAtTime(freq, now + i * 0.04);
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(volume * 0.35, now + i * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2 + i * 0.02);
+        osc.start(now + i * 0.04);
+        osc.stop(now + 0.25);
+      });
+      masterGain.gain.setValueAtTime(1, now);
+      break;
+    }
+    
+    // New transition sounds
+    case 'vortex': {
+      // Swirling vortex sound
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+      
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(200, now);
+      filter.frequency.exponentialRampToValueAtTime(2000, now + 0.3);
+      filter.frequency.exponentialRampToValueAtTime(100, now + 0.6);
+      filter.Q.setValueAtTime(5, now);
+      
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 0.6);
+      osc.type = 'sawtooth';
+      
+      gain.gain.setValueAtTime(volume * 0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+      
+      masterGain.gain.setValueAtTime(1, now);
+      
+      osc.start(now);
+      osc.stop(now + 0.7);
+      break;
+    }
+    
+    case 'electric': {
+      // Electric zap with crackle
+      for (let i = 0; i < 6; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.frequency.setValueAtTime(1500 + Math.random() * 3000, now + i * 0.03);
+        osc.type = 'sawtooth';
+        gain.gain.setValueAtTime(volume * (0.3 - i * 0.04), now + i * 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03 + i * 0.03);
+        osc.start(now + i * 0.03);
+        osc.stop(now + 0.05 + i * 0.03);
+      }
+      // Bass impact
+      const bass = ctx.createOscillator();
+      const bassGain = ctx.createGain();
+      bass.connect(bassGain);
+      bassGain.connect(masterGain);
+      bass.frequency.setValueAtTime(80, now);
+      bass.type = 'sine';
+      bassGain.gain.setValueAtTime(volume * 0.5, now);
+      bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      bass.start(now);
+      bass.stop(now + 0.25);
+      masterGain.gain.setValueAtTime(1, now);
+      break;
+    }
+    
+    case 'hologram': {
+      // Sci-fi hologram activation
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(masterGain);
+      
+      osc1.frequency.setValueAtTime(400, now);
+      osc1.frequency.linearRampToValueAtTime(1200, now + 0.3);
+      osc1.type = 'sine';
+      
+      osc2.frequency.setValueAtTime(402, now);
+      osc2.frequency.linearRampToValueAtTime(1206, now + 0.3);
+      osc2.type = 'sine';
+      
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume * 0.3, now + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      
+      masterGain.gain.setValueAtTime(1, now);
+      
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.5);
+      osc2.stop(now + 0.5);
+      break;
+    }
+    
+    case 'morph': {
+      // Liquid morphing sound
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+      
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(300, now);
+      filter.frequency.exponentialRampToValueAtTime(3000, now + 0.2);
+      filter.frequency.exponentialRampToValueAtTime(500, now + 0.5);
+      filter.Q.setValueAtTime(10, now);
+      
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(300, now + 0.25);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+      osc.type = 'triangle';
+      
+      gain.gain.setValueAtTime(volume * 0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      
+      masterGain.gain.setValueAtTime(1, now);
+      
+      osc.start(now);
+      osc.stop(now + 0.55);
       break;
     }
   }
