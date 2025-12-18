@@ -11,6 +11,7 @@ interface Player {
 interface QuizQuestion {
   question: string;
   answer: string;
+  options: string[];
   category: string;
   difficulty: string;
 }
@@ -109,9 +110,22 @@ export const useQuizGame = (
           if (payload.new) {
             const newRound = payload.new;
             setCurrentRound(newRound.round_number);
+            // Parse options from the question_text if stored, or generate from answer
+            let options: string[] = [];
+            try {
+              // Try to parse options if they were stored as JSON in a field
+              const storedOptions = newRound.options;
+              if (storedOptions && Array.isArray(storedOptions)) {
+                options = storedOptions;
+              }
+            } catch {
+              options = [];
+            }
+            
             setCurrentQuestion({
               question: newRound.question_text,
               answer: newRound.correct_answer,
+              options: options,
               category: newRound.category,
               difficulty: newRound.difficulty
             });
@@ -181,7 +195,7 @@ export const useQuizGame = (
           
           // Time's up
           if (newTime <= 0) {
-            playSoundEffect('quizBuzz', 0.5);
+            playSoundEffect('quizTimeUp', 0.5);
             if (currentPlayer.isHost) {
               advanceToReveal();
             }
@@ -220,13 +234,20 @@ export const useQuizGame = (
       if (error) throw error;
       
       setPreviousQuestions(prev => [...prev, data.question]);
-      return data as QuizQuestion;
+      return {
+        question: data.question,
+        answer: data.answer,
+        options: data.options || [],
+        category: data.category,
+        difficulty: data.difficulty
+      } as QuizQuestion;
     } catch (error) {
       console.error('Error generating question:', error);
       // Fallback question if API fails
       return {
         question: "Quelle est la capitale de la France ?",
         answer: "Paris",
+        options: ["Paris", "Lyon", "Marseille", "Bordeaux"],
         category: "geographie",
         difficulty: "facile"
       };
