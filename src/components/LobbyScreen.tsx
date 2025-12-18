@@ -5,11 +5,12 @@ import { GameModeSelector } from "@/components/GameModeSelector";
 import { TeamDisplay } from "@/components/TeamDisplay";
 import { Button } from "@/components/ui/button";
 import { DeviceSettings } from "@/components/DeviceSettings";
-import { ArrowLeft, Settings, Wifi } from "lucide-react";
+import { ArrowLeft, Settings, Wifi, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useGameTeams } from "@/hooks/useGameTeams";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Player {
   id: string;
@@ -126,10 +127,24 @@ export const LobbyScreen = ({
     : (players.length >= 4 && players.length % 2 === 0 && teams.length > 0);
 
   return (
-    <div className="min-h-screen animated-bg flex flex-col p-6 relative">
-      {/* Decorative elements */}
-      <div className="absolute top-40 right-20 w-48 h-48 bg-primary/10 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-40 left-20 w-56 h-56 bg-secondary/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
+    <div className="min-h-screen flex flex-col p-6 relative overflow-hidden">
+      {/* Dark gradient background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-background-secondary -z-20" />
+      
+      {/* Animated gradient orbs */}
+      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[150px] animate-float -z-10" />
+      <div className="fixed bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[150px] animate-float -z-10" style={{ animationDelay: '2s' }} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] animate-float -z-10" style={{ animationDelay: '4s' }} />
+      
+      {/* Subtle grid overlay */}
+      <div 
+        className="fixed inset-0 opacity-[0.02] pointer-events-none -z-10"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px'
+        }}
+      />
 
       <div className="w-full max-w-6xl mx-auto space-y-8 animate-fadeIn relative z-10">
         {/* Header */}
@@ -137,7 +152,7 @@ export const LobbyScreen = ({
           <Button
             variant="ghost"
             onClick={onLeaveGame}
-            className="gap-2"
+            className="gap-2 hover:bg-white/10 transition-all duration-300"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Quitter</span>
@@ -148,26 +163,34 @@ export const LobbyScreen = ({
           <Button
             variant="ghost"
             onClick={() => setShowSettings(!showSettings)}
-            className="gap-2"
+            className={cn(
+              "gap-2 transition-all duration-300",
+              showSettings ? "bg-primary/20 text-primary" : "hover:bg-white/10"
+            )}
           >
-            <Settings className="h-4 w-4" />
+            <Settings className={cn("h-4 w-4", showSettings && "animate-spin")} />
             <span className="hidden sm:inline">Audio/Vidéo</span>
           </Button>
         </header>
 
         {/* Status Banner */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30">
+          <div className={cn(
+            "inline-flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300",
+            "bg-gradient-to-r from-primary/20 to-purple-500/20",
+            "border border-primary/30 backdrop-blur-sm"
+          )}>
             <Wifi className="h-4 w-4 text-primary animate-pulse" />
             <span className="text-sm font-medium text-primary">
               {isHost ? "Vous êtes l'hôte" : "Connecté au lobby"}
             </span>
+            <Sparkles className="h-4 w-4 text-purple-400" />
           </div>
           
-          <h2 className="text-2xl font-display font-bold text-foreground">
+          <h2 className="text-3xl font-display font-bold text-foreground">
             Salle d'attente
           </h2>
-          <p className="text-foreground-secondary font-body">
+          <p className="text-foreground-muted font-body max-w-md mx-auto">
             {isHost 
               ? "Choisissez le mode de jeu et lancez la partie quand tout le monde est prêt" 
               : "En attente que l'hôte lance la partie..."
@@ -200,9 +223,14 @@ export const LobbyScreen = ({
               />
             )}
 
-            {!isHost && gameMode === '2v2' && (
-              <div className="text-center p-4 rounded-xl bg-secondary/10 border border-secondary/20">
-                <p className="text-secondary font-display font-bold">Mode 2v2 sélectionné</p>
+            {!isHost && (
+              <div className="relative rounded-2xl p-6 backdrop-blur-xl bg-background-secondary/40 border border-white/10">
+                <div className="text-center">
+                  <p className="text-foreground-muted text-sm mb-2">Mode sélectionné</p>
+                  <p className="text-xl font-display font-bold text-primary">
+                    {gameMode === 'normal' ? '🎮 Normal' : gameMode === '2v2' ? '⚔️ 2v2' : '🧠 Quiz'}
+                  </p>
+                </div>
               </div>
             )}
 
