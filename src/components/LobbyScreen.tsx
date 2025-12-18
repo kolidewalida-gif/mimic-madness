@@ -5,7 +5,7 @@ import { GameModeSelector } from "@/components/GameModeSelector";
 import { TeamDisplay } from "@/components/TeamDisplay";
 import { Button } from "@/components/ui/button";
 import { DeviceSettings } from "@/components/DeviceSettings";
-import { ArrowLeft, Settings, Wifi, Sparkles } from "lucide-react";
+import { ArrowLeft, Settings, Wifi, Sparkles, Zap, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useGameTeams } from "@/hooks/useGameTeams";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,15 +128,18 @@ export const LobbyScreen = ({
 
   return (
     <div className="min-h-screen flex flex-col p-6 relative overflow-hidden">
-      {/* Dark gradient background */}
+      {/* Premium animated background */}
+      <div className="floating-particles" />
+      
+      {/* Gradient overlays */}
       <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-background-secondary -z-20" />
       
       {/* Animated gradient orbs */}
-      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[150px] animate-float -z-10" />
-      <div className="fixed bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[150px] animate-float -z-10" style={{ animationDelay: '2s' }} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] animate-float -z-10" style={{ animationDelay: '4s' }} />
+      <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[180px] animate-float -z-10" />
+      <div className="fixed bottom-0 left-0 w-[700px] h-[700px] bg-purple-500/10 rounded-full blur-[180px] animate-float -z-10" style={{ animationDelay: '2s' }} />
+      <div className="fixed top-1/2 left-1/3 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[120px] animate-float -z-10" style={{ animationDelay: '4s' }} />
       
-      {/* Subtle grid overlay */}
+      {/* Animated grid overlay */}
       <div 
         className="fixed inset-0 opacity-[0.02] pointer-events-none -z-10"
         style={{
@@ -146,62 +149,75 @@ export const LobbyScreen = ({
         }}
       />
 
-      <div className="w-full max-w-6xl mx-auto space-y-8 animate-fadeIn relative z-10">
-        {/* Header */}
-        <header className="flex items-center justify-between">
+      <div className="w-full max-w-6xl mx-auto space-y-8 relative z-10">
+        {/* Header with premium styling */}
+        <header className="flex items-center justify-between animate-fadeInDown">
           <Button
-            variant="ghost"
+            variant="glass"
             onClick={onLeaveGame}
-            className="gap-2 hover:bg-white/10 transition-all duration-300"
+            className="gap-2 group"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             <span className="hidden sm:inline">Quitter</span>
           </Button>
           
-          <GameLogo size="md" />
+          <GameLogo size="md" animated />
           
           <Button
-            variant="ghost"
+            variant="glass"
             onClick={() => setShowSettings(!showSettings)}
             className={cn(
-              "gap-2 transition-all duration-300",
-              showSettings ? "bg-primary/20 text-primary" : "hover:bg-white/10"
+              "gap-2 group",
+              showSettings && "bg-primary/20 border-primary/50"
             )}
           >
-            <Settings className={cn("h-4 w-4", showSettings && "animate-spin")} />
+            <Settings className={cn(
+              "h-4 w-4 transition-transform duration-500",
+              showSettings && "rotate-180"
+            )} />
             <span className="hidden sm:inline">Audio/Vidéo</span>
           </Button>
         </header>
 
-        {/* Status Banner */}
-        <div className="text-center space-y-3">
+        {/* Status Banner with premium animation */}
+        <div className="text-center space-y-4 animate-fadeIn" style={{ animationDelay: '0.1s' }}>
           <div className={cn(
-            "inline-flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300",
-            "bg-gradient-to-r from-primary/20 to-purple-500/20",
-            "border border-primary/30 backdrop-blur-sm"
+            "inline-flex items-center gap-3 px-6 py-3 rounded-full",
+            "bg-gradient-to-r from-primary/20 via-purple-500/20 to-primary/20",
+            "border border-primary/30 backdrop-blur-xl",
+            "animate-shimmer shadow-lg shadow-primary/10"
           )}>
-            <Wifi className="h-4 w-4 text-primary animate-pulse" />
+            <div className="relative">
+              <Wifi className="h-4 w-4 text-primary" />
+              <div className="absolute inset-0 animate-ping">
+                <Wifi className="h-4 w-4 text-primary opacity-50" />
+              </div>
+            </div>
             <span className="text-sm font-medium text-primary">
               {isHost ? "Vous êtes l'hôte" : "Connecté au lobby"}
             </span>
-            <Sparkles className="h-4 w-4 text-purple-400" />
+            <Sparkles className="h-4 w-4 text-purple-400 animate-pulse" />
           </div>
           
-          <h2 className="text-3xl font-display font-bold text-foreground">
-            Salle d'attente
-          </h2>
-          <p className="text-foreground-muted font-body max-w-md mx-auto">
-            {isHost 
-              ? "Choisissez le mode de jeu et lancez la partie quand tout le monde est prêt" 
-              : "En attente que l'hôte lance la partie..."
-            }
-          </p>
+          <div className="space-y-2">
+            <h2 className="text-4xl font-display font-bold text-foreground flex items-center justify-center gap-3">
+              <Zap className="h-8 w-8 text-primary animate-pulse" />
+              Salle d'attente
+              <Zap className="h-8 w-8 text-primary animate-pulse" />
+            </h2>
+            <p className="text-foreground-muted font-body max-w-md mx-auto">
+              {isHost 
+                ? "Choisissez le mode de jeu et lancez la partie quand tout le monde est prêt" 
+                : "En attente que l'hôte lance la partie..."
+              }
+            </p>
+          </div>
         </div>
 
-        {/* Main Content */}
+        {/* Main Content with staggered animations */}
         <div className="grid lg:grid-cols-2 gap-6 items-start">
           {/* Left Column - Players List */}
-          <div className="space-y-6">
+          <div className="space-y-6 animate-slideInLeft" style={{ animationDelay: '0.2s' }}>
             <PlayersList
               players={players}
               lobbyCode={lobbyCode}
@@ -214,7 +230,7 @@ export const LobbyScreen = ({
           </div>
 
           {/* Right Column - Game Mode & Teams / Settings */}
-          <div className="space-y-6">
+          <div className="space-y-6 animate-slideInRight" style={{ animationDelay: '0.3s' }}>
             {isHost && (
               <GameModeSelector
                 gameMode={gameMode}
@@ -224,10 +240,16 @@ export const LobbyScreen = ({
             )}
 
             {!isHost && (
-              <div className="relative rounded-2xl p-6 backdrop-blur-xl bg-background-secondary/40 border border-white/10">
-                <div className="text-center">
-                  <p className="text-foreground-muted text-sm mb-2">Mode sélectionné</p>
-                  <p className="text-xl font-display font-bold text-primary">
+              <div className="relative rounded-2xl p-6 backdrop-blur-xl bg-background-secondary/40 border border-white/10 overflow-hidden group hover:border-white/20 transition-all duration-500">
+                {/* Animated background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative text-center space-y-3">
+                  <p className="text-foreground-muted text-sm flex items-center justify-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Mode sélectionné
+                  </p>
+                  <p className="text-2xl font-display font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
                     {gameMode === 'normal' ? '🎮 Normal' : gameMode === '2v2' ? '⚔️ 2v2' : '🧠 Quiz'}
                   </p>
                 </div>
@@ -235,18 +257,20 @@ export const LobbyScreen = ({
             )}
 
             {gameMode === '2v2' && (
-              <TeamDisplay
-                teams={teams}
-                currentPlayerId={currentPlayer.id}
-                lobbyId={lobbyId}
-                isHost={isHost}
-                onShuffleTeams={handleShuffleTeams}
-                isLoading={teamsLoading}
-              />
+              <div className="animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+                <TeamDisplay
+                  teams={teams}
+                  currentPlayerId={currentPlayer.id}
+                  lobbyId={lobbyId}
+                  isHost={isHost}
+                  onShuffleTeams={handleShuffleTeams}
+                  isLoading={teamsLoading}
+                />
+              </div>
             )}
 
             {showSettings && (
-              <div className="animate-slideInRight">
+              <div className="animate-zoomInBounce">
                 <DeviceSettings 
                   showPreview={true} 
                   playerId={currentPlayer.id}

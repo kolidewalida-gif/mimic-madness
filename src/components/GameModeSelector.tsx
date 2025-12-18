@@ -1,5 +1,5 @@
 import { GameCard } from "@/components/GameCard";
-import { Users, Swords, Brain, Check, Sparkles } from "lucide-react";
+import { Users, Swords, Brain, Check, Sparkles, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GameModeSelectorProps {
@@ -27,7 +27,8 @@ export const GameModeSelector = ({
       canPlay: true,
       gradient: 'from-blue-500 to-cyan-500',
       shadow: 'shadow-blue-500/30',
-      glow: 'hover:shadow-blue-500/50',
+      glow: 'group-hover:shadow-blue-500/50',
+      bgGlow: 'bg-blue-500/20',
     },
     {
       id: '2v2' as const,
@@ -37,7 +38,8 @@ export const GameModeSelector = ({
       canPlay: canPlay2v2,
       gradient: 'from-orange-500 to-amber-500',
       shadow: 'shadow-orange-500/30',
-      glow: 'hover:shadow-orange-500/50',
+      glow: 'group-hover:shadow-orange-500/50',
+      bgGlow: 'bg-orange-500/20',
     },
     {
       id: 'quiz' as const,
@@ -47,14 +49,18 @@ export const GameModeSelector = ({
       canPlay: canPlayQuiz,
       gradient: 'from-purple-500 to-pink-500',
       shadow: 'shadow-purple-500/30',
-      glow: 'hover:shadow-purple-500/50',
+      glow: 'group-hover:shadow-purple-500/50',
+      bgGlow: 'bg-purple-500/20',
     },
   ];
 
   return (
-    <div className="relative">
+    <div className="relative group/container">
+      {/* Outer glow */}
+      <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-primary/20 rounded-3xl blur-xl opacity-0 group-hover/container:opacity-100 transition-opacity duration-500" />
+      
       {/* Glassmorphism container */}
-      <div className="relative rounded-2xl p-6 backdrop-blur-xl bg-background-secondary/40 border border-white/10 shadow-2xl overflow-hidden">
+      <div className="relative rounded-2xl p-6 backdrop-blur-xl bg-background-secondary/40 border border-white/10 shadow-2xl overflow-hidden transition-all duration-500 group-hover/container:border-white/20">
         {/* Animated background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
         
@@ -80,7 +86,7 @@ export const GameModeSelector = ({
           
           {/* Mode buttons */}
           <div className="grid grid-cols-3 gap-3">
-            {modes.map((mode) => {
+            {modes.map((mode, index) => {
               const Icon = mode.icon;
               const isSelected = gameMode === mode.id;
               const isDisabled = disabled || !mode.canPlay;
@@ -91,19 +97,24 @@ export const GameModeSelector = ({
                   onClick={() => mode.canPlay && onGameModeChange(mode.id)}
                   disabled={isDisabled}
                   className={cn(
-                    "relative p-4 rounded-xl transition-all duration-300 group",
+                    "relative p-4 rounded-xl transition-all duration-500 group",
                     "border-2 backdrop-blur-sm overflow-hidden",
+                    "animate-stagger opacity-0",
                     isSelected
-                      ? `border-white/30 bg-gradient-to-br ${mode.gradient} shadow-xl ${mode.shadow}`
+                      ? `border-white/40 bg-gradient-to-br ${mode.gradient} shadow-xl ${mode.shadow}`
                       : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20",
-                    !isDisabled && "hover:scale-[1.03] active:scale-[0.98]",
+                    !isDisabled && "hover:scale-[1.05] active:scale-[0.98]",
                     isDisabled && "opacity-40 cursor-not-allowed"
                   )}
+                  style={{ 
+                    animationDelay: `${index * 100}ms`,
+                    animationFillMode: 'forwards'
+                  }}
                 >
                   {/* Selection indicator */}
                   {isSelected && (
-                    <div className="absolute top-2 right-2 animate-scale-in">
-                      <div className="p-1 rounded-full bg-white/20 backdrop-blur-sm">
+                    <div className="absolute top-2 right-2 animate-bounceIn">
+                      <div className="p-1 rounded-full bg-white/30 backdrop-blur-sm">
                         <Check className="h-3 w-3 text-white" />
                       </div>
                     </div>
@@ -111,40 +122,49 @@ export const GameModeSelector = ({
 
                   {/* Glow effect on hover */}
                   <div className={cn(
-                    "absolute inset-0 opacity-0 transition-opacity duration-300 rounded-xl",
-                    !isDisabled && `group-hover:opacity-100 bg-gradient-to-br ${mode.gradient} blur-xl -z-10`
+                    "absolute inset-0 opacity-0 transition-opacity duration-500 rounded-xl",
+                    !isDisabled && `group-hover:opacity-100 ${mode.bgGlow} blur-xl -z-10`
                   )} />
 
-                  <div className="flex flex-col items-center gap-2 relative z-10">
-                    {/* Icon container */}
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+
+                  <div className="flex flex-col items-center gap-3 relative z-10">
+                    {/* Icon container with animation */}
                     <div className={cn(
-                      "p-3 rounded-xl transition-all duration-300",
+                      "p-4 rounded-xl transition-all duration-500",
                       isSelected 
-                        ? "bg-white/20" 
-                        : "bg-white/5 group-hover:bg-white/10"
+                        ? "bg-white/20 shadow-lg" 
+                        : "bg-white/5 group-hover:bg-white/15"
                     )}>
                       <Icon className={cn(
-                        "h-6 w-6 transition-colors duration-300",
-                        isSelected ? "text-white" : "text-foreground-muted group-hover:text-foreground"
+                        "h-7 w-7 transition-all duration-500",
+                        isSelected ? "text-white drop-shadow-lg" : "text-foreground-muted group-hover:text-foreground",
+                        !isDisabled && "group-hover:scale-110"
                       )} />
                     </div>
 
                     {/* Text */}
                     <div className="text-center">
                       <p className={cn(
-                        "font-display font-bold text-sm transition-colors duration-300",
+                        "font-display font-bold text-base transition-colors duration-300",
                         isSelected ? "text-white" : "text-foreground"
                       )}>
                         {mode.name}
                       </p>
                       <p className={cn(
-                        "text-[10px] mt-0.5 transition-colors duration-300",
-                        isSelected ? "text-white/70" : "text-foreground-muted"
+                        "text-xs mt-1 transition-colors duration-300",
+                        isSelected ? "text-white/80" : "text-foreground-muted"
                       )}>
                         {mode.subtitle}
                       </p>
                     </div>
                   </div>
+
+                  {/* Bottom accent when selected */}
+                  {isSelected && (
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-white/50 rounded-full blur-sm" />
+                  )}
                 </button>
               );
             })}

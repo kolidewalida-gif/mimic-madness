@@ -1,4 +1,4 @@
-import { Users, Crown, Copy, CheckCircle2, Sparkles } from "lucide-react";
+import { Users, Crown, Copy, CheckCircle2, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useToast } from "@/hooks/use-toast";
@@ -56,11 +56,19 @@ export const PlayersList = ({
   };
 
   return (
-    <div className="relative">
+    <div className="relative group">
+      {/* Outer glow on hover */}
+      <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-primary/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
       {/* Glassmorphism container */}
-      <div className="relative rounded-2xl p-6 backdrop-blur-xl bg-background-secondary/40 border border-white/10 shadow-2xl overflow-hidden">
+      <div className="relative rounded-2xl p-6 backdrop-blur-xl bg-background-secondary/40 border border-white/10 shadow-2xl overflow-hidden transition-all duration-500 group-hover:border-white/20">
         {/* Animated background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 pointer-events-none" />
+        
+        {/* Shimmer effect */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+          <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </div>
         
         {/* Subtle grid pattern */}
         <div 
@@ -77,25 +85,33 @@ export const PlayersList = ({
           {lobbyCode && (
             <div className="text-center space-y-3">
               <p className="text-foreground-muted text-xs font-display uppercase tracking-widest flex items-center justify-center gap-2">
-                <Sparkles className="h-3 w-3 text-primary" />
+                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
                 Code du Lobby
-                <Sparkles className="h-3 w-3 text-primary" />
+                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
               </p>
               <div className="flex items-center justify-center gap-3">
-                <div className="relative px-6 py-3 rounded-xl bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 border border-primary/30">
-                  <span className="text-4xl font-display font-black tracking-[0.3em] text-primary drop-shadow-[0_0_15px_rgba(229,9,20,0.5)]">
-                    {lobbyCode}
-                  </span>
+                <div className="relative group/code">
+                  {/* Animated border */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-500 to-primary rounded-xl opacity-50 blur group-hover/code:opacity-100 transition-opacity duration-300 animate-gradient" />
+                  
+                  <div className="relative px-8 py-4 rounded-xl bg-background/80 border border-primary/30">
+                    <span className="text-4xl font-display font-black tracking-[0.4em] text-transparent bg-gradient-to-r from-primary to-purple-400 bg-clip-text drop-shadow-glow">
+                      {lobbyCode}
+                    </span>
+                  </div>
                 </div>
                 <Button
-                  variant="ghost"
+                  variant="glass"
                   size="icon"
                   onClick={copyLobbyCode}
-                  className="hover:bg-primary/20 transition-all duration-300 hover:scale-110"
+                  className={cn(
+                    "transition-all duration-300",
+                    copied && "bg-success/20 border-success/50"
+                  )}
                   title="Copier le code"
                 >
                   {copied ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-400" />
+                    <CheckCircle2 className="h-5 w-5 text-success animate-bounceIn" />
                   ) : (
                     <Copy className="h-5 w-5 text-primary" />
                   )}
@@ -107,21 +123,24 @@ export const PlayersList = ({
             </div>
           )}
 
-          {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          {/* Divider with glow */}
+          <div className="relative h-px">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/30 to-transparent blur-sm" />
+          </div>
 
           {/* Players Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-foreground-muted">
-                <div className="p-2 rounded-lg bg-primary/10">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/20">
                   <Users className="h-4 w-4 text-primary" />
                 </div>
                 <span className="font-display text-sm uppercase tracking-wider">
                   Joueurs
                 </span>
               </div>
-              <span className="text-sm font-display px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+              <span className="text-sm font-display px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border border-primary/20">
                 {players.length}/8
               </span>
             </div>
@@ -129,7 +148,7 @@ export const PlayersList = ({
             <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
               {players.length === 0 ? (
                 <div className="text-center py-8">
-                  <Users className="h-12 w-12 mx-auto mb-3 text-foreground-muted/30" />
+                  <Users className="h-12 w-12 mx-auto mb-3 text-foreground-muted/30 animate-pulse" />
                   <p className="text-foreground-muted font-body">
                     Aucun joueur connecté
                   </p>
@@ -140,10 +159,14 @@ export const PlayersList = ({
                     key={player.id}
                     className={cn(
                       "flex items-center justify-between p-3 rounded-xl transition-all duration-300",
-                      "bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20",
-                      "animate-slideInLeft"
+                      "bg-white/5 border border-white/10",
+                      "hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]",
+                      "animate-stagger opacity-0"
                     )}
-                    style={{ animationDelay: `${index * 80}ms` }}
+                    style={{ 
+                      animationDelay: `${index * 80}ms`,
+                      animationFillMode: 'forwards'
+                    }}
                   >
                     <div className="flex items-center gap-3">
                       <PlayerAvatar
@@ -160,43 +183,54 @@ export const PlayersList = ({
                         </span>
                         {player.isHost && (
                           <span className="text-xs text-amber-400 flex items-center gap-1">
-                            <Crown className="h-3 w-3" />
+                            <Crown className="h-3 w-3 animate-bounce-slow" />
                             Hôte
                           </span>
                         )}
                       </div>
                     </div>
                     
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-[0_0_10px_rgba(74,222,128,0.5)]" />
+                    {/* Online indicator with pulse ring */}
+                    <div className="relative">
+                      <div className="w-2.5 h-2.5 rounded-full bg-success shadow-[0_0_12px_rgba(74,222,128,0.6)]" />
+                      <div className="absolute inset-0 rounded-full bg-success animate-ping opacity-50" />
+                    </div>
                   </div>
                 ))
               )}
             </div>
           </div>
 
-          {/* Start Button */}
+          {/* Start Button - Premium */}
           {isHost && onStartGame && (
             <div className="space-y-3 pt-2">
               <Button
                 onClick={onStartGame}
                 disabled={!canStart}
+                variant="hero"
+                size="xl"
                 className={cn(
-                  "w-full py-6 text-lg font-display uppercase tracking-wider transition-all duration-300",
-                  "bg-gradient-to-r from-primary to-primary-hover hover:from-primary-hover hover:to-primary",
-                  "shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/50",
-                  "border-0 rounded-xl",
-                  !canStart && "opacity-50 cursor-not-allowed"
+                  "w-full font-display uppercase tracking-wider group",
+                  !canStart && "opacity-50"
                 )}
               >
-                {!canStart 
-                  ? gameMode === '2v2' 
-                    ? "Conditions 2v2 non remplies"
-                    : "En attente de joueurs..." 
-                  : `🎮 Lancer la Partie ${gameMode === '2v2' ? '2v2' : gameMode === 'quiz' ? 'Quiz' : ''}`
-                }
+                <div className="flex items-center justify-center gap-2">
+                  <Zap className={cn(
+                    "h-5 w-5 transition-all",
+                    canStart && "group-hover:animate-pulse"
+                  )} />
+                  <span>
+                    {!canStart 
+                      ? gameMode === '2v2' 
+                        ? "Conditions 2v2 non remplies"
+                        : "En attente de joueurs..." 
+                      : `Lancer la Partie ${gameMode === '2v2' ? '2v2' : gameMode === 'quiz' ? 'Quiz' : ''}`
+                    }
+                  </span>
+                </div>
               </Button>
               {!canStart && (
-                <p className="text-xs text-center text-foreground-muted font-body">
+                <p className="text-xs text-center text-foreground-muted font-body animate-pulse">
                   {gameMode === '2v2' 
                     ? "Min. 4 joueurs pairs + équipes formées" 
                     : "Minimum 2 joueurs requis"}
@@ -206,9 +240,9 @@ export const PlayersList = ({
           )}
 
           {!isHost && (
-            <div className="text-center p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
+            <div className="text-center p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 animate-pulse">
               <p className="text-amber-400 font-body text-sm flex items-center justify-center gap-2">
-                <span className="animate-pulse">⏳</span>
+                <span className="animate-bounce">⏳</span>
                 En attente du lancement...
               </p>
             </div>
@@ -216,7 +250,7 @@ export const PlayersList = ({
         </div>
 
         {/* Bottom glow line */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
       </div>
     </div>
   );
