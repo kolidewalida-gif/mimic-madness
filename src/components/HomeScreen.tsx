@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { GameLogo } from "@/components/GameLogo";
 import { GameCard } from "@/components/GameCard";
 import { VolumeControl } from "@/components/VolumeControl";
+import { SoundEffectsVolumeControl } from "@/components/SoundEffectsVolumeControl";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { Play, Users, Settings, User } from "lucide-react";
@@ -109,6 +110,7 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
                 <div className="pt-4 border-t border-border space-y-3">
                   <VolumeControl />
+                  <SoundEffectsVolumeControl />
                   <Button
                     variant="ghost"
                     size="sm"

@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { getSoundEffectsVolume } from './useSoundEffectsVolume';
 
 type SoundType = 
   | 'click' | 'success' | 'vote' | 'transition' | 'countdown' | 'error' | 'whoosh' 
@@ -15,8 +16,12 @@ type SoundType =
   | 'hover';
 
 // Create sophisticated sounds using multiple oscillators, filters, and effects
-const createRichSound = (ctx: AudioContext, type: SoundType, volume: number) => {
+const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number) => {
   const now = ctx.currentTime;
+  // Apply global sound effects volume
+  const globalVolume = getSoundEffectsVolume();
+  const volume = baseVolume * globalVolume;
+  
   const masterGain = ctx.createGain();
   masterGain.connect(ctx.destination);
 

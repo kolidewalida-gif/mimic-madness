@@ -197,6 +197,7 @@ export const QuizGameScreen = ({
         <QuizQuestion
           question={currentQuestion.question}
           options={currentQuestion.options || []}
+          questionType={currentQuestion.questionType || 'qcm'}
           category={currentQuestion.category}
           difficulty={currentQuestion.difficulty}
           roundNumber={currentRound}

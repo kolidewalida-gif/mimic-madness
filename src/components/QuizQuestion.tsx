@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { GameCard } from './GameCard';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
-import { Clock, Check, User } from 'lucide-react';
+import { Input } from './ui/input';
+import { Clock, Check, User, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuizLiveScoreboard } from './QuizLiveScoreboard';
 
@@ -23,6 +24,7 @@ interface QuizScore {
 interface QuizQuestionProps {
   question: string;
   options: string[];
+  questionType: 'qcm' | 'text';
   category: string;
   difficulty: string;
   roundNumber: number;
@@ -72,6 +74,7 @@ const optionColors = [
 export const QuizQuestion = ({
   question,
   options,
+  questionType,
   category,
   difficulty,
   roundNumber,
@@ -85,13 +88,28 @@ export const QuizQuestion = ({
   onSubmitAnswer
 }: QuizQuestionProps) => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [textAnswer, setTextAnswer] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const progress = (timeRemaining / TOTAL_TIME) * 100;
   const isUrgent = timeRemaining <= 5000;
+
+  // Auto-focus text input when in text mode
+  useEffect(() => {
+    if (questionType === 'text' && inputRef.current && !hasAnswered) {
+      inputRef.current.focus();
+    }
+  }, [questionType, hasAnswered]);
 
   const handleSelectOption = (option: string) => {
     if (hasAnswered) return;
     setSelectedOption(option);
     onSubmitAnswer(option);
+  };
+
+  const handleTextSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (hasAnswered || !textAnswer.trim()) return;
+    onSubmitAnswer(textAnswer.trim());
   };
 
   const formatTime = (ms: number) => {
@@ -135,6 +153,11 @@ export const QuizQuestion = ({
             )}>
               {difficulty}
             </span>
+            {questionType === 'text' && (
+              <span className="px-3 py-1 rounded-full text-sm bg-primary/20 text-primary">
+                ✏️ Texte
+              </span>
+            )}
           </div>
         </div>
 
@@ -169,31 +192,66 @@ export const QuizQuestion = ({
         </GameCard>
 
         {/* QCM Options - 2x2 Grid */}
-        <div className="w-full grid grid-cols-2 gap-3">
-          {options.map((option, index) => (
-            <Button
-              key={index}
-              onClick={() => handleSelectOption(option)}
-              disabled={hasAnswered}
-              soundEffect={hasAnswered ? 'none' : 'click'}
-              className={cn(
-                "h-auto min-h-[80px] p-4 text-base md:text-lg font-medium",
-                "bg-gradient-to-br border-2 rounded-xl",
-                "transition-all duration-300 transform",
-                "flex items-center justify-center text-center whitespace-normal",
-                optionColors[index % 4],
-                !hasAnswered && "hover:scale-[1.02] hover:shadow-lg",
-                hasAnswered && selectedOption === option && "ring-2 ring-primary scale-[1.02]",
-                hasAnswered && selectedOption !== option && "opacity-50"
-              )}
-              style={{
-                animationDelay: `${index * 100}ms`
-              }}
-            >
-              <span className="line-clamp-3">{option}</span>
-            </Button>
-          ))}
-        </div>
+        {questionType === 'qcm' && options && options.length > 0 ? (
+          <div className="w-full grid grid-cols-2 gap-3">
+            {options.map((option, index) => (
+              <Button
+                key={index}
+                onClick={() => handleSelectOption(option)}
+                disabled={hasAnswered}
+                soundEffect={hasAnswered ? 'none' : 'click'}
+                className={cn(
+                  "h-auto min-h-[80px] p-4 text-base md:text-lg font-medium",
+                  "bg-gradient-to-br border-2 rounded-xl",
+                  "transition-all duration-300 transform",
+                  "flex items-center justify-center text-center whitespace-normal",
+                  optionColors[index % 4],
+                  !hasAnswered && "hover:scale-[1.02] hover:shadow-lg",
+                  hasAnswered && selectedOption === option && "ring-2 ring-primary scale-[1.02]",
+                  hasAnswered && selectedOption !== option && "opacity-50"
+                )}
+                style={{
+                  animationDelay: `${index * 100}ms`
+                }}
+              >
+                <span className="line-clamp-3">{option}</span>
+              </Button>
+            ))}
+          </div>
+        ) : (
+          /* Text Input Mode */
+          <form onSubmit={handleTextSubmit} className="w-full">
+            <div className="flex gap-3">
+              <Input
+                ref={inputRef}
+                type="text"
+                value={textAnswer}
+                onChange={(e) => setTextAnswer(e.target.value)}
+                placeholder="Tapez votre réponse..."
+                disabled={hasAnswered}
+                className={cn(
+                  "flex-1 h-14 text-lg px-4",
+                  "bg-card/50 border-2 border-white/20",
+                  "focus:border-primary focus:ring-2 focus:ring-primary/30",
+                  hasAnswered && "opacity-50"
+                )}
+                autoComplete="off"
+              />
+              <Button
+                type="submit"
+                disabled={hasAnswered || !textAnswer.trim()}
+                soundEffect="click"
+                className={cn(
+                  "h-14 px-6",
+                  "bg-gradient-to-r from-primary to-primary-light",
+                  "hover:shadow-lg hover:shadow-primary/30"
+                )}
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+          </form>
+        )}
 
         {/* Answer Status */}
         {hasAnswered && (
