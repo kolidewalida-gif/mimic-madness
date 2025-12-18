@@ -8,9 +8,11 @@ type SoundType =
   | 'transitionGlitch' | 'transitionPortal' | 'transitionSwoosh' | 'transitionImpact'
   | 'dramatic' | 'reveal' | 'tension' | 'celebration' | 'cyber' | 'powerUp'
   // Quiz sounds
-  | 'quizCorrect' | 'quizWrong' | 'quizTick' | 'quizReveal' | 'quizRush' | 'quizBuzz' | 'scoreUp'
+  | 'quizCorrect' | 'quizWrong' | 'quizTick' | 'quizReveal' | 'quizRush' | 'quizTimeUp' | 'scoreUp'
   // New transition sounds
-  | 'vortex' | 'electric' | 'hologram' | 'morph';
+  | 'vortex' | 'electric' | 'hologram' | 'morph'
+  // UI sounds
+  | 'hover';
 
 // Create sophisticated sounds using multiple oscillators, filters, and effects
 const createRichSound = (ctx: AudioContext, type: SoundType, volume: number) => {
@@ -1129,32 +1131,68 @@ const createRichSound = (ctx: AudioContext, type: SoundType, volume: number) => 
       break;
     }
     
-    case 'quizBuzz': {
-      // Time's up buzzer
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
+    case 'quizTimeUp': {
+      // Gentle gong/chime - soft descending notes (E5 → C5 → A4)
+      const notes = [659.25, 523.25, 440];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterGain);
+        
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2000, now + i * 0.15);
+        filter.frequency.exponentialRampToValueAtTime(500, now + i * 0.15 + 0.4);
+        
+        osc.frequency.setValueAtTime(freq, now + i * 0.15);
+        osc.type = 'sine';
+        
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.setValueAtTime(volume * 0.35, now + i * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6 + i * 0.1);
+        
+        osc.start(now + i * 0.15);
+        osc.stop(now + 0.8);
+      });
+      
+      // Soft shimmer overlay
+      const shimmer = ctx.createOscillator();
+      const shimmerGain = ctx.createGain();
+      shimmer.connect(shimmerGain);
+      shimmerGain.connect(masterGain);
+      shimmer.frequency.setValueAtTime(1318.51, now);
+      shimmer.type = 'triangle';
+      shimmerGain.gain.setValueAtTime(volume * 0.08, now);
+      shimmerGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      shimmer.start(now);
+      shimmer.stop(now + 0.5);
+      
+      masterGain.gain.setValueAtTime(1, now);
+      break;
+    }
+    
+    case 'hover': {
+      // Subtle, short hover sound
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
-      osc1.connect(gain);
-      osc2.connect(gain);
+      osc.connect(gain);
       gain.connect(masterGain);
       
-      osc1.frequency.setValueAtTime(150, now);
-      osc1.type = 'sawtooth';
-      osc2.frequency.setValueAtTime(153, now);
-      osc2.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1400, now);
+      osc.frequency.exponentialRampToValueAtTime(1200, now + 0.03);
+      osc.type = 'sine';
       
-      gain.gain.setValueAtTime(volume * 0.4, now);
-      gain.gain.setValueAtTime(0, now + 0.15);
-      gain.gain.setValueAtTime(volume * 0.4, now + 0.2);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      gain.gain.setValueAtTime(volume * 0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
       
       masterGain.gain.setValueAtTime(1, now);
       
-      osc1.start(now);
-      osc2.start(now);
-      osc1.stop(now + 0.5);
-      osc2.stop(now + 0.5);
+      osc.start(now);
+      osc.stop(now + 0.04);
       break;
     }
     
