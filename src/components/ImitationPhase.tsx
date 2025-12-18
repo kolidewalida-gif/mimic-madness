@@ -34,7 +34,7 @@ interface ImitationPhaseProps {
   currentPlayer: Player;
   players: Player[];
   currentChallenge: Challenge;
-  gameMode?: 'normal' | '2v2';
+  gameMode?: 'normal' | '2v2' | 'quiz';
   getTeammate?: (playerId: string) => { id: string; name: string } | null;
   onAllReady: () => void;
 }

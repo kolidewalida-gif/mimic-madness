@@ -28,7 +28,7 @@ interface VotingPhaseProps {
   currentPlayer: Player;
   players: Player[];
   challengeVideoClipId: string;
-  gameMode?: 'normal' | '2v2';
+  gameMode?: 'normal' | '2v2' | 'quiz';
   teams?: Team[];
   onVotingComplete: () => void;
 }

@@ -23,7 +23,7 @@ interface ResultsPhaseProps {
   roundNumber: number;
   players: Player[];
   currentPlayer: Player;
-  gameMode?: 'normal' | '2v2';
+  gameMode?: 'normal' | '2v2' | 'quiz';
   teams?: Team[];
   onNextRound: () => void;
   onEndGame: () => void;

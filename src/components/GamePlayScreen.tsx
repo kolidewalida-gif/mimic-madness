@@ -23,7 +23,7 @@ interface GamePlayScreenProps {
   currentPlayer: Player;
   players: Player[];
   lobbyId: string;
-  gameMode?: 'normal' | '2v2';
+  gameMode?: 'normal' | '2v2' | 'quiz';
   onEndGame: () => void;
 }
 
