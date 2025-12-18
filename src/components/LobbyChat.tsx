@@ -135,6 +135,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isSending) return;
+    playSoundEffect('messageSend', 0.4);
     await sendMessage(inputValue, 'text');
     setInputValue('');
     setTimeout(scrollToBottom, 100);
@@ -148,6 +149,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
   };
 
   const handleSendGif = async (gifUrl: string) => {
+    playSoundEffect('gifSend', 0.4);
     await sendMessage(gifUrl, 'gif');
     setShowGifPicker(false);
     setTimeout(scrollToBottom, 100);
@@ -169,6 +171,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = reader.result as string;
+      playSoundEffect('imageSend', 0.4);
       await sendMessage(base64, 'image');
       setTimeout(scrollToBottom, 100);
     };
@@ -260,9 +263,10 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
                     <div
                       key={msg.id}
                       className={cn(
-                        'flex gap-3',
+                        'flex gap-3 message-pop',
                         isOwnMessage ? 'flex-row-reverse' : 'flex-row'
                       )}
+                      style={{ animationDelay: `${Math.min(messages.indexOf(msg) * 0.05, 0.3)}s` }}
                     >
                       <PlayerAvatar
                         playerId={msg.playerId}
