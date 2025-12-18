@@ -3,6 +3,7 @@ import { HomeScreen } from "@/components/HomeScreen";
 import { LobbyScreen } from "@/components/LobbyScreen";
 import { VideoSubmissionScreen } from "@/components/VideoSubmissionScreen";
 import { GamePlayScreen } from "@/components/GamePlayScreen";
+import { QuizGameScreen } from "@/components/QuizGameScreen";
 import { DynamicBackground } from "@/components/DynamicBackground";
 import { ScreenTransition } from "@/components/ScreenTransition";
 import { useToast } from "@/hooks/use-toast";
@@ -17,8 +18,8 @@ interface Player {
   isHost: boolean;
 }
 
-type GameState = "home" | "lobby" | "preparation" | "playing";
-type GameMode = "normal" | "2v2";
+type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz";
+type GameMode = "normal" | "2v2" | "quiz";
 
 const Index = () => {
   const [gameState, setGameState] = useState<GameState>("home");
@@ -59,6 +60,14 @@ const Index = () => {
             toast({
               title: "La partie commence !",
               description: "Préparez vos défis vidéo.",
+            });
+          } else if (newPhase === 'quiz' && gameState !== 'quiz') {
+            console.log('Transitioning to quiz');
+            playSoundEffect('quizReveal', 0.5);
+            setGameState('quiz');
+            toast({
+              title: "🧠 Mode Quiz !",
+              description: "Préparez-vous à répondre aux questions.",
             });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             console.log('Transitioning to playing');
@@ -130,14 +139,20 @@ const Index = () => {
     // Update lobby status and phase
     if (lobby && currentPlayer?.isHost) {
       try {
+        const gamePhase = mode === 'quiz' ? 'quiz' : 'preparation';
         await supabase
           .from('lobbies')
           .update({ 
             status: 'playing',
-            game_phase: 'preparation',
+            game_phase: gamePhase,
             game_mode: mode
           })
           .eq('id', lobby.id);
+        
+        // For quiz mode, transition immediately
+        if (mode === 'quiz') {
+          setGameState('quiz');
+        }
       } catch (error) {
         console.error('Error updating lobby status:', error);
       }
@@ -233,6 +248,17 @@ const Index = () => {
           players={players}
           lobbyId={lobby.id}
           gameMode={gameMode}
+          onEndGame={handleLeaveGame}
+        />
+      );
+    }
+
+    if (gameState === "quiz" && currentPlayer && lobby) {
+      return (
+        <QuizGameScreen
+          currentPlayer={currentPlayer}
+          players={players}
+          lobbyId={lobby.id}
           onEndGame={handleLeaveGame}
         />
       );

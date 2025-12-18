@@ -384,6 +384,144 @@ export type Database = {
           },
         ]
       }
+      quiz_answers: {
+        Row: {
+          answer: string
+          answered_at: string
+          created_at: string
+          id: string
+          is_correct: boolean
+          lobby_id: string
+          player_id: string
+          player_name: string
+          points_earned: number
+          response_time_ms: number
+          round_number: number
+        }
+        Insert: {
+          answer: string
+          answered_at?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          lobby_id: string
+          player_id: string
+          player_name: string
+          points_earned?: number
+          response_time_ms?: number
+          round_number?: number
+        }
+        Update: {
+          answer?: string
+          answered_at?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          lobby_id?: string
+          player_id?: string
+          player_name?: string
+          points_earned?: number
+          response_time_ms?: number
+          round_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_answers_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_rounds: {
+        Row: {
+          category: string
+          correct_answer: string
+          created_at: string
+          difficulty: string
+          id: string
+          lobby_id: string
+          phase: string
+          question_text: string
+          round_number: number
+          started_at: string | null
+        }
+        Insert: {
+          category?: string
+          correct_answer: string
+          created_at?: string
+          difficulty?: string
+          id?: string
+          lobby_id: string
+          phase?: string
+          question_text: string
+          round_number?: number
+          started_at?: string | null
+        }
+        Update: {
+          category?: string
+          correct_answer?: string
+          created_at?: string
+          difficulty?: string
+          id?: string
+          lobby_id?: string
+          phase?: string
+          question_text?: string
+          round_number?: number
+          started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_rounds_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_scores: {
+        Row: {
+          average_time_ms: number
+          correct_answers: number
+          created_at: string
+          id: string
+          lobby_id: string
+          player_id: string
+          player_name: string
+          total_points: number
+        }
+        Insert: {
+          average_time_ms?: number
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          lobby_id: string
+          player_id: string
+          player_name: string
+          total_points?: number
+        }
+        Update: {
+          average_time_ms?: number
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          lobby_id?: string
+          player_id?: string
+          player_name?: string
+          total_points?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_scores_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_clips: {
         Row: {
           created_at: string

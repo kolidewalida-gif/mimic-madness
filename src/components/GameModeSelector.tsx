@@ -1,11 +1,10 @@
-import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
-import { Users, Swords, Check } from "lucide-react";
+import { Users, Swords, Brain, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GameModeSelectorProps {
-  gameMode: 'normal' | '2v2';
-  onGameModeChange: (mode: 'normal' | '2v2') => void;
+  gameMode: 'normal' | '2v2' | 'quiz';
+  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz') => void;
   disabled?: boolean;
   playerCount: number;
 }
@@ -17,6 +16,7 @@ export const GameModeSelector = ({
   playerCount,
 }: GameModeSelectorProps) => {
   const canPlay2v2 = playerCount >= 4 && playerCount % 2 === 0;
+  const canPlayQuiz = playerCount >= 2;
 
   return (
     <GameCard className="animate-fadeIn">
@@ -25,44 +25,44 @@ export const GameModeSelector = ({
           Mode de Jeu
         </h3>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           {/* Normal Mode */}
           <button
             onClick={() => onGameModeChange('normal')}
             disabled={disabled}
             className={cn(
-              "relative p-4 rounded-xl border-2 transition-all duration-300",
+              "relative p-3 rounded-xl border-2 transition-all duration-300",
               "hover:scale-[1.02] active:scale-[0.98]",
               gameMode === 'normal'
                 ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
-                : "border-glass-border bg-background-secondary/30 hover:border-primary/50",
+                : "border-border bg-background-secondary/30 hover:border-primary/50",
               disabled && "opacity-50 cursor-not-allowed"
             )}
           >
             {gameMode === 'normal' && (
               <div className="absolute top-2 right-2">
-                <Check className="h-5 w-5 text-primary" />
+                <Check className="h-4 w-4 text-primary" />
               </div>
             )}
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               <div className={cn(
-                "p-3 rounded-full",
+                "p-2 rounded-full",
                 gameMode === 'normal' ? "bg-primary/20" : "bg-background-secondary"
               )}>
                 <Users className={cn(
-                  "h-8 w-8",
+                  "h-6 w-6",
                   gameMode === 'normal' ? "text-primary" : "text-foreground-muted"
                 )} />
               </div>
               <div className="text-center">
                 <p className={cn(
-                  "font-display font-bold",
+                  "font-display font-bold text-sm",
                   gameMode === 'normal' ? "text-primary" : "text-foreground"
                 )}>
                   Normal
                 </p>
-                <p className="text-xs text-foreground-muted mt-1">
-                  Chacun pour soi
+                <p className="text-[10px] text-foreground-muted mt-0.5">
+                  Imitation
                 </p>
               </div>
             </div>
@@ -73,43 +73,85 @@ export const GameModeSelector = ({
             onClick={() => canPlay2v2 && onGameModeChange('2v2')}
             disabled={disabled || !canPlay2v2}
             className={cn(
-              "relative p-4 rounded-xl border-2 transition-all duration-300",
+              "relative p-3 rounded-xl border-2 transition-all duration-300",
               "hover:scale-[1.02] active:scale-[0.98]",
               gameMode === '2v2'
                 ? "border-secondary bg-secondary/10 shadow-lg shadow-secondary/20"
-                : "border-glass-border bg-background-secondary/30 hover:border-secondary/50",
+                : "border-border bg-background-secondary/30 hover:border-secondary/50",
               (disabled || !canPlay2v2) && "opacity-50 cursor-not-allowed"
             )}
           >
             {gameMode === '2v2' && (
               <div className="absolute top-2 right-2">
-                <Check className="h-5 w-5 text-secondary" />
+                <Check className="h-4 w-4 text-secondary-foreground" />
               </div>
             )}
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               <div className={cn(
-                "p-3 rounded-full",
+                "p-2 rounded-full",
                 gameMode === '2v2' ? "bg-secondary/20" : "bg-background-secondary"
               )}>
                 <Swords className={cn(
-                  "h-8 w-8",
-                  gameMode === '2v2' ? "text-secondary" : "text-foreground-muted"
+                  "h-6 w-6",
+                  gameMode === '2v2' ? "text-secondary-foreground" : "text-foreground-muted"
                 )} />
               </div>
               <div className="text-center">
                 <p className={cn(
-                  "font-display font-bold",
-                  gameMode === '2v2' ? "text-secondary" : "text-foreground"
+                  "font-display font-bold text-sm",
+                  gameMode === '2v2' ? "text-secondary-foreground" : "text-foreground"
                 )}>
                   2v2
                 </p>
-                <p className="text-xs text-foreground-muted mt-1">
+                <p className="text-[10px] text-foreground-muted mt-0.5">
                   {canPlay2v2 
-                    ? "Équipes de 2" 
+                    ? "Équipes" 
                     : playerCount < 4 
-                      ? "Min. 4 joueurs" 
-                      : "Joueurs pairs requis"
+                      ? "Min. 4" 
+                      : "Pairs"
                   }
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Quiz Mode */}
+          <button
+            onClick={() => canPlayQuiz && onGameModeChange('quiz')}
+            disabled={disabled || !canPlayQuiz}
+            className={cn(
+              "relative p-3 rounded-xl border-2 transition-all duration-300",
+              "hover:scale-[1.02] active:scale-[0.98]",
+              gameMode === 'quiz'
+                ? "border-accent bg-accent/10 shadow-lg shadow-accent/20"
+                : "border-border bg-background-secondary/30 hover:border-accent/50",
+              (disabled || !canPlayQuiz) && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            {gameMode === 'quiz' && (
+              <div className="absolute top-2 right-2">
+                <Check className="h-4 w-4 text-accent" />
+              </div>
+            )}
+            <div className="flex flex-col items-center gap-2">
+              <div className={cn(
+                "p-2 rounded-full",
+                gameMode === 'quiz' ? "bg-accent/20" : "bg-background-secondary"
+              )}>
+                <Brain className={cn(
+                  "h-6 w-6",
+                  gameMode === 'quiz' ? "text-accent" : "text-foreground-muted"
+                )} />
+              </div>
+              <div className="text-center">
+                <p className={cn(
+                  "font-display font-bold text-sm",
+                  gameMode === 'quiz' ? "text-accent" : "text-foreground"
+                )}>
+                  Quiz
+                </p>
+                <p className="text-[10px] text-foreground-muted mt-0.5">
+                  {canPlayQuiz ? "Culture" : "Min. 2"}
                 </p>
               </div>
             </div>
