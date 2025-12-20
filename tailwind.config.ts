@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Bebas Neue', 'Inter', 'sans-serif'],
-        body: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['Space Grotesk', 'Outfit', 'sans-serif'],
+        body: ['Outfit', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -30,6 +30,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           hover: "hsl(var(--primary-hover))",
+          light: "hsl(var(--primary-light))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -67,6 +68,9 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
+        "3xl": "calc(var(--radius) + 16px)",
       },
       keyframes: {
         "accordion-down": {
@@ -81,17 +85,36 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        gradient: {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        glow: {
+          "0%, 100%": { boxShadow: "0 0 20px hsl(var(--primary) / 0.3)" },
+          "50%": { boxShadow: "0 0 40px hsl(var(--primary) / 0.6)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         shimmer: "shimmer 2s linear infinite",
+        gradient: "gradient 3s ease infinite",
+        float: "float 3s ease-in-out infinite",
+        glow: "glow 2s ease-in-out infinite",
       },
       boxShadow: {
-        glow: "0 0 30px rgba(229, 9, 20, 0.3)",
-        "glow-lg": "0 0 50px rgba(229, 9, 20, 0.4)",
-        card: "0 4px 16px rgba(0, 0, 0, 0.5)",
-        "card-hover": "0 8px 32px rgba(0, 0, 0, 0.6)",
+        glow: "0 0 40px rgba(139, 92, 246, 0.4)",
+        "glow-lg": "0 0 60px rgba(139, 92, 246, 0.5)",
+        "glow-cyan": "0 0 40px rgba(0, 255, 255, 0.3)",
+        card: "0 8px 30px rgba(0, 0, 0, 0.4)",
+        "card-hover": "0 20px 60px rgba(0, 0, 0, 0.5)",
+      },
+      backdropBlur: {
+        xs: "2px",
       },
     },
   },

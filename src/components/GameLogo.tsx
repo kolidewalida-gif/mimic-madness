@@ -1,4 +1,4 @@
-import { Play } from "lucide-react";
+import { Play, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GameLogoProps {
@@ -9,42 +9,49 @@ interface GameLogoProps {
 
 export const GameLogo = ({ className = "", size = "lg", animated = true }: GameLogoProps) => {
   const sizeClasses = {
-    sm: "text-lg",
-    md: "text-2xl", 
-    lg: "text-4xl"
+    sm: "text-xl",
+    md: "text-3xl", 
+    lg: "text-5xl"
   };
 
   const iconSizes = {
-    sm: 16,
-    md: 20,
-    lg: 28
+    sm: 18,
+    md: 24,
+    lg: 36
   };
 
   const iconContainerSizes = {
-    sm: "p-1",
-    md: "p-1.5",
-    lg: "p-2"
+    sm: "p-2",
+    md: "p-3",
+    lg: "p-4"
   };
 
   return (
     <div className={cn(
-      "flex items-center gap-3 group",
-      animated && "hover:scale-105 transition-transform duration-300",
+      "flex items-center gap-4 group",
+      animated && "hover:scale-105 transition-transform duration-500",
       className
     )}>
-      {/* Netflix-style M icon with glow */}
+      {/* Modern icon with glow */}
       <div className="relative">
-        {/* Glow effect */}
+        {/* Outer glow */}
         <div className={cn(
-          "absolute inset-0 bg-primary rounded blur-lg opacity-50",
-          animated && "group-hover:opacity-80 transition-opacity duration-300"
+          "absolute inset-0 bg-primary rounded-xl blur-xl opacity-50",
+          animated && "group-hover:opacity-80 transition-opacity duration-500"
+        )} />
+        
+        {/* Animated ring */}
+        <div className={cn(
+          "absolute -inset-1 rounded-xl opacity-0 transition-opacity duration-500",
+          "bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%]",
+          animated && "group-hover:opacity-100 animate-gradient"
         )} />
         
         {/* Icon container */}
         <div className={cn(
-          "relative bg-gradient-to-br from-primary to-primary-light rounded",
+          "relative bg-gradient-to-br from-primary to-primary-light rounded-xl",
           iconContainerSizes[size],
-          animated && "group-hover:shadow-glow transition-shadow duration-300"
+          animated && "group-hover:shadow-glow transition-shadow duration-500"
         )}>
           <Play 
             className="text-white drop-shadow-lg" 
@@ -57,21 +64,25 @@ export const GameLogo = ({ className = "", size = "lg", animated = true }: GameL
       {/* Text with premium styling */}
       <div className="flex flex-col leading-none">
         <h1 className={cn(
-          "font-display text-white tracking-wider",
-          sizeClasses[size],
-          animated && "group-hover:text-gradient transition-colors duration-300"
+          "font-bold tracking-tight",
+          sizeClasses[size]
         )}>
-          <span className="inline-block animate-fadeIn">MIMIC</span>
+          <span className="inline-block text-gradient animate-fadeIn">MIMIC</span>
         </h1>
-        <span className={cn(
-          "font-display text-primary tracking-widest",
-          size === 'lg' ? 'text-xl' : size === 'md' ? 'text-base' : 'text-xs',
-          animated && "group-hover:drop-shadow-glow transition-all duration-300"
-        )}>
-          <span className="inline-block animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-            MASTER
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            "font-bold text-accent tracking-widest",
+            size === 'lg' ? 'text-2xl' : size === 'md' ? 'text-lg' : 'text-sm',
+            animated && "group-hover:text-glow-cyan transition-all duration-500"
+          )}>
+            <span className="inline-block animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+              MASTER
+            </span>
           </span>
-        </span>
+          {size === 'lg' && (
+            <Sparkles className="h-5 w-5 text-accent animate-pulse opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          )}
+        </div>
       </div>
     </div>
   );
