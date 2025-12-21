@@ -5,10 +5,10 @@ import { GameLogo } from "@/components/GameLogo";
 import { VolumeControl } from "@/components/VolumeControl";
 import { SoundEffectsVolumeControl } from "@/components/SoundEffectsVolumeControl";
 import { DeviceSettings } from "@/components/DeviceSettings";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { Play, Users, Settings, User, Sparkles, Zap, ArrowRight, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 interface HomeScreenProps {
   onCreateGame: (playerName: string) => void;
   onJoinGame: (playerName: string, lobbyCode: string) => void;
@@ -163,9 +163,15 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                   </div>
 
                   {/* Settings Section */}
-                  <div className="space-y-3 animate-fadeIn" style={{ animationDelay: '0.6s' }}>
+                  <div className="space-y-4 animate-fadeIn" style={{ animationDelay: '0.6s' }}>
                     <VolumeControl />
                     <SoundEffectsVolumeControl />
+                    
+                    {/* Theme Selector */}
+                    <div className="pt-2">
+                      <ThemeSelector variant="compact" className="justify-center" />
+                    </div>
+                    
                     <Button
                       variant="ghost"
                       size="sm"
