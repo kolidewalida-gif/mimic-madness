@@ -8,7 +8,7 @@ import { QuizCountdown } from './QuizCountdown';
 import { QuizCategorySelector } from './QuizCategorySelector';
 import { LobbyChat } from './LobbyChat';
 import { useQuizGame } from '@/hooks/useQuizGame';
-import { Brain, Play, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
+import { Brain, Play, Loader2, Sparkles, ArrowLeft, Zap, Users, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Player {
@@ -54,113 +54,135 @@ export const QuizGameScreen = ({
   if (phase === 'waiting') {
     return (
       <>
-        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-          {/* Background effects */}
-          <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-purple-950/20 -z-20" />
-          <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[150px] animate-float -z-10" />
-          <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[150px] animate-float -z-10" style={{ animationDelay: '2s' }} />
+        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-mesh">
+          {/* Animated orbs */}
+          <div className="orb-container">
+            <div className="orb orb-primary" style={{ background: 'radial-gradient(circle, hsl(280 100% 60% / 0.4), transparent)' }} />
+            <div className="orb orb-accent" style={{ background: 'radial-gradient(circle, hsl(300 100% 70% / 0.3), transparent)' }} />
+            <div className="orb orb-secondary" style={{ background: 'radial-gradient(circle, hsl(260 100% 50% / 0.3), transparent)' }} />
+          </div>
           
-          <div className="relative rounded-2xl p-8 backdrop-blur-xl bg-background-secondary/40 border border-white/10 shadow-2xl max-w-2xl w-full space-y-8 overflow-hidden">
-            {/* Background decoration */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-primary/5 pointer-events-none" />
-            
-            {/* Header */}
-            <div className="relative flex flex-col items-center gap-4">
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 animate-pulse">
-                <Brain className="h-16 w-16 text-purple-400" />
-              </div>
-              <div className="text-center">
-                <h1 className="text-4xl font-display font-bold uppercase tracking-wider flex items-center gap-3">
-                  <Sparkles className="h-6 w-6 text-purple-400" />
-                  Mode Quiz
-                  <Sparkles className="h-6 w-6 text-purple-400" />
-                </h1>
-                <p className="text-foreground-muted mt-2">
-                  {totalRounds} questions • 30 secondes par question
-                </p>
-              </div>
-            </div>
-
-            {/* Players */}
-            <div className="relative space-y-3">
-              <h3 className="text-sm font-display uppercase tracking-wider text-foreground-muted text-center">
-                Joueurs ({players.length})
-              </h3>
-              <div className="flex flex-wrap justify-center gap-2">
-                {players.map(p => (
-                  <span 
-                    key={p.id}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300",
-                      "border backdrop-blur-sm",
-                      p.id === currentPlayer.id 
-                        ? "bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-500/50 text-white" 
-                        : "bg-white/5 border-white/10 text-foreground-muted"
-                    )}
-                  >
-                    {p.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Category Selector - Host only */}
-            {currentPlayer.isHost && (
-              <div className="relative">
-                <QuizCategorySelector
-                  selectedCategory={selectedCategory}
-                  onCategoryChange={setSelectedCategory}
-                  disabled={isLoading}
-                />
-              </div>
-            )}
-
-            {/* Start Button */}
-            <div className="relative space-y-4">
-              {currentPlayer.isHost ? (
-                <Button 
-                  onClick={() => startQuiz(selectedCategory)} 
-                  disabled={isLoading}
-                  className={cn(
-                    "w-full py-6 text-lg font-display uppercase tracking-wider",
-                    "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600",
-                    "shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/50",
-                    "border-0 rounded-xl transition-all duration-300"
-                  )}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      Chargement...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-5 w-5 mr-2" />
-                      Lancer le Quiz
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <div className="text-center p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                  <p className="text-purple-400 animate-pulse flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    En attente de l'hôte...
+          {/* Grid overlay */}
+          <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
+          
+          <div className="relative z-10 max-w-2xl w-full space-y-8">
+            {/* Main Card */}
+            <div className="card-premium p-8 animate-fadeInUp">
+              {/* Decorative elements */}
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 rounded-full blur-[80px] animate-pulse-slow" />
+              <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-accent/20 rounded-full blur-[80px] animate-pulse-slow" style={{ animationDelay: '1s' }} />
+              
+              {/* Header */}
+              <div className="relative flex flex-col items-center gap-6 mb-8">
+                {/* Icon with glow */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/40 rounded-3xl blur-xl animate-pulse" />
+                  <div className="relative p-6 rounded-3xl bg-gradient-to-br from-primary/30 via-purple-500/20 to-pink-500/30 border border-primary/40 backdrop-blur-sm">
+                    <Brain className="h-16 w-16 text-primary" />
+                  </div>
+                  {/* Floating sparkles */}
+                  <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-accent animate-bounce" />
+                  <Star className="absolute -bottom-1 -left-1 h-5 w-5 text-yellow-400 animate-float" />
+                </div>
+                
+                <div className="text-center space-y-2">
+                  <h1 className="text-4xl md:text-5xl font-display font-bold text-gradient flex items-center justify-center gap-3">
+                    <Zap className="h-8 w-8 text-accent" />
+                    Mode Quiz
+                    <Zap className="h-8 w-8 text-accent" />
+                  </h1>
+                  <p className="text-foreground-secondary text-lg">
+                    {totalRounds} questions • 30 secondes par question
                   </p>
                 </div>
-              )}
-              
-              <Button 
-                variant="ghost" 
-                onClick={onEndGame}
-                className="w-full hover:bg-white/10"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Quitter
-              </Button>
-            </div>
+              </div>
 
-            {/* Bottom glow */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+              {/* Players Grid */}
+              <div className="relative space-y-4 mb-8">
+                <div className="flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-wider text-foreground-muted">
+                  <Users className="h-4 w-4" />
+                  Joueurs ({players.length})
+                </div>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {players.map((p, i) => (
+                    <div 
+                      key={p.id}
+                      className={cn(
+                        "relative px-5 py-3 rounded-2xl text-sm font-semibold transition-all duration-500",
+                        "backdrop-blur-md border animate-fadeIn",
+                        p.id === currentPlayer.id 
+                          ? "bg-gradient-to-r from-primary/30 via-purple-500/20 to-pink-500/30 border-primary/50 text-white shadow-lg shadow-primary/20" 
+                          : "glass-ultra text-foreground-secondary hover:border-primary/30"
+                      )}
+                      style={{ animationDelay: `${i * 100}ms` }}
+                    >
+                      {p.id === currentPlayer.id && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full animate-pulse" />
+                      )}
+                      {p.name}
+                      {p.isHost && <span className="ml-2 text-accent">👑</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category Selector - Host only */}
+              {currentPlayer.isHost && (
+                <div className="relative mb-8">
+                  <QuizCategorySelector
+                    selectedCategory={selectedCategory}
+                    onCategoryChange={setSelectedCategory}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="relative space-y-4">
+                {currentPlayer.isHost ? (
+                  <Button 
+                    onClick={() => startQuiz(selectedCategory)} 
+                    disabled={isLoading}
+                    variant="hero"
+                    size="xl"
+                    className="w-full h-16 text-lg rounded-2xl"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span>Chargement...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-6 w-6" fill="currentColor" />
+                        <span className="font-bold tracking-wide">Lancer le Quiz</span>
+                        <Sparkles className="h-5 w-5" />
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="relative p-6 rounded-2xl glass-ultra border border-primary/30 text-center">
+                    <div className="absolute inset-0 bg-primary/5 rounded-2xl animate-pulse" />
+                    <p className="relative text-primary font-semibold flex items-center justify-center gap-3">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      En attente de l'hôte...
+                    </p>
+                  </div>
+                )}
+                
+                <Button 
+                  variant="glass" 
+                  onClick={onEndGame}
+                  className="w-full h-12 rounded-xl"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Quitter</span>
+                </Button>
+              </div>
+
+              {/* Bottom accent line */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-full" />
+            </div>
           </div>
         </div>
         <LobbyChat
@@ -281,8 +303,11 @@ export const QuizGameScreen = ({
 
   // Loading state
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Loader2 className="h-12 w-12 animate-spin text-purple-500" />
+    <div className="min-h-screen flex items-center justify-center bg-mesh">
+      <div className="relative">
+        <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
+        <Loader2 className="relative h-16 w-16 animate-spin text-primary" />
+      </div>
     </div>
   );
 };
