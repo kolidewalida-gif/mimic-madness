@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { GameCard } from './GameCard';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Input } from './ui/input';
-import { Clock, Check, User, Send } from 'lucide-react';
+import { Clock, Check, User, Send, Zap, Brain, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuizLiveScoreboard } from './QuizLiveScoreboard';
 
@@ -55,20 +54,20 @@ const categoryLabels: Record<string, string> = {
   art: '🎨 Art'
 };
 
-const difficultyColors: Record<string, string> = {
-  easy: 'text-success',
-  facile: 'text-success',
-  medium: 'text-warning',
-  moyen: 'text-warning',
-  hard: 'text-destructive',
-  difficile: 'text-destructive'
+const difficultyConfig: Record<string, { color: string; bg: string; border: string }> = {
+  easy: { color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40' },
+  facile: { color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40' },
+  medium: { color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/40' },
+  moyen: { color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/40' },
+  hard: { color: 'text-rose-400', bg: 'bg-rose-500/20', border: 'border-rose-500/40' },
+  difficile: { color: 'text-rose-400', bg: 'bg-rose-500/20', border: 'border-rose-500/40' }
 };
 
-const optionColors = [
-  'from-red-500/20 to-red-600/20 border-red-500/40 hover:border-red-400 hover:bg-red-500/30',
-  'from-blue-500/20 to-blue-600/20 border-blue-500/40 hover:border-blue-400 hover:bg-blue-500/30',
-  'from-yellow-500/20 to-yellow-600/20 border-yellow-500/40 hover:border-yellow-400 hover:bg-yellow-500/30',
-  'from-green-500/20 to-green-600/20 border-green-500/40 hover:border-green-400 hover:bg-green-500/30'
+const optionStyles = [
+  { gradient: 'from-rose-500/30 to-rose-600/20', border: 'border-rose-500/50', hover: 'hover:border-rose-400 hover:bg-rose-500/40', shadow: 'shadow-rose-500/20' },
+  { gradient: 'from-sky-500/30 to-sky-600/20', border: 'border-sky-500/50', hover: 'hover:border-sky-400 hover:bg-sky-500/40', shadow: 'shadow-sky-500/20' },
+  { gradient: 'from-amber-500/30 to-amber-600/20', border: 'border-amber-500/50', hover: 'hover:border-amber-400 hover:bg-amber-500/40', shadow: 'shadow-amber-500/20' },
+  { gradient: 'from-emerald-500/30 to-emerald-600/20', border: 'border-emerald-500/50', hover: 'hover:border-emerald-400 hover:bg-emerald-500/40', shadow: 'shadow-emerald-500/20' }
 ];
 
 export const QuizQuestion = ({
@@ -92,8 +91,8 @@ export const QuizQuestion = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const progress = (timeRemaining / TOTAL_TIME) * 100;
   const isUrgent = timeRemaining <= 5000;
+  const seconds = Math.ceil(timeRemaining / 1000);
 
-  // Auto-focus text input when in text mode
   useEffect(() => {
     if (questionType === 'text' && inputRef.current && !hasAnswered) {
       inputRef.current.focus();
@@ -112,16 +111,20 @@ export const QuizQuestion = ({
     onSubmitAnswer(textAnswer.trim());
   };
 
-  const formatTime = (ms: number) => {
-    const seconds = Math.ceil(ms / 1000);
-    return seconds;
-  };
+  const diffConfig = difficultyConfig[difficulty] || difficultyConfig.medium;
 
   return (
-    <div className="min-h-screen flex p-4 gap-4">
+    <div className="min-h-screen flex p-4 gap-6 bg-mesh relative overflow-hidden">
+      {/* Background effects */}
+      <div className="orb-container">
+        <div className="orb orb-primary" />
+        <div className="orb orb-accent" style={{ animationDelay: '2s' }} />
+      </div>
+      <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
+
       {/* Left Sidebar - Live Scoreboard */}
-      <div className="hidden lg:block w-72 flex-shrink-0 pt-20">
-        <div className="sticky top-20">
+      <div className="hidden lg:block w-80 flex-shrink-0 pt-8 relative z-10">
+        <div className="sticky top-8">
           <QuizLiveScoreboard
             scores={scores}
             currentPlayerId={currentPlayerId}
@@ -131,123 +134,146 @@ export const QuizQuestion = ({
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="w-full flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-foreground-muted text-sm">Question</span>
-            <span className="font-display font-bold text-lg">
-              {roundNumber}/{totalRounds}
-            </span>
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-3xl mx-auto relative z-10">
+        {/* Header with meta info */}
+        <div className="w-full flex items-center justify-between glass-ultra rounded-2xl px-6 py-4 animate-fadeInDown">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
+              <Brain className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <span className="text-foreground-muted text-xs uppercase tracking-wider">Question</span>
+              <p className="font-display font-bold text-xl text-gradient">
+                {roundNumber}<span className="text-foreground-muted text-lg">/{totalRounds}</span>
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className={cn(
-              "px-3 py-1 rounded-full text-sm",
-              "bg-muted"
+              "px-4 py-2 rounded-xl text-sm font-medium backdrop-blur-sm border",
+              "bg-card/50 border-border/50"
             )}>
               {categoryLabels[category] || category}
             </span>
             <span className={cn(
-              "px-3 py-1 rounded-full text-sm font-semibold capitalize",
-              difficultyColors[difficulty]
+              "px-4 py-2 rounded-xl text-sm font-bold capitalize",
+              diffConfig.bg, diffConfig.border, diffConfig.color, "border"
             )}>
               {difficulty}
             </span>
             {questionType === 'text' && (
-              <span className="px-3 py-1 rounded-full text-sm bg-primary/20 text-primary">
+              <span className="px-4 py-2 rounded-xl text-sm bg-accent/20 text-accent border border-accent/40 font-medium">
                 ✏️ Texte
               </span>
             )}
           </div>
         </div>
 
-        {/* Timer */}
-        <div className="w-full">
+        {/* Timer - Large and prominent */}
+        <div className="w-full space-y-3 animate-fadeIn">
           <div className={cn(
-            "flex items-center justify-center gap-2 mb-2",
-            isUrgent && "animate-pulse text-destructive"
+            "flex items-center justify-center gap-3 transition-all duration-300",
+            isUrgent && "animate-pulse"
           )}>
-            <Clock className="h-5 w-5" />
-            <span className="font-display text-3xl font-bold">
-              {formatTime(timeRemaining)}
+            <div className={cn(
+              "relative p-4 rounded-2xl transition-all duration-300",
+              isUrgent 
+                ? "bg-destructive/20 border-2 border-destructive/50 shadow-lg shadow-destructive/30" 
+                : "bg-primary/20 border-2 border-primary/30"
+            )}>
+              <Timer className={cn("h-8 w-8", isUrgent ? "text-destructive" : "text-primary")} />
+              {isUrgent && (
+                <div className="absolute inset-0 bg-destructive/20 rounded-2xl animate-ping" />
+              )}
+            </div>
+            <span className={cn(
+              "font-display text-6xl font-black tracking-tight transition-colors duration-300",
+              isUrgent ? "text-destructive" : "text-foreground"
+            )}>
+              {seconds}
             </span>
           </div>
-          <Progress 
-            value={progress} 
-            className={cn(
-              "h-3 transition-all",
-              isUrgent && "animate-pulse"
-            )}
-          />
+          <div className="relative h-4 rounded-full overflow-hidden bg-muted/50 backdrop-blur-sm">
+            <div 
+              className={cn(
+                "absolute inset-y-0 left-0 rounded-full transition-all duration-200",
+                isUrgent 
+                  ? "bg-gradient-to-r from-destructive to-rose-400" 
+                  : "bg-gradient-to-r from-primary to-accent"
+              )}
+              style={{ width: `${progress}%` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent" />
+          </div>
         </div>
 
         {/* Question Card */}
-        <GameCard className={cn(
-          "w-full text-center transition-all",
-          isUrgent && "border-destructive animate-pulse"
+        <div className={cn(
+          "w-full card-premium p-8 text-center transition-all duration-500 animate-fadeInUp",
+          isUrgent && "border-destructive/50 shadow-lg shadow-destructive/20"
         )}>
-          <h2 className="text-xl md:text-2xl font-display font-bold leading-relaxed animate-fadeIn">
+          <h2 className="text-2xl md:text-3xl font-display font-bold leading-relaxed">
             {question}
           </h2>
-        </GameCard>
+        </div>
 
         {/* QCM Options - 2x2 Grid */}
         {questionType === 'qcm' && options && options.length > 0 ? (
-          <div className="w-full grid grid-cols-2 gap-3">
-            {options.map((option, index) => (
-              <Button
-                key={index}
-                onClick={() => handleSelectOption(option)}
-                disabled={hasAnswered}
-                soundEffect={hasAnswered ? 'none' : 'click'}
-                className={cn(
-                  "h-auto min-h-[80px] p-4 text-base md:text-lg font-medium",
-                  "bg-gradient-to-br border-2 rounded-xl",
-                  "transition-all duration-300 transform",
-                  "flex items-center justify-center text-center whitespace-normal",
-                  optionColors[index % 4],
-                  !hasAnswered && "hover:scale-[1.02] hover:shadow-lg",
-                  hasAnswered && selectedOption === option && "ring-2 ring-primary scale-[1.02]",
-                  hasAnswered && selectedOption !== option && "opacity-50"
-                )}
-                style={{
-                  animationDelay: `${index * 100}ms`
-                }}
-              >
-                <span className="line-clamp-3">{option}</span>
-              </Button>
-            ))}
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+            {options.map((option, index) => {
+              const style = optionStyles[index % 4];
+              return (
+                <Button
+                  key={index}
+                  onClick={() => handleSelectOption(option)}
+                  disabled={hasAnswered}
+                  soundEffect={hasAnswered ? 'none' : 'click'}
+                  className={cn(
+                    "h-auto min-h-[100px] p-6 text-lg md:text-xl font-semibold",
+                    "bg-gradient-to-br border-2 rounded-2xl backdrop-blur-sm",
+                    "transition-all duration-300 transform gpu-accelerated",
+                    "flex items-center justify-center text-center whitespace-normal",
+                    style.gradient, style.border,
+                    !hasAnswered && cn(style.hover, "hover:scale-[1.02] hover:shadow-xl", style.shadow),
+                    hasAnswered && selectedOption === option && "ring-4 ring-primary scale-[1.02] shadow-xl shadow-primary/30",
+                    hasAnswered && selectedOption !== option && "opacity-40 scale-95"
+                  )}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <span className="line-clamp-3">{option}</span>
+                </Button>
+              );
+            })}
           </div>
         ) : (
           /* Text Input Mode */
-          <form onSubmit={handleTextSubmit} className="w-full">
-            <div className="flex gap-3">
-              <Input
-                ref={inputRef}
-                type="text"
-                value={textAnswer}
-                onChange={(e) => setTextAnswer(e.target.value)}
-                placeholder="Tapez votre réponse..."
-                disabled={hasAnswered}
-                className={cn(
-                  "flex-1 h-14 text-lg px-4",
-                  "bg-card/50 border-2 border-white/20",
-                  "focus:border-primary focus:ring-2 focus:ring-primary/30",
-                  hasAnswered && "opacity-50"
-                )}
-                autoComplete="off"
-              />
+          <form onSubmit={handleTextSubmit} className="w-full animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Input
+                  ref={inputRef}
+                  type="text"
+                  value={textAnswer}
+                  onChange={(e) => setTextAnswer(e.target.value)}
+                  placeholder="Tapez votre réponse..."
+                  disabled={hasAnswered}
+                  className={cn(
+                    "h-16 text-xl px-6",
+                    "glass-ultra border-2 border-primary/30",
+                    "focus:border-primary focus:ring-4 focus:ring-primary/20",
+                    "rounded-2xl transition-all duration-300",
+                    hasAnswered && "opacity-50"
+                  )}
+                  autoComplete="off"
+                />
+              </div>
               <Button
                 type="submit"
                 disabled={hasAnswered || !textAnswer.trim()}
-                soundEffect="click"
-                className={cn(
-                  "h-14 px-6",
-                  "bg-gradient-to-r from-primary to-primary-light",
-                  "hover:shadow-lg hover:shadow-primary/30"
-                )}
+                variant="hero"
+                className="h-16 px-8 rounded-2xl"
               >
-                <Send className="h-5 w-5" />
+                <Send className="h-6 w-6" />
               </Button>
             </div>
           </form>
@@ -255,29 +281,32 @@ export const QuizQuestion = ({
 
         {/* Answer Status */}
         {hasAnswered && (
-          <div className="flex items-center justify-center gap-3 py-2 text-success animate-fadeIn">
-            <Check className="h-6 w-6" />
-            <span className="text-lg font-semibold">Réponse envoyée !</span>
+          <div className="flex items-center justify-center gap-4 py-4 px-8 rounded-2xl bg-success/20 border-2 border-success/40 animate-zoomInBounce">
+            <div className="p-2 rounded-xl bg-success/30">
+              <Check className="h-6 w-6 text-success" />
+            </div>
+            <span className="text-xl font-bold text-success">Réponse envoyée !</span>
+            <Zap className="h-5 w-5 text-success animate-bounce" />
           </div>
         )}
 
         {/* Players who answered - Mobile */}
-        <div className="flex items-center gap-2 flex-wrap justify-center lg:hidden">
-          <span className="text-foreground-muted text-sm">Ont répondu:</span>
+        <div className="flex items-center gap-3 flex-wrap justify-center lg:hidden glass-ultra rounded-2xl px-4 py-3">
+          <span className="text-foreground-muted text-sm font-medium">Réponses:</span>
           {players.map(p => (
             <div 
               key={p.id}
               className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all",
+                "flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-300",
                 answeredPlayers.includes(p.id) 
-                  ? "bg-success/20 text-success" 
-                  : "bg-muted text-muted-foreground"
+                  ? "bg-success/20 text-success border border-success/40" 
+                  : "bg-muted/50 text-muted-foreground border border-muted"
               )}
             >
               {answeredPlayers.includes(p.id) ? (
-                <Check className="h-3 w-3" />
+                <Check className="h-4 w-4" />
               ) : (
-                <User className="h-3 w-3" />
+                <User className="h-4 w-4" />
               )}
               {p.name}
             </div>
@@ -286,12 +315,12 @@ export const QuizQuestion = ({
       </div>
       
       {/* Mobile Scoreboard - Collapsible at bottom */}
-      <div className="lg:hidden fixed bottom-20 left-4 right-4">
-        <details className="bg-card/80 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
-          <summary className="px-4 py-2 cursor-pointer font-medium text-sm flex items-center gap-2">
+      <div className="lg:hidden fixed bottom-20 left-4 right-4 z-20">
+        <details className="glass-ultra rounded-2xl border border-primary/30 overflow-hidden">
+          <summary className="px-5 py-3 cursor-pointer font-semibold text-sm flex items-center gap-2 hover:bg-primary/10 transition-colors">
             <span>📊</span> Voir le classement
           </summary>
-          <div className="p-3 border-t border-white/10">
+          <div className="p-4 border-t border-primary/20">
             <QuizLiveScoreboard
               scores={scores}
               currentPlayerId={currentPlayerId}
