@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
-import { Progress } from './ui/progress';
 import { Input } from './ui/input';
-import { Clock, Check, User, Send, Zap, Brain, Timer } from 'lucide-react';
+import { Check, Send, Zap, Brain, Timer, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuizLiveScoreboard } from './QuizLiveScoreboard';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 interface Player {
   id: string;
@@ -51,23 +51,24 @@ const categoryLabels: Record<string, string> = {
   general: '🧠 Culture G',
   anime: '🎌 Anime',
   jeux_video: '🎮 Jeux Vidéo',
-  art: '🎨 Art'
+  art: '🎨 Art',
+  mixed: '🎲 Mélangé'
 };
 
-const difficultyConfig: Record<string, { color: string; bg: string; border: string }> = {
-  easy: { color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40' },
-  facile: { color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40' },
-  medium: { color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/40' },
-  moyen: { color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/40' },
-  hard: { color: 'text-rose-400', bg: 'bg-rose-500/20', border: 'border-rose-500/40' },
-  difficile: { color: 'text-rose-400', bg: 'bg-rose-500/20', border: 'border-rose-500/40' }
+const difficultyConfig: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  easy: { color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40', label: 'Facile' },
+  facile: { color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40', label: 'Facile' },
+  medium: { color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/40', label: 'Moyen' },
+  moyen: { color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/40', label: 'Moyen' },
+  hard: { color: 'text-rose-400', bg: 'bg-rose-500/20', border: 'border-rose-500/40', label: 'Difficile' },
+  difficile: { color: 'text-rose-400', bg: 'bg-rose-500/20', border: 'border-rose-500/40', label: 'Difficile' }
 };
 
 const optionStyles = [
-  { gradient: 'from-rose-500/30 to-rose-600/20', border: 'border-rose-500/50', hover: 'hover:border-rose-400 hover:bg-rose-500/40', shadow: 'shadow-rose-500/20' },
-  { gradient: 'from-sky-500/30 to-sky-600/20', border: 'border-sky-500/50', hover: 'hover:border-sky-400 hover:bg-sky-500/40', shadow: 'shadow-sky-500/20' },
-  { gradient: 'from-amber-500/30 to-amber-600/20', border: 'border-amber-500/50', hover: 'hover:border-amber-400 hover:bg-amber-500/40', shadow: 'shadow-amber-500/20' },
-  { gradient: 'from-emerald-500/30 to-emerald-600/20', border: 'border-emerald-500/50', hover: 'hover:border-emerald-400 hover:bg-emerald-500/40', shadow: 'shadow-emerald-500/20' }
+  { bg: 'bg-gradient-to-br from-rose-600/40 to-rose-700/30', border: 'border-rose-500/60', hover: 'hover:from-rose-500/50 hover:to-rose-600/40 hover:border-rose-400', glow: 'shadow-rose-500/30', letter: 'A' },
+  { bg: 'bg-gradient-to-br from-sky-600/40 to-sky-700/30', border: 'border-sky-500/60', hover: 'hover:from-sky-500/50 hover:to-sky-600/40 hover:border-sky-400', glow: 'shadow-sky-500/30', letter: 'B' },
+  { bg: 'bg-gradient-to-br from-amber-600/40 to-amber-700/30', border: 'border-amber-500/60', hover: 'hover:from-amber-500/50 hover:to-amber-600/40 hover:border-amber-400', glow: 'shadow-amber-500/30', letter: 'C' },
+  { bg: 'bg-gradient-to-br from-emerald-600/40 to-emerald-700/30', border: 'border-emerald-500/60', hover: 'hover:from-emerald-500/50 hover:to-emerald-600/40 hover:border-emerald-400', glow: 'shadow-emerald-500/30', letter: 'D' }
 ];
 
 export const QuizQuestion = ({
@@ -91,6 +92,7 @@ export const QuizQuestion = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const progress = (timeRemaining / TOTAL_TIME) * 100;
   const isUrgent = timeRemaining <= 5000;
+  const isCritical = timeRemaining <= 3000;
   const seconds = Math.ceil(timeRemaining / 1000);
 
   useEffect(() => {
@@ -99,32 +101,44 @@ export const QuizQuestion = ({
     }
   }, [questionType, hasAnswered]);
 
+  // Play tick sound when urgent
+  useEffect(() => {
+    if (isUrgent && !hasAnswered && seconds > 0) {
+      playSoundEffect('countdown', 0.3);
+    }
+  }, [seconds, isUrgent, hasAnswered]);
+
   const handleSelectOption = (option: string) => {
     if (hasAnswered) return;
     setSelectedOption(option);
+    playSoundEffect('click', 0.4);
     onSubmitAnswer(option);
   };
 
   const handleTextSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (hasAnswered || !textAnswer.trim()) return;
+    playSoundEffect('click', 0.4);
     onSubmitAnswer(textAnswer.trim());
   };
 
   const diffConfig = difficultyConfig[difficulty] || difficultyConfig.medium;
 
   return (
-    <div className="min-h-screen flex p-4 gap-6 bg-mesh relative overflow-hidden">
+    <div className="min-h-screen flex flex-col lg:flex-row p-4 gap-6 relative overflow-hidden bg-mesh">
       {/* Background effects */}
       <div className="orb-container">
-        <div className="orb orb-primary" />
+        <div className={cn(
+          "orb transition-all duration-1000",
+          isUrgent ? "orb-destructive" : "orb-primary"
+        )} />
         <div className="orb orb-accent" style={{ animationDelay: '2s' }} />
       </div>
       <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
 
       {/* Left Sidebar - Live Scoreboard */}
-      <div className="hidden lg:block w-80 flex-shrink-0 pt-8 relative z-10">
-        <div className="sticky top-8">
+      <div className="hidden lg:block w-72 flex-shrink-0 pt-4 relative z-10">
+        <div className="sticky top-4 animate-slideInLeft">
           <QuizLiveScoreboard
             scores={scores}
             currentPlayerId={currentPlayerId}
@@ -134,121 +148,154 @@ export const QuizQuestion = ({
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-3xl mx-auto relative z-10">
+      <div className="flex-1 flex flex-col items-center justify-center gap-5 max-w-3xl mx-auto relative z-10">
         {/* Header with meta info */}
-        <div className="w-full flex items-center justify-between glass-ultra rounded-2xl px-6 py-4 animate-fadeInDown">
+        <div className="w-full flex items-center justify-between glass-ultra rounded-2xl px-5 py-3 animate-fadeInDown">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
               <Brain className="h-5 w-5 text-primary" />
             </div>
             <div>
               <span className="text-foreground-muted text-xs uppercase tracking-wider">Question</span>
-              <p className="font-display font-bold text-xl text-gradient">
-                {roundNumber}<span className="text-foreground-muted text-lg">/{totalRounds}</span>
+              <p className="font-display font-bold text-lg text-gradient">
+                {roundNumber}<span className="text-foreground-muted text-base">/{totalRounds}</span>
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={cn(
-              "px-4 py-2 rounded-xl text-sm font-medium backdrop-blur-sm border",
-              "bg-card/50 border-border/50"
-            )}>
+            <span className="px-3 py-1.5 rounded-xl text-xs font-medium backdrop-blur-sm border bg-card/50 border-border/50">
               {categoryLabels[category] || category}
             </span>
             <span className={cn(
-              "px-4 py-2 rounded-xl text-sm font-bold capitalize",
+              "px-3 py-1.5 rounded-xl text-xs font-bold",
               diffConfig.bg, diffConfig.border, diffConfig.color, "border"
             )}>
-              {difficulty}
+              {diffConfig.label}
             </span>
-            {questionType === 'text' && (
-              <span className="px-4 py-2 rounded-xl text-sm bg-accent/20 text-accent border border-accent/40 font-medium">
-                ✏️ Texte
-              </span>
-            )}
           </div>
         </div>
 
-        {/* Timer - Large and prominent */}
-        <div className="w-full space-y-3 animate-fadeIn">
+        {/* Timer - Circular design */}
+        <div className="relative animate-fadeIn">
+          {/* Expanding rings when urgent */}
+          {isUrgent && (
+            <>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-32 h-32 rounded-full border-2 border-destructive/40 animate-ringExpand" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center" style={{ animationDelay: '0.5s' }}>
+                <div className="w-32 h-32 rounded-full border-2 border-destructive/30 animate-ringExpand" style={{ animationDelay: '0.5s' }} />
+              </div>
+            </>
+          )}
+          
+          {/* Timer circle */}
           <div className={cn(
-            "flex items-center justify-center gap-3 transition-all duration-300",
-            isUrgent && "animate-pulse"
+            "relative w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300",
+            "border-4",
+            isCritical 
+              ? "border-destructive bg-destructive/20 animate-timerUrgent" 
+              : isUrgent 
+                ? "border-warning bg-warning/10" 
+                : "border-primary/50 bg-primary/10"
           )}>
-            <div className={cn(
-              "relative p-4 rounded-2xl transition-all duration-300",
-              isUrgent 
-                ? "bg-destructive/20 border-2 border-destructive/50 shadow-lg shadow-destructive/30" 
-                : "bg-primary/20 border-2 border-primary/30"
-            )}>
-              <Timer className={cn("h-8 w-8", isUrgent ? "text-destructive" : "text-primary")} />
-              {isUrgent && (
-                <div className="absolute inset-0 bg-destructive/20 rounded-2xl animate-ping" />
-              )}
+            {/* Progress ring */}
+            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="46"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="4"
+                className={cn(
+                  "transition-all duration-200",
+                  isCritical ? "text-destructive" : isUrgent ? "text-warning" : "text-primary"
+                )}
+                strokeDasharray={`${progress * 2.89} 289`}
+                strokeLinecap="round"
+              />
+            </svg>
+            
+            {/* Timer icon and number */}
+            <div className="relative flex flex-col items-center">
+              <Timer className={cn(
+                "h-5 w-5 mb-1 transition-colors",
+                isCritical ? "text-destructive" : isUrgent ? "text-warning" : "text-primary"
+              )} />
+              <span className={cn(
+                "font-display text-3xl font-black transition-colors",
+                isCritical ? "text-destructive" : isUrgent ? "text-warning" : "text-foreground"
+              )}>
+                {seconds}
+              </span>
             </div>
-            <span className={cn(
-              "font-display text-6xl font-black tracking-tight transition-colors duration-300",
-              isUrgent ? "text-destructive" : "text-foreground"
-            )}>
-              {seconds}
-            </span>
-          </div>
-          <div className="relative h-4 rounded-full overflow-hidden bg-muted/50 backdrop-blur-sm">
-            <div 
-              className={cn(
-                "absolute inset-y-0 left-0 rounded-full transition-all duration-200",
-                isUrgent 
-                  ? "bg-gradient-to-r from-destructive to-rose-400" 
-                  : "bg-gradient-to-r from-primary to-accent"
-              )}
-              style={{ width: `${progress}%` }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent" />
           </div>
         </div>
 
         {/* Question Card */}
         <div className={cn(
-          "w-full card-premium p-8 text-center transition-all duration-500 animate-fadeInUp",
-          isUrgent && "border-destructive/50 shadow-lg shadow-destructive/20"
+          "w-full card-premium p-6 text-center transition-all duration-500 animate-zoomInBounce",
+          isCritical && "border-destructive/50 shadow-glow-destructive"
         )}>
-          <h2 className="text-2xl md:text-3xl font-display font-bold leading-relaxed">
+          <h2 className="text-xl md:text-2xl font-display font-bold leading-relaxed">
             {question}
           </h2>
         </div>
 
         {/* QCM Options - 2x2 Grid */}
         {questionType === 'qcm' && options && options.length > 0 ? (
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3">
             {options.map((option, index) => {
               const style = optionStyles[index % 4];
+              const isSelected = selectedOption === option;
+              
               return (
-                <Button
+                <button
                   key={index}
                   onClick={() => handleSelectOption(option)}
                   disabled={hasAnswered}
-                  soundEffect={hasAnswered ? 'none' : 'click'}
                   className={cn(
-                    "h-auto min-h-[100px] p-6 text-lg md:text-xl font-semibold",
-                    "bg-gradient-to-br border-2 rounded-2xl backdrop-blur-sm",
-                    "transition-all duration-300 transform gpu-accelerated",
-                    "flex items-center justify-center text-center whitespace-normal",
-                    style.gradient, style.border,
-                    !hasAnswered && cn(style.hover, "hover:scale-[1.02] hover:shadow-xl", style.shadow),
-                    hasAnswered && selectedOption === option && "ring-4 ring-primary scale-[1.02] shadow-xl shadow-primary/30",
-                    hasAnswered && selectedOption !== option && "opacity-40 scale-95"
+                    "relative h-auto min-h-[90px] p-5 text-left",
+                    "border-2 rounded-2xl backdrop-blur-sm",
+                    "transition-all duration-300 transform",
+                    "flex items-center gap-4",
+                    "animate-optionAppear",
+                    style.bg, style.border,
+                    !hasAnswered && cn(style.hover, "hover:scale-[1.02] hover:shadow-lg", style.glow, "active:scale-[0.98]"),
+                    isSelected && "ring-4 ring-primary/60 scale-[1.02] shadow-xl shadow-primary/30",
+                    hasAnswered && !isSelected && "opacity-40 scale-95"
                   )}
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  style={{ animationDelay: `${index * 80}ms` }}
                 >
-                  <span className="line-clamp-3">{option}</span>
-                </Button>
+                  {/* Letter badge */}
+                  <div className={cn(
+                    "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
+                    "font-display font-black text-lg",
+                    "bg-white/10 border border-white/20"
+                  )}>
+                    {style.letter}
+                  </div>
+                  
+                  {/* Option text */}
+                  <span className="text-base md:text-lg font-semibold line-clamp-3 flex-1">
+                    {option}
+                  </span>
+                  
+                  {/* Selected checkmark */}
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-scaleIn">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                </button>
               );
             })}
           </div>
         ) : (
           /* Text Input Mode */
-          <form onSubmit={handleTextSubmit} className="w-full animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-            <div className="flex gap-4">
+          <form onSubmit={handleTextSubmit} className="w-full animate-fadeInUp">
+            <div className="flex gap-3">
               <div className="relative flex-1">
                 <Input
                   ref={inputRef}
@@ -258,10 +305,10 @@ export const QuizQuestion = ({
                   placeholder="Tapez votre réponse..."
                   disabled={hasAnswered}
                   className={cn(
-                    "h-16 text-xl px-6",
+                    "h-14 text-lg px-5",
                     "glass-ultra border-2 border-primary/30",
                     "focus:border-primary focus:ring-4 focus:ring-primary/20",
-                    "rounded-2xl transition-all duration-300",
+                    "rounded-xl transition-all duration-300",
                     hasAnswered && "opacity-50"
                   )}
                   autoComplete="off"
@@ -271,9 +318,9 @@ export const QuizQuestion = ({
                 type="submit"
                 disabled={hasAnswered || !textAnswer.trim()}
                 variant="hero"
-                className="h-16 px-8 rounded-2xl"
+                className="h-14 px-6 rounded-xl"
               >
-                <Send className="h-6 w-6" />
+                <Send className="h-5 w-5" />
               </Button>
             </div>
           </form>
@@ -281,46 +328,49 @@ export const QuizQuestion = ({
 
         {/* Answer Status */}
         {hasAnswered && (
-          <div className="flex items-center justify-center gap-4 py-4 px-8 rounded-2xl bg-success/20 border-2 border-success/40 animate-zoomInBounce">
-            <div className="p-2 rounded-xl bg-success/30">
-              <Check className="h-6 w-6 text-success" />
+          <div className="flex items-center justify-center gap-3 py-3 px-6 rounded-2xl bg-success/20 border-2 border-success/40 animate-zoomInBounce shadow-glow-success">
+            <div className="p-1.5 rounded-lg bg-success/30">
+              <Check className="h-5 w-5 text-success" />
             </div>
-            <span className="text-xl font-bold text-success">Réponse envoyée !</span>
-            <Zap className="h-5 w-5 text-success animate-bounce" />
+            <span className="text-lg font-bold text-success">Réponse envoyée !</span>
+            <Zap className="h-4 w-4 text-success animate-bounce" />
+          </div>
+        )}
+
+        {/* Urgent warning */}
+        {isUrgent && !hasAnswered && (
+          <div className="flex items-center gap-2 text-destructive animate-pulse">
+            <AlertTriangle className="h-5 w-5" />
+            <span className="font-bold">Dépêchez-vous !</span>
           </div>
         )}
 
         {/* Players who answered - Mobile */}
-        <div className="flex items-center gap-3 flex-wrap justify-center lg:hidden glass-ultra rounded-2xl px-4 py-3">
-          <span className="text-foreground-muted text-sm font-medium">Réponses:</span>
+        <div className="flex flex-wrap items-center justify-center gap-2 lg:hidden">
           {players.map(p => (
             <div 
               key={p.id}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-300",
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300",
                 answeredPlayers.includes(p.id) 
                   ? "bg-success/20 text-success border border-success/40" 
                   : "bg-muted/50 text-muted-foreground border border-muted"
               )}
             >
-              {answeredPlayers.includes(p.id) ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <User className="h-4 w-4" />
-              )}
+              {answeredPlayers.includes(p.id) && <Check className="h-3 w-3" />}
               {p.name}
             </div>
           ))}
         </div>
       </div>
       
-      {/* Mobile Scoreboard - Collapsible at bottom */}
+      {/* Mobile Scoreboard Toggle */}
       <div className="lg:hidden fixed bottom-20 left-4 right-4 z-20">
         <details className="glass-ultra rounded-2xl border border-primary/30 overflow-hidden">
-          <summary className="px-5 py-3 cursor-pointer font-semibold text-sm flex items-center gap-2 hover:bg-primary/10 transition-colors">
-            <span>📊</span> Voir le classement
+          <summary className="px-4 py-2.5 cursor-pointer font-semibold text-sm flex items-center gap-2 hover:bg-primary/10 transition-colors">
+            <span>📊</span> Classement ({answeredPlayers.length}/{players.length} ont répondu)
           </summary>
-          <div className="p-4 border-t border-primary/20">
+          <div className="p-3 border-t border-primary/20 max-h-60 overflow-y-auto">
             <QuizLiveScoreboard
               scores={scores}
               currentPlayerId={currentPlayerId}
