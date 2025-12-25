@@ -36,6 +36,7 @@ const Index = () => {
     joinLobby, 
     leaveLobby, 
     kickPlayer,
+    transferHost,
     updateLobbyStatus,
     resetState 
   } = useLobbySync();
@@ -205,8 +206,11 @@ const Index = () => {
   };
 
   const handleKickPlayer = async (playerId: string) => {
-    console.log('Kicking player:', playerId);
     await kickPlayer(playerId);
+  };
+
+  const handleTransferHost = async (playerId: string) => {
+    await transferHost(playerId);
   };
 
   const handleSubmitChallenges = (challenges: VideoClip[]) => {
@@ -307,6 +311,7 @@ const Index = () => {
           onStartGame={handleStartGame}
           onLeaveGame={handleLeaveGame}
           onKickPlayer={handleKickPlayer}
+          onTransferHost={handleTransferHost}
         />
       );
     }

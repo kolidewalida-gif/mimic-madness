@@ -8,6 +8,8 @@ interface Player {
   id: string;
   name: string;
   isHost: boolean;
+  isDisconnected?: boolean;
+  disconnectedTimeLeft?: number;
 }
 
 interface Lobby {
@@ -28,9 +30,12 @@ interface UseLobbyResult {
   joinLobby: (code: string, playerId: string, playerName: string) => Promise<{ lobby: Lobby } | null>;
   leaveLobby: (playerId: string) => Promise<void>;
   kickPlayer: (playerId: string) => Promise<void>;
+  transferHost: (newHostId: string) => Promise<void>;
   updateLobbyStatus: (status: string) => Promise<void>;
   resetState: () => void;
 }
+
+const RECONNECTION_TIMEOUT = 60000; // 60 seconds
 
 export const useLobbySync = (): UseLobbyResult => {
   const [lobby, setLobby] = useState<Lobby | null>(null);
@@ -41,6 +46,7 @@ export const useLobbySync = (): UseLobbyResult => {
   const { toast } = useToast();
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
   const currentPlayerIdRef = useRef<string | null>(null);
+  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset state
   const resetState = useCallback(() => {
@@ -53,7 +59,104 @@ export const useLobbySync = (): UseLobbyResult => {
       supabase.removeChannel(channel);
       setChannel(null);
     }
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
   }, [channel]);
+
+  // Mark player as connected (heartbeat)
+  const markConnected = useCallback(async () => {
+    if (!lobby || !currentPlayerIdRef.current) return;
+
+    try {
+      await supabase
+        .from('lobby_players')
+        .update({ 
+          connection_status: 'connected',
+          disconnected_at: null 
+        })
+        .eq('lobby_id', lobby.id)
+        .eq('player_id', currentPlayerIdRef.current);
+    } catch (error) {
+      console.error('Error marking player as connected:', error);
+    }
+  }, [lobby]);
+
+  // Mark player as disconnected
+  const markDisconnected = useCallback(async () => {
+    if (!lobby || !currentPlayerIdRef.current) return;
+
+    try {
+      await supabase
+        .from('lobby_players')
+        .update({ 
+          connection_status: 'disconnected',
+          disconnected_at: new Date().toISOString()
+        })
+        .eq('lobby_id', lobby.id)
+        .eq('player_id', currentPlayerIdRef.current);
+    } catch (error) {
+      console.error('Error marking player as disconnected:', error);
+    }
+  }, [lobby]);
+
+  // Transfer host to another player
+  const transferHost = useCallback(async (newHostId: string) => {
+    if (!lobby) return;
+
+    try {
+      console.log('Transferring host to:', newHostId);
+      
+      // Get the new host's name
+      const newHost = players.find(p => p.id === newHostId);
+      if (!newHost) {
+        toast({
+          title: "Erreur",
+          description: "Joueur introuvable",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update lobby host_id
+      const { error: lobbyError } = await supabase
+        .from('lobbies')
+        .update({ host_id: newHostId })
+        .eq('id', lobby.id);
+
+      if (lobbyError) throw lobbyError;
+
+      // Update old host's is_host to false
+      await supabase
+        .from('lobby_players')
+        .update({ is_host: false })
+        .eq('lobby_id', lobby.id)
+        .eq('is_host', true);
+
+      // Update new host's is_host to true
+      const { error: playerError } = await supabase
+        .from('lobby_players')
+        .update({ is_host: true })
+        .eq('lobby_id', lobby.id)
+        .eq('player_id', newHostId);
+
+      if (playerError) throw playerError;
+
+      playSoundEffect('success', 0.5);
+      toast({
+        title: "Hôte transféré",
+        description: `${newHost.name} est maintenant l'hôte`,
+      });
+    } catch (error) {
+      console.error('Error transferring host:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de transférer l'hôte",
+        variant: "destructive",
+      });
+    }
+  }, [lobby, players, toast]);
 
   // Create a new lobby
   const createLobby = useCallback(async (hostId: string, hostName: string) => {
@@ -120,7 +223,8 @@ export const useLobbySync = (): UseLobbyResult => {
           lobby_id: lobbyData.id,
           player_id: hostId,
           player_name: hostName.trim(),
-          is_host: true
+          is_host: true,
+          connection_status: 'connected'
         });
 
       if (playerError) {
@@ -192,19 +296,9 @@ export const useLobbySync = (): UseLobbyResult => {
         return null;
       }
 
-      // Check if game already started
-      if (lobbyData.status === 'playing' && lobbyData.game_phase !== 'lobby') {
-        toast({
-          title: "Partie en cours",
-          description: "Cette partie a déjà commencé",
-          variant: "destructive",
-        });
-        return null;
-      }
-
       const { data: existingPlayers, error: countError } = await supabase
         .from('lobby_players')
-        .select('player_id')
+        .select('player_id, connection_status, disconnected_at')
         .eq('lobby_id', lobbyData.id);
 
       if (countError) {
@@ -212,7 +306,12 @@ export const useLobbySync = (): UseLobbyResult => {
         throw new Error('Erreur lors de la vérification du lobby');
       }
 
-      if (existingPlayers && existingPlayers.length >= 8) {
+      // Count only connected players
+      const connectedPlayers = existingPlayers?.filter(p => 
+        p.connection_status === 'connected' || !p.disconnected_at
+      ) || [];
+
+      if (connectedPlayers.length >= 8) {
         toast({
           title: "Lobby complet",
           description: "Ce lobby a atteint le nombre maximum de joueurs",
@@ -221,31 +320,57 @@ export const useLobbySync = (): UseLobbyResult => {
         return null;
       }
 
-      const alreadyInLobby = existingPlayers?.some(p => p.player_id === playerId);
+      const existingPlayer = existingPlayers?.find(p => p.player_id === playerId);
 
-      if (!alreadyInLobby) {
+      if (existingPlayer) {
+        // Player exists, update their connection status (reconnecting)
+        await supabase
+          .from('lobby_players')
+          .update({ 
+            connection_status: 'connected',
+            disconnected_at: null 
+          })
+          .eq('lobby_id', lobbyData.id)
+          .eq('player_id', playerId);
+        
+        playSoundEffect('success', 0.5);
+        toast({
+          title: "Reconnecté !",
+          description: "Bienvenue de retour dans le lobby",
+        });
+      } else {
+        // Check if game already started (only for new players)
+        if (lobbyData.status === 'playing' && lobbyData.game_phase !== 'lobby') {
+          toast({
+            title: "Partie en cours",
+            description: "Cette partie a déjà commencé",
+            variant: "destructive",
+          });
+          return null;
+        }
+
         const { error: playerError } = await supabase
           .from('lobby_players')
           .insert({
             lobby_id: lobbyData.id,
             player_id: playerId,
             player_name: playerName.trim(),
-            is_host: false
+            is_host: false,
+            connection_status: 'connected'
           });
 
         if (playerError) {
           console.error('Error adding player:', playerError);
           throw new Error('Impossible de rejoindre le lobby');
         }
+
+        toast({
+          title: "Connecté !",
+          description: `Bienvenue dans le lobby ${normalizedCode}`,
+        });
       }
 
       setLobby(lobbyData);
-
-      toast({
-        title: "Connecté !",
-        description: `Bienvenue dans le lobby ${normalizedCode}`,
-      });
-
       return { lobby: lobbyData };
     } catch (error: any) {
       console.error('Error joining lobby:', error);
@@ -267,6 +392,40 @@ export const useLobbySync = (): UseLobbyResult => {
     try {
       console.log('Player leaving lobby:', playerId);
       
+      // Check if player is host
+      const isLeavingHost = lobby.host_id === playerId;
+      
+      if (isLeavingHost) {
+        // Find another player to transfer host to
+        const otherPlayers = players.filter(p => p.id !== playerId && !p.isDisconnected);
+        
+        if (otherPlayers.length > 0) {
+          // Transfer host to first available player
+          const newHost = otherPlayers[0];
+          console.log('Transferring host to:', newHost.name);
+          
+          // Update lobby host_id
+          await supabase
+            .from('lobbies')
+            .update({ host_id: newHost.id })
+            .eq('id', lobby.id);
+
+          // Update new host's is_host to true
+          await supabase
+            .from('lobby_players')
+            .update({ is_host: true })
+            .eq('lobby_id', lobby.id)
+            .eq('player_id', newHost.id);
+        } else {
+          // No other players, delete the lobby
+          console.log('No other players, deleting lobby');
+          await supabase
+            .from('lobbies')
+            .delete()
+            .eq('id', lobby.id);
+        }
+      }
+
       // Remove player from lobby
       await supabase
         .from('lobby_players')
@@ -274,20 +433,11 @@ export const useLobbySync = (): UseLobbyResult => {
         .eq('lobby_id', lobby.id)
         .eq('player_id', playerId);
 
-      // If host leaves, delete the lobby
-      if (lobby.host_id === playerId) {
-        console.log('Host leaving, deleting lobby');
-        await supabase
-          .from('lobbies')
-          .delete()
-          .eq('id', lobby.id);
-      }
-
       resetState();
     } catch (error) {
       console.error('Error leaving lobby:', error);
     }
-  }, [lobby, resetState]);
+  }, [lobby, players, resetState]);
 
   // Kick a player (host only)
   const kickPlayer = useCallback(async (playerId: string) => {
@@ -337,6 +487,39 @@ export const useLobbySync = (): UseLobbyResult => {
     }
   }, [lobby]);
 
+  // Cleanup disconnected players after timeout
+  const cleanupDisconnectedPlayers = useCallback(async () => {
+    if (!lobby) return;
+
+    try {
+      const cutoffTime = new Date(Date.now() - RECONNECTION_TIMEOUT).toISOString();
+      
+      // Get players to remove
+      const { data: expiredPlayers } = await supabase
+        .from('lobby_players')
+        .select('player_id, player_name')
+        .eq('lobby_id', lobby.id)
+        .eq('connection_status', 'disconnected')
+        .lt('disconnected_at', cutoffTime);
+
+      if (expiredPlayers && expiredPlayers.length > 0) {
+        // Remove expired disconnected players
+        await supabase
+          .from('lobby_players')
+          .delete()
+          .eq('lobby_id', lobby.id)
+          .eq('connection_status', 'disconnected')
+          .lt('disconnected_at', cutoffTime);
+
+        expiredPlayers.forEach(p => {
+          console.log(`Removed disconnected player: ${p.player_name}`);
+        });
+      }
+    } catch (error) {
+      console.error('Error cleaning up disconnected players:', error);
+    }
+  }, [lobby]);
+
   // Subscribe to lobby changes
   useEffect(() => {
     if (!lobby) {
@@ -372,12 +555,26 @@ export const useLobbySync = (): UseLobbyResult => {
             }
           }
 
+          const now = Date.now();
           setPlayers(
-            data.map((p) => ({
-              id: p.player_id,
-              name: p.player_name,
-              isHost: p.is_host,
-            }))
+            data.map((p) => {
+              const isDisconnected = p.connection_status === 'disconnected' && p.disconnected_at;
+              let disconnectedTimeLeft = 0;
+              
+              if (isDisconnected && p.disconnected_at) {
+                const disconnectedTime = new Date(p.disconnected_at).getTime();
+                const elapsed = now - disconnectedTime;
+                disconnectedTimeLeft = Math.max(0, Math.ceil((RECONNECTION_TIMEOUT - elapsed) / 1000));
+              }
+
+              return {
+                id: p.player_id,
+                name: p.player_name,
+                isHost: p.is_host,
+                isDisconnected: isDisconnected && disconnectedTimeLeft > 0,
+                disconnectedTimeLeft,
+              };
+            }).filter(p => !p.isDisconnected || p.disconnectedTimeLeft! > 0)
           );
         }
       } catch (error) {
@@ -388,7 +585,7 @@ export const useLobbySync = (): UseLobbyResult => {
     const checkLobbyExists = async () => {
       const { data, error } = await supabase
         .from('lobbies')
-        .select('id')
+        .select('id, host_id')
         .eq('id', lobby.id)
         .maybeSingle();
 
@@ -396,11 +593,37 @@ export const useLobbySync = (): UseLobbyResult => {
         console.log('Lobby was deleted');
         setLobbyDeleted(true);
         playSoundEffect('error', 0.5);
+      } else if (data.host_id !== lobby.host_id) {
+        // Host changed, update lobby
+        setLobby(prev => prev ? { ...prev, host_id: data.host_id } : null);
       }
     };
 
     // Initial fetch
     fetchPlayers();
+
+    // Set up heartbeat
+    heartbeatRef.current = setInterval(() => {
+      markConnected();
+      cleanupDisconnectedPlayers();
+      fetchPlayers();
+    }, 5000); // Every 5 seconds
+
+    // Handle page visibility
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        markDisconnected();
+      } else {
+        markConnected();
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      markDisconnected();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Subscribe to realtime changes
     const newChannel = supabase
@@ -445,7 +668,26 @@ export const useLobbySync = (): UseLobbyResult => {
         (payload) => {
           console.log('Lobby updated:', payload);
           if (payload.new && isSubscribed) {
-            setLobby(payload.new as Lobby);
+            const newLobby = payload.new as Lobby;
+            setLobby(newLobby);
+            
+            // Check if host changed
+            if (newLobby.host_id !== lobby.host_id) {
+              const newHost = players.find(p => p.id === newLobby.host_id);
+              if (newHost && newLobby.host_id === currentPlayerId) {
+                playSoundEffect('success', 0.5);
+                toast({
+                  title: "Vous êtes l'hôte !",
+                  description: "L'ancien hôte vous a transféré les droits",
+                });
+              } else if (newHost) {
+                toast({
+                  title: "Nouvel hôte",
+                  description: `${newHost.name} est maintenant l'hôte`,
+                });
+              }
+              fetchPlayers();
+            }
           }
         }
       )
@@ -479,8 +721,13 @@ export const useLobbySync = (): UseLobbyResult => {
       if (newChannel) {
         supabase.removeChannel(newChannel);
       }
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [lobby?.id, players.length]);
+  }, [lobby?.id, lobby?.host_id, players.length, markConnected, markDisconnected, cleanupDisconnectedPlayers, toast]);
 
   return {
     lobby,
@@ -492,6 +739,7 @@ export const useLobbySync = (): UseLobbyResult => {
     joinLobby,
     leaveLobby,
     kickPlayer,
+    transferHost,
     updateLobbyStatus,
     resetState,
   };

@@ -1,4 +1,4 @@
-import { Users, Crown, Copy, CheckCircle2, Sparkles, Zap, Wifi, X } from "lucide-react";
+import { Users, Crown, Copy, CheckCircle2, Sparkles, Zap, Wifi, WifiOff, X, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useToast } from "@/hooks/use-toast";
@@ -14,11 +14,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Player {
   id: string;
   name: string;
   isHost: boolean;
+  isDisconnected?: boolean;
+  disconnectedTimeLeft?: number;
 }
 
 interface PlayersListProps {
@@ -29,6 +37,7 @@ interface PlayersListProps {
   currentPlayerId?: string;
   onStartGame?: () => void;
   onKickPlayer?: (playerId: string) => void;
+  onTransferHost?: (playerId: string) => void;
   canStart?: boolean;
   gameMode?: 'normal' | '2v2' | 'quiz';
 }
@@ -41,13 +50,18 @@ export const PlayersList = ({
   currentPlayerId,
   onStartGame,
   onKickPlayer,
+  onTransferHost,
   canStart: externalCanStart,
   gameMode = 'normal',
 }: PlayersListProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [playerToKick, setPlayerToKick] = useState<Player | null>(null);
-  const canStart = externalCanStart ?? (players.length >= 2 && players.length <= 8);
+  const [playerToTransfer, setPlayerToTransfer] = useState<Player | null>(null);
+  
+  // Only count connected players for start conditions
+  const connectedPlayers = players.filter(p => !p.isDisconnected);
+  const canStart = externalCanStart ?? (connectedPlayers.length >= 2 && connectedPlayers.length <= 8);
 
   const copyLobbyCode = async () => {
     if (!lobbyCode) return;
@@ -79,6 +93,17 @@ export const PlayersList = ({
       onKickPlayer(playerToKick.id);
     }
     setPlayerToKick(null);
+  };
+
+  const handleTransferClick = (player: Player) => {
+    setPlayerToTransfer(player);
+  };
+
+  const confirmTransfer = () => {
+    if (playerToTransfer && onTransferHost) {
+      onTransferHost(playerToTransfer.id);
+    }
+    setPlayerToTransfer(null);
   };
 
   return (
@@ -158,7 +183,7 @@ export const PlayersList = ({
                   </span>
                 </div>
                 <span className="text-sm font-bold px-5 py-2 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/20">
-                  {players.length}/8
+                  {connectedPlayers.length}/8
                 </span>
               </div>
 
@@ -182,8 +207,10 @@ export const PlayersList = ({
                       className={cn(
                         "flex items-center justify-between p-4 rounded-xl transition-all duration-300",
                         "bg-white/5 border border-white/10",
-                        "hover:bg-white/10 hover:border-primary/30",
-                        player.id === currentPlayerId && "ring-1 ring-primary/40 bg-primary/10",
+                        player.isDisconnected 
+                          ? "opacity-60 bg-amber-500/10 border-amber-500/30" 
+                          : "hover:bg-white/10 hover:border-primary/30",
+                        player.id === currentPlayerId && !player.isDisconnected && "ring-1 ring-primary/40 bg-primary/10",
                         "animate-fadeIn"
                       )}
                       style={{ 
@@ -212,29 +239,64 @@ export const PlayersList = ({
                               Hôte de la partie
                             </span>
                           )}
+                          {player.isDisconnected && player.disconnectedTimeLeft && (
+                            <span className="text-xs text-amber-400 flex items-center gap-1.5 font-medium animate-pulse">
+                              <WifiOff className="h-3 w-3" />
+                              Reconnexion... {player.disconnectedTimeLeft}s
+                            </span>
+                          )}
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-3">
-                        {/* Online indicator */}
-                        <div className="relative flex items-center gap-2">
-                          <Wifi className="h-4 w-4 text-success/60" />
-                          <div className="w-3 h-3 rounded-full bg-success shadow-[0_0_15px_rgba(74,222,128,0.6)]">
-                            <div className="absolute inset-0 rounded-full bg-success animate-ping opacity-40" />
+                        {/* Connection indicator */}
+                        {player.isDisconnected ? (
+                          <div className="flex items-center gap-2">
+                            <WifiOff className="h-4 w-4 text-amber-500" />
+                            <div className="w-3 h-3 rounded-full bg-amber-500 animate-pulse" />
                           </div>
-                        </div>
+                        ) : (
+                          <div className="relative flex items-center gap-2">
+                            <Wifi className="h-4 w-4 text-success/60" />
+                            <div className="w-3 h-3 rounded-full bg-success shadow-[0_0_15px_rgba(74,222,128,0.6)]">
+                              <div className="absolute inset-0 rounded-full bg-success animate-ping opacity-40" />
+                            </div>
+                          </div>
+                        )}
                         
-                        {/* Kick button - only for host, and not for themselves */}
-                        {isHost && !player.isHost && onKickPlayer && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleKickClick(player)}
-                            className="h-8 w-8 rounded-lg text-destructive/60 hover:text-destructive hover:bg-destructive/20 transition-colors"
-                            title="Exclure ce joueur"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                        {/* Host actions - kick & transfer */}
+                        {isHost && !player.isHost && !player.isDisconnected && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-foreground-muted hover:text-foreground hover:bg-white/10 transition-colors"
+                              >
+                                <UserCog className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="glass-ultra">
+                              {onTransferHost && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleTransferClick(player)}
+                                  className="cursor-pointer"
+                                >
+                                  <Crown className="h-4 w-4 mr-2 text-amber-400" />
+                                  Transférer l'hôte
+                                </DropdownMenuItem>
+                              )}
+                              {onKickPlayer && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleKickClick(player)}
+                                  className="cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                  <X className="h-4 w-4 mr-2" />
+                                  Exclure
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </div>
                     </div>
@@ -275,7 +337,7 @@ export const PlayersList = ({
                   <p className="text-sm text-center text-foreground-muted animate-pulse font-medium">
                     {gameMode === '2v2' 
                       ? "Min. 4 joueurs pairs + équipes formées" 
-                      : "Minimum 2 joueurs requis"}
+                      : "Minimum 2 joueurs connectés requis"}
                   </p>
                 )}
               </div>
@@ -312,6 +374,30 @@ export const PlayersList = ({
               className="bg-destructive hover:bg-destructive/90 rounded-xl"
             >
               Exclure
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Transfer Host Confirmation Dialog */}
+      <AlertDialog open={!!playerToTransfer} onOpenChange={() => setPlayerToTransfer(null)}>
+        <AlertDialogContent className="glass-ultra border-amber-500/30">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-amber-400" />
+              Transférer l'hôte à {playerToTransfer?.name} ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {playerToTransfer?.name} deviendra l'hôte de la partie et aura le contrôle du lobby. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmTransfer}
+              className="bg-amber-500 hover:bg-amber-600 text-black rounded-xl"
+            >
+              Transférer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
