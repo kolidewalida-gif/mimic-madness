@@ -5,7 +5,7 @@ import { GameModeSelector } from "@/components/GameModeSelector";
 import { TeamDisplay } from "@/components/TeamDisplay";
 import { Button } from "@/components/ui/button";
 import { DeviceSettings } from "@/components/DeviceSettings";
-import { ArrowLeft, Settings, Wifi, Sparkles, Zap, Users, Radio } from "lucide-react";
+import { ArrowLeft, Settings, Sparkles, Users, Radio } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useGameTeams } from "@/hooks/useGameTeams";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ interface LobbyScreenProps {
   currentPlayer: Player;
   onStartGame: (gameMode: 'normal' | '2v2' | 'quiz') => void;
   onLeaveGame: () => void;
+  onKickPlayer?: (playerId: string) => void;
 }
 
 export const LobbyScreen = ({ 
@@ -35,7 +36,8 @@ export const LobbyScreen = ({
   isHost, 
   currentPlayer, 
   onStartGame, 
-  onLeaveGame 
+  onLeaveGame,
+  onKickPlayer
 }: LobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
   const [gameMode, setGameMode] = useState<'normal' | '2v2' | 'quiz'>('normal');
@@ -211,7 +213,9 @@ export const LobbyScreen = ({
               lobbyCode={lobbyCode}
               lobbyId={lobbyId}
               isHost={isHost}
+              currentPlayerId={currentPlayer.id}
               onStartGame={handleStartGame}
+              onKickPlayer={isHost ? onKickPlayer : undefined}
               canStart={canStart}
               gameMode={gameMode}
             />
