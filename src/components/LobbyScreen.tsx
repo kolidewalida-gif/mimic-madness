@@ -27,6 +27,7 @@ interface LobbyScreenProps {
   onStartGame: (gameMode: 'normal' | '2v2' | 'quiz') => void;
   onLeaveGame: () => void;
   onKickPlayer?: (playerId: string) => void;
+  onTransferHost?: (playerId: string) => void;
 }
 
 export const LobbyScreen = ({ 
@@ -37,7 +38,8 @@ export const LobbyScreen = ({
   currentPlayer, 
   onStartGame, 
   onLeaveGame,
-  onKickPlayer
+  onKickPlayer,
+  onTransferHost
 }: LobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
   const [gameMode, setGameMode] = useState<'normal' | '2v2' | 'quiz'>('normal');
@@ -216,6 +218,7 @@ export const LobbyScreen = ({
               currentPlayerId={currentPlayer.id}
               onStartGame={handleStartGame}
               onKickPlayer={isHost ? onKickPlayer : undefined}
+              onTransferHost={isHost ? onTransferHost : undefined}
               canStart={canStart}
               gameMode={gameMode}
             />

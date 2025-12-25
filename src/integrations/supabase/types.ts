@@ -201,6 +201,8 @@ export type Database = {
       }
       lobby_players: {
         Row: {
+          connection_status: string
+          disconnected_at: string | null
           id: string
           is_host: boolean
           joined_at: string
@@ -209,6 +211,8 @@ export type Database = {
           player_name: string
         }
         Insert: {
+          connection_status?: string
+          disconnected_at?: string | null
           id?: string
           is_host?: boolean
           joined_at?: string
@@ -217,6 +221,8 @@ export type Database = {
           player_name: string
         }
         Update: {
+          connection_status?: string
+          disconnected_at?: string | null
           id?: string
           is_host?: boolean
           joined_at?: string
