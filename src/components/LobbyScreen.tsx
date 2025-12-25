@@ -5,7 +5,7 @@ import { GameModeSelector } from "@/components/GameModeSelector";
 import { TeamDisplay } from "@/components/TeamDisplay";
 import { Button } from "@/components/ui/button";
 import { DeviceSettings } from "@/components/DeviceSettings";
-import { ArrowLeft, Settings, Sparkles, Users, Radio } from "lucide-react";
+import { ArrowLeft, Settings, Users, Wifi } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useGameTeams } from "@/hooks/useGameTeams";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,8 @@ interface Player {
   id: string;
   name: string;
   isHost: boolean;
+  isDisconnected?: boolean;
+  disconnectedTimeLeft?: number;
 }
 
 interface LobbyScreenProps {
@@ -46,7 +48,6 @@ export const LobbyScreen = ({
   const { teams, isLoading: teamsLoading, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
 
-  // Subscribe to game mode changes from the lobby
   useEffect(() => {
     const fetchGameMode = async () => {
       const { data } = await supabase
@@ -96,7 +97,6 @@ export const LobbyScreen = ({
 
       setGameMode(mode);
 
-      // Auto-assign teams if switching to 2v2
       if (mode === '2v2' && players.length >= 4 && players.length % 2 === 0) {
         await assignRandomTeams(players);
       }
@@ -127,89 +127,81 @@ export const LobbyScreen = ({
   };
 
   const canStart = gameMode === 'normal' || gameMode === 'quiz'
-    ? players.length >= 2 
-    : (players.length >= 4 && players.length % 2 === 0 && teams.length > 0);
+    ? players.filter(p => !p.isDisconnected).length >= 2 
+    : (players.filter(p => !p.isDisconnected).length >= 4 && players.filter(p => !p.isDisconnected).length % 2 === 0 && teams.length > 0);
 
   return (
-    <div className="min-h-screen flex flex-col p-6 relative overflow-hidden bg-mesh">
-      {/* Animated orbs */}
-      <div className="orb-container">
-        <div className="orb orb-primary" />
-        <div className="orb orb-accent" />
-        <div className="orb orb-secondary" />
-      </div>
+    <div className="min-h-screen flex flex-col p-4 sm:p-6 relative overflow-hidden">
+      {/* Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-background via-background-secondary to-background" />
       
-      {/* Grid overlay */}
-      <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
+      {/* Floating orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-15%] right-[-5%] w-[500px] h-[500px] rounded-full bg-primary/15 blur-[100px] animate-pulse" />
+        <div className="absolute bottom-[-15%] left-[-5%] w-[400px] h-[400px] rounded-full bg-accent/10 blur-[80px] animate-pulse" style={{ animationDelay: "1s" }} />
+      </div>
 
-      <div className="w-full max-w-7xl mx-auto space-y-8 relative z-10">
+      {/* Subtle grid */}
+      <div className="fixed inset-0 opacity-[0.02]" style={{
+        backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
+        backgroundSize: '60px 60px'
+      }} />
+
+      <div className="w-full max-w-6xl mx-auto space-y-6 relative z-10 flex-1">
         {/* Header */}
-        <header className="flex items-center justify-between animate-fadeInDown">
+        <header className="flex items-center justify-between">
           <Button
-            variant="glass"
+            variant="ghost"
             onClick={onLeaveGame}
-            className="gap-2 group rounded-xl"
+            className="gap-2 rounded-xl hover:bg-destructive/10 hover:text-destructive group"
           >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-            <span className="hidden sm:inline font-medium">Quitter</span>
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden sm:inline">Quitter</span>
           </Button>
           
-          <GameLogo size="md" animated />
+          <GameLogo size="sm" animated />
           
           <Button
-            variant="glass"
+            variant="ghost"
             onClick={() => setShowSettings(!showSettings)}
             className={cn(
-              "gap-2 group rounded-xl",
-              showSettings && "bg-primary/20 border-primary/50"
+              "gap-2 rounded-xl",
+              showSettings && "bg-primary/10 text-primary"
             )}
           >
             <Settings className={cn(
               "h-4 w-4 transition-transform duration-500",
               showSettings && "rotate-180"
             )} />
-            <span className="hidden sm:inline font-medium">Audio/Vidéo</span>
+            <span className="hidden sm:inline">Audio/Vidéo</span>
           </Button>
         </header>
 
         {/* Status Banner */}
-        <div className="text-center space-y-5 animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-          <div className={cn(
-            "inline-flex items-center gap-4 px-8 py-4 rounded-2xl",
-            "glass-ultra",
-            "shadow-lg"
-          )}>
-            <div className="relative">
-              <Radio className="h-5 w-5 text-accent" />
-              <div className="absolute inset-0 animate-ping">
-                <Radio className="h-5 w-5 text-accent opacity-50" />
-              </div>
-            </div>
-            <span className="text-sm font-semibold text-accent uppercase tracking-wider">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-card/60 backdrop-blur-sm border border-border/30">
+            <Wifi className="h-4 w-4 text-success" />
+            <span className="text-sm font-medium text-foreground-muted">
               {isHost ? "Vous êtes l'hôte" : "Connecté au lobby"}
             </span>
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse-glow" />
+            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
           </div>
           
-          <div className="space-y-3">
-            <h2 className="text-5xl font-bold text-foreground flex items-center justify-center gap-4 tracking-tight">
-              <Sparkles className="h-10 w-10 text-primary animate-pulse" />
-              <span className="text-gradient">Salle d'attente</span>
-              <Sparkles className="h-10 w-10 text-primary animate-pulse" />
-            </h2>
-            <p className="text-foreground-muted font-medium max-w-lg mx-auto text-lg">
-              {isHost 
-                ? "Choisissez le mode de jeu et lancez la partie quand tout le monde est prêt" 
-                : "En attente que l'hôte lance la partie..."
-              }
-            </p>
-          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
+            Salle d'attente
+          </h1>
+          <p className="text-foreground-muted text-sm max-w-md mx-auto">
+            {isHost 
+              ? "Choisissez le mode de jeu et lancez la partie quand tout le monde est prêt" 
+              : "En attente que l'hôte lance la partie..."
+            }
+          </p>
         </div>
 
         {/* Main Content */}
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
           {/* Left Column - Players List */}
-          <div className="space-y-6 animate-slideInLeft" style={{ animationDelay: '0.2s' }}>
+          <div className="space-y-4">
             <PlayersList
               players={players}
               lobbyCode={lobbyCode}
@@ -225,23 +217,23 @@ export const LobbyScreen = ({
           </div>
 
           {/* Right Column - Game Mode & Teams / Settings */}
-          <div className="space-y-6 animate-slideInRight" style={{ animationDelay: '0.3s' }}>
+          <div className="space-y-4">
             {isHost && (
               <GameModeSelector
                 gameMode={gameMode}
                 onGameModeChange={handleGameModeChange}
-                playerCount={players.length}
+                playerCount={players.filter(p => !p.isDisconnected).length}
               />
             )}
 
             {!isHost && (
-              <div className="card-premium">
-                <div className="text-center space-y-4">
-                  <p className="text-foreground-muted text-sm font-medium flex items-center justify-center gap-2 uppercase tracking-wider">
-                    <Users className="h-4 w-4 text-primary" />
+              <div className="bg-card/60 backdrop-blur-sm border border-border/30 rounded-2xl p-6">
+                <div className="text-center space-y-2">
+                  <p className="text-xs font-medium text-foreground-muted uppercase tracking-wider flex items-center justify-center gap-2">
+                    <Users className="h-3.5 w-3.5" />
                     Mode sélectionné
                   </p>
-                  <p className="text-3xl font-bold text-gradient">
+                  <p className="text-2xl font-bold">
                     {gameMode === 'normal' ? '🎮 Normal' : gameMode === '2v2' ? '⚔️ 2v2' : '🧠 Quiz'}
                   </p>
                 </div>
@@ -249,27 +241,23 @@ export const LobbyScreen = ({
             )}
 
             {gameMode === '2v2' && (
-              <div className="animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
-                <TeamDisplay
-                  teams={teams}
-                  currentPlayerId={currentPlayer.id}
-                  lobbyId={lobbyId}
-                  isHost={isHost}
-                  onShuffleTeams={handleShuffleTeams}
-                  isLoading={teamsLoading}
-                />
-              </div>
+              <TeamDisplay
+                teams={teams}
+                currentPlayerId={currentPlayer.id}
+                lobbyId={lobbyId}
+                isHost={isHost}
+                onShuffleTeams={handleShuffleTeams}
+                isLoading={teamsLoading}
+              />
             )}
 
             {showSettings && (
-              <div className="animate-zoomInBounce">
-                <DeviceSettings 
-                  showPreview={true} 
-                  playerId={currentPlayer.id}
-                  playerName={currentPlayer.name}
-                  lobbyId={lobbyId}
-                />
-              </div>
+              <DeviceSettings 
+                showPreview={true} 
+                playerId={currentPlayer.id}
+                playerName={currentPlayer.name}
+                lobbyId={lobbyId}
+              />
             )}
           </div>
         </div>

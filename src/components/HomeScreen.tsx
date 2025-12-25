@@ -7,8 +7,9 @@ import { SoundEffectsVolumeControl } from "@/components/SoundEffectsVolumeContro
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
-import { Play, Users, Settings, User, Sparkles, Zap, ArrowRight, Gamepad2 } from "lucide-react";
+import { Play, Users, Settings, User, Sparkles, Zap, ArrowRight, Gamepad2, ChevronLeft, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 interface HomeScreenProps {
   onCreateGame: (playerName: string) => void;
   onJoinGame: (playerName: string, lobbyCode: string) => void;
@@ -44,131 +45,134 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-mesh">
-      {/* Animated orbs */}
-      <div className="orb-container">
-        <div className="orb orb-primary" />
-        <div className="orb orb-accent" />
-        <div className="orb orb-secondary" />
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      {/* Premium animated background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-background via-background-secondary to-background" />
       
-      {/* Grid overlay */}
-      <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
+      {/* Floating orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-primary/20 blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-accent/15 blur-[100px] animate-pulse" style={{ animationDelay: "1s" }} />
+        <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] rounded-full bg-primary/10 blur-[80px] animate-pulse" style={{ animationDelay: "2s" }} />
+      </div>
 
-      <div className="w-full max-w-lg space-y-10 relative z-10">
+      {/* Subtle grid */}
+      <div className="fixed inset-0 opacity-[0.03]" style={{
+        backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
+        backgroundSize: '50px 50px'
+      }} />
+
+      <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Logo Section */}
-        <div className="text-center space-y-6 animate-fadeInDown">
+        <div className="text-center space-y-4">
           <div className="relative inline-block">
-            {/* Glow ring behind logo */}
-            <div className="absolute inset-0 -m-12 bg-primary/20 rounded-full blur-[80px] animate-pulse-slow" />
-            <GameLogo className="justify-center mb-4 relative" animated />
+            <div className="absolute inset-0 -m-8 bg-primary/30 rounded-full blur-[60px] animate-pulse" />
+            <GameLogo className="justify-center relative" animated />
           </div>
           
-          <p className="text-foreground-secondary text-lg font-medium flex items-center justify-center gap-3 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-            <Gamepad2 className="h-5 w-5 text-accent animate-bounce-slow" />
-            Le jeu d'imitation ultime
-            <Gamepad2 className="h-5 w-5 text-accent animate-bounce-slow" style={{ animationDelay: '0.5s' }} />
-          </p>
+          <div className="flex items-center justify-center gap-2 text-foreground-muted">
+            <Gamepad2 className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium tracking-wide">Le jeu d'imitation ultime</span>
+            <Gamepad2 className="h-4 w-4 text-primary" />
+          </div>
         </div>
 
         {/* Main Card */}
-        <div className="animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
-          <div className="card-premium">
-            {/* Decorative corner accents */}
-            <div className="absolute top-0 left-0 w-20 h-20 border-l-2 border-t-2 border-primary/30 rounded-tl-3xl pointer-events-none" />
-            <div className="absolute bottom-0 right-0 w-20 h-20 border-r-2 border-b-2 border-accent/30 rounded-br-3xl pointer-events-none" />
-            
-            <div className="space-y-6 relative">
+        <div className="relative">
+          {/* Card glow */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/10 to-primary/20 rounded-3xl blur-xl opacity-60" />
+          
+          <div className="relative bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-2xl">
+            {/* Corner accents */}
+            <div className="absolute top-0 left-0 w-16 h-16 border-l-2 border-t-2 border-primary/40 rounded-tl-2xl" />
+            <div className="absolute bottom-0 right-0 w-16 h-16 border-r-2 border-b-2 border-accent/40 rounded-br-2xl" />
+
+            <div className="space-y-5">
               {/* Player Name Input */}
-              <div className="space-y-3">
-                <label className="text-foreground-secondary text-sm font-semibold flex items-center gap-2 uppercase tracking-wider">
-                  <User className="h-4 w-4 text-primary" />
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-2">
+                  <User className="h-3.5 w-3.5 text-primary" />
                   Votre pseudo
                 </label>
-                <div className={cn(
-                  "relative transition-all duration-500",
-                  isInputFocused && "scale-[1.02]"
-                )}>
-                  {/* Input glow effect */}
-                  <div className={cn(
-                    "absolute -inset-1 rounded-xl blur-md opacity-0 transition-all duration-500",
-                    "bg-gradient-to-r from-primary/50 via-accent/30 to-primary/50",
-                    isInputFocused && "opacity-100"
-                  )} />
-                  
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground-muted z-10 transition-colors duration-300" />
-                    <Input
-                      placeholder="Entrez votre pseudo..."
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      onFocus={() => setIsInputFocused(true)}
-                      onBlur={() => setIsInputFocused(false)}
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter") {
-                          if (viewMode === "home") {
-                            setViewMode("join");
-                          } else if (viewMode === "join") {
-                            handleJoinGame();
-                          }
-                        }
-                      }}
-                      className="pl-12 h-14 text-base bg-background/60 border-border/50 focus:border-primary focus:ring-primary/30 backdrop-blur-sm transition-all duration-300 rounded-xl"
-                    />
-                  </div>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
+                  <Input
+                    placeholder="Entrez votre pseudo..."
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    onFocus={() => setIsInputFocused(true)}
+                    onBlur={() => setIsInputFocused(false)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        if (viewMode === "home" && playerName.trim()) handleCreateGame();
+                        else if (viewMode === "join") handleJoinGame();
+                      }
+                    }}
+                    className={cn(
+                      "pl-10 h-12 bg-background/50 border-border/50 rounded-xl",
+                      "focus:border-primary focus:ring-2 focus:ring-primary/20",
+                      "transition-all duration-300",
+                      isInputFocused && "border-primary/50 shadow-lg shadow-primary/10"
+                    )}
+                  />
                 </div>
               </div>
 
               {viewMode === "home" && (
-                <div className="space-y-4 pt-2">
+                <div className="space-y-3 pt-1">
                   {/* Create Game Button */}
                   <Button
-                    variant="hero"
-                    size="xl"
                     onClick={handleCreateGame}
                     disabled={!playerName.trim()}
-                    className="w-full group animate-fadeIn rounded-xl h-16"
-                    style={{ animationDelay: '0.4s' }}
+                    className={cn(
+                      "w-full h-14 rounded-xl font-bold text-base",
+                      "bg-gradient-to-r from-primary to-primary-hover",
+                      "hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.02]",
+                      "active:scale-[0.98] transition-all duration-200",
+                      "disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none",
+                      "group relative overflow-hidden"
+                    )}
                   >
-                    <div className="relative flex items-center justify-center gap-3">
-                      <Play className="h-6 w-6 transition-transform group-hover:scale-110" fill="currentColor" />
-                      <span className="text-lg font-bold tracking-wide">Créer une Partie</span>
-                      <ArrowRight className="h-5 w-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
-                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <Play className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" fill="currentColor" />
+                    Créer une Partie
+                    <ArrowRight className="h-4 w-4 ml-2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                   </Button>
                   
                   {/* Join Game Button */}
                   <Button
-                    variant="glass"
-                    size="lg"
+                    variant="outline"
                     onClick={() => setViewMode("join")}
                     disabled={!playerName.trim()}
-                    className="w-full group animate-fadeIn rounded-xl h-14"
-                    style={{ animationDelay: '0.5s' }}
+                    className={cn(
+                      "w-full h-12 rounded-xl font-semibold",
+                      "bg-background/50 border-border/50",
+                      "hover:bg-background hover:border-primary/50 hover:shadow-md",
+                      "transition-all duration-200 group"
+                    )}
                   >
-                    <Users className="h-5 w-5 transition-transform group-hover:scale-110" />
-                    <span className="font-semibold">Rejoindre une Partie</span>
+                    <Users className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                    Rejoindre une Partie
                   </Button>
 
                   {/* Divider */}
-                  <div className="relative py-4">
+                  <div className="relative py-3">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-border/50" />
+                      <div className="w-full border-t border-border/30" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="bg-card px-4 text-xs text-foreground-muted uppercase tracking-widest">
-                        Paramètres
+                      <span className="bg-card px-3 text-xs text-foreground-muted uppercase tracking-wider">
+                        Options
                       </span>
                     </div>
                   </div>
 
                   {/* Settings Section */}
-                  <div className="space-y-4 animate-fadeIn" style={{ animationDelay: '0.6s' }}>
+                  <div className="space-y-3">
                     <VolumeControl />
                     <SoundEffectsVolumeControl />
                     
-                    {/* Theme Selector */}
-                    <div className="pt-2">
+                    <div className="pt-1">
                       <ThemeSelector variant="compact" className="justify-center" />
                     </div>
                     
@@ -176,36 +180,35 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowSettings(true)}
-                      className="w-full justify-start text-foreground-muted hover:text-foreground group rounded-xl"
+                      className="w-full justify-start text-foreground-muted hover:text-foreground rounded-xl group"
                     >
-                      <Settings className="h-4 w-4 transition-transform group-hover:rotate-90 duration-500" />
-                      <span>Paramètres audio/vidéo</span>
+                      <Settings className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-500" />
+                      Paramètres audio/vidéo
                     </Button>
                   </div>
                 </div>
               )}
 
               {viewMode === "join" && (
-                <div className="space-y-5 pt-2 animate-fadeInUp">
-                  <div className="space-y-3">
-                    <label className="text-foreground-secondary text-sm font-semibold flex items-center gap-2 uppercase tracking-wider">
-                      <Sparkles className="h-4 w-4 text-accent" />
+                <div className="space-y-4 pt-1 animate-fadeIn">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-2">
+                      <Hash className="h-3.5 w-3.5 text-accent" />
                       Code du Lobby
                     </label>
-                    <div className="relative group">
-                      {/* Animated border */}
-                      <div className="absolute -inset-1 bg-gradient-to-r from-primary via-accent to-primary rounded-xl opacity-50 blur group-focus-within:opacity-100 animate-gradient transition-opacity" />
+                    <div className="relative">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-primary via-accent to-primary rounded-xl opacity-50 blur-sm animate-pulse" />
                       <Input
                         placeholder="XXXX"
                         value={lobbyCode}
                         onChange={(e) => setLobbyCode(e.target.value.toUpperCase())}
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            handleJoinGame();
-                          }
-                        }}
+                        onKeyPress={(e) => e.key === "Enter" && handleJoinGame()}
                         maxLength={4}
-                        className="relative text-center text-4xl tracking-[0.5em] uppercase font-bold h-20 bg-background/80 border-0 focus:ring-2 focus:ring-primary rounded-xl"
+                        className={cn(
+                          "relative text-center text-3xl sm:text-4xl tracking-[0.3em] uppercase font-bold",
+                          "h-16 sm:h-20 bg-background/90 border-0 rounded-xl",
+                          "focus:ring-2 focus:ring-primary"
+                        )}
                       />
                     </div>
                   </div>
@@ -214,32 +217,34 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                     <Button
                       variant="ghost"
                       onClick={resetToHome}
-                      className="flex-1 rounded-xl h-12"
+                      className="flex-1 h-11 rounded-xl group"
                     >
+                      <ChevronLeft className="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" />
                       Retour
                     </Button>
                     <Button
-                      variant="hero"
                       onClick={handleJoinGame}
-                      disabled={!playerName.trim() || !lobbyCode.trim()}
-                      className="flex-1 rounded-xl h-12"
+                      disabled={!playerName.trim() || lobbyCode.length !== 4}
+                      className={cn(
+                        "flex-1 h-11 rounded-xl font-bold",
+                        "bg-gradient-to-r from-accent to-primary",
+                        "hover:shadow-lg hover:shadow-accent/30 hover:scale-[1.02]",
+                        "transition-all duration-200"
+                      )}
                     >
-                      <Zap className="h-5 w-5" />
-                      <span className="font-bold">Rejoindre</span>
+                      <Zap className="h-4 w-4 mr-2" />
+                      Rejoindre
                     </Button>
                   </div>
                 </div>
               )}
             </div>
-
-            {/* Bottom accent line */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-full" />
           </div>
         </div>
 
         {/* Settings Modal */}
         {showSettings && (
-          <div className="animate-zoomInBounce">
+          <div className="animate-fadeIn">
             <DeviceSettings showPreview={true} onClose={() => setShowSettings(false)} />
           </div>
         )}
