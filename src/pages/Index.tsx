@@ -27,7 +27,51 @@ const Index = () => {
   const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>("normal");
   const { toast } = useToast();
-  const { lobby, players, createLobby, joinLobby, leaveLobby, updateLobbyStatus } = useLobbySync();
+  const { 
+    lobby, 
+    players, 
+    wasKicked, 
+    lobbyDeleted, 
+    createLobby, 
+    joinLobby, 
+    leaveLobby, 
+    kickPlayer,
+    updateLobbyStatus,
+    resetState 
+  } = useLobbySync();
+
+  // Handle being kicked or lobby deleted
+  useEffect(() => {
+    if (wasKicked) {
+      console.log('Player was kicked, returning to home');
+      playSoundEffect('error', 0.5);
+      toast({
+        title: "Vous avez été exclu",
+        description: "L'hôte vous a retiré de la partie",
+        variant: "destructive",
+      });
+      setGameState("home");
+      setCurrentPlayer(null);
+      setSubmittedChallenges([]);
+      resetState();
+    }
+  }, [wasKicked, toast, resetState]);
+
+  useEffect(() => {
+    if (lobbyDeleted && gameState !== "home") {
+      console.log('Lobby was deleted, returning to home');
+      playSoundEffect('error', 0.5);
+      toast({
+        title: "Partie terminée",
+        description: "L'hôte a quitté la partie",
+        variant: "destructive",
+      });
+      setGameState("home");
+      setCurrentPlayer(null);
+      setSubmittedChallenges([]);
+      resetState();
+    }
+  }, [lobbyDeleted, gameState, toast, resetState]);
 
   // Listen for lobby status changes
   useEffect(() => {
@@ -128,6 +172,7 @@ const Index = () => {
     } else {
       console.error('Failed to join lobby');
       playSoundEffect('error', 0.4);
+      setCurrentPlayer(null);
     }
   };
 
@@ -157,6 +202,11 @@ const Index = () => {
         console.error('Error updating lobby status:', error);
       }
     }
+  };
+
+  const handleKickPlayer = async (playerId: string) => {
+    console.log('Kicking player:', playerId);
+    await kickPlayer(playerId);
   };
 
   const handleSubmitChallenges = (challenges: VideoClip[]) => {
@@ -203,6 +253,39 @@ const Index = () => {
     });
   };
 
+  const handleEndGame = async () => {
+    playSoundEffect('leave', 0.4);
+    
+    // If host ends game, reset lobby to waiting state
+    if (lobby && currentPlayer?.isHost) {
+      try {
+        await supabase
+          .from('lobbies')
+          .update({ 
+            status: 'waiting',
+            game_phase: 'lobby'
+          })
+          .eq('id', lobby.id);
+      } catch (error) {
+        console.error('Error resetting lobby:', error);
+      }
+    }
+    
+    // Leave the game
+    if (currentPlayer) {
+      await leaveLobby(currentPlayer.id);
+    }
+    
+    setGameState("home");
+    setCurrentPlayer(null);
+    setSubmittedChallenges([]);
+    
+    toast({
+      title: "Partie terminée",
+      description: "Merci d'avoir joué !",
+    });
+  };
+
   const renderContent = () => {
     if (gameState === "home") {
       return (
@@ -223,6 +306,7 @@ const Index = () => {
           currentPlayer={currentPlayer}
           onStartGame={handleStartGame}
           onLeaveGame={handleLeaveGame}
+          onKickPlayer={handleKickPlayer}
         />
       );
     }
@@ -248,7 +332,7 @@ const Index = () => {
           players={players}
           lobbyId={lobby.id}
           gameMode={gameMode}
-          onEndGame={handleLeaveGame}
+          onEndGame={handleEndGame}
         />
       );
     }
@@ -259,7 +343,7 @@ const Index = () => {
           currentPlayer={currentPlayer}
           players={players}
           lobbyId={lobby.id}
-          onEndGame={handleLeaveGame}
+          onEndGame={handleEndGame}
         />
       );
     }

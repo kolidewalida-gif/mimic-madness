@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 interface Player {
   id: string;
@@ -14,14 +15,45 @@ interface Lobby {
   code: string;
   host_id: string;
   status: string;
+  game_phase?: string;
 }
 
-export const useLobbySync = () => {
+interface UseLobbyResult {
+  lobby: Lobby | null;
+  players: Player[];
+  isLoading: boolean;
+  wasKicked: boolean;
+  lobbyDeleted: boolean;
+  createLobby: (hostId: string, hostName: string) => Promise<{ lobby: Lobby; code: string } | null>;
+  joinLobby: (code: string, playerId: string, playerName: string) => Promise<{ lobby: Lobby } | null>;
+  leaveLobby: (playerId: string) => Promise<void>;
+  kickPlayer: (playerId: string) => Promise<void>;
+  updateLobbyStatus: (status: string) => Promise<void>;
+  resetState: () => void;
+}
+
+export const useLobbySync = (): UseLobbyResult => {
   const [lobby, setLobby] = useState<Lobby | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [wasKicked, setWasKicked] = useState(false);
+  const [lobbyDeleted, setLobbyDeleted] = useState(false);
   const { toast } = useToast();
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
+  const currentPlayerIdRef = useRef<string | null>(null);
+
+  // Reset state
+  const resetState = useCallback(() => {
+    setLobby(null);
+    setPlayers([]);
+    setWasKicked(false);
+    setLobbyDeleted(false);
+    currentPlayerIdRef.current = null;
+    if (channel) {
+      supabase.removeChannel(channel);
+      setChannel(null);
+    }
+  }, [channel]);
 
   // Create a new lobby
   const createLobby = useCallback(async (hostId: string, hostName: string) => {
@@ -35,18 +67,18 @@ export const useLobbySync = () => {
     }
 
     setIsLoading(true);
+    setWasKicked(false);
+    setLobbyDeleted(false);
+    currentPlayerIdRef.current = hostId;
+
     try {
-      // Generate a unique 6-character code
       let code = '';
       let attempts = 0;
       let lobbyData = null;
 
-      // Try up to 5 times to generate a unique code
       while (attempts < 5 && !lobbyData) {
-        // Generate 4-character code (easier to type and share)
         code = Math.random().toString(36).substring(2, 6).toUpperCase();
         
-        // Check if code already exists
         const { data: existingLobby } = await supabase
           .from('lobbies')
           .select('id')
@@ -54,7 +86,6 @@ export const useLobbySync = () => {
           .maybeSingle();
 
         if (!existingLobby) {
-          // Code is unique, create lobby
           const { data, error: lobbyError } = await supabase
             .from('lobbies')
             .insert({
@@ -67,7 +98,6 @@ export const useLobbySync = () => {
 
           if (lobbyError) {
             if (lobbyError.code === '23505') {
-              // Duplicate key, try again
               attempts++;
               continue;
             }
@@ -84,7 +114,6 @@ export const useLobbySync = () => {
         throw new Error('Impossible de générer un code unique');
       }
 
-      // Add host as first player
       const { error: playerError } = await supabase
         .from('lobby_players')
         .insert({
@@ -95,7 +124,6 @@ export const useLobbySync = () => {
         });
 
       if (playerError) {
-        // Rollback: delete the lobby
         await supabase.from('lobbies').delete().eq('id', lobbyData.id);
         throw playerError;
       }
@@ -133,12 +161,15 @@ export const useLobbySync = () => {
     }
 
     setIsLoading(true);
+    setWasKicked(false);
+    setLobbyDeleted(false);
+    currentPlayerIdRef.current = playerId;
+
     try {
       const normalizedCode = code.trim().toUpperCase();
       
       console.log('Attempting to join lobby with code:', normalizedCode);
       
-      // Find lobby by code
       const { data: lobbyData, error: lobbyError } = await supabase
         .from('lobbies')
         .select('*')
@@ -161,7 +192,16 @@ export const useLobbySync = () => {
         return null;
       }
 
-      // Check if lobby is full (max 8 players)
+      // Check if game already started
+      if (lobbyData.status === 'playing' && lobbyData.game_phase !== 'lobby') {
+        toast({
+          title: "Partie en cours",
+          description: "Cette partie a déjà commencé",
+          variant: "destructive",
+        });
+        return null;
+      }
+
       const { data: existingPlayers, error: countError } = await supabase
         .from('lobby_players')
         .select('player_id')
@@ -181,11 +221,9 @@ export const useLobbySync = () => {
         return null;
       }
 
-      // Check if player already in lobby
       const alreadyInLobby = existingPlayers?.some(p => p.player_id === playerId);
 
       if (!alreadyInLobby) {
-        // Add player to lobby
         const { error: playerError } = await supabase
           .from('lobby_players')
           .insert({
@@ -245,17 +283,44 @@ export const useLobbySync = () => {
           .eq('id', lobby.id);
       }
 
-      setLobby(null);
-      setPlayers([]);
-      
-      if (channel) {
-        supabase.removeChannel(channel);
-        setChannel(null);
-      }
+      resetState();
     } catch (error) {
       console.error('Error leaving lobby:', error);
     }
-  }, [lobby, channel]);
+  }, [lobby, resetState]);
+
+  // Kick a player (host only)
+  const kickPlayer = useCallback(async (playerId: string) => {
+    if (!lobby) return;
+
+    try {
+      console.log('Kicking player:', playerId);
+      
+      const { error } = await supabase
+        .from('lobby_players')
+        .delete()
+        .eq('lobby_id', lobby.id)
+        .eq('player_id', playerId);
+
+      if (error) {
+        console.error('Error kicking player:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible d'exclure ce joueur",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      playSoundEffect('leave', 0.4);
+      toast({
+        title: "Joueur exclu",
+        description: "Le joueur a été exclu du lobby",
+      });
+    } catch (error) {
+      console.error('Error kicking player:', error);
+    }
+  }, [lobby, toast]);
 
   // Update lobby status
   const updateLobbyStatus = useCallback(async (status: string) => {
@@ -280,6 +345,7 @@ export const useLobbySync = () => {
     }
 
     let isSubscribed = true;
+    const currentPlayerId = currentPlayerIdRef.current;
 
     const fetchPlayers = async () => {
       try {
@@ -295,6 +361,17 @@ export const useLobbySync = () => {
         }
 
         if (data && isSubscribed) {
+          // Check if current player was removed (kicked)
+          if (currentPlayerId) {
+            const stillInLobby = data.some(p => p.player_id === currentPlayerId);
+            if (!stillInLobby && players.length > 0) {
+              console.log('Current player was kicked from lobby');
+              setWasKicked(true);
+              playSoundEffect('error', 0.5);
+              return;
+            }
+          }
+
           setPlayers(
             data.map((p) => ({
               id: p.player_id,
@@ -305,6 +382,20 @@ export const useLobbySync = () => {
         }
       } catch (error) {
         console.error('Error in fetchPlayers:', error);
+      }
+    };
+
+    const checkLobbyExists = async () => {
+      const { data, error } = await supabase
+        .from('lobbies')
+        .select('id')
+        .eq('id', lobby.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.log('Lobby was deleted');
+        setLobbyDeleted(true);
+        playSoundEffect('error', 0.5);
       }
     };
 
@@ -327,8 +418,19 @@ export const useLobbySync = () => {
           filter: `lobby_id=eq.${lobby.id}`
         },
         (payload) => {
-          console.log('Realtime event:', payload);
-          // Refetch players on any change
+          console.log('Realtime player event:', payload);
+          
+          // Check if current player was deleted
+          if (payload.eventType === 'DELETE' && currentPlayerId) {
+            const oldData = payload.old as { player_id?: string };
+            if (oldData?.player_id === currentPlayerId) {
+              console.log('Current player was kicked');
+              setWasKicked(true);
+              playSoundEffect('error', 0.5);
+              return;
+            }
+          }
+          
           fetchPlayers();
         }
       )
@@ -347,6 +449,22 @@ export const useLobbySync = () => {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'lobbies',
+          filter: `id=eq.${lobby.id}`
+        },
+        () => {
+          console.log('Lobby was deleted');
+          if (isSubscribed) {
+            setLobbyDeleted(true);
+            playSoundEffect('error', 0.5);
+          }
+        }
+      )
       .subscribe((status) => {
         console.log('Channel status:', status);
         if (status === 'SUBSCRIBED') {
@@ -362,15 +480,19 @@ export const useLobbySync = () => {
         supabase.removeChannel(newChannel);
       }
     };
-  }, [lobby?.id]);
+  }, [lobby?.id, players.length]);
 
   return {
     lobby,
     players,
     isLoading,
+    wasKicked,
+    lobbyDeleted,
     createLobby,
     joinLobby,
     leaveLobby,
+    kickPlayer,
     updateLobbyStatus,
+    resetState,
   };
 };
