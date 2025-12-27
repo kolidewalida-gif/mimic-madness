@@ -9,6 +9,8 @@ import music7 from '@/assets/background-music-7.mp3';
 import music8 from '@/assets/background-music-8.mp3';
 import music9 from '@/assets/background-music-9.mp3';
 import music10 from '@/assets/background-music-10.mp3';
+import music11 from '@/assets/background-music-11.mp3';
+import music12 from '@/assets/background-music-12.mp3';
 
 export interface MusicTrack {
   id: number;
@@ -27,6 +29,8 @@ const musicTracks: MusicTrack[] = [
   { id: 8, name: "Future Bass", src: music8 },
   { id: 9, name: "Pixel Party", src: music9 },
   { id: 10, name: "Neon Rush", src: music10 },
+  { id: 11, name: "Cosmic Flow", src: music11 },
+  { id: 12, name: "Stellar Beat", src: music12 },
 ];
 
 interface BackgroundMusicContextType {
