@@ -6,6 +6,7 @@ import { GamePlayScreen } from "@/components/GamePlayScreen";
 import { QuizGameScreen } from "@/components/QuizGameScreen";
 import { DynamicBackground } from "@/components/DynamicBackground";
 import { ScreenTransition } from "@/components/ScreenTransition";
+import { MusicPlayerBar } from "@/components/MusicPlayerBar";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
@@ -365,9 +366,12 @@ const Index = () => {
   return (
     <>
       <DynamicBackground />
-      <ScreenTransition screenKey={gameState}>
-        {renderContent()}
-      </ScreenTransition>
+      <div className="pb-24">
+        <ScreenTransition screenKey={gameState}>
+          {renderContent()}
+        </ScreenTransition>
+      </div>
+      <MusicPlayerBar />
     </>
   );
 };
