@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VictoryAnimation } from "@/components/VictoryAnimation";
-import { Trophy, ThumbsUp, ThumbsDown, ArrowRight, Medal, Sparkles, Swords } from "lucide-react";
+import { Trophy, ThumbsUp, ThumbsDown, ArrowRight, Medal, Sparkles, Swords, Download, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { videoStorage } from "@/lib/videoStorageSupabase";
+import { useToast } from "@/hooks/use-toast";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface Player {
@@ -58,7 +60,65 @@ export const ResultsPhase = ({
   const [results, setResults] = useState<PlayerResult[]>([]);
   const [teamResults, setTeamResults] = useState<TeamResult[]>([]);
   const [showVictoryAnimation, setShowVictoryAnimation] = useState(true);
+  const [downloadingPlayer, setDownloadingPlayer] = useState<string | null>(null);
   const { playSound } = useSoundEffects();
+  const { toast } = useToast();
+
+  const handleDownloadImitation = async (playerId: string, playerName: string) => {
+    setDownloadingPlayer(playerId);
+    try {
+      // Get the player's imitation clip for this round
+      const clip = await videoStorage.getClipByPlayerAndRound(playerId, lobbyId, roundNumber);
+      
+      if (!clip) {
+        toast({
+          title: "Vidéo introuvable",
+          description: `Aucune imitation trouvée pour ${playerName}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Get the video URL
+      const videoUrl = await videoStorage.getVideoUrl(clip.id);
+      
+      if (!videoUrl) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de récupérer la vidéo",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Download the video
+      const response = await fetch(videoUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `imitation_${playerName}_round${roundNumber}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Téléchargement réussi",
+        description: `L'imitation de ${playerName} a été téléchargée`
+      });
+      playSound('click');
+    } catch (error) {
+      console.error('Error downloading imitation:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger la vidéo",
+        variant: "destructive"
+      });
+    } finally {
+      setDownloadingPlayer(null);
+    }
+  };
 
   // Play success sound and hide animation after delay
   useEffect(() => {
@@ -292,11 +352,25 @@ export const ResultsPhase = ({
                     />
                     
                     <div>
-                      <p className={`font-semibold font-body ${
-                        index === 0 ? "text-lg text-secondary" : "text-foreground"
-                      }`}>
-                        {result.playerName}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className={`font-semibold font-body ${
+                          index === 0 ? "text-lg text-secondary" : "text-foreground"
+                        }`}>
+                          {result.playerName}
+                        </p>
+                        <button
+                          onClick={() => handleDownloadImitation(result.playerId, result.playerName)}
+                          disabled={downloadingPlayer === result.playerId}
+                          className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary/40 transition-all disabled:opacity-50 group"
+                          title={`Télécharger l'imitation de ${result.playerName}`}
+                        >
+                          {downloadingPlayer === result.playerId ? (
+                            <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" />
+                          )}
+                        </button>
+                      </div>
                       <p className="text-sm text-foreground-muted font-display">
                         Score: <span className={result.score > 0 ? "text-success" : result.score < 0 ? "text-destructive" : ""}>
                           {result.score > 0 ? "+" : ""}{result.score}
