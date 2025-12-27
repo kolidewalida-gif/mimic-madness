@@ -2,9 +2,12 @@ import { GameCard } from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX, Music } from "lucide-react";
 import { useMediaDevices, MediaDeviceInfo } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
+import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
+import { useSoundEffectsVolume } from "@/hooks/useSoundEffectsVolume";
 import { useEffect, useRef, useState } from "react";
 import { AvatarSettings } from "@/components/AvatarSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -418,11 +421,65 @@ const DeviceSettingsContent = ({
         </div>
       )}
 
+      {/* Volume Controls */}
+      <VolumeSettings />
+
       {/* Device Info */}
       <div className="pt-4 border-t border-glass-border text-sm text-foreground-secondary space-y-1">
         <p>• {audioInputs.length} microphone(s) détecté(s)</p>
         <p>• {videoInputs.length} caméra(s) détectée(s)</p>
       </div>
     </>
+  );
+};
+
+// Volume Settings Component
+const VolumeSettings = () => {
+  const { volume: musicVolume, setVolume: setMusicVolume } = useBackgroundMusic();
+  const { volume: sfxVolume, setVolume: setSfxVolume } = useSoundEffectsVolume();
+
+  return (
+    <div className="space-y-4 pt-4 border-t border-glass-border">
+      <h4 className="text-sm font-semibold flex items-center gap-2">
+        <Volume2 className="h-4 w-4 text-secondary" />
+        Volume
+      </h4>
+
+      {/* Music Volume */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-sm flex items-center gap-2">
+            <Music className="h-4 w-4 text-primary" />
+            Musique
+          </label>
+          <span className="text-xs text-foreground-muted">{Math.round(musicVolume * 100)}%</span>
+        </div>
+        <Slider
+          value={[musicVolume * 100]}
+          onValueChange={(value) => setMusicVolume(value[0] / 100)}
+          max={100}
+          step={1}
+          className="w-full"
+        />
+      </div>
+
+      {/* SFX Volume */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-sm flex items-center gap-2">
+            <Volume2 className="h-4 w-4 text-accent" />
+            Effets sonores
+          </label>
+          <span className="text-xs text-foreground-muted">{Math.round(sfxVolume * 100)}%</span>
+        </div>
+        <Slider
+          value={[sfxVolume * 100]}
+          onValueChange={(value) => setSfxVolume(value[0] / 100)}
+          max={100}
+          step={1}
+          className="w-full"
+        />
+      </div>
+    </div>
   );
 };

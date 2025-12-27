@@ -5,17 +5,37 @@ import music3 from '@/assets/background-music-3.mp3';
 import music4 from '@/assets/background-music-4.mp3';
 import music5 from '@/assets/background-music-5.mp3';
 
+export interface MusicTrack {
+  id: number;
+  name: string;
+  src: string;
+}
+
+const musicTracks: MusicTrack[] = [
+  { id: 1, name: "Neon Dreams", src: music1 },
+  { id: 2, name: "Cyber Wave", src: music2 },
+  { id: 3, name: "Digital Pulse", src: music3 },
+  { id: 4, name: "Synth Horizon", src: music4 },
+  { id: 5, name: "Electric Night", src: music5 },
+];
+
 interface BackgroundMusicContextType {
   volume: number;
   setVolume: (volume: number) => void;
   isPlaying: boolean;
   pause: () => void;
   play: () => void;
+  currentTrack: MusicTrack | null;
+  tracks: MusicTrack[];
+  nextTrack: () => void;
+  previousTrack: () => void;
+  selectTrack: (trackId: number) => void;
+  progress: number;
+  duration: number;
+  seek: (time: number) => void;
 }
 
 const BackgroundMusicContext = createContext<BackgroundMusicContextType | undefined>(undefined);
-
-const musicTracks = [music1, music2, music3, music4, music5];
 
 export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) => {
   const [volume, setVolume] = useState(() => {
@@ -24,29 +44,40 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   });
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(() => {
-    // Start with random track
-    return Math.floor(Math.random() * musicTracks.length);
+    const saved = localStorage.getItem('backgroundMusicTrack');
+    return saved ? parseInt(saved) : Math.floor(Math.random() * musicTracks.length);
   });
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const currentTrack = musicTracks[currentTrackIndex] || null;
 
   useEffect(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio(musicTracks[currentTrackIndex]);
+      audioRef.current = new Audio(musicTracks[currentTrackIndex].src);
       audioRef.current.loop = false;
       audioRef.current.volume = volume;
       
       const handleEnded = () => {
-        // Pick a random track different from current
-        setCurrentTrackIndex(prev => {
-          let nextIndex;
-          do {
-            nextIndex = Math.floor(Math.random() * musicTracks.length);
-          } while (nextIndex === prev && musicTracks.length > 1);
-          return nextIndex;
-        });
+        setCurrentTrackIndex(prev => (prev + 1) % musicTracks.length);
+      };
+      
+      const handleTimeUpdate = () => {
+        if (audioRef.current) {
+          setProgress(audioRef.current.currentTime);
+        }
+      };
+      
+      const handleLoadedMetadata = () => {
+        if (audioRef.current) {
+          setDuration(audioRef.current.duration);
+        }
       };
       
       audioRef.current.addEventListener('ended', handleEnded);
+      audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+      audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
     }
 
     // Try to start on first user interaction (autoplay policies)
@@ -73,11 +104,11 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     };
   }, []);
 
-
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.src = musicTracks[currentTrackIndex];
+      audioRef.current.src = musicTracks[currentTrackIndex].src;
       audioRef.current.load();
+      localStorage.setItem('backgroundMusicTrack', currentTrackIndex.toString());
       if (isPlaying) {
         audioRef.current.play().catch(() => {});
       }
@@ -105,8 +136,44 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     }
   };
 
+  const nextTrack = () => {
+    setCurrentTrackIndex(prev => (prev + 1) % musicTracks.length);
+  };
+
+  const previousTrack = () => {
+    setCurrentTrackIndex(prev => (prev - 1 + musicTracks.length) % musicTracks.length);
+  };
+
+  const selectTrack = (trackId: number) => {
+    const index = musicTracks.findIndex(t => t.id === trackId);
+    if (index !== -1) {
+      setCurrentTrackIndex(index);
+    }
+  };
+
+  const seek = (time: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+      setProgress(time);
+    }
+  };
+
   return (
-    <BackgroundMusicContext.Provider value={{ volume, setVolume, isPlaying, pause, play }}>
+    <BackgroundMusicContext.Provider value={{ 
+      volume, 
+      setVolume, 
+      isPlaying, 
+      pause, 
+      play,
+      currentTrack,
+      tracks: musicTracks,
+      nextTrack,
+      previousTrack,
+      selectTrack,
+      progress,
+      duration,
+      seek
+    }}>
       {children}
     </BackgroundMusicContext.Provider>
   );
