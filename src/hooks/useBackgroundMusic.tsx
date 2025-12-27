@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback, useMemo } from 'react';
+
+// Import music files
 import music1 from '@/assets/background-music-1.mp3';
 import music2 from '@/assets/background-music-2.mp3';
 import music3 from '@/assets/background-music-3.mp3';
@@ -52,11 +54,11 @@ interface BackgroundMusicContextType {
 const BackgroundMusicContext = createContext<BackgroundMusicContextType | undefined>(undefined);
 
 export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) => {
-  const [volume, setVolume] = useState(() => {
+  const [volume, setVolumeState] = useState(() => {
     const saved = localStorage.getItem('backgroundMusicVolume');
     return saved ? parseFloat(saved) : 0.3;
   });
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(() => {
     const saved = localStorage.getItem('backgroundMusicTrack');
     return saved ? parseInt(saved) : Math.floor(Math.random() * musicTracks.length);
@@ -64,130 +66,136 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasUserInteracted = useRef(false);
 
-  const currentTrack = musicTracks[currentTrackIndex] || null;
+  const currentTrack = useMemo(() => 
+    musicTracks[currentTrackIndex] || null
+  , [currentTrackIndex]);
 
+  // Throttled progress update
+  const progressUpdateRef = useRef<number>(0);
+  const handleTimeUpdate = useCallback(() => {
+    const now = Date.now();
+    if (now - progressUpdateRef.current > 250 && audioRef.current) {
+      progressUpdateRef.current = now;
+      setProgress(audioRef.current.currentTime);
+    }
+  }, []);
+
+  const handleEnded = useCallback(() => {
+    setCurrentTrackIndex(prev => (prev + 1) % musicTracks.length);
+  }, []);
+
+  const handleLoadedMetadata = useCallback(() => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  }, []);
+
+  // Initialize audio element once
   useEffect(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio(musicTracks[currentTrackIndex].src);
+      audioRef.current = new Audio();
+      audioRef.current.preload = 'none';
       audioRef.current.loop = false;
       audioRef.current.volume = volume;
-      
-      const handleEnded = () => {
-        setCurrentTrackIndex(prev => (prev + 1) % musicTracks.length);
-      };
-      
-      const handleTimeUpdate = () => {
-        if (audioRef.current) {
-          setProgress(audioRef.current.currentTime);
-        }
-      };
-      
-      const handleLoadedMetadata = () => {
-        if (audioRef.current) {
-          setDuration(audioRef.current.duration);
-        }
-      };
       
       audioRef.current.addEventListener('ended', handleEnded);
       audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
       audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
     }
 
-    // Try to start on first user interaction (autoplay policies)
-    const tryStartOnGesture = () => {
-      if (audioRef.current && isPlaying) {
-        audioRef.current.play().catch(() => {});
-      }
-      document.removeEventListener('pointerdown', tryStartOnGesture);
-      document.removeEventListener('keydown', tryStartOnGesture);
-      document.removeEventListener('touchstart', tryStartOnGesture);
-    };
-    document.addEventListener('pointerdown', tryStartOnGesture, { once: true } as any);
-    document.addEventListener('keydown', tryStartOnGesture, { once: true } as any);
-    document.addEventListener('touchstart', tryStartOnGesture, { once: true } as any);
-
     return () => {
-      document.removeEventListener('pointerdown', tryStartOnGesture);
-      document.removeEventListener('keydown', tryStartOnGesture);
-      document.removeEventListener('touchstart', tryStartOnGesture);
       if (audioRef.current) {
+        audioRef.current.removeEventListener('ended', handleEnded);
+        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+        audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
         audioRef.current.pause();
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [handleEnded, handleTimeUpdate, handleLoadedMetadata, volume]);
 
+  // Load track when index changes
   useEffect(() => {
-    if (audioRef.current) {
+    if (audioRef.current && musicTracks[currentTrackIndex]) {
       audioRef.current.src = musicTracks[currentTrackIndex].src;
-      audioRef.current.load();
+      audioRef.current.preload = 'auto';
       localStorage.setItem('backgroundMusicTrack', currentTrackIndex.toString());
-      if (isPlaying) {
+      if (isPlaying && hasUserInteracted.current) {
         audioRef.current.play().catch(() => {});
       }
     }
-  }, [currentTrackIndex]);
+  }, [currentTrackIndex, isPlaying]);
 
-  useEffect(() => {
+  // Update volume
+  const setVolume = useCallback((newVolume: number) => {
+    setVolumeState(newVolume);
     if (audioRef.current) {
-      audioRef.current.volume = volume;
-      localStorage.setItem('backgroundMusicVolume', volume.toString());
+      audioRef.current.volume = newVolume;
     }
-  }, [volume]);
+    localStorage.setItem('backgroundMusicVolume', newVolume.toString());
+  }, []);
 
-  const pause = () => {
+  const pause = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
     }
-  };
+  }, []);
 
-  const play = () => {
+  const play = useCallback(() => {
+    hasUserInteracted.current = true;
     if (audioRef.current) {
+      if (!audioRef.current.src || audioRef.current.src === '') {
+        audioRef.current.src = musicTracks[currentTrackIndex].src;
+        audioRef.current.preload = 'auto';
+      }
       audioRef.current.play().catch(console.error);
       setIsPlaying(true);
     }
-  };
+  }, [currentTrackIndex]);
 
-  const nextTrack = () => {
+  const nextTrack = useCallback(() => {
     setCurrentTrackIndex(prev => (prev + 1) % musicTracks.length);
-  };
+  }, []);
 
-  const previousTrack = () => {
+  const previousTrack = useCallback(() => {
     setCurrentTrackIndex(prev => (prev - 1 + musicTracks.length) % musicTracks.length);
-  };
+  }, []);
 
-  const selectTrack = (trackId: number) => {
+  const selectTrack = useCallback((trackId: number) => {
     const index = musicTracks.findIndex(t => t.id === trackId);
     if (index !== -1) {
       setCurrentTrackIndex(index);
     }
-  };
+  }, []);
 
-  const seek = (time: number) => {
+  const seek = useCallback((time: number) => {
     if (audioRef.current) {
       audioRef.current.currentTime = time;
       setProgress(time);
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({ 
+    volume, 
+    setVolume, 
+    isPlaying, 
+    pause, 
+    play,
+    currentTrack,
+    tracks: musicTracks,
+    nextTrack,
+    previousTrack,
+    selectTrack,
+    progress,
+    duration,
+    seek
+  }), [volume, setVolume, isPlaying, pause, play, currentTrack, nextTrack, previousTrack, selectTrack, progress, duration, seek]);
 
   return (
-    <BackgroundMusicContext.Provider value={{ 
-      volume, 
-      setVolume, 
-      isPlaying, 
-      pause, 
-      play,
-      currentTrack,
-      tracks: musicTracks,
-      nextTrack,
-      previousTrack,
-      selectTrack,
-      progress,
-      duration,
-      seek
-    }}>
+    <BackgroundMusicContext.Provider value={contextValue}>
       {children}
     </BackgroundMusicContext.Provider>
   );

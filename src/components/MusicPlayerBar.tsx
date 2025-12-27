@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSoundEffectsVolume } from "@/hooks/useSoundEffectsVolume";
 import { 
@@ -16,7 +16,65 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
-export const MusicPlayerBar = () => {
+const formatTime = (time: number) => {
+  if (isNaN(time)) return "0:00";
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
+const TrackItem = memo(({ 
+  track, 
+  isCurrentTrack, 
+  isPlaying, 
+  onSelect 
+}: { 
+  track: { id: number; name: string }; 
+  isCurrentTrack: boolean; 
+  isPlaying: boolean;
+  onSelect: () => void;
+}) => (
+  <button
+    onClick={onSelect}
+    className={cn(
+      "flex items-center gap-3 p-3 rounded-xl transition-all text-left",
+      isCurrentTrack
+        ? "bg-gradient-to-r from-primary/30 to-secondary/20 border border-primary/50"
+        : "bg-background-secondary/40 hover:bg-background-secondary/60 border border-transparent"
+    )}
+  >
+    <div className={cn(
+      "w-10 h-10 rounded-lg flex items-center justify-center",
+      isCurrentTrack ? "bg-primary/30" : "bg-background-secondary"
+    )}>
+      {isCurrentTrack && isPlaying ? (
+        <Disc3 className="h-5 w-5 text-primary animate-spin" style={{ animationDuration: '3s' }} />
+      ) : (
+        <Music className="h-5 w-5 text-foreground-muted" />
+      )}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className={cn(
+        "font-semibold truncate",
+        isCurrentTrack ? "text-primary" : "text-foreground"
+      )}>
+        {track.name}
+      </p>
+      <p className="text-xs text-foreground-muted">Piste {track.id}</p>
+    </div>
+    {isCurrentTrack && (
+      <div className="flex gap-1">
+        <span className="w-1 h-4 bg-primary rounded-full animate-pulse" />
+        <span className="w-1 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+        <span className="w-1 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
+      </div>
+    )}
+  </button>
+));
+
+TrackItem.displayName = 'TrackItem';
+
+const MusicPlayerBarComponent = () => {
   const {
     isPlaying,
     play,
@@ -37,12 +95,22 @@ export const MusicPlayerBar = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
 
-  const formatTime = (time: number) => {
-    if (isNaN(time)) return "0:00";
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = x / rect.width;
+    seek(percentage * duration);
+  }, [seek, duration]);
+
+  const handleTrackSelect = useCallback((trackId: number) => {
+    selectTrack(trackId);
+    if (!isPlaying) play();
+  }, [selectTrack, isPlaying, play]);
+
+  const togglePlay = useCallback(() => {
+    if (isPlaying) pause();
+    else play();
+  }, [isPlaying, pause, play]);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
@@ -65,48 +133,13 @@ export const MusicPlayerBar = () => {
             
             <div className="grid gap-2 max-h-60 overflow-y-auto">
               {tracks.map((track) => (
-                <button
+                <TrackItem
                   key={track.id}
-                  onClick={() => {
-                    selectTrack(track.id);
-                    if (!isPlaying) play();
-                  }}
-                  className={cn(
-                    "flex items-center gap-3 p-3 rounded-xl transition-all text-left",
-                    currentTrack?.id === track.id
-                      ? "bg-gradient-to-r from-primary/30 to-secondary/20 border border-primary/50"
-                      : "bg-background-secondary/40 hover:bg-background-secondary/60 border border-transparent"
-                  )}
-                >
-                  <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center",
-                    currentTrack?.id === track.id
-                      ? "bg-primary/30"
-                      : "bg-background-secondary"
-                  )}>
-                    {currentTrack?.id === track.id && isPlaying ? (
-                      <Disc3 className="h-5 w-5 text-primary animate-spin" style={{ animationDuration: '3s' }} />
-                    ) : (
-                      <Music className="h-5 w-5 text-foreground-muted" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className={cn(
-                      "font-semibold",
-                      currentTrack?.id === track.id ? "text-primary" : "text-foreground"
-                    )}>
-                      {track.name}
-                    </p>
-                    <p className="text-xs text-foreground-muted">Piste {track.id}</p>
-                  </div>
-                  {currentTrack?.id === track.id && (
-                    <div className="flex gap-1">
-                      <span className="w-1 h-4 bg-primary rounded-full animate-pulse" />
-                      <span className="w-1 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                      <span className="w-1 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
-                    </div>
-                  )}
-                </button>
+                  track={track}
+                  isCurrentTrack={currentTrack?.id === track.id}
+                  isPlaying={isPlaying}
+                  onSelect={() => handleTrackSelect(track.id)}
+                />
               ))}
             </div>
           </div>
@@ -119,24 +152,18 @@ export const MusicPlayerBar = () => {
         isExpanded ? "pb-4" : ""
       )}>
         <div className="max-w-4xl mx-auto">
-          {/* Progress Bar (clickable) */}
+          {/* Progress Bar */}
           <div 
             className="h-1 bg-background-secondary cursor-pointer group"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const x = e.clientX - rect.left;
-              const percentage = x / rect.width;
-              seek(percentage * duration);
-            }}
+            onClick={handleProgressClick}
           >
             <div 
               className="h-full bg-gradient-to-r from-primary to-secondary transition-all group-hover:h-2"
-              style={{ width: `${(progress / duration) * 100 || 0}%` }}
+              style={{ width: `${duration > 0 ? (progress / duration) * 100 : 0}%` }}
             />
           </div>
 
           <div className="p-3">
-            {/* Compact View */}
             <div className="flex items-center gap-4">
               {/* Track Info */}
               <button 
@@ -176,7 +203,7 @@ export const MusicPlayerBar = () => {
                 </button>
                 
                 <button 
-                  onClick={isPlaying ? pause : play}
+                  onClick={togglePlay}
                   className="p-3 bg-primary hover:bg-primary/80 rounded-full transition-colors shadow-neon"
                 >
                   {isPlaying ? (
@@ -194,7 +221,7 @@ export const MusicPlayerBar = () => {
                 </button>
               </div>
 
-              {/* Volume Toggle (expand) */}
+              {/* Volume Toggle */}
               <button 
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="p-2 hover:bg-background-secondary rounded-full transition-colors hidden sm:flex"
@@ -210,7 +237,6 @@ export const MusicPlayerBar = () => {
             {/* Expanded Volume Controls */}
             {isExpanded && (
               <div className="mt-4 pt-4 border-t border-glass-border animate-slideInUp grid gap-4 sm:grid-cols-2">
-                {/* Music Volume */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium flex items-center gap-2">
@@ -228,7 +254,6 @@ export const MusicPlayerBar = () => {
                   />
                 </div>
 
-                {/* SFX Volume */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium flex items-center gap-2">
@@ -253,3 +278,5 @@ export const MusicPlayerBar = () => {
     </div>
   );
 };
+
+export const MusicPlayerBar = memo(MusicPlayerBarComponent);

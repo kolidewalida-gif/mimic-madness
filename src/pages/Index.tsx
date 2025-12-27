@@ -1,9 +1,4 @@
-import { useState, useEffect } from "react";
-import { HomeScreen } from "@/components/HomeScreen";
-import { LobbyScreen } from "@/components/LobbyScreen";
-import { VideoSubmissionScreen } from "@/components/VideoSubmissionScreen";
-import { GamePlayScreen } from "@/components/GamePlayScreen";
-import { QuizGameScreen } from "@/components/QuizGameScreen";
+import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import { DynamicBackground } from "@/components/DynamicBackground";
 import { ScreenTransition } from "@/components/ScreenTransition";
 import { MusicPlayerBar } from "@/components/MusicPlayerBar";
@@ -12,6 +7,14 @@ import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
 import { supabase } from "@/integrations/supabase/client";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
+import React from "react";
+
+// Lazy load heavy components
+const HomeScreen = React.lazy(() => import("@/components/HomeScreen").then(m => ({ default: m.HomeScreen })));
+const LobbyScreen = React.lazy(() => import("@/components/LobbyScreen").then(m => ({ default: m.LobbyScreen })));
+const VideoSubmissionScreen = React.lazy(() => import("@/components/VideoSubmissionScreen").then(m => ({ default: m.VideoSubmissionScreen })));
+const GamePlayScreen = React.lazy(() => import("@/components/GamePlayScreen").then(m => ({ default: m.GamePlayScreen })));
+const QuizGameScreen = React.lazy(() => import("@/components/QuizGameScreen").then(m => ({ default: m.QuizGameScreen })));
 
 interface Player {
   id: string;
@@ -21,6 +24,12 @@ interface Player {
 
 type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz";
 type GameMode = "normal" | "2v2" | "quiz";
+
+const LoadingFallback = memo(() => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+));
 
 const Index = () => {
   const [gameState, setGameState] = useState<GameState>("home");
@@ -38,14 +47,12 @@ const Index = () => {
     leaveLobby, 
     kickPlayer,
     transferHost,
-    updateLobbyStatus,
     resetState 
   } = useLobbySync();
 
   // Handle being kicked or lobby deleted
   useEffect(() => {
     if (wasKicked) {
-      console.log('Player was kicked, returning to home');
       playSoundEffect('error', 0.5);
       toast({
         title: "Vous avez été exclu",
@@ -61,7 +68,6 @@ const Index = () => {
 
   useEffect(() => {
     if (lobbyDeleted && gameState !== "home") {
-      console.log('Lobby was deleted, returning to home');
       playSoundEffect('error', 0.5);
       toast({
         title: "Partie terminée",
@@ -90,17 +96,14 @@ const Index = () => {
           filter: `id=eq.${lobby.id}`
         },
         (payload: any) => {
-          console.log('Lobby update:', payload);
           const newPhase = payload.new.game_phase;
           const newMode = payload.new.game_mode;
           
-          // Update game mode if changed
           if (newMode && newMode !== gameMode) {
             setGameMode(newMode as GameMode);
           }
           
           if (newPhase === 'preparation' && gameState !== 'preparation') {
-            console.log('Transitioning to preparation');
             playSoundEffect('transition', 0.4);
             setGameState('preparation');
             toast({
@@ -108,7 +111,6 @@ const Index = () => {
               description: "Préparez vos défis vidéo.",
             });
           } else if (newPhase === 'quiz' && gameState !== 'quiz') {
-            console.log('Transitioning to quiz');
             playSoundEffect('quizReveal', 0.5);
             setGameState('quiz');
             toast({
@@ -116,7 +118,6 @@ const Index = () => {
               description: "Préparez-vous à répondre aux questions.",
             });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
-            console.log('Transitioning to playing');
             playSoundEffect('start', 0.5);
             setGameState('playing');
             toast({
@@ -133,8 +134,7 @@ const Index = () => {
     };
   }, [lobby?.id, gameState, gameMode, toast]);
 
-  const handleCreateGame = async (playerName: string) => {
-    console.log('Creating game for:', playerName);
+  const handleCreateGame = useCallback(async (playerName: string) => {
     playSoundEffect('success', 0.4);
     const playerId = crypto.randomUUID();
     const hostPlayer: Player = {
@@ -147,16 +147,13 @@ const Index = () => {
     const result = await createLobby(playerId, playerName);
     
     if (result) {
-      console.log('Lobby created, changing state to lobby');
       setGameState("lobby");
     } else {
-      console.error('Failed to create lobby');
       playSoundEffect('error', 0.4);
     }
-  };
+  }, [createLobby]);
 
-  const handleJoinGame = async (playerName: string, code: string) => {
-    console.log('Joining game with code:', code);
+  const handleJoinGame = useCallback(async (playerName: string, code: string) => {
     const playerId = crypto.randomUUID();
     const newPlayer: Player = {
       id: playerId,
@@ -168,22 +165,18 @@ const Index = () => {
     const result = await joinLobby(code, playerId, playerName);
     
     if (result) {
-      console.log('Joined lobby, changing state to lobby');
       playSoundEffect('join', 0.4);
       setGameState("lobby");
     } else {
-      console.error('Failed to join lobby');
       playSoundEffect('error', 0.4);
       setCurrentPlayer(null);
     }
-  };
+  }, [joinLobby]);
 
-  const handleStartGame = async (mode: GameMode = 'normal') => {
-    console.log('Starting game with mode:', mode);
+  const handleStartGame = useCallback(async (mode: GameMode = 'normal') => {
     playSoundEffect('start', 0.5);
     setGameMode(mode);
     
-    // Update lobby status and phase
     if (lobby && currentPlayer?.isHost) {
       try {
         const gamePhase = mode === 'quiz' ? 'quiz' : 'preparation';
@@ -196,7 +189,6 @@ const Index = () => {
           })
           .eq('id', lobby.id);
         
-        // For quiz mode, transition immediately
         if (mode === 'quiz') {
           setGameState('quiz');
         }
@@ -204,17 +196,17 @@ const Index = () => {
         console.error('Error updating lobby status:', error);
       }
     }
-  };
+  }, [lobby, currentPlayer?.isHost]);
 
-  const handleKickPlayer = async (playerId: string) => {
+  const handleKickPlayer = useCallback(async (playerId: string) => {
     await kickPlayer(playerId);
-  };
+  }, [kickPlayer]);
 
-  const handleTransferHost = async (playerId: string) => {
+  const handleTransferHost = useCallback(async (playerId: string) => {
     await transferHost(playerId);
-  };
+  }, [transferHost]);
 
-  const handleSubmitChallenges = (challenges: VideoClip[]) => {
+  const handleSubmitChallenges = useCallback((challenges: VideoClip[]) => {
     setSubmittedChallenges(challenges);
     playSoundEffect('success', 0.4);
     
@@ -222,9 +214,9 @@ const Index = () => {
       title: "Défis soumis !",
       description: `${challenges.length} défi(s) envoyé(s). En attente des autres joueurs...`,
     });
-  };
+  }, [toast]);
   
-  const handleStartActualGame = async () => {
+  const handleStartActualGame = useCallback(async () => {
     if (lobby && currentPlayer?.isHost) {
       try {
         await supabase
@@ -235,15 +227,15 @@ const Index = () => {
         console.error('Error updating game phase:', error);
       }
     }
-  };
+  }, [lobby, currentPlayer?.isHost]);
 
-  const handleBackToLobby = () => {
+  const handleBackToLobby = useCallback(() => {
     playSoundEffect('whoosh', 0.3);
     setGameState("lobby");
     setSubmittedChallenges([]);
-  };
+  }, []);
 
-  const handleLeaveGame = async () => {
+  const handleLeaveGame = useCallback(async () => {
     playSoundEffect('leave', 0.4);
     if (currentPlayer) {
       await leaveLobby(currentPlayer.id);
@@ -256,12 +248,11 @@ const Index = () => {
       title: "Partie quittée",
       description: "Vous avez quitté la partie",
     });
-  };
+  }, [currentPlayer, leaveLobby, toast]);
 
-  const handleEndGame = async () => {
+  const handleEndGame = useCallback(async () => {
     playSoundEffect('leave', 0.4);
     
-    // If host ends game, reset lobby to waiting state
     if (lobby && currentPlayer?.isHost) {
       try {
         await supabase
@@ -276,7 +267,6 @@ const Index = () => {
       }
     }
     
-    // Leave the game
     if (currentPlayer) {
       await leaveLobby(currentPlayer.id);
     }
@@ -289,86 +279,80 @@ const Index = () => {
       title: "Partie terminée",
       description: "Merci d'avoir joué !",
     });
-  };
+  }, [lobby, currentPlayer, leaveLobby, toast]);
 
-  const renderContent = () => {
-    if (gameState === "home") {
-      return (
-        <HomeScreen 
-          onCreateGame={handleCreateGame}
-          onJoinGame={handleJoinGame}
-        />
-      );
-    }
-
-    if (gameState === "lobby" && currentPlayer && lobby) {
-      return (
-        <LobbyScreen
-          players={players}
-          lobbyCode={lobby.code}
-          lobbyId={lobby.id}
-          isHost={currentPlayer.isHost}
-          currentPlayer={currentPlayer}
-          onStartGame={handleStartGame}
-          onLeaveGame={handleLeaveGame}
-          onKickPlayer={handleKickPlayer}
-          onTransferHost={handleTransferHost}
-        />
-      );
-    }
-
-    if (gameState === "preparation" && currentPlayer && lobby) {
-      return (
-        <VideoSubmissionScreen
-          currentPlayer={currentPlayer}
-          lobbyId={lobby.id}
-          players={players}
-          isHost={currentPlayer.isHost}
-          onBackToLobby={handleBackToLobby}
-          onSubmitChallenges={handleSubmitChallenges}
-          onStartActualGame={handleStartActualGame}
-        />
-      );
-    }
-
-    if (gameState === "playing" && currentPlayer && lobby) {
-      return (
-        <GamePlayScreen
-          currentPlayer={currentPlayer}
-          players={players}
-          lobbyId={lobby.id}
-          gameMode={gameMode}
-          onEndGame={handleEndGame}
-        />
-      );
-    }
-
-    if (gameState === "quiz" && currentPlayer && lobby) {
-      return (
-        <QuizGameScreen
-          currentPlayer={currentPlayer}
-          players={players}
-          lobbyId={lobby.id}
-          onEndGame={handleEndGame}
-        />
-      );
-    }
-
-    // Fallback to home screen
+  const renderContent = useMemo(() => {
     return (
-      <HomeScreen 
-        onCreateGame={handleCreateGame}
-        onJoinGame={handleJoinGame}
-      />
+      <React.Suspense fallback={<LoadingFallback />}>
+        {gameState === "home" && (
+          <HomeScreen 
+            onCreateGame={handleCreateGame}
+            onJoinGame={handleJoinGame}
+          />
+        )}
+
+        {gameState === "lobby" && currentPlayer && lobby && (
+          <LobbyScreen
+            players={players}
+            lobbyCode={lobby.code}
+            lobbyId={lobby.id}
+            isHost={currentPlayer.isHost}
+            currentPlayer={currentPlayer}
+            onStartGame={handleStartGame}
+            onLeaveGame={handleLeaveGame}
+            onKickPlayer={handleKickPlayer}
+            onTransferHost={handleTransferHost}
+          />
+        )}
+
+        {gameState === "preparation" && currentPlayer && lobby && (
+          <VideoSubmissionScreen
+            currentPlayer={currentPlayer}
+            lobbyId={lobby.id}
+            players={players}
+            isHost={currentPlayer.isHost}
+            onBackToLobby={handleBackToLobby}
+            onSubmitChallenges={handleSubmitChallenges}
+            onStartActualGame={handleStartActualGame}
+          />
+        )}
+
+        {gameState === "playing" && currentPlayer && lobby && (
+          <GamePlayScreen
+            currentPlayer={currentPlayer}
+            players={players}
+            lobbyId={lobby.id}
+            gameMode={gameMode}
+            onEndGame={handleEndGame}
+          />
+        )}
+
+        {gameState === "quiz" && currentPlayer && lobby && (
+          <QuizGameScreen
+            currentPlayer={currentPlayer}
+            players={players}
+            lobbyId={lobby.id}
+            onEndGame={handleEndGame}
+          />
+        )}
+
+        {/* Fallback */}
+        {gameState === "home" && !currentPlayer && (
+          <HomeScreen 
+            onCreateGame={handleCreateGame}
+            onJoinGame={handleJoinGame}
+          />
+        )}
+      </React.Suspense>
     );
-  };
+  }, [gameState, currentPlayer, lobby, players, gameMode, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   return (
     <>
       <DynamicBackground />
       <div className="pb-24">
         <ScreenTransition screenKey={gameState}>
-          {renderContent()}
+          {renderContent}
         </ScreenTransition>
       </div>
       <MusicPlayerBar />
@@ -376,4 +360,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default memo(Index);

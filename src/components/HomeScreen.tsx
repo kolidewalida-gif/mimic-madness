@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GameLogo } from "@/components/GameLogo";
@@ -7,7 +7,7 @@ import { SoundEffectsVolumeControl } from "@/components/SoundEffectsVolumeContro
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
-import { Play, Users, Settings, User, Sparkles, Zap, ArrowRight, Gamepad2, ChevronLeft, Hash } from "lucide-react";
+import { Play, Users, Settings, User, Zap, ArrowRight, Gamepad2, ChevronLeft, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HomeScreenProps {
@@ -17,7 +17,7 @@ interface HomeScreenProps {
 
 type ViewMode = "home" | "join";
 
-export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
+const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
   const [playerName, setPlayerName] = useState("");
   const [lobbyCode, setLobbyCode] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("home");
@@ -25,48 +25,48 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const { play } = useBackgroundMusic();
 
-  const handleCreateGame = () => {
+  const handleCreateGame = useCallback(() => {
     if (playerName.trim()) {
       play();
       onCreateGame(playerName.trim());
     }
-  };
+  }, [playerName, play, onCreateGame]);
 
-  const handleJoinGame = () => {
+  const handleJoinGame = useCallback(() => {
     if (playerName.trim() && lobbyCode.trim()) {
       play();
       onJoinGame(playerName.trim(), lobbyCode.trim().toUpperCase());
     }
-  };
+  }, [playerName, lobbyCode, play, onJoinGame]);
 
-  const resetToHome = () => {
+  const resetToHome = useCallback(() => {
     setViewMode("home");
     setLobbyCode("");
-  };
+  }, []);
+
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (viewMode === "home" && playerName.trim()) handleCreateGame();
+      else if (viewMode === "join") handleJoinGame();
+    }
+  }, [viewMode, playerName, handleCreateGame, handleJoinGame]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
-      {/* Premium animated background */}
+      {/* Simplified background */}
       <div className="fixed inset-0 bg-gradient-to-br from-background via-background-secondary to-background" />
       
-      {/* Floating orbs */}
+      {/* Reduced floating orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-primary/20 blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-accent/15 blur-[100px] animate-pulse" style={{ animationDelay: "1s" }} />
-        <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] rounded-full bg-primary/10 blur-[80px] animate-pulse" style={{ animationDelay: "2s" }} />
+        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-primary/15 blur-[120px]" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-accent/10 blur-[100px]" />
       </div>
-
-      {/* Subtle grid */}
-      <div className="fixed inset-0 opacity-[0.03]" style={{
-        backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
-        backgroundSize: '50px 50px'
-      }} />
 
       <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Logo Section */}
         <div className="text-center space-y-4">
           <div className="relative inline-block">
-            <div className="absolute inset-0 -m-8 bg-primary/30 rounded-full blur-[60px] animate-pulse" />
+            <div className="absolute inset-0 -m-8 bg-primary/20 rounded-full blur-[60px]" />
             <GameLogo className="justify-center relative" animated />
           </div>
           
@@ -79,11 +79,9 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
         {/* Main Card */}
         <div className="relative">
-          {/* Card glow */}
           <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/10 to-primary/20 rounded-3xl blur-xl opacity-60" />
           
           <div className="relative bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-2xl">
-            {/* Corner accents */}
             <div className="absolute top-0 left-0 w-16 h-16 border-l-2 border-t-2 border-primary/40 rounded-tl-2xl" />
             <div className="absolute bottom-0 right-0 w-16 h-16 border-r-2 border-b-2 border-accent/40 rounded-br-2xl" />
 
@@ -102,16 +100,11 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                     onChange={(e) => setPlayerName(e.target.value)}
                     onFocus={() => setIsInputFocused(true)}
                     onBlur={() => setIsInputFocused(false)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        if (viewMode === "home" && playerName.trim()) handleCreateGame();
-                        else if (viewMode === "join") handleJoinGame();
-                      }
-                    }}
+                    onKeyPress={handleKeyPress}
                     className={cn(
                       "pl-10 h-12 bg-background/50 border-border/50 rounded-xl",
                       "focus:border-primary focus:ring-2 focus:ring-primary/20",
-                      "transition-all duration-300",
+                      "transition-all duration-200",
                       isInputFocused && "border-primary/50 shadow-lg shadow-primary/10"
                     )}
                   />
@@ -120,7 +113,6 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
               {viewMode === "home" && (
                 <div className="space-y-3 pt-1">
-                  {/* Create Game Button */}
                   <Button
                     onClick={handleCreateGame}
                     disabled={!playerName.trim()}
@@ -139,7 +131,6 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                     <ArrowRight className="h-4 w-4 ml-2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                   </Button>
                   
-                  {/* Join Game Button */}
                   <Button
                     variant="outline"
                     onClick={() => setViewMode("join")}
@@ -155,7 +146,6 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                     Rejoindre une Partie
                   </Button>
 
-                  {/* Divider */}
                   <div className="relative py-3">
                     <div className="absolute inset-0 flex items-center">
                       <div className="w-full border-t border-border/30" />
@@ -167,7 +157,6 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                     </div>
                   </div>
 
-                  {/* Settings Section */}
                   <div className="space-y-3">
                     <VolumeControl />
                     <SoundEffectsVolumeControl />
@@ -197,7 +186,7 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
                       Code du Lobby
                     </label>
                     <div className="relative">
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-primary via-accent to-primary rounded-xl opacity-50 blur-sm animate-pulse" />
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-primary via-accent to-primary rounded-xl opacity-50 blur-sm" />
                       <Input
                         placeholder="XXXX"
                         value={lobbyCode}
@@ -242,7 +231,6 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
           </div>
         </div>
 
-        {/* Settings Modal */}
         {showSettings && (
           <div className="animate-fadeIn">
             <DeviceSettings showPreview={true} onClose={() => setShowSettings(false)} />
@@ -252,3 +240,5 @@ export const HomeScreen = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
     </div>
   );
 };
+
+export const HomeScreen = memo(HomeScreenComponent);
