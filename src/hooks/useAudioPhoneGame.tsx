@@ -90,17 +90,26 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
     }
   }, [lobbyId]);
 
-  // Initialize game
+  // Initialize game and refresh when component mounts
   useEffect(() => {
     fetchGameState();
+    
+    // Also set up an interval to periodically refresh state as backup
+    const interval = setInterval(() => {
+      fetchGameState();
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, [fetchGameState]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates - using a stable channel name
   useEffect(() => {
     if (!lobbyId) return;
 
-    channelRef.current = supabase
-      .channel(`audio-phone:${lobbyId}`)
+    console.log('[AudioPhone] Setting up realtime subscription for lobby:', lobbyId);
+
+    const channel = supabase
+      .channel(`audio-phone-sync:${lobbyId}`)
       .on(
         'postgres_changes',
         {
@@ -110,60 +119,80 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
           filter: `lobby_id=eq.${lobbyId}`
         },
         (payload) => {
+          console.log('[AudioPhone] Round update received:', payload.eventType, payload.new);
+          
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const newRound = payload.new as unknown as AudioPhoneRound;
-            setCurrentRound(newRound);
-
-            // Notify player when it's their turn
-            if (newRound.phase === 'recording' || newRound.phase === 'listening') {
-              const currentPlayerId = newRound.player_order[newRound.current_player_index];
-              if (currentPlayerId === currentPlayer.id) {
-                playSoundEffect('notifyInfo', 0.6);
-                toast({
-                  title: "C'est votre tour !",
-                  description: newRound.phase === 'recording' 
-                    ? "Enregistrez votre phrase" 
-                    : "Écoutez et reproduisez !",
-                });
-              }
-            }
-
-            // Play sound on phase changes
-            if (payload.eventType === 'UPDATE' && payload.old) {
-              const oldRound = payload.old as unknown as AudioPhoneRound;
-              if (oldRound.phase !== newRound.phase) {
-                if (newRound.phase === 'reveal') {
-                  playSoundEffect('quizReveal', 0.5);
-                } else if (newRound.phase === 'recording') {
-                  playSoundEffect('start', 0.4);
+            
+            setCurrentRound(prev => {
+              // Only update if we have new data
+              if (!prev || prev.id !== newRound.id || 
+                  prev.phase !== newRound.phase || 
+                  prev.current_player_index !== newRound.current_player_index) {
+                
+                // Notify player when it's their turn
+                if (newRound.phase === 'recording' || newRound.phase === 'listening') {
+                  const currentTurnPlayerId = newRound.player_order[newRound.current_player_index];
+                  if (currentTurnPlayerId === currentPlayer.id) {
+                    playSoundEffect('notifyInfo', 0.6);
+                    toast({
+                      title: "C'est votre tour !",
+                      description: newRound.phase === 'recording' 
+                        ? "Enregistrez votre phrase" 
+                        : "Écoutez et reproduisez !",
+                    });
+                  }
                 }
+
+                // Play sound on phase changes
+                if (prev && prev.phase !== newRound.phase) {
+                  if (newRound.phase === 'reveal') {
+                    playSoundEffect('quizReveal', 0.5);
+                  } else if (newRound.phase === 'recording') {
+                    playSoundEffect('start', 0.4);
+                  }
+                }
+                
+                return newRound;
               }
-            }
+              return prev;
+            });
           }
         }
       )
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'audio_phone_recordings'
         },
         (payload) => {
-          const newRecording = payload.new as unknown as AudioPhoneRecording;
-          if (currentRound && newRecording.round_id === currentRound.id) {
-            setRecordings(prev => [...prev, newRecording]);
+          console.log('[AudioPhone] Recording update received:', payload.eventType, payload.new);
+          
+          if (payload.eventType === 'INSERT') {
+            const newRecording = payload.new as unknown as AudioPhoneRecording;
+            setRecordings(prev => {
+              // Avoid duplicates
+              if (prev.some(r => r.id === newRecording.id)) {
+                return prev;
+              }
+              return [...prev, newRecording];
+            });
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[AudioPhone] Subscription status:', status);
+      });
+
+    channelRef.current = channel;
 
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      console.log('[AudioPhone] Cleaning up subscription');
+      supabase.removeChannel(channel);
     };
-  }, [lobbyId, currentPlayer.id, currentRound?.id, toast]);
+  }, [lobbyId, currentPlayer.id, toast]);
 
   // Start a new game
   const startGame = useCallback(async () => {
