@@ -82,9 +82,11 @@ const Index = () => {
     }
   }, [lobbyDeleted, gameState, toast, resetState]);
 
-  // Listen for lobby status changes
+  // Listen for lobby status changes - critical for game state sync
   useEffect(() => {
     if (!lobby) return;
+
+    console.log('[Index] Setting up lobby status listener for:', lobby.id);
 
     const channel = supabase
       .channel(`lobby-status:${lobby.id}`)
@@ -97,12 +99,17 @@ const Index = () => {
           filter: `id=eq.${lobby.id}`
         },
         (payload: any) => {
+          console.log('[Index] Lobby update received:', payload.new);
+          
           const newPhase = payload.new.game_phase;
           const newMode = payload.new.game_mode;
           
           if (newMode && newMode !== gameMode) {
+            console.log('[Index] Game mode changed to:', newMode);
             setGameMode(newMode as GameMode);
           }
+          
+          console.log('[Index] Game phase change:', { currentState: gameState, newPhase });
           
           if (newPhase === 'preparation' && gameState !== 'preparation') {
             playSoundEffect('transition', 0.4);
@@ -119,6 +126,7 @@ const Index = () => {
               description: "Préparez-vous à répondre aux questions.",
             });
           } else if (newPhase === 'audiophone' && gameState !== 'audiophone') {
+            console.log('[Index] Transitioning to audiophone state');
             playSoundEffect('start', 0.5);
             setGameState('audiophone');
             toast({
@@ -132,10 +140,15 @@ const Index = () => {
               title: "🎮 Que le jeu commence !",
               description: "Tous les joueurs sont prêts. C'est parti !",
             });
+          } else if (newPhase === 'lobby' && gameState !== 'lobby') {
+            console.log('[Index] Returning to lobby');
+            setGameState('lobby');
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Index] Lobby subscription status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -182,13 +195,16 @@ const Index = () => {
   }, [joinLobby]);
 
   const handleStartGame = useCallback(async (mode: GameMode = 'normal') => {
+    console.log('[Index] handleStartGame called with mode:', mode);
     playSoundEffect('start', 0.5);
     setGameMode(mode);
     
     if (lobby && currentPlayer?.isHost) {
       try {
         const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : 'preparation';
-        await supabase
+        console.log('[Index] Updating lobby to phase:', gamePhase);
+        
+        const { error } = await supabase
           .from('lobbies')
           .update({ 
             status: 'playing',
@@ -197,16 +213,36 @@ const Index = () => {
           })
           .eq('id', lobby.id);
         
+        if (error) {
+          console.error('[Index] Error updating lobby:', error);
+          toast({
+            title: "Erreur",
+            description: "Impossible de démarrer la partie",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        console.log('[Index] Lobby updated successfully, transitioning state');
+        
+        // Host transitions immediately, others will transition via realtime
         if (mode === 'quiz') {
           setGameState('quiz');
         } else if (mode === 'audiophone') {
           setGameState('audiophone');
+        } else {
+          setGameState('preparation');
         }
       } catch (error) {
-        console.error('Error updating lobby status:', error);
+        console.error('[Index] Error updating lobby status:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de démarrer la partie",
+          variant: "destructive",
+        });
       }
     }
-  }, [lobby, currentPlayer?.isHost]);
+  }, [lobby, currentPlayer?.isHost, toast]);
 
   const handleKickPlayer = useCallback(async (playerId: string) => {
     await kickPlayer(playerId);
