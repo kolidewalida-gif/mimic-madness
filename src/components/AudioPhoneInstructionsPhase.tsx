@@ -27,26 +27,26 @@ export const AudioPhoneInstructionsPhase = memo(({
     {
       icon: Mic,
       title: "Enregistrez",
-      description: "Le premier joueur enregistre une phrase de son choix",
-      color: "from-emerald-500 to-teal-500",
+      description: "Le premier joueur enregistre une phrase de son choix.",
+      gradient: "from-primary to-primary-light",
     },
     {
       icon: RotateCcw,
-      title: "Inversion",
-      description: "L'audio est automatiquement inversé (joué à l'envers)",
-      color: "from-violet-500 to-purple-500",
+      title: "On inverse",
+      description: "L'audio est automatiquement joué à l'envers.",
+      gradient: "from-accent to-primary",
     },
     {
       icon: Headphones,
       title: "Écoutez",
-      description: "Le joueur suivant écoute l'audio inversé mystérieux",
-      color: "from-blue-500 to-cyan-500",
+      description: "Le joueur suivant écoute l'audio inversé.",
+      gradient: "from-secondary to-primary",
     },
     {
       icon: MessageSquare,
       title: "Reproduisez",
-      description: "Il doit répéter ce qu'il croit avoir compris",
-      color: "from-orange-500 to-amber-500",
+      description: "Il répète ce qu'il pense avoir compris.",
+      gradient: "from-primary to-accent",
     },
   ];
 
@@ -84,13 +84,13 @@ export const AudioPhoneInstructionsPhase = memo(({
                 <span className="text-sm font-bold text-foreground-muted">{index + 1}</span>
               </div>
 
-              {/* Gradient background */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${step.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
+               {/* Gradient background */}
+               <div className={`absolute inset-0 bg-gradient-to-br ${step.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
 
-              {/* Icon */}
-              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center mb-4 shadow-lg`}>
-                <Icon className="h-7 w-7 text-white" />
-              </div>
+               {/* Icon */}
+               <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${step.gradient} flex items-center justify-center mb-4 shadow-lg`}>
+                 <Icon className="h-7 w-7 text-primary-foreground" />
+               </div>
 
               {/* Content */}
               <h3 className="text-lg font-bold mb-2 text-foreground">
@@ -112,11 +112,11 @@ export const AudioPhoneInstructionsPhase = memo(({
       </div>
 
       {/* Final reveal info */}
-      <Card className="max-w-2xl w-full p-6 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-primary/20 mb-8">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="h-6 w-6 text-white" />
-          </div>
+       <Card className="max-w-2xl w-full p-6 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-primary/20 mb-8">
+         <div className="flex items-start gap-4">
+           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-primary flex items-center justify-center flex-shrink-0">
+             <Sparkles className="h-6 w-6 text-primary-foreground" />
+           </div>
           <div>
             <h3 className="text-lg font-bold mb-1 text-foreground">
               La Révélation Finale

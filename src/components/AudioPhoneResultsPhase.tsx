@@ -124,30 +124,30 @@ export const AudioPhoneResultsPhase = memo(({
   }, [recordings, playRecording]);
 
   // Get player color
-  const getPlayerColor = (index: number) => {
-    const colors = [
-      'from-emerald-500 to-teal-500',
-      'from-blue-500 to-cyan-500',
-      'from-violet-500 to-purple-500',
-      'from-orange-500 to-amber-500',
-      'from-pink-500 to-rose-500',
-      'from-indigo-500 to-blue-500',
-    ];
-    return colors[index % colors.length];
-  };
+   const getPlayerColor = (index: number) => {
+     const colors = [
+       'from-primary to-accent',
+       'from-accent to-primary-light',
+       'from-secondary to-primary',
+       'from-primary to-primary-light',
+       'from-success to-accent',
+       'from-warning to-primary',
+     ];
+     return colors[index % colors.length];
+   };
 
   return (
     <div className="min-h-screen p-4 md:p-8">
       {/* Header */}
       <div className="text-center mb-8 animate-fade-in">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 mb-4">
-          <Trophy className="h-4 w-4 text-amber-400" />
-          <span className="text-sm font-medium text-amber-400">Révélation finale</span>
-        </div>
+         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-warning/15 to-primary/10 border border-warning/30 mb-4">
+           <Trophy className="h-4 w-4 text-warning" />
+           <span className="text-sm font-medium text-warning">Révélation finale</span>
+         </div>
         
-        <h1 className="text-4xl md:text-5xl font-black mb-2 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 bg-clip-text text-transparent">
-          Et voilà le résultat !
-        </h1>
+         <h1 className="text-4xl md:text-5xl font-black mb-2 bg-gradient-to-r from-primary via-primary-light to-accent bg-clip-text text-transparent">
+           Et voilà le résultat !
+         </h1>
         
         <p className="text-foreground-secondary max-w-md mx-auto">
           Découvrez comment le message s'est transformé au fil des interprétations
@@ -183,16 +183,16 @@ export const AudioPhoneResultsPhase = memo(({
       <div className="max-w-3xl mx-auto space-y-4 mb-8">
         {/* Original phrase */}
         {originalPhrase && (
-          <Card 
-            className={cn(
-              "p-6 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/30 transition-all duration-500",
-              revealedCount >= 1 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
+           <Card 
+             className={cn(
+               "p-6 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30 transition-all duration-500",
+               revealedCount >= 1 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+             )}
+           >
+             <div className="flex items-start gap-4">
+               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0">
+                 <Sparkles className="h-6 w-6 text-primary-foreground" />
+               </div>
               <div className="flex-1">
                 <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1">
                   Phrase originale
@@ -239,9 +239,9 @@ export const AudioPhoneResultsPhase = memo(({
                     <div className={cn(
                       "w-14 h-14 rounded-full bg-gradient-to-br flex items-center justify-center",
                       getPlayerColor(index)
-                    )}>
-                      <User className="h-7 w-7 text-white" />
-                    </div>
+                     )}>
+                       <User className="h-7 w-7 text-primary-foreground" />
+                     </div>
                     <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-background border-2 border-border flex items-center justify-center">
                       <span className="text-xs font-bold">{index + 1}</span>
                     </div>
@@ -253,16 +253,16 @@ export const AudioPhoneResultsPhase = memo(({
                       <p className="font-bold text-foreground truncate">
                         {recording.player_name}
                       </p>
-                      {isFirstPlayer && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium">
-                          Premier
-                        </span>
-                      )}
-                      {isLastPlayer && (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
-                          Dernier
-                        </span>
-                      )}
+                       {isFirstPlayer && (
+                         <span className="px-2 py-0.5 rounded-full bg-warning/15 text-warning text-xs font-medium">
+                           Premier
+                         </span>
+                       )}
+                       {isLastPlayer && (
+                         <span className="px-2 py-0.5 rounded-full bg-success/15 text-success text-xs font-medium">
+                           Dernier
+                         </span>
+                       )}
                     </div>
                     <p className="text-sm text-foreground-muted">
                       Durée: {recording.duration_seconds.toFixed(1)}s
@@ -291,20 +291,20 @@ export const AudioPhoneResultsPhase = memo(({
                 </div>
 
                 {/* Audio visualization when playing */}
-                {isPlaying && (
-                  <div className="mt-4 flex items-center justify-center gap-1">
-                    {Array.from({ length: 20 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-gradient-to-t from-primary to-secondary rounded-full animate-pulse"
-                        style={{
-                          height: `${Math.random() * 30 + 10}px`,
-                          animationDelay: `${i * 50}ms`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
+                 {isPlaying && (
+                   <div className="mt-4 flex items-center justify-center gap-1">
+                     {Array.from({ length: 20 }).map((_, i) => (
+                       <div
+                         key={i}
+                         className="w-1 bg-gradient-to-t from-primary to-accent rounded-full animate-pulse"
+                         style={{
+                           height: `${Math.sin(i * 0.6) * 14 + 20}px`,
+                           animationDelay: `${i * 50}ms`,
+                         }}
+                       />
+                     ))}
+                   </div>
+                 )}
 
                 {/* Transcribed text if available */}
                 {recording.transcribed_text && (

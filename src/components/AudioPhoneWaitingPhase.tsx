@@ -62,10 +62,10 @@ export const AudioPhoneWaitingPhase = memo(({
     <div className="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
       {/* Header */}
       <div className="text-center mb-8 animate-fade-in">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/30 mb-4">
-          <Clock className="h-4 w-4 text-violet-400" />
-          <span className="text-sm font-medium text-violet-400">En attente</span>
-        </div>
+         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/15 to-accent/10 border border-primary/30 mb-4">
+           <Clock className="h-4 w-4 text-primary" />
+           <span className="text-sm font-medium text-primary">En attente</span>
+         </div>
         
         <h1 className="text-3xl md:text-4xl font-black mb-2 text-foreground">
           La chaîne continue...
@@ -87,9 +87,9 @@ export const AudioPhoneWaitingPhase = memo(({
                 <Headphones className="h-8 w-8 text-white" />
               )}
             </div>
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
-              <Loader2 className="h-4 w-4 text-white animate-spin" />
-            </div>
+             <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-warning flex items-center justify-center">
+               <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
+             </div>
           </div>
           
           <div className="flex-1">
@@ -131,18 +131,18 @@ export const AudioPhoneWaitingPhase = memo(({
               key={status.playerId}
               className={cn(
                 "flex items-center gap-3 p-3 rounded-xl transition-all",
-                status.isCompleted && "bg-emerald-500/10 border border-emerald-500/30",
-                status.isCurrent && "bg-primary/10 border border-primary/30",
-                status.isPending && "bg-background/50 border border-border/30 opacity-50"
+                 status.isCompleted && "bg-success/10 border border-success/30",
+                 status.isCurrent && "bg-primary/10 border border-primary/30",
+                 status.isPending && "bg-background/50 border border-border/30 opacity-50"
               )}
             >
               {/* Status indicator */}
-              <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
-                status.isCompleted && "bg-emerald-500",
-                status.isCurrent && "bg-primary",
-                status.isPending && "bg-foreground-muted/20"
-              )}>
+               <div className={cn(
+                 "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                 status.isCompleted && "bg-success",
+                 status.isCurrent && "bg-primary",
+                 status.isPending && "bg-foreground-muted/20"
+               )}>
                 {status.isCompleted ? (
                   <Check className="h-5 w-5 text-white" />
                 ) : status.isCurrent ? (
@@ -154,12 +154,12 @@ export const AudioPhoneWaitingPhase = memo(({
 
               {/* Player info */}
               <div className="flex-1 min-w-0">
-                <p className={cn(
-                  "font-medium truncate",
-                  status.isCompleted && "text-emerald-400",
-                  status.isCurrent && "text-primary",
-                  status.isPending && "text-foreground-muted"
-                )}>
+                 <p className={cn(
+                   "font-medium truncate",
+                   status.isCompleted && "text-success",
+                   status.isCurrent && "text-primary",
+                   status.isPending && "text-foreground-muted"
+                 )}>
                   {status.playerName}
                 </p>
                 <p className="text-xs text-foreground-muted">
@@ -170,12 +170,12 @@ export const AudioPhoneWaitingPhase = memo(({
               </div>
 
               {/* Order number */}
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
-                status.isCompleted && "bg-emerald-500/20 text-emerald-400",
-                status.isCurrent && "bg-primary/20 text-primary",
-                status.isPending && "bg-foreground-muted/10 text-foreground-muted"
-              )}>
+               <div className={cn(
+                 "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                 status.isCompleted && "bg-success/15 text-success",
+                 status.isCurrent && "bg-primary/20 text-primary",
+                 status.isPending && "bg-foreground-muted/10 text-foreground-muted"
+               )}>
                 {idx + 1}
               </div>
             </div>
