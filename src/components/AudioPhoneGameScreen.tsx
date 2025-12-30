@@ -111,7 +111,8 @@ export const AudioPhoneGameScreen = memo(({
         />
         <LobbyChat
           lobbyId={lobbyId}
-          currentPlayer={currentPlayer}
+          playerId={currentPlayer.id}
+          playerName={currentPlayer.name}
         />
       </div>
     );
@@ -128,7 +129,8 @@ export const AudioPhoneGameScreen = memo(({
         />
         <LobbyChat
           lobbyId={lobbyId}
-          currentPlayer={currentPlayer}
+          playerId={currentPlayer.id}
+          playerName={currentPlayer.name}
         />
       </div>
     );
@@ -149,7 +151,8 @@ export const AudioPhoneGameScreen = memo(({
         />
         <LobbyChat
           lobbyId={lobbyId}
-          currentPlayer={currentPlayer}
+          playerId={currentPlayer.id}
+          playerName={currentPlayer.name}
         />
       </div>
     );
@@ -170,7 +173,8 @@ export const AudioPhoneGameScreen = memo(({
         />
         <LobbyChat
           lobbyId={lobbyId}
-          currentPlayer={currentPlayer}
+          playerId={currentPlayer.id}
+          playerName={currentPlayer.name}
         />
       </div>
     );
@@ -190,7 +194,8 @@ export const AudioPhoneGameScreen = memo(({
         />
         <LobbyChat
           lobbyId={lobbyId}
-          currentPlayer={currentPlayer}
+          playerId={currentPlayer.id}
+          playerName={currentPlayer.name}
         />
       </div>
     );
@@ -208,7 +213,8 @@ export const AudioPhoneGameScreen = memo(({
       />
       <LobbyChat
         lobbyId={lobbyId}
-        currentPlayer={currentPlayer}
+        playerId={currentPlayer.id}
+        playerName={currentPlayer.name}
       />
     </div>
   );

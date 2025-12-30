@@ -1,9 +1,9 @@
-import { Users, Swords, Brain, Check } from "lucide-react";
+import { Users, Swords, Brain, Check, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GameModeSelectorProps {
-  gameMode: 'normal' | '2v2' | 'quiz';
-  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz') => void;
+  gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone';
+  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz' | 'audiophone') => void;
   disabled?: boolean;
   playerCount: number;
 }
@@ -16,6 +16,7 @@ export const GameModeSelector = ({
 }: GameModeSelectorProps) => {
   const canPlay2v2 = playerCount >= 4 && playerCount % 2 === 0;
   const canPlayQuiz = playerCount >= 2;
+  const canPlayAudioPhone = playerCount >= 3;
 
   const modes = [
     {
@@ -45,6 +46,15 @@ export const GameModeSelector = ({
       color: 'from-purple-500 to-pink-500',
       bgColor: 'bg-purple-500',
     },
+    {
+      id: 'audiophone' as const,
+      name: 'Audio Phone',
+      subtitle: canPlayAudioPhone ? 'Inversé' : 'Min. 3',
+      icon: Phone,
+      canPlay: canPlayAudioPhone,
+      color: 'from-emerald-500 to-teal-500',
+      bgColor: 'bg-emerald-500',
+    },
   ];
 
   return (
@@ -57,7 +67,7 @@ export const GameModeSelector = ({
       </div>
       
       {/* Mode buttons */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {modes.map((mode) => {
           const Icon = mode.icon;
           const isSelected = gameMode === mode.id;

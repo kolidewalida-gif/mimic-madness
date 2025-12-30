@@ -15,6 +15,7 @@ const LobbyScreen = React.lazy(() => import("@/components/LobbyScreen").then(m =
 const VideoSubmissionScreen = React.lazy(() => import("@/components/VideoSubmissionScreen").then(m => ({ default: m.VideoSubmissionScreen })));
 const GamePlayScreen = React.lazy(() => import("@/components/GamePlayScreen").then(m => ({ default: m.GamePlayScreen })));
 const QuizGameScreen = React.lazy(() => import("@/components/QuizGameScreen").then(m => ({ default: m.QuizGameScreen })));
+const AudioPhoneGameScreen = React.lazy(() => import("@/components/AudioPhoneGameScreen").then(m => ({ default: m.AudioPhoneGameScreen })));
 
 interface Player {
   id: string;
@@ -22,8 +23,8 @@ interface Player {
   isHost: boolean;
 }
 
-type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz";
-type GameMode = "normal" | "2v2" | "quiz";
+type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone";
+type GameMode = "normal" | "2v2" | "quiz" | "audiophone";
 
 const LoadingFallback = memo(() => (
   <div className="min-h-screen flex items-center justify-center">
@@ -117,6 +118,13 @@ const Index = () => {
               title: "🧠 Mode Quiz !",
               description: "Préparez-vous à répondre aux questions.",
             });
+          } else if (newPhase === 'audiophone' && gameState !== 'audiophone') {
+            playSoundEffect('start', 0.5);
+            setGameState('audiophone');
+            toast({
+              title: "📞 Audio Phone !",
+              description: "Préparez votre micro !",
+            });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             playSoundEffect('start', 0.5);
             setGameState('playing');
@@ -179,7 +187,7 @@ const Index = () => {
     
     if (lobby && currentPlayer?.isHost) {
       try {
-        const gamePhase = mode === 'quiz' ? 'quiz' : 'preparation';
+        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : 'preparation';
         await supabase
           .from('lobbies')
           .update({ 
@@ -191,6 +199,8 @@ const Index = () => {
         
         if (mode === 'quiz') {
           setGameState('quiz');
+        } else if (mode === 'audiophone') {
+          setGameState('audiophone');
         }
       } catch (error) {
         console.error('Error updating lobby status:', error);
@@ -322,13 +332,22 @@ const Index = () => {
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}
-            gameMode={gameMode}
+            gameMode={gameMode as 'normal' | '2v2' | 'quiz'}
             onEndGame={handleEndGame}
           />
         )}
 
         {gameState === "quiz" && currentPlayer && lobby && (
           <QuizGameScreen
+            currentPlayer={currentPlayer}
+            players={players}
+            lobbyId={lobby.id}
+            onEndGame={handleEndGame}
+          />
+        )}
+
+        {gameState === "audiophone" && currentPlayer && lobby && (
+          <AudioPhoneGameScreen
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}
