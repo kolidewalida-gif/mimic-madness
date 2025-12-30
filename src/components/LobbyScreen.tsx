@@ -26,7 +26,7 @@ interface LobbyScreenProps {
   lobbyId: string;
   isHost: boolean;
   currentPlayer: Player;
-  onStartGame: (gameMode: 'normal' | '2v2' | 'quiz') => void;
+  onStartGame: (gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone') => void;
   onLeaveGame: () => void;
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
@@ -44,7 +44,7 @@ export const LobbyScreen = ({
   onTransferHost
 }: LobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
-  const [gameMode, setGameMode] = useState<'normal' | '2v2' | 'quiz'>('normal');
+  const [gameMode, setGameMode] = useState<'normal' | '2v2' | 'quiz' | 'audiophone'>('normal');
   const { teams, isLoading: teamsLoading, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
 
@@ -57,7 +57,7 @@ export const LobbyScreen = ({
         .single();
       
       if (data?.game_mode) {
-        setGameMode(data.game_mode as 'normal' | '2v2' | 'quiz');
+        setGameMode(data.game_mode as 'normal' | '2v2' | 'quiz' | 'audiophone');
       }
     };
 
@@ -75,7 +75,7 @@ export const LobbyScreen = ({
         },
         (payload: any) => {
           if (payload.new.game_mode) {
-            setGameMode(payload.new.game_mode as 'normal' | '2v2' | 'quiz');
+            setGameMode(payload.new.game_mode as 'normal' | '2v2' | 'quiz' | 'audiophone');
           }
         }
       )
@@ -86,7 +86,7 @@ export const LobbyScreen = ({
     };
   }, [lobbyId]);
 
-  const handleGameModeChange = async (mode: 'normal' | '2v2' | 'quiz') => {
+  const handleGameModeChange = async (mode: 'normal' | '2v2' | 'quiz' | 'audiophone') => {
     if (!isHost) return;
 
     try {
@@ -126,7 +126,7 @@ export const LobbyScreen = ({
     onStartGame(gameMode);
   };
 
-  const canStart = gameMode === 'normal' || gameMode === 'quiz'
+  const canStart = gameMode === 'normal' || gameMode === 'quiz' || gameMode === 'audiophone'
     ? players.filter(p => !p.isDisconnected).length >= 2 
     : (players.filter(p => !p.isDisconnected).length >= 4 && players.filter(p => !p.isDisconnected).length % 2 === 0 && teams.length > 0);
 
@@ -234,7 +234,7 @@ export const LobbyScreen = ({
                     Mode sélectionné
                   </p>
                   <p className="text-2xl font-bold">
-                    {gameMode === 'normal' ? '🎮 Normal' : gameMode === '2v2' ? '⚔️ 2v2' : '🧠 Quiz'}
+                    {gameMode === 'normal' ? '🎮 Normal' : gameMode === '2v2' ? '⚔️ 2v2' : gameMode === 'quiz' ? '🧠 Quiz' : '📞 Audio Phone'}
                   </p>
                 </div>
               </div>
