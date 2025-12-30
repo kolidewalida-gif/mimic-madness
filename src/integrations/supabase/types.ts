@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      audio_phone_recordings: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          player_id: string
+          player_name: string
+          player_order_index: number
+          reversed_storage_path: string | null
+          round_id: string
+          storage_path: string
+          transcribed_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          player_id: string
+          player_name: string
+          player_order_index: number
+          reversed_storage_path?: string | null
+          round_id: string
+          storage_path: string
+          transcribed_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          player_id?: string
+          player_name?: string
+          player_order_index?: number
+          reversed_storage_path?: string | null
+          round_id?: string
+          storage_path?: string
+          transcribed_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_phone_recordings_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "audio_phone_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audio_phone_rounds: {
+        Row: {
+          created_at: string
+          current_player_index: number
+          id: string
+          lobby_id: string
+          max_recording_seconds: number
+          original_phrase: string | null
+          phase: string
+          player_order: string[]
+          round_number: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_player_index?: number
+          id?: string
+          lobby_id: string
+          max_recording_seconds?: number
+          original_phrase?: string | null
+          phase?: string
+          player_order: string[]
+          round_number?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_player_index?: number
+          id?: string
+          lobby_id?: string
+          max_recording_seconds?: number
+          original_phrase?: string | null
+          phase?: string
+          player_order?: string[]
+          round_number?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
