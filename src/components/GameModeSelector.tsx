@@ -16,7 +16,7 @@ export const GameModeSelector = ({
 }: GameModeSelectorProps) => {
   const canPlay2v2 = playerCount >= 4 && playerCount % 2 === 0;
   const canPlayQuiz = playerCount >= 2;
-  const canPlayAudioPhone = playerCount >= 3;
+  const canPlayAudioPhone = playerCount >= 2;
 
   const modes = [
     {
@@ -49,7 +49,7 @@ export const GameModeSelector = ({
     {
       id: 'audiophone' as const,
       name: 'Audio Phone',
-      subtitle: canPlayAudioPhone ? 'Inversé' : 'Min. 3',
+      subtitle: canPlayAudioPhone ? 'Inversé' : 'Min. 2',
       icon: Phone,
       canPlay: canPlayAudioPhone,
       color: 'from-emerald-500 to-teal-500',
