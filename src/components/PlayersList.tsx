@@ -39,7 +39,7 @@ interface PlayersListProps {
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
   canStart?: boolean;
-  gameMode?: 'normal' | '2v2' | 'quiz';
+  gameMode?: 'normal' | '2v2' | 'quiz' | 'audiophone';
 }
 
 export const PlayersList = ({ 
@@ -288,7 +288,7 @@ export const PlayersList = ({
                 ? gameMode === '2v2' 
                   ? "Conditions 2v2 non remplies"
                   : "En attente de joueurs..." 
-                : `Lancer la Partie${gameMode !== 'normal' ? ` ${gameMode === '2v2' ? '2v2' : 'Quiz'}` : ''}`
+                : `Lancer la Partie${gameMode !== 'normal' ? ` ${gameMode === '2v2' ? '2v2' : gameMode === 'quiz' ? 'Quiz' : 'Audio Phone'}` : ''}`
               }
             </Button>
             {!canStart && (
