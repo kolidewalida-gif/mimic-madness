@@ -130,10 +130,10 @@ export const AudioPhoneListeningPhase = memo(({
     <div className="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
       {/* Header */}
       <div className="text-center mb-8 animate-fade-in">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 mb-4">
-          <Headphones className="h-4 w-4 text-blue-400" />
-          <span className="text-sm font-medium text-blue-400">Phase d'écoute</span>
-        </div>
+         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-accent/15 to-primary/10 border border-accent/30 mb-4">
+           <Headphones className="h-4 w-4 text-accent" />
+           <span className="text-sm font-medium text-accent">Phase d'écoute</span>
+         </div>
         
         <h1 className="text-3xl md:text-4xl font-black mb-2 text-foreground">
           Écoutez attentivement, <span className="text-primary">{playerName}</span> !
@@ -148,41 +148,41 @@ export const AudioPhoneListeningPhase = memo(({
       {/* Audio Player Card */}
       <Card className="max-w-xl w-full p-6 md:p-8 bg-card/60 backdrop-blur-sm border-border/30 mb-6">
         {/* Warning banner */}
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 mb-6">
-          <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-          <p className="text-sm text-amber-200">
-            <strong>Attention :</strong> L'audio est inversé ! Ce que vous entendez est lu à l'envers.
-          </p>
-        </div>
+         <div className="flex items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/30 mb-6">
+           <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0" />
+           <p className="text-sm text-foreground-secondary">
+             <strong className="text-warning">Attention :</strong> L'audio est inversé ! Ce que vous entendez est lu à l'envers.
+           </p>
+         </div>
 
         {/* Player visualization */}
         <div className="relative h-40 bg-background/50 rounded-2xl border border-border/50 mb-6 overflow-hidden">
           {/* Animated background */}
-          <div className={cn(
-            "absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10",
-            isPlaying && "animate-pulse"
-          )} />
+           <div className={cn(
+             "absolute inset-0 bg-gradient-to-r from-accent/10 via-primary/10 to-accent/10",
+             isPlaying && "animate-pulse"
+           )} />
 
-          {/* Waveform */}
-          <div className="absolute inset-0 flex items-center justify-center gap-0.5 px-6">
-            {Array.from({ length: 60 }).map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "w-1 rounded-full transition-all",
-                  isPlaying
-                    ? "bg-gradient-to-t from-blue-500 to-cyan-400"
-                    : "bg-foreground-muted/30"
-                )}
-                style={{
-                  height: isPlaying
-                    ? `${Math.sin(i * 0.3 + currentTime * 10) * 30 + 40}%`
-                    : "20%",
-                  animationDelay: `${i * 20}ms`,
-                }}
-              />
-            ))}
-          </div>
+           {/* Waveform */}
+           <div className="absolute inset-0 flex items-center justify-center gap-0.5 px-6">
+             {Array.from({ length: 60 }).map((_, i) => (
+               <div
+                 key={i}
+                 className={cn(
+                   "w-1 rounded-full transition-all",
+                   isPlaying
+                     ? "bg-gradient-to-t from-primary to-accent"
+                     : "bg-foreground-muted/30"
+                 )}
+                 style={{
+                   height: isPlaying
+                     ? `${Math.sin(i * 0.3 + currentTime * 10) * 30 + 40}%`
+                     : "20%",
+                   animationDelay: `${i * 20}ms`,
+                 }}
+               />
+             ))}
+           </div>
 
           {/* Center play button overlay */}
           {!isPlaying && canPlay && (
@@ -190,17 +190,17 @@ export const AudioPhoneListeningPhase = memo(({
               onClick={playAudio}
               className="absolute inset-0 flex items-center justify-center group"
             >
-              <div className="w-20 h-20 rounded-full bg-primary/90 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                <Play className="h-10 w-10 text-white ml-1" />
-              </div>
+               <div className="w-20 h-20 rounded-full bg-primary/90 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                 <Play className="h-10 w-10 text-primary-foreground ml-1" />
+               </div>
             </button>
           )}
 
           {/* Reversed indicator */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/80 border border-border/50">
-            <RotateCcw className="h-3.5 w-3.5 text-purple-400" />
-            <span className="text-xs font-medium text-purple-400">Audio inversé</span>
-          </div>
+           <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/80 border border-border/50">
+             <RotateCcw className="h-3.5 w-3.5 text-primary" />
+             <span className="text-xs font-medium text-primary">Audio inversé</span>
+           </div>
         </div>
 
         {/* Progress bar */}
@@ -262,14 +262,14 @@ export const AudioPhoneListeningPhase = memo(({
 
           {/* Plays remaining */}
           <div className="flex items-center gap-2">
-            <div className={cn(
-              "px-3 py-1.5 rounded-full text-sm font-medium",
-              remainingPlays > 1 
-                ? "bg-emerald-500/20 text-emerald-400"
-                : remainingPlays === 1
-                ? "bg-amber-500/20 text-amber-400"
-                : "bg-red-500/20 text-red-400"
-            )}>
+             <div className={cn(
+               "px-3 py-1.5 rounded-full text-sm font-medium",
+               remainingPlays > 1 
+                 ? "bg-success/15 text-success"
+                 : remainingPlays === 1
+                 ? "bg-warning/15 text-warning"
+                 : "bg-destructive/15 text-destructive"
+             )}>
               {remainingPlays} écoute{remainingPlays !== 1 ? 's' : ''} restante{remainingPlays !== 1 ? 's' : ''}
             </div>
           </div>

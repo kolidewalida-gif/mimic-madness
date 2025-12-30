@@ -234,12 +234,12 @@ export const AudioPhoneRecordingPhase = memo(({
     <div className="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
       {/* Header */}
       <div className="text-center mb-8 animate-fade-in">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 mb-4">
-          <Mic className="h-4 w-4 text-emerald-400" />
-          <span className="text-sm font-medium text-emerald-400">
-            {isFirstPlayer ? "Première phrase" : "Votre interprétation"}
-          </span>
-        </div>
+         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-success/15 to-success/5 border border-success/30 mb-4">
+           <Mic className="h-4 w-4 text-success" />
+           <span className="text-sm font-medium text-success">
+             {isFirstPlayer ? "Première phrase" : "Votre interprétation"}
+           </span>
+         </div>
         
         <h1 className="text-3xl md:text-4xl font-black mb-2 text-foreground">
           À vous de jouer, <span className="text-primary">{playerName}</span> !
@@ -259,24 +259,24 @@ export const AudioPhoneRecordingPhase = memo(({
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-foreground-muted" />
-            <span className={cn(
-              "font-mono text-2xl font-bold transition-colors",
-              isRecording ? "text-red-500" : "text-foreground"
-            )}>
-              {formatTime(recordingTime)}
-            </span>
-            <span className="text-foreground-muted">/ {formatTime(maxSeconds)}</span>
-          </div>
+             <span className={cn(
+               "font-mono text-2xl font-bold transition-colors",
+               isRecording ? "text-destructive" : "text-foreground"
+             )}>
+               {formatTime(recordingTime)}
+             </span>
+             <span className="text-foreground-muted">/ {formatTime(maxSeconds)}</span>
+           </div>
 
-          {isRecording && (
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-              </span>
-              <span className="text-sm font-medium text-red-500">Enregistrement</span>
-            </div>
-          )}
+           {isRecording && (
+             <div className="flex items-center gap-2">
+               <span className="relative flex h-3 w-3">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-40"></span>
+                 <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
+               </span>
+               <span className="text-sm font-medium text-destructive">Enregistrement</span>
+             </div>
+           )}
         </div>
 
         {/* Audio visualization */}
@@ -375,17 +375,17 @@ export const AudioPhoneRecordingPhase = memo(({
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="h-5 w-5 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Envoi...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-5 w-5 mr-2" />
-                    Envoyer
-                  </>
-                )}
+                 {isSubmitting ? (
+                   <>
+                     <div className="h-5 w-5 mr-2 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                     Envoi...
+                   </>
+                 ) : (
+                   <>
+                     <Send className="h-5 w-5 mr-2" />
+                     Envoyer
+                   </>
+                 )}
               </Button>
             </>
           )}
@@ -405,10 +405,10 @@ export const AudioPhoneRecordingPhase = memo(({
       {/* Original phrase input (first player only) */}
       {isFirstPlayer && (
         <Card className="max-w-xl w-full p-6 bg-card/60 backdrop-blur-sm border-border/30">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
+           <div className="flex items-start gap-3 mb-4">
+             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-warning to-primary flex items-center justify-center flex-shrink-0">
+               <Sparkles className="h-5 w-5 text-primary-foreground" />
+             </div>
             <div>
               <h3 className="font-bold text-foreground mb-1">Notez votre phrase</h3>
               <p className="text-sm text-foreground-secondary">
