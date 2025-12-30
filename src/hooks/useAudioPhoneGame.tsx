@@ -10,9 +10,6 @@ interface Player {
   isHost: boolean;
 }
 
-// Type assertion helper for new tables not yet in generated types
-const fromTable = (table: string) => supabase.from(table as any);
-
 interface AudioPhoneRound {
   id: string;
   lobby_id: string;
@@ -42,6 +39,17 @@ interface UseAudioPhoneGameProps {
   players: Player[];
 }
 
+// Helper for REST API calls
+const apiUrl = import.meta.env.VITE_SUPABASE_URL;
+const apiKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+const restHeaders = {
+  'apikey': apiKey,
+  'Authorization': `Bearer ${apiKey}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation',
+};
+
 export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioPhoneGameProps) => {
   const [currentRound, setCurrentRound] = useState<AudioPhoneRound | null>(null);
   const [recordings, setRecordings] = useState<AudioPhoneRecording[]>([]);
@@ -54,31 +62,24 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
   // Fetch current round and recordings
   const fetchGameState = useCallback(async () => {
     try {
-      // Fetch current round
-      const { data: roundData, error: roundError } = await supabase
-        .from('audio_phone_rounds')
-        .select('*')
-        .eq('lobby_id', lobbyId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      const roundResult = await fetch(
+        `${apiUrl}/rest/v1/audio_phone_rounds?lobby_id=eq.${lobbyId}&order=created_at.desc&limit=1`,
+        { headers: restHeaders }
+      );
+      
+      const rounds = await roundResult.json();
+      const round = rounds?.[0];
 
-      if (roundError && roundError.code !== 'PGRST116') {
-        console.error('Error fetching round:', roundError);
-        return;
-      }
+      if (round) {
+        setCurrentRound(round as AudioPhoneRound);
 
-      if (roundData) {
-        setCurrentRound(roundData as AudioPhoneRound);
-
-        // Fetch recordings for this round
-        const { data: recordingsData, error: recordingsError } = await supabase
-          .from('audio_phone_recordings')
-          .select('*')
-          .eq('round_id', roundData.id)
-          .order('player_order_index', { ascending: true });
-
-        if (!recordingsError && recordingsData) {
+        const recordingsResult = await fetch(
+          `${apiUrl}/rest/v1/audio_phone_recordings?round_id=eq.${round.id}&order=player_order_index.asc`,
+          { headers: restHeaders }
+        );
+        
+        const recordingsData = await recordingsResult.json();
+        if (recordingsData && Array.isArray(recordingsData)) {
           setRecordings(recordingsData as AudioPhoneRecording[]);
         }
       }
@@ -110,14 +111,14 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
         },
         (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const newRound = payload.new as AudioPhoneRound;
+            const newRound = payload.new as unknown as AudioPhoneRound;
             setCurrentRound(newRound);
 
             // Notify player when it's their turn
             if (newRound.phase === 'recording' || newRound.phase === 'listening') {
               const currentPlayerId = newRound.player_order[newRound.current_player_index];
               if (currentPlayerId === currentPlayer.id) {
-                playSoundEffect('notification', 0.6);
+                playSoundEffect('notifyInfo', 0.6);
                 toast({
                   title: "C'est votre tour !",
                   description: newRound.phase === 'recording' 
@@ -129,7 +130,7 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
 
             // Play sound on phase changes
             if (payload.eventType === 'UPDATE' && payload.old) {
-              const oldRound = payload.old as AudioPhoneRound;
+              const oldRound = payload.old as unknown as AudioPhoneRound;
               if (oldRound.phase !== newRound.phase) {
                 if (newRound.phase === 'reveal') {
                   playSoundEffect('quizReveal', 0.5);
@@ -149,7 +150,7 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
           table: 'audio_phone_recordings'
         },
         (payload) => {
-          const newRecording = payload.new as AudioPhoneRecording;
+          const newRecording = payload.new as unknown as AudioPhoneRecording;
           if (currentRound && newRecording.round_id === currentRound.id) {
             setRecordings(prev => [...prev, newRecording]);
           }
@@ -173,21 +174,22 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
       const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
       const playerOrder = shuffledPlayers.map(p => p.id);
 
-      const { data, error } = await supabase
-        .from('audio_phone_rounds')
-        .insert({
+      const response = await fetch(`${apiUrl}/rest/v1/audio_phone_rounds`, {
+        method: 'POST',
+        headers: restHeaders,
+        body: JSON.stringify({
           lobby_id: lobbyId,
           round_number: (currentRound?.round_number || 0) + 1,
           phase: 'instructions',
           current_player_index: 0,
           player_order: playerOrder,
-        })
-        .select()
-        .single();
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to create round');
 
-      setCurrentRound(data as AudioPhoneRound);
+      const data = await response.json();
+      setCurrentRound(data[0] as AudioPhoneRound);
       playSoundEffect('start', 0.5);
       
       toast({
@@ -212,12 +214,11 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
     if (!currentRound) return;
 
     try {
-      const { error } = await supabase
-        .from('audio_phone_rounds')
-        .update({ phase: 'recording' })
-        .eq('id', currentRound.id);
-
-      if (error) throw error;
+      await fetch(`${apiUrl}/rest/v1/audio_phone_rounds?id=eq.${currentRound.id}`, {
+        method: 'PATCH',
+        headers: restHeaders,
+        body: JSON.stringify({ phase: 'recording' }),
+      });
     } catch (error) {
       console.error('Error starting recording phase:', error);
     }
@@ -265,9 +266,10 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
       if (reversedUploadError) throw reversedUploadError;
 
       // Save recording to database
-      const { error: insertError } = await supabase
-        .from('audio_phone_recordings')
-        .insert({
+      const insertResponse = await fetch(`${apiUrl}/rest/v1/audio_phone_recordings`, {
+        method: 'POST',
+        headers: restHeaders,
+        body: JSON.stringify({
           round_id: currentRound.id,
           player_id: currentPlayer.id,
           player_name: currentPlayer.name,
@@ -275,34 +277,38 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
           storage_path: originalPath,
           reversed_storage_path: reversedPath,
           duration_seconds: duration,
-        });
+        }),
+      });
 
-      if (insertError) throw insertError;
+      if (!insertResponse.ok) throw new Error('Failed to save recording');
 
       // If this is the first player, save the original phrase
       if (currentRound.current_player_index === 0 && originalPhrase) {
-        await supabase
-          .from('audio_phone_rounds')
-          .update({ original_phrase: originalPhrase })
-          .eq('id', currentRound.id);
+        await fetch(`${apiUrl}/rest/v1/audio_phone_rounds?id=eq.${currentRound.id}`, {
+          method: 'PATCH',
+          headers: restHeaders,
+          body: JSON.stringify({ original_phrase: originalPhrase }),
+        });
       }
 
       // Advance to next player or reveal phase
       const isLastPlayer = currentRound.current_player_index >= currentRound.player_order.length - 1;
       
       if (isLastPlayer) {
-        await supabase
-          .from('audio_phone_rounds')
-          .update({ phase: 'reveal' })
-          .eq('id', currentRound.id);
+        await fetch(`${apiUrl}/rest/v1/audio_phone_rounds?id=eq.${currentRound.id}`, {
+          method: 'PATCH',
+          headers: restHeaders,
+          body: JSON.stringify({ phase: 'reveal' }),
+        });
       } else {
-        await supabase
-          .from('audio_phone_rounds')
-          .update({ 
+        await fetch(`${apiUrl}/rest/v1/audio_phone_rounds?id=eq.${currentRound.id}`, {
+          method: 'PATCH',
+          headers: restHeaders,
+          body: JSON.stringify({ 
             current_player_index: currentRound.current_player_index + 1,
             phase: 'listening'
-          })
-          .eq('id', currentRound.id);
+          }),
+        });
       }
 
       playSoundEffect('success', 0.5);
@@ -326,10 +332,11 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
     if (!currentRound) return;
 
     try {
-      await supabase
-        .from('audio_phone_rounds')
-        .update({ phase: 'recording' })
-        .eq('id', currentRound.id);
+      await fetch(`${apiUrl}/rest/v1/audio_phone_rounds?id=eq.${currentRound.id}`, {
+        method: 'PATCH',
+        headers: restHeaders,
+        body: JSON.stringify({ phase: 'recording' }),
+      });
     } catch (error) {
       console.error('Error confirming listened:', error);
     }
@@ -398,10 +405,11 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
     if (!currentRound) return;
 
     try {
-      await supabase
-        .from('audio_phone_rounds')
-        .update({ phase: 'finished' })
-        .eq('id', currentRound.id);
+      await fetch(`${apiUrl}/rest/v1/audio_phone_rounds?id=eq.${currentRound.id}`, {
+        method: 'PATCH',
+        headers: restHeaders,
+        body: JSON.stringify({ phase: 'finished' }),
+      });
 
       setRecordings([]);
       setCurrentRound(null);
