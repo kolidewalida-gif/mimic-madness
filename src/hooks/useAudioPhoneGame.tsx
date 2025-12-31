@@ -459,27 +459,44 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
   }, [players]);
 
   // Get reversed audio URL for current player to listen
+  // IMPORTANT: We fetch directly from DB instead of relying on local state
+  // because the realtime update might not have arrived yet when switching phases
   const fetchReversedAudioForListening = useCallback(async () => {
     if (!currentRound || currentRound.current_player_index === 0) return null;
 
-    // Get the previous player's recording
     const previousIndex = currentRound.current_player_index - 1;
-    const previousRecording = recordings.find(r => r.player_order_index === previousIndex);
-
-    if (!previousRecording?.reversed_storage_path) return null;
 
     try {
+      // Query DB directly for the previous player's recording
+      const { data: previousRecording, error } = await supabase
+        .from('audio_phone_recordings')
+        .select('reversed_storage_path')
+        .eq('round_id', currentRound.id)
+        .eq('player_order_index', previousIndex)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[AudioPhone] Error fetching previous recording:', error);
+        return null;
+      }
+
+      if (!previousRecording?.reversed_storage_path) {
+        console.warn('[AudioPhone] No reversed audio found for player index:', previousIndex);
+        return null;
+      }
+
       const { data } = supabase.storage
         .from('audio-phone')
         .getPublicUrl(previousRecording.reversed_storage_path);
 
+      console.log('[AudioPhone] Fetched reversed audio URL:', data.publicUrl);
       setCurrentReversedAudioUrl(data.publicUrl);
       return data.publicUrl;
     } catch (error) {
-      console.error('Error fetching reversed audio:', error);
+      console.error('[AudioPhone] Error fetching reversed audio:', error);
       return null;
     }
-  }, [currentRound, recordings]);
+  }, [currentRound]);
 
   // Get all recordings with audio URLs for reveal
   const getRecordingsWithUrls = useCallback(async () => {
