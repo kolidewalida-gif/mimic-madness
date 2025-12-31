@@ -52,7 +52,7 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
   }, [viewMode, playerName, handleCreateGame, handleJoinGame]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+    <div className="h-full flex items-center justify-center p-4 sm:p-6 pb-24 relative overflow-y-auto">
       {/* Simplified background */}
       <div className="fixed inset-0 bg-gradient-to-br from-background via-background-secondary to-background" />
       
