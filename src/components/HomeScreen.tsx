@@ -64,16 +64,10 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
       <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Logo Section */}
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-2">
           <div className="relative inline-block">
             <div className="absolute inset-0 -m-8 bg-primary/20 rounded-full blur-[60px]" />
             <GameLogo className="justify-center relative" animated />
-          </div>
-          
-          <div className="flex items-center justify-center gap-2 text-foreground-muted">
-            <Gamepad2 className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium tracking-wide">Le jeu d'imitation ultime</span>
-            <Gamepad2 className="h-4 w-4 text-primary" />
           </div>
         </div>
 
