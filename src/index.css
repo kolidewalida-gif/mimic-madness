@@ -950,12 +950,32 @@
 .animate-wave { animation: wave 1s ease-in-out infinite; }
 .animate-ping { animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
 .animate-stagger { animation: stagger 0.5s ease-out forwards; }
+.animate-gradient { 
+  animation: gradientShift 3s ease infinite; 
+  background-size: 200% auto;
+}
 
 /* ===== SCREEN TRANSITION ANIMATIONS ===== */
 @keyframes floatParticle {
-  0% { transform: translate(0, 0) scale(1); opacity: 1; }
-  50% { transform: translate(var(--tx, 50px), var(--ty, -100px)) scale(1.2); opacity: 0.8; }
-  100% { transform: translate(var(--tx2, 100px), var(--ty2, -200px)) scale(0.5); opacity: 0; }
+  0%, 100% { 
+    transform: translateY(0px) scale(1); 
+    opacity: 0.4; 
+  }
+  50% { 
+    transform: translateY(-30px) scale(1.2); 
+    opacity: 0.8; 
+  }
+}
+
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { background-position: 0% center; }
 }
 
 @keyframes glitch-r {
