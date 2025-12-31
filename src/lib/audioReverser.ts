@@ -3,38 +3,59 @@
  * Uses Web Audio API to reverse audio samples
  */
 
-export const reverseAudioBuffer = async (audioBlob: Blob): Promise<Blob> => {
+type ReverseAudioResult = {
+  reversedBlob: Blob;
+  durationSeconds: number;
+};
+
+const decodeAudioBlob = async (
+  audioContext: AudioContext,
+  audioBlob: Blob
+): Promise<AudioBuffer> => {
+  const arrayBuffer = await audioBlob.arrayBuffer();
+  return await audioContext.decodeAudioData(arrayBuffer);
+};
+
+/**
+ * Reverses an audio Blob and returns both the reversed WAV Blob and a reliable duration.
+ * Uses decodeAudioData which is generally more reliable than HTMLAudio metadata for blob URLs.
+ */
+export const reverseAudioBufferWithInfo = async (audioBlob: Blob): Promise<ReverseAudioResult> => {
   const audioContext = new AudioContext();
-  
+
   try {
-    // Decode the audio blob to an AudioBuffer
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    
+    const audioBuffer = await decodeAudioBlob(audioContext, audioBlob);
+    const durationSeconds = audioBuffer.duration;
+
     // Create a new buffer with the same properties
     const reversedBuffer = audioContext.createBuffer(
       audioBuffer.numberOfChannels,
       audioBuffer.length,
       audioBuffer.sampleRate
     );
-    
+
     // Reverse each channel
     for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
       const inputData = audioBuffer.getChannelData(channel);
       const outputData = reversedBuffer.getChannelData(channel);
-      
+
       for (let i = 0; i < inputData.length; i++) {
         outputData[i] = inputData[inputData.length - 1 - i];
       }
     }
-    
+
     // Encode the reversed buffer back to a blob
     const reversedBlob = await encodeAudioBuffer(reversedBuffer);
-    
-    return reversedBlob;
+
+    return { reversedBlob, durationSeconds };
   } finally {
     await audioContext.close();
   }
+};
+
+export const reverseAudioBuffer = async (audioBlob: Blob): Promise<Blob> => {
+  const { reversedBlob } = await reverseAudioBufferWithInfo(audioBlob);
+  return reversedBlob;
 };
 
 /**
