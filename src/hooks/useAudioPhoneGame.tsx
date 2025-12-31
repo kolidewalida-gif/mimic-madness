@@ -41,12 +41,19 @@ interface UseAudioPhoneGameProps {
 
 // All backend reads/writes go through the Supabase client (avoids manual REST headers/env issues).
 
+interface UploadError {
+  timestamp: Date;
+  message: string;
+  details?: string;
+}
+
 export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioPhoneGameProps) => {
   const [currentRound, setCurrentRound] = useState<AudioPhoneRound | null>(null);
   const [recordings, setRecordings] = useState<AudioPhoneRecording[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentReversedAudioUrl, setCurrentReversedAudioUrl] = useState<string | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<UploadError[]>([]);
   const { toast } = useToast();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const currentRoundIdRef = useRef<string | null>(null);
@@ -386,7 +393,14 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
 
       playSoundEffect('success', 0.5);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Erreur inconnue';
+      const errorDetails = JSON.stringify({
+        type: audioBlob.type,
+        size: audioBlob.size,
+        roundId: currentRound?.id?.slice(0, 8),
+      });
+
       console.error('[AudioPhone] submitRecording failed', {
         error,
         audioType: audioBlob.type,
@@ -394,6 +408,16 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
         roundId: currentRound?.id,
         playerId: currentPlayer.id,
       });
+
+      // Track the error for debug panel
+      setUploadErrors(prev => [
+        ...prev.slice(-9), // Keep last 10 errors
+        {
+          timestamp: new Date(),
+          message: errorMessage,
+          details: errorDetails,
+        },
+      ]);
 
       toast({
         title: "Erreur",
@@ -505,6 +529,7 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
     isLoading,
     isSubmitting,
     currentReversedAudioUrl,
+    uploadErrors,
     isMyTurn: isMyTurn(),
     startGame,
     startRecordingPhase,

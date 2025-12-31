@@ -5,6 +5,7 @@ import { AudioPhoneRecordingPhase } from "./AudioPhoneRecordingPhase";
 import { AudioPhoneListeningPhase } from "./AudioPhoneListeningPhase";
 import { AudioPhoneWaitingPhase } from "./AudioPhoneWaitingPhase";
 import { AudioPhoneResultsPhase } from "./AudioPhoneResultsPhase";
+import { AudioPhoneDebugPanel } from "./AudioPhoneDebugPanel";
 import { LobbyChat } from "./LobbyChat";
 import { Card } from "./ui/card";
 import { Loader2 } from "lucide-react";
@@ -34,6 +35,7 @@ export const AudioPhoneGameScreen = memo(({
     isLoading,
     isSubmitting,
     isMyTurn,
+    uploadErrors,
     startGame,
     startRecordingPhase,
     submitRecording,
@@ -100,6 +102,17 @@ export const AudioPhoneGameScreen = memo(({
     );
   }
 
+  // Debug panel (host only)
+  const debugPanel = currentPlayer.isHost && (
+    <AudioPhoneDebugPanel
+      currentRound={currentRound}
+      recordings={recordings}
+      players={players}
+      uploadErrors={uploadErrors}
+      isMyTurn={isMyTurn}
+    />
+  );
+
   // No round yet - show instructions or start
   if (!currentRound) {
     return (
@@ -114,6 +127,7 @@ export const AudioPhoneGameScreen = memo(({
           playerId={currentPlayer.id}
           playerName={currentPlayer.name}
         />
+        {debugPanel}
       </div>
     );
   }
@@ -132,6 +146,7 @@ export const AudioPhoneGameScreen = memo(({
           playerId={currentPlayer.id}
           playerName={currentPlayer.name}
         />
+        {debugPanel}
       </div>
     );
   }
@@ -154,6 +169,7 @@ export const AudioPhoneGameScreen = memo(({
           playerId={currentPlayer.id}
           playerName={currentPlayer.name}
         />
+        {debugPanel}
       </div>
     );
   }
@@ -176,6 +192,7 @@ export const AudioPhoneGameScreen = memo(({
           playerId={currentPlayer.id}
           playerName={currentPlayer.name}
         />
+        {debugPanel}
       </div>
     );
   }
@@ -197,6 +214,7 @@ export const AudioPhoneGameScreen = memo(({
           playerId={currentPlayer.id}
           playerName={currentPlayer.name}
         />
+        {debugPanel}
       </div>
     );
   }
@@ -216,6 +234,7 @@ export const AudioPhoneGameScreen = memo(({
         playerId={currentPlayer.id}
         playerName={currentPlayer.name}
       />
+      {debugPanel}
     </div>
   );
 });
