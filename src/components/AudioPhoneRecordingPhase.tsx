@@ -99,10 +99,19 @@ export const AudioPhoneRecordingPhase = memo(({
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
 
-      // Setup MediaRecorder
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      // Setup MediaRecorder (pick a supported mime type for the current browser)
+      const preferredMimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4',
+      ];
+      const selectedMimeType =
+        preferredMimeTypes.find((t) => MediaRecorder.isTypeSupported(t)) || '';
+
+      const mediaRecorder = selectedMimeType
+        ? new MediaRecorder(stream, { mimeType: selectedMimeType })
+        : new MediaRecorder(stream);
 
       chunksRef.current = [];
       
@@ -113,7 +122,9 @@ export const AudioPhoneRecordingPhase = memo(({
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { 
+          type: selectedMimeType || mediaRecorder.mimeType || 'audio/webm' 
+        });
         setAudioBlob(blob);
         
         const url = URL.createObjectURL(blob);
