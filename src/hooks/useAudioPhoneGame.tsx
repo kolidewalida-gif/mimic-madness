@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { reverseAudioBuffer, getAudioDuration } from '@/lib/audioReverser';
+import { reverseAudioBufferWithInfo } from '@/lib/audioReverser';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 interface Player {
@@ -266,7 +266,7 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
 
   // Submit recording
   const submitRecording = useCallback(async (
-    audioBlob: Blob, 
+    audioBlob: Blob,
     originalPhrase?: string
   ): Promise<boolean> => {
     if (!currentRound) return false;
@@ -277,19 +277,21 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
       if (m.includes('ogg')) return 'ogg';
       if (m.includes('mp4')) return 'm4a';
       if (m.includes('wav')) return 'wav';
-      return 'dat';
+      // default to webm (most compatible with our pipeline) instead of a generic extension
+      return 'webm';
     };
 
     try {
       setIsSubmitting(true);
 
-      // Get audio duration
-      const duration = await getAudioDuration(audioBlob);
-
-      // Reverse the audio
+      // Reverse the audio (also provides a reliable duration)
       let reversedBlob: Blob;
+      let duration = 0;
+
       try {
-        reversedBlob = await reverseAudioBuffer(audioBlob);
+        const result = await reverseAudioBufferWithInfo(audioBlob);
+        reversedBlob = result.reversedBlob;
+        duration = result.durationSeconds;
       } catch (e) {
         console.error('Error reversing audio:', e);
         toast({
@@ -310,7 +312,7 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
       const { error: originalUploadError } = await supabase.storage
         .from('audio-phone')
         .upload(originalPath, audioBlob, {
-          contentType: audioBlob.type || 'application/octet-stream',
+          contentType: audioBlob.type || 'audio/webm',
           upsert: true,
         });
 
@@ -324,7 +326,11 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
           upsert: true,
         });
 
-      if (reversedUploadError) throw reversedUploadError;
+      if (reversedUploadError) {
+        // Clean up original if reversed upload fails
+        await supabase.storage.from('audio-phone').remove([originalPath]);
+        throw reversedUploadError;
+      }
 
       // Save recording to database
       const { error: insertError } = await supabase
@@ -339,7 +345,11 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
           duration_seconds: duration,
         });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        // Clean up uploaded files if DB insert fails
+        await supabase.storage.from('audio-phone').remove([originalPath, reversedPath]);
+        throw insertError;
+      }
 
       // If this is the first player, save the original phrase
       if (currentRound.current_player_index === 0 && originalPhrase) {
@@ -352,8 +362,9 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
       }
 
       // Advance to next player or reveal phase
-      const isLastPlayer = currentRound.current_player_index >= currentRound.player_order.length - 1;
-      
+      const isLastPlayer =
+        currentRound.current_player_index >= currentRound.player_order.length - 1;
+
       if (isLastPlayer) {
         const { error } = await supabase
           .from('audio_phone_rounds')
@@ -364,9 +375,9 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
       } else {
         const { error } = await supabase
           .from('audio_phone_rounds')
-          .update({ 
+          .update({
             current_player_index: currentRound.current_player_index + 1,
-            phase: 'listening'
+            phase: 'listening',
           })
           .eq('id', currentRound.id);
 
@@ -375,12 +386,18 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
 
       playSoundEffect('success', 0.5);
       return true;
-
     } catch (error) {
-      console.error('Error submitting recording:', error);
+      console.error('[AudioPhone] submitRecording failed', {
+        error,
+        audioType: audioBlob.type,
+        audioSize: audioBlob.size,
+        roundId: currentRound?.id,
+        playerId: currentPlayer.id,
+      });
+
       toast({
         title: "Erreur",
-        description: "Impossible d'envoyer l'enregistrement",
+        description: "Impossible d'envoyer l'enregistrement. Réessayez.",
         variant: "destructive",
       });
       return false;
