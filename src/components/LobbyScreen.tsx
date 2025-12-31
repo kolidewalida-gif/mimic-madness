@@ -131,42 +131,75 @@ export const LobbyScreen = ({
     : (players.filter(p => !p.isDisconnected).length >= 4 && players.filter(p => !p.isDisconnected).length % 2 === 0 && teams.length > 0);
 
   return (
-    <div className="min-h-screen flex flex-col p-4 sm:p-6 relative overflow-hidden">
-      {/* Background */}
+    <div className="min-h-screen flex flex-col p-4 sm:p-6 pb-28 relative overflow-hidden">
+      {/* Enhanced Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-background via-background-secondary to-background" />
       
-      {/* Floating orbs */}
+      {/* Animated floating orbs with glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-15%] right-[-5%] w-[500px] h-[500px] rounded-full bg-primary/15 blur-[100px] animate-pulse" />
-        <div className="absolute bottom-[-15%] left-[-5%] w-[400px] h-[400px] rounded-full bg-accent/10 blur-[80px] animate-pulse" style={{ animationDelay: "1s" }} />
+        <div 
+          className="absolute top-[-15%] right-[-5%] w-[600px] h-[600px] rounded-full bg-primary/20 blur-[120px]"
+          style={{ animation: 'float 8s ease-in-out infinite' }}
+        />
+        <div 
+          className="absolute bottom-[-15%] left-[-5%] w-[500px] h-[500px] rounded-full bg-accent/15 blur-[100px]"
+          style={{ animation: 'float 10s ease-in-out infinite reverse' }}
+        />
+        <div 
+          className="absolute top-[40%] left-[30%] w-[300px] h-[300px] rounded-full bg-secondary/10 blur-[80px]"
+          style={{ animation: 'pulse 6s ease-in-out infinite' }}
+        />
       </div>
 
-      {/* Subtle grid */}
-      <div className="fixed inset-0 opacity-[0.02]" style={{
-        backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
-        backgroundSize: '60px 60px'
-      }} />
+      {/* Animated grid pattern */}
+      <div 
+        className="fixed inset-0 opacity-[0.03]" 
+        style={{
+          backgroundImage: `linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px',
+          animation: 'gridMove 20s linear infinite'
+        }} 
+      />
+
+      {/* Floating particles */}
+      <div className="fixed inset-0 pointer-events-none">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-primary/40"
+            style={{
+              left: `${10 + (i * 7)}%`,
+              top: `${20 + (i * 5) % 60}%`,
+              animation: `floatParticle ${4 + i * 0.5}s ease-in-out infinite`,
+              animationDelay: `${i * 0.3}s`
+            }}
+          />
+        ))}
+      </div>
 
       <div className="w-full max-w-6xl mx-auto space-y-6 relative z-10 flex-1">
-        {/* Header */}
-        <header className="flex items-center justify-between">
+        {/* Header with enhanced animation */}
+        <header className="flex items-center justify-between animate-fade-in">
           <Button
             variant="ghost"
             onClick={onLeaveGame}
-            className="gap-2 rounded-xl hover:bg-destructive/10 hover:text-destructive group"
+            className="gap-2 rounded-xl hover:bg-destructive/10 hover:text-destructive group transition-all duration-300 hover:scale-105"
           >
-            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform duration-300" />
             <span className="hidden sm:inline">Quitter</span>
           </Button>
           
-          <GameLogo size="sm" animated />
+          <div className="relative">
+            <div className="absolute inset-0 -m-4 bg-primary/20 rounded-full blur-xl animate-pulse" />
+            <GameLogo size="sm" animated />
+          </div>
           
           <Button
             variant="ghost"
             onClick={() => setShowSettings(!showSettings)}
             className={cn(
-              "gap-2 rounded-xl",
-              showSettings && "bg-primary/10 text-primary"
+              "gap-2 rounded-xl transition-all duration-300 hover:scale-105",
+              showSettings && "bg-primary/10 text-primary shadow-lg shadow-primary/20"
             )}
           >
             <Settings className={cn(
@@ -177,20 +210,28 @@ export const LobbyScreen = ({
           </Button>
         </header>
 
-        {/* Status Banner */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-card/60 backdrop-blur-sm border border-border/30">
-            <Wifi className="h-4 w-4 text-success" />
-            <span className="text-sm font-medium text-foreground-muted">
+        {/* Enhanced Status Banner */}
+        <div className="text-center space-y-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-card/70 backdrop-blur-md border border-primary/20 shadow-lg shadow-primary/5 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 hover:scale-105 group">
+            <div className="relative">
+              <Wifi className="h-4 w-4 text-success" />
+              <div className="absolute inset-0 bg-success/50 rounded-full blur-md animate-ping" />
+            </div>
+            <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
               {isHost ? "Vous êtes l'hôte" : "Connecté au lobby"}
             </span>
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            <div className="relative">
+              <div className="w-2 h-2 rounded-full bg-success" />
+              <div className="absolute inset-0 w-2 h-2 rounded-full bg-success animate-ping" />
+            </div>
           </div>
           
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Salle d'attente
+          <h1 className="text-4xl sm:text-5xl font-bold">
+            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+              Salle d'attente
+            </span>
           </h1>
-          <p className="text-foreground-muted text-sm max-w-md mx-auto">
+          <p className="text-foreground-muted text-sm max-w-md mx-auto leading-relaxed">
             {isHost 
               ? "Choisissez le mode de jeu et lancez la partie quand tout le monde est prêt" 
               : "En attente que l'hôte lance la partie..."
