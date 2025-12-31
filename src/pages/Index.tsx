@@ -403,9 +403,9 @@ const Index = () => {
   }, [gameState, currentPlayer, lobby, players, gameMode, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   return (
-    <div className="min-h-screen h-screen overflow-hidden relative">
+    <div className="h-screen overflow-hidden relative flex flex-col">
       <DynamicBackground />
-      <div className="h-full overflow-y-auto pb-24">
+      <div className="flex-1 overflow-hidden">
         <ScreenTransition screenKey={gameState}>
           {renderContent}
         </ScreenTransition>
