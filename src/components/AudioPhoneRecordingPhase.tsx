@@ -12,7 +12,9 @@ import {
   AlertCircle,
   Sparkles,
   Clock,
-  Volume2
+  Volume2,
+  Radio,
+  Waves
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
@@ -40,6 +42,7 @@ export const AudioPhoneRecordingPhase = memo(({
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [showReady, setShowReady] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -49,6 +52,10 @@ export const AudioPhoneRecordingPhase = memo(({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const animationRef = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    setShowReady(true);
+  }, []);
 
   // Cleanup
   useEffect(() => {
@@ -99,7 +106,7 @@ export const AudioPhoneRecordingPhase = memo(({
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
 
-      // Setup MediaRecorder (pick a supported mime type for the current browser)
+      // Setup MediaRecorder
       const preferredMimeTypes = [
         'audio/webm;codecs=opus',
         'audio/webm',
@@ -130,7 +137,6 @@ export const AudioPhoneRecordingPhase = memo(({
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
         
-        // Cleanup stream
         stream.getTracks().forEach(t => t.stop());
         
         if (animationRef.current) {
@@ -220,19 +226,24 @@ export const AudioPhoneRecordingPhase = memo(({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Progress percentage
+  const progressPercent = (recordingTime / maxSeconds) * 100;
+
   if (permissionDenied) {
     return (
       <div className="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
-        <Card className="max-w-md w-full p-6 bg-card/60 backdrop-blur-sm border-destructive/30">
-          <div className="flex flex-col items-center text-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
-              <AlertCircle className="h-8 w-8 text-destructive" />
+        <Card className="max-w-md w-full p-8 bg-card/60 backdrop-blur-md border-destructive/30">
+          <div className="flex flex-col items-center text-center gap-5">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-destructive/20 to-destructive/10 flex items-center justify-center">
+              <AlertCircle className="h-10 w-10 text-destructive" />
             </div>
-            <h2 className="text-xl font-bold">Accès au microphone refusé</h2>
-            <p className="text-foreground-secondary">
-              Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur pour jouer.
-            </p>
-            <Button variant="outline" onClick={() => setPermissionDenied(false)}>
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Accès au microphone refusé</h2>
+              <p className="text-foreground-secondary">
+                Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur pour jouer.
+              </p>
+            </div>
+            <Button variant="outline" size="lg" onClick={() => setPermissionDenied(false)}>
               Réessayer
             </Button>
           </div>
@@ -242,21 +253,58 @@ export const AudioPhoneRecordingPhase = memo(({
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
+    <div className="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center overflow-hidden relative">
+      {/* Animated background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className={cn(
+          "absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl transition-all duration-1000",
+          isRecording 
+            ? "bg-gradient-to-br from-destructive/40 to-primary/30 scale-110" 
+            : "bg-gradient-to-br from-primary/20 to-accent/15 scale-100"
+        )} />
+        <div className={cn(
+          "absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl transition-all duration-1000 delay-100",
+          isRecording 
+            ? "bg-gradient-to-br from-accent/40 to-destructive/30 scale-110" 
+            : "bg-gradient-to-br from-secondary/20 to-primary/15 scale-100"
+        )} />
+      </div>
+
       {/* Header */}
-      <div className="text-center mb-8 animate-fade-in">
-         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-success/15 to-success/5 border border-success/30 mb-4">
-           <Mic className="h-4 w-4 text-success" />
-           <span className="text-sm font-medium text-success">
-             {isFirstPlayer ? "Première phrase" : "Votre interprétation"}
-           </span>
-         </div>
+      <div className={cn(
+        "text-center mb-8 relative z-10 transition-all duration-700",
+        showReady ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-8"
+      )}>
+        <div className={cn(
+          "inline-flex items-center gap-2 px-5 py-2.5 rounded-full border mb-5 backdrop-blur-sm",
+          isFirstPlayer 
+            ? "bg-gradient-to-r from-emerald-500/15 to-teal-500/10 border-emerald-500/30" 
+            : "bg-gradient-to-r from-accent/15 to-primary/10 border-accent/30"
+        )}>
+          <div className="relative">
+            <Mic className={cn(
+              "h-4 w-4",
+              isFirstPlayer ? "text-emerald-400" : "text-accent"
+            )} />
+            {isRecording && (
+              <div className="absolute inset-0 animate-ping">
+                <Mic className="h-4 w-4 text-destructive opacity-75" />
+              </div>
+            )}
+          </div>
+          <span className={cn(
+            "text-sm font-semibold",
+            isFirstPlayer ? "text-emerald-400" : "text-accent"
+          )}>
+            {isFirstPlayer ? "🎤 Première phrase" : "🔊 Votre interprétation"}
+          </span>
+        </div>
         
-        <h1 className="text-3xl md:text-4xl font-black mb-2 text-foreground">
-          À vous de jouer, <span className="text-primary">{playerName}</span> !
+        <h1 className="text-3xl md:text-5xl font-black mb-3 text-foreground">
+          À vous, <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{playerName}</span> !
         </h1>
         
-        <p className="text-foreground-secondary max-w-md mx-auto">
+        <p className="text-foreground-secondary max-w-md mx-auto text-lg">
           {isFirstPlayer 
             ? "Enregistrez une phrase claire et distincte"
             : "Répétez ce que vous avez entendu (ou cru entendre !)"
@@ -265,85 +313,140 @@ export const AudioPhoneRecordingPhase = memo(({
       </div>
 
       {/* Recording Card */}
-      <Card className="max-w-xl w-full p-6 md:p-8 bg-card/60 backdrop-blur-sm border-border/30 mb-6">
-        {/* Timer and status */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-foreground-muted" />
-             <span className={cn(
-               "font-mono text-2xl font-bold transition-colors",
-               isRecording ? "text-destructive" : "text-foreground"
-             )}>
-               {formatTime(recordingTime)}
-             </span>
-             <span className="text-foreground-muted">/ {formatTime(maxSeconds)}</span>
-           </div>
+      <Card className={cn(
+        "max-w-xl w-full p-6 md:p-8 relative z-10 overflow-hidden transition-all duration-500 mb-6",
+        "bg-card/60 backdrop-blur-md",
+        isRecording 
+          ? "border-destructive/50 shadow-lg shadow-destructive/20" 
+          : "border-border/30"
+      )}>
+        {/* Recording glow effect */}
+        {isRecording && (
+          <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 to-transparent animate-pulse" />
+        )}
 
-           {isRecording && (
-             <div className="flex items-center gap-2">
-               <span className="relative flex h-3 w-3">
-                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-40"></span>
-                 <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
-               </span>
-               <span className="text-sm font-medium text-destructive">Enregistrement</span>
-             </div>
-           )}
+        {/* Timer and status */}
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300",
+              isRecording 
+                ? "bg-gradient-to-br from-destructive to-red-600" 
+                : "bg-gradient-to-br from-primary/20 to-accent/20"
+            )}>
+              <Clock className={cn(
+                "h-6 w-6",
+                isRecording ? "text-white" : "text-foreground-muted"
+              )} />
+            </div>
+            <div>
+              <span className={cn(
+                "font-mono text-3xl font-black transition-colors block",
+                isRecording ? "text-destructive" : "text-foreground"
+              )}>
+                {formatTime(recordingTime)}
+              </span>
+              <span className="text-xs text-foreground-muted">/ {formatTime(maxSeconds)} max</span>
+            </div>
+          </div>
+
+          {isRecording && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-destructive/15 border border-destructive/30">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
+              </span>
+              <span className="text-sm font-semibold text-destructive">REC</span>
+            </div>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        <div className="h-2 bg-background/50 rounded-full overflow-hidden mb-6">
+          <div 
+            className={cn(
+              "h-full transition-all duration-300 rounded-full",
+              isRecording 
+                ? "bg-gradient-to-r from-destructive via-red-500 to-orange-500" 
+                : "bg-gradient-to-r from-primary to-accent"
+            )}
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
 
         {/* Audio visualization */}
-        <div className="relative h-32 bg-background/50 rounded-2xl border border-border/50 mb-6 overflow-hidden">
+        <div className={cn(
+          "relative h-36 rounded-2xl border overflow-hidden mb-6 transition-all duration-300",
+          isRecording 
+            ? "bg-gradient-to-br from-destructive/10 to-background/50 border-destructive/30" 
+            : "bg-background/50 border-border/50"
+        )}>
           {/* Waveform visualization */}
-          <div className="absolute inset-0 flex items-center justify-center gap-1 px-4">
-            {Array.from({ length: 40 }).map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "w-1.5 rounded-full transition-all duration-75",
-                  isRecording
-                    ? "bg-gradient-to-t from-primary to-secondary"
-                    : audioBlob
-                    ? "bg-foreground-muted/30"
-                    : "bg-foreground-muted/20"
-                )}
-                style={{
-                  height: isRecording
-                    ? `${Math.random() * audioLevel * 100 + 10}%`
-                    : audioBlob
-                    ? "30%"
-                    : "20%",
-                }}
-              />
-            ))}
+          <div className="absolute inset-0 flex items-center justify-center gap-[3px] px-6">
+            {Array.from({ length: 50 }).map((_, i) => {
+              const baseHeight = isRecording 
+                ? Math.random() * audioLevel * 100 + 15
+                : audioBlob ? 30 : 20;
+                
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "w-1.5 rounded-full transition-all",
+                    isRecording
+                      ? "bg-gradient-to-t from-destructive via-red-400 to-orange-400"
+                      : audioBlob
+                      ? "bg-gradient-to-t from-primary to-accent"
+                      : "bg-foreground-muted/20"
+                  )}
+                  style={{
+                    height: `${baseHeight}%`,
+                    transitionDuration: isRecording ? '50ms' : '300ms',
+                  }}
+                />
+              );
+            })}
           </div>
 
-          {/* Center icon */}
+          {/* Center icon when not recording */}
           {!isRecording && !audioBlob && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
-                <Mic className="h-8 w-8 text-primary" />
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center backdrop-blur-sm border border-primary/30">
+                  <Mic className="h-10 w-10 text-primary" />
+                </div>
+                <div className="absolute inset-0 w-20 h-20 rounded-full bg-primary/20 animate-ping" />
               </div>
             </div>
           )}
 
-          {/* Playback indicator */}
+          {/* Ready indicator */}
           {audioBlob && !isRecording && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 border border-border/50">
-                <Volume2 className="h-4 w-4 text-foreground-muted" />
-                <span className="text-sm font-medium">Enregistrement prêt</span>
+              <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-background/90 backdrop-blur-sm border border-primary/30 shadow-lg">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                  <Volume2 className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">Enregistrement prêt !</p>
+                  <p className="text-xs text-foreground-muted">Durée: {formatTime(recordingTime)}</p>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Controls */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+        <div className="flex flex-wrap items-center justify-center gap-3 relative z-10">
           {!audioBlob ? (
             <Button
               variant={isRecording ? "destructive" : "hero"}
               size="lg"
               onClick={isRecording ? stopRecording : startRecording}
-              className="min-w-[160px]"
+              className={cn(
+                "min-w-[180px] h-14 text-lg transition-all duration-300",
+                isRecording && "animate-pulse"
+              )}
             >
               {isRecording ? (
                 <>
@@ -363,6 +466,7 @@ export const AudioPhoneRecordingPhase = memo(({
                 variant="outline"
                 size="lg"
                 onClick={togglePlayback}
+                className="h-12 w-12 p-0"
               >
                 {isPlaying ? (
                   <Pause className="h-5 w-5" />
@@ -375,6 +479,7 @@ export const AudioPhoneRecordingPhase = memo(({
                 variant="outline"
                 size="lg"
                 onClick={resetRecording}
+                className="h-12"
               >
                 <RotateCcw className="h-5 w-5 mr-2" />
                 Recommencer
@@ -385,18 +490,19 @@ export const AudioPhoneRecordingPhase = memo(({
                 size="lg"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
+                className="h-12 min-w-[140px]"
               >
-                 {isSubmitting ? (
-                   <>
-                     <div className="h-5 w-5 mr-2 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                     Envoi...
-                   </>
-                 ) : (
-                   <>
-                     <Send className="h-5 w-5 mr-2" />
-                     Envoyer
-                   </>
-                 )}
+                {isSubmitting ? (
+                  <>
+                    <div className="h-5 w-5 mr-2 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    Envoi...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-5 w-5 mr-2" />
+                    Envoyer
+                  </>
+                )}
               </Button>
             </>
           )}
@@ -415,13 +521,19 @@ export const AudioPhoneRecordingPhase = memo(({
 
       {/* Original phrase input (first player only) */}
       {isFirstPlayer && (
-        <Card className="max-w-xl w-full p-6 bg-card/60 backdrop-blur-sm border-border/30">
-           <div className="flex items-start gap-3 mb-4">
-             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-warning to-primary flex items-center justify-center flex-shrink-0">
-               <Sparkles className="h-5 w-5 text-primary-foreground" />
-             </div>
+        <Card className={cn(
+          "max-w-xl w-full p-6 relative z-10 overflow-hidden transition-all duration-700 delay-300",
+          "bg-card/60 backdrop-blur-md border-border/30",
+          showReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        )}>
+          <div className="flex items-start gap-4 mb-4">
+            <div className="relative flex-shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+            </div>
             <div>
-              <h3 className="font-bold text-foreground mb-1">Notez votre phrase</h3>
+              <h3 className="font-bold text-lg text-foreground mb-1">📝 Notez votre phrase</h3>
               <p className="text-sm text-foreground-secondary">
                 Facultatif mais recommandé pour la révélation finale !
               </p>
@@ -432,7 +544,7 @@ export const AudioPhoneRecordingPhase = memo(({
             value={originalPhrase}
             onChange={(e) => setOriginalPhrase(e.target.value)}
             placeholder="Tapez ici la phrase exacte que vous avez prononcée..."
-            className="min-h-[80px] bg-background/50 border-border/50 resize-none"
+            className="min-h-[100px] bg-background/50 border-border/50 resize-none text-base"
           />
         </Card>
       )}
