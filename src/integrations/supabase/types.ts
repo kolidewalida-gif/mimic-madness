@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      audio_phone_imitations: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          imitator_player_id: string
+          imitator_player_name: string
+          original_recording_id: string
+          reversed_storage_path: string | null
+          round_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          imitator_player_id: string
+          imitator_player_name: string
+          original_recording_id: string
+          reversed_storage_path?: string | null
+          round_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          imitator_player_id?: string
+          imitator_player_name?: string
+          original_recording_id?: string
+          reversed_storage_path?: string | null
+          round_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_phone_imitations_original_recording_id_fkey"
+            columns: ["original_recording_id"]
+            isOneToOne: false
+            referencedRelation: "audio_phone_recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audio_phone_imitations_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "audio_phone_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audio_phone_recordings: {
         Row: {
           created_at: string
@@ -64,6 +115,7 @@ export type Database = {
       audio_phone_rounds: {
         Row: {
           created_at: string
+          current_phrase_index: number | null
           current_player_index: number
           id: string
           lobby_id: string
@@ -76,6 +128,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_phrase_index?: number | null
           current_player_index?: number
           id?: string
           lobby_id: string
@@ -88,6 +141,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_phrase_index?: number | null
           current_player_index?: number
           id?: string
           lobby_id?: string
