@@ -1,0 +1,2 @@
+-- Add current_phrase_index column to audio_phone_rounds for tracking which phrase is being imitated
+ALTER TABLE public.audio_phone_rounds ADD COLUMN IF NOT EXISTS current_phrase_index INTEGER DEFAULT 0;
