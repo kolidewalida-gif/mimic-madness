@@ -11,6 +11,7 @@ interface AudioPhoneImitationPhaseProps {
   reversedAudioUrl: string | null;
   shouldImitate: boolean;
   hasImitated: boolean;
+  isAuthor: boolean;
   allImitationsDone: boolean;
   isHost: boolean;
   isSubmitting: boolean;
@@ -26,6 +27,7 @@ export const AudioPhoneImitationPhase = ({
   reversedAudioUrl,
   shouldImitate,
   hasImitated,
+  isAuthor,
   allImitationsDone,
   isHost,
   isSubmitting,
@@ -167,8 +169,8 @@ export const AudioPhoneImitationPhase = ({
     setIsPlaying(false);
   }, [currentPhraseIndex]);
 
-  // This player is the author - just wait
-  if (!shouldImitate && !hasImitated) {
+  // This player is the author - just wait for others
+  if (isAuthor) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-amber-950/80 to-orange-950/80 border-amber-500/30 backdrop-blur-xl">
@@ -189,6 +191,17 @@ export const AudioPhoneImitationPhase = ({
             <div className="text-sm text-muted-foreground">
               Phrase {currentPhraseIndex + 1} / {totalPhrases}
             </div>
+
+            {allImitationsDone && isHost && (
+              <Button
+                onClick={onNextPhrase}
+                size="lg"
+                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+              >
+                <ChevronRight className="w-4 h-4 mr-2" />
+                Phrase suivante
+              </Button>
+            )}
           </div>
         </Card>
       </div>

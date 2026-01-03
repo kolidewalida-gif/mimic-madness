@@ -126,6 +126,17 @@ export const AudioPhoneGameScreenV2 = memo(({
     const allDone = game.allImitationsForCurrentPhraseDone();
     const reversedAudioUrl = currentPhrase ? game.getReversedAudioUrl(currentPhrase) : null;
     const authorPlayer = currentPhrase ? game.getPlayerById(currentPhrase.player_id) : null;
+    
+    // Check if player has already imitated this phrase
+    const hasAlreadyImitated = currentPhrase 
+      ? game.imitations.some(im => 
+          im.original_recording_id === currentPhrase.id && 
+          im.imitator_player_id === currentPlayer.id
+        )
+      : false;
+    
+    // Player is the author of current phrase
+    const isAuthor = currentPhrase?.player_id === currentPlayer.id;
 
     return (
       <div className="relative">
@@ -135,7 +146,8 @@ export const AudioPhoneGameScreenV2 = memo(({
           authorName={authorPlayer?.name || 'Joueur'}
           reversedAudioUrl={reversedAudioUrl}
           shouldImitate={shouldImitate}
-          hasImitated={!shouldImitate && currentPhrase?.player_id !== currentPlayer.id}
+          hasImitated={hasAlreadyImitated}
+          isAuthor={isAuthor}
           allImitationsDone={allDone}
           isHost={currentPlayer.isHost}
           isSubmitting={game.isSubmitting}
