@@ -123,6 +123,9 @@ export type Database = {
           original_phrase: string | null
           phase: string
           player_order: string[]
+          reveal_is_playing: boolean | null
+          reveal_phrase_index: number | null
+          reveal_step: string | null
           round_number: number
           updated_at: string
         }
@@ -136,6 +139,9 @@ export type Database = {
           original_phrase?: string | null
           phase?: string
           player_order: string[]
+          reveal_is_playing?: boolean | null
+          reveal_phrase_index?: number | null
+          reveal_step?: string | null
           round_number?: number
           updated_at?: string
         }
@@ -149,6 +155,9 @@ export type Database = {
           original_phrase?: string | null
           phase?: string
           player_order?: string[]
+          reveal_is_playing?: boolean | null
+          reveal_phrase_index?: number | null
+          reveal_step?: string | null
           round_number?: number
           updated_at?: string
         }
