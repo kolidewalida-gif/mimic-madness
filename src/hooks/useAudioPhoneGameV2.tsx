@@ -30,6 +30,10 @@ interface AudioPhoneRoundV2 {
   current_phrase_index: number; // Which phrase is being imitated
   player_order: string[];
   max_recording_seconds: number;
+  // Reveal sync fields
+  reveal_is_playing: boolean;
+  reveal_phrase_index: number;
+  reveal_step: string; // 'idle' | 'original' | 'reversed' | 'imitation_0' | 'imitation_1' etc.
 }
 
 interface OriginalRecording {
@@ -95,6 +99,9 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
           ...round,
           phase: round.phase as GamePhase,
           current_phrase_index: (round as any).current_phrase_index ?? 0,
+          reveal_is_playing: (round as any).reveal_is_playing ?? false,
+          reveal_phrase_index: (round as any).reveal_phrase_index ?? 0,
+          reveal_step: (round as any).reveal_step ?? 'idle',
         };
         setCurrentRound(roundData);
 
@@ -160,6 +167,9 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
               ...newRound,
               phase: newRound.phase as GamePhase,
               current_phrase_index: newRound.current_phrase_index ?? 0,
+              reveal_is_playing: newRound.reveal_is_playing ?? false,
+              reveal_phrase_index: newRound.reveal_phrase_index ?? 0,
+              reveal_step: newRound.reveal_step ?? 'idle',
             });
           }
         }
@@ -484,10 +494,35 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
 
     const { error } = await supabase
       .from('audio_phone_rounds')
-      .update({ phase: 'reveal', current_phrase_index: 0 })
+      .update({ 
+        phase: 'reveal', 
+        reveal_phrase_index: 0,
+        reveal_step: 'idle',
+        reveal_is_playing: false,
+      })
       .eq('id', currentRound.id);
 
     if (error) console.error('Error starting reveal:', error);
+  }, [currentRound]);
+
+  // Control reveal playback (host only) - synced for all players
+  const setRevealPlaybackState = useCallback(async (
+    isPlaying: boolean, 
+    phraseIndex: number, 
+    step: string
+  ) => {
+    if (!currentRound) return;
+
+    const { error } = await supabase
+      .from('audio_phone_rounds')
+      .update({ 
+        reveal_is_playing: isPlaying,
+        reveal_phrase_index: phraseIndex,
+        reveal_step: step,
+      })
+      .eq('id', currentRound.id);
+
+    if (error) console.error('Error updating reveal state:', error);
   }, [currentRound]);
 
   // Get reveal data for a phrase
@@ -575,6 +610,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     submitImitation,
     moveToNextPhrase,
     startReveal,
+    setRevealPlaybackState,
     endRound,
     
     // Helpers

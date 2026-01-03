@@ -182,12 +182,22 @@ export const AudioPhoneGameScreenV2 = memo(({
 
   // Reveal phase
   if (game.currentRound.phase === 'reveal') {
+    const syncState = {
+      isPlaying: game.currentRound.reveal_is_playing ?? false,
+      phraseIndex: game.currentRound.reveal_phrase_index ?? 0,
+      step: game.currentRound.reveal_step ?? 'idle',
+    };
+
     return (
       <div className="relative">
         <AudioPhoneRevealPhaseV2
           revealData={revealData}
           players={players}
           isHost={currentPlayer.isHost}
+          syncState={syncState}
+          onSyncStateChange={(isPlaying, phraseIndex, step) => {
+            game.setRevealPlaybackState(isPlaying, phraseIndex, step);
+          }}
           onPlayAgain={async () => {
             await game.endRound();
             await game.startGame();
