@@ -56,47 +56,49 @@ export const AudioPhoneRevealPhaseV2 = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastStepRef = useRef<string>('');
 
-  const currentPhrase = revealData[syncState.phraseIndex];
+  const currentPhrase = revealData[syncState.phraseIndex] || null;
 
   // Get audio URL for current step
   const getAudioUrlForStep = useCallback((step: string): string | null => {
-    if (!currentPhrase) return null;
+    const phrase = revealData[syncState.phraseIndex];
+    if (!phrase) return null;
     
     if (step === 'original') {
-      return currentPhrase.original.originalUrl;
+      return phrase.original.originalUrl;
     } else if (step === 'reversed') {
-      return currentPhrase.original.reversedUrl;
+      return phrase.original.reversedUrl;
     } else if (step.startsWith('imitation_')) {
       const idx = parseInt(step.split('_')[1], 10);
-      const imitation = currentPhrase.imitations[idx];
+      const imitation = phrase.imitations[idx];
       // Use reversedUrl which is the RE-reversed imitation (back to normal)
       return imitation?.reversedUrl || null;
     }
     return null;
-  }, [currentPhrase]);
+  }, [revealData, syncState.phraseIndex]);
 
   // Get next step in sequence
   const getNextStep = useCallback((currentStep: string): string | null => {
-    if (!currentPhrase) return null;
+    const phrase = revealData[syncState.phraseIndex];
+    if (!phrase) return null;
     
     if (currentStep === 'idle' || currentStep === '') {
       return 'original';
     } else if (currentStep === 'original') {
       return 'reversed';
     } else if (currentStep === 'reversed') {
-      if (currentPhrase.imitations.length > 0) {
+      if (phrase.imitations.length > 0) {
         return 'imitation_0';
       }
       return null; // Done with this phrase
     } else if (currentStep.startsWith('imitation_')) {
       const idx = parseInt(currentStep.split('_')[1], 10);
-      if (idx + 1 < currentPhrase.imitations.length) {
+      if (idx + 1 < phrase.imitations.length) {
         return `imitation_${idx + 1}`;
       }
       return null; // Done with this phrase
     }
     return null;
-  }, [currentPhrase]);
+  }, [revealData, syncState.phraseIndex]);
 
   // Play audio for a step
   const playStep = useCallback((step: string) => {

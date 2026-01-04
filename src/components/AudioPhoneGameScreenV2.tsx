@@ -46,7 +46,7 @@ export const AudioPhoneGameScreenV2 = memo(({
       };
       fetchAllRevealData();
     }
-  }, [game.currentRound?.phase, game.originalRecordings.length]);
+  }, [game.currentRound?.phase, game.originalRecordings.length, game.getRevealDataForPhrase]);
 
   // Loading state
   if (game.isLoading) {
