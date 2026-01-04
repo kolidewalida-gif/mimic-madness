@@ -82,6 +82,9 @@ export const AudioPhoneImitationPhase = ({
 
   const startRecording = async () => {
     try {
+      // Reset recorded blob before starting new recording
+      setRecordedBlob(null);
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       audioContextRef.current = new AudioContext();

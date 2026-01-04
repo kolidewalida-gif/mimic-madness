@@ -255,9 +255,22 @@ export const useQuizGame = (
     };
   }, [lobbyId, fetchScoresFromDB]);
 
+  // Advance to reveal phase (host only) - declared early for timer usage
+  const advanceToReveal = useCallback(async () => {
+    if (!currentPlayer.isHost) return;
+    
+    console.log('[Quiz] Advancing to reveal');
+    await supabase.from('quiz_rounds')
+      .update({ phase: 'reveal' })
+      .eq('lobby_id', lobbyId)
+      .eq('round_number', currentRound);
+  }, [currentPlayer.isHost, lobbyId, currentRound]);
+
   // Synchronized Timer - based on server time
   useEffect(() => {
     if (phase === 'answering' && serverStartTime) {
+      let hasCalledTimeUp = false;
+      
       const updateTimer = () => {
         const startTime = new Date(serverStartTime).getTime();
         const now = Date.now();
@@ -276,11 +289,17 @@ export const useQuizGame = (
           }
         }
         
-        // Time's up
-        if (remaining <= 0) {
+        // Time's up - only call once
+        if (remaining <= 0 && !hasCalledTimeUp) {
+          hasCalledTimeUp = true;
           playSoundEffect('quizTimeUp', 0.5);
           if (currentPlayer.isHost) {
             advanceToReveal();
+          }
+          // Clear the interval when time is up
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
           }
         }
       };
@@ -292,9 +311,10 @@ export const useQuizGame = (
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
-  }, [phase, serverStartTime, currentPlayer.isHost]);
+  }, [phase, serverStartTime, currentPlayer.isHost, advanceToReveal]);
 
   // Generate a new question using the edge function
   const generateQuestion = useCallback(async (category: string = 'mixed'): Promise<QuizQuestion | null> => {
@@ -423,16 +443,7 @@ export const useQuizGame = (
     });
   }, [hasAnswered, serverStartTime, currentQuestion, lobbyId, currentRound, currentPlayer]);
 
-  // Advance to reveal phase (host only)
-  const advanceToReveal = useCallback(async () => {
-    if (!currentPlayer.isHost) return;
-    
-    console.log('[Quiz] Advancing to reveal');
-    await supabase.from('quiz_rounds')
-      .update({ phase: 'reveal' })
-      .eq('lobby_id', lobbyId)
-      .eq('round_number', currentRound);
-  }, [currentPlayer.isHost, lobbyId, currentRound]);
+  // advanceToReveal is declared earlier in the file for timer usage
 
   // Advance to scores phase (host only)
   const advanceToScores = useCallback(async () => {
