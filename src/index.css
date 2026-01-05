@@ -810,6 +810,11 @@
   100% { transform: translateX(100%); }
 }
 
+@keyframes scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
