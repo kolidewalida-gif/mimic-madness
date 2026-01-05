@@ -287,6 +287,7 @@ export default {
         optionAppear: "optionAppear 0.4s ease-out forwards",
         correctPulse: "correctPulse 1s ease-out",
         wrongShake: "wrongShake 0.6s ease-in-out",
+        scan: "scan 3s linear infinite",
       },
       boxShadow: {
         glow: "0 0 40px rgba(139, 92, 246, 0.4)",

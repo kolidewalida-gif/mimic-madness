@@ -1,8 +1,13 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Card } from "./ui/card";
-import { Button } from "./ui/button";
-import { Mic, MicOff, Check, Play, Pause, Volume2, Loader2, ChevronRight } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
+import { Check, Play, Pause, Loader2, ChevronRight, Headphones, RotateCcw, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FuturisticBackground } from "./audio-phone/FuturisticBackground";
+import { HolographicCard } from "./audio-phone/HolographicCard";
+import { NeonButton } from "./audio-phone/NeonButton";
+import { StatusBadge } from "./audio-phone/StatusBadge";
+import { RecordButton } from "./audio-phone/RecordButton";
+import { WaveformVisualizer } from "./audio-phone/WaveformVisualizer";
+import { CircularProgress } from "./audio-phone/CircularProgress";
 
 interface AudioPhoneImitationPhaseProps {
   currentPhraseIndex: number;
@@ -20,7 +25,7 @@ interface AudioPhoneImitationPhaseProps {
   onNextPhrase: () => void;
 }
 
-export const AudioPhoneImitationPhase = ({
+export const AudioPhoneImitationPhase = memo(({
   currentPhraseIndex,
   totalPhrases,
   authorName,
@@ -41,6 +46,7 @@ export const AudioPhoneImitationPhase = ({
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [playProgress, setPlayProgress] = useState(0);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -82,7 +88,6 @@ export const AudioPhoneImitationPhase = ({
 
   const startRecording = async () => {
     try {
-      // Reset recorded blob before starting new recording
       setRecordedBlob(null);
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -164,49 +169,77 @@ export const AudioPhoneImitationPhase = ({
     };
   }, []);
 
-  // Reset state when phrase changes
   useEffect(() => {
     setHasListened(false);
     setRecordedBlob(null);
     setIsRecording(false);
     setIsPlaying(false);
+    setPlayProgress(0);
   }, [currentPhraseIndex]);
 
-  // This player is the author - just wait for others
+  // Phrase progress indicator
+  const PhraseIndicator = () => (
+    <div className="flex items-center justify-center gap-2 mb-4">
+      {[...Array(totalPhrases)].map((_, i) => (
+        <div
+          key={i}
+          className={cn(
+            "h-2 rounded-full transition-all duration-300",
+            i === currentPhraseIndex 
+              ? "w-8 bg-gradient-to-r from-primary to-accent" 
+              : i < currentPhraseIndex 
+                ? "w-2 bg-emerald-500" 
+                : "w-2 bg-muted-foreground/30"
+          )}
+        />
+      ))}
+    </div>
+  );
+
+  // Author view - waiting for others
   if (isAuthor) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-amber-950/80 to-orange-950/80 border-amber-500/30 backdrop-blur-xl">
+        <FuturisticBackground variant="default" />
+        
+        <HolographicCard variant="warning" glow className="w-full max-w-lg p-8 relative z-10">
           <div className="text-center space-y-6">
-            <div className="w-20 h-20 mx-auto bg-amber-500/20 rounded-full flex items-center justify-center">
-              <Volume2 className="w-10 h-10 text-amber-400 animate-pulse" />
+            <PhraseIndicator />
+            
+            <div className="relative">
+              <div className="w-24 h-24 mx-auto rounded-full bg-amber-500/20 flex items-center justify-center">
+                <Volume2 className="w-12 h-12 text-amber-400 animate-pulse" />
+              </div>
+              <div className="absolute inset-0 w-24 h-24 mx-auto rounded-full border-2 border-amber-500/30 animate-[spin_10s_linear_infinite]" 
+                   style={{ borderStyle: 'dashed' }} />
             </div>
             
             <div>
-              <h2 className="text-2xl font-bold text-amber-400 mb-2">
+              <StatusBadge variant="warning" icon={<RotateCcw className="w-4 h-4" />}>
+                Ta phrase est en cours d'imitation
+              </StatusBadge>
+              <h2 className="text-2xl md:text-3xl font-bold text-amber-400 mt-4 mb-2">
                 C'est ta phrase !
               </h2>
               <p className="text-muted-foreground">
-                Les autres joueurs essaient de l'imiter...
+                Les autres joueurs tentent de l'imiter à l'envers...
               </p>
             </div>
 
-            <div className="text-sm text-muted-foreground">
-              Phrase {currentPhraseIndex + 1} / {totalPhrases}
-            </div>
+            <WaveformVisualizer isActive barCount={25} className="h-12 opacity-60" />
 
             {allImitationsDone && isHost && (
-              <Button
+              <NeonButton
                 onClick={onNextPhrase}
                 size="lg"
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+                variant="primary"
+                icon={<ChevronRight className="w-5 h-5" />}
               >
-                <ChevronRight className="w-4 h-4 mr-2" />
                 Phrase suivante
-              </Button>
+              </NeonButton>
             )}
           </div>
-        </Card>
+        </HolographicCard>
       </div>
     );
   }
@@ -215,137 +248,175 @@ export const AudioPhoneImitationPhase = ({
   if (hasImitated) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-emerald-950/80 to-teal-950/80 border-emerald-500/30 backdrop-blur-xl">
+        <FuturisticBackground variant="listening" />
+        
+        <HolographicCard variant="success" glow className="w-full max-w-lg p-8 relative z-10">
           <div className="text-center space-y-6">
-            <div className="w-20 h-20 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
-              <Check className="w-10 h-10 text-emerald-400" />
+            <PhraseIndicator />
+            
+            <div className="relative">
+              <div className="w-24 h-24 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <Check className="w-12 h-12 text-emerald-400" />
+              </div>
+              <div className="absolute inset-0 w-24 h-24 mx-auto rounded-full bg-emerald-500/30 animate-ping opacity-50" />
             </div>
             
             <div>
-              <h2 className="text-2xl font-bold text-emerald-400 mb-2">
-                Imitation envoyée !
+              <StatusBadge variant="success" icon={<Check className="w-4 h-4" />}>
+                Imitation envoyée
+              </StatusBadge>
+              <h2 className="text-2xl md:text-3xl font-bold text-emerald-400 mt-4 mb-2">
+                Bien joué !
               </h2>
               <p className="text-muted-foreground">
-                En attente des autres joueurs...
+                Phrase de <span className="text-primary font-medium">{authorName}</span> • En attente des autres...
               </p>
             </div>
 
-            <div className="text-sm text-muted-foreground">
-              Phrase de {authorName} • {currentPhraseIndex + 1} / {totalPhrases}
-            </div>
+            <WaveformVisualizer isActive barCount={20} variant="playing" className="h-10 opacity-60" />
 
             {allImitationsDone && isHost && (
-              <Button
+              <NeonButton
                 onClick={onNextPhrase}
                 size="lg"
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+                variant="primary"
+                icon={<ChevronRight className="w-5 h-5" />}
               >
-                <ChevronRight className="w-4 h-4 mr-2" />
                 Phrase suivante
-              </Button>
+              </NeonButton>
             )}
           </div>
-        </Card>
+        </HolographicCard>
       </div>
     );
   }
 
+  // Main imitation view
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-cyan-950/80 to-blue-950/80 border-cyan-500/30 backdrop-blur-xl">
-        <div className="text-center space-y-6">
-          {/* Hidden audio element */}
-          {reversedAudioUrl && (
-            <audio
-              ref={audioRef}
-              src={reversedAudioUrl}
-              onEnded={() => {
-                setIsPlaying(false);
-                setHasListened(true);
-              }}
-            />
-          )}
+      <FuturisticBackground variant={isRecording ? "recording" : "listening"} />
+      
+      {/* Hidden audio element */}
+      {reversedAudioUrl && (
+        <audio
+          ref={audioRef}
+          src={reversedAudioUrl}
+          onEnded={() => {
+            setIsPlaying(false);
+            setHasListened(true);
+            setPlayProgress(100);
+          }}
+          onTimeUpdate={(e) => {
+            const audio = e.currentTarget;
+            if (audio.duration) {
+              setPlayProgress((audio.currentTime / audio.duration) * 100);
+            }
+          }}
+        />
+      )}
 
+      <HolographicCard 
+        variant={isRecording ? "danger" : "info"} 
+        glow 
+        className="w-full max-w-lg p-6 md:p-8 relative z-10"
+      >
+        <div className="text-center space-y-5">
+          <PhraseIndicator />
+
+          {/* Header */}
           <div>
-            <div className="text-sm text-cyan-400 mb-2 font-medium">
-              Phrase {currentPhraseIndex + 1} / {totalPhrases}
-            </div>
-            <h2 className="text-2xl font-bold text-cyan-300 mb-2">
+            <StatusBadge 
+              variant={hasListened ? (isRecording ? "recording" : "success") : "info"} 
+              icon={<Headphones className="w-4 h-4" />}
+            >
               Phrase de {authorName}
+            </StatusBadge>
+            
+            <h2 className="text-xl md:text-2xl font-bold mt-4 mb-2 text-foreground">
+              {!hasListened ? "Écoute l'audio inversé" : "Reproduis ce que tu as entendu !"}
             </h2>
-            <p className="text-muted-foreground">
-              Écoute l'audio inversé puis imite-le !
+            <p className="text-sm text-muted-foreground">
+              {!hasListened 
+                ? "Concentre-toi bien... c'est à l'envers !" 
+                : "Parle à l'envers pour reproduire ce que tu as entendu"}
             </p>
           </div>
 
           {/* Listen section */}
-          <div className="space-y-4">
-            <Button
-              onClick={isPlaying ? pauseAudio : playReversedAudio}
-              disabled={!reversedAudioUrl}
-              size="lg"
-              className={cn(
-                "w-full",
-                isPlaying 
-                  ? "bg-cyan-500 hover:bg-cyan-600" 
-                  : "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
-              )}
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="w-5 h-5 mr-2" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="w-5 h-5 mr-2" />
-                  Écouter l'audio inversé
-                </>
-              )}
-            </Button>
-
-            {hasListened && (
-              <div className="flex items-center justify-center gap-2 text-emerald-400 text-sm">
-                <Check className="w-4 h-4" />
-                Audio écouté
-              </div>
-            )}
-          </div>
+          {!hasListened && (
+            <div className="space-y-4 py-4">
+              <CircularProgress
+                progress={playProgress}
+                size={160}
+                strokeWidth={6}
+                variant="default"
+              >
+                <button
+                  onClick={isPlaying ? pauseAudio : playReversedAudio}
+                  disabled={!reversedAudioUrl}
+                  className={cn(
+                    "w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300",
+                    "bg-gradient-to-br from-cyan-600 via-cyan-500 to-blue-500",
+                    "border-2 border-cyan-400/50",
+                    "shadow-[0_0_30px_rgba(6,182,212,0.4)]",
+                    "hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] hover:scale-105",
+                    isPlaying && "animate-pulse"
+                  )}
+                >
+                  {isPlaying ? (
+                    <Pause className="w-8 h-8 text-white" />
+                  ) : (
+                    <Play className="w-8 h-8 text-white ml-1" />
+                  )}
+                </button>
+              </CircularProgress>
+              
+              <WaveformVisualizer 
+                isActive={isPlaying} 
+                barCount={30}
+                variant="playing"
+                className="h-12 w-full max-w-xs mx-auto"
+              />
+              
+              <p className="text-xs text-muted-foreground">
+                {isPlaying ? "Écoute en cours..." : "Appuie pour écouter"}
+              </p>
+            </div>
+          )}
 
           {/* Recording section */}
           {hasListened && !recordedBlob && (
-            <div className="space-y-4 pt-4 border-t border-cyan-500/20">
-              <p className="text-sm text-muted-foreground">
-                Maintenant, enregistre ton imitation (parle à l'envers !)
-              </p>
-              
-              <div className="relative flex justify-center">
-                <button
+            <div className="space-y-4 py-4">
+              <CircularProgress
+                progress={(recordingTime / maxSeconds) * 100}
+                size={160}
+                strokeWidth={6}
+                variant={isRecording ? "recording" : "default"}
+                showGlow={isRecording}
+              >
+                <RecordButton
+                  isRecording={isRecording}
+                  isLoading={isSubmitting}
+                  audioLevel={audioLevel}
                   onClick={isRecording ? stopRecording : startRecording}
                   disabled={isSubmitting}
-                  className={cn(
-                    "w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300",
-                    isRecording
-                      ? "bg-red-500 hover:bg-red-600 animate-pulse"
-                      : "bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
-                  )}
-                  style={{
-                    boxShadow: isRecording 
-                      ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(239, 68, 68, 0.4)`
-                      : '0 0 30px rgba(6, 182, 212, 0.3)'
-                  }}
-                >
-                  {isRecording ? (
-                    <MicOff className="w-10 h-10 text-white" />
-                  ) : (
-                    <Mic className="w-10 h-10 text-white" />
-                  )}
-                </button>
-              </div>
+                  size="sm"
+                />
+              </CircularProgress>
 
               {isRecording && (
-                <div className="text-2xl font-mono font-bold text-red-400">
-                  {recordingTime}s / {maxSeconds}s
+                <div className="space-y-2">
+                  <div className="text-3xl font-mono font-bold text-rose-400">
+                    {recordingTime}<span className="text-xl text-rose-400/60">s</span>
+                    <span className="text-muted-foreground text-lg"> / {maxSeconds}s</span>
+                  </div>
+                  <WaveformVisualizer 
+                    isActive 
+                    audioLevel={audioLevel} 
+                    variant="recording" 
+                    barCount={25}
+                    className="h-10 w-full max-w-xs mx-auto"
+                  />
                 </div>
               )}
             </div>
@@ -353,37 +424,40 @@ export const AudioPhoneImitationPhase = ({
 
           {/* Submit recorded audio */}
           {recordedBlob && (
-            <div className="space-y-4 pt-4 border-t border-cyan-500/20">
-              <audio 
-                src={URL.createObjectURL(recordedBlob)} 
-                controls 
-                className="w-full"
-              />
+            <div className="space-y-4 py-2">
+              <div className="p-4 rounded-xl bg-muted/20 backdrop-blur-sm border border-border/30">
+                <p className="text-sm text-muted-foreground mb-3">Ton imitation</p>
+                <audio 
+                  src={URL.createObjectURL(recordedBlob)} 
+                  controls 
+                  className="w-full h-10"
+                />
+              </div>
+              
               <div className="flex gap-3">
-                <Button
+                <NeonButton
                   onClick={startRecording}
-                  variant="outline"
+                  variant="warning"
                   className="flex-1"
                 >
                   Réenregistrer
-                </Button>
-                <Button
+                </NeonButton>
+                <NeonButton
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                  variant="success"
+                  className="flex-1"
+                  icon={isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Check className="w-4 h-4 mr-2" />
-                  )}
-                  Envoyer
-                </Button>
+                  {isSubmitting ? "Envoi..." : "Envoyer"}
+                </NeonButton>
               </div>
             </div>
           )}
         </div>
-      </Card>
+      </HolographicCard>
     </div>
   );
-};
+});
+
+AudioPhoneImitationPhase.displayName = "AudioPhoneImitationPhase";
