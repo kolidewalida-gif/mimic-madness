@@ -288,6 +288,30 @@ export default {
         correctPulse: "correctPulse 1s ease-out",
         wrongShake: "wrongShake 0.6s ease-in-out",
         scan: "scan 3s linear infinite",
+        // New cursor animations
+        cursorPulse: "cursorPulse 1.5s ease-in-out infinite",
+        cursorGlow: "cursorGlow 2s ease-in-out infinite",
+        draw: "draw 0.3s ease-out forwards",
+        hoverRipple: "hoverRipple 0.6s ease-out forwards",
+      },
+      keyframes: {
+        // ... keep existing keyframes ...
+        cursorPulse: {
+          "0%, 100%": { transform: "scale(1)", opacity: "1" },
+          "50%": { transform: "scale(1.2)", opacity: "0.8" },
+        },
+        cursorGlow: {
+          "0%, 100%": { boxShadow: "0 0 10px hsl(var(--primary) / 0.5)" },
+          "50%": { boxShadow: "0 0 25px hsl(var(--primary) / 0.8)" },
+        },
+        draw: {
+          "0%": { strokeDashoffset: "24" },
+          "100%": { strokeDashoffset: "0" },
+        },
+        hoverRipple: {
+          "0%": { transform: "scale(0)", opacity: "0.5" },
+          "100%": { transform: "scale(4)", opacity: "0" },
+        },
       },
       boxShadow: {
         glow: "0 0 40px rgba(139, 92, 246, 0.4)",

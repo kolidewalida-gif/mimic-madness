@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BackgroundMusicProvider } from "@/hooks/useBackgroundMusic";
 import { SoundEffectsVolumeProvider } from "@/hooks/useSoundEffectsVolume";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { CustomCursor } from "@/components/CustomCursor";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -17,6 +18,7 @@ const App = () => (
       <BackgroundMusicProvider>
         <SoundEffectsVolumeProvider>
           <TooltipProvider>
+            <CustomCursor />
             <Toaster />
             <Sonner />
             <BrowserRouter>
