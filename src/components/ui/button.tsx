@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
-import { playSfx, SoundTypeV2 } from "@/hooks/useSoundEffectsV2";
+import { playSoundEffect } from "@/hooks/useSoundEffects";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 relative overflow-hidden group",
@@ -43,20 +43,19 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
-  soundEffect?: SoundTypeV2 | 'none';
-  hoverSound?: SoundTypeV2 | 'none' | boolean;
+  soundEffect?: 'click' | 'success' | 'vote' | 'transition' | 'countdown' | 'error' | 'whoosh' | 'message' | 'none';
+  hoverSound?: boolean;
   ripple?: boolean;
-  hoverEffect?: 'default' | 'glow' | 'electric' | 'cyber' | 'holographic' | 'none';
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, soundEffect = 'uiClick', hoverSound = 'uiHover', ripple = true, hoverEffect = 'default', onClick, onMouseEnter, children, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, soundEffect = 'click', hoverSound = true, ripple = true, onClick, onMouseEnter, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     const [ripples, setRipples] = React.useState<{ x: number; y: number; id: number }[]>([]);
     
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (soundEffect !== 'none' && !props.disabled) {
-        playSfx(soundEffect as SoundTypeV2);
+        playSoundEffect(soundEffect);
       }
       
       // Add ripple effect
@@ -78,27 +77,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
     
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (hoverSound !== 'none' && hoverSound !== false && !props.disabled) {
-        const sound = typeof hoverSound === 'boolean' ? 'uiHoverSoft' : hoverSound;
-        playSfx(sound as SoundTypeV2, 0.5);
+      if (hoverSound && !props.disabled) {
+        playSoundEffect('hover', 0.08);
       }
       onMouseEnter?.(e);
-    };
-
-    const getHoverClass = () => {
-      switch (hoverEffect) {
-        case 'glow': return 'hover-glow-intense';
-        case 'electric': return 'hover-electric';
-        case 'cyber': return 'hover-cyber';
-        case 'holographic': return 'hover-holographic';
-        case 'none': return '';
-        default: return '';
-      }
     };
     
     return (
       <Comp 
-        className={cn(buttonVariants({ variant, size, className }), getHoverClass())} 
+        className={cn(buttonVariants({ variant, size, className }))} 
         ref={ref} 
         onClick={handleClick}
         onMouseEnter={handleMouseEnter}

@@ -1,14 +1,8 @@
-import { useState, useRef, useEffect, useCallback, memo } from "react";
-import { Check, Loader2, Zap, AudioWaveform } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Mic, MicOff, Check, Users, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FuturisticBackground } from "./audio-phone/FuturisticBackground";
-import { HolographicCard } from "./audio-phone/HolographicCard";
-import { NeonButton } from "./audio-phone/NeonButton";
-import { StatusBadge } from "./audio-phone/StatusBadge";
-import { RecordButton } from "./audio-phone/RecordButton";
-import { CircularProgress } from "./audio-phone/CircularProgress";
-import { PlayerProgress } from "./audio-phone/PlayerProgress";
-import { WaveformVisualizer } from "./audio-phone/WaveformVisualizer";
 
 interface AudioPhoneRecordingAllPhaseProps {
   maxSeconds: number;
@@ -23,7 +17,7 @@ interface AudioPhoneRecordingAllPhaseProps {
   onStartImitation: () => void;
 }
 
-export const AudioPhoneRecordingAllPhase = memo(({
+export const AudioPhoneRecordingAllPhase = ({
   maxSeconds,
   playerName,
   hasSubmitted,
@@ -65,15 +59,16 @@ export const AudioPhoneRecordingAllPhase = memo(({
 
   const startRecording = async () => {
     try {
-      setRecordedBlob(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
+      // Set up audio analysis
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
       source.connect(analyserRef.current);
 
+      // Determine supported mime type
       const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
       let selectedMimeType = '';
       for (const mimeType of mimeTypes) {
@@ -104,6 +99,7 @@ export const AudioPhoneRecordingAllPhase = memo(({
       setIsRecording(true);
       setRecordingTime(0);
 
+      // Start timer
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => {
           if (prev >= maxSeconds) {
@@ -114,6 +110,7 @@ export const AudioPhoneRecordingAllPhase = memo(({
         });
       }, 1000);
 
+      // Animate audio level
       const updateLevel = () => {
         if (analyserRef.current) {
           const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
@@ -151,170 +148,154 @@ export const AudioPhoneRecordingAllPhase = memo(({
   if (hasSubmitted) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <FuturisticBackground variant="listening" />
-        
-        <HolographicCard variant="success" glow className="w-full max-w-lg p-8 relative z-10">
+        <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-emerald-950/80 to-teal-950/80 border-emerald-500/30 backdrop-blur-xl">
           <div className="text-center space-y-6">
-            {/* Success icon */}
-            <div className="relative">
-              <div className="w-24 h-24 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <Check className="w-12 h-12 text-emerald-400" />
-              </div>
-              <div className="absolute inset-0 w-24 h-24 mx-auto rounded-full bg-emerald-500/30 animate-ping" />
+            <div className="w-20 h-20 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
+              <Check className="w-10 h-10 text-emerald-400" />
             </div>
             
             <div>
-              <StatusBadge variant="success" icon={<AudioWaveform className="w-4 h-4" />}>
-                Phrase transmise
-              </StatusBadge>
-              <h2 className="text-2xl md:text-3xl font-bold text-emerald-400 mt-4 mb-2">
-                Mission accomplie !
+              <h2 className="text-2xl font-bold text-emerald-400 mb-2">
+                Phrase enregistrée !
               </h2>
               <p className="text-muted-foreground">
-                En attente des autres agents...
+                En attente des autres joueurs...
               </p>
             </div>
 
-            {/* Player progress */}
-            <PlayerProgress 
-              current={submittedCount} 
-              total={playersCount}
-              label="Transmissions reçues"
-              variant="success"
-            />
+            <div className="flex items-center justify-center gap-3 text-lg">
+              <Users className="w-5 h-5 text-emerald-400" />
+              <span className="text-foreground font-medium">
+                {submittedCount} / {playersCount} joueurs
+              </span>
+            </div>
 
-            {/* Waiting animation */}
-            <div className="flex justify-center pt-2">
-              <WaveformVisualizer isActive barCount={20} variant="playing" className="h-10 opacity-60" />
+            {/* Progress bar */}
+            <div className="w-full bg-muted/30 rounded-full h-3 overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+                style={{ width: `${(submittedCount / playersCount) * 100}%` }}
+              />
             </div>
 
             {allSubmitted && isHost && (
-              <NeonButton
+              <Button
                 onClick={onStartImitation}
                 size="lg"
-                variant="primary"
-                icon={<Zap className="w-5 h-5" />}
+                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
               >
                 Lancer les imitations
-              </NeonButton>
+              </Button>
             )}
           </div>
-        </HolographicCard>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <FuturisticBackground variant={isRecording ? "recording" : "default"} />
-      
-      <HolographicCard 
-        variant={isRecording ? "danger" : "default"} 
-        glow 
-        className="w-full max-w-lg p-6 md:p-8 relative z-10"
-      >
+      <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-violet-950/80 to-purple-950/80 border-violet-500/30 backdrop-blur-xl">
         <div className="text-center space-y-6">
-          {/* Header */}
           <div>
-            <StatusBadge 
-              variant={isRecording ? "recording" : "default"} 
-              icon={<AudioWaveform className="w-4 h-4" />}
-              pulse={isRecording}
-            >
-              {isRecording ? "Enregistrement en cours" : "Phase d'enregistrement"}
-            </StatusBadge>
-            
-            <h2 className="text-2xl md:text-3xl font-bold mt-4 mb-2">
-              <span className="text-primary">{playerName}</span>
-              <span className="text-foreground">, à toi !</span>
+            <h2 className="text-2xl font-bold text-violet-300 mb-2">
+              {playerName}, enregistre ta phrase !
             </h2>
             <p className="text-muted-foreground">
-              Enregistre une phrase mystère ({maxSeconds} secondes max)
+              Dis une phrase originale (max {maxSeconds} secondes)
             </p>
           </div>
 
-          {/* Recording interface */}
-          {!recordedBlob ? (
-            <div className="py-4">
-              <CircularProgress
-                progress={(recordingTime / maxSeconds) * 100}
-                size={180}
-                strokeWidth={8}
-                variant={isRecording ? "recording" : "default"}
-                showGlow={isRecording}
-              >
-                <RecordButton
-                  isRecording={isRecording}
-                  isLoading={isSubmitting}
-                  audioLevel={audioLevel}
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isSubmitting}
-                  size="md"
-                />
-              </CircularProgress>
-
-              {/* Timer display */}
-              {isRecording && (
-                <div className="mt-8 flex flex-col items-center gap-2">
-                  <div className="text-4xl font-mono font-bold text-rose-400">
-                    {recordingTime}<span className="text-2xl text-rose-400/60">s</span>
-                    <span className="text-muted-foreground text-xl"> / {maxSeconds}s</span>
-                  </div>
-                  <WaveformVisualizer 
-                    isActive 
-                    audioLevel={audioLevel} 
-                    variant="recording" 
-                    barCount={30}
-                    className="h-12 w-full max-w-xs"
-                  />
-                </div>
+          {/* Recording button */}
+          <div className="relative">
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isSubmitting}
+              className={cn(
+                "w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300",
+                isRecording
+                  ? "bg-red-500 hover:bg-red-600 animate-pulse"
+                  : "bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
               )}
-            </div>
-          ) : (
-            // Recorded preview
-            <div className="space-y-5 py-4">
-              <div className="p-4 rounded-xl bg-muted/20 backdrop-blur-sm border border-border/30">
-                <p className="text-sm text-muted-foreground mb-3">Aperçu de ton enregistrement</p>
-                <audio 
-                  src={URL.createObjectURL(recordedBlob)} 
-                  controls 
-                  className="w-full h-12"
-                />
+              style={{
+                boxShadow: isRecording 
+                  ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(239, 68, 68, 0.4)`
+                  : '0 0 30px rgba(139, 92, 246, 0.3)'
+              }}
+            >
+              {isRecording ? (
+                <MicOff className="w-12 h-12 text-white" />
+              ) : (
+                <Mic className="w-12 h-12 text-white" />
+              )}
+            </button>
+
+            {/* Audio visualizer rings */}
+            {isRecording && (
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute inset-0 rounded-full border-2 border-red-400/50"
+                    style={{
+                      transform: `scale(${1 + audioLevel * (i + 1) * 0.3})`,
+                      opacity: 1 - audioLevel * 0.3 * i,
+                      transition: 'transform 0.1s, opacity 0.1s',
+                    }}
+                  />
+                ))}
               </div>
-              
+            )}
+          </div>
+
+          {/* Timer */}
+          {isRecording && (
+            <div className="text-3xl font-mono font-bold text-red-400">
+              {recordingTime}s / {maxSeconds}s
+            </div>
+          )}
+
+          {/* Recorded audio preview and submit */}
+          {recordedBlob && !isRecording && (
+            <div className="space-y-4">
+              <audio 
+                src={URL.createObjectURL(recordedBlob)} 
+                controls 
+                className="w-full"
+              />
               <div className="flex gap-3">
-                <NeonButton
+                <Button
                   onClick={startRecording}
-                  variant="warning"
+                  variant="outline"
                   className="flex-1"
                 >
                   Réenregistrer
-                </NeonButton>
-                <NeonButton
+                </Button>
+                <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  variant="success"
-                  className="flex-1"
-                  icon={isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
                 >
-                  {isSubmitting ? "Envoi..." : "Valider"}
-                </NeonButton>
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Check className="w-4 h-4 mr-2" />
+                  )}
+                  Valider
+                </Button>
               </div>
             </div>
           )}
 
-          {/* Progress footer */}
-          <div className="pt-4 border-t border-border/30">
-            <PlayerProgress 
-              current={submittedCount} 
-              total={playersCount}
-              label="Phrases enregistrées"
-            />
+          {/* Progress info */}
+          <div className="pt-4 border-t border-violet-500/20">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Users className="w-4 h-4" />
+              <span>{submittedCount} / {playersCount} phrases enregistrées</span>
+            </div>
           </div>
         </div>
-      </HolographicCard>
+      </Card>
     </div>
   );
-});
-
-AudioPhoneRecordingAllPhase.displayName = "AudioPhoneRecordingAllPhase";
+};
