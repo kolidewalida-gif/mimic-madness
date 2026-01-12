@@ -201,6 +201,54 @@ export type Database = {
           },
         ]
       }
+      friend_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       game_rounds: {
         Row: {
           challenge_player_id: string
@@ -504,6 +552,60 @@ export type Database = {
           },
         ]
       }
+      player_stats: {
+        Row: {
+          audio_phone_games: number | null
+          best_streak: number | null
+          created_at: string
+          current_streak: number | null
+          games_hosted: number | null
+          games_played: number | null
+          games_won: number | null
+          id: string
+          messages_sent: number | null
+          quiz_games: number | null
+          recordings_made: number | null
+          standard_games: number | null
+          total_play_time_minutes: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_phone_games?: number | null
+          best_streak?: number | null
+          created_at?: string
+          current_streak?: number | null
+          games_hosted?: number | null
+          games_played?: number | null
+          games_won?: number | null
+          id?: string
+          messages_sent?: number | null
+          quiz_games?: number | null
+          recordings_made?: number | null
+          standard_games?: number | null
+          total_play_time_minutes?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_phone_games?: number | null
+          best_streak?: number | null
+          created_at?: string
+          current_streak?: number | null
+          games_hosted?: number | null
+          games_played?: number | null
+          games_won?: number | null
+          id?: string
+          messages_sent?: number | null
+          quiz_games?: number | null
+          recordings_made?: number | null
+          standard_games?: number | null
+          total_play_time_minutes?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_submissions: {
         Row: {
           challenges_count: number
@@ -538,6 +640,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       quiz_answers: {
         Row: {
@@ -780,6 +909,7 @@ export type Database = {
     }
     Functions: {
       cleanup_old_lobbies: { Args: never; Returns: undefined }
+      generate_friend_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
