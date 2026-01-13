@@ -6,14 +6,12 @@ import { VolumeControl } from "@/components/VolumeControl";
 import { SoundEffectsVolumeControl } from "@/components/SoundEffectsVolumeControl";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { ThemeSelector } from "@/components/ThemeSelector";
-import { AuthButton } from "@/components/AuthButton";
-import { FriendsPanel } from "@/components/FriendsPanel";
-import { ProfilePanel } from "@/components/ProfilePanel";
+import { ProfileSidebar } from "@/components/ProfileSidebar";
+import { FriendsSidebar } from "@/components/FriendsSidebar";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useAuth } from "@/hooks/useAuth";
-import { Play, Users, Settings, User, Zap, ArrowRight, Gamepad2, ChevronLeft, Hash } from "lucide-react";
+import { Play, Users, Settings, User, Zap, ArrowRight, ChevronLeft, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 interface HomeScreenProps {
   onCreateGame: (playerName: string) => void;
   onJoinGame: (playerName: string, lobbyCode: string) => void;
@@ -27,8 +25,6 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
   const [lobbyCode, setLobbyCode] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [showSettings, setShowSettings] = useState(false);
-  const [showFriends, setShowFriends] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const { play } = useBackgroundMusic();
 
@@ -67,17 +63,9 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 pb-28 relative">
-      {/* Auth Button - Top Right */}
-      <div className="fixed top-4 right-4 z-20">
-        <AuthButton 
-          onOpenProfile={() => setShowProfile(true)} 
-          onOpenFriends={() => setShowFriends(true)} 
-        />
-      </div>
-
-      {/* Panels */}
-      <FriendsPanel isOpen={showFriends} onClose={() => setShowFriends(false)} />
-      <ProfilePanel isOpen={showProfile} onClose={() => setShowProfile(false)} />
+      {/* Sidebars permanents */}
+      <ProfileSidebar />
+      <FriendsSidebar />
 
       {/* Simplified background */}
       <div className="fixed inset-0 bg-gradient-to-br from-background via-background-secondary to-background" />
