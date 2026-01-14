@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import mimicMasterLogo from "@/assets/mimic-master-logo.png";
+import mimicMasterLogo from "@/assets/mimic-master-logo-v2.png";
 
 interface GameLogoProps {
   className?: string;
@@ -24,8 +24,8 @@ export const GameLogo = ({ className = "", size = "lg", animated = true }: GameL
       <div className="relative">
         {/* Outer glow */}
         <div className={cn(
-          "absolute inset-0 blur-2xl opacity-40 bg-gradient-to-r from-amber-500 via-primary to-cyan-400",
-          animated && "group-hover:opacity-60 transition-opacity duration-500 animate-pulse"
+          "absolute inset-0 blur-2xl opacity-50 bg-gradient-to-r from-primary via-accent to-primary",
+          animated && "group-hover:opacity-70 transition-opacity duration-500 animate-pulse"
         )} />
         
         {/* Logo image */}

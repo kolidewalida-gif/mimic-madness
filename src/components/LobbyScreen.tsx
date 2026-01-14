@@ -3,6 +3,7 @@ import { PlayersList } from "@/components/PlayersList";
 import { LobbyChat } from "@/components/LobbyChat";
 import { GameModeSelector } from "@/components/GameModeSelector";
 import { TeamDisplay } from "@/components/TeamDisplay";
+import { LobbyInvitePanel } from "@/components/LobbyInvitePanel";
 import { Button } from "@/components/ui/button";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { ArrowLeft, Settings, Users, Wifi } from "lucide-react";
@@ -241,8 +242,19 @@ export const LobbyScreen = ({
 
         {/* Main Content */}
         <div className="grid lg:grid-cols-2 gap-6 items-start">
-          {/* Left Column - Players List */}
+          {/* Left Column - Players List + Invite Panel */}
           <div className="space-y-4">
+            {/* Fortnite-style Invite Slots */}
+            {isHost && (
+              <LobbyInvitePanel
+                lobbyCode={lobbyCode}
+                lobbyId={lobbyId}
+                players={players}
+                maxPlayers={8}
+                isHost={isHost}
+              />
+            )}
+            
             <PlayersList
               players={players}
               lobbyCode={lobbyCode}
