@@ -39,30 +39,32 @@ const ProfileSidebarComponent = () => {
   // Non connecté
   if (!user && !isLoading) {
     return (
-      <div className="w-64 bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl overflow-hidden flex flex-col h-[500px]">
-        <div className="p-4 border-b border-border/30 bg-background/30">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <User className="h-4 w-4 text-primary" />
+      <div className="w-[260px] bg-card/40 backdrop-blur-xl border border-border/20 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-border/20 bg-background/20">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
+              <User className="h-3.5 w-3.5 text-primary" />
             </div>
             <span className="font-semibold text-sm">Mon Profil</span>
           </div>
         </div>
         
-        <div className="flex-1 flex items-center justify-center p-4">
+        {/* Content */}
+        <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-              <User className="h-8 w-8 text-foreground-muted" />
+            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center border border-border/20">
+              <User className="h-10 w-10 text-foreground-muted/50" />
             </div>
-            <p className="text-xs text-foreground-muted px-2">
+            <p className="text-xs text-foreground-muted px-4 leading-relaxed">
               Connectez-vous pour sauvegarder votre progression
             </p>
             <Button
               onClick={signInWithGoogle}
               size="sm"
-              className="w-full bg-gradient-to-r from-primary to-primary-hover"
+              className="w-full bg-gradient-to-r from-primary to-primary-hover hover:opacity-90 transition-opacity"
             >
-              <LogIn className="h-3 w-3 mr-2" />
+              <LogIn className="h-3.5 w-3.5 mr-2" />
               Connexion Google
             </Button>
           </div>
@@ -71,18 +73,18 @@ const ProfileSidebarComponent = () => {
     );
   }
 
-  // Chargement
+  // Loading
   if (isLoading) {
     return (
-      <div className="w-64 bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl overflow-hidden h-[500px]">
-        <div className="p-4 border-b border-border/30 bg-background/30">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+      <div className="w-[260px] bg-card/40 backdrop-blur-xl border border-border/20 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="px-4 py-3 border-b border-border/20 bg-background/20">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-muted animate-pulse" />
             <div className="h-4 w-20 bg-muted rounded animate-pulse" />
           </div>
         </div>
-        <div className="p-4 space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-full bg-muted animate-pulse" />
+        <div className="p-6 space-y-4">
+          <div className="w-20 h-20 mx-auto rounded-full bg-muted animate-pulse" />
           <div className="h-4 w-24 mx-auto bg-muted rounded animate-pulse" />
         </div>
       </div>
@@ -90,12 +92,12 @@ const ProfileSidebarComponent = () => {
   }
 
   return (
-    <div className="w-64 bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl overflow-hidden flex flex-col h-[500px]">
+    <div className="w-[260px] bg-card/40 backdrop-blur-xl border border-border/20 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
       {/* Header */}
-      <div className="p-4 border-b border-border/30 bg-background/30 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <User className="h-4 w-4 text-white" />
+      <div className="px-4 py-3 border-b border-border/20 bg-background/20 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <User className="h-3.5 w-3.5 text-white" />
           </div>
           <span className="font-semibold text-sm">Mon Profil</span>
         </div>
@@ -109,45 +111,46 @@ const ProfileSidebarComponent = () => {
         </Button>
       </div>
 
-      {/* Contenu */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Avatar et nom */}
+      {/* Content */}
+      <div className="p-4 space-y-4">
+        {/* Avatar and name */}
         <div className="text-center space-y-2">
-          <Avatar className="h-16 w-16 mx-auto ring-2 ring-primary/30">
+          <Avatar className="h-20 w-20 mx-auto ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
             <AvatarImage src={profile?.avatar_url || undefined} />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-xl font-bold">
+            <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-2xl font-bold">
               {profile?.display_name?.charAt(0)?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
 
           {isEditing ? (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 px-2">
               <Input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="h-8 text-center text-sm"
+                className="h-8 text-center text-sm bg-background/50"
                 placeholder="Votre pseudo"
+                autoFocus
               />
-              <Button size="icon" variant="ghost" onClick={handleSave} disabled={isSaving} className="h-8 w-8">
-                <Check className="h-3 w-3 text-green-500" />
+              <Button size="icon" variant="ghost" onClick={handleSave} disabled={isSaving} className="h-8 w-8 shrink-0">
+                <Check className="h-3.5 w-3.5 text-green-500" />
               </Button>
-              <Button size="icon" variant="ghost" onClick={() => setIsEditing(false)} className="h-8 w-8">
-                <X className="h-3 w-3 text-red-500" />
+              <Button size="icon" variant="ghost" onClick={() => setIsEditing(false)} className="h-8 w-8 shrink-0">
+                <X className="h-3.5 w-3.5 text-red-500" />
               </Button>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-1">
-              <span className="font-semibold">{profile?.display_name || 'Joueur'}</span>
+              <span className="font-semibold text-base">{profile?.display_name || 'Joueur'}</span>
               <Button size="icon" variant="ghost" onClick={() => setIsEditing(true)} className="h-6 w-6">
-                <Edit2 className="h-3 w-3" />
+                <Edit2 className="h-3 w-3 text-foreground-muted" />
               </Button>
             </div>
           )}
         </div>
 
         {/* Win Rate */}
-        <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-3 text-center">
-          <div className="text-2xl font-black bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-3 text-center border border-primary/10">
+          <div className="text-3xl font-black bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             {winRate}%
           </div>
           <div className="text-xs text-foreground-muted">Taux de victoire</div>
@@ -166,7 +169,7 @@ const ProfileSidebarComponent = () => {
 };
 
 const StatCard = ({ icon: Icon, label, value }: { icon: any; label: string; value: number }) => (
-  <div className="bg-background/40 rounded-lg p-2 text-center border border-border/20">
+  <div className="bg-background/30 rounded-xl p-2.5 text-center border border-border/10">
     <Icon className="h-4 w-4 mx-auto mb-1 text-primary" />
     <div className="text-lg font-bold">{value}</div>
     <div className="text-[10px] text-foreground-muted">{label}</div>

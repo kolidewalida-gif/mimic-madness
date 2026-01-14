@@ -1,8 +1,9 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFriends } from '@/hooks/useFriends';
-import { supabase } from '@/integrations/supabase/client';
-import { Users, Copy, Send, Check, X, UserMinus, Loader2, LogIn, UserPlus, Play, Circle } from 'lucide-react';
+import { useOnlinePresence } from '@/hooks/useOnlinePresence';
+import { useGameInvitations } from '@/hooks/useGameInvitations';
+import { Users, Copy, Send, Check, X, UserMinus, Loader2, LogIn, UserPlus, Play, Circle, Mail, Bell } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,63 +13,18 @@ import { toast } from 'sonner';
 
 interface FriendsSidebarProps {
   onJoinFriend?: (lobbyCode: string) => void;
+  currentLobbyCode?: string;
 }
 
-interface OnlineStatus {
-  [userId: string]: {
-    online: boolean;
-    lobbyCode?: string | null;
-  };
-}
-
-const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
-  const { user, friendCode, isLoading: authLoading, signInWithGoogle } = useAuth();
+const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSidebarProps) => {
+  const { user, profile, friendCode, isLoading: authLoading, signInWithGoogle } = useAuth();
   const { friends, pendingRequests, isLoading, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend } = useFriends();
+  const { getUserStatus } = useOnlinePresence(currentLobbyCode);
+  const { pendingInvitations, sendInvitation, acceptInvitation, declineInvitation, isLoading: invitationLoading } = useGameInvitations();
   
   const [friendCodeInput, setFriendCodeInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [onlineStatus, setOnlineStatus] = useState<OnlineStatus>({});
-
-  // Track online status of friends via presence
-  useEffect(() => {
-    if (!user || friends.length === 0) return;
-
-    const channel = supabase.channel('online-friends');
-    
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const newStatus: OnlineStatus = {};
-        
-        friends.forEach(friend => {
-          const friendPresence = state[friend.user_id];
-          if (friendPresence && friendPresence.length > 0) {
-            const presence = friendPresence[0] as any;
-            newStatus[friend.user_id] = {
-              online: true,
-              lobbyCode: presence.lobbyCode || null
-            };
-          } else {
-            newStatus[friend.user_id] = { online: false };
-          }
-        });
-        
-        setOnlineStatus(newStatus);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            online_at: new Date().toISOString(),
-            user_id: user.id,
-          });
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, friends]);
 
   const handleSendRequest = async () => {
     if (!friendCodeInput.trim()) return;
@@ -116,6 +72,21 @@ const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
     }
   };
 
+  const handleInviteFriend = async (friendUserId: string) => {
+    if (!currentLobbyCode || !profile?.display_name) {
+      toast.error('Vous devez être dans un lobby pour inviter');
+      return;
+    }
+    await sendInvitation(friendUserId, currentLobbyCode, profile.display_name);
+  };
+
+  const handleAcceptInvitation = async (invitationId: string) => {
+    const lobbyCode = await acceptInvitation(invitationId);
+    if (lobbyCode && onJoinFriend) {
+      onJoinFriend(lobbyCode);
+    }
+  };
+
   const copyFriendCode = async () => {
     if (!friendCode) return;
     await navigator.clipboard.writeText(friendCode);
@@ -127,30 +98,32 @@ const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
   // Non connecté
   if (!user && !authLoading) {
     return (
-      <div className="w-64 bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl overflow-hidden flex flex-col h-[500px]">
-        <div className="p-4 border-b border-border/30 bg-background/30">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-              <Users className="h-4 w-4 text-accent" />
+      <div className="w-[260px] bg-card/40 backdrop-blur-xl border border-border/20 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-border/20 bg-background/20">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-accent/20 flex items-center justify-center">
+              <Users className="h-3.5 w-3.5 text-accent" />
             </div>
             <span className="font-semibold text-sm">Mes Amis</span>
           </div>
         </div>
         
-        <div className="flex-1 flex items-center justify-center p-4">
+        {/* Content */}
+        <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
-              <Users className="h-8 w-8 text-foreground-muted" />
+            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-accent/10 to-primary/10 flex items-center justify-center border border-border/20">
+              <Users className="h-10 w-10 text-foreground-muted/50" />
             </div>
-            <p className="text-xs text-foreground-muted px-2">
+            <p className="text-xs text-foreground-muted px-4 leading-relaxed">
               Connectez-vous pour ajouter des amis
             </p>
             <Button
               onClick={signInWithGoogle}
               size="sm"
-              className="w-full bg-gradient-to-r from-accent to-primary"
+              className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90 transition-opacity"
             >
-              <LogIn className="h-3 w-3 mr-2" />
+              <LogIn className="h-3.5 w-3.5 mr-2" />
               Connexion Google
             </Button>
           </div>
@@ -159,13 +132,13 @@ const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
     );
   }
 
-  // Chargement
+  // Loading
   if (authLoading) {
     return (
-      <div className="w-64 bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl overflow-hidden h-[500px]">
-        <div className="p-4 border-b border-border/30 bg-background/30">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+      <div className="w-[260px] bg-card/40 backdrop-blur-xl border border-border/20 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="px-4 py-3 border-b border-border/20 bg-background/20">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-muted animate-pulse" />
             <div className="h-4 w-20 bg-muted rounded animate-pulse" />
           </div>
         </div>
@@ -173,44 +146,56 @@ const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
     );
   }
 
+  const totalNotifications = pendingRequests.length + pendingInvitations.length;
+
   return (
-    <div className="w-64 bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl overflow-hidden flex flex-col h-[500px]">
+    <div className="w-[260px] bg-card/40 backdrop-blur-xl border border-border/20 rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[520px]">
       {/* Header */}
-      <div className="p-4 border-b border-border/30 bg-background/30">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
-            <Users className="h-4 w-4 text-white" />
+      <div className="px-4 py-3 border-b border-border/20 bg-background/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+              <Users className="h-3.5 w-3.5 text-white" />
+            </div>
+            <div>
+              <span className="font-semibold text-sm">Mes Amis</span>
+              <p className="text-[10px] text-foreground-muted">{friends.length} ami(s)</p>
+            </div>
           </div>
-          <div>
-            <span className="font-semibold text-sm">Mes Amis</span>
-            <p className="text-[10px] text-foreground-muted">{friends.length} ami(s)</p>
-          </div>
+          {totalNotifications > 0 && (
+            <div className="relative">
+              <Bell className="h-4 w-4 text-primary" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                {totalNotifications}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Contenu */}
+      {/* Content */}
       <div className="flex-1 overflow-hidden flex flex-col p-3 space-y-3">
-        {/* Code ami */}
+        {/* Friend code */}
         <div className="space-y-1">
           <label className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider">
             Votre Code Ami
           </label>
           <div className="relative">
-            <div className="bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg p-2.5 pr-8 font-mono text-sm font-bold text-primary tracking-wider">
+            <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg p-2.5 pr-10 font-mono text-sm font-bold text-primary tracking-widest border border-primary/10">
               {friendCode || '...'}
             </div>
             <Button
               size="icon"
               variant="ghost"
               onClick={copyFriendCode}
-              className="absolute right-0.5 top-1/2 -translate-y-1/2 h-7 w-7"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
             >
-              {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+              {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
             </Button>
           </div>
         </div>
 
-        {/* Ajouter un ami */}
+        {/* Add friend */}
         <div className="space-y-1">
           <label className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-1">
             <UserPlus className="h-2.5 w-2.5" />
@@ -222,20 +207,58 @@ const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
               value={friendCodeInput}
               onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && handleSendRequest()}
-              className="flex-1 h-8 text-xs font-mono uppercase tracking-wider"
+              className="flex-1 h-9 text-xs font-mono uppercase tracking-wider bg-background/50"
             />
             <Button
               size="icon"
               onClick={handleSendRequest}
               disabled={!friendCodeInput.trim() || isSending}
-              className="h-8 w-8 bg-gradient-to-r from-primary to-accent"
+              className="h-9 w-9 bg-gradient-to-r from-primary to-accent shrink-0"
             >
-              {isSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+              {isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             </Button>
           </div>
         </div>
 
-        {/* Demandes en attente */}
+        {/* Game invitations */}
+        {pendingInvitations.length > 0 && (
+          <div className="space-y-1.5">
+            <h3 className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-1">
+              <Mail className="h-2.5 w-2.5" />
+              Invitations ({pendingInvitations.length})
+            </h3>
+            <div className="space-y-1.5">
+              {pendingInvitations.map((invitation) => (
+                <div
+                  key={invitation.id}
+                  className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20 animate-pulse-slow"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium truncate">{invitation.sender_name}</div>
+                    <div className="text-[10px] text-foreground-muted">vous invite à jouer</div>
+                  </div>
+                  <Button 
+                    size="icon" 
+                    onClick={() => handleAcceptInvitation(invitation.id)} 
+                    className="h-7 w-7 bg-green-500 hover:bg-green-600"
+                  >
+                    <Check className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={() => declineInvitation(invitation.id)} 
+                    className="h-7 w-7 text-red-500 hover:bg-red-500/10"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Pending friend requests */}
         {pendingRequests.length > 0 && (
           <div className="space-y-1.5">
             <h3 className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider">
@@ -245,7 +268,7 @@ const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
               {pendingRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="flex items-center gap-2 p-2 bg-background/50 rounded-lg border border-primary/30"
+                  className="flex items-center gap-2 p-2 bg-background/40 rounded-lg border border-primary/20"
                 >
                   <Avatar className="h-7 w-7">
                     <AvatarImage src={request.requesterProfile?.avatar_url || undefined} />
@@ -268,12 +291,12 @@ const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
           </div>
         )}
 
-        {/* Liste d'amis */}
-        <div className="flex-1 overflow-hidden space-y-1.5">
+        {/* Friends list */}
+        <div className="flex-1 overflow-hidden space-y-1.5 min-h-0">
           <h3 className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider">
             Amis
           </h3>
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full max-h-[200px]">
             {isLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -285,17 +308,17 @@ const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
             ) : (
               <div className="space-y-1.5 pr-2">
                 {friends.map((friend) => {
-                  const status = onlineStatus[friend.user_id];
-                  const isOnline = status?.online || false;
-                  const lobbyCode = status?.lobbyCode;
+                  const status = getUserStatus(friend.user_id);
+                  const isOnline = status.online;
+                  const lobbyCode = status.lobbyCode;
                   
                   return (
                     <div
                       key={friend.id}
                       className={cn(
                         "flex items-center gap-2 p-2 rounded-xl",
-                        "bg-background/40 border border-border/20",
-                        "hover:border-primary/30 transition-colors group"
+                        "bg-background/30 border border-border/10",
+                        "hover:border-primary/20 transition-colors group"
                       )}
                     >
                       <div className="relative">
@@ -316,31 +339,45 @@ const FriendsSidebarComponent = ({ onJoinFriend }: FriendsSidebarProps) => {
                         <div className="text-xs font-medium truncate">{friend.display_name || 'Joueur'}</div>
                         <div className={cn(
                           "text-[10px]",
-                          isOnline ? "text-green-500" : "text-foreground-muted"
+                          lobbyCode ? "text-primary" : isOnline ? "text-green-500" : "text-foreground-muted"
                         )}>
                           {lobbyCode ? 'En partie' : isOnline ? 'En ligne' : 'Hors ligne'}
                         </div>
                       </div>
                       
                       {/* Actions */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5">
                         {lobbyCode && (
                           <Button
                             size="icon"
                             variant="ghost"
                             onClick={() => handleJoinFriend(lobbyCode)}
-                            className="h-6 w-6 text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                            className="h-7 w-7 text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                            title="Rejoindre"
                           >
-                            <Play className="h-3 w-3" />
+                            <Play className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {currentLobbyCode && !lobbyCode && isOnline && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleInviteFriend(friend.user_id)}
+                            disabled={invitationLoading}
+                            className="h-7 w-7 text-primary hover:bg-primary/10"
+                            title="Inviter"
+                          >
+                            <Mail className="h-3.5 w-3.5" />
                           </Button>
                         )}
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => handleRemove(friend.id)}
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
+                          title="Supprimer"
                         >
-                          <UserMinus className="h-3 w-3" />
+                          <UserMinus className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
