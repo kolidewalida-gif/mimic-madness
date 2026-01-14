@@ -249,6 +249,39 @@ export type Database = {
         }
         Relationships: []
       }
+      game_invitations: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          lobby_code: string
+          receiver_id: string
+          sender_id: string
+          sender_name: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          lobby_code: string
+          receiver_id: string
+          sender_id: string
+          sender_name: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          lobby_code?: string
+          receiver_id?: string
+          sender_id?: string
+          sender_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
       game_rounds: {
         Row: {
           challenge_player_id: string

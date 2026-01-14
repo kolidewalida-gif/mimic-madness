@@ -12,6 +12,7 @@ import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useAuth } from "@/hooks/useAuth";
 import { Play, Users, Settings, User, Zap, ArrowRight, ChevronLeft, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 interface HomeScreenProps {
   onCreateGame: (playerName: string) => void;
   onJoinGame: (playerName: string, lobbyCode: string) => void;
@@ -74,26 +75,26 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 pb-28 relative">
-      {/* Simplified background */}
+      {/* Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-background via-background-secondary to-background" />
       
-      {/* Reduced floating orbs */}
+      {/* Floating orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-primary/15 blur-[120px]" />
         <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-accent/10 blur-[100px]" />
       </div>
 
-      {/* Main Layout: Profile - Center Card - Friends */}
-      <div className="relative z-10 flex items-start justify-center gap-6 w-full max-w-5xl">
+      {/* Main Layout */}
+      <div className="relative z-10 flex items-start justify-center gap-6 w-full max-w-6xl">
         {/* Left Panel - Profile */}
-        <div className="hidden lg:block flex-shrink-0">
+        <div className="hidden lg:flex flex-shrink-0 pt-24">
           <ProfileSidebar />
         </div>
 
         {/* Center Content */}
-        <div className="w-full max-w-md space-y-8">
-          {/* Logo Section */}
-          <div className="text-center space-y-2">
+        <div className="w-full max-w-md space-y-6">
+          {/* Logo */}
+          <div className="text-center">
             <div className="relative inline-block">
               <div className="absolute inset-0 -m-8 bg-primary/20 rounded-full blur-[60px]" />
               <GameLogo className="justify-center relative" animated />
@@ -262,7 +263,7 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
         </div>
 
         {/* Right Panel - Friends */}
-        <div className="hidden lg:block flex-shrink-0">
+        <div className="hidden lg:flex flex-shrink-0 pt-24">
           <FriendsSidebar onJoinFriend={handleJoinFriend} />
         </div>
       </div>
