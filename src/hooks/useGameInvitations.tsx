@@ -1,7 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+
+// Callback ref for handling new invitations
+let onNewInvitationCallback: ((invitation: GameInvitation) => void) | null = null;
+
+export const setOnNewInvitationCallback = (callback: ((invitation: GameInvitation) => void) | null) => {
+  onNewInvitationCallback = callback;
+};
 
 interface GameInvitation {
   id: string;
@@ -57,13 +64,10 @@ export const useGameInvitations = () => {
             const newInvitation = payload.new as GameInvitation;
             if (newInvitation.status === 'pending') {
               setPendingInvitations(prev => [newInvitation, ...prev]);
-              toast.info(`${newInvitation.sender_name} vous invite à jouer !`, {
-                duration: 10000,
-                action: {
-                  label: 'Voir',
-                  onClick: () => {}
-                }
-              });
+              // Trigger premium notification callback
+              if (onNewInvitationCallback) {
+                onNewInvitationCallback(newInvitation);
+              }
             }
           } else if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
             fetchInvitations();

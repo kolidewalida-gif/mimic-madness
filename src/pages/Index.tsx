@@ -2,9 +2,11 @@ import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import { DynamicBackground } from "@/components/DynamicBackground";
 import { ScreenTransition } from "@/components/ScreenTransition";
 import { MusicPlayerBar } from "@/components/MusicPlayerBar";
+import { GameInvitationNotification } from "@/components/GameInvitationNotification";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
+import { useGameInvitations, setOnNewInvitationCallback } from "@/hooks/useGameInvitations";
 import { supabase } from "@/integrations/supabase/client";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
 import React from "react";
@@ -32,12 +34,26 @@ const LoadingFallback = memo(() => (
   </div>
 ));
 
+// Interface for game invitation
+interface GameInvitation {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  receiver_id: string;
+  lobby_code: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+}
+
 const Index = () => {
   const [gameState, setGameState] = useState<GameState>("home");
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>("normal");
+  const [activeInvitation, setActiveInvitation] = useState<GameInvitation | null>(null);
   const { toast } = useToast();
+  const { acceptInvitation, declineInvitation } = useGameInvitations();
   const { 
     lobby, 
     players, 
@@ -50,6 +66,53 @@ const Index = () => {
     transferHost,
     resetState 
   } = useLobbySync();
+
+  // Register invitation callback for premium notification
+  useEffect(() => {
+    setOnNewInvitationCallback((invitation) => {
+      setActiveInvitation(invitation);
+    });
+
+    return () => {
+      setOnNewInvitationCallback(null);
+    };
+  }, []);
+
+  const handleAcceptInvitation = useCallback(async (invitationId: string) => {
+    const lobbyCode = await acceptInvitation(invitationId);
+    setActiveInvitation(null);
+    
+    if (lobbyCode && gameState === 'home') {
+      // Generate a player name and join the game
+      const storedName = localStorage.getItem('playerName') || `Joueur${Math.floor(Math.random() * 1000)}`;
+      const playerId = crypto.randomUUID();
+      const newPlayer: Player = {
+        id: playerId,
+        name: storedName,
+        isHost: false,
+      };
+      
+      setCurrentPlayer(newPlayer);
+      const result = await joinLobby(lobbyCode, playerId, storedName);
+      
+      if (result) {
+        playSoundEffect('join', 0.4);
+        setGameState("lobby");
+      } else {
+        playSoundEffect('error', 0.4);
+        setCurrentPlayer(null);
+      }
+    }
+  }, [acceptInvitation, gameState, joinLobby]);
+
+  const handleDeclineInvitation = useCallback(async (invitationId: string) => {
+    await declineInvitation(invitationId);
+    setActiveInvitation(null);
+  }, [declineInvitation]);
+
+  const handleCloseInvitation = useCallback(() => {
+    setActiveInvitation(null);
+  }, []);
 
   // Handle being kicked or lobby deleted
   useEffect(() => {
@@ -409,6 +472,16 @@ const Index = () => {
         {renderContent}
       </ScreenTransition>
       <MusicPlayerBar />
+      
+      {/* Premium Game Invitation Notification */}
+      {activeInvitation && (
+        <GameInvitationNotification
+          invitation={activeInvitation}
+          onAccept={handleAcceptInvitation}
+          onDecline={handleDeclineInvitation}
+          onClose={handleCloseInvitation}
+        />
+      )}
     </>
   );
 };
