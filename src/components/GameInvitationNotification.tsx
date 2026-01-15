@@ -74,16 +74,52 @@ export const GameInvitationNotification = ({
       {isVisible && (
         <motion.div
           initial={{ opacity: 0, y: -100, scale: 0.8 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          animate={{ 
+            opacity: 1, 
+            y: 0, 
+            scale: 1,
+            x: [0, -8, 8, -6, 6, -4, 4, -2, 2, 0]
+          }}
           exit={{ opacity: 0, y: -50, scale: 0.9 }}
-          transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+          transition={{ 
+            type: 'spring', 
+            damping: 20, 
+            stiffness: 300,
+            x: {
+              duration: 0.6,
+              ease: "easeInOut",
+              times: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1]
+            }
+          }}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] pointer-events-auto"
         >
-          {/* Outer glow */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary rounded-2xl blur-xl opacity-60 animate-pulse" />
+          {/* Outer glow with pulse */}
+          <motion.div 
+            className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary rounded-2xl blur-xl opacity-60"
+            animate={{ 
+              scale: [1, 1.05, 1],
+              opacity: [0.6, 0.8, 0.6]
+            }}
+            transition={{ 
+              duration: 1.5, 
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
           
-          {/* Main card */}
-          <div className="relative bg-card/95 backdrop-blur-xl border border-primary/40 rounded-2xl p-5 shadow-2xl shadow-primary/30 min-w-[380px] max-w-[440px]">
+          {/* Main card with shake animation */}
+          <motion.div 
+            className="relative bg-card/95 backdrop-blur-xl border border-primary/40 rounded-2xl p-5 shadow-2xl shadow-primary/30 min-w-[380px] max-w-[440px]"
+            animate={{ 
+              rotate: [0, -1, 1, -1, 0],
+            }}
+            transition={{ 
+              duration: 0.5, 
+              repeat: 3,
+              repeatDelay: 2,
+              ease: "easeInOut"
+            }}
+          >
             {/* Animated border */}
             <div className="absolute inset-0 rounded-2xl overflow-hidden">
               <div 
@@ -190,7 +226,7 @@ export const GameInvitationNotification = ({
                 />
               ))}
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

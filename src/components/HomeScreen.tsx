@@ -87,17 +87,46 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
       {/* Main Layout */}
       <div className="relative z-10 flex items-start justify-center gap-6 w-full max-w-6xl">
         {/* Left Panel - Profile */}
-        <div className="hidden lg:flex flex-shrink-0 pt-24">
+        <div className="hidden lg:flex flex-shrink-0">
           <ProfileSidebar />
         </div>
 
         {/* Center Content */}
         <div className="w-full max-w-md space-y-6">
-          {/* Logo */}
-          <div className="text-center">
+          {/* Curved Logo Text */}
+          <div className="text-center mb-2">
             <div className="relative inline-block">
               <div className="absolute inset-0 -m-8 bg-primary/20 rounded-full blur-[60px]" />
-              <GameLogo className="justify-center relative" animated />
+              {/* Curved MIMIC MASTER text */}
+              <svg viewBox="0 0 300 80" className="w-72 h-auto mx-auto relative">
+                <defs>
+                  <path id="curve" d="M 20,60 Q 150,0 280,60" fill="transparent" />
+                  <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" />
+                    <stop offset="50%" stopColor="hsl(var(--accent))" />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" />
+                  </linearGradient>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                {/* Glow layer */}
+                <text fill="url(#textGradient)" filter="url(#glow)" opacity="0.6">
+                  <textPath href="#curve" startOffset="50%" textAnchor="middle" className="text-3xl font-black tracking-wider" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+                    MIMIC MASTER
+                  </textPath>
+                </text>
+                {/* Main text */}
+                <text fill="url(#textGradient)">
+                  <textPath href="#curve" startOffset="50%" textAnchor="middle" className="text-3xl font-black tracking-wider" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+                    MIMIC MASTER
+                  </textPath>
+                </text>
+              </svg>
             </div>
           </div>
 
@@ -263,7 +292,7 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
         </div>
 
         {/* Right Panel - Friends */}
-        <div className="hidden lg:flex flex-shrink-0 pt-24">
+        <div className="hidden lg:flex flex-shrink-0">
           <FriendsSidebar onJoinFriend={handleJoinFriend} />
         </div>
       </div>
