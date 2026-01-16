@@ -224,7 +224,7 @@ export const LobbyScreen = ({
           <div className="space-y-4">
             {/* Fortnite-style Invite Slots */}
             {isHost && (
-              <HolographicCard intensity="medium" className="p-0 overflow-hidden">
+              <HolographicCard intensity="medium" className="p-0">
                 <LobbyInvitePanel
                   lobbyCode={lobbyCode}
                   lobbyId={lobbyId}
