@@ -144,7 +144,7 @@ const LobbyInvitePanelComponent = ({
         ))}
       </div>
 
-      {/* Invite Panel Modal */}
+      {/* Invite Panel Modal - Portal style for proper layering */}
       <AnimatePresence>
         {showInvitePanel && (
           <>
@@ -154,7 +154,8 @@ const LobbyInvitePanelComponent = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowInvitePanel(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+              style={{ pointerEvents: 'auto' }}
             />
             
             {/* Panel */}
@@ -163,7 +164,8 @@ const LobbyInvitePanelComponent = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md px-4"
+              style={{ pointerEvents: 'auto' }}
             >
               <div className="bg-card/95 backdrop-blur-xl border border-border/30 rounded-2xl shadow-2xl overflow-hidden">
                 {/* Header */}
