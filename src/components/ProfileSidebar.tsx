@@ -1,6 +1,6 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { User, Trophy, Gamepad2, Target, Flame, Edit2, Check, X, LogIn, LogOut, Gift, Award } from 'lucide-react';
+import { User, Trophy, Gamepad2, Target, Flame, Edit2, Check, X, LogIn, LogOut, Gift, Award, Crown, Camera } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -11,13 +11,23 @@ import { InteractiveWrapper } from '@/components/premium/InteractiveWrapper';
 import { LevelProgressBar } from '@/components/LevelProgressBar';
 import { RewardsPanel } from '@/components/RewardsPanel';
 import { AchievementsPanel } from '@/components/AchievementsPanel';
+import { TitleSelector } from '@/components/TitleSelector';
+import { useEquippedTitle } from '@/hooks/useEquippedTitle';
+import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
+import { cn } from '@/lib/utils';
+
 const ProfileSidebarComponent = () => {
   const { user, profile, stats, isLoading, signInWithGoogle, signOut, updateProfile } = useAuth();
+  const { equippedTitle } = useEquippedTitle();
+  const { avatarData, setAvatarImage, isLoading: avatarLoading } = useGlobalPlayerAvatar(user?.id || '');
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showTitles, setShowTitles] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile?.display_name) {
@@ -36,6 +46,47 @@ const ProfileSidebarComponent = () => {
       toast.error('Erreur lors de la mise à jour');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez JPG, PNG, GIF ou WebP');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 2 Mo");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const result = e.target?.result as string;
+        await setAvatarImage(result);
+        toast.success('Photo de profil mise à jour !');
+        setIsUploadingAvatar(false);
+      };
+      reader.onerror = () => {
+        toast.error('Impossible de charger l\'image');
+        setIsUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Impossible de mettre à jour la photo');
+      setIsUploadingAvatar(false);
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -91,6 +142,11 @@ const ProfileSidebarComponent = () => {
     );
   }
 
+  // Get avatar image - prefer global avatar, then profile avatar
+  const avatarImageUrl = avatarData.type === 'image' && avatarData.imageUrl 
+    ? avatarData.imageUrl 
+    : profile?.avatar_url || undefined;
+
   return (
     <>
       <HolographicCard intensity="medium" className="w-[260px] overflow-hidden flex flex-col">
@@ -110,13 +166,49 @@ const ProfileSidebarComponent = () => {
         <div className="p-4 space-y-4">
           {/* Avatar and name */}
           <div className="text-center space-y-2">
-            <Avatar className="h-20 w-20 mx-auto ring-2 ring-primary/30 ring-offset-2 ring-offset-background">
-              <AvatarImage src={profile?.avatar_url || undefined} />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-2xl font-bold">
-                {profile?.display_name?.charAt(0)?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            {/* Avatar with upload button */}
+            <div className="relative inline-block">
+              <Avatar className="h-20 w-20 mx-auto ring-2 ring-primary/30 ring-offset-2 ring-offset-background">
+                <AvatarImage src={avatarImageUrl} />
+                <AvatarFallback 
+                  className="text-white text-2xl font-bold"
+                  style={{ 
+                    background: avatarData.backgroundColor 
+                      ? avatarData.backgroundColor 
+                      : 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))'
+                  }}
+                >
+                  {profile?.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              
+              {/* Camera button overlay */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingAvatar || avatarLoading}
+                className={cn(
+                  "absolute -bottom-1 -right-1 w-7 h-7 rounded-full",
+                  "bg-primary text-white flex items-center justify-center",
+                  "hover:bg-primary/80 transition-colors shadow-lg",
+                  "border-2 border-background"
+                )}
+              >
+                {isUploadingAvatar ? (
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
 
+            {/* Name */}
             {isEditing ? (
               <div className="flex items-center gap-1 px-2">
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-center text-sm bg-background/50" placeholder="Votre pseudo" autoFocus />
@@ -124,9 +216,23 @@ const ProfileSidebarComponent = () => {
                 <button onClick={() => setIsEditing(false)} className="p-1.5 rounded hover:bg-red-500/20"><X className="h-3.5 w-3.5 text-red-500" /></button>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-1">
-                <span className="font-semibold text-base">{profile?.display_name || 'Joueur'}</span>
-                <button onClick={() => setIsEditing(true)} className="p-1 rounded hover:bg-muted"><Edit2 className="h-3 w-3 text-muted-foreground" /></button>
+              <div className="flex flex-col items-center gap-0.5">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-base">{profile?.display_name || 'Joueur'}</span>
+                  <button onClick={() => setIsEditing(true)} className="p-1 rounded hover:bg-muted"><Edit2 className="h-3 w-3 text-muted-foreground" /></button>
+                </div>
+                {/* Equipped title */}
+                {equippedTitle && (
+                  <span className={cn(
+                    "text-xs px-2 py-0.5 rounded-full font-medium",
+                    equippedTitle.rarity === 'legendary' ? 'bg-yellow-500/20 text-yellow-400' :
+                    equippedTitle.rarity === 'epic' ? 'bg-purple-500/20 text-purple-400' :
+                    equippedTitle.rarity === 'rare' ? 'bg-blue-500/20 text-blue-400' :
+                    'bg-gray-500/20 text-gray-400'
+                  )}>
+                    {equippedTitle.name}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -149,17 +255,20 @@ const ProfileSidebarComponent = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <InteractiveWrapper glow>
-              <PremiumButton variant="neon" size="sm" onClick={() => setShowAchievements(true)} className="w-full text-xs">
-                <Award className="h-3 w-3 mr-1" />
-                Succès
+              <PremiumButton variant="neon" size="sm" onClick={() => setShowAchievements(true)} className="w-full text-xs px-2">
+                <Award className="h-3 w-3" />
               </PremiumButton>
             </InteractiveWrapper>
             <InteractiveWrapper glow>
-              <PremiumButton variant="neon" size="sm" onClick={() => setShowRewards(true)} className="w-full text-xs">
-                <Gift className="h-3 w-3 mr-1" />
-                Récompenses
+              <PremiumButton variant="neon" size="sm" onClick={() => setShowTitles(true)} className="w-full text-xs px-2">
+                <Crown className="h-3 w-3" />
+              </PremiumButton>
+            </InteractiveWrapper>
+            <InteractiveWrapper glow>
+              <PremiumButton variant="neon" size="sm" onClick={() => setShowRewards(true)} className="w-full text-xs px-2">
+                <Gift className="h-3 w-3" />
               </PremiumButton>
             </InteractiveWrapper>
           </div>
@@ -168,6 +277,7 @@ const ProfileSidebarComponent = () => {
 
       <RewardsPanel isOpen={showRewards} onClose={() => setShowRewards(false)} />
       <AchievementsPanel isOpen={showAchievements} onClose={() => setShowAchievements(false)} />
+      <TitleSelector isOpen={showTitles} onClose={() => setShowTitles(false)} />
     </>
   );
 };
