@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { XpContext } from '@/contexts/XpContext';
 
 interface Friend {
   id: string;
@@ -25,6 +26,7 @@ interface FriendRequest {
 
 export const useFriends = () => {
   const { user } = useAuth();
+  const xpContext = useContext(XpContext);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -197,7 +199,10 @@ export const useFriends = () => {
 
     if (error) throw error;
     await fetchFriends();
-  }, [fetchFriends]);
+    
+    // Award XP for making a new friend
+    xpContext?.onFriendAdded();
+  }, [fetchFriends, xpContext]);
 
   const rejectFriendRequest = useCallback(async (friendshipId: string) => {
     const { error } = await supabase
