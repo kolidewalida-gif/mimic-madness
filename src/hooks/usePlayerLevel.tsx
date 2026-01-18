@@ -36,22 +36,37 @@ export const LEVEL_XP_REQUIREMENTS = [
   92000,  // Level 30
 ];
 
-// XP rewards for different actions
+// XP rewards for different actions - Cohérent et logique
 export const XP_REWARDS = {
-  gameWin: 100,
-  gameLoss: 25,
-  gameParticipation: 10,
-  quizCorrectAnswer: 15,
-  quizWin: 75,
-  audioPhoneComplete: 50,
-  messageSent: 2,
-  gifSent: 3,
-  recordingMade: 10,
-  gameHosted: 20,
-  perfectRound: 50,
-  friendAdded: 25,
-  dailyLogin: 15,
-  achievementUnlocked: 30,
+  // Game rewards
+  gameWin: 200,           // Gagner une partie
+  gameLoss: 50,           // Perdre une partie (participation)
+  gameParticipation: 25,  // Participer à une partie
+  gameHosted: 30,         // Héberger une partie
+  
+  // Quiz rewards
+  quizCorrectAnswer: 20,  // Bonne réponse au quiz
+  quizWin: 150,           // Gagner le quiz
+  quizPerfectGame: 100,   // Toutes les réponses correctes
+  
+  // Audio Phone rewards
+  audioPhoneComplete: 75, // Finir une partie Audio Phone
+  recordingMade: 15,      // Enregistrement fait
+  
+  // Voting rewards
+  voteLike: 5,            // Donner un like
+  voteReceived: 10,       // Recevoir un vote
+  
+  // Social rewards
+  messageSent: 5,         // Message envoyé
+  gifSent: 8,             // GIF envoyé
+  friendAdded: 50,        // Ami ajouté
+  
+  // Special rewards
+  perfectRound: 75,       // Round parfait
+  dailyLogin: 25,         // Connexion quotidienne
+  achievementUnlocked: 40, // Succès débloqué
+  streakBonus: 15,        // Bonus de série
 };
 
 // Rewards unlocked at each level

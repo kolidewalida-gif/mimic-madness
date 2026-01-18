@@ -1,140 +1,151 @@
 import { useCallback } from 'react';
 import { usePlayerLevel, XP_REWARDS } from './usePlayerLevel';
 import { playSoundEffect } from './useSoundEffects';
+import { emitXpGain } from '@/components/XpGainPopup';
+import { emitLevelUpNotification } from '@/components/RewardNotification';
 
 /**
- * Hook to easily add XP from game actions
+ * Hook to easily add XP from game actions with automatic notifications
  * This hook is designed to be used across all game modes
  */
 export const useXpActions = () => {
   const { addXp } = usePlayerLevel();
 
-  // Game completion rewards
-  const onGameWin = useCallback(async () => {
-    const result = await addXp('gameWin');
+  // Helper to add XP with notifications
+  const addXpWithNotification = useCallback(async (action: keyof typeof XP_REWARDS) => {
+    const result = await addXp(action);
+    emitXpGain(XP_REWARDS[action], action);
     if (result?.leveledUp) {
+      emitLevelUpNotification(result.newLevel);
       playSoundEffect('achievementEarned', 0.6);
-    } else {
-      playSoundEffect('success', 0.4);
     }
     return result;
   }, [addXp]);
 
-  const onGameLoss = useCallback(async () => {
-    const result = await addXp('gameLoss');
+  // Game completion rewards
+  const onGameWin = useCallback(async () => {
+    const result = await addXpWithNotification('gameWin');
+    playSoundEffect('success', 0.4);
     return result;
-  }, [addXp]);
+  }, [addXpWithNotification]);
+
+  const onGameLoss = useCallback(async () => {
+    return await addXpWithNotification('gameLoss');
+  }, [addXpWithNotification]);
 
   const onGameParticipation = useCallback(async () => {
-    const result = await addXp('gameParticipation');
-    return result;
-  }, [addXp]);
+    return await addXpWithNotification('gameParticipation');
+  }, [addXpWithNotification]);
+
+  const onGameHosted = useCallback(async () => {
+    return await addXpWithNotification('gameHosted');
+  }, [addXpWithNotification]);
 
   // Quiz specific rewards
   const onQuizCorrectAnswer = useCallback(async () => {
-    const result = await addXp('quizCorrectAnswer');
-    return result;
-  }, [addXp]);
+    return await addXpWithNotification('quizCorrectAnswer');
+  }, [addXpWithNotification]);
 
   const onQuizWin = useCallback(async () => {
-    const result = await addXp('quizWin');
-    if (result?.leveledUp) {
-      playSoundEffect('achievementEarned', 0.6);
-    }
+    const result = await addXpWithNotification('quizWin');
+    playSoundEffect('celebration', 0.5);
     return result;
-  }, [addXp]);
+  }, [addXpWithNotification]);
+
+  const onQuizPerfectGame = useCallback(async () => {
+    const result = await addXpWithNotification('quizPerfectGame');
+    playSoundEffect('celebration', 0.6);
+    return result;
+  }, [addXpWithNotification]);
 
   // Audio Phone specific rewards
   const onAudioPhoneComplete = useCallback(async () => {
-    const result = await addXp('audioPhoneComplete');
-    if (result?.leveledUp) {
-      playSoundEffect('achievementEarned', 0.6);
-    }
+    const result = await addXpWithNotification('audioPhoneComplete');
+    playSoundEffect('celebration', 0.5);
     return result;
-  }, [addXp]);
+  }, [addXpWithNotification]);
 
   const onRecordingMade = useCallback(async () => {
-    const result = await addXp('recordingMade');
-    return result;
-  }, [addXp]);
+    return await addXpWithNotification('recordingMade');
+  }, [addXpWithNotification]);
+
+  // Voting rewards
+  const onVoteLike = useCallback(async () => {
+    return await addXpWithNotification('voteLike');
+  }, [addXpWithNotification]);
+
+  const onVoteReceived = useCallback(async () => {
+    return await addXpWithNotification('voteReceived');
+  }, [addXpWithNotification]);
 
   // Social rewards
   const onMessageSent = useCallback(async () => {
-    const result = await addXp('messageSent');
-    return result;
-  }, [addXp]);
+    return await addXpWithNotification('messageSent');
+  }, [addXpWithNotification]);
 
   const onGifSent = useCallback(async () => {
-    const result = await addXp('gifSent');
-    return result;
-  }, [addXp]);
+    return await addXpWithNotification('gifSent');
+  }, [addXpWithNotification]);
 
   const onFriendAdded = useCallback(async () => {
-    const result = await addXp('friendAdded');
-    if (result?.leveledUp) {
-      playSoundEffect('achievementEarned', 0.6);
-    } else {
-      playSoundEffect('success', 0.3);
-    }
+    const result = await addXpWithNotification('friendAdded');
+    playSoundEffect('success', 0.3);
     return result;
-  }, [addXp]);
-
-  // Host rewards
-  const onGameHosted = useCallback(async () => {
-    const result = await addXp('gameHosted');
-    return result;
-  }, [addXp]);
+  }, [addXpWithNotification]);
 
   // Special rewards
   const onPerfectRound = useCallback(async () => {
-    const result = await addXp('perfectRound');
-    if (result?.leveledUp) {
-      playSoundEffect('achievementEarned', 0.6);
-    } else {
-      playSoundEffect('celebration', 0.5);
-    }
+    const result = await addXpWithNotification('perfectRound');
+    playSoundEffect('celebration', 0.5);
     return result;
-  }, [addXp]);
+  }, [addXpWithNotification]);
 
   const onAchievementUnlocked = useCallback(async () => {
-    const result = await addXp('achievementUnlocked');
-    return result;
-  }, [addXp]);
+    return await addXpWithNotification('achievementUnlocked');
+  }, [addXpWithNotification]);
 
   const onDailyLogin = useCallback(async () => {
-    const result = await addXp('dailyLogin');
-    return result;
-  }, [addXp]);
+    return await addXpWithNotification('dailyLogin');
+  }, [addXpWithNotification]);
+
+  const onStreakBonus = useCallback(async () => {
+    return await addXpWithNotification('streakBonus');
+  }, [addXpWithNotification]);
 
   return {
     // Game actions
     onGameWin,
     onGameLoss,
     onGameParticipation,
+    onGameHosted,
     
     // Quiz actions
     onQuizCorrectAnswer,
     onQuizWin,
+    onQuizPerfectGame,
     
     // Audio Phone actions
     onAudioPhoneComplete,
     onRecordingMade,
+    
+    // Voting actions
+    onVoteLike,
+    onVoteReceived,
     
     // Social actions
     onMessageSent,
     onGifSent,
     onFriendAdded,
     
-    // Host actions
-    onGameHosted,
-    
     // Special actions
     onPerfectRound,
     onAchievementUnlocked,
     onDailyLogin,
+    onStreakBonus,
     
     // Raw addXp for custom actions
     addXp,
+    addXpWithNotification,
     
     // XP values for display
     XP_REWARDS,

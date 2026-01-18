@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from './ui/button';
 import { Trophy, Medal, Star, Crown, Sparkles, Home, Flame, Zap, PartyPopper, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { ParticleSystem } from './ParticleSystem';
+import { emitXpGain } from '@/components/XpGainPopup';
+import { emitLevelUpNotification } from '@/components/RewardNotification';
+import { usePlayerLevel, XP_REWARDS } from '@/hooks/usePlayerLevel';
 
 interface QuizScore {
   player_id: string;
@@ -27,9 +30,41 @@ export const QuizFinalResults = ({
   const [showConfetti, setShowConfetti] = useState(false);
   const [showPodium, setShowPodium] = useState(false);
   const [showWinner, setShowWinner] = useState(false);
+  const { addXp } = usePlayerLevel();
+  const xpAwardedRef = useRef(false);
+
+  const sortedScores = [...scores].sort((a, b) => b.total_points - a.total_points);
+  const winner = sortedScores[0];
+  const isWinner = winner?.player_id === currentPlayerId;
 
   useEffect(() => {
     playSoundEffect('celebration', 0.6);
+    
+    // Award XP based on position (only once)
+    const awardXp = async () => {
+      if (xpAwardedRef.current) return;
+      xpAwardedRef.current = true;
+
+      const playerRank = sortedScores.findIndex(s => s.player_id === currentPlayerId);
+      
+      if (playerRank === 0) {
+        // Winner gets quizWin XP
+        const result = await addXp('quizWin');
+        emitXpGain(XP_REWARDS.quizWin, 'quizWin');
+        if (result?.leveledUp) {
+          emitLevelUpNotification(result.newLevel);
+        }
+      } else {
+        // Others get participation XP
+        const result = await addXp('gameParticipation');
+        emitXpGain(XP_REWARDS.gameParticipation, 'gameParticipation');
+        if (result?.leveledUp) {
+          emitLevelUpNotification(result.newLevel);
+        }
+      }
+    };
+
+    awardXp();
     
     // Staggered animations
     const timer1 = setTimeout(() => setShowWinner(true), 300);
@@ -43,11 +78,7 @@ export const QuizFinalResults = ({
       clearTimeout(timer3);
       clearTimeout(timer4);
     };
-  }, []);
-
-  const sortedScores = [...scores].sort((a, b) => b.total_points - a.total_points);
-  const winner = sortedScores[0];
-  const isWinner = winner?.player_id === currentPlayerId;
+  }, [addXp, currentPlayerId, sortedScores]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-6 relative overflow-hidden bg-mesh">

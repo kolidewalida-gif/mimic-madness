@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { reverseAudioBufferWithInfo } from '@/lib/audioReverser';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { emitXpGain } from '@/components/XpGainPopup';
+import { emitLevelUpNotification } from '@/components/RewardNotification';
+import { usePlayerLevel, XP_REWARDS } from '@/hooks/usePlayerLevel';
 
 interface Player {
   id: string;
@@ -80,6 +83,9 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
   const { toast } = useToast();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const currentRoundIdRef = useRef<string | null>(null);
+  
+  // XP system
+  const { addXp } = usePlayerLevel();
 
   // Fetch current round and all recordings
   const fetchGameState = useCallback(async () => {
@@ -318,6 +324,13 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         throw insertError;
       }
 
+      // Award XP for recording
+      const result = await addXp('recordingMade');
+      emitXpGain(XP_REWARDS.recordingMade, 'recordingMade');
+      if (result?.leveledUp) {
+        emitLevelUpNotification(result.newLevel);
+      }
+
       playSoundEffect('success', 0.5);
       return true;
     } catch (error: any) {
@@ -335,7 +348,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentRound, currentPlayer, lobbyId, toast]);
+  }, [currentRound, currentPlayer, lobbyId, toast, addXp]);
 
   // Check if current player has submitted their original phrase
   const hasSubmittedOriginalPhrase = useCallback(() => {
@@ -437,6 +450,13 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         throw insertError;
       }
 
+      // Award XP for imitation recording
+      const result = await addXp('recordingMade');
+      emitXpGain(XP_REWARDS.recordingMade, 'recordingMade');
+      if (result?.leveledUp) {
+        emitLevelUpNotification(result.newLevel);
+      }
+
       playSoundEffect('success', 0.5);
       return true;
     } catch (error: any) {
@@ -450,7 +470,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentRound, currentPlayer, lobbyId, toast]);
+  }, [currentRound, currentPlayer, lobbyId, toast, addXp]);
 
   // Check if all imitations for current phrase are done
   const allImitationsForCurrentPhraseDone = useCallback(() => {
@@ -573,6 +593,13 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
   const endRound = useCallback(async () => {
     if (!currentRound) return;
 
+    // Award XP for completing Audio Phone game
+    const result = await addXp('audioPhoneComplete');
+    emitXpGain(XP_REWARDS.audioPhoneComplete, 'audioPhoneComplete');
+    if (result?.leveledUp) {
+      emitLevelUpNotification(result.newLevel);
+    }
+
     const { error } = await supabase
       .from('audio_phone_rounds')
       .update({ phase: 'finished' })
@@ -583,7 +610,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     setOriginalRecordings([]);
     setImitations([]);
     setCurrentRound(null);
-  }, [currentRound]);
+  }, [currentRound, addXp]);
 
   // Get reversed audio URL for imitation
   const getReversedAudioUrl = useCallback((recording: OriginalRecording) => {
