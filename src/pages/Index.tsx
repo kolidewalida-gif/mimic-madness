@@ -9,6 +9,8 @@ import { useLobbySync } from "@/hooks/useLobbySync";
 import { useGameInvitations, setOnNewInvitationCallback } from "@/hooks/useGameInvitations";
 import { supabase } from "@/integrations/supabase/client";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
+import { useAuth } from "@/hooks/useAuth";
+import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import React from "react";
 
 // Lazy load heavy components
@@ -47,6 +49,7 @@ interface GameInvitation {
 }
 
 const Index = () => {
+  const { user } = useAuth();
   const [gameState, setGameState] = useState<GameState>("home");
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
@@ -220,7 +223,8 @@ const Index = () => {
 
   const handleCreateGame = useCallback(async (playerName: string) => {
     playSoundEffect('success', 0.4);
-    const playerId = crypto.randomUUID();
+    // Use persistent player ID (auth user ID when logged in)
+    const playerId = getGamePlayerId(user?.id);
     const hostPlayer: Player = {
       id: playerId,
       name: playerName,
@@ -235,10 +239,11 @@ const Index = () => {
     } else {
       playSoundEffect('error', 0.4);
     }
-  }, [createLobby]);
+  }, [createLobby, user?.id]);
 
   const handleJoinGame = useCallback(async (playerName: string, code: string) => {
-    const playerId = crypto.randomUUID();
+    // Use persistent player ID (auth user ID when logged in)
+    const playerId = getGamePlayerId(user?.id);
     const newPlayer: Player = {
       id: playerId,
       name: playerName,
@@ -255,7 +260,7 @@ const Index = () => {
       playSoundEffect('error', 0.4);
       setCurrentPlayer(null);
     }
-  }, [joinLobby]);
+  }, [joinLobby, user?.id]);
 
   const handleStartGame = useCallback(async (mode: GameMode = 'normal') => {
     console.log('[Index] handleStartGame called with mode:', mode);
