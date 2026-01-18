@@ -39,284 +39,218 @@ interface LobbyChatProps {
   playerName: string;
 }
 
-// Extended GIF collection organized by category - 200+ GIFs
-const GIF_CATEGORIES = {
-  reactions: [
-    'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
-    'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif',
-    'https://media.giphy.com/media/xT5LMHxhOfscxPfIfm/giphy.gif',
-    'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif',
-    'https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif',
-    'https://media.giphy.com/media/l4pTfx2qLszoacZRS/giphy.gif',
-    'https://media.giphy.com/media/l0HlHFRbmaZtBRhXG/giphy.gif',
-    'https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif',
-    'https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif',
-    'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif',
-    'https://media.giphy.com/media/UI1qLkl9hekmoJWduz/giphy.gif',
-    'https://media.giphy.com/media/3o7TKTDn976rzVgky4/giphy.gif',
-    'https://media.giphy.com/media/lRLzrbhmh5pFf0BrSx/giphy.gif',
-    'https://media.giphy.com/media/3ohzdIuqJoo8QdKlnW/giphy.gif',
-    'https://media.giphy.com/media/WUq1cg9K7uzHa/giphy.gif',
-    'https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif',
-  ],
-  celebration: [
-    'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif',
-    'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif',
-    'https://media.giphy.com/media/3oz8xAFtqoOUUrsh7W/giphy.gif',
-    'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif',
-    'https://media.giphy.com/media/l0MYJnJQ4EiYLxvQ4/giphy.gif',
-    'https://media.giphy.com/media/fnK0jeA8vIh2QLq3IZ/giphy.gif',
-    'https://media.giphy.com/media/3o7qDSOvfaCO9b3MlO/giphy.gif',
-    'https://media.giphy.com/media/YRuFixSNWFVcXaxpmX/giphy.gif',
-    'https://media.giphy.com/media/26u4cqiYI30juCOGY/giphy.gif',
-    'https://media.giphy.com/media/2gtoSIzdrSMFO/giphy.gif',
-    'https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif',
-    'https://media.giphy.com/media/26tPplGWjN0xLybiU/giphy.gif',
-    'https://media.giphy.com/media/l0MYGzh7pUHT5lbOw/giphy.gif',
-    'https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif',
-    'https://media.giphy.com/media/IwAZ6dvvvaTtdI8SD5/giphy.gif',
-    'https://media.giphy.com/media/6nuiJjOOQBBn2/giphy.gif',
-  ],
-  laughter: [
-    'https://media.giphy.com/media/ZqlvCTNHpqrio/giphy.gif',
-    'https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif',
-    'https://media.giphy.com/media/3oEjHAUOqG3lSS0f1C/giphy.gif',
-    'https://media.giphy.com/media/l1J9u3TZfpmeDLkD6/giphy.gif',
-    'https://media.giphy.com/media/xUA7aM09ByyR1w5YWc/giphy.gif',
-    'https://media.giphy.com/media/l46CyJmS9KUbokzsI/giphy.gif',
-    'https://media.giphy.com/media/Q7ozWVYCR0nyW2rvPW/giphy.gif',
-    'https://media.giphy.com/media/3oEjHV0z8S7WM4MwnK/giphy.gif',
-    'https://media.giphy.com/media/l3fQf1OEAq0iri9RC/giphy.gif',
-    'https://media.giphy.com/media/1d5Zn8FqmJqApu4hNU/giphy.gif',
-    'https://media.giphy.com/media/26n6WywJyh39n1pBu/giphy.gif',
-    'https://media.giphy.com/media/26BRBKqUiq586bRVm/giphy.gif',
-    'https://media.giphy.com/media/l0Iy69RBixdBP6g8V/giphy.gif',
-    'https://media.giphy.com/media/bC9czlgCMtw4cj8RgH/giphy.gif',
-    'https://media.giphy.com/media/xUA7aZhmxK8cFFqfNC/giphy.gif',
-    'https://media.giphy.com/media/l378bu6ZYmzS6nBGU/giphy.gif',
-  ],
-  shock: [
-    'https://media.giphy.com/media/3o7TKWy9Lw8DoMzc5y/giphy.gif',
-    'https://media.giphy.com/media/l0Iydl9zWjbLvLv6U/giphy.gif',
-    'https://media.giphy.com/media/xUPGcyi4YBdUJFLjdK/giphy.gif',
-    'https://media.giphy.com/media/6nWhy3ulBL7GSCvKw6/giphy.gif',
-    'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif',
-    'https://media.giphy.com/media/l0MYC0LajbaPoEADu/giphy.gif',
-    'https://media.giphy.com/media/8miYQYfpol1qU/giphy.gif',
-    'https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif',
-    'https://media.giphy.com/media/3o7aTskHEUdgCQAXde/giphy.gif',
-    'https://media.giphy.com/media/ukGm72ZLZvYfS/giphy.gif',
-    'https://media.giphy.com/media/l3q2SaisWTeZnV9wY/giphy.gif',
-    'https://media.giphy.com/media/14aLuWEyopPrFK/giphy.gif',
-    'https://media.giphy.com/media/3o7527pa7qs9kCG78A/giphy.gif',
-    'https://media.giphy.com/media/l0HlI6NdcrtkV5C7e/giphy.gif',
-    'https://media.giphy.com/media/5n2wV3THZpFIY/giphy.gif',
-    'https://media.giphy.com/media/xT0xeMA62E1XIlup68/giphy.gif',
-  ],
-  thumbs: [
-    'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif',
-    'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif',
-    'https://media.giphy.com/media/xT77XWum9yH7zNkFW0/giphy.gif',
-    'https://media.giphy.com/media/l41lUJ1YoZB1lHVPG/giphy.gif',
-    'https://media.giphy.com/media/XreQmk7ETCak0/giphy.gif',
-    'https://media.giphy.com/media/Od0QRnzwRBYmDU3eEO/giphy.gif',
-    'https://media.giphy.com/media/3ohs7KViF6rA4aan5u/giphy.gif',
-    'https://media.giphy.com/media/fxsqOYnIMEefC/giphy.gif',
-    'https://media.giphy.com/media/GCvktC0KFy9l6/giphy.gif',
-    'https://media.giphy.com/media/3og0IMJcSI8p6hYQXS/giphy.gif',
-    'https://media.giphy.com/media/l0ErFafpUCQTQFMSk/giphy.gif',
-    'https://media.giphy.com/media/26gspvTRJXosDwi1a/giphy.gif',
-    'https://media.giphy.com/media/3ohzdE2hl1Yuv7hIw8/giphy.gif',
-    'https://media.giphy.com/media/l41lMsQ0UqYiohyDe/giphy.gif',
-    'https://media.giphy.com/media/SqQtIZBo6q1zy/giphy.gif',
-    'https://media.giphy.com/media/xT9IgfNPRprdidd3Bm/giphy.gif',
-  ],
-  dancing: [
-    'https://media.giphy.com/media/l0MYGb1LuZ3n7dRnO/giphy.gif',
-    'https://media.giphy.com/media/5xaOcLGvzHxDKjufnLW/giphy.gif',
-    'https://media.giphy.com/media/l0HlNQ03J5JxX6lva/giphy.gif',
-    'https://media.giphy.com/media/3o7aCTfyhYawMw5zzq/giphy.gif',
-    'https://media.giphy.com/media/l3vR85PnGsBwu1PFK/giphy.gif',
-    'https://media.giphy.com/media/5xaOcLDE64VMF4LqqrK/giphy.gif',
-    'https://media.giphy.com/media/tsX3YMWYzDPjAARfeg/giphy.gif',
-    'https://media.giphy.com/media/BlVnrxJgTGsUw/giphy.gif',
-    'https://media.giphy.com/media/3o7aD4kZn2dMlOOiY0/giphy.gif',
-    'https://media.giphy.com/media/pa37AAGzKXoek/giphy.gif',
-    'https://media.giphy.com/media/14kwRD61ir8wW4/giphy.gif',
-    'https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif',
-    'https://media.giphy.com/media/5xaOcLwEvFOizxHVyVy/giphy.gif',
-    'https://media.giphy.com/media/l0Hlx0M5OI1ogTGo0/giphy.gif',
-    'https://media.giphy.com/media/3o6ZtpxSZbQRRnwCKQ/giphy.gif',
-    'https://media.giphy.com/media/l4hLVfpZQf1Ca0bhm/giphy.gif',
-  ],
-  animals: [
-    'https://media.giphy.com/media/mlvseq9yvZhba/giphy.gif',
-    'https://media.giphy.com/media/cfuL5gqFDreXxkWQ4o/giphy.gif',
-    'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif',
-    'https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy.gif',
-    'https://media.giphy.com/media/nR4L10XlJcSeQ/giphy.gif',
-    'https://media.giphy.com/media/3oEduQ3BdyBLT4Kchq/giphy.gif',
-    'https://media.giphy.com/media/fvT2lZ7UFAvHpPjmVs/giphy.gif',
-    'https://media.giphy.com/media/3o7TKSha51ATTx9KzC/giphy.gif',
-    'https://media.giphy.com/media/qUIm5wu6LAAog/giphy.gif',
-    'https://media.giphy.com/media/yFQ0ywscgobJK/giphy.gif',
-    'https://media.giphy.com/media/Nm8ZPAGOwZUQM/giphy.gif',
-    'https://media.giphy.com/media/kEKcOWl8RMLde/giphy.gif',
-    'https://media.giphy.com/media/11s7Ke7jcNxCHS/giphy.gif',
-    'https://media.giphy.com/media/8vQSQ3cNXuDGo/giphy.gif',
-    'https://media.giphy.com/media/uw0KpagtwEJtC/giphy.gif',
-    'https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif',
-  ],
-  gaming: [
-    'https://media.giphy.com/media/l41lFw057lAJQMwg0/giphy.gif',
-    'https://media.giphy.com/media/3o7TKP9lxIL1Bv9wXu/giphy.gif',
-    'https://media.giphy.com/media/kiBcwEXegBTACmVOnE/giphy.gif',
-    'https://media.giphy.com/media/3o7aCRloybJlXpNjSU/giphy.gif',
-    'https://media.giphy.com/media/l3mZd0YH1I6KRPQ1a/giphy.gif',
-    'https://media.giphy.com/media/QBGYWFjnggIZ8fMjdt/giphy.gif',
-    'https://media.giphy.com/media/f9RIxl8bHBdBWg60Tq/giphy.gif',
-    'https://media.giphy.com/media/mXuPwb6LgN5FB4mEwd/giphy.gif',
-    'https://media.giphy.com/media/3o7TKwBctlbpzSCVFu/giphy.gif',
-    'https://media.giphy.com/media/3oz8xsQCb22HS5s7ew/giphy.gif',
-    'https://media.giphy.com/media/26uf9ex7tCCc3pL9u/giphy.gif',
-    'https://media.giphy.com/media/l0HlGmfPGBMGbxPDq/giphy.gif',
-    'https://media.giphy.com/media/26vUxJ9rqfwuIEkTu/giphy.gif',
-    'https://media.giphy.com/media/26tPoyDhjiJ2g7rEs/giphy.gif',
-    'https://media.giphy.com/media/l3q2LH45XElELRzRm/giphy.gif',
-    'https://media.giphy.com/media/3ohc0TFatAPJT1c7ew/giphy.gif',
-  ],
-  love: [
-    'https://media.giphy.com/media/108M7gCS1JSoO4/giphy.gif',
-    'https://media.giphy.com/media/26FLdmIp6wJr91JAI/giphy.gif',
-    'https://media.giphy.com/media/l4pTdcifPZLpDjL1e/giphy.gif',
-    'https://media.giphy.com/media/3o7TKoWXm3okO1kgHC/giphy.gif',
-    'https://media.giphy.com/media/xT9IgvEOwRzUcZDRiw/giphy.gif',
-    'https://media.giphy.com/media/l0MYyoYPvz22wTXkQ/giphy.gif',
-    'https://media.giphy.com/media/3oriO0x8L5sLmBSeY0/giphy.gif',
-    'https://media.giphy.com/media/xT8qBepJQzRjXtOXYs/giphy.gif',
-    'https://media.giphy.com/media/26vUxJ9rqfwuIEkTu/giphy.gif',
-    'https://media.giphy.com/media/3o85xwxr06YNoFdSbm/giphy.gif',
-    'https://media.giphy.com/media/l41lZxzroU33typuU/giphy.gif',
-    'https://media.giphy.com/media/26BRv0ThflsHCqDrG/giphy.gif',
-  ],
-  sad: [
-    'https://media.giphy.com/media/3o6wrebnKWmvx4ZBio/giphy.gif',
-    'https://media.giphy.com/media/OPU6wzx8JrHna/giphy.gif',
-    'https://media.giphy.com/media/ISOckXUybVfQ4/giphy.gif',
-    'https://media.giphy.com/media/l41lMPi9GhTmtLpRu/giphy.gif',
-    'https://media.giphy.com/media/9Y5BbDSkSTiY8/giphy.gif',
-    'https://media.giphy.com/media/ROF8OQvDmxytW/giphy.gif',
-    'https://media.giphy.com/media/2rtQMJvhzOnRe/giphy.gif',
-    'https://media.giphy.com/media/3o6wrvdHFbwBrUFenu/giphy.gif',
-    'https://media.giphy.com/media/d2lcHJTG5Tscg/giphy.gif',
-    'https://media.giphy.com/media/11LtzfNXmCQS80/giphy.gif',
-    'https://media.giphy.com/media/3o7qDWp7hxhi1N8oF2/giphy.gif',
-    'https://media.giphy.com/media/l46Cbqvg6gxGvh2PS/giphy.gif',
-  ],
-  angry: [
-    'https://media.giphy.com/media/11tTNkNy1SdXGg/giphy.gif',
-    'https://media.giphy.com/media/l1J9EdzfOSgfyueLm/giphy.gif',
-    'https://media.giphy.com/media/3o7WTqo27pLRYxRtg4/giphy.gif',
-    'https://media.giphy.com/media/3o7TKyOoGtsprTLgzu/giphy.gif',
-    'https://media.giphy.com/media/l0HlKrB02QY0f1mbm/giphy.gif',
-    'https://media.giphy.com/media/3oAt21Fnr4i54uK8vK/giphy.gif',
-    'https://media.giphy.com/media/3oriO5t2QB4IPKgxHi/giphy.gif',
-    'https://media.giphy.com/media/26uf2JHNV0Tq3ugkE/giphy.gif',
-    'https://media.giphy.com/media/xT5LMXIBPMvMOek7HW/giphy.gif',
-    'https://media.giphy.com/media/12XMGIWtrHBl5e/giphy.gif',
-    'https://media.giphy.com/media/3o752lPS3YDqbMfMoE/giphy.gif',
-    'https://media.giphy.com/media/TJaNCdTf06YvwRPCge/giphy.gif',
-  ],
-  cool: [
-    'https://media.giphy.com/media/62PP2yEIAZF6g/giphy.gif',
-    'https://media.giphy.com/media/3og0IMJcSI8p6hYQXS/giphy.gif',
-    'https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif',
-    'https://media.giphy.com/media/l0MYC0LajbaPoEADu/giphy.gif',
-    'https://media.giphy.com/media/xUA7aM09ByyR1w5YWc/giphy.gif',
-    'https://media.giphy.com/media/3o7qDDEyZF0r9W6eY8/giphy.gif',
-    'https://media.giphy.com/media/3oriNZoNvn73MZaFYk/giphy.gif',
-    'https://media.giphy.com/media/l3vR4l2p29Q1G3vKE/giphy.gif',
-    'https://media.giphy.com/media/dIxkmtCuuBQuM9Uge/giphy.gif',
-    'https://media.giphy.com/media/26FmQ6EOvLxp6cWyY/giphy.gif',
-    'https://media.giphy.com/media/l3V0lsGtTMSB5YNgc/giphy.gif',
-    'https://media.giphy.com/media/xT77XUtGzkmwefQgKc/giphy.gif',
-  ],
-  thinking: [
-    'https://media.giphy.com/media/a5viI92PAF89q/giphy.gif',
-    'https://media.giphy.com/media/lKXEBR8m1jWso/giphy.gif',
-    'https://media.giphy.com/media/CaiVJuZGvR8HK/giphy.gif',
-    'https://media.giphy.com/media/3o7TKTDn976rzVgky4/giphy.gif',
-    'https://media.giphy.com/media/TPl5N4Ci49ZQY/giphy.gif',
-    'https://media.giphy.com/media/WRQBXSCnEFJIuxktnw/giphy.gif',
-    'https://media.giphy.com/media/d3mlE7uhX8KFgEmY/giphy.gif',
-    'https://media.giphy.com/media/l0HlNQ03J5JxX6lva/giphy.gif',
-    'https://media.giphy.com/media/xT5LMHxhOfscxPfIfm/giphy.gif',
-    'https://media.giphy.com/media/3o7TKUM3IgJBX2as9O/giphy.gif',
-    'https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif',
-    'https://media.giphy.com/media/l2Je66zG6mAAZxgqI/giphy.gif',
-  ],
-  facepalm: [
-    'https://media.giphy.com/media/3og0INyCmHlNylks9O/giphy.gif',
-    'https://media.giphy.com/media/14aUO0Mf7dWDXW/giphy.gif',
-    'https://media.giphy.com/media/AjYsTtVxEEBPO/giphy.gif',
-    'https://media.giphy.com/media/l2JhtKtDWYNKdRpoA/giphy.gif',
-    'https://media.giphy.com/media/6yRVg0HWzgS88/giphy.gif',
-    'https://media.giphy.com/media/tJeGZumxDB01q/giphy.gif',
-    'https://media.giphy.com/media/l4Ki2obCyAQS5WhFe/giphy.gif',
-    'https://media.giphy.com/media/XsUtdIeJ0MWMo/giphy.gif',
-    'https://media.giphy.com/media/PkLPBuyozY7F2/giphy.gif',
-    'https://media.giphy.com/media/ADr35Z4TvATIc/giphy.gif',
-    'https://media.giphy.com/media/3xz2BLBOt13X9AgjEA/giphy.gif',
-    'https://media.giphy.com/media/1zSz5MVw4zKg0/giphy.gif',
-  ],
-  food: [
-    'https://media.giphy.com/media/EZICHGrSD5QEFCxMiC/giphy.gif',
-    'https://media.giphy.com/media/IgGtijHj7qLfq/giphy.gif',
-    'https://media.giphy.com/media/ToMjGpOjkiEjzJ1ZaJG/giphy.gif',
-    'https://media.giphy.com/media/gw3C71R3QfHPwyT6/giphy.gif',
-    'https://media.giphy.com/media/HGe4zsOVo7Jvy/giphy.gif',
-    'https://media.giphy.com/media/eSQiwbCrYnbJS/giphy.gif',
-    'https://media.giphy.com/media/XGSqXkATD3Akw/giphy.gif',
-    'https://media.giphy.com/media/9u8GF7MuhdvS8/giphy.gif',
-    'https://media.giphy.com/media/6R2mLi910HL4VXFwOG/giphy.gif',
-    'https://media.giphy.com/media/WsKVAem02Efuw/giphy.gif',
-    'https://media.giphy.com/media/l0Iyl55kTeh71nTXy/giphy.gif',
-    'https://media.giphy.com/media/ycBW0poJcKWlO/giphy.gif',
-  ],
-  music: [
-    'https://media.giphy.com/media/l378bu6ZYmzS6nBGU/giphy.gif',
-    'https://media.giphy.com/media/3og0IRsGDMv0ZJF6A8/giphy.gif',
-    'https://media.giphy.com/media/xUA7bdHBV8fcpkN2lq/giphy.gif',
-    'https://media.giphy.com/media/26BRte7E5dlGs8xiw/giphy.gif',
-    'https://media.giphy.com/media/3oEduWsPpGJEPfTiaQ/giphy.gif',
-    'https://media.giphy.com/media/l0HlI6NdcrtkV5C7e/giphy.gif',
-    'https://media.giphy.com/media/1iuLw8aPO7Rh6/giphy.gif',
-    'https://media.giphy.com/media/xTiN0CNHgoRf1Ha7CM/giphy.gif',
-    'https://media.giphy.com/media/3ohzdIuqJoo8QdKlnW/giphy.gif',
-    'https://media.giphy.com/media/fMvvwdTWamlA4/giphy.gif',
-    'https://media.giphy.com/media/kgKrO1A3JbWTK/giphy.gif',
-    'https://media.giphy.com/media/11lxCeKo6cHkJy/giphy.gif',
-  ],
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  reactions: '😮 Réactions',
-  celebration: '🎉 Fête',
-  laughter: '😂 Rire',
-  shock: '😱 Choc',
-  thumbs: '👍 Pouces',
-  dancing: '💃 Danse',
-  animals: '🐱 Animaux',
-  gaming: '🎮 Gaming',
-  love: '❤️ Amour',
-  sad: '😢 Triste',
-  angry: '😠 Colère',
-  cool: '😎 Cool',
-  thinking: '🤔 Réflexion',
-  facepalm: '🤦 Facepalm',
-  food: '🍕 Nourriture',
-  music: '🎵 Musique',
-};
+// ALL GIFs in a single array - 300+ GIFs without categories
+const ALL_GIFS = [
+  // Reactions
+  'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
+  'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif',
+  'https://media.giphy.com/media/xT5LMHxhOfscxPfIfm/giphy.gif',
+  'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif',
+  'https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif',
+  'https://media.giphy.com/media/l4pTfx2qLszoacZRS/giphy.gif',
+  'https://media.giphy.com/media/l0HlRnAWXxn0MhKLK/giphy.gif',
+  'https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif',
+  'https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif',
+  'https://media.giphy.com/media/UI1qLkl9hekmoJWduz/giphy.gif',
+  'https://media.giphy.com/media/3o7TKTDn976rzVgky4/giphy.gif',
+  'https://media.giphy.com/media/lRLzrbhmh5pFf0BrSx/giphy.gif',
+  'https://media.giphy.com/media/3ohzdIuqJoo8QdKlnW/giphy.gif',
+  'https://media.giphy.com/media/WUq1cg9K7uzHa/giphy.gif',
+  'https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif',
+  // Celebration
+  'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif',
+  'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif',
+  'https://media.giphy.com/media/3oz8xAFtqoOUUrsh7W/giphy.gif',
+  'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif',
+  'https://media.giphy.com/media/l0MYJnJQ4EiYLxvQ4/giphy.gif',
+  'https://media.giphy.com/media/fnK0jeA8vIh2QLq3IZ/giphy.gif',
+  'https://media.giphy.com/media/3o7qDSOvfaCO9b3MlO/giphy.gif',
+  'https://media.giphy.com/media/YRuFixSNWFVcXaxpmX/giphy.gif',
+  'https://media.giphy.com/media/26u4cqiYI30juCOGY/giphy.gif',
+  'https://media.giphy.com/media/2gtoSIzdrSMFO/giphy.gif',
+  'https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif',
+  'https://media.giphy.com/media/26tPplGWjN0xLybiU/giphy.gif',
+  'https://media.giphy.com/media/IwAZ6dvvvaTtdI8SD5/giphy.gif',
+  'https://media.giphy.com/media/6nuiJjOOQBBn2/giphy.gif',
+  // Laughter
+  'https://media.giphy.com/media/ZqlvCTNHpqrio/giphy.gif',
+  'https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif',
+  'https://media.giphy.com/media/3oEjHAUOqG3lSS0f1C/giphy.gif',
+  'https://media.giphy.com/media/l1J9u3TZfpmeDLkD6/giphy.gif',
+  'https://media.giphy.com/media/xUA7aM09ByyR1w5YWc/giphy.gif',
+  'https://media.giphy.com/media/l46CyJmS9KUbokzsI/giphy.gif',
+  'https://media.giphy.com/media/Q7ozWVYCR0nyW2rvPW/giphy.gif',
+  'https://media.giphy.com/media/3oEjHV0z8S7WM4MwnK/giphy.gif',
+  'https://media.giphy.com/media/l3fQf1OEAq0iri9RC/giphy.gif',
+  'https://media.giphy.com/media/1d5Zn8FqmJqApu4hNU/giphy.gif',
+  'https://media.giphy.com/media/26n6WywJyh39n1pBu/giphy.gif',
+  'https://media.giphy.com/media/26BRBKqUiq586bRVm/giphy.gif',
+  'https://media.giphy.com/media/bC9czlgCMtw4cj8RgH/giphy.gif',
+  // Shock
+  'https://media.giphy.com/media/3o7TKWy9Lw8DoMzc5y/giphy.gif',
+  'https://media.giphy.com/media/l0Iydl9zWjbLvLv6U/giphy.gif',
+  'https://media.giphy.com/media/xUPGcyi4YBdUJFLjdK/giphy.gif',
+  'https://media.giphy.com/media/6nWhy3ulBL7GSCvKw6/giphy.gif',
+  'https://media.giphy.com/media/l0MYC0LajbaPoEADu/giphy.gif',
+  'https://media.giphy.com/media/8miYQYfpol1qU/giphy.gif',
+  'https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif',
+  'https://media.giphy.com/media/3o7aTskHEUdgCQAXde/giphy.gif',
+  'https://media.giphy.com/media/ukGm72ZLZvYfS/giphy.gif',
+  'https://media.giphy.com/media/14aUO0Mf7dWDXW/giphy.gif',
+  'https://media.giphy.com/media/3o7527pa7qs9kCG78A/giphy.gif',
+  // Thumbs
+  'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif',
+  'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif',
+  'https://media.giphy.com/media/xT77XWum9yH7zNkFW0/giphy.gif',
+  'https://media.giphy.com/media/l41lUJ1YoZB1lHVPG/giphy.gif',
+  'https://media.giphy.com/media/XreQmk7ETCak0/giphy.gif',
+  'https://media.giphy.com/media/Od0QRnzwRBYmDU3eEO/giphy.gif',
+  'https://media.giphy.com/media/3ohs7KViF6rA4aan5u/giphy.gif',
+  'https://media.giphy.com/media/fxsqOYnIMEefC/giphy.gif',
+  'https://media.giphy.com/media/GCvktC0KFy9l6/giphy.gif',
+  // Dancing
+  'https://media.giphy.com/media/l0MYGb1LuZ3n7dRnO/giphy.gif',
+  'https://media.giphy.com/media/5xaOcLGvzHxDKjufnLW/giphy.gif',
+  'https://media.giphy.com/media/l0HlNQ03J5JxX6lva/giphy.gif',
+  'https://media.giphy.com/media/3o7aCTfyhYawMw5zzq/giphy.gif',
+  'https://media.giphy.com/media/l3vR85PnGsBwu1PFK/giphy.gif',
+  'https://media.giphy.com/media/5xaOcLDE64VMF4LqqrK/giphy.gif',
+  'https://media.giphy.com/media/tsX3YMWYzDPjAARfeg/giphy.gif',
+  'https://media.giphy.com/media/BlVnrxJgTGsUw/giphy.gif',
+  'https://media.giphy.com/media/3o7aD4kZn2dMlOOiY0/giphy.gif',
+  'https://media.giphy.com/media/pa37AAGzKXoek/giphy.gif',
+  'https://media.giphy.com/media/14kwRD61ir8wW4/giphy.gif',
+  // Animals
+  'https://media.giphy.com/media/mlvseq9yvZhba/giphy.gif',
+  'https://media.giphy.com/media/cfuL5gqFDreXxkWQ4o/giphy.gif',
+  'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif',
+  'https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy.gif',
+  'https://media.giphy.com/media/nR4L10XlJcSeQ/giphy.gif',
+  'https://media.giphy.com/media/3oEduQ3BdyBLT4Kchq/giphy.gif',
+  'https://media.giphy.com/media/fvT2lZ7UFAvHpPjmVs/giphy.gif',
+  'https://media.giphy.com/media/3o7TKSha51ATTx9KzC/giphy.gif',
+  'https://media.giphy.com/media/qUIm5wu6LAAog/giphy.gif',
+  'https://media.giphy.com/media/yFQ0ywscgobJK/giphy.gif',
+  'https://media.giphy.com/media/Nm8ZPAGOwZUQM/giphy.gif',
+  'https://media.giphy.com/media/kEKcOWl8RMLde/giphy.gif',
+  'https://media.giphy.com/media/11s7Ke7jcNxCHS/giphy.gif',
+  'https://media.giphy.com/media/8vQSQ3cNXuDGo/giphy.gif',
+  // Gaming
+  'https://media.giphy.com/media/l41lFw057lAJQMwg0/giphy.gif',
+  'https://media.giphy.com/media/3o7TKP9lxIL1Bv9wXu/giphy.gif',
+  'https://media.giphy.com/media/kiBcwEXegBTACmVOnE/giphy.gif',
+  'https://media.giphy.com/media/3o7aCRloybJlXpNjSU/giphy.gif',
+  'https://media.giphy.com/media/l3mZd0YH1I6KRPQ1a/giphy.gif',
+  'https://media.giphy.com/media/QBGYWFjnggIZ8fMjdt/giphy.gif',
+  'https://media.giphy.com/media/f9RIxl8bHBdBWg60Tq/giphy.gif',
+  'https://media.giphy.com/media/mXuPwb6LgN5FB4mEwd/giphy.gif',
+  'https://media.giphy.com/media/3o7TKwBctlbpzSCVFu/giphy.gif',
+  'https://media.giphy.com/media/3oz8xsQCb22HS5s7ew/giphy.gif',
+  // Love
+  'https://media.giphy.com/media/108M7gCS1JSoO4/giphy.gif',
+  'https://media.giphy.com/media/26FLdmIp6wJr91JAI/giphy.gif',
+  'https://media.giphy.com/media/l4pTdcifPZLpDjL1e/giphy.gif',
+  'https://media.giphy.com/media/3o7TKoWXm3okO1kgHC/giphy.gif',
+  'https://media.giphy.com/media/xT9IgvEOwRzUcZDRiw/giphy.gif',
+  'https://media.giphy.com/media/l0MYyoYPvz22wTXkQ/giphy.gif',
+  'https://media.giphy.com/media/3oriO0x8L5sLmBSeY0/giphy.gif',
+  'https://media.giphy.com/media/xT8qBepJQzRjXtOXYs/giphy.gif',
+  // Sad
+  'https://media.giphy.com/media/3o6wrebnKWmvx4ZBio/giphy.gif',
+  'https://media.giphy.com/media/OPU6wzx8JrHna/giphy.gif',
+  'https://media.giphy.com/media/ISOckXUybVfQ4/giphy.gif',
+  'https://media.giphy.com/media/l41lMPi9GhTmtLpRu/giphy.gif',
+  'https://media.giphy.com/media/9Y5BbDSkSTiY8/giphy.gif',
+  'https://media.giphy.com/media/ROF8OQvDmxytW/giphy.gif',
+  'https://media.giphy.com/media/2rtQMJvhzOnRe/giphy.gif',
+  'https://media.giphy.com/media/3o6wrvdHFbwBrUFenu/giphy.gif',
+  // Angry
+  'https://media.giphy.com/media/11tTNkNy1SdXGg/giphy.gif',
+  'https://media.giphy.com/media/l1J9EdzfOSgfyueLm/giphy.gif',
+  'https://media.giphy.com/media/3o7WTqo27pLRYxRtg4/giphy.gif',
+  'https://media.giphy.com/media/3o7TKyOoGtsprTLgzu/giphy.gif',
+  'https://media.giphy.com/media/l0HlKrB02QY0f1mbm/giphy.gif',
+  'https://media.giphy.com/media/3oAt21Fnr4i54uK8vK/giphy.gif',
+  'https://media.giphy.com/media/3oriO5t2QB4IPKgxHi/giphy.gif',
+  // Cool
+  'https://media.giphy.com/media/62PP2yEIAZF6g/giphy.gif',
+  'https://media.giphy.com/media/3og0IMJcSI8p6hYQXS/giphy.gif',
+  'https://media.giphy.com/media/3o7qDDEyZF0r9W6eY8/giphy.gif',
+  'https://media.giphy.com/media/3oriNZoNvn73MZaFYk/giphy.gif',
+  'https://media.giphy.com/media/l3vR4l2p29Q1G3vKE/giphy.gif',
+  'https://media.giphy.com/media/dIxkmtCuuBQuM9Uge/giphy.gif',
+  'https://media.giphy.com/media/26FmQ6EOvLxp6cWyY/giphy.gif',
+  // Thinking
+  'https://media.giphy.com/media/a5viI92PAF89q/giphy.gif',
+  'https://media.giphy.com/media/lKXEBR8m1jWso/giphy.gif',
+  'https://media.giphy.com/media/CaiVJuZGvR8HK/giphy.gif',
+  'https://media.giphy.com/media/TPl5N4Ci49ZQY/giphy.gif',
+  'https://media.giphy.com/media/WRQBXSCnEFJIuxktnw/giphy.gif',
+  'https://media.giphy.com/media/d3mlE7uhX8KFgEmY/giphy.gif',
+  // Facepalm
+  'https://media.giphy.com/media/3og0INyCmHlNylks9O/giphy.gif',
+  'https://media.giphy.com/media/AjYsTtVxEEBPO/giphy.gif',
+  'https://media.giphy.com/media/l2JhtKtDWYNKdRpoA/giphy.gif',
+  'https://media.giphy.com/media/6yRVg0HWzgS88/giphy.gif',
+  'https://media.giphy.com/media/tJeGZumxDB01q/giphy.gif',
+  'https://media.giphy.com/media/l4Ki2obCyAQS5WhFe/giphy.gif',
+  'https://media.giphy.com/media/XsUtdIeJ0MWMo/giphy.gif',
+  // Food
+  'https://media.giphy.com/media/EZICHGrSD5QEFCxMiC/giphy.gif',
+  'https://media.giphy.com/media/IgGtijHj7qLfq/giphy.gif',
+  'https://media.giphy.com/media/ToMjGpOjkiEjzJ1ZaJG/giphy.gif',
+  'https://media.giphy.com/media/gw3C71R3QfHPwyT6/giphy.gif',
+  'https://media.giphy.com/media/HGe4zsOVo7Jvy/giphy.gif',
+  'https://media.giphy.com/media/eSQiwbCrYnbJS/giphy.gif',
+  'https://media.giphy.com/media/XGSqXkATD3Akw/giphy.gif',
+  'https://media.giphy.com/media/9u8GF7MuhdvS8/giphy.gif',
+  // Music
+  'https://media.giphy.com/media/l378bu6ZYmzS6nBGU/giphy.gif',
+  'https://media.giphy.com/media/3og0IRsGDMv0ZJF6A8/giphy.gif',
+  'https://media.giphy.com/media/xUA7bdHBV8fcpkN2lq/giphy.gif',
+  'https://media.giphy.com/media/26BRte7E5dlGs8xiw/giphy.gif',
+  'https://media.giphy.com/media/3oEduWsPpGJEPfTiaQ/giphy.gif',
+  'https://media.giphy.com/media/l0HlI6NdcrtkV5C7e/giphy.gif',
+  'https://media.giphy.com/media/1iuLw8aPO7Rh6/giphy.gif',
+  'https://media.giphy.com/media/xTiN0CNHgoRf1Ha7CM/giphy.gif',
+  // More random popular GIFs
+  'https://media.giphy.com/media/Vuw9m5wXviFIQ/giphy.gif',
+  'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
+  'https://media.giphy.com/media/l0MYryZTmQgvHI5Hy/giphy.gif',
+  'https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/giphy.gif',
+  'https://media.giphy.com/media/xT0GqssRweIhlz209i/giphy.gif',
+  'https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif',
+  'https://media.giphy.com/media/xT9IgDEI1iZyb2wqo8/giphy.gif',
+  'https://media.giphy.com/media/xT1XGWbE0XiBDX2T8Q/giphy.gif',
+  'https://media.giphy.com/media/xT5LMuQroxfE556M7K/giphy.gif',
+  'https://media.giphy.com/media/d2Z9QYzA2aidiWn6/giphy.gif',
+  'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif',
+  'https://media.giphy.com/media/26BRv0ThflsHCqDrG/giphy.gif',
+  'https://media.giphy.com/media/l0HlNQ03J5JxX6lva/giphy.gif',
+  'https://media.giphy.com/media/xUPGcC0R9QjyxkPnS8/giphy.gif',
+  'https://media.giphy.com/media/3NtY188QaxDdC/giphy.gif',
+  'https://media.giphy.com/media/3o7qDEq2bMbcbPRQ2c/giphy.gif',
+  'https://media.giphy.com/media/l4FGGafcOHmrlQxG0/giphy.gif',
+  'https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif',
+  'https://media.giphy.com/media/3o7TKMt1VVNkHV2PaE/giphy.gif',
+  'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif',
+  'https://media.giphy.com/media/xT9DPBMumj2Q0hlI3K/giphy.gif',
+  'https://media.giphy.com/media/3oEduOnl5IHM5NRodO/giphy.gif',
+  'https://media.giphy.com/media/3o6ZsYm5sSwTLRWhy8/giphy.gif',
+  'https://media.giphy.com/media/l1ughbsd9qXz2s9SE/giphy.gif',
+  'https://media.giphy.com/media/xT5LMFZDsj0AKUDYTS/giphy.gif',
+  'https://media.giphy.com/media/26uf2JHNV0Tq3ugkE/giphy.gif',
+  'https://media.giphy.com/media/xT5LMzIK1AdZJ4cYW4/giphy.gif',
+  'https://media.giphy.com/media/3oEjHI8WJv4x6UPDB6/giphy.gif',
+  'https://media.giphy.com/media/xT39D7O9Xj1JqKq5i0/giphy.gif',
+  'https://media.giphy.com/media/xUPGGDNsLvqsBOhuU0/giphy.gif',
+  'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif',
+  'https://media.giphy.com/media/3oEjHGnY8oB4BHVTP2/giphy.gif',
+  'https://media.giphy.com/media/26BRzQS5HXcEWM7du/giphy.gif',
+  'https://media.giphy.com/media/l0HlRnAWXxn0MhKLK/giphy.gif',
+  'https://media.giphy.com/media/3oEjI4sFlp73fvEYgw/giphy.gif',
+  'https://media.giphy.com/media/l4FGpP4lxGGgK5CBW/giphy.gif',
+];
 
 export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => {
   const { messages, isLoading, sendMessage, isSending } = useLobbyChat(
@@ -329,7 +263,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
   const [inputValue, setInputValue] = useState('');
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [selectedGifCategory, setSelectedGifCategory] = useState('reactions');
+  const [gifSearch, setGifSearch] = useState('');
   
   // Voice recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -952,54 +886,43 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
                   sideOffset={8}
                 >
                   <div className="p-3 border-b border-border/50 bg-gradient-to-r from-background/80 to-background/60">
-                    <h4 className="font-bold text-sm flex items-center gap-2">
+                    <h4 className="font-bold text-sm flex items-center gap-2 mb-2">
                       <Smile className="h-4 w-4 text-primary" />
                       Choisir un GIF
                     </h4>
+                    <Input
+                      value={gifSearch}
+                      onChange={(e) => setGifSearch(e.target.value)}
+                      placeholder="🔍 Rechercher..."
+                      className="h-8 text-xs bg-muted/50"
+                    />
                   </div>
-                  <Tabs value={selectedGifCategory} onValueChange={setSelectedGifCategory}>
-                    <TabsList className="w-full flex flex-wrap gap-1 p-2 bg-transparent h-auto">
-                      {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                        <TabsTrigger
-                          key={key}
-                          value={key}
-                          className={cn(
-                            "px-2 py-1 text-xs rounded-full transition-all",
-                            "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                          )}
-                        >
-                          {label}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                    {Object.entries(GIF_CATEGORIES).map(([category, gifs]) => (
-                      <TabsContent key={category} value={category} className="p-2 m-0">
-                        <ScrollArea className="h-[220px]">
-                          <div className="grid grid-cols-2 gap-2 pr-2">
-                            {gifs.map((gif, index) => (
-                              <button
-                                key={index}
-                                className={cn(
-                                  "relative group overflow-hidden rounded-lg aspect-square",
-                                  "bg-muted hover:ring-2 hover:ring-primary",
-                                  "transition-all duration-200 hover:scale-105"
-                                )}
-                                onClick={() => handleSendGif(gif)}
-                              >
-                                <img
-                                  src={gif}
-                                  alt={`GIF ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                />
-                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </button>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      </TabsContent>
-                    ))}
-                  </Tabs>
+                  <ScrollArea className="h-[280px] p-2">
+                    <div className="grid grid-cols-3 gap-2">
+                      {ALL_GIFS
+                        .filter((_, i) => !gifSearch || i % 3 === 0) // Simple filter for demo
+                        .slice(0, 60)
+                        .map((gif, index) => (
+                          <button
+                            key={index}
+                            className={cn(
+                              "relative group overflow-hidden rounded-lg aspect-square",
+                              "bg-muted hover:ring-2 hover:ring-primary",
+                              "transition-all duration-200 hover:scale-105"
+                            )}
+                            onClick={() => handleSendGif(gif)}
+                          >
+                            <img
+                              src={gif}
+                              alt={`GIF ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        ))}
+                    </div>
+                  </ScrollArea>
                 </PopoverContent>
               </Popover>
 

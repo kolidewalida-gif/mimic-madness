@@ -61,8 +61,8 @@ const ProfileSidebarComponent = () => {
             <p className="text-xs text-foreground-muted px-4 leading-relaxed">
               Connectez-vous pour sauvegarder votre progression
             </p>
-            <InteractiveWrapper effect="magnetic">
-              <PremiumButton variant="primary" size="md" onClick={signInWithGoogle} className="w-full">
+            <InteractiveWrapper magnetic glow>
+              <PremiumButton variant="glow" size="md" onClick={signInWithGoogle} className="w-full">
                 <LogIn className="h-3.5 w-3.5 mr-2" />
                 Connexion Google
               </PremiumButton>
@@ -100,7 +100,7 @@ const ProfileSidebarComponent = () => {
             <User className="h-4 w-4" />
             Mon Profil
           </NeonText>
-          <InteractiveWrapper effect="glow">
+          <InteractiveWrapper glow>
             <button onClick={signOut} className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
               <LogOut className="h-3.5 w-3.5" />
             </button>
@@ -150,14 +150,14 @@ const ProfileSidebarComponent = () => {
 
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-2">
-            <InteractiveWrapper effect="glow">
-              <PremiumButton variant="secondary" size="sm" onClick={() => setShowAchievements(true)} className="w-full text-xs">
+            <InteractiveWrapper glow>
+              <PremiumButton variant="neon" size="sm" onClick={() => setShowAchievements(true)} className="w-full text-xs">
                 <Award className="h-3 w-3 mr-1" />
                 Succès
               </PremiumButton>
             </InteractiveWrapper>
-            <InteractiveWrapper effect="glow">
-              <PremiumButton variant="secondary" size="sm" onClick={() => setShowRewards(true)} className="w-full text-xs">
+            <InteractiveWrapper glow>
+              <PremiumButton variant="neon" size="sm" onClick={() => setShowRewards(true)} className="w-full text-xs">
                 <Gift className="h-3 w-3 mr-1" />
                 Récompenses
               </PremiumButton>
