@@ -133,6 +133,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [fetchUserData]);
 
+  // Realtime subscriptions for stats and profile
+  useEffect(() => {
+    if (!user) return;
+
+    const statsChannel = supabase
+      .channel(`player-stats-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'player_stats',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('[Auth] Stats updated:', payload.new);
+          setStats(payload.new as PlayerStats);
+        }
+      )
+      .subscribe();
+
+    const profileChannel = supabase
+      .channel(`profile-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('[Auth] Profile updated:', payload.new);
+          setProfile(payload.new as Profile);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(statsChannel);
+      supabase.removeChannel(profileChannel);
+    };
+  }, [user]);
+
   const signInWithGoogle = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
