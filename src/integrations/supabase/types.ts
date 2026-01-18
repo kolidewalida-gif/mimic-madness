@@ -470,6 +470,27 @@ export type Database = {
           },
         ]
       }
+      player_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_avatars: {
         Row: {
           avatar_type: string
@@ -585,21 +606,48 @@ export type Database = {
           },
         ]
       }
+      player_rewards: {
+        Row: {
+          id: string
+          is_equipped: boolean | null
+          reward_id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_equipped?: boolean | null
+          reward_id: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_equipped?: boolean | null
+          reward_id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_stats: {
         Row: {
           audio_phone_games: number | null
           best_streak: number | null
           created_at: string
           current_streak: number | null
+          current_xp: number | null
           games_hosted: number | null
           games_played: number | null
           games_won: number | null
           id: string
+          level: number | null
           messages_sent: number | null
           quiz_games: number | null
           recordings_made: number | null
           standard_games: number | null
           total_play_time_minutes: number | null
+          total_xp: number | null
           updated_at: string
           user_id: string
         }
@@ -608,15 +656,18 @@ export type Database = {
           best_streak?: number | null
           created_at?: string
           current_streak?: number | null
+          current_xp?: number | null
           games_hosted?: number | null
           games_played?: number | null
           games_won?: number | null
           id?: string
+          level?: number | null
           messages_sent?: number | null
           quiz_games?: number | null
           recordings_made?: number | null
           standard_games?: number | null
           total_play_time_minutes?: number | null
+          total_xp?: number | null
           updated_at?: string
           user_id: string
         }
@@ -625,15 +676,18 @@ export type Database = {
           best_streak?: number | null
           created_at?: string
           current_streak?: number | null
+          current_xp?: number | null
           games_hosted?: number | null
           games_played?: number | null
           games_won?: number | null
           id?: string
+          level?: number | null
           messages_sent?: number | null
           quiz_games?: number | null
           recordings_made?: number | null
           standard_games?: number | null
           total_play_time_minutes?: number | null
+          total_xp?: number | null
           updated_at?: string
           user_id?: string
         }

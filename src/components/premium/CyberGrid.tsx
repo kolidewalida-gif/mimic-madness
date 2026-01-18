@@ -61,24 +61,6 @@ export const CyberGrid = ({
         />
       )}
 
-      {/* Scan line effect */}
-      {animated && (
-        <motion.div
-          className="absolute left-0 right-0 h-px"
-          style={{
-            background: `linear-gradient(90deg, transparent 0%, ${gridColor} 50%, transparent 100%)`,
-            boxShadow: `0 0 10px ${gridColor}`
-          }}
-          animate={{
-            top: ['-10%', '110%']
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: 'linear'
-          }}
-        />
-      )}
     </div>
   );
 };
