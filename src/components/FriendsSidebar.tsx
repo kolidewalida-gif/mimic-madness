@@ -5,11 +5,17 @@ import { useOnlinePresence } from '@/hooks/useOnlinePresence';
 import { useGameInvitations } from '@/hooks/useGameInvitations';
 import { Users, Copy, Send, Check, X, UserMinus, Loader2, LogIn, UserPlus, Play, Circle, Mail, Bell } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Premium UI imports
+import { HolographicCard } from '@/components/premium/HolographicCard';
+import { NeonText } from '@/components/premium/NeonText';
+import { PremiumButton } from '@/components/premium/PremiumButton';
+import { InteractiveWrapper } from '@/components/premium/InteractiveWrapper';
 
 interface FriendsSidebarProps {
   onJoinFriend?: (lobbyCode: string) => void;
@@ -98,297 +104,379 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
   // Non connecté
   if (!user && !authLoading) {
     return (
-      <div className="w-[260px] bg-card/40 backdrop-blur-xl border border-border/20 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-border/20 bg-background/20">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-accent/20 flex items-center justify-center">
-              <Users className="h-3.5 w-3.5 text-accent" />
+      <HolographicCard className="w-[280px] overflow-hidden" glowColor="rainbow" intensity="medium">
+        <div className="p-4">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center border border-primary/30">
+              <Users className="h-5 w-5 text-primary" />
             </div>
-            <span className="font-semibold text-sm">Mes Amis</span>
+            <NeonText color="primary" size="lg">Mes Amis</NeonText>
           </div>
-        </div>
-        
-        {/* Content */}
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="text-center space-y-4">
-            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-accent/10 to-primary/10 flex items-center justify-center border border-border/20">
-              <Users className="h-10 w-10 text-foreground-muted/50" />
-            </div>
-            <p className="text-xs text-foreground-muted px-4 leading-relaxed">
-              Connectez-vous pour ajouter des amis
-            </p>
-            <Button
-              onClick={signInWithGoogle}
-              size="sm"
-              className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90 transition-opacity"
+          
+          {/* Content */}
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <motion.div 
+              className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center border border-primary/20"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
             >
-              <LogIn className="h-3.5 w-3.5 mr-2" />
-              Connexion Google
-            </Button>
+              <Users className="h-12 w-12 text-primary/50" />
+            </motion.div>
+            <p className="text-xs text-foreground-muted text-center px-4 leading-relaxed">
+              Connectez-vous pour ajouter des amis et jouer ensemble
+            </p>
+            <InteractiveWrapper magnetic glow glowColor="hsl(var(--primary))">
+              <PremiumButton
+                onClick={signInWithGoogle}
+                variant="cyber"
+                size="md"
+                color="primary"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Connexion Google
+              </PremiumButton>
+            </InteractiveWrapper>
           </div>
         </div>
-      </div>
+      </HolographicCard>
     );
   }
 
   // Loading
   if (authLoading) {
     return (
-      <div className="w-[260px] bg-card/40 backdrop-blur-xl border border-border/20 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="px-4 py-3 border-b border-border/20 bg-background/20">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-muted animate-pulse" />
-            <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+      <HolographicCard className="w-[280px] overflow-hidden" glowColor="primary" intensity="low">
+        <div className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-muted animate-pulse" />
+            <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="mt-4 space-y-3">
+            <div className="h-12 bg-muted/50 rounded-lg animate-pulse" />
+            <div className="h-12 bg-muted/50 rounded-lg animate-pulse" />
           </div>
         </div>
-      </div>
+      </HolographicCard>
     );
   }
 
   const totalNotifications = pendingRequests.length + pendingInvitations.length;
 
   return (
-    <div className="w-[260px] bg-card/40 backdrop-blur-xl border border-border/20 rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[520px]">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-border/20 bg-background/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-primary flex items-center justify-center">
-              <Users className="h-3.5 w-3.5 text-white" />
-            </div>
+    <HolographicCard className="w-[280px] overflow-hidden max-h-[580px] flex flex-col" glowColor="primary" intensity="medium">
+      <div className="p-4 flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <motion.div 
+              className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30"
+              whileHover={{ scale: 1.1, rotate: 5 }}
+            >
+              <Users className="h-5 w-5 text-white" />
+            </motion.div>
             <div>
-              <span className="font-semibold text-sm">Mes Amis</span>
-              <p className="text-[10px] text-foreground-muted">{friends.length} ami(s)</p>
+              <NeonText color="primary" size="md">Mes Amis</NeonText>
+              <p className="text-[10px] text-primary/70">{friends.length} ami(s)</p>
             </div>
           </div>
           {totalNotifications > 0 && (
-            <div className="relative">
-              <Bell className="h-4 w-4 text-primary" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+            <motion.div 
+              className="relative"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              <Bell className="h-5 w-5 text-primary" />
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gradient-to-br from-pink-500 to-purple-600 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-lg shadow-pink-500/50">
                 {totalNotifications}
               </span>
-            </div>
+            </motion.div>
           )}
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden flex flex-col p-3 space-y-3">
-        {/* Friend code */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider">
-            Votre Code Ami
-          </label>
-          <div className="relative">
-            <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg p-2.5 pr-10 font-mono text-sm font-bold text-primary tracking-widest border border-primary/10">
-              {friendCode || '...'}
-            </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={copyFriendCode}
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-            >
-              {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-            </Button>
-          </div>
-        </div>
-
-        {/* Add friend */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-1">
-            <UserPlus className="h-2.5 w-2.5" />
-            Ajouter un ami
-          </label>
-          <div className="flex gap-1.5">
-            <Input
-              placeholder="CODE AMI..."
-              value={friendCodeInput}
-              onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendRequest()}
-              className="flex-1 h-9 text-xs font-mono uppercase tracking-wider bg-background/50"
-            />
-            <Button
-              size="icon"
-              onClick={handleSendRequest}
-              disabled={!friendCodeInput.trim() || isSending}
-              className="h-9 w-9 bg-gradient-to-r from-primary to-accent shrink-0"
-            >
-              {isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-            </Button>
-          </div>
-        </div>
-
-        {/* Game invitations */}
-        {pendingInvitations.length > 0 && (
+        {/* Content */}
+        <div className="flex-1 overflow-hidden flex flex-col space-y-3">
+          {/* Friend code */}
           <div className="space-y-1.5">
-            <h3 className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-1">
-              <Mail className="h-2.5 w-2.5" />
-              Invitations ({pendingInvitations.length})
-            </h3>
-            <div className="space-y-1.5">
-              {pendingInvitations.map((invitation) => (
-                <div
-                  key={invitation.id}
-                  className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20 animate-pulse-slow"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium truncate">{invitation.sender_name}</div>
-                    <div className="text-[10px] text-foreground-muted">vous invite à jouer</div>
-                  </div>
-                  <Button 
-                    size="icon" 
-                    onClick={() => handleAcceptInvitation(invitation.id)} 
-                    className="h-7 w-7 bg-green-500 hover:bg-green-600"
-                  >
-                    <Check className="h-3 w-3" />
-                  </Button>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    onClick={() => declineInvitation(invitation.id)} 
-                    className="h-7 w-7 text-red-500 hover:bg-red-500/10"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+            <label className="text-[10px] font-bold text-primary/80 uppercase tracking-widest">
+              Votre Code Ami
+            </label>
+            <InteractiveWrapper magnetic>
+              <div 
+                className="relative group cursor-pointer"
+                onClick={copyFriendCode}
+              >
+                <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-3 pr-12 font-mono text-sm font-bold text-primary tracking-[0.3em] border border-primary/30 group-hover:border-primary/50 transition-colors">
+                  {friendCode || '...'}
                 </div>
-              ))}
-            </div>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                  {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4 text-primary" />}
+                </div>
+              </div>
+            </InteractiveWrapper>
           </div>
-        )}
 
-        {/* Pending friend requests */}
-        {pendingRequests.length > 0 && (
+          {/* Add friend */}
           <div className="space-y-1.5">
-            <h3 className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider">
-              Demandes ({pendingRequests.length})
-            </h3>
-            <div className="space-y-1.5">
-              {pendingRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex items-center gap-2 p-2 bg-background/40 rounded-lg border border-primary/20"
+            <label className="text-[10px] font-bold text-primary/80 uppercase tracking-widest flex items-center gap-1.5">
+              <UserPlus className="h-3 w-3" />
+              Ajouter un ami
+            </label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="CODE AMI..."
+                value={friendCodeInput}
+                onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendRequest()}
+                className="flex-1 h-10 text-xs font-mono uppercase tracking-wider bg-black/30 border-primary/30 focus:border-primary placeholder:text-primary/30"
+              />
+              <InteractiveWrapper magnetic>
+                <PremiumButton
+                  onClick={handleSendRequest}
+                  disabled={!friendCodeInput.trim() || isSending}
+                  variant="glow"
+                  size="sm"
+                  color="primary"
+                  className="h-10 w-10 p-0"
                 >
-                  <Avatar className="h-7 w-7">
-                    <AvatarImage src={request.requesterProfile?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-[10px]">
-                      {request.requesterProfile?.display_name?.charAt(0)?.toUpperCase() || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="flex-1 text-xs font-medium truncate">
-                    {request.requesterProfile?.display_name || 'Inconnu'}
-                  </span>
-                  <Button size="icon" variant="ghost" onClick={() => handleAccept(request.id)} className="h-6 w-6">
-                    <Check className="h-3 w-3 text-green-500" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => handleReject(request.id)} className="h-6 w-6">
-                    <X className="h-3 w-3 text-red-500" />
-                  </Button>
-                </div>
-              ))}
+                  {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </PremiumButton>
+              </InteractiveWrapper>
             </div>
           </div>
-        )}
 
-        {/* Friends list */}
-        <div className="flex-1 overflow-hidden space-y-1.5 min-h-0">
-          <h3 className="text-[10px] font-semibold text-foreground-muted uppercase tracking-wider">
-            Amis
-          </h3>
-          <ScrollArea className="h-full max-h-[200px]">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              </div>
-            ) : friends.length === 0 ? (
-              <div className="text-center py-4 text-foreground-muted text-xs">
-                Aucun ami pour le moment
-              </div>
-            ) : (
-              <div className="space-y-1.5 pr-2">
-                {friends.map((friend) => {
-                  const status = getUserStatus(friend.user_id);
-                  const isOnline = status.online;
-                  const lobbyCode = status.lobbyCode;
-                  
-                  return (
-                    <div
-                      key={friend.id}
-                      className={cn(
-                        "flex items-center gap-2 p-2 rounded-xl",
-                        "bg-background/30 border border-border/10",
-                        "hover:border-primary/20 transition-colors group"
-                      )}
+          {/* Game invitations */}
+          <AnimatePresence>
+            {pendingInvitations.length > 0 && (
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <h3 className="text-[10px] font-bold text-accent/80 uppercase tracking-widest flex items-center gap-1.5">
+                  <Mail className="h-3 w-3" />
+                  Invitations ({pendingInvitations.length})
+                </h3>
+                <div className="space-y-2">
+                  {pendingInvitations.map((invitation) => (
+                    <motion.div
+                      key={invitation.id}
+                      className="flex items-center gap-2 p-2.5 bg-gradient-to-r from-accent/10 to-primary/10 rounded-xl border border-accent/30"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
                     >
-                      <div className="relative">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={friend.avatar_url || undefined} />
-                          <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-xs font-bold">
-                            {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <Circle
-                          className={cn(
-                            "absolute -bottom-0.5 -right-0.5 h-3 w-3",
-                            isOnline ? "text-green-500 fill-green-500" : "text-gray-500 fill-gray-500"
-                          )}
-                        />
-                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium truncate">{friend.display_name || 'Joueur'}</div>
-                        <div className={cn(
-                          "text-[10px]",
-                          lobbyCode ? "text-primary" : isOnline ? "text-green-500" : "text-foreground-muted"
-                        )}>
-                          {lobbyCode ? 'En partie' : isOnline ? 'En ligne' : 'Hors ligne'}
-                        </div>
+                        <div className="text-xs font-semibold text-accent truncate">{invitation.sender_name}</div>
+                        <div className="text-[10px] text-accent/70">vous invite à jouer</div>
                       </div>
-                      
-                      {/* Actions */}
-                      <div className="flex items-center gap-0.5">
-                        {lobbyCode && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleJoinFriend(lobbyCode)}
-                            className="h-7 w-7 text-green-500 hover:text-green-400 hover:bg-green-500/10"
-                            title="Rejoindre"
-                          >
-                            <Play className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {currentLobbyCode && !lobbyCode && isOnline && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleInviteFriend(friend.user_id)}
-                            disabled={invitationLoading}
-                            className="h-7 w-7 text-primary hover:bg-primary/10"
-                            title="Inviter"
-                          >
-                            <Mail className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleRemove(friend.id)}
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
-                          title="Supprimer"
+                      <InteractiveWrapper>
+                        <PremiumButton 
+                          onClick={() => handleAcceptInvitation(invitation.id)} 
+                          variant="glow"
+                          size="sm"
+                          color="success"
+                          className="h-8 w-8 p-0"
                         >
-                          <UserMinus className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                          <Check className="h-3.5 w-3.5" />
+                        </PremiumButton>
+                      </InteractiveWrapper>
+                      <InteractiveWrapper>
+                        <PremiumButton 
+                          onClick={() => declineInvitation(invitation.id)} 
+                          variant="glow"
+                          size="sm"
+                          color="warning"
+                          className="h-8 w-8 p-0"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </PremiumButton>
+                      </InteractiveWrapper>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
             )}
-          </ScrollArea>
+          </AnimatePresence>
+
+          {/* Pending friend requests */}
+          <AnimatePresence>
+            {pendingRequests.length > 0 && (
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <h3 className="text-[10px] font-bold text-warning/80 uppercase tracking-widest">
+                  Demandes ({pendingRequests.length})
+                </h3>
+                <div className="space-y-2">
+                  {pendingRequests.map((request) => (
+                    <motion.div
+                      key={request.id}
+                      className="flex items-center gap-2 p-2.5 bg-gradient-to-r from-warning/10 to-accent/10 rounded-xl border border-warning/30"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                    >
+                      <Avatar className="h-8 w-8 ring-2 ring-warning/30">
+                        <AvatarImage src={request.requesterProfile?.avatar_url || undefined} />
+                        <AvatarFallback className="bg-gradient-to-br from-warning to-accent text-white text-xs font-bold">
+                          {request.requesterProfile?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="flex-1 text-xs font-semibold text-warning truncate">
+                        {request.requesterProfile?.display_name || 'Inconnu'}
+                      </span>
+                      <InteractiveWrapper>
+                        <PremiumButton 
+                          onClick={() => handleAccept(request.id)}
+                          variant="glow"
+                          size="sm"
+                          color="success"
+                          className="h-7 w-7 p-0"
+                        >
+                          <Check className="h-3 w-3" />
+                        </PremiumButton>
+                      </InteractiveWrapper>
+                      <InteractiveWrapper>
+                        <PremiumButton 
+                          onClick={() => handleReject(request.id)}
+                          variant="glow"
+                          size="sm"
+                          color="warning"
+                          className="h-7 w-7 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </PremiumButton>
+                      </InteractiveWrapper>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Friends list */}
+          <div className="flex-1 overflow-hidden space-y-2 min-h-0">
+            <h3 className="text-[10px] font-bold text-primary/80 uppercase tracking-widest">
+              Amis en ligne
+            </h3>
+            <ScrollArea className="h-full max-h-[220px]">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <Loader2 className="h-6 w-6 text-primary" />
+                  </motion.div>
+                </div>
+              ) : friends.length === 0 ? (
+                <div className="text-center py-6">
+                  <Users className="h-8 w-8 text-primary/30 mx-auto mb-2" />
+                  <p className="text-xs text-primary/50">Aucun ami pour le moment</p>
+                </div>
+              ) : (
+                <div className="space-y-2 pr-2">
+                  {friends.map((friend) => {
+                    const status = getUserStatus(friend.user_id);
+                    const isOnline = status.online;
+                    const lobbyCode = status.lobbyCode;
+                    
+                    return (
+                      <motion.div
+                        key={friend.id}
+                        className={cn(
+                          "flex items-center gap-2.5 p-2.5 rounded-xl",
+                          "bg-black/20 border transition-all duration-300 group",
+                          isOnline 
+                            ? "border-success/30 hover:border-success/50" 
+                            : "border-muted/20 hover:border-muted/30"
+                        )}
+                        whileHover={{ scale: 1.02, x: 4 }}
+                      >
+                        <div className="relative">
+                          <Avatar className={cn(
+                            "h-9 w-9 ring-2 transition-all",
+                            isOnline ? "ring-success/50" : "ring-muted/30"
+                          )}>
+                            <AvatarImage src={friend.avatar_url || undefined} />
+                            <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-xs font-bold">
+                              {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <motion.div
+                            className={cn(
+                              "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background",
+                              isOnline ? "bg-success" : "bg-muted"
+                            )}
+                            animate={isOnline ? { scale: [1, 1.2, 1] } : {}}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-foreground truncate">{friend.display_name || 'Joueur'}</div>
+                          <div className={cn(
+                            "text-[10px] font-medium",
+                            lobbyCode ? "text-primary" : isOnline ? "text-success" : "text-muted-foreground"
+                          )}>
+                            {lobbyCode ? '🎮 En partie' : isOnline ? '🟢 En ligne' : '⚫ Hors ligne'}
+                          </div>
+                        </div>
+                        
+                        {/* Actions */}
+                        <div className="flex items-center gap-1">
+                          {lobbyCode && (
+                            <InteractiveWrapper magnetic>
+                              <PremiumButton
+                                onClick={() => handleJoinFriend(lobbyCode)}
+                                variant="glow"
+                                size="sm"
+                                color="success"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Play className="h-3.5 w-3.5" />
+                              </PremiumButton>
+                            </InteractiveWrapper>
+                          )}
+                          {currentLobbyCode && !lobbyCode && isOnline && (
+                            <InteractiveWrapper magnetic>
+                              <PremiumButton
+                                onClick={() => handleInviteFriend(friend.user_id)}
+                                disabled={invitationLoading}
+                                variant="glow"
+                                size="sm"
+                                color="accent"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                              </PremiumButton>
+                            </InteractiveWrapper>
+                          )}
+                          <InteractiveWrapper>
+                            <PremiumButton
+                              onClick={() => handleRemove(friend.id)}
+                              variant="glow"
+                              size="sm"
+                              color="warning"
+                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <UserMinus className="h-3.5 w-3.5" />
+                            </PremiumButton>
+                          </InteractiveWrapper>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
         </div>
       </div>
-    </div>
+    </HolographicCard>
   );
 };
 

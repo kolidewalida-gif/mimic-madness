@@ -141,6 +141,8 @@ export const useLobbyChat = (
         if (error) {
           console.error('Error sending message:', error);
         }
+        
+        // XP is now handled externally via useXpActions hook
       } catch (err) {
         console.error('Error in sendMessage:', err);
       } finally {
