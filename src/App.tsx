@@ -7,6 +7,9 @@ import { BackgroundMusicProvider } from "@/hooks/useBackgroundMusic";
 import { SoundEffectsVolumeProvider } from "@/hooks/useSoundEffectsVolume";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
+import { XpProvider } from "@/contexts/XpContext";
+import { XpGainPopup } from "@/components/XpGainPopup";
+import { RewardNotification } from "@/components/RewardNotification";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -18,17 +21,22 @@ const App = () => (
       <ThemeProvider>
         <BackgroundMusicProvider>
           <SoundEffectsVolumeProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
+            <XpProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                {/* Global XP and Reward notifications */}
+                <XpGainPopup />
+                <RewardNotification />
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </TooltipProvider>
+            </XpProvider>
           </SoundEffectsVolumeProvider>
         </BackgroundMusicProvider>
       </ThemeProvider>

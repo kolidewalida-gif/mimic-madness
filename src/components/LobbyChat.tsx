@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import { useLobbyChat, ChatMessage } from '@/hooks/useLobbyChat';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { XpContext } from '@/contexts/XpContext';
 import { 
   MessageCircle, 
   Send, 
@@ -258,6 +259,9 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
     playerId,
     playerName
   );
+  
+  // XP context - may be null if not wrapped in XpProvider
+  const xpContext = useContext(XpContext);
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -477,6 +481,8 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
     playSoundEffect('messageSend', 0.4);
     await sendMessage(inputValue, 'text');
     setInputValue('');
+    // Award XP for sending a message
+    xpContext?.onMessageSent();
     setTimeout(scrollToBottom, 100);
   };
 
@@ -491,6 +497,8 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
     playSoundEffect('gifSend', 0.4);
     await sendMessage(gifUrl, 'gif');
     setShowGifPicker(false);
+    // Award XP for sending a GIF
+    xpContext?.onGifSent();
     setTimeout(scrollToBottom, 100);
   };
 
