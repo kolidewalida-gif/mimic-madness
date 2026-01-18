@@ -14,15 +14,19 @@ interface XpContextType {
   onGameWin: () => Promise<void>;
   onGameLoss: () => Promise<void>;
   onGameParticipation: () => Promise<void>;
+  onGameHosted: () => Promise<void>;
   onQuizCorrectAnswer: () => Promise<void>;
   onQuizWin: () => Promise<void>;
+  onQuizPerfectGame: () => Promise<void>;
   onAudioPhoneComplete: () => Promise<void>;
   onRecordingMade: () => Promise<void>;
+  onVoteLike: () => Promise<void>;
+  onVoteReceived: () => Promise<void>;
   onFriendAdded: () => Promise<void>;
-  onGameHosted: () => Promise<void>;
   onPerfectRound: () => Promise<void>;
   onAchievementUnlocked: () => Promise<void>;
   onDailyLogin: () => Promise<void>;
+  onStreakBonus: () => Promise<void>;
   
   // Current state
   level: number;
@@ -57,15 +61,19 @@ export const XpProvider = ({ children }: { children: ReactNode }) => {
   const onGameWin = useCallback(() => addXpWithNotification('gameWin'), [addXpWithNotification]);
   const onGameLoss = useCallback(() => addXpWithNotification('gameLoss'), [addXpWithNotification]);
   const onGameParticipation = useCallback(() => addXpWithNotification('gameParticipation'), [addXpWithNotification]);
+  const onGameHosted = useCallback(() => addXpWithNotification('gameHosted'), [addXpWithNotification]);
   const onQuizCorrectAnswer = useCallback(() => addXpWithNotification('quizCorrectAnswer'), [addXpWithNotification]);
   const onQuizWin = useCallback(() => addXpWithNotification('quizWin'), [addXpWithNotification]);
+  const onQuizPerfectGame = useCallback(() => addXpWithNotification('quizPerfectGame'), [addXpWithNotification]);
   const onAudioPhoneComplete = useCallback(() => addXpWithNotification('audioPhoneComplete'), [addXpWithNotification]);
   const onRecordingMade = useCallback(() => addXpWithNotification('recordingMade'), [addXpWithNotification]);
+  const onVoteLike = useCallback(() => addXpWithNotification('voteLike'), [addXpWithNotification]);
+  const onVoteReceived = useCallback(() => addXpWithNotification('voteReceived'), [addXpWithNotification]);
   const onFriendAdded = useCallback(() => addXpWithNotification('friendAdded'), [addXpWithNotification]);
-  const onGameHosted = useCallback(() => addXpWithNotification('gameHosted'), [addXpWithNotification]);
   const onPerfectRound = useCallback(() => addXpWithNotification('perfectRound'), [addXpWithNotification]);
   const onAchievementUnlocked = useCallback(() => addXpWithNotification('achievementUnlocked'), [addXpWithNotification]);
   const onDailyLogin = useCallback(() => addXpWithNotification('dailyLogin'), [addXpWithNotification]);
+  const onStreakBonus = useCallback(() => addXpWithNotification('streakBonus'), [addXpWithNotification]);
 
   return (
     <XpContext.Provider value={{
@@ -75,15 +83,19 @@ export const XpProvider = ({ children }: { children: ReactNode }) => {
       onGameWin,
       onGameLoss,
       onGameParticipation,
+      onGameHosted,
       onQuizCorrectAnswer,
       onQuizWin,
+      onQuizPerfectGame,
       onAudioPhoneComplete,
       onRecordingMade,
+      onVoteLike,
+      onVoteReceived,
       onFriendAdded,
-      onGameHosted,
       onPerfectRound,
       onAchievementUnlocked,
       onDailyLogin,
+      onStreakBonus,
       level,
       totalXp,
       progressPercent,

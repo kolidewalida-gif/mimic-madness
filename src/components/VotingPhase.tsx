@@ -11,6 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { emitXpGain } from "@/components/XpGainPopup";
+import { emitLevelUpNotification } from "@/components/RewardNotification";
+import { usePlayerLevel, XP_REWARDS } from "@/hooks/usePlayerLevel";
 interface Player {
   id: string;
   name: string;
@@ -79,6 +82,7 @@ export const VotingPhase = ({
   const videoRef = useRef<VideoWithAudioOverlayRef>(null);
   const teamVideoRef = useRef<TeamVideoOverlayRef>(null);
   const { playSound } = useSoundEffects();
+  const { addXp } = usePlayerLevel();
 
   // Determine what to show based on game mode
   const displayItems = gameMode === '2v2' ? teamImitations : imitations;
@@ -360,6 +364,13 @@ export const VotingPhase = ({
   }, [currentIndex]);
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
+    // Award XP for voting
+    const xpResult = await addXp('voteLike');
+    emitXpGain(XP_REWARDS.voteLike, 'voteLike');
+    if (xpResult?.leveledUp) {
+      emitLevelUpNotification(xpResult.newLevel);
+    }
+
     if (gameMode === '2v2') {
       // Vote for team
       const currentTeam = teamImitations[currentIndex];

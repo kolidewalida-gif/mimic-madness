@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { emitXpGain } from '@/components/XpGainPopup';
+import { emitLevelUpNotification } from '@/components/RewardNotification';
+import { usePlayerLevel, XP_REWARDS } from '@/hooks/usePlayerLevel';
 
 interface Player {
   id: string;
@@ -82,6 +85,9 @@ export const useQuizGame = (
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
+  
+  // XP system
+  const { addXp } = usePlayerLevel();
 
   // Initialize scores for all players
   useEffect(() => {
@@ -426,6 +432,12 @@ export const useQuizGame = (
     
     if (isCorrect) {
       playSoundEffect('quizCorrect', 0.5);
+      // Award XP for correct answer
+      const result = await addXp('quizCorrectAnswer');
+      emitXpGain(XP_REWARDS.quizCorrectAnswer, 'quizCorrectAnswer');
+      if (result?.leveledUp) {
+        emitLevelUpNotification(result.newLevel);
+      }
     } else {
       playSoundEffect('quizWrong', 0.4);
     }
@@ -441,7 +453,7 @@ export const useQuizGame = (
       is_correct: isCorrect,
       points_earned: points
     });
-  }, [hasAnswered, serverStartTime, currentQuestion, lobbyId, currentRound, currentPlayer]);
+  }, [hasAnswered, serverStartTime, currentQuestion, lobbyId, currentRound, currentPlayer, addXp]);
 
   // advanceToReveal is declared earlier in the file for timer usage
 
