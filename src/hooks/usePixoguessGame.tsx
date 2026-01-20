@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOptionalXp } from '@/hooks/useOptionalXp';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import type { BlurRushLiveStats } from '@/components/BlurRushLiveScoreboard';
 
 interface Player {
   id: string;
@@ -34,6 +35,7 @@ type PixoguessPhase = 'waiting' | 'playing' | 'reveal' | 'scores' | 'final';
 const TOTAL_ROUNDS = 5;
 const ROUND_DURATION_MS = 20000; // 20 seconds per round
 const PIXELATION_STEPS = 20; // Number of depixelation steps
+const GUESS_COOLDOWN_MS = 900;
 
 // Points based on pixelation level (higher = more pixelated = more points)
 const calculatePoints = (pixelLevel: number): number => {
@@ -94,9 +96,13 @@ export const usePixoguessGame = (
   const [roundWinner, setRoundWinner] = useState<{ id: string; name: string; points: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [usedImageIndices, setUsedImageIndices] = useState<number[]>([]);
+  const [liveStats, setLiveStats] = useState<BlurRushLiveStats>({});
+  const [cooldownUntil, setCooldownUntil] = useState<number>(0);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const pixelTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoRevealRef = useRef<NodeJS.Timeout | null>(null);
+  const cooldownUntilRef = useRef<number>(0);
   const xp = useOptionalXp();
 
   const isHost = currentPlayer.isHost;
@@ -111,6 +117,20 @@ export const usePixoguessGame = (
     }));
     setScores(initialScores);
     setIsLoading(false);
+  }, [players]);
+
+  // Initialize live stats
+  useEffect(() => {
+    const init: BlurRushLiveStats = {};
+    players.forEach((p) => {
+      init[p.id] = {
+        playerName: p.name,
+        attempts: 0,
+        lastGuessAt: null,
+        solved: false,
+      };
+    });
+    setLiveStats(init);
   }, [players]);
 
   // Fetch scores from DB
@@ -167,6 +187,17 @@ export const usePixoguessGame = (
               setHasGuessedCorrectly(false);
               setRoundWinner(null);
               setPixelLevel(PIXELATION_STEPS);
+              cooldownUntilRef.current = 0;
+              setCooldownUntil(0);
+
+              // Reset per-round live stats
+              setLiveStats(prev => {
+                const next: BlurRushLiveStats = { ...prev };
+                Object.keys(next).forEach((k) => {
+                  next[k] = { ...next[k], attempts: 0, lastGuessAt: null, solved: false };
+                });
+                return next;
+              });
               
               if (round.started_at) {
                 const startTime = new Date(round.started_at).getTime();
@@ -203,23 +234,65 @@ export const usePixoguessGame = (
           filter: `lobby_id=eq.${lobbyId}`
         },
         (payload: any) => {
-          if (payload.new && payload.new.is_correct) {
+          if (!payload.new) return;
+          if (!roundData) return;
+          if (payload.new.round_number !== roundData.round_number) return;
+
+          // Update live stats (no spoiler: only attempts + last time + solved)
+          setLiveStats(prev => {
+            const next = { ...prev };
+            const existing = next[payload.new.player_id] ?? {
+              playerName: payload.new.player_name,
+              attempts: 0,
+              lastGuessAt: null,
+              solved: false,
+            };
+
+            next[payload.new.player_id] = {
+              playerName: existing.playerName ?? payload.new.player_name,
+              attempts: (existing.attempts ?? 0) + 1,
+              lastGuessAt: payload.new.created_at ?? new Date().toISOString(),
+              solved: Boolean(existing.solved || payload.new.is_correct),
+            };
+            return next;
+          });
+
+          if (payload.new.is_correct) {
             // Someone guessed correctly
             setRoundWinner({
               id: payload.new.player_id,
               name: payload.new.player_name,
               points: payload.new.points_earned
             });
+
+            if (payload.new.player_id === currentPlayer.id) {
+              setHasGuessedCorrectly(true);
+            }
+
             playSoundEffect('success', 0.5);
+
+            // Host: auto-advance to reveal shortly after a winner
+            // (do it inline here to avoid referencing callbacks declared later)
+            if (isHost) {
+              if (autoRevealRef.current) clearTimeout(autoRevealRef.current);
+              autoRevealRef.current = setTimeout(() => {
+                // Fire-and-forget; all clients will sync via realtime round update
+                supabase
+                  .from('pixoguess_rounds')
+                  .update({ phase: 'reveal' })
+                  .eq('id', roundData.id);
+              }, 1600);
+            }
           }
         }
       )
       .subscribe();
 
     return () => {
+      if (autoRevealRef.current) clearTimeout(autoRevealRef.current);
       supabase.removeChannel(channel);
     };
-  }, [lobbyId, phase, fetchScoresFromDB]);
+  }, [lobbyId, phase, fetchScoresFromDB, roundData, currentPlayer.id, isHost]);
 
   // Timer and pixelation effect
   useEffect(() => {
@@ -290,8 +363,17 @@ export const usePixoguessGame = (
   }, [isHost, lobbyId, getRandomImage]);
 
   // Submit guess
-  const submitGuess = useCallback(async (guess: string): Promise<boolean> => {
-    if (!roundData || hasGuessedCorrectly || phase !== 'playing') return false;
+  const submitGuess = useCallback(async (guess: string): Promise<{ outcome: 'correct' | 'wrong' | 'cooldown' | 'late' | 'blocked'; cooldownMs?: number }> => {
+    if (!roundData || phase !== 'playing') return { outcome: 'blocked' };
+    if (roundData.winner_id || roundWinner) return { outcome: 'blocked' };
+    if (hasGuessedCorrectly) return { outcome: 'blocked' };
+
+    const now = Date.now();
+    if (now < cooldownUntilRef.current) {
+      return { outcome: 'cooldown', cooldownMs: cooldownUntilRef.current - now };
+    }
+    cooldownUntilRef.current = now + GUESS_COOLDOWN_MS;
+    setCooldownUntil(cooldownUntilRef.current);
 
     const normalizedGuess = normalizeAnswer(guess);
     const normalizedAnswer = normalizeAnswer(roundData.correct_answer);
@@ -300,15 +382,39 @@ export const usePixoguessGame = (
     const isCorrect = normalizedGuess === normalizedAnswer || 
                       acceptableNormalized.some(a => normalizedGuess.includes(a) || a.includes(normalizedGuess));
 
-    if (!isCorrect) return false;
-
     const startTime = roundData.started_at ? new Date(roundData.started_at).getTime() : Date.now();
     const guessTimeMs = Date.now() - startTime;
-    const points = calculatePoints(pixelLevel);
 
-    setHasGuessedCorrectly(true);
+    if (!isCorrect) {
+      await supabase
+        .from('pixoguess_guesses')
+        .insert({
+          lobby_id: lobbyId,
+          round_number: currentRound,
+          player_id: currentPlayer.id,
+          player_name: currentPlayer.name,
+          guess,
+          guess_time_ms: guessTimeMs,
+          is_correct: false,
+          points_earned: 0
+        });
+      return { outcome: 'wrong' };
+    }
 
-    // Insert guess
+    // Try to claim winner (first correct guess)
+    const { data: claimed } = await supabase
+      .from('pixoguess_rounds')
+      .update({
+        winner_id: currentPlayer.id,
+        winner_name: currentPlayer.name
+      })
+      .eq('id', roundData.id)
+      .is('winner_id', null)
+      .select('id');
+
+    const didClaim = Array.isArray(claimed) && claimed.length > 0;
+    const points = didClaim ? calculatePoints(pixelLevel) : 0;
+
     await supabase
       .from('pixoguess_guesses')
       .insert({
@@ -316,28 +422,21 @@ export const usePixoguessGame = (
         round_number: currentRound,
         player_id: currentPlayer.id,
         player_name: currentPlayer.name,
-        guess: guess,
+        guess,
         guess_time_ms: guessTimeMs,
         is_correct: true,
         points_earned: points
       });
 
-    // Update round with winner (first correct guess)
-    await supabase
-      .from('pixoguess_rounds')
-      .update({
-        winner_id: currentPlayer.id,
-        winner_name: currentPlayer.name
-      })
-      .eq('id', roundData.id)
-      .is('winner_id', null);
+    if (didClaim) {
+      setHasGuessedCorrectly(true);
+      xp?.onQuizCorrectAnswer?.();
+      playSoundEffect('success', 0.6);
+      return { outcome: 'correct' };
+    }
 
-    // Award XP
-    xp?.onQuizCorrectAnswer?.();
-
-    playSoundEffect('success', 0.6);
-    return true;
-  }, [roundData, hasGuessedCorrectly, phase, pixelLevel, currentRound, currentPlayer, lobbyId, xp]);
+    return { outcome: 'late' };
+  }, [roundData, phase, roundWinner, hasGuessedCorrectly, pixelLevel, currentRound, currentPlayer, lobbyId, xp]);
 
   // Advance to reveal (host)
   const advanceToReveal = useCallback(async () => {
@@ -419,6 +518,8 @@ export const usePixoguessGame = (
     scores,
     hasGuessedCorrectly,
     roundWinner,
+    liveStats,
+    cooldownUntil,
     isLoading,
     isHost,
     startGame,
