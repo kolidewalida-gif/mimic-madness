@@ -296,7 +296,7 @@ const Index = () => {
             description: `Impossible de démarrer la partie (${error.message})`,
             variant: "destructive",
           });
-          return;
+          throw new Error(error.message);
         }
         
         console.log('[Index] Lobby updated successfully, transitioning state');
@@ -313,11 +313,13 @@ const Index = () => {
         }
       } catch (error) {
         console.error('[Index] Error updating lobby status:', error);
+        const msg = error instanceof Error ? error.message : 'Erreur inconnue';
         toast({
           title: "Erreur",
-          description: "Impossible de démarrer la partie",
+          description: `Impossible de démarrer la partie (${msg})`,
           variant: "destructive",
         });
+        throw error;
       }
     }
   }, [lobby, currentPlayer?.isHost, toast]);

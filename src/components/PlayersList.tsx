@@ -298,7 +298,7 @@ export const PlayersList = ({
               <p className="text-xs text-center text-foreground-muted">
                 {gameMode === '2v2'
                   ? "Min. 4 joueurs pairs + équipes formées"
-                  : `Minimum ${gameMode === '2v2' ? 4 : 2} joueurs connectés requis (${connectedCount} actuellement)`}
+                  : `Minimum 2 joueurs connectés requis (${connectedCount} actuellement)`}
               </p>
             )}
           </div>
