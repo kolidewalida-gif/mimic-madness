@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Timer, Trophy, Send, Sparkles, Image as ImageIcon, Users } from 'lucide-react';
+import { Eye, Timer, Trophy, Send, Sparkles, Image as ImageIcon, Users, ShieldAlert } from 'lucide-react';
 import { usePixoguessGame } from '@/hooks/usePixoguessGame';
 import { LobbyChat } from '@/components/LobbyChat';
 import { HolographicCard, NeonText, PremiumButton, FloatingParticles, CyberGrid } from '@/components/premium';
 import { cn } from '@/lib/utils';
+import { BlurRushLiveScoreboard } from '@/components/BlurRushLiveScoreboard';
 
 interface Player {
   id: string;
@@ -37,6 +38,8 @@ export const PixoguessGameScreen = ({
     scores,
     hasGuessedCorrectly,
     roundWinner,
+    liveStats,
+    cooldownUntil,
     isLoading,
     isHost,
     startGame,
@@ -48,6 +51,7 @@ export const PixoguessGameScreen = ({
 
   const [guess, setGuess] = useState('');
   const [showFeedback, setShowFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [lastInfo, setLastInfo] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -124,20 +128,48 @@ export const PixoguessGameScreen = ({
     }
   };
 
-  const handleSubmitGuess = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!guess.trim() || hasGuessedCorrectly) return;
+  const cooldownMs = useMemo(() => Math.max(0, cooldownUntil - Date.now()), [cooldownUntil]);
 
-    const isCorrect = await submitGuess(guess);
-    
-    if (isCorrect) {
-      setShowFeedback('correct');
-      setGuess('');
-    } else {
-      setShowFeedback('wrong');
-      setTimeout(() => setShowFeedback(null), 500);
+  const doSubmit = useCallback(async () => {
+    if (!guess.trim() || hasGuessedCorrectly) return;
+    if (roundWinner) return;
+
+    const result = await submitGuess(guess);
+
+    if (result.outcome === 'cooldown') {
+      setLastInfo(`Cooldown: ${(Math.ceil((result.cooldownMs ?? 0) / 100) / 10).toFixed(1)}s`);
+      return;
     }
-  }, [guess, hasGuessedCorrectly, submitGuess]);
+
+    if (result.outcome === 'wrong') {
+      setShowFeedback('wrong');
+      setLastInfo(null);
+      setTimeout(() => setShowFeedback(null), 450);
+      return;
+    }
+
+    if (result.outcome === 'late') {
+      setLastInfo("Trop tard — quelqu'un a déjà trouvé.");
+      setGuess('');
+      return;
+    }
+
+    if (result.outcome === 'correct') {
+      setShowFeedback('correct');
+      setLastInfo('Bien joué !');
+      setGuess('');
+      return;
+    }
+
+    setLastInfo(null);
+  }, [guess, hasGuessedCorrectly, roundWinner, submitGuess]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      doSubmit();
+    }
+  }, [doSubmit]);
 
   // Calculate progress
   const timeProgress = (timeRemaining / totalTime) * 100;
@@ -296,37 +328,52 @@ export const PixoguessGameScreen = ({
               </HolographicCard>
 
               {/* Guess Input */}
-              <form onSubmit={handleSubmitGuess}>
-                <HolographicCard className="p-4">
-                  <div className="flex gap-3">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={guess}
-                      onChange={(e) => setGuess(e.target.value)}
-                      placeholder={hasGuessedCorrectly ? "✓ Bonne réponse !" : "Tapez votre réponse..."}
-                      disabled={hasGuessedCorrectly}
-                      className={cn(
-                        "flex-1 px-4 py-3 rounded-xl bg-background/50 border transition-all",
-                        "focus:outline-none focus:ring-2 focus:ring-primary",
-                        showFeedback === 'correct' && "border-green-500 bg-green-500/10",
-                        showFeedback === 'wrong' && "border-red-500 bg-red-500/10 animate-shake",
-                        hasGuessedCorrectly && "border-green-500 bg-green-500/10"
-                      )}
-                    />
-                    <PremiumButton 
-                      onClick={() => {}}
-                      disabled={hasGuessedCorrectly || !guess.trim()}
-                    >
-                      <Send className="h-5 w-5" />
-                    </PremiumButton>
+              <HolographicCard className="p-4">
+                <div className="flex gap-3">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={guess}
+                    onChange={(e) => setGuess(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={roundWinner ? "Quelqu'un a déjà trouvé..." : hasGuessedCorrectly ? "✓ Bonne réponse !" : "Tapez votre réponse..."}
+                    disabled={hasGuessedCorrectly || Boolean(roundWinner) || cooldownMs > 0}
+                    className={cn(
+                      "flex-1 px-4 py-3 rounded-xl bg-background/50 border transition-all",
+                      "focus:outline-none focus:ring-2 focus:ring-primary",
+                      showFeedback === 'correct' && "border-green-500 bg-green-500/10",
+                      showFeedback === 'wrong' && "border-red-500 bg-red-500/10 animate-shake",
+                      (hasGuessedCorrectly || roundWinner) && "border-green-500 bg-green-500/10"
+                    )}
+                  />
+                  <PremiumButton
+                    onClick={doSubmit}
+                    disabled={hasGuessedCorrectly || Boolean(roundWinner) || !guess.trim() || cooldownMs > 0}
+                  >
+                    <Send className="h-5 w-5" />
+                  </PremiumButton>
+                </div>
+
+                <div className="mt-2 flex items-center justify-between text-xs text-foreground-muted">
+                  <div className="flex items-center gap-2">
+                    {cooldownMs > 0 && (
+                      <span className="inline-flex items-center gap-1">
+                        <ShieldAlert className="h-3.5 w-3.5" />
+                        Cooldown {Math.ceil(cooldownMs / 100) / 10}s
+                      </span>
+                    )}
                   </div>
-                </HolographicCard>
-              </form>
+                  {lastInfo && <span className="truncate max-w-[60%]">{lastInfo}</span>}
+                </div>
+              </HolographicCard>
             </div>
 
             {/* Scoreboard */}
             <div className="space-y-4">
+              <BlurRushLiveScoreboard
+                stats={liveStats}
+                currentPlayerId={currentPlayer.id}
+              />
               <HolographicCard className="p-4">
                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-yellow-400" />
