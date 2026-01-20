@@ -55,6 +55,8 @@ export const LobbyScreen = ({
 }: LobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
   const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
+  const [lastStartAttemptAt, setLastStartAttemptAt] = useState<string | null>(null);
+  const [lastStartError, setLastStartError] = useState<string | null>(null);
   const { teams, isLoading: teamsLoading, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
 
@@ -131,7 +133,15 @@ export const LobbyScreen = ({
       });
       return;
     }
-    await onStartGame(gameMode);
+
+    setLastStartAttemptAt(new Date().toISOString());
+    setLastStartError(null);
+    try {
+      await onStartGame(gameMode);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Erreur inconnue';
+      setLastStartError(msg);
+    }
   };
 
   const connectedCount = players.filter(p => !p.isDisconnected).length;
@@ -301,6 +311,34 @@ export const LobbyScreen = ({
                       <div>
                         Min requis: <span className="text-foreground">{gameMode === '2v2' ? 4 : 2}</span>
                       </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div>
+                        Dernière tentative: <span className="text-foreground">{lastStartAttemptAt ? new Date(lastStartAttemptAt).toLocaleTimeString() : '—'}</span>
+                      </div>
+                      <div>
+                        Dernière erreur backend: <span className={cn("font-medium", lastStartError ? "text-destructive" : "text-foreground")}>{lastStartError ?? '—'}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="font-medium text-foreground">États joueurs :</div>
+                      <ul className="space-y-0.5">
+                        {players.map((p) => (
+                          <li key={p.id} className="flex items-center justify-between gap-3">
+                            <span className="truncate">{p.name}{p.id === currentPlayer.id ? ' (vous)' : ''}</span>
+                            <span className={cn(
+                              "text-[10px] px-2 py-0.5 rounded-full border",
+                              p.isDisconnected
+                                ? "bg-warning/10 border-warning/20 text-warning"
+                                : "bg-success/10 border-success/20 text-success"
+                            )}>
+                              {p.isDisconnected ? `déco ${p.disconnectedTimeLeft ?? ''}`.trim() : 'connecté'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
 
                     {!canStart && (
