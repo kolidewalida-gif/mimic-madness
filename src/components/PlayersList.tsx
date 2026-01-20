@@ -4,6 +4,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { getModeLabel, type LobbyGameMode } from "@/lib/gameModes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +40,7 @@ interface PlayersListProps {
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
   canStart?: boolean;
-  gameMode?: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess';
+  gameMode?: LobbyGameMode;
 }
 
 export const PlayersList = ({ 
@@ -60,7 +61,8 @@ export const PlayersList = ({
   const [playerToTransfer, setPlayerToTransfer] = useState<Player | null>(null);
   
   const connectedPlayers = players.filter(p => !p.isDisconnected);
-  const canStart = externalCanStart ?? (connectedPlayers.length >= 2 && connectedPlayers.length <= 8);
+  const connectedCount = connectedPlayers.length;
+  const canStart = externalCanStart ?? (connectedCount >= 2 && connectedCount <= 8);
 
   const copyLobbyCode = async () => {
     if (!lobbyCode) return;
@@ -284,18 +286,19 @@ export const PlayersList = ({
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
               <Zap className="h-5 w-5 mr-2" />
-              {!canStart 
-                ? gameMode === '2v2' 
+              {!canStart
+                ? gameMode === '2v2'
                   ? "Conditions 2v2 non remplies"
-                  : "En attente de joueurs..." 
-                : `Lancer la Partie${gameMode !== 'normal' ? ` ${gameMode === '2v2' ? '2v2' : gameMode === 'quiz' ? 'Quiz' : 'Audio Phone'}` : ''}`
-              }
+                  : "En attente de joueurs..."
+                : gameMode === 'normal'
+                  ? "Lancer la Partie"
+                  : `Lancer ${getModeLabel(gameMode)}`}
             </Button>
             {!canStart && (
               <p className="text-xs text-center text-foreground-muted">
-                {gameMode === '2v2' 
-                  ? "Min. 4 joueurs pairs + équipes formées" 
-                  : "Minimum 2 joueurs connectés requis"}
+                {gameMode === '2v2'
+                  ? "Min. 4 joueurs pairs + équipes formées"
+                  : `Minimum ${gameMode === '2v2' ? 4 : 2} joueurs connectés requis (${connectedCount} actuellement)`}
               </p>
             )}
           </div>
