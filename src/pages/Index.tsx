@@ -293,7 +293,7 @@ const Index = () => {
           console.error('[Index] Error updating lobby:', error);
           toast({
             title: "Erreur",
-            description: "Impossible de démarrer la partie",
+            description: `Impossible de démarrer la partie (${error.message})`,
             variant: "destructive",
           });
           return;

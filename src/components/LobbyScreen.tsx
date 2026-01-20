@@ -14,12 +14,13 @@ import {
   GlowingOrb,
   CyberGrid
 } from "@/components/premium";
-import { ArrowLeft, Settings, Users, Wifi } from "lucide-react";
+import { ArrowLeft, Bug, Settings, Users, Wifi } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useGameTeams } from "@/hooks/useGameTeams";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getModeEmojiLabel, getModeLabel, getStartStatus, type LobbyGameMode } from "@/lib/gameModes";
 
 interface Player {
   id: string;
@@ -35,7 +36,7 @@ interface LobbyScreenProps {
   lobbyId: string;
   isHost: boolean;
   currentPlayer: Player;
-  onStartGame: (gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess') => void;
+  onStartGame: (gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess') => void | Promise<void>;
   onLeaveGame: () => void;
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
@@ -53,7 +54,7 @@ export const LobbyScreen = ({
   onTransferHost
 }: LobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
-  const [gameMode, setGameMode] = useState<'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess'>('normal');
+  const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
   const { teams, isLoading: teamsLoading, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
 
@@ -65,9 +66,7 @@ export const LobbyScreen = ({
         .eq('id', lobbyId)
         .single();
       
-      if (data?.game_mode) {
-        setGameMode(data.game_mode as 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess');
-      }
+      if (data?.game_mode) setGameMode(data.game_mode as LobbyGameMode);
     };
 
     fetchGameMode();
@@ -83,9 +82,7 @@ export const LobbyScreen = ({
           filter: `id=eq.${lobbyId}`
         },
         (payload: any) => {
-          if (payload.new.game_mode) {
-            setGameMode(payload.new.game_mode as 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess');
-          }
+          if (payload.new.game_mode) setGameMode(payload.new.game_mode as LobbyGameMode);
         }
       )
       .subscribe();
@@ -95,14 +92,16 @@ export const LobbyScreen = ({
     };
   }, [lobbyId]);
 
-  const handleGameModeChange = async (mode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess') => {
+  const handleGameModeChange = async (mode: LobbyGameMode) => {
     if (!isHost) return;
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('lobbies')
         .update({ game_mode: mode })
         .eq('id', lobbyId);
+
+      if (error) throw error;
 
       setGameMode(mode);
 
@@ -123,7 +122,7 @@ export const LobbyScreen = ({
     await assignRandomTeams(players);
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (gameMode === '2v2' && teams.length === 0) {
       toast({
         title: "Équipes requises",
@@ -132,12 +131,15 @@ export const LobbyScreen = ({
       });
       return;
     }
-    onStartGame(gameMode);
+    await onStartGame(gameMode);
   };
 
-  const canStart = gameMode === 'normal' || gameMode === 'quiz' || gameMode === 'audiophone' || gameMode === 'pixoguess'
-    ? players.filter(p => !p.isDisconnected).length >= 2 
-    : (players.filter(p => !p.isDisconnected).length >= 4 && players.filter(p => !p.isDisconnected).length % 2 === 0 && teams.length > 0);
+  const connectedCount = players.filter(p => !p.isDisconnected).length;
+  const { canStart, reasons } = getStartStatus({
+    mode: gameMode,
+    connectedCount,
+    teamsCount: teams.length,
+  });
 
   return (
     <div className="min-h-screen flex flex-col p-4 sm:p-6 pb-28 relative overflow-hidden">
@@ -263,6 +265,65 @@ export const LobbyScreen = ({
               </HolographicCard>
             )}
 
+            {isHost && (
+              <HolographicCard intensity="low">
+                <details className="p-4">
+                  <summary className="cursor-pointer select-none flex items-center justify-between text-sm font-semibold text-foreground">
+                    <span className="flex items-center gap-2">
+                      <Bug className="h-4 w-4 text-foreground-muted" />
+                      Debug lancement
+                    </span>
+                    <span
+                      className={cn(
+                        "text-xs px-2 py-0.5 rounded-full border",
+                        canStart
+                          ? "bg-success/10 border-success/20 text-success"
+                          : "bg-warning/10 border-warning/20 text-warning"
+                      )}
+                    >
+                      {canStart ? 'OK' : 'BLOQUÉ'}
+                    </span>
+                  </summary>
+
+                  <div className="mt-3 space-y-3 text-xs text-foreground-muted">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        Mode: <span className="text-foreground">{getModeLabel(gameMode)}</span>
+                        <span className="text-foreground-muted"> ({gameMode})</span>
+                      </div>
+                      <div>
+                        Joueurs: <span className="text-foreground">{connectedCount}</span>
+                        <span className="text-foreground-muted">/{players.length}</span>
+                      </div>
+                      <div>
+                        Équipes: <span className="text-foreground">{teams.length}</span>
+                      </div>
+                      <div>
+                        Min requis: <span className="text-foreground">{gameMode === '2v2' ? 4 : 2}</span>
+                      </div>
+                    </div>
+
+                    {!canStart && (
+                      <div className="space-y-1">
+                        <div className="font-medium text-foreground">Raisons :</div>
+                        <ul className="list-disc pl-5 space-y-0.5">
+                          {reasons.map((r) => (
+                            <li key={r}>{r}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {canStart && (
+                      <div className="text-foreground-muted">
+                        Tout est bon — si ça échoue encore, l'erreur affichée devrait donner le détail.
+                      </div>
+                    )}
+                  </div>
+                </details>
+              </HolographicCard>
+            )}
+
             {!isHost && (
               <HolographicCard intensity="low">
                 <div className="text-center space-y-2 p-6">
@@ -271,7 +332,7 @@ export const LobbyScreen = ({
                     Mode sélectionné
                   </p>
                   <NeonText color="accent" size="2xl">
-                    {gameMode === 'normal' ? '🎮 Normal' : gameMode === '2v2' ? '⚔️ 2v2' : gameMode === 'quiz' ? '🧠 Quiz' : '📞 Audio Phone'}
+                    {getModeEmojiLabel(gameMode)}
                   </NeonText>
                 </div>
               </HolographicCard>
