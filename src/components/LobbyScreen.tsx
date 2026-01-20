@@ -35,7 +35,7 @@ interface LobbyScreenProps {
   lobbyId: string;
   isHost: boolean;
   currentPlayer: Player;
-  onStartGame: (gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone') => void;
+  onStartGame: (gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess') => void;
   onLeaveGame: () => void;
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
@@ -53,7 +53,7 @@ export const LobbyScreen = ({
   onTransferHost
 }: LobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
-  const [gameMode, setGameMode] = useState<'normal' | '2v2' | 'quiz' | 'audiophone'>('normal');
+  const [gameMode, setGameMode] = useState<'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess'>('normal');
   const { teams, isLoading: teamsLoading, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
 
@@ -66,7 +66,7 @@ export const LobbyScreen = ({
         .single();
       
       if (data?.game_mode) {
-        setGameMode(data.game_mode as 'normal' | '2v2' | 'quiz' | 'audiophone');
+        setGameMode(data.game_mode as 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess');
       }
     };
 
@@ -84,7 +84,7 @@ export const LobbyScreen = ({
         },
         (payload: any) => {
           if (payload.new.game_mode) {
-            setGameMode(payload.new.game_mode as 'normal' | '2v2' | 'quiz' | 'audiophone');
+            setGameMode(payload.new.game_mode as 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess');
           }
         }
       )
@@ -95,7 +95,7 @@ export const LobbyScreen = ({
     };
   }, [lobbyId]);
 
-  const handleGameModeChange = async (mode: 'normal' | '2v2' | 'quiz' | 'audiophone') => {
+  const handleGameModeChange = async (mode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess') => {
     if (!isHost) return;
 
     try {
@@ -135,7 +135,7 @@ export const LobbyScreen = ({
     onStartGame(gameMode);
   };
 
-  const canStart = gameMode === 'normal' || gameMode === 'quiz' || gameMode === 'audiophone'
+  const canStart = gameMode === 'normal' || gameMode === 'quiz' || gameMode === 'audiophone' || gameMode === 'pixoguess'
     ? players.filter(p => !p.isDisconnected).length >= 2 
     : (players.filter(p => !p.isDisconnected).length >= 4 && players.filter(p => !p.isDisconnected).length % 2 === 0 && teams.length > 0);
 

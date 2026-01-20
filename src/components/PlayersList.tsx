@@ -39,7 +39,7 @@ interface PlayersListProps {
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
   canStart?: boolean;
-  gameMode?: 'normal' | '2v2' | 'quiz' | 'audiophone';
+  gameMode?: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess';
 }
 
 export const PlayersList = ({ 
