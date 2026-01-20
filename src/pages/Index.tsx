@@ -20,6 +20,7 @@ const VideoSubmissionScreen = React.lazy(() => import("@/components/VideoSubmiss
 const GamePlayScreen = React.lazy(() => import("@/components/GamePlayScreen").then(m => ({ default: m.GamePlayScreen })));
 const QuizGameScreen = React.lazy(() => import("@/components/QuizGameScreen").then(m => ({ default: m.QuizGameScreen })));
 const AudioPhoneGameScreen = React.lazy(() => import("@/components/AudioPhoneGameScreen").then(m => ({ default: m.AudioPhoneGameScreen })));
+const PixoguessGameScreen = React.lazy(() => import("@/components/PixoguessGameScreen").then(m => ({ default: m.PixoguessGameScreen })));
 
 interface Player {
   id: string;
@@ -27,8 +28,8 @@ interface Player {
   isHost: boolean;
 }
 
-type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone";
-type GameMode = "normal" | "2v2" | "quiz" | "audiophone";
+type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess";
+type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess";
 
 const LoadingFallback = memo(() => (
   <div className="min-h-screen flex items-center justify-center">
@@ -199,6 +200,13 @@ const Index = () => {
               title: "📞 Audio Phone !",
               description: "Préparez votre micro !",
             });
+          } else if (newPhase === 'pixoguess' && gameState !== 'pixoguess') {
+            playSoundEffect('quizReveal', 0.5);
+            setGameState('pixoguess');
+            toast({
+              title: "🖼️ Pixoguess !",
+              description: "Devinez l'image pixelisée !",
+            });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             playSoundEffect('start', 0.5);
             setGameState('playing');
@@ -269,7 +277,7 @@ const Index = () => {
     
     if (lobby && currentPlayer?.isHost) {
       try {
-        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : 'preparation';
+        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : 'preparation';
         console.log('[Index] Updating lobby to phase:', gamePhase);
         
         const { error } = await supabase
@@ -298,6 +306,8 @@ const Index = () => {
           setGameState('quiz');
         } else if (mode === 'audiophone') {
           setGameState('audiophone');
+        } else if (mode === 'pixoguess') {
+          setGameState('pixoguess');
         } else {
           setGameState('preparation');
         }
@@ -452,6 +462,15 @@ const Index = () => {
 
         {gameState === "audiophone" && currentPlayer && lobby && (
           <AudioPhoneGameScreen
+            currentPlayer={currentPlayer}
+            players={players}
+            lobbyId={lobby.id}
+            onEndGame={handleEndGame}
+          />
+        )}
+
+        {gameState === "pixoguess" && currentPlayer && lobby && (
+          <PixoguessGameScreen
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}

@@ -1,9 +1,9 @@
-import { Users, Swords, Brain, Check, Phone } from "lucide-react";
+import { Users, Swords, Brain, Check, Phone, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GameModeSelectorProps {
-  gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone';
-  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz' | 'audiophone') => void;
+  gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess';
+  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess') => void;
   disabled?: boolean;
   playerCount: number;
 }
@@ -17,6 +17,7 @@ export const GameModeSelector = ({
   const canPlay2v2 = playerCount >= 4 && playerCount % 2 === 0;
   const canPlayQuiz = playerCount >= 2;
   const canPlayAudioPhone = playerCount >= 2;
+  const canPlayPixoguess = playerCount >= 2;
 
   const modes = [
     {
@@ -54,6 +55,15 @@ export const GameModeSelector = ({
       canPlay: canPlayAudioPhone,
       color: 'from-emerald-500 to-teal-500',
       bgColor: 'bg-emerald-500',
+    },
+    {
+      id: 'pixoguess' as const,
+      name: 'Pixoguess',
+      subtitle: canPlayPixoguess ? 'Image' : 'Min. 2',
+      icon: Image,
+      canPlay: canPlayPixoguess,
+      color: 'from-pink-500 to-rose-500',
+      bgColor: 'bg-pink-500',
     },
   ];
 

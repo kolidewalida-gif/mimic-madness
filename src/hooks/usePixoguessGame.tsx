@@ -1,0 +1,430 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useOptionalXp } from '@/hooks/useOptionalXp';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
+
+interface Player {
+  id: string;
+  name: string;
+  isHost: boolean;
+}
+
+interface PixoguessScore {
+  player_id: string;
+  player_name: string;
+  score: number;
+  correct_guesses: number;
+}
+
+interface PixoguessRound {
+  id: string;
+  round_number: number;
+  phase: string;
+  image_url: string;
+  correct_answer: string;
+  acceptable_answers: string[];
+  category: string;
+  started_at: string | null;
+  winner_id: string | null;
+  winner_name: string | null;
+}
+
+type PixoguessPhase = 'waiting' | 'playing' | 'reveal' | 'scores' | 'final';
+
+const TOTAL_ROUNDS = 5;
+const ROUND_DURATION_MS = 20000; // 20 seconds per round
+const PIXELATION_STEPS = 20; // Number of depixelation steps
+
+// Points based on pixelation level (higher = more pixelated = more points)
+const calculatePoints = (pixelLevel: number): number => {
+  if (pixelLevel >= 18) return 100;
+  if (pixelLevel >= 15) return 80;
+  if (pixelLevel >= 12) return 60;
+  if (pixelLevel >= 9) return 40;
+  if (pixelLevel >= 6) return 25;
+  if (pixelLevel >= 3) return 15;
+  return 10;
+};
+
+// Normalize answer for comparison
+const normalizeAnswer = (answer: string): string => {
+  return answer
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+};
+
+// Sample images database - can be expanded
+const PIXOGUESS_IMAGES = [
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/1200px-Google_2015_logo.svg.png', answer: 'google', acceptable: ['google'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1200px-Amazon_logo.svg.png', answer: 'amazon', acceptable: ['amazon'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/1200px-Facebook_Logo_%282019%29.png', answer: 'facebook', acceptable: ['facebook', 'meta'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Instagram_icon.png/600px-Instagram_icon.png', answer: 'instagram', acceptable: ['instagram', 'insta'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/TikTok_logo.svg/800px-TikTok_logo.svg.png', answer: 'tiktok', acceptable: ['tiktok', 'tik tok'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/1200px-Microsoft_logo.svg.png', answer: 'microsoft', acceptable: ['microsoft'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/800px-Apple_logo_black.svg.png', answer: 'apple', acceptable: ['apple'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Logo_of_YouTube_%282015-2017%29.svg/1200px-Logo_of_YouTube_%282015-2017%29.svg.png', answer: 'youtube', acceptable: ['youtube'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Logo_of_Twitter.svg/800px-Logo_of_Twitter.svg.png', answer: 'twitter', acceptable: ['twitter', 'x'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/800px-Google_%22G%22_logo.svg.png', answer: 'google', acceptable: ['google'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Twitter-logo.svg/800px-Twitter-logo.svg.png', answer: 'twitter', acceptable: ['twitter', 'x'], category: 'Logo' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Tsunami_by_hokusai_19th_century.jpg/1200px-Tsunami_by_hokusai_19th_century.jpg', answer: 'la grande vague', acceptable: ['vague', 'hokusai', 'grande vague', 'kanagawa'], category: 'Art' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/800px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg', answer: 'mona lisa', acceptable: ['joconde', 'mona lisa', 'monalisa', 'la joconde'], category: 'Art' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/VanGogh-starry_night_ballance1.jpg/1200px-VanGogh-starry_night_ballance1.jpg', answer: 'nuit etoilee', acceptable: ['nuit etoilee', 'starry night', 'van gogh'], category: 'Art' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/GoldenGateBridge-001.jpg/1200px-GoldenGateBridge-001.jpg', answer: 'golden gate', acceptable: ['golden gate', 'san francisco', 'pont'], category: 'Monument' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Empire_State_Building_%28aerial_view%29.jpg/800px-Empire_State_Building_%28aerial_view%29.jpg', answer: 'empire state building', acceptable: ['empire state', 'new york'], category: 'Monument' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Tour_eiffel_at_sunrise_from_the_trocadero.jpg/800px-Tour_eiffel_at_sunrise_from_the_trocadero.jpg', answer: 'tour eiffel', acceptable: ['tour eiffel', 'eiffel', 'paris'], category: 'Monument' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Colosseo_2020.jpg/1200px-Colosseo_2020.jpg', answer: 'colisee', acceptable: ['colisee', 'colosseum', 'rome'], category: 'Monument' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Pyramide_Kheops.jpg/1200px-Pyramide_Kheops.jpg', answer: 'pyramide', acceptable: ['pyramide', 'egypte', 'gizeh', 'kheops'], category: 'Monument' },
+];
+
+export const usePixoguessGame = (
+  lobbyId: string,
+  currentPlayer: Player,
+  players: Player[]
+) => {
+  const [phase, setPhase] = useState<PixoguessPhase>('waiting');
+  const [currentRound, setCurrentRound] = useState(1);
+  const [roundData, setRoundData] = useState<PixoguessRound | null>(null);
+  const [pixelLevel, setPixelLevel] = useState(PIXELATION_STEPS);
+  const [timeRemaining, setTimeRemaining] = useState(ROUND_DURATION_MS);
+  const [scores, setScores] = useState<PixoguessScore[]>([]);
+  const [hasGuessedCorrectly, setHasGuessedCorrectly] = useState(false);
+  const [roundWinner, setRoundWinner] = useState<{ id: string; name: string; points: number } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [usedImageIndices, setUsedImageIndices] = useState<number[]>([]);
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const pixelTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const xp = useOptionalXp();
+
+  const isHost = currentPlayer.isHost;
+
+  // Initialize scores
+  useEffect(() => {
+    const initialScores = players.map(p => ({
+      player_id: p.id,
+      player_name: p.name,
+      score: 0,
+      correct_guesses: 0
+    }));
+    setScores(initialScores);
+    setIsLoading(false);
+  }, [players]);
+
+  // Fetch scores from DB
+  const fetchScoresFromDB = useCallback(async () => {
+    const { data } = await supabase
+      .from('pixoguess_guesses')
+      .select('player_id, player_name, points_earned, is_correct')
+      .eq('lobby_id', lobbyId);
+
+    if (data) {
+      const scoreMap = new Map<string, PixoguessScore>();
+      
+      players.forEach(p => {
+        scoreMap.set(p.id, {
+          player_id: p.id,
+          player_name: p.name,
+          score: 0,
+          correct_guesses: 0
+        });
+      });
+
+      data.forEach(guess => {
+        const current = scoreMap.get(guess.player_id);
+        if (current) {
+          current.score += guess.points_earned;
+          if (guess.is_correct) current.correct_guesses++;
+        }
+      });
+
+      setScores(Array.from(scoreMap.values()).sort((a, b) => b.score - a.score));
+    }
+  }, [lobbyId, players]);
+
+  // Real-time sync
+  useEffect(() => {
+    const channel = supabase
+      .channel(`pixoguess-sync-${lobbyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pixoguess_rounds',
+          filter: `lobby_id=eq.${lobbyId}`
+        },
+        async (payload: any) => {
+          if (payload.new) {
+            const round = payload.new as PixoguessRound;
+            setRoundData(round);
+            setCurrentRound(round.round_number);
+
+            if (round.phase === 'playing' && phase !== 'playing') {
+              setPhase('playing');
+              setHasGuessedCorrectly(false);
+              setRoundWinner(null);
+              setPixelLevel(PIXELATION_STEPS);
+              
+              if (round.started_at) {
+                const startTime = new Date(round.started_at).getTime();
+                const now = Date.now();
+                const elapsed = now - startTime;
+                setTimeRemaining(Math.max(0, ROUND_DURATION_MS - elapsed));
+              }
+              
+              playSoundEffect('quizReveal', 0.5);
+            } else if (round.phase === 'reveal') {
+              setPhase('reveal');
+              if (round.winner_id && round.winner_name) {
+                setRoundWinner({ id: round.winner_id, name: round.winner_name, points: 0 });
+              }
+              await fetchScoresFromDB();
+              playSoundEffect('reveal', 0.5);
+            } else if (round.phase === 'scores') {
+              setPhase('scores');
+              await fetchScoresFromDB();
+            } else if (round.phase === 'final') {
+              setPhase('final');
+              await fetchScoresFromDB();
+              playSoundEffect('celebration', 0.6);
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'pixoguess_guesses',
+          filter: `lobby_id=eq.${lobbyId}`
+        },
+        (payload: any) => {
+          if (payload.new && payload.new.is_correct) {
+            // Someone guessed correctly
+            setRoundWinner({
+              id: payload.new.player_id,
+              name: payload.new.player_name,
+              points: payload.new.points_earned
+            });
+            playSoundEffect('success', 0.5);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [lobbyId, phase, fetchScoresFromDB]);
+
+  // Timer and pixelation effect
+  useEffect(() => {
+    if (phase !== 'playing' || !roundData?.started_at) return;
+
+    const startTime = new Date(roundData.started_at).getTime();
+
+    // Timer countdown
+    timerRef.current = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const remaining = Math.max(0, ROUND_DURATION_MS - elapsed);
+      setTimeRemaining(remaining);
+
+      if (remaining <= 0 && isHost) {
+        advanceToReveal();
+      }
+    }, 100);
+
+    // Pixelation decrease
+    pixelTimerRef.current = setInterval(() => {
+      setPixelLevel(prev => Math.max(1, prev - 1));
+    }, ROUND_DURATION_MS / PIXELATION_STEPS);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (pixelTimerRef.current) clearInterval(pixelTimerRef.current);
+    };
+  }, [phase, roundData?.started_at, isHost]);
+
+  // Get random unused image
+  const getRandomImage = useCallback(() => {
+    const availableIndices = PIXOGUESS_IMAGES
+      .map((_, i) => i)
+      .filter(i => !usedImageIndices.includes(i));
+
+    if (availableIndices.length === 0) {
+      // Reset if all images used
+      setUsedImageIndices([]);
+      return PIXOGUESS_IMAGES[Math.floor(Math.random() * PIXOGUESS_IMAGES.length)];
+    }
+
+    const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+    setUsedImageIndices(prev => [...prev, randomIndex]);
+    return PIXOGUESS_IMAGES[randomIndex];
+  }, [usedImageIndices]);
+
+  // Start game (host only)
+  const startGame = useCallback(async () => {
+    if (!isHost) return;
+
+    const image = getRandomImage();
+
+    const { error } = await supabase
+      .from('pixoguess_rounds')
+      .insert({
+        lobby_id: lobbyId,
+        round_number: 1,
+        phase: 'playing',
+        image_url: image.url,
+        correct_answer: image.answer,
+        acceptable_answers: image.acceptable,
+        category: image.category,
+        started_at: new Date().toISOString()
+      });
+
+    if (error) console.error('Error starting pixoguess:', error);
+  }, [isHost, lobbyId, getRandomImage]);
+
+  // Submit guess
+  const submitGuess = useCallback(async (guess: string): Promise<boolean> => {
+    if (!roundData || hasGuessedCorrectly || phase !== 'playing') return false;
+
+    const normalizedGuess = normalizeAnswer(guess);
+    const normalizedAnswer = normalizeAnswer(roundData.correct_answer);
+    const acceptableNormalized = roundData.acceptable_answers.map(a => normalizeAnswer(a));
+
+    const isCorrect = normalizedGuess === normalizedAnswer || 
+                      acceptableNormalized.some(a => normalizedGuess.includes(a) || a.includes(normalizedGuess));
+
+    if (!isCorrect) return false;
+
+    const startTime = roundData.started_at ? new Date(roundData.started_at).getTime() : Date.now();
+    const guessTimeMs = Date.now() - startTime;
+    const points = calculatePoints(pixelLevel);
+
+    setHasGuessedCorrectly(true);
+
+    // Insert guess
+    await supabase
+      .from('pixoguess_guesses')
+      .insert({
+        lobby_id: lobbyId,
+        round_number: currentRound,
+        player_id: currentPlayer.id,
+        player_name: currentPlayer.name,
+        guess: guess,
+        guess_time_ms: guessTimeMs,
+        is_correct: true,
+        points_earned: points
+      });
+
+    // Update round with winner (first correct guess)
+    await supabase
+      .from('pixoguess_rounds')
+      .update({
+        winner_id: currentPlayer.id,
+        winner_name: currentPlayer.name
+      })
+      .eq('id', roundData.id)
+      .is('winner_id', null);
+
+    // Award XP
+    xp?.onQuizCorrectAnswer?.();
+
+    playSoundEffect('success', 0.6);
+    return true;
+  }, [roundData, hasGuessedCorrectly, phase, pixelLevel, currentRound, currentPlayer, lobbyId, xp]);
+
+  // Advance to reveal (host)
+  const advanceToReveal = useCallback(async () => {
+    if (!isHost || !roundData) return;
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (pixelTimerRef.current) clearInterval(pixelTimerRef.current);
+
+    await supabase
+      .from('pixoguess_rounds')
+      .update({ phase: 'reveal' })
+      .eq('id', roundData.id);
+  }, [isHost, roundData]);
+
+  // Advance to scores (host)
+  const advanceToScores = useCallback(async () => {
+    if (!isHost || !roundData) return;
+
+    await supabase
+      .from('pixoguess_rounds')
+      .update({ phase: 'scores' })
+      .eq('id', roundData.id);
+  }, [isHost, roundData]);
+
+  // Next round (host)
+  const nextRound = useCallback(async () => {
+    if (!isHost) return;
+
+    const nextRoundNumber = currentRound + 1;
+
+    if (nextRoundNumber > TOTAL_ROUNDS) {
+      // Final phase
+      if (roundData) {
+        await supabase
+          .from('pixoguess_rounds')
+          .update({ phase: 'final' })
+          .eq('id', roundData.id);
+      }
+      
+      // Award XP to winner
+      const winner = scores[0];
+      if (winner && winner.player_id === currentPlayer.id) {
+        xp?.onQuizWin?.();
+      } else {
+        xp?.onGameParticipation?.();
+      }
+      return;
+    }
+
+    const image = getRandomImage();
+
+    await supabase
+      .from('pixoguess_rounds')
+      .insert({
+        lobby_id: lobbyId,
+        round_number: nextRoundNumber,
+        phase: 'playing',
+        image_url: image.url,
+        correct_answer: image.answer,
+        acceptable_answers: image.acceptable,
+        category: image.category,
+        started_at: new Date().toISOString()
+      });
+
+    setPixelLevel(PIXELATION_STEPS);
+    setHasGuessedCorrectly(false);
+    setRoundWinner(null);
+  }, [isHost, currentRound, roundData, lobbyId, getRandomImage, scores, currentPlayer.id, xp]);
+
+  return {
+    phase,
+    currentRound,
+    totalRounds: TOTAL_ROUNDS,
+    roundData,
+    pixelLevel,
+    maxPixelLevel: PIXELATION_STEPS,
+    timeRemaining,
+    totalTime: ROUND_DURATION_MS,
+    scores,
+    hasGuessedCorrectly,
+    roundWinner,
+    isLoading,
+    isHost,
+    startGame,
+    submitGuess,
+    advanceToReveal,
+    advanceToScores,
+    nextRound
+  };
+};

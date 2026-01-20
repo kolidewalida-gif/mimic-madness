@@ -470,6 +470,106 @@ export type Database = {
           },
         ]
       }
+      pixoguess_guesses: {
+        Row: {
+          created_at: string
+          guess: string
+          guess_time_ms: number
+          id: string
+          is_correct: boolean
+          lobby_id: string
+          player_id: string
+          player_name: string
+          points_earned: number
+          round_number: number
+        }
+        Insert: {
+          created_at?: string
+          guess: string
+          guess_time_ms: number
+          id?: string
+          is_correct?: boolean
+          lobby_id: string
+          player_id: string
+          player_name: string
+          points_earned?: number
+          round_number: number
+        }
+        Update: {
+          created_at?: string
+          guess?: string
+          guess_time_ms?: number
+          id?: string
+          is_correct?: boolean
+          lobby_id?: string
+          player_id?: string
+          player_name?: string
+          points_earned?: number
+          round_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pixoguess_guesses_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pixoguess_rounds: {
+        Row: {
+          acceptable_answers: string[] | null
+          category: string | null
+          correct_answer: string
+          created_at: string
+          id: string
+          image_url: string
+          lobby_id: string
+          phase: string
+          round_number: number
+          started_at: string | null
+          winner_id: string | null
+          winner_name: string | null
+        }
+        Insert: {
+          acceptable_answers?: string[] | null
+          category?: string | null
+          correct_answer: string
+          created_at?: string
+          id?: string
+          image_url: string
+          lobby_id: string
+          phase?: string
+          round_number?: number
+          started_at?: string | null
+          winner_id?: string | null
+          winner_name?: string | null
+        }
+        Update: {
+          acceptable_answers?: string[] | null
+          category?: string | null
+          correct_answer?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          lobby_id?: string
+          phase?: string
+          round_number?: number
+          started_at?: string | null
+          winner_id?: string | null
+          winner_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pixoguess_rounds_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_achievements: {
         Row: {
           achievement_id: string
