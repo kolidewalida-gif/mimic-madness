@@ -58,12 +58,12 @@ export const GameModeSelector = ({
     },
     {
       id: 'pixoguess' as const,
-      name: 'Pixoguess',
-      subtitle: canPlayPixoguess ? 'Image' : 'Min. 2',
+      name: 'BlurRush',
+      subtitle: canPlayPixoguess ? 'Devine vite !' : 'Min. 2',
       icon: Image,
       canPlay: canPlayPixoguess,
-      color: 'from-pink-500 to-rose-500',
-      bgColor: 'bg-pink-500',
+      color: 'from-fuchsia-500 to-violet-600',
+      bgColor: 'bg-fuchsia-500',
     },
   ];
 

@@ -204,8 +204,8 @@ const Index = () => {
             playSoundEffect('quizReveal', 0.5);
             setGameState('pixoguess');
             toast({
-              title: "🖼️ Pixoguess !",
-              description: "Devinez l'image pixelisée !",
+              title: "⚡ BlurRush !",
+              description: "Devinez l'image avant les autres !",
             });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             playSoundEffect('start', 0.5);

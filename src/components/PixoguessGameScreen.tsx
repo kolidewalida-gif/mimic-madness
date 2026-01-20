@@ -160,12 +160,12 @@ export const PixoguessGameScreen = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-fuchsia-500 to-violet-600">
               <ImageIcon className="h-6 w-6 text-white" />
             </div>
             <div>
-              <NeonText className="text-2xl font-bold">Pixoguess</NeonText>
-              <p className="text-sm text-foreground-muted">Devinez l'image pixelisée !</p>
+              <NeonText className="text-2xl font-bold">BlurRush</NeonText>
+              <p className="text-sm text-foreground-muted">L'image se dévoile, sois le plus rapide !</p>
             </div>
           </div>
           
@@ -186,11 +186,11 @@ export const PixoguessGameScreen = ({
             className="flex flex-col items-center justify-center py-20"
           >
             <HolographicCard className="p-8 text-center max-w-md">
-              <div className="p-4 rounded-full bg-gradient-to-br from-pink-500/20 to-rose-500/20 w-fit mx-auto mb-6">
-                <Eye className="h-12 w-12 text-pink-400" />
+              <div className="p-4 rounded-full bg-gradient-to-br from-fuchsia-500/20 to-violet-600/20 w-fit mx-auto mb-6">
+                <Eye className="h-12 w-12 text-fuchsia-400" />
               </div>
               
-              <h2 className="text-2xl font-bold mb-4">Pixoguess</h2>
+              <h2 className="text-2xl font-bold mb-4">BlurRush</h2>
               <p className="text-foreground-muted mb-6">
                 Une image floue va apparaître et se clarifier progressivement.
                 Soyez le premier à deviner ce qu'elle représente !
