@@ -47,7 +47,7 @@ export const BlurRushCategorySelector = ({ onSelect, isHost }: BlurRushCategoryS
     }
 
     // If Mix is selected, deselect it when choosing a specific category
-    let newSelected = selected.filter(c => c !== 'Mix');
+    let newSelected: BlurRushCategory[] = selected.filter(c => c !== 'Mix');
 
     if (newSelected.includes(category)) {
       newSelected = newSelected.filter(c => c !== category);
@@ -57,7 +57,7 @@ export const BlurRushCategorySelector = ({ onSelect, isHost }: BlurRushCategoryS
 
     // If nothing selected, default to Mix
     if (newSelected.length === 0) {
-      newSelected = ['Mix' as BlurRushCategory];
+      newSelected = ['Mix'];
     }
 
     setSelected(newSelected);
