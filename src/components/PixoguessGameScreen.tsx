@@ -53,8 +53,8 @@ export const PixoguessGameScreen = ({
     advanceToScores,
     nextRound
   } = usePixoguessGame(lobbyId, currentPlayer, players);
-
-  const [categoriesConfirmed, setCategoriesConfirmed] = useState(false);
+  // Non-host players skip category selection - they wait for the game to start
+  const [categoriesConfirmed, setCategoriesConfirmed] = useState(!isHost);
 
   const [guess, setGuess] = useState('');
   const [showFeedback, setShowFeedback] = useState<'correct' | 'wrong' | null>(null);
