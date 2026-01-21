@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useOptionalXp } from '@/hooks/useOptionalXp';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import type { BlurRushLiveStats } from '@/components/BlurRushLiveScoreboard';
+import { BLURRUSH_IMAGES, type BlurRushImage } from '@/lib/blurRushImages';
 
 interface Player {
   id: string;
@@ -57,29 +58,6 @@ const normalizeAnswer = (answer: string): string => {
     .replace(/[^a-z0-9]/g, '')
     .trim();
 };
-
-// Sample images database - can be expanded
-const PIXOGUESS_IMAGES = [
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/1200px-Google_2015_logo.svg.png', answer: 'google', acceptable: ['google'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1200px-Amazon_logo.svg.png', answer: 'amazon', acceptable: ['amazon'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/1200px-Facebook_Logo_%282019%29.png', answer: 'facebook', acceptable: ['facebook', 'meta'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Instagram_icon.png/600px-Instagram_icon.png', answer: 'instagram', acceptable: ['instagram', 'insta'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/TikTok_logo.svg/800px-TikTok_logo.svg.png', answer: 'tiktok', acceptable: ['tiktok', 'tik tok'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/1200px-Microsoft_logo.svg.png', answer: 'microsoft', acceptable: ['microsoft'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/800px-Apple_logo_black.svg.png', answer: 'apple', acceptable: ['apple'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Logo_of_YouTube_%282015-2017%29.svg/1200px-Logo_of_YouTube_%282015-2017%29.svg.png', answer: 'youtube', acceptable: ['youtube'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Logo_of_Twitter.svg/800px-Logo_of_Twitter.svg.png', answer: 'twitter', acceptable: ['twitter', 'x'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/800px-Google_%22G%22_logo.svg.png', answer: 'google', acceptable: ['google'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Twitter-logo.svg/800px-Twitter-logo.svg.png', answer: 'twitter', acceptable: ['twitter', 'x'], category: 'Logo' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Tsunami_by_hokusai_19th_century.jpg/1200px-Tsunami_by_hokusai_19th_century.jpg', answer: 'la grande vague', acceptable: ['vague', 'hokusai', 'grande vague', 'kanagawa'], category: 'Art' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/800px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg', answer: 'mona lisa', acceptable: ['joconde', 'mona lisa', 'monalisa', 'la joconde'], category: 'Art' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/VanGogh-starry_night_ballance1.jpg/1200px-VanGogh-starry_night_ballance1.jpg', answer: 'nuit etoilee', acceptable: ['nuit etoilee', 'starry night', 'van gogh'], category: 'Art' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/GoldenGateBridge-001.jpg/1200px-GoldenGateBridge-001.jpg', answer: 'golden gate', acceptable: ['golden gate', 'san francisco', 'pont'], category: 'Monument' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Empire_State_Building_%28aerial_view%29.jpg/800px-Empire_State_Building_%28aerial_view%29.jpg', answer: 'empire state building', acceptable: ['empire state', 'new york'], category: 'Monument' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Tour_eiffel_at_sunrise_from_the_trocadero.jpg/800px-Tour_eiffel_at_sunrise_from_the_trocadero.jpg', answer: 'tour eiffel', acceptable: ['tour eiffel', 'eiffel', 'paris'], category: 'Monument' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Colosseo_2020.jpg/1200px-Colosseo_2020.jpg', answer: 'colisee', acceptable: ['colisee', 'colosseum', 'rome'], category: 'Monument' },
-  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Pyramide_Kheops.jpg/1200px-Pyramide_Kheops.jpg', answer: 'pyramide', acceptable: ['pyramide', 'egypte', 'gizeh', 'kheops'], category: 'Monument' },
-];
 
 export const usePixoguessGame = (
   lobbyId: string,
@@ -323,21 +301,21 @@ export const usePixoguessGame = (
     };
   }, [phase, roundData?.started_at, isHost]);
 
-  // Get random unused image
-  const getRandomImage = useCallback(() => {
-    const availableIndices = PIXOGUESS_IMAGES
+  // Get random unused image from the massive bank
+  const getRandomImage = useCallback((): BlurRushImage => {
+    const availableIndices = BLURRUSH_IMAGES
       .map((_, i) => i)
       .filter(i => !usedImageIndices.includes(i));
 
     if (availableIndices.length === 0) {
       // Reset if all images used
       setUsedImageIndices([]);
-      return PIXOGUESS_IMAGES[Math.floor(Math.random() * PIXOGUESS_IMAGES.length)];
+      return BLURRUSH_IMAGES[Math.floor(Math.random() * BLURRUSH_IMAGES.length)];
     }
 
     const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
     setUsedImageIndices(prev => [...prev, randomIndex]);
-    return PIXOGUESS_IMAGES[randomIndex];
+    return BLURRUSH_IMAGES[randomIndex];
   }, [usedImageIndices]);
 
   // Start game (host only)

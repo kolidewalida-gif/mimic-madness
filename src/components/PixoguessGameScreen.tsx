@@ -77,8 +77,8 @@ export const PixoguessGameScreen = ({
     img.onload = () => {
       imageRef.current = img;
       
-      // Set canvas size
-      const maxSize = 400;
+      // Set canvas size - LARGER for better visibility
+      const maxSize = 520;
       const ratio = Math.min(maxSize / img.width, maxSize / img.height);
       canvas.width = img.width * ratio;
       canvas.height = img.height * ratio;
