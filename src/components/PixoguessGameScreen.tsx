@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { BlurRushLiveScoreboard } from '@/components/BlurRushLiveScoreboard';
 import { BlurRushCategorySelector } from '@/components/BlurRushCategorySelector';
 import type { BlurRushCategory } from '@/lib/blurRushImages';
+import { proxyImageUrl } from '@/lib/imageProxy';
 
 interface Player {
   id: string;
@@ -95,19 +96,10 @@ export const PixoguessGameScreen = ({
 
     img.onerror = () => {
       console.error('Failed to load image:', roundData.image_url);
-      // Try with a CORS proxy
-      const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(roundData.image_url)}&w=520&h=520&fit=inside`;
-      img.src = proxyUrl;
     };
 
-    // Use CORS proxy for external images
-    const isExternalUrl = roundData.image_url.startsWith('http');
-    if (isExternalUrl) {
-      const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(roundData.image_url)}&w=520&h=520&fit=inside`;
-      img.src = proxyUrl;
-    } else {
-      img.src = roundData.image_url;
-    }
+    // Always use proxy for external images
+    img.src = proxyImageUrl(roundData.image_url);
   }, [roundData?.image_url]);
 
   // Update pixelation
@@ -472,10 +464,9 @@ export const PixoguessGameScreen = ({
               <h2 className="text-2xl font-bold mb-6">La réponse était...</h2>
               
               <img 
-                src={roundData.image_url} 
+                src={proxyImageUrl(roundData.image_url)} 
                 alt="Answer"
                 className="w-64 h-64 object-contain mx-auto rounded-lg mb-6"
-                crossOrigin="anonymous"
               />
               
               <div className="text-3xl font-bold text-primary mb-4 capitalize">
