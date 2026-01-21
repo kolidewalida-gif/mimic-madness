@@ -21,7 +21,8 @@ export interface BlurRushImage {
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
-export const BLURRUSH_CATEGORIES: BlurRushCategory[] = [
+// Categories available for selection (excluding Mix which is a special mode)
+export const BLURRUSH_CATEGORIES: Exclude<BlurRushCategory, 'Mix'>[] = [
   'Anime',
   'Film',
   'Série',

@@ -6,6 +6,8 @@ import { LobbyChat } from '@/components/LobbyChat';
 import { HolographicCard, NeonText, PremiumButton, FloatingParticles, CyberGrid } from '@/components/premium';
 import { cn } from '@/lib/utils';
 import { BlurRushLiveScoreboard } from '@/components/BlurRushLiveScoreboard';
+import { BlurRushCategorySelector } from '@/components/BlurRushCategorySelector';
+import type { BlurRushCategory } from '@/lib/blurRushImages';
 
 interface Player {
   id: string;
@@ -42,12 +44,17 @@ export const PixoguessGameScreen = ({
     cooldownUntil,
     isLoading,
     isHost,
+    selectedCategories,
+    imagePoolSize,
+    setCategories,
     startGame,
     submitGuess,
     advanceToReveal,
     advanceToScores,
     nextRound
   } = usePixoguessGame(lobbyId, currentPlayer, players);
+
+  const [categoriesConfirmed, setCategoriesConfirmed] = useState(false);
 
   const [guess, setGuess] = useState('');
   const [showFeedback, setShowFeedback] = useState<'correct' | 'wrong' | null>(null);
@@ -210,23 +217,42 @@ export const PixoguessGameScreen = ({
           )}
         </div>
 
-        {/* Waiting Phase */}
-        {phase === 'waiting' && (
+        {/* Waiting Phase - Category Selection */}
+        {phase === 'waiting' && !categoriesConfirmed && (
+          <BlurRushCategorySelector
+            onSelect={(categories) => {
+              setCategories(categories);
+              setCategoriesConfirmed(true);
+            }}
+            isHost={isHost}
+          />
+        )}
+
+        {/* Waiting Phase - Ready to Start */}
+        {phase === 'waiting' && categoriesConfirmed && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col items-center justify-center py-20"
           >
             <HolographicCard className="p-8 text-center max-w-md">
-              <div className="p-4 rounded-full bg-gradient-to-br from-fuchsia-500/20 to-violet-600/20 w-fit mx-auto mb-6">
-                <Eye className="h-12 w-12 text-fuchsia-400" />
+              <div className="p-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 w-fit mx-auto mb-6">
+                <Eye className="h-12 w-12 text-primary" />
               </div>
               
               <h2 className="text-2xl font-bold mb-4">BlurRush</h2>
-              <p className="text-foreground-muted mb-6">
+              <p className="text-foreground-muted mb-4">
                 Une image floue va apparaître et se clarifier progressivement.
                 Soyez le premier à deviner ce qu'elle représente !
               </p>
+
+              <div className="mb-4 p-3 rounded-lg bg-card/60 border border-border/30">
+                <span className="text-sm text-foreground-muted">Catégories: </span>
+                <span className="font-bold text-primary">
+                  {selectedCategories.includes('Mix') ? 'Mix (toutes)' : selectedCategories.join(', ')}
+                </span>
+                <span className="text-sm text-foreground-muted ml-2">({imagePoolSize} images)</span>
+              </div>
 
               <div className="flex items-center justify-center gap-2 mb-6 text-sm text-foreground-muted">
                 <Users className="h-4 w-4" />
@@ -234,10 +260,18 @@ export const PixoguessGameScreen = ({
               </div>
 
               {isHost ? (
-                <PremiumButton onClick={startGame} className="w-full">
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  Commencer
-                </PremiumButton>
+                <div className="space-y-3">
+                  <PremiumButton onClick={startGame} className="w-full">
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    Lancer la partie
+                  </PremiumButton>
+                  <button
+                    onClick={() => setCategoriesConfirmed(false)}
+                    className="text-sm text-foreground-muted hover:text-foreground transition-colors"
+                  >
+                    ← Changer les catégories
+                  </button>
+                </div>
               ) : (
                 <p className="text-foreground-muted animate-pulse">
                   En attente de l'hôte...

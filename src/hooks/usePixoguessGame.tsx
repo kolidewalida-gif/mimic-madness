@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useOptionalXp } from '@/hooks/useOptionalXp';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import type { BlurRushLiveStats } from '@/components/BlurRushLiveScoreboard';
-import { BLURRUSH_IMAGES, type BlurRushImage } from '@/lib/blurRushImages';
+import { BLURRUSH_IMAGES, type BlurRushImage, type BlurRushCategory, getImagesByCategory } from '@/lib/blurRushImages';
 
 interface Player {
   id: string;
@@ -76,6 +76,8 @@ export const usePixoguessGame = (
   const [usedImageIndices, setUsedImageIndices] = useState<number[]>([]);
   const [liveStats, setLiveStats] = useState<BlurRushLiveStats>({});
   const [cooldownUntil, setCooldownUntil] = useState<number>(0);
+  const [selectedCategories, setSelectedCategories] = useState<BlurRushCategory[]>(['Mix']);
+  const [imagePool, setImagePool] = useState<BlurRushImage[]>(BLURRUSH_IMAGES);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const pixelTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -301,22 +303,36 @@ export const usePixoguessGame = (
     };
   }, [phase, roundData?.started_at, isHost]);
 
-  // Get random unused image from the massive bank
+  // Get random unused image from the selected pool
   const getRandomImage = useCallback((): BlurRushImage => {
-    const availableIndices = BLURRUSH_IMAGES
+    const availableIndices = imagePool
       .map((_, i) => i)
       .filter(i => !usedImageIndices.includes(i));
 
     if (availableIndices.length === 0) {
       // Reset if all images used
       setUsedImageIndices([]);
-      return BLURRUSH_IMAGES[Math.floor(Math.random() * BLURRUSH_IMAGES.length)];
+      return imagePool[Math.floor(Math.random() * imagePool.length)];
     }
 
     const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
     setUsedImageIndices(prev => [...prev, randomIndex]);
-    return BLURRUSH_IMAGES[randomIndex];
-  }, [usedImageIndices]);
+    return imagePool[randomIndex];
+  }, [usedImageIndices, imagePool]);
+
+  // Set categories and update image pool
+  const setCategories = useCallback((categories: BlurRushCategory[]) => {
+    setSelectedCategories(categories);
+    
+    let pool: BlurRushImage[];
+    if (categories.includes('Mix') || categories.length === 0) {
+      pool = [...BLURRUSH_IMAGES];
+    } else {
+      pool = BLURRUSH_IMAGES.filter(img => categories.includes(img.category));
+    }
+    setImagePool(pool);
+    setUsedImageIndices([]);
+  }, []);
 
   // Start game (host only)
   const startGame = useCallback(async () => {
@@ -500,6 +516,9 @@ export const usePixoguessGame = (
     cooldownUntil,
     isLoading,
     isHost,
+    selectedCategories,
+    imagePoolSize: imagePool.length,
+    setCategories,
     startGame,
     submitGuess,
     advanceToReveal,
