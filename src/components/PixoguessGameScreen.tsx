@@ -93,7 +93,21 @@ export const PixoguessGameScreen = ({
       drawPixelated(ctx, img, canvas.width, canvas.height, pixelLevel);
     };
 
-    img.src = roundData.image_url;
+    img.onerror = () => {
+      console.error('Failed to load image:', roundData.image_url);
+      // Try with a CORS proxy
+      const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(roundData.image_url)}&w=520&h=520&fit=inside`;
+      img.src = proxyUrl;
+    };
+
+    // Use CORS proxy for external images
+    const isExternalUrl = roundData.image_url.startsWith('http');
+    if (isExternalUrl) {
+      const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(roundData.image_url)}&w=520&h=520&fit=inside`;
+      img.src = proxyUrl;
+    } else {
+      img.src = roundData.image_url;
+    }
   }, [roundData?.image_url]);
 
   // Update pixelation
