@@ -36,7 +36,8 @@ type PixoguessPhase = 'waiting' | 'playing' | 'reveal' | 'scores' | 'final';
 const TOTAL_ROUNDS = 5;
 const ROUND_DURATION_MS = 20000; // 20 seconds per round
 const PIXELATION_STEPS = 20; // Number of depixelation steps
-const GUESS_COOLDOWN_MS = 900;
+// Anti-spam cooldown disabled (requested)
+const GUESS_COOLDOWN_MS = 0;
 
 // Points based on pixelation level (higher = more pixelated = more points)
 const calculatePoints = (pixelLevel: number): number => {
@@ -362,19 +363,28 @@ export const usePixoguessGame = (
     if (roundData.winner_id || roundWinner) return { outcome: 'blocked' };
     if (hasGuessedCorrectly) return { outcome: 'blocked' };
 
-    const now = Date.now();
-    if (now < cooldownUntilRef.current) {
-      return { outcome: 'cooldown', cooldownMs: cooldownUntilRef.current - now };
+    // Cooldown disabled (GUESS_COOLDOWN_MS = 0)
+    if (GUESS_COOLDOWN_MS > 0) {
+      const now = Date.now();
+      if (now < cooldownUntilRef.current) {
+        return { outcome: 'cooldown', cooldownMs: cooldownUntilRef.current - now };
+      }
+      cooldownUntilRef.current = now + GUESS_COOLDOWN_MS;
+      setCooldownUntil(cooldownUntilRef.current);
     }
-    cooldownUntilRef.current = now + GUESS_COOLDOWN_MS;
-    setCooldownUntil(cooldownUntilRef.current);
 
     const normalizedGuess = normalizeAnswer(guess);
     const normalizedAnswer = normalizeAnswer(roundData.correct_answer);
-    const acceptableNormalized = roundData.acceptable_answers.map(a => normalizeAnswer(a));
+    const acceptableNormalized = (roundData.acceptable_answers ?? []).map(a => normalizeAnswer(a));
 
-    const isCorrect = normalizedGuess === normalizedAnswer || 
-                      acceptableNormalized.some(a => normalizedGuess.includes(a) || a.includes(normalizedGuess));
+    // Prevent false positives like "one" matching "one piece":
+    // - allow exact match
+    // - allow long phrases that *contain* the full answer ("c'est naruto")
+    // - do NOT allow answer containing the guess (partial)
+    const isCorrect =
+      normalizedGuess === normalizedAnswer ||
+      normalizedGuess.includes(normalizedAnswer) ||
+      acceptableNormalized.some((a) => normalizedGuess === a || normalizedGuess.includes(a));
 
     const startTime = roundData.started_at ? new Date(roundData.started_at).getTime() : Date.now();
     const guessTimeMs = Date.now() - startTime;

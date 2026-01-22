@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { BlurRushLiveScoreboard } from '@/components/BlurRushLiveScoreboard';
 import { BlurRushCategorySelector } from '@/components/BlurRushCategorySelector';
 import type { BlurRushCategory } from '@/lib/blurRushImages';
-import { proxyImageUrl } from '@/lib/imageProxy';
+import { getProxyImageCandidates, proxyImageUrl } from '@/lib/imageProxy';
 
 interface Player {
   id: string;
@@ -94,12 +94,29 @@ export const PixoguessGameScreen = ({
       drawPixelated(ctx, img, canvas.width, canvas.height, pixelLevel);
     };
 
-    img.onerror = () => {
-      console.error('Failed to load image:', roundData.image_url);
+    const candidates = getProxyImageCandidates(roundData.image_url);
+    let i = 0;
+
+    const tryNext = () => {
+      const next = candidates[i];
+      if (!next) {
+        console.error('Failed to load image (all candidates):', roundData.image_url);
+        return;
+      }
+      img.src = next;
     };
 
-    // Always use proxy for external images
-    img.src = proxyImageUrl(roundData.image_url);
+    img.onerror = () => {
+      i += 1;
+      tryNext();
+    };
+
+    tryNext();
+
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
   }, [roundData?.image_url]);
 
   // Update pixelation
