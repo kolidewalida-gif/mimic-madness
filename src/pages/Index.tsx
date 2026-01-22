@@ -442,8 +442,8 @@ const Index = () => {
   }, [lobby, currentPlayer, leaveLobby, toast]);
 
   const renderContent = useMemo(() => {
-    // For ink mode, we need user to be logged in
-    if (useInkMode && !user && !authLoading) {
+    // For ink mode, we need user to be logged in (even before the ink intro animation)
+    if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
       return (
         <div className="min-h-screen bg-white flex items-center justify-center p-4">
           <div className="text-center space-y-6 max-w-md">
@@ -553,6 +553,28 @@ const Index = () => {
       </React.Suspense>
     );
   }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+
+  // Enforce login before Ink intro animation
+  if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="text-center space-y-6 max-w-md">
+          <h1 className="text-4xl font-black" style={{ fontFamily: "'Caveat', cursive" }}>
+            MIMIC MASTER
+          </h1>
+          <p className="text-black/60">
+            Connectez-vous avec Google pour accéder au mode Ink
+          </p>
+          <button
+            onClick={signInWithGoogle}
+            className="px-8 py-4 bg-black text-white rounded-xl font-semibold hover:bg-black/80 transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,0.2)] hover:shadow-none hover:translate-x-1 hover:translate-y-1"
+          >
+            Connexion avec Google
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Show ink animation if needed
   if (showInkAnimation) {
