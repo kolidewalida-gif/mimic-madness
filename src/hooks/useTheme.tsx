@@ -1,16 +1,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type ThemeType = 'neon' | 'cosmic' | 'fire' | 'ice';
+export type ThemeType = 'neon' | 'cosmic' | 'fire' | 'ice' | 'ink';
 
 interface ThemeContextType {
   theme: ThemeType;
   setTheme: (theme: ThemeType) => void;
   themes: ThemeType[];
+  inkModeEnabled: boolean;
+  setInkModeEnabled: (enabled: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const themes: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice'];
+export const themes: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice', 'ink'];
 
 export const themeConfig: Record<ThemeType, {
   name: string;
@@ -107,6 +109,25 @@ export const themeConfig: Record<ThemeType, {
       glowSecondary: '180 100% 45%',
     },
   },
+  ink: {
+    name: 'Ink',
+    emoji: '🖤',
+    description: 'Noir & blanc minimaliste',
+    colors: {
+      primary: '0 0% 0%',
+      secondary: '0 0% 20%',
+      accent: '0 0% 40%',
+      background: '0 0% 100%',
+      foreground: '0 0% 0%',
+      card: '0 0% 98%',
+      cardForeground: '0 0% 0%',
+      muted: '0 0% 95%',
+      mutedForeground: '0 0% 45%',
+      border: '0 0% 85%',
+      glow: '0 0% 0%',
+      glowSecondary: '0 0% 30%',
+    },
+  },
 };
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
@@ -115,9 +136,23 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return (saved as ThemeType) || 'neon';
   });
 
+  const [inkModeEnabled, setInkModeEnabledState] = useState<boolean>(() => {
+    return localStorage.getItem('ink-mode-enabled') === 'true';
+  });
+
   const setTheme = (newTheme: ThemeType) => {
     setThemeState(newTheme);
     localStorage.setItem('game-theme', newTheme);
+  };
+
+  const setInkModeEnabled = (enabled: boolean) => {
+    setInkModeEnabledState(enabled);
+    localStorage.setItem('ink-mode-enabled', enabled ? 'true' : 'false');
+    
+    // If enabling ink mode, also set the theme to ink
+    if (enabled) {
+      setTheme('ink');
+    }
   };
 
   // Apply theme CSS variables
@@ -139,10 +174,17 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       .replace(/theme-\w+/g, '')
       .trim();
     document.body.classList.add(`theme-${theme}`);
+    
+    // Add ink-mode class for special styling
+    if (theme === 'ink') {
+      document.body.classList.add('ink-mode');
+    } else {
+      document.body.classList.remove('ink-mode');
+    }
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, themes }}>
+    <ThemeContext.Provider value={{ theme, setTheme, themes, inkModeEnabled, setInkModeEnabled }}>
       {children}
     </ThemeContext.Provider>
   );
