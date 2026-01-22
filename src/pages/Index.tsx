@@ -3,6 +3,7 @@ import { DynamicBackground } from "@/components/DynamicBackground";
 import { ScreenTransition } from "@/components/ScreenTransition";
 import { MusicPlayerBar } from "@/components/MusicPlayerBar";
 import { GameInvitationNotification } from "@/components/GameInvitationNotification";
+import { InkSplashAnimation } from "@/components/InkSplashAnimation";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
@@ -10,11 +11,14 @@ import { useGameInvitations, setOnNewInvitationCallback } from "@/hooks/useGameI
 import { supabase } from "@/integrations/supabase/client";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
+import { LobbyGameMode } from "@/lib/gameModes";
 import React from "react";
 
 // Lazy load heavy components
 const HomeScreen = React.lazy(() => import("@/components/HomeScreen").then(m => ({ default: m.HomeScreen })));
+const InkHomeScreen = React.lazy(() => import("@/components/InkHomeScreen").then(m => ({ default: m.InkHomeScreen })));
 const LobbyScreen = React.lazy(() => import("@/components/LobbyScreen").then(m => ({ default: m.LobbyScreen })));
 const VideoSubmissionScreen = React.lazy(() => import("@/components/VideoSubmissionScreen").then(m => ({ default: m.VideoSubmissionScreen })));
 const GamePlayScreen = React.lazy(() => import("@/components/GamePlayScreen").then(m => ({ default: m.GamePlayScreen })));
@@ -50,14 +54,38 @@ interface GameInvitation {
 }
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, signInWithGoogle, isLoading: authLoading } = useAuth();
+  const { theme, inkModeEnabled } = useTheme();
   const [gameState, setGameState] = useState<GameState>("home");
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>("normal");
   const [activeInvitation, setActiveInvitation] = useState<GameInvitation | null>(null);
+  const [showInkAnimation, setShowInkAnimation] = useState(false);
+  const [inkAnimationCompleted, setInkAnimationCompleted] = useState(false);
   const { toast } = useToast();
   const { acceptInvitation, declineInvitation } = useGameInvitations();
+  
+  // Check if we need to show ink animation (fresh load with ink mode)
+  useEffect(() => {
+    if (inkModeEnabled && theme === 'ink') {
+      const hasSeenAnimation = sessionStorage.getItem('ink-animation-seen');
+      if (!hasSeenAnimation) {
+        setShowInkAnimation(true);
+      } else {
+        setInkAnimationCompleted(true);
+      }
+    }
+  }, [inkModeEnabled, theme]);
+  
+  const handleInkAnimationComplete = useCallback(() => {
+    sessionStorage.setItem('ink-animation-seen', 'true');
+    setShowInkAnimation(false);
+    setInkAnimationCompleted(true);
+  }, []);
+  
+  // Determine if we should show Ink UI
+  const useInkMode = inkModeEnabled && theme === 'ink' && inkAnimationCompleted;
   const { 
     lobby, 
     players, 
@@ -229,7 +257,7 @@ const Index = () => {
     };
   }, [lobby?.id, gameState, gameMode, toast]);
 
-  const handleCreateGame = useCallback(async (playerName: string) => {
+  const handleCreateGame = useCallback(async (playerName: string, gameMode?: LobbyGameMode) => {
     playSoundEffect('success', 0.4);
     // Use persistent player ID (auth user ID when logged in)
     const playerId = getGamePlayerId(user?.id);
@@ -240,6 +268,12 @@ const Index = () => {
     };
     
     setCurrentPlayer(hostPlayer);
+    
+    // If a gameMode is provided (from InkHomeScreen), set it
+    if (gameMode) {
+      setGameMode(gameMode as GameMode);
+    }
+    
     const result = await createLobby(playerId, playerName);
     
     if (result) {
@@ -408,13 +442,42 @@ const Index = () => {
   }, [lobby, currentPlayer, leaveLobby, toast]);
 
   const renderContent = useMemo(() => {
+    // For ink mode, we need user to be logged in
+    if (useInkMode && !user && !authLoading) {
+      return (
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
+          <div className="text-center space-y-6 max-w-md">
+            <h1 className="text-4xl font-black" style={{ fontFamily: "'Caveat', cursive" }}>
+              MIMIC MASTER
+            </h1>
+            <p className="text-black/60">
+              Connectez-vous avec Google pour accéder au jeu
+            </p>
+            <button
+              onClick={signInWithGoogle}
+              className="px-8 py-4 bg-black text-white rounded-xl font-semibold hover:bg-black/80 transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,0.2)] hover:shadow-none hover:translate-x-1 hover:translate-y-1"
+            >
+              Connexion avec Google
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <React.Suspense fallback={<LoadingFallback />}>
         {gameState === "home" && (
-          <HomeScreen 
-            onCreateGame={handleCreateGame}
-            onJoinGame={handleJoinGame}
-          />
+          useInkMode ? (
+            <InkHomeScreen 
+              onCreateGame={handleCreateGame}
+              onJoinGame={handleJoinGame}
+            />
+          ) : (
+            <HomeScreen 
+              onCreateGame={handleCreateGame}
+              onJoinGame={handleJoinGame}
+            />
+          )
         )}
 
         {gameState === "lobby" && currentPlayer && lobby && (
@@ -489,15 +552,24 @@ const Index = () => {
         )}
       </React.Suspense>
     );
-  }, [gameState, currentPlayer, lobby, players, gameMode, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+
+  // Show ink animation if needed
+  if (showInkAnimation) {
+    return <InkSplashAnimation onComplete={handleInkAnimationComplete} />;
+  }
 
   return (
     <>
-      <DynamicBackground />
+      {/* Only show dynamic background in non-ink mode */}
+      {!useInkMode && <DynamicBackground />}
+      
       <ScreenTransition screenKey={gameState}>
         {renderContent}
       </ScreenTransition>
-      <MusicPlayerBar />
+      
+      {/* Only show music bar in non-ink mode or customize for ink */}
+      {!useInkMode && <MusicPlayerBar />}
       
       {/* Premium Game Invitation Notification */}
       {activeInvitation && (

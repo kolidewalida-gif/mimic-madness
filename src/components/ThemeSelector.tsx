@@ -1,25 +1,45 @@
 import { useState } from 'react';
 import { useTheme, themeConfig, ThemeType } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
-import { Palette, Check, Sparkles } from 'lucide-react';
+import { Palette, Check, Sparkles, RefreshCw } from 'lucide-react';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 interface ThemeSelectorProps {
   variant?: 'full' | 'compact' | 'minimal';
   className?: string;
+  showInkToggle?: boolean;
 }
 
-export const ThemeSelector = ({ variant = 'full', className }: ThemeSelectorProps) => {
-  const { theme, setTheme, themes } = useTheme();
+export const ThemeSelector = ({ variant = 'full', className, showInkToggle = true }: ThemeSelectorProps) => {
+  const { theme, setTheme, themes, inkModeEnabled, setInkModeEnabled } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredTheme, setHoveredTheme] = useState<ThemeType | null>(null);
+
+  // Filter out ink theme from normal selection if showInkToggle is enabled (it's a special mode)
+  const availableThemes = showInkToggle ? themes.filter(t => t !== 'ink') : themes;
 
   const handleSelectTheme = (newTheme: ThemeType) => {
     if (newTheme !== theme) {
       playSoundEffect('powerUp', 0.5);
       setTheme(newTheme);
+      
+      // If selecting ink, also enable ink mode
+      if (newTheme === 'ink') {
+        setInkModeEnabled(true);
+      }
     }
     setIsOpen(false);
+  };
+
+  const handleToggleInkMode = () => {
+    playSoundEffect('transitionMagic', 0.5);
+    const newEnabled = !inkModeEnabled;
+    setInkModeEnabled(newEnabled);
+    
+    if (newEnabled) {
+      // Notify user they need to reload
+      alert('Mode Ink activé ! Rechargez la page pour voir l\'animation d\'encre et le nouveau design.');
+    }
   };
 
   const handleToggle = () => {
@@ -42,7 +62,7 @@ export const ThemeSelector = ({ variant = 'full', className }: ThemeSelectorProp
           <>
             <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
             <div className="absolute right-0 top-full mt-2 z-50 flex gap-2 p-2 glass-ultra rounded-xl animate-scaleIn">
-              {themes.map((t) => (
+              {availableThemes.map((t) => (
                 <button
                   key={t}
                   onClick={() => handleSelectTheme(t)}
@@ -76,7 +96,7 @@ export const ThemeSelector = ({ variant = 'full', className }: ThemeSelectorProp
   if (variant === 'compact') {
     return (
       <div className={cn("flex gap-2", className)}>
-        {themes.map((t) => (
+        {availableThemes.map((t) => (
           <button
             key={t}
             onClick={() => handleSelectTheme(t)}
@@ -112,7 +132,7 @@ export const ThemeSelector = ({ variant = 'full', className }: ThemeSelectorProp
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {themes.map((t, index) => {
+        {availableThemes.map((t, index) => {
           const config = themeConfig[t];
           const isSelected = theme === t;
 
@@ -217,6 +237,52 @@ export const ThemeSelector = ({ variant = 'full', className }: ThemeSelectorProp
           );
         })}
       </div>
+      
+      {/* Ink Mode Toggle */}
+      {showInkToggle && (
+        <div className="pt-4 border-t border-border/30">
+          <button
+            onClick={handleToggleInkMode}
+            className={cn(
+              "w-full p-4 rounded-2xl transition-all duration-500 group overflow-hidden relative",
+              "hover:scale-[1.02] hover:-translate-y-1",
+              inkModeEnabled 
+                ? "bg-black text-white ring-2 ring-white" 
+                : "bg-white text-black border-2 border-black/20 hover:border-black"
+            )}
+          >
+            <div className="relative z-10 flex items-center gap-4">
+              <div className={cn(
+                "w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all",
+                inkModeEnabled ? "bg-white/20" : "bg-black/10"
+              )}>
+                🖤
+              </div>
+              <div className="text-left flex-1">
+                <span className="font-bold text-lg block">Mode Ink</span>
+                <span className={cn(
+                  "text-xs",
+                  inkModeEnabled ? "text-white/70" : "text-black/50"
+                )}>
+                  Interface minimaliste noir & blanc
+                </span>
+              </div>
+              {inkModeEnabled && (
+                <div className="flex items-center gap-2 text-xs text-white/70">
+                  <RefreshCw className="w-4 h-4" />
+                  Rechargez pour appliquer
+                </div>
+              )}
+            </div>
+            
+            {inkModeEnabled && (
+              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                <Check className="w-4 h-4 text-black" />
+              </div>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
