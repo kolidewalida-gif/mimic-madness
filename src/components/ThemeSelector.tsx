@@ -35,10 +35,21 @@ export const ThemeSelector = ({ variant = 'full', className, showInkToggle = tru
     playSoundEffect('transitionMagic', 0.5);
     const newEnabled = !inkModeEnabled;
     setInkModeEnabled(newEnabled);
-    
+    setIsOpen(false);
+
+    // Ensure the intro animation replays when Ink mode is enabled
     if (newEnabled) {
-      // Notify user they need to reload
-      alert('Mode Ink activé ! Rechargez la page pour voir l\'animation d\'encre et le nouveau design.');
+      sessionStorage.removeItem('ink-animation-seen');
+    }
+    
+    const shouldReload = window.confirm(
+      newEnabled
+        ? "Mode Ink activé. Recharger maintenant pour lancer l'animation et activer l'interface noir & blanc ?"
+        : "Mode Ink désactivé. Recharger maintenant pour revenir à l'interface premium ?"
+    );
+
+    if (shouldReload) {
+      window.location.reload();
     }
   };
 
@@ -94,8 +105,9 @@ export const ThemeSelector = ({ variant = 'full', className, showInkToggle = tru
   }
 
   if (variant === 'compact') {
+    const inkConfig = themeConfig.ink;
     return (
-      <div className={cn("flex gap-2", className)}>
+      <div className={cn("flex gap-2 items-center", className)}>
         {availableThemes.map((t) => (
           <button
             key={t}
@@ -117,6 +129,30 @@ export const ThemeSelector = ({ variant = 'full', className, showInkToggle = tru
             )}
           </button>
         ))}
+
+        {showInkToggle && (
+          <button
+            type="button"
+            onClick={handleToggleInkMode}
+            onMouseEnter={() => playSoundEffect('hoverSoft', 0.15)}
+            className={cn(
+              "w-12 h-12 rounded-xl transition-all duration-300 flex items-center justify-center text-2xl",
+              "hover:scale-110 hover:shadow-lg relative overflow-hidden",
+              inkModeEnabled && "ring-2 ring-white scale-105"
+            )}
+            style={{
+              background: `linear-gradient(135deg, hsl(${inkConfig.colors.primary}), hsl(${inkConfig.colors.background}))`,
+              boxShadow: inkModeEnabled ? `0 0 30px hsl(${inkConfig.colors.primary})` : 'none',
+            }}
+            aria-label={inkModeEnabled ? "Désactiver le mode Ink" : "Activer le mode Ink"}
+            title={inkModeEnabled ? "Mode Ink activé" : "Activer le mode Ink"}
+          >
+            <span className="relative z-10">🖤</span>
+            {inkModeEnabled && (
+              <div className="absolute inset-0 bg-white/10" />
+            )}
+          </button>
+        )}
       </div>
     );
   }
