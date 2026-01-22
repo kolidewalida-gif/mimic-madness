@@ -44,7 +44,9 @@ type SoundType =
   | 'coinDrop' | 'gemCollect' | 'xpGain'
   | 'healthUp' | 'healthDown'
   | 'shield' | 'powerDown'
-  | 'teleport' | 'warp' | 'glitch';
+  | 'teleport' | 'warp' | 'glitch'
+  // Ink brush stroke for Ink theme animation
+  | 'brushStroke';
 
 // Create sophisticated sounds using multiple oscillators, filters, and effects
 const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number) => {
@@ -2449,6 +2451,41 @@ const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number)
       
       osc.start(now);
       osc.stop(now + 0.05);
+      break;
+    }
+
+    // ===== INK BRUSH STROKE (for Ink theme animation) =====
+    case 'brushStroke': {
+      // White-noise burst filtered to emulate brush on canvas
+      const bufferSize = ctx.sampleRate * 0.15; // 150 ms
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const lowpass = ctx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.setValueAtTime(3000, now);
+      lowpass.frequency.exponentialRampToValueAtTime(600, now + 0.12);
+
+      const highpass = ctx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.setValueAtTime(150, now);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(volume * 0.7, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+      noise.connect(lowpass);
+      lowpass.connect(highpass);
+      highpass.connect(gain);
+      gain.connect(masterGain);
+
+      noise.start(now);
+      noise.stop(now + 0.18);
       break;
     }
 
