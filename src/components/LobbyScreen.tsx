@@ -5,6 +5,8 @@ import { GameModeSelector } from "@/components/GameModeSelector";
 import { TeamDisplay } from "@/components/TeamDisplay";
 import { LobbyInvitePanel } from "@/components/LobbyInvitePanel";
 import { DeviceSettings } from "@/components/DeviceSettings";
+import { InkHideable, InkCard } from "@/components/InkAdaptive";
+import { useInkMode } from "@/hooks/useInkMode";
 import { 
   HolographicCard, 
   NeonText, 
@@ -14,7 +16,8 @@ import {
   GlowingOrb,
   CyberGrid
 } from "@/components/premium";
-import { ArrowLeft, Bug, Settings, Users, Wifi } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Bug, Settings, Users, Wifi, Play } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useGameTeams } from "@/hooks/useGameTeams";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +56,7 @@ export const LobbyScreen = ({
   onKickPlayer,
   onTransferHost
 }: LobbyScreenProps) => {
+  const { isInkMode, inkClasses, inkFont } = useInkMode();
   const [showSettings, setShowSettings] = useState(false);
   const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
   const [lastStartAttemptAt, setLastStartAttemptAt] = useState<string | null>(null);
@@ -152,77 +156,131 @@ export const LobbyScreen = ({
   });
 
   return (
-    <div className="min-h-screen flex flex-col p-4 sm:p-6 pb-28 relative overflow-hidden">
-      {/* Premium Cyber Grid Background */}
-      <CyberGrid color="primary" opacity={0.04} animated />
+    <div className={cn(
+      "min-h-screen flex flex-col p-4 sm:p-6 pb-28 relative overflow-hidden",
+      isInkMode && "bg-white"
+    )}>
+      {/* Premium Background Effects - Hidden in Ink Mode */}
+      <InkHideable>
+        <CyberGrid color="primary" opacity={0.04} animated />
+        <FloatingParticles count={50} color="mixed" speed="slow" size="small" glow />
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <GlowingOrb size="xl" color="primary" className="absolute top-[-15%] right-[-5%]" animated />
+          <GlowingOrb size="lg" color="accent" className="absolute bottom-[-15%] left-[-5%]" animated />
+          <GlowingOrb size="md" color="accent" className="absolute top-[40%] left-[30%]" intensity="low" />
+        </div>
+      </InkHideable>
       
-      {/* Floating Particles */}
-      <FloatingParticles count={50} color="mixed" speed="slow" size="small" glow />
-      
-      {/* Enhanced Glowing Orbs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <GlowingOrb size="xl" color="primary" className="absolute top-[-15%] right-[-5%]" animated />
-        <GlowingOrb size="lg" color="accent" className="absolute bottom-[-15%] left-[-5%]" animated />
-        <GlowingOrb size="md" color="accent" className="absolute top-[40%] left-[30%]" intensity="low" />
-      </div>
+      {/* Ink Mode Decorations */}
+      {isInkMode && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-5">
+          <div className="absolute top-10 left-10 w-40 h-40 bg-black rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-60 h-60 bg-black rounded-full blur-3xl" />
+        </div>
+      )}
 
       <div className="w-full max-w-6xl mx-auto space-y-6 relative z-10 flex-1">
-        {/* Header with premium animations */}
+        {/* Header */}
         <header className="flex items-center justify-between animate-fade-in">
-          <InteractiveWrapper hoverLift clickSound="click">
-            <PremiumButton
-              variant="default"
+          {isInkMode ? (
+            <Button
+              variant="outline"
               onClick={onLeaveGame}
-              className="gap-2 bg-transparent hover:bg-destructive/10 hover:text-destructive"
+              className="gap-2 border-2 border-black hover:bg-black hover:text-white"
             >
-              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform duration-300" />
+              <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Quitter</span>
-            </PremiumButton>
-          </InteractiveWrapper>
+            </Button>
+          ) : (
+            <InteractiveWrapper hoverLift clickSound="click">
+              <PremiumButton
+                variant="default"
+                onClick={onLeaveGame}
+                className="gap-2 bg-transparent hover:bg-destructive/10 hover:text-destructive"
+              >
+                <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform duration-300" />
+                <span className="hidden sm:inline">Quitter</span>
+              </PremiumButton>
+            </InteractiveWrapper>
+          )}
           
-          <div className="relative">
-            <div className="absolute inset-0 -m-4 bg-primary/20 rounded-full blur-xl animate-pulse" />
-            <GameLogo size="sm" animated />
-          </div>
+          {isInkMode ? (
+            <h1 className="text-2xl font-black" style={inkFont}>MIMIC MASTER</h1>
+          ) : (
+            <div className="relative">
+              <div className="absolute inset-0 -m-4 bg-primary/20 rounded-full blur-xl animate-pulse" />
+              <GameLogo size="sm" animated />
+            </div>
+          )}
           
-          <InteractiveWrapper glow glowColor="hsl(var(--primary))" clickSound="click">
-            <PremiumButton
-              variant={showSettings ? "holographic" : "default"}
+          {isInkMode ? (
+            <Button
+              variant={showSettings ? "default" : "outline"}
               onClick={() => setShowSettings(!showSettings)}
-              className={cn("gap-2", !showSettings && "bg-transparent hover:bg-primary/10")}
+              className={cn(
+                "gap-2",
+                showSettings ? "bg-black text-white" : "border-2 border-black hover:bg-black hover:text-white"
+              )}
             >
-              <Settings className={cn(
-                "h-4 w-4 transition-transform duration-500",
-                showSettings && "rotate-180"
-              )} />
+              <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Audio/Vidéo</span>
-            </PremiumButton>
-          </InteractiveWrapper>
+            </Button>
+          ) : (
+            <InteractiveWrapper glow glowColor="hsl(var(--primary))" clickSound="click">
+              <PremiumButton
+                variant={showSettings ? "holographic" : "default"}
+                onClick={() => setShowSettings(!showSettings)}
+                className={cn("gap-2", !showSettings && "bg-transparent hover:bg-primary/10")}
+              >
+                <Settings className={cn(
+                  "h-4 w-4 transition-transform duration-500",
+                  showSettings && "rotate-180"
+                )} />
+                <span className="hidden sm:inline">Audio/Vidéo</span>
+              </PremiumButton>
+            </InteractiveWrapper>
+          )}
         </header>
 
-        {/* Enhanced Status Banner */}
+        {/* Status Banner */}
         <div className="text-center space-y-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <InteractiveWrapper glow glowIntensity="low">
-            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-card/70 backdrop-blur-md border border-primary/20 shadow-lg shadow-primary/5 group cursor-default">
-              <div className="relative">
-                <Wifi className="h-4 w-4 text-success" />
-                <div className="absolute inset-0 bg-success/50 rounded-full blur-md animate-ping" />
-              </div>
-              <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+          {isInkMode ? (
+            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-black/5 border-2 border-black/20">
+              <Wifi className="h-4 w-4 text-black" />
+              <span className="text-sm font-medium">
                 {isHost ? "Vous êtes l'hôte" : "Connecté au lobby"}
               </span>
-              <div className="relative">
-                <div className="w-2 h-2 rounded-full bg-success" />
-                <div className="absolute inset-0 w-2 h-2 rounded-full bg-success animate-ping" />
-              </div>
             </div>
-          </InteractiveWrapper>
+          ) : (
+            <InteractiveWrapper glow glowIntensity="low">
+              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-card/70 backdrop-blur-md border border-primary/20 shadow-lg shadow-primary/5 group cursor-default">
+                <div className="relative">
+                  <Wifi className="h-4 w-4 text-success" />
+                  <div className="absolute inset-0 bg-success/50 rounded-full blur-md animate-ping" />
+                </div>
+                <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                  {isHost ? "Vous êtes l'hôte" : "Connecté au lobby"}
+                </span>
+                <div className="relative">
+                  <div className="w-2 h-2 rounded-full bg-success" />
+                  <div className="absolute inset-0 w-2 h-2 rounded-full bg-success animate-ping" />
+                </div>
+              </div>
+            </InteractiveWrapper>
+          )}
           
-          <NeonText color="primary" size="4xl" animate="pulse">
-            Salle d'attente
-          </NeonText>
+          {isInkMode ? (
+            <h2 className="text-4xl font-black" style={inkFont}>Salle d'attente</h2>
+          ) : (
+            <NeonText color="primary" size="4xl" animate="pulse">
+              Salle d'attente
+            </NeonText>
+          )}
           
-          <p className="text-foreground-muted text-sm max-w-md mx-auto leading-relaxed">
+          <p className={cn(
+            "text-sm max-w-md mx-auto leading-relaxed",
+            isInkMode ? "text-black/60" : "text-foreground-muted"
+          )}>
             {isHost 
               ? "Choisissez le mode de jeu et lancez la partie quand tout le monde est prêt" 
               : "En attente que l'hôte lance la partie..."
@@ -236,43 +294,82 @@ export const LobbyScreen = ({
           <div className="space-y-4">
             {/* Fortnite-style Invite Slots */}
             {isHost && (
-              <HolographicCard intensity="medium" className="p-0">
-                <LobbyInvitePanel
+              isInkMode ? (
+                <InkCard className="p-0">
+                  <LobbyInvitePanel
+                    lobbyCode={lobbyCode}
+                    lobbyId={lobbyId}
+                    players={players}
+                    maxPlayers={8}
+                    isHost={isHost}
+                  />
+                </InkCard>
+              ) : (
+                <HolographicCard intensity="medium" className="p-0">
+                  <LobbyInvitePanel
+                    lobbyCode={lobbyCode}
+                    lobbyId={lobbyId}
+                    players={players}
+                    maxPlayers={8}
+                    isHost={isHost}
+                  />
+                </HolographicCard>
+              )
+            )}
+            
+            {isInkMode ? (
+              <InkCard className="p-0 overflow-hidden">
+                <PlayersList
+                  players={players}
                   lobbyCode={lobbyCode}
                   lobbyId={lobbyId}
-                  players={players}
-                  maxPlayers={8}
                   isHost={isHost}
+                  currentPlayerId={currentPlayer.id}
+                  onStartGame={handleStartGame}
+                  onKickPlayer={isHost ? onKickPlayer : undefined}
+                  onTransferHost={isHost ? onTransferHost : undefined}
+                  canStart={canStart}
+                  gameMode={gameMode}
+                />
+              </InkCard>
+            ) : (
+              <HolographicCard intensity="low" className="p-0 overflow-hidden">
+                <PlayersList
+                  players={players}
+                  lobbyCode={lobbyCode}
+                  lobbyId={lobbyId}
+                  isHost={isHost}
+                  currentPlayerId={currentPlayer.id}
+                  onStartGame={handleStartGame}
+                  onKickPlayer={isHost ? onKickPlayer : undefined}
+                  onTransferHost={isHost ? onTransferHost : undefined}
+                  canStart={canStart}
+                  gameMode={gameMode}
                 />
               </HolographicCard>
             )}
-            
-            <HolographicCard intensity="low" className="p-0 overflow-hidden">
-              <PlayersList
-                players={players}
-                lobbyCode={lobbyCode}
-                lobbyId={lobbyId}
-                isHost={isHost}
-                currentPlayerId={currentPlayer.id}
-                onStartGame={handleStartGame}
-                onKickPlayer={isHost ? onKickPlayer : undefined}
-                onTransferHost={isHost ? onTransferHost : undefined}
-                canStart={canStart}
-                gameMode={gameMode}
-              />
-            </HolographicCard>
           </div>
 
           {/* Right Column - Game Mode & Teams / Settings */}
           <div className="space-y-4">
             {isHost && (
-              <HolographicCard intensity="medium" className="p-0 overflow-hidden">
-                <GameModeSelector
-                  gameMode={gameMode}
-                  onGameModeChange={handleGameModeChange}
-                  playerCount={players.filter(p => !p.isDisconnected).length}
-                />
-              </HolographicCard>
+              isInkMode ? (
+                <InkCard className="p-0 overflow-hidden">
+                  <GameModeSelector
+                    gameMode={gameMode}
+                    onGameModeChange={handleGameModeChange}
+                    playerCount={players.filter(p => !p.isDisconnected).length}
+                  />
+                </InkCard>
+              ) : (
+                <HolographicCard intensity="medium" className="p-0 overflow-hidden">
+                  <GameModeSelector
+                    gameMode={gameMode}
+                    onGameModeChange={handleGameModeChange}
+                    playerCount={players.filter(p => !p.isDisconnected).length}
+                  />
+                </HolographicCard>
+              )
             )}
 
             {isHost && (
@@ -363,41 +460,77 @@ export const LobbyScreen = ({
             )}
 
             {!isHost && (
-              <HolographicCard intensity="low">
-                <div className="text-center space-y-2 p-6">
-                  <p className="text-xs font-medium text-foreground-muted uppercase tracking-wider flex items-center justify-center gap-2">
-                    <Users className="h-3.5 w-3.5" />
-                    Mode sélectionné
-                  </p>
-                  <NeonText color="accent" size="2xl">
-                    {getModeEmojiLabel(gameMode)}
-                  </NeonText>
-                </div>
-              </HolographicCard>
+              isInkMode ? (
+                <InkCard>
+                  <div className="text-center space-y-2 p-6">
+                    <p className="text-xs font-medium text-black/50 uppercase tracking-wider flex items-center justify-center gap-2">
+                      <Users className="h-3.5 w-3.5" />
+                      Mode sélectionné
+                    </p>
+                    <p className="text-2xl font-black">{getModeEmojiLabel(gameMode)}</p>
+                  </div>
+                </InkCard>
+              ) : (
+                <HolographicCard intensity="low">
+                  <div className="text-center space-y-2 p-6">
+                    <p className="text-xs font-medium text-foreground-muted uppercase tracking-wider flex items-center justify-center gap-2">
+                      <Users className="h-3.5 w-3.5" />
+                      Mode sélectionné
+                    </p>
+                    <NeonText color="accent" size="2xl">
+                      {getModeEmojiLabel(gameMode)}
+                    </NeonText>
+                  </div>
+                </HolographicCard>
+              )
             )}
 
             {gameMode === '2v2' && (
-              <HolographicCard intensity="medium" className="p-0 overflow-hidden">
-                <TeamDisplay
-                  teams={teams}
-                  currentPlayerId={currentPlayer.id}
-                  lobbyId={lobbyId}
-                  isHost={isHost}
-                  onShuffleTeams={handleShuffleTeams}
-                  isLoading={teamsLoading}
-                />
-              </HolographicCard>
+              isInkMode ? (
+                <InkCard className="p-0 overflow-hidden">
+                  <TeamDisplay
+                    teams={teams}
+                    currentPlayerId={currentPlayer.id}
+                    lobbyId={lobbyId}
+                    isHost={isHost}
+                    onShuffleTeams={handleShuffleTeams}
+                    isLoading={teamsLoading}
+                  />
+                </InkCard>
+              ) : (
+                <HolographicCard intensity="medium" className="p-0 overflow-hidden">
+                  <TeamDisplay
+                    teams={teams}
+                    currentPlayerId={currentPlayer.id}
+                    lobbyId={lobbyId}
+                    isHost={isHost}
+                    onShuffleTeams={handleShuffleTeams}
+                    isLoading={teamsLoading}
+                  />
+                </HolographicCard>
+              )
             )}
 
             {showSettings && (
-              <HolographicCard intensity="high">
-                <DeviceSettings 
-                  showPreview={true} 
-                  playerId={currentPlayer.id}
-                  playerName={currentPlayer.name}
-                  lobbyId={lobbyId}
-                />
-              </HolographicCard>
+              isInkMode ? (
+                <InkCard>
+                  <DeviceSettings 
+                    showPreview={true} 
+                    playerId={currentPlayer.id}
+                    playerName={currentPlayer.name}
+                    lobbyId={lobbyId}
+                  />
+                </InkCard>
+              ) : (
+                <HolographicCard intensity="high">
+                  <DeviceSettings 
+                    showPreview={true} 
+                    playerId={currentPlayer.id}
+                    playerName={currentPlayer.name}
+                    lobbyId={lobbyId}
+                  />
+                </HolographicCard>
+              )
             )}
           </div>
         </div>

@@ -81,7 +81,7 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
   }, [playerName, play, onJoinGame]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 pb-28 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 pb-28 relative overflow-y-auto overflow-x-hidden">
       {/* Cyber Grid Background */}
       <CyberGrid color="primary" opacity={0.03} animated />
       
@@ -96,14 +96,14 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
       </div>
 
       {/* Main Layout */}
-      <div className="relative z-10 flex items-start justify-center gap-6 w-full max-w-6xl">
+      <div className="relative z-10 flex items-start justify-center gap-6 w-full max-w-6xl my-auto py-8">
         {/* Left Panel - Profile */}
         <div className="hidden lg:flex flex-shrink-0">
           <ProfileSidebar />
         </div>
 
-        {/* Center Content */}
-        <div className="w-full max-w-md space-y-6">
+        {/* Center Content - Scrollable */}
+        <div className="w-full max-w-md space-y-6 max-h-[calc(100vh-120px)] overflow-y-auto scrollbar-thin pr-2">
           {/* Curved Logo Text with NeonText */}
           <div className="text-center mb-2">
             <div className="relative inline-block">
