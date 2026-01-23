@@ -10,6 +10,7 @@ import { useFriends } from '@/hooks/useFriends';
 import { useOnlinePresence } from '@/hooks/useOnlinePresence';
 import { useGameInvitations } from '@/hooks/useGameInvitations';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useInkMode } from '@/hooks/useInkMode';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -35,6 +36,7 @@ const LobbyInvitePanelComponent = ({
   maxPlayers = 8,
   isHost
 }: LobbyInvitePanelProps) => {
+  const { isInkMode, inkFont } = useInkMode();
   const { user, profile } = useAuth();
   const { friends, isLoading: friendsLoading } = useFriends();
   const { getUserStatus } = useOnlinePresence(lobbyCode);
@@ -93,26 +95,38 @@ const LobbyInvitePanelComponent = ({
             transition={{ delay: index * 0.05 }}
             className={cn(
               "relative aspect-square rounded-xl border-2 overflow-hidden",
-              "bg-gradient-to-br from-primary/20 to-accent/10",
+              isInkMode 
+                ? "bg-background border-primary/60" 
+                : "bg-gradient-to-br from-primary/20 to-accent/10",
               player.isDisconnected 
                 ? "border-warning/50" 
-                : "border-primary/40"
+                : isInkMode ? "border-primary/60" : "border-primary/40"
             )}
           >
             <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
-              <Avatar className="h-8 w-8 mb-1 border-2 border-primary/30">
-                <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-xs font-bold">
+              <Avatar className={cn(
+                "h-8 w-8 mb-1 border-2",
+                isInkMode ? "border-primary/50" : "border-primary/30"
+              )}>
+                <AvatarFallback className={cn(
+                  "text-xs font-bold",
+                  isInkMode 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-gradient-to-br from-primary to-accent text-white"
+                )}>
                   {player.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-[10px] font-medium text-center line-clamp-1 w-full">
+              <span className="text-[10px] font-medium text-center line-clamp-1 w-full text-foreground">
                 {player.name}
               </span>
             </div>
             {/* Connection indicator */}
             <div className={cn(
               "absolute top-1 right-1 w-2 h-2 rounded-full",
-              player.isDisconnected ? "bg-warning animate-pulse" : "bg-success"
+              player.isDisconnected 
+                ? "bg-warning animate-pulse" 
+                : isInkMode ? "bg-primary" : "bg-success"
             )} />
           </motion.div>
         ))}
@@ -127,16 +141,32 @@ const LobbyInvitePanelComponent = ({
             onClick={togglePanel}
             className={cn(
               "relative aspect-square rounded-xl border-2 border-dashed overflow-hidden",
-              "border-border/40 bg-background/30",
-              "hover:border-primary/50 hover:bg-primary/5 transition-all duration-200",
-              "group cursor-pointer"
+              "transition-all duration-200 group cursor-pointer",
+              isInkMode
+                ? "border-border bg-background hover:border-primary hover:bg-primary/10"
+                : "border-border/40 bg-background/30 hover:border-primary/50 hover:bg-primary/5"
             )}
           >
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-background/60 flex items-center justify-center border border-border/50 group-hover:border-primary/50 group-hover:bg-primary/10 transition-all">
-                <UserPlus className="h-4 w-4 text-foreground-muted group-hover:text-primary transition-colors" />
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center border transition-all",
+                isInkMode
+                  ? "bg-background border-border group-hover:border-primary group-hover:bg-primary/20"
+                  : "bg-background/60 border-border/50 group-hover:border-primary/50 group-hover:bg-primary/10"
+              )}>
+                <UserPlus className={cn(
+                  "h-4 w-4 transition-colors",
+                  isInkMode 
+                    ? "text-muted-foreground group-hover:text-primary" 
+                    : "text-foreground-muted group-hover:text-primary"
+                )} />
               </div>
-              <span className="text-[9px] text-foreground-muted mt-1 group-hover:text-primary transition-colors">
+              <span className={cn(
+                "text-[9px] mt-1 transition-colors",
+                isInkMode 
+                  ? "text-muted-foreground group-hover:text-primary" 
+                  : "text-foreground-muted group-hover:text-primary"
+              )}>
                 Inviter
               </span>
             </div>
@@ -167,17 +197,35 @@ const LobbyInvitePanelComponent = ({
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md px-4"
               style={{ pointerEvents: 'auto' }}
             >
-              <div className="bg-card/95 backdrop-blur-xl border border-border/30 rounded-2xl shadow-2xl overflow-hidden">
+              <div className={cn(
+                "rounded-2xl shadow-2xl overflow-hidden",
+                isInkMode 
+                  ? "bg-card border-2 border-primary" 
+                  : "bg-card/95 backdrop-blur-xl border border-border/30"
+              )}>
                 {/* Header */}
-                <div className="px-5 py-4 border-b border-border/20 bg-gradient-to-r from-primary/10 to-accent/10">
+                <div className={cn(
+                  "px-5 py-4 border-b",
+                  isInkMode 
+                    ? "border-border bg-background" 
+                    : "border-border/20 bg-gradient-to-r from-primary/10 to-accent/10"
+                )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                        <Users className="h-5 w-5 text-white" />
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center",
+                        isInkMode 
+                          ? "bg-primary" 
+                          : "bg-gradient-to-br from-primary to-accent"
+                      )}>
+                        <Users className="h-5 w-5 text-primary-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg">Inviter des amis</h3>
-                        <p className="text-xs text-foreground-muted">
+                        <h3 className="font-bold text-lg text-foreground">Inviter des amis</h3>
+                        <p className={cn(
+                          "text-xs",
+                          isInkMode ? "text-muted-foreground" : "text-foreground-muted"
+                        )}>
                           {emptySlots} place{emptySlots > 1 ? 's' : ''} disponible{emptySlots > 1 ? 's' : ''}
                         </p>
                       </div>
@@ -186,7 +234,10 @@ const LobbyInvitePanelComponent = ({
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowInvitePanel(false)}
-                      className="h-9 w-9 rounded-xl"
+                      className={cn(
+                        "h-9 w-9 rounded-xl",
+                        isInkMode && "hover:bg-primary/20 hover:text-primary"
+                      )}
                     >
                       <X className="h-5 w-5" />
                     </Button>
@@ -194,14 +245,23 @@ const LobbyInvitePanelComponent = ({
                 </div>
 
                 {/* Search */}
-                <div className="p-4 border-b border-border/20">
+                <div className={cn(
+                  "p-4 border-b",
+                  isInkMode ? "border-border" : "border-border/20"
+                )}>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
+                    <Search className={cn(
+                      "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4",
+                      isInkMode ? "text-muted-foreground" : "text-foreground-muted"
+                    )} />
                     <Input
                       placeholder="Rechercher un ami..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 bg-background/50"
+                      className={cn(
+                        "pl-10",
+                        isInkMode ? "bg-background border-2 border-border focus:border-primary" : "bg-background/50"
+                      )}
                     />
                   </div>
                 </div>
@@ -233,31 +293,43 @@ const LobbyInvitePanelComponent = ({
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             className={cn(
-                              "flex items-center gap-3 p-3 rounded-xl",
-                              "bg-background/40 border border-border/20",
-                              "hover:border-primary/30 transition-all"
+                              "flex items-center gap-3 p-3 rounded-xl transition-all",
+                              isInkMode
+                                ? "bg-background border-2 border-border hover:border-primary/50"
+                                : "bg-background/40 border border-border/20 hover:border-primary/30"
                             )}
                           >
                             <div className="relative">
                               <Avatar className="h-10 w-10">
                                 <AvatarImage src={friend.avatar_url || undefined} />
-                                <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-bold">
+                                <AvatarFallback className={cn(
+                                  "font-bold",
+                                  isInkMode 
+                                    ? "bg-primary text-primary-foreground" 
+                                    : "bg-gradient-to-br from-primary to-accent text-white"
+                                )}>
                                   {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
                                 </AvatarFallback>
                               </Avatar>
                               <Circle
                                 className={cn(
                                   "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5",
-                                  isOnline ? "text-green-500 fill-green-500" : "text-gray-500 fill-gray-500"
+                                  isOnline 
+                                    ? isInkMode ? "text-primary fill-primary" : "text-success fill-success" 
+                                    : "text-muted-foreground fill-muted-foreground"
                                 )}
                               />
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">{friend.display_name || 'Joueur'}</div>
+                              <div className="font-medium truncate text-foreground">{friend.display_name || 'Joueur'}</div>
                               <div className={cn(
                                 "text-xs",
-                                isInGame ? "text-warning" : isOnline ? "text-green-500" : "text-foreground-muted"
+                                isInGame 
+                                  ? "text-warning" 
+                                  : isOnline 
+                                    ? isInkMode ? "text-primary" : "text-success" 
+                                    : isInkMode ? "text-muted-foreground" : "text-foreground-muted"
                               )}>
                                 {isInGame ? 'En partie' : isOnline ? 'En ligne' : 'Hors ligne'}
                               </div>
@@ -270,7 +342,8 @@ const LobbyInvitePanelComponent = ({
                               onClick={() => handleInvite(friend.user_id, friend.display_name || 'Joueur')}
                               className={cn(
                                 "h-9 min-w-[90px]",
-                                isInvited && "border-green-500/50 text-green-500"
+                                isInkMode && !isInvited && "bg-primary text-primary-foreground hover:bg-primary-hover",
+                                isInvited && (isInkMode ? "border-primary/50 text-primary" : "border-success/50 text-success")
                               )}
                             >
                               {isInvited ? (

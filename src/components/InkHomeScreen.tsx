@@ -22,7 +22,7 @@ import {
   Mic,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { VolumeControl } from '@/components/VolumeControl';
 import { SoundEffectsVolumeControl } from '@/components/SoundEffectsVolumeControl';
 import { DeviceSettings } from '@/components/DeviceSettings';
@@ -120,7 +120,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const handleCreateGame = useCallback(() => {
     if (playerName.trim()) {
       play();
-      playSoundEffect('success', 0.5);
+      playInkSound('inkSuccess', 0.5);
       onCreateGame(playerName.trim(), selectedMode || 'normal');
     }
   }, [playerName, selectedMode, play, onCreateGame]);
@@ -128,13 +128,13 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const handleJoinGame = useCallback(() => {
     if (playerName.trim() && lobbyCode.trim()) {
       play();
-      playSoundEffect('success', 0.5);
+      playInkSound('inkSuccess', 0.5);
       onJoinGame(playerName.trim(), lobbyCode.trim().toUpperCase());
     }
   }, [playerName, lobbyCode, play, onJoinGame]);
 
   const handleSelectMode = (mode: GameModeInfo) => {
-    playSoundEffect('click', 0.3);
+    playInkSound('brushTap', 0.4);
     setSelectedMode(mode.id);
   };
 
@@ -350,7 +350,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         <aside className="hidden sm:flex w-16 border-l border-border flex-col items-center py-6 gap-4">
           <button
             onClick={() => {
-              playSoundEffect('click', 0.3);
+              playInkSound('inkClick', 0.3);
               setShowSettings(!showSettings);
             }}
             className={cn(

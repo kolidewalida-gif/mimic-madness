@@ -373,90 +373,177 @@ export const LobbyScreen = ({
             )}
 
             {isHost && (
-              <HolographicCard intensity="low">
-                <details className="p-4">
-                  <summary className="cursor-pointer select-none flex items-center justify-between text-sm font-semibold text-foreground">
-                    <span className="flex items-center gap-2">
-                      <Bug className="h-4 w-4 text-foreground-muted" />
-                      Debug lancement
-                    </span>
-                    <span
-                      className={cn(
-                        "text-xs px-2 py-0.5 rounded-full border",
-                        canStart
-                          ? "bg-success/10 border-success/20 text-success"
-                          : "bg-warning/10 border-warning/20 text-warning"
-                      )}
-                    >
-                      {canStart ? 'OK' : 'BLOQUÉ'}
-                    </span>
-                  </summary>
+              isInkMode ? (
+                <InkCard>
+                  <details className="p-4">
+                    <summary className="cursor-pointer select-none flex items-center justify-between text-sm font-semibold text-foreground">
+                      <span className="flex items-center gap-2">
+                        <Bug className="h-4 w-4 text-muted-foreground" />
+                        Debug lancement
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs px-2 py-0.5 rounded-full border-2",
+                          canStart
+                            ? "bg-primary/10 border-primary/30 text-primary"
+                            : "bg-warning/10 border-warning/30 text-warning"
+                        )}
+                      >
+                        {canStart ? 'OK' : 'BLOQUÉ'}
+                      </span>
+                    </summary>
 
-                  <div className="mt-3 space-y-3 text-xs text-foreground-muted">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        Mode: <span className="text-foreground">{getModeLabel(gameMode)}</span>
-                        <span className="text-foreground-muted"> ({gameMode})</span>
+                    <div className="mt-3 space-y-3 text-xs text-muted-foreground">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          Mode: <span className="text-foreground">{getModeLabel(gameMode)}</span>
+                          <span className="text-muted-foreground"> ({gameMode})</span>
+                        </div>
+                        <div>
+                          Joueurs: <span className="text-foreground">{connectedCount}</span>
+                          <span className="text-muted-foreground">/{players.length}</span>
+                        </div>
+                        <div>
+                          Équipes: <span className="text-foreground">{teams.length}</span>
+                        </div>
+                        <div>
+                          Min requis: <span className="text-foreground">{gameMode === '2v2' ? 4 : 2}</span>
+                        </div>
                       </div>
-                      <div>
-                        Joueurs: <span className="text-foreground">{connectedCount}</span>
-                        <span className="text-foreground-muted">/{players.length}</span>
-                      </div>
-                      <div>
-                        Équipes: <span className="text-foreground">{teams.length}</span>
-                      </div>
-                      <div>
-                        Min requis: <span className="text-foreground">{gameMode === '2v2' ? 4 : 2}</span>
-                      </div>
-                    </div>
 
-                    <div className="space-y-1">
-                      <div>
-                        Dernière tentative: <span className="text-foreground">{lastStartAttemptAt ? new Date(lastStartAttemptAt).toLocaleTimeString() : '—'}</span>
-                      </div>
-                      <div>
-                        Dernière erreur backend: <span className={cn("font-medium", lastStartError ? "text-destructive" : "text-foreground")}>{lastStartError ?? '—'}</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="font-medium text-foreground">États joueurs :</div>
-                      <ul className="space-y-0.5">
-                        {players.map((p) => (
-                          <li key={p.id} className="flex items-center justify-between gap-3">
-                            <span className="truncate">{p.name}{p.id === currentPlayer.id ? ' (vous)' : ''}</span>
-                            <span className={cn(
-                              "text-[10px] px-2 py-0.5 rounded-full border",
-                              p.isDisconnected
-                                ? "bg-warning/10 border-warning/20 text-warning"
-                                : "bg-success/10 border-success/20 text-success"
-                            )}>
-                              {p.isDisconnected ? `déco ${p.disconnectedTimeLeft ?? ''}`.trim() : 'connecté'}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {!canStart && (
                       <div className="space-y-1">
-                        <div className="font-medium text-foreground">Raisons :</div>
-                        <ul className="list-disc pl-5 space-y-0.5">
-                          {reasons.map((r) => (
-                            <li key={r}>{r}</li>
+                        <div>
+                          Dernière tentative: <span className="text-foreground">{lastStartAttemptAt ? new Date(lastStartAttemptAt).toLocaleTimeString() : '—'}</span>
+                        </div>
+                        <div>
+                          Dernière erreur backend: <span className={cn("font-medium", lastStartError ? "text-destructive" : "text-foreground")}>{lastStartError ?? '—'}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="font-medium text-foreground">États joueurs :</div>
+                        <ul className="space-y-0.5">
+                          {players.map((p) => (
+                            <li key={p.id} className="flex items-center justify-between gap-3">
+                              <span className="truncate">{p.name}{p.id === currentPlayer.id ? ' (vous)' : ''}</span>
+                              <span className={cn(
+                                "text-[10px] px-2 py-0.5 rounded-full border-2",
+                                p.isDisconnected
+                                  ? "bg-warning/10 border-warning/30 text-warning"
+                                  : "bg-primary/10 border-primary/30 text-primary"
+                              )}>
+                                {p.isDisconnected ? `déco ${p.disconnectedTimeLeft ?? ''}`.trim() : 'connecté'}
+                              </span>
+                            </li>
                           ))}
                         </ul>
                       </div>
-                    )}
 
-                    {canStart && (
-                      <div className="text-foreground-muted">
-                        Tout est bon — si ça échoue encore, l'erreur affichée devrait donner le détail.
+                      {!canStart && (
+                        <div className="space-y-1">
+                          <div className="font-medium text-foreground">Raisons :</div>
+                          <ul className="list-disc pl-5 space-y-0.5">
+                            {reasons.map((r) => (
+                              <li key={r}>{r}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {canStart && (
+                        <div className="text-muted-foreground">
+                          Tout est bon — si ça échoue encore, l'erreur affichée devrait donner le détail.
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                </InkCard>
+              ) : (
+                <HolographicCard intensity="low">
+                  <details className="p-4">
+                    <summary className="cursor-pointer select-none flex items-center justify-between text-sm font-semibold text-foreground">
+                      <span className="flex items-center gap-2">
+                        <Bug className="h-4 w-4 text-foreground-muted" />
+                        Debug lancement
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs px-2 py-0.5 rounded-full border",
+                          canStart
+                            ? "bg-success/10 border-success/20 text-success"
+                            : "bg-warning/10 border-warning/20 text-warning"
+                        )}
+                      >
+                        {canStart ? 'OK' : 'BLOQUÉ'}
+                      </span>
+                    </summary>
+
+                    <div className="mt-3 space-y-3 text-xs text-foreground-muted">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          Mode: <span className="text-foreground">{getModeLabel(gameMode)}</span>
+                          <span className="text-foreground-muted"> ({gameMode})</span>
+                        </div>
+                        <div>
+                          Joueurs: <span className="text-foreground">{connectedCount}</span>
+                          <span className="text-foreground-muted">/{players.length}</span>
+                        </div>
+                        <div>
+                          Équipes: <span className="text-foreground">{teams.length}</span>
+                        </div>
+                        <div>
+                          Min requis: <span className="text-foreground">{gameMode === '2v2' ? 4 : 2}</span>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </details>
-              </HolographicCard>
+
+                      <div className="space-y-1">
+                        <div>
+                          Dernière tentative: <span className="text-foreground">{lastStartAttemptAt ? new Date(lastStartAttemptAt).toLocaleTimeString() : '—'}</span>
+                        </div>
+                        <div>
+                          Dernière erreur backend: <span className={cn("font-medium", lastStartError ? "text-destructive" : "text-foreground")}>{lastStartError ?? '—'}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="font-medium text-foreground">États joueurs :</div>
+                        <ul className="space-y-0.5">
+                          {players.map((p) => (
+                            <li key={p.id} className="flex items-center justify-between gap-3">
+                              <span className="truncate">{p.name}{p.id === currentPlayer.id ? ' (vous)' : ''}</span>
+                              <span className={cn(
+                                "text-[10px] px-2 py-0.5 rounded-full border",
+                                p.isDisconnected
+                                  ? "bg-warning/10 border-warning/20 text-warning"
+                                  : "bg-success/10 border-success/20 text-success"
+                              )}>
+                                {p.isDisconnected ? `déco ${p.disconnectedTimeLeft ?? ''}`.trim() : 'connecté'}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {!canStart && (
+                        <div className="space-y-1">
+                          <div className="font-medium text-foreground">Raisons :</div>
+                          <ul className="list-disc pl-5 space-y-0.5">
+                            {reasons.map((r) => (
+                              <li key={r}>{r}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {canStart && (
+                        <div className="text-foreground-muted">
+                          Tout est bon — si ça échoue encore, l'erreur affichée devrait donner le détail.
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                </HolographicCard>
+              )
             )}
 
             {!isHost && (
