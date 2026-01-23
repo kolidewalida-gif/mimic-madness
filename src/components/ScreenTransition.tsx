@@ -1,6 +1,8 @@
-import { ReactNode, useEffect, useState, useRef, useMemo, memo } from 'react';
+import { ReactNode, useEffect, useState, useRef, memo } from 'react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { useInkMode } from '@/hooks/useInkMode';
 
 interface ScreenTransitionProps {
   children: ReactNode;
@@ -19,6 +21,7 @@ const ALL_TRANSITIONS: TransitionStyle[] = [
 ];
 
 const ScreenTransitionComponent = ({ children, screenKey, className }: ScreenTransitionProps) => {
+  const { isInkMode } = useInkMode();
   const [displayedKey, setDisplayedKey] = useState(screenKey);
   const [displayedChildren, setDisplayedChildren] = useState(children);
   const [phase, setPhase] = useState<'idle' | 'exit' | 'enter'>('idle');
@@ -44,7 +47,12 @@ const ScreenTransitionComponent = ({ children, screenKey, className }: ScreenTra
       const newStyle = getNextTransitionStyle();
       setTransitionStyle(newStyle);
       
-      playSoundEffect('whoosh', 0.3);
+      // Play appropriate transition sound
+      if (isInkMode) {
+        playInkSound('inkTransition', 0.3);
+      } else {
+        playSoundEffect('whoosh', 0.3);
+      }
       setPhase('exit');
       
       const exitTimer = setTimeout(() => {

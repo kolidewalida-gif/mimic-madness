@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { getModeLabel, type LobbyGameMode } from "@/lib/gameModes";
+import { useInkMode } from "@/hooks/useInkMode";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +56,7 @@ export const PlayersList = ({
   canStart: externalCanStart,
   gameMode = 'normal',
 }: PlayersListProps) => {
+  const { isInkMode, inkFont } = useInkMode();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [playerToKick, setPlayerToKick] = useState<Player | null>(null);
@@ -117,18 +119,39 @@ export const PlayersList = ({
 
   return (
     <>
-      <div className="bg-card/60 backdrop-blur-sm border border-border/30 rounded-2xl p-5 space-y-5">
+      <div className={cn(
+        "rounded-2xl p-5 space-y-5",
+        isInkMode 
+          ? "bg-card border-2 border-border" 
+          : "bg-card/60 backdrop-blur-sm border border-border/30"
+      )}>
         {/* Lobby Code Section */}
         {lobbyCode && (
           <div className="text-center space-y-3">
-            <p className="text-xs font-medium text-foreground-muted uppercase tracking-wider">
+            <p 
+              className={cn(
+                "text-xs font-medium uppercase tracking-wider",
+                isInkMode ? "text-primary font-black" : "text-foreground-muted"
+              )}
+              style={isInkMode ? inkFont : undefined}
+            >
               Code du Lobby
             </p>
             <div className="flex items-center justify-center gap-3">
               <div className="relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-accent rounded-xl opacity-50 blur-sm" />
-                <div className="relative px-6 py-3 rounded-xl bg-background/90">
-                  <span className="text-3xl sm:text-4xl font-bold tracking-[0.3em] text-foreground">
+                {!isInkMode && (
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-accent rounded-xl opacity-50 blur-sm" />
+                )}
+                <div className={cn(
+                  "relative px-6 py-3 rounded-xl",
+                  isInkMode 
+                    ? "bg-background border-2 border-primary" 
+                    : "bg-background/90"
+                )}>
+                  <span className={cn(
+                    "text-3xl sm:text-4xl font-bold tracking-[0.3em]",
+                    isInkMode ? "text-primary" : "text-foreground"
+                  )}>
                     {lobbyCode}
                   </span>
                 </div>
@@ -138,35 +161,54 @@ export const PlayersList = ({
                 size="icon"
                 onClick={copyLobbyCode}
                 className={cn(
-                  "h-12 w-12 rounded-xl border border-border/50",
-                  "hover:bg-primary/10 hover:border-primary/50",
+                  "h-12 w-12 rounded-xl",
+                  isInkMode
+                    ? "border-2 border-primary hover:bg-primary hover:text-primary-foreground"
+                    : "border border-border/50 hover:bg-primary/10 hover:border-primary/50",
                   copied && "bg-success/10 border-success/50"
                 )}
               >
                 {copied ? (
                   <CheckCircle2 className="h-5 w-5 text-success" />
                 ) : (
-                  <Copy className="h-5 w-5 text-foreground-muted" />
+                  <Copy className={cn(
+                    "h-5 w-5",
+                    isInkMode ? "text-primary" : "text-foreground-muted"
+                  )} />
                 )}
               </Button>
             </div>
-            <p className="text-xs text-foreground-muted">
+            <p className={cn(
+              "text-xs",
+              isInkMode ? "text-muted-foreground" : "text-foreground-muted"
+            )}>
               Partagez ce code avec vos amis
             </p>
           </div>
         )}
 
         {/* Divider */}
-        <div className="h-px bg-border/50" />
+        <div className={cn(
+          "h-px",
+          isInkMode ? "bg-border" : "bg-border/50"
+        )} />
 
         {/* Players Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-foreground-muted">
+            <div className={cn(
+              "flex items-center gap-2",
+              isInkMode ? "text-muted-foreground" : "text-foreground-muted"
+            )}>
               <Users className="h-4 w-4" />
               <span className="text-sm font-medium">Joueurs</span>
             </div>
-            <span className="text-sm font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+            <span className={cn(
+              "text-sm font-semibold px-3 py-1 rounded-full",
+              isInkMode 
+                ? "bg-primary text-primary-foreground" 
+                : "bg-primary/10 text-primary border border-primary/20"
+            )}>
               {connectedPlayers.length}/8
             </span>
           </div>
@@ -174,8 +216,16 @@ export const PlayersList = ({
           <div className="space-y-2 max-h-[280px] overflow-y-auto">
             {players.length === 0 ? (
               <div className="text-center py-8">
-                <Users className="h-12 w-12 mx-auto mb-3 text-foreground-muted/30" />
-                <p className="text-foreground-muted text-sm">Aucun joueur connecté</p>
+                <Users className={cn(
+                  "h-12 w-12 mx-auto mb-3",
+                  isInkMode ? "text-muted-foreground/30" : "text-foreground-muted/30"
+                )} />
+                <p className={cn(
+                  "text-sm",
+                  isInkMode ? "text-muted-foreground" : "text-foreground-muted"
+                )}>
+                  Aucun joueur connecté
+                </p>
               </div>
             ) : (
               players.map((player, index) => (
@@ -183,11 +233,21 @@ export const PlayersList = ({
                   key={player.id}
                   className={cn(
                     "flex items-center justify-between p-3 rounded-xl transition-all duration-200",
-                    "bg-background/50 border border-transparent",
-                    player.isDisconnected 
-                      ? "opacity-60 bg-warning/5 border-warning/20" 
-                      : "hover:bg-background/80 hover:border-border/50",
-                    player.id === currentPlayerId && !player.isDisconnected && "border-primary/30 bg-primary/5"
+                    isInkMode
+                      ? cn(
+                          "bg-background border-2",
+                          player.isDisconnected 
+                            ? "opacity-60 border-warning/50" 
+                            : "border-border hover:border-primary/50",
+                          player.id === currentPlayerId && !player.isDisconnected && "border-primary bg-primary/10"
+                        )
+                      : cn(
+                          "bg-background/50 border border-transparent",
+                          player.isDisconnected 
+                            ? "opacity-60 bg-warning/5 border-warning/20" 
+                            : "hover:bg-background/80 hover:border-border/50",
+                          player.id === currentPlayerId && !player.isDisconnected && "border-primary/30 bg-primary/5"
+                        )
                   )}
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
@@ -209,7 +269,10 @@ export const PlayersList = ({
                         )}
                       </div>
                       {player.isHost && (
-                        <span className="text-[10px] text-warning flex items-center gap-1 font-medium">
+                        <span className={cn(
+                          "text-[10px] flex items-center gap-1 font-medium",
+                          isInkMode ? "text-primary" : "text-warning"
+                        )}>
                           <Crown className="h-3 w-3" />
                           Hôte
                         </span>
@@ -228,7 +291,12 @@ export const PlayersList = ({
                     {player.isDisconnected ? (
                       <div className="w-2.5 h-2.5 rounded-full bg-warning animate-pulse" />
                     ) : (
-                      <div className="w-2.5 h-2.5 rounded-full bg-success shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
+                      <div className={cn(
+                        "w-2.5 h-2.5 rounded-full",
+                        isInkMode 
+                          ? "bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" 
+                          : "bg-success shadow-[0_0_8px_rgba(74,222,128,0.5)]"
+                      )} />
                     )}
                     
                     {/* Host actions */}
@@ -238,7 +306,12 @@ export const PlayersList = ({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 rounded-lg text-foreground-muted hover:text-foreground"
+                            className={cn(
+                              "h-8 w-8 rounded-lg",
+                              isInkMode 
+                                ? "text-muted-foreground hover:text-primary" 
+                                : "text-foreground-muted hover:text-foreground"
+                            )}
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -246,7 +319,10 @@ export const PlayersList = ({
                         <DropdownMenuContent align="end" className="min-w-[140px]">
                           {onTransferHost && (
                             <DropdownMenuItem onClick={() => handleTransferClick(player)}>
-                              <Crown className="h-4 w-4 mr-2 text-warning" />
+                              <Crown className={cn(
+                                "h-4 w-4 mr-2",
+                                isInkMode ? "text-primary" : "text-warning"
+                              )} />
                               Transférer hôte
                             </DropdownMenuItem>
                           )}
@@ -277,14 +353,17 @@ export const PlayersList = ({
               disabled={!canStart}
               className={cn(
                 "w-full h-14 rounded-xl font-bold text-base",
-                "bg-gradient-to-r from-primary to-primary-hover",
-                "hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.02]",
                 "active:scale-[0.98] transition-all duration-200",
                 "disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none",
-                "group relative overflow-hidden"
+                "group relative overflow-hidden",
+                isInkMode
+                  ? "bg-primary text-primary-foreground hover:bg-primary-hover border-2 border-primary shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
+                  : "bg-gradient-to-r from-primary to-primary-hover hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.02]"
               )}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+              {!isInkMode && (
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+              )}
               <Zap className="h-5 w-5 mr-2" />
               {!canStart
                 ? gameMode === '2v2'
@@ -295,7 +374,10 @@ export const PlayersList = ({
                   : `Lancer ${getModeLabel(gameMode)}`}
             </Button>
             {!canStart && (
-              <p className="text-xs text-center text-foreground-muted">
+              <p className={cn(
+                "text-xs text-center",
+                isInkMode ? "text-muted-foreground" : "text-foreground-muted"
+              )}>
                 {gameMode === '2v2'
                   ? "Min. 4 joueurs pairs + équipes formées"
                   : `Minimum 2 joueurs connectés requis (${connectedCount} actuellement)`}
@@ -305,8 +387,16 @@ export const PlayersList = ({
         )}
 
         {!isHost && (
-          <div className="text-center p-4 rounded-xl bg-warning/5 border border-warning/20">
-            <p className="text-warning text-sm font-medium flex items-center justify-center gap-2">
+          <div className={cn(
+            "text-center p-4 rounded-xl",
+            isInkMode 
+              ? "bg-primary/10 border-2 border-primary/30" 
+              : "bg-warning/5 border border-warning/20"
+          )}>
+            <p className={cn(
+              "text-sm font-medium flex items-center justify-center gap-2",
+              isInkMode ? "text-primary" : "text-warning"
+            )}>
               <span className="text-lg">⏳</span>
               En attente du lancement par l'hôte...
             </p>

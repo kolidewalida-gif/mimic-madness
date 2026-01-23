@@ -1,5 +1,6 @@
 import { Users, Swords, Brain, Check, Phone, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useInkMode } from "@/hooks/useInkMode";
 
 interface GameModeSelectorProps {
   gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess';
@@ -14,6 +15,7 @@ export const GameModeSelector = ({
   disabled = false,
   playerCount,
 }: GameModeSelectorProps) => {
+  const { isInkMode, inkFont } = useInkMode();
   const canPlay2v2 = playerCount >= 4 && playerCount % 2 === 0;
   const canPlayQuiz = playerCount >= 2;
   const canPlayAudioPhone = playerCount >= 2;
@@ -28,6 +30,7 @@ export const GameModeSelector = ({
       canPlay: true,
       color: 'from-blue-500 to-cyan-500',
       bgColor: 'bg-blue-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
     },
     {
       id: '2v2' as const,
@@ -37,6 +40,7 @@ export const GameModeSelector = ({
       canPlay: canPlay2v2,
       color: 'from-orange-500 to-amber-500',
       bgColor: 'bg-orange-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
     },
     {
       id: 'quiz' as const,
@@ -46,6 +50,7 @@ export const GameModeSelector = ({
       canPlay: canPlayQuiz,
       color: 'from-purple-500 to-pink-500',
       bgColor: 'bg-purple-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
     },
     {
       id: 'audiophone' as const,
@@ -55,6 +60,7 @@ export const GameModeSelector = ({
       canPlay: canPlayAudioPhone,
       color: 'from-emerald-500 to-teal-500',
       bgColor: 'bg-emerald-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
     },
     {
       id: 'pixoguess' as const,
@@ -64,14 +70,26 @@ export const GameModeSelector = ({
       canPlay: canPlayPixoguess,
       color: 'from-fuchsia-500 to-violet-600',
       bgColor: 'bg-fuchsia-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
     },
   ];
 
   return (
-    <div className="bg-card/60 backdrop-blur-sm border border-border/30 rounded-2xl p-5 space-y-4">
+    <div className={cn(
+      "rounded-2xl p-5 space-y-4",
+      isInkMode 
+        ? "bg-card border-2 border-border" 
+        : "bg-card/60 backdrop-blur-sm border border-border/30"
+    )}>
       {/* Header */}
       <div className="text-center">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground-muted">
+        <h3 
+          className={cn(
+            "text-sm font-semibold uppercase tracking-wider",
+            isInkMode ? "text-primary font-black" : "text-foreground-muted"
+          )}
+          style={isInkMode ? inkFont : undefined}
+        >
           Mode de Jeu
         </h3>
       </div>
@@ -91,9 +109,13 @@ export const GameModeSelector = ({
               className={cn(
                 "relative p-4 rounded-xl transition-all duration-300 group",
                 "border-2 overflow-hidden",
-                isSelected
-                  ? `border-transparent bg-gradient-to-br ${mode.color} text-white shadow-lg`
-                  : "border-border/50 bg-background/50 hover:bg-background hover:border-border",
+                isInkMode
+                  ? isSelected
+                    ? "border-primary bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
+                    : "border-border bg-background hover:border-primary/60 hover:bg-primary/10"
+                  : isSelected
+                    ? `border-transparent bg-gradient-to-br ${mode.color} text-white shadow-lg`
+                    : "border-border/50 bg-background/50 hover:bg-background hover:border-border",
                 !isDisabled && "hover:scale-[1.02] active:scale-[0.98]",
                 isDisabled && "opacity-40 cursor-not-allowed"
               )}
@@ -101,8 +123,14 @@ export const GameModeSelector = ({
               {/* Selection indicator */}
               {isSelected && (
                 <div className="absolute top-2 right-2">
-                  <div className="p-1 rounded-full bg-white/30">
-                    <Check className="h-3 w-3 text-white" />
+                  <div className={cn(
+                    "p-1 rounded-full",
+                    isInkMode ? "bg-primary-foreground/20" : "bg-white/30"
+                  )}>
+                    <Check className={cn(
+                      "h-3 w-3",
+                      isInkMode ? "text-primary-foreground" : "text-white"
+                    )} />
                   </div>
                 </div>
               )}
@@ -111,13 +139,23 @@ export const GameModeSelector = ({
                 {/* Icon */}
                 <div className={cn(
                   "p-3 rounded-lg transition-all",
-                  isSelected 
-                    ? "bg-white/20" 
-                    : "bg-background"
+                  isInkMode
+                    ? isSelected 
+                      ? "bg-primary-foreground/20" 
+                      : "bg-muted border border-border"
+                    : isSelected 
+                      ? "bg-white/20" 
+                      : "bg-background"
                 )}>
                   <Icon className={cn(
                     "h-6 w-6 transition-all",
-                    isSelected ? "text-white" : "text-foreground-muted group-hover:text-foreground"
+                    isInkMode
+                      ? isSelected 
+                        ? "text-primary-foreground" 
+                        : "text-muted-foreground group-hover:text-primary"
+                      : isSelected 
+                        ? "text-white" 
+                        : "text-foreground-muted group-hover:text-foreground"
                   )} />
                 </div>
 
@@ -125,13 +163,17 @@ export const GameModeSelector = ({
                 <div className="text-center">
                   <p className={cn(
                     "font-bold text-sm",
-                    isSelected ? "text-white" : "text-foreground"
+                    isInkMode
+                      ? isSelected ? "text-primary-foreground" : "text-foreground"
+                      : isSelected ? "text-white" : "text-foreground"
                   )}>
                     {mode.name}
                   </p>
                   <p className={cn(
                     "text-xs mt-0.5",
-                    isSelected ? "text-white/80" : "text-foreground-muted"
+                    isInkMode
+                      ? isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                      : isSelected ? "text-white/80" : "text-foreground-muted"
                   )}>
                     {mode.subtitle}
                   </p>
