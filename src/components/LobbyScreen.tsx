@@ -157,8 +157,8 @@ export const LobbyScreen = ({
 
   return (
     <div className={cn(
-      "min-h-screen flex flex-col p-4 sm:p-6 pb-28 relative overflow-hidden",
-      isInkMode && "bg-white"
+      "h-screen flex flex-col p-4 sm:p-6 pb-28 relative overflow-hidden",
+      isInkMode ? "bg-background" : ""
     )}>
       {/* Premium Background Effects - Hidden in Ink Mode */}
       <InkHideable>
@@ -171,11 +171,11 @@ export const LobbyScreen = ({
         </div>
       </InkHideable>
       
-      {/* Ink Mode Decorations */}
+      {/* Ink Mode Decorations - subtle red glow */}
       {isInkMode && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-5">
-          <div className="absolute top-10 left-10 w-40 h-40 bg-black rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-60 h-60 bg-black rounded-full blur-3xl" />
+        <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-10">
+          <div className="absolute top-10 left-10 w-40 h-40 bg-primary rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-60 h-60 bg-primary rounded-full blur-3xl" />
         </div>
       )}
 
@@ -186,7 +186,7 @@ export const LobbyScreen = ({
             <Button
               variant="outline"
               onClick={onLeaveGame}
-              className="gap-2 border-2 border-black hover:bg-black hover:text-white"
+              className="gap-2 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Quitter</span>
@@ -219,7 +219,7 @@ export const LobbyScreen = ({
               onClick={() => setShowSettings(!showSettings)}
               className={cn(
                 "gap-2",
-                showSettings ? "bg-black text-white" : "border-2 border-black hover:bg-black hover:text-white"
+                showSettings ? "bg-primary text-primary-foreground" : "border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               )}
             >
               <Settings className="h-4 w-4" />
@@ -245,9 +245,9 @@ export const LobbyScreen = ({
         {/* Status Banner */}
         <div className="text-center space-y-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
           {isInkMode ? (
-            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-black/5 border-2 border-black/20">
-              <Wifi className="h-4 w-4 text-black" />
-              <span className="text-sm font-medium">
+            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-card border-2 border-primary/30">
+              <Wifi className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">
                 {isHost ? "Vous êtes l'hôte" : "Connecté au lobby"}
               </span>
             </div>
@@ -270,7 +270,7 @@ export const LobbyScreen = ({
           )}
           
           {isInkMode ? (
-            <h2 className="text-4xl font-black" style={inkFont}>Salle d'attente</h2>
+            <h2 className="text-4xl font-black text-primary" style={inkFont}>Salle d'attente</h2>
           ) : (
             <NeonText color="primary" size="4xl" animate="pulse">
               Salle d'attente
@@ -279,7 +279,7 @@ export const LobbyScreen = ({
           
           <p className={cn(
             "text-sm max-w-md mx-auto leading-relaxed",
-            isInkMode ? "text-black/60" : "text-foreground-muted"
+            isInkMode ? "text-muted-foreground" : "text-foreground-muted"
           )}>
             {isHost 
               ? "Choisissez le mode de jeu et lancez la partie quand tout le monde est prêt" 
@@ -463,11 +463,11 @@ export const LobbyScreen = ({
               isInkMode ? (
                 <InkCard>
                   <div className="text-center space-y-2 p-6">
-                    <p className="text-xs font-medium text-black/50 uppercase tracking-wider flex items-center justify-center gap-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-2">
                       <Users className="h-3.5 w-3.5" />
                       Mode sélectionné
                     </p>
-                    <p className="text-2xl font-black">{getModeEmojiLabel(gameMode)}</p>
+                    <p className="text-2xl font-black text-primary">{getModeEmojiLabel(gameMode)}</p>
                   </div>
                 </InkCard>
               ) : (

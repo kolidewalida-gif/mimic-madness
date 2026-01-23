@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
 import { LobbyChat } from "@/components/LobbyChat";
+import { useInkMode } from "@/hooks/useInkMode";
+import { cn } from "@/lib/utils";
 
 interface Player {
   id: string;
@@ -35,6 +37,7 @@ export const VideoSubmissionScreen = ({
   onSubmitChallenges,
   onStartActualGame
 }: VideoSubmissionScreenProps) => {
+  const { isInkMode } = useInkMode();
   const [savedClips, setSavedClips] = useState<VideoClip[]>([]);
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,8 +135,18 @@ export const VideoSubmissionScreen = ({
   };
 
   return (
-    <div className="min-h-screen animated-bg p-6">
-      <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
+    <div className={cn(
+      "h-screen p-6 overflow-y-auto",
+      isInkMode ? "bg-background" : "animated-bg"
+    )}>
+      {/* Ink mode subtle glow */}
+      {isInkMode && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-15 z-0">
+          <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary rounded-full blur-[120px]" />
+          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-primary rounded-full blur-[100px]" />
+        </div>
+      )}
+      <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn relative z-10">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"

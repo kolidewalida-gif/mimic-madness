@@ -8,6 +8,8 @@ import { QuizCountdown } from './QuizCountdown';
 import { QuizCategorySelector } from './QuizCategorySelector';
 import { LobbyChat } from './LobbyChat';
 import { useQuizGame } from '@/hooks/useQuizGame';
+import { useInkMode } from '@/hooks/useInkMode';
+import { InkHideable, InkCard } from '@/components/InkAdaptive';
 import { Brain, Play, Loader2, Sparkles, ArrowLeft, Zap, Users, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +34,8 @@ export const QuizGameScreen = ({
 }: QuizGameScreenProps) => {
   const [selectedCategory, setSelectedCategory] = useState('mixed');
   
+  const { isInkMode, inkClasses, inkFont } = useInkMode();
+  
   const {
     phase,
     currentRound,
@@ -54,16 +58,28 @@ export const QuizGameScreen = ({
   if (phase === 'waiting') {
     return (
       <>
-        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-mesh">
-          {/* Animated orbs */}
-          <div className="orb-container">
-            <div className="orb orb-primary" style={{ background: 'radial-gradient(circle, hsl(280 100% 60% / 0.4), transparent)' }} />
-            <div className="orb orb-accent" style={{ background: 'radial-gradient(circle, hsl(300 100% 70% / 0.3), transparent)' }} />
-            <div className="orb orb-secondary" style={{ background: 'radial-gradient(circle, hsl(260 100% 50% / 0.3), transparent)' }} />
-          </div>
+        <div className={cn(
+          "h-screen flex items-center justify-center p-4 relative overflow-hidden",
+          isInkMode ? "bg-background" : "bg-mesh"
+        )}>
+          {/* Animated orbs - hidden in Ink mode */}
+          <InkHideable>
+            <div className="orb-container">
+              <div className="orb orb-primary" style={{ background: 'radial-gradient(circle, hsl(280 100% 60% / 0.4), transparent)' }} />
+              <div className="orb orb-accent" style={{ background: 'radial-gradient(circle, hsl(300 100% 70% / 0.3), transparent)' }} />
+              <div className="orb orb-secondary" style={{ background: 'radial-gradient(circle, hsl(260 100% 50% / 0.3), transparent)' }} />
+            </div>
+            {/* Grid overlay */}
+            <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
+          </InkHideable>
           
-          {/* Grid overlay */}
-          <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
+          {/* Ink mode subtle glow */}
+          {isInkMode && (
+            <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-15">
+              <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary rounded-full blur-[120px]" />
+              <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-primary rounded-full blur-[100px]" />
+            </div>
+          )}
           
           <div className="relative z-10 max-w-2xl w-full space-y-8">
             {/* Main Card */}
@@ -303,7 +319,10 @@ export const QuizGameScreen = ({
 
   // Loading state
   return (
-    <div className="min-h-screen flex items-center justify-center bg-mesh">
+    <div className={cn(
+      "h-screen flex items-center justify-center",
+      isInkMode ? "bg-background" : "bg-mesh"
+    )}>
       <div className="relative">
         <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
         <Loader2 className="relative h-16 w-16 animate-spin text-primary" />

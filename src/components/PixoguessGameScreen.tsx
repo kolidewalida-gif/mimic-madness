@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Timer, Trophy, Send, Sparkles, Image as ImageIcon, Users, ShieldAlert } from 'lucide-react';
 import { usePixoguessGame } from '@/hooks/usePixoguessGame';
+import { useInkMode } from '@/hooks/useInkMode';
+import { InkHideable, InkCard } from '@/components/InkAdaptive';
 import { LobbyChat } from '@/components/LobbyChat';
 import { HolographicCard, NeonText, PremiumButton, FloatingParticles, CyberGrid } from '@/components/premium';
 import { cn } from '@/lib/utils';
@@ -29,6 +31,8 @@ export const PixoguessGameScreen = ({
   lobbyId,
   onEndGame
 }: PixoguessGameScreenProps) => {
+  const { isInkMode } = useInkMode();
+  
   const {
     phase,
     currentRound,
@@ -214,9 +218,23 @@ export const PixoguessGameScreen = ({
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <CyberGrid opacity={0.03} />
-      <FloatingParticles count={30} />
+    <div className={cn(
+      "h-screen relative overflow-hidden",
+      isInkMode ? "bg-background" : ""
+    )}>
+      {/* Premium effects - hidden in Ink mode */}
+      <InkHideable>
+        <CyberGrid opacity={0.03} />
+        <FloatingParticles count={30} />
+      </InkHideable>
+      
+      {/* Ink mode subtle glow */}
+      {isInkMode && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-15">
+          <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary rounded-full blur-[120px]" />
+          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-primary rounded-full blur-[100px]" />
+        </div>
+      )}
 
       <div className="relative z-10 container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
