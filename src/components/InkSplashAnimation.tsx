@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 
@@ -7,15 +7,16 @@ interface InkSplashAnimationProps {
 }
 
 /**
- * Ink Splash Animation - v2
- * Fond noir, traits de pinceau ROUGES qui se tracent, SFX brosse synchronisé
+ * Ink Splash Animation - v3
+ * Fond noir, vrais coups de pinceau ROUGES animés, SFX brosse synchronisé
+ * Texte "MIMIC MASTER" avec contour cartoon noir pour lisibilité
  */
 export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
   const [phase, setPhase] = useState<'strokes' | 'text' | 'fadeOut'>('strokes');
   const [textIndex, setTextIndex] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const textParts = ['MI', '--', 'MIC', '--', 'MASTER'];
+  const textParts = ['MIMIC', 'MASTER'];
 
   // ----- Brush stroke animation on canvas -----
   useEffect(() => {
@@ -44,38 +45,54 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
     const cw = window.innerWidth;
     const ch = window.innerHeight;
 
-    // Red palette for strokes
+    // Red palette for strokes (crimson tones)
     const reds = [
-      'hsl(0, 85%, 55%)',
-      'hsl(0, 80%, 48%)',
-      'hsl(5, 75%, 42%)',
-      'hsl(355, 90%, 60%)',
+      'hsl(0, 85%, 50%)',
+      'hsl(355, 80%, 45%)',
+      'hsl(5, 75%, 40%)',
+      'hsl(0, 90%, 55%)',
+      'hsl(350, 85%, 42%)',
     ];
 
+    // Generate realistic brush stroke path (curved, organic)
     const generateStroke = (): BrushStroke => {
       const points: { x: number; y: number }[] = [];
-      const startX = Math.random() * cw * 0.4 - cw * 0.1;
+      // Start from left side, sweep across
+      const startX = -50 + Math.random() * 100;
       const startY = Math.random() * ch;
-      const segments = 6 + Math.floor(Math.random() * 8);
+      const segments = 8 + Math.floor(Math.random() * 6);
+      
       let x = startX;
       let y = startY;
+      points.push({ x, y });
+      
+      // Create organic curved path
       for (let i = 0; i < segments; i++) {
-        x += 80 + Math.random() * 150;
-        y += (Math.random() - 0.5) * 120;
+        const progress = i / segments;
+        // Sweep right with some vertical variation
+        x += 60 + Math.random() * 120;
+        y += (Math.random() - 0.5) * 80 * (1 - progress * 0.5);
         points.push({ x, y });
       }
+      
       return {
         points,
         color: reds[Math.floor(Math.random() * reds.length)],
-        width: 20 + Math.random() * 50,
+        width: 15 + Math.random() * 45,
         progress: 0,
-        speed: 0.018 + Math.random() * 0.025,
+        speed: 0.012 + Math.random() * 0.018,
       };
     };
 
-    // Generate initial strokes
-    for (let i = 0; i < 8; i++) {
-      strokes.push(generateStroke());
+    // Generate strokes spread across the screen
+    for (let i = 0; i < 10; i++) {
+      const stroke = generateStroke();
+      // Distribute vertically
+      stroke.points = stroke.points.map((p, idx) => ({
+        x: p.x,
+        y: p.y + (i - 5) * (ch / 12),
+      }));
+      strokes.push(stroke);
     }
 
     let animationId: number;
@@ -83,47 +100,68 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
 
     // Play brush sfx on interval while strokes animate
     const playBrushSfx = () => {
-      playSoundEffect('brushStroke' as any, 0.4);
+      playSoundEffect('brushStroke' as any, 0.5);
     };
     playBrushSfx();
-    sfxTimer = setInterval(playBrushSfx, 280);
+    sfxTimer = setInterval(playBrushSfx, 220);
 
+    // Draw a brush stroke with pressure variation
     const drawStroke = (stroke: BrushStroke) => {
       const { points, color, width, progress } = stroke;
       if (points.length < 2) return;
-
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
 
       const totalLen = points.length - 1;
       const drawnSegments = Math.floor(progress * totalLen);
       const segmentProgress = (progress * totalLen) % 1;
 
-      ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-
+      // Draw each segment with varying width (brush pressure effect)
       for (let i = 0; i < drawnSegments && i < points.length - 1; i++) {
-        ctx.lineTo(points[i + 1].x, points[i + 1].y);
+        const from = points[i];
+        const to = points[i + 1];
+        
+        // Pressure curve: thicker in middle, thinner at ends
+        const t = i / (points.length - 1);
+        const pressure = Math.sin(t * Math.PI) * 0.6 + 0.4;
+        const segWidth = width * pressure;
+        
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = segWidth;
+        ctx.globalAlpha = 0.85;
+        
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
       }
 
+      // Draw partial segment
       if (drawnSegments < points.length - 1) {
         const from = points[drawnSegments];
         const to = points[drawnSegments + 1];
         const ix = from.x + (to.x - from.x) * segmentProgress;
         const iy = from.y + (to.y - from.y) * segmentProgress;
+        
+        const t = drawnSegments / (points.length - 1);
+        const pressure = Math.sin(t * Math.PI) * 0.6 + 0.4;
+        
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width * pressure;
+        ctx.globalAlpha = 0.85;
+        
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
         ctx.lineTo(ix, iy);
+        ctx.stroke();
       }
-
-      ctx.stroke();
+      
+      ctx.globalAlpha = 1;
     };
 
     const animate = () => {
-      // Clear with subtle fade for trails
-      ctx.fillStyle = 'rgba(10, 10, 10, 0.08)';
-      ctx.fillRect(0, 0, cw, ch);
-
+      // Don't clear - let strokes accumulate on black canvas
       let allDone = true;
       strokes.forEach((stroke) => {
         if (stroke.progress < 1) {
@@ -136,8 +174,9 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
       if (!allDone) {
         animationId = requestAnimationFrame(animate);
       } else {
-        // Move to text phase after a short pause
-        setTimeout(() => setPhase('text'), 350);
+        // Move to text phase after strokes complete
+        if (sfxTimer) clearInterval(sfxTimer);
+        setTimeout(() => setPhase('text'), 300);
       }
     };
 
@@ -158,11 +197,11 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
     if (phase !== 'text') return;
 
     if (textIndex < textParts.length) {
-      playSoundEffect('pop', 0.35);
-      const timer = setTimeout(() => setTextIndex((prev) => prev + 1), 220);
+      playSoundEffect('pop', 0.4);
+      const timer = setTimeout(() => setTextIndex((prev) => prev + 1), 350);
       return () => clearTimeout(timer);
     } else {
-      const timer = setTimeout(() => setPhase('fadeOut'), 600);
+      const timer = setTimeout(() => setPhase('fadeOut'), 700);
       return () => clearTimeout(timer);
     }
   }, [phase, textIndex, textParts.length]);
@@ -185,26 +224,41 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.6 }}
         >
-          {/* Brush strokes canvas */}
-          <canvas ref={canvasRef} className="absolute inset-0" />
+          {/* Brush strokes canvas - behind text */}
+          <canvas ref={canvasRef} className="absolute inset-0 z-0" />
 
-          {/* Text overlay */}
-          <div className="relative z-10 flex items-center justify-center gap-1 sm:gap-2">
+          {/* Text overlay - ABOVE canvas with cartoon outline */}
+          <div className="relative z-20 flex flex-col items-center justify-center gap-2">
             {textParts.map((part, index) => (
               <motion.span
                 key={index}
-                initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                initial={{ opacity: 0, y: 60, scale: 0.7, rotate: -5 }}
                 animate={
                   index < textIndex
-                    ? { opacity: 1, y: 0, scale: 1 }
-                    : { opacity: 0, y: 50, scale: 0.8 }
+                    ? { opacity: 1, y: 0, scale: 1, rotate: 0 }
+                    : { opacity: 0, y: 60, scale: 0.7, rotate: -5 }
                 }
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="font-display text-4xl sm:text-6xl md:text-8xl font-black"
+                transition={{ 
+                  duration: 0.4, 
+                  ease: [0.34, 1.56, 0.64, 1], // Bounce effect
+                }}
+                className="font-display text-6xl sm:text-8xl md:text-9xl font-black uppercase tracking-tight"
                 style={{
                   fontFamily: "'Caveat', 'Space Grotesk', cursive",
-                  color: part === '--' ? 'hsl(0, 70%, 40%)' : 'hsl(0, 85%, 55%)',
-                  textShadow: '0 0 40px hsl(0 85% 55% / 0.7)',
+                  color: 'hsl(0, 85%, 55%)',
+                  // Cartoon outline effect: multiple black shadows
+                  textShadow: `
+                    -4px -4px 0 #000,
+                    4px -4px 0 #000,
+                    -4px 4px 0 #000,
+                    4px 4px 0 #000,
+                    -4px 0 0 #000,
+                    4px 0 0 #000,
+                    0 -4px 0 #000,
+                    0 4px 0 #000,
+                    0 0 30px hsl(0 85% 55% / 0.5),
+                    0 0 60px hsl(0 85% 55% / 0.3)
+                  `,
                 }}
               >
                 {part}

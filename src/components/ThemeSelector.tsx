@@ -283,14 +283,14 @@ export const ThemeSelector = ({ variant = 'full', className, showInkToggle = tru
               "w-full p-4 rounded-2xl transition-all duration-500 group overflow-hidden relative",
               "hover:scale-[1.02] hover:-translate-y-1",
               inkModeEnabled 
-                ? "bg-black text-white ring-2 ring-white" 
-                : "bg-white text-black border-2 border-black/20 hover:border-black"
+                ? "bg-card text-foreground ring-2 ring-primary border border-primary" 
+                : "bg-card text-foreground border-2 border-border hover:border-primary"
             )}
           >
             <div className="relative z-10 flex items-center gap-4">
               <div className={cn(
                 "w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all",
-                inkModeEnabled ? "bg-white/20" : "bg-black/10"
+                inkModeEnabled ? "bg-primary/20" : "bg-muted"
               )}>
                 🖤
               </div>
@@ -298,13 +298,13 @@ export const ThemeSelector = ({ variant = 'full', className, showInkToggle = tru
                 <span className="font-bold text-lg block">Mode Ink</span>
                 <span className={cn(
                   "text-xs",
-                  inkModeEnabled ? "text-white/70" : "text-black/50"
+                  inkModeEnabled ? "text-primary" : "text-muted-foreground"
                 )}>
-                  Interface minimaliste noir & blanc
+                  Interface minimaliste noir & rouge
                 </span>
               </div>
               {inkModeEnabled && (
-                <div className="flex items-center gap-2 text-xs text-white/70">
+                <div className="flex items-center gap-2 text-xs text-primary">
                   <RefreshCw className="w-4 h-4" />
                   Rechargez pour appliquer
                 </div>
@@ -312,8 +312,8 @@ export const ThemeSelector = ({ variant = 'full', className, showInkToggle = tru
             </div>
             
             {inkModeEnabled && (
-              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                <Check className="w-4 h-4 text-black" />
+              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                <Check className="w-4 h-4 text-primary-foreground" />
               </div>
             )}
           </button>

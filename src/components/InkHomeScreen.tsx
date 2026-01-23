@@ -140,8 +140,14 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
+      {/* Subtle red glow decorations */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-15 z-0">
+        <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary rounded-full blur-[120px]" />
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-primary rounded-full blur-[100px]" />
+      </div>
+      
       {/* Scrollable body */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative z-10">
         {/* Left Panel - Game Modes (scrolls independently) */}
         <aside className="hidden md:flex w-64 lg:w-72 flex-shrink-0 border-r border-border flex-col overflow-y-auto py-6 px-4 relative">
           <h2 className="font-display text-lg font-bold tracking-wider uppercase mb-4 text-primary">

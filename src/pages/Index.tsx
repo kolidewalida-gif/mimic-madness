@@ -550,9 +550,15 @@ const Index = () => {
   // Enforce login before Ink intro animation
   if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="h-screen bg-background flex items-center justify-center p-4 overflow-hidden">
         <div className="text-center space-y-6 max-w-md">
-          <h1 className="text-4xl font-black text-primary" style={{ fontFamily: "'Caveat', cursive" }}>
+          <h1 
+            className="text-5xl font-black text-primary" 
+            style={{ 
+              fontFamily: "'Caveat', cursive",
+              textShadow: '-2px -2px 0 hsl(var(--background)), 2px -2px 0 hsl(var(--background)), -2px 2px 0 hsl(var(--background)), 2px 2px 0 hsl(var(--background))'
+            }}
+          >
             MIMIC MASTER
           </h1>
           <p className="text-muted-foreground">
@@ -560,7 +566,7 @@ const Index = () => {
           </p>
           <button
             onClick={signInWithGoogle}
-            className="px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary-hover transition-colors shadow-lg"
+            className="px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-lg"
           >
             Connexion avec Google
           </button>
@@ -575,7 +581,7 @@ const Index = () => {
   }
 
   return (
-    <>
+    <div className="h-screen overflow-hidden">
       {/* Only show dynamic background in non-ink mode */}
       {!useInkMode && <DynamicBackground />}
       
@@ -583,7 +589,7 @@ const Index = () => {
         {renderContent}
       </ScreenTransition>
       
-      {/* Only show music bar in non-ink mode or customize for ink */}
+      {/* Only show music bar in non-ink mode */}
       {!useInkMode && <MusicPlayerBar />}
       
       {/* Premium Game Invitation Notification */}
@@ -595,7 +601,7 @@ const Index = () => {
           onClose={handleCloseInvitation}
         />
       )}
-    </>
+    </div>
   );
 };
 
