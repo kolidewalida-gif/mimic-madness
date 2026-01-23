@@ -36,7 +36,7 @@ type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiop
 type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess";
 
 const LoadingFallback = memo(() => (
-  <div className="min-h-screen flex items-center justify-center">
+  <div className="h-screen flex items-center justify-center">
     <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
   </div>
 ));
@@ -543,13 +543,6 @@ const Index = () => {
           />
         )}
 
-        {/* Fallback */}
-        {gameState === "home" && !currentPlayer && (
-          <HomeScreen 
-            onCreateGame={handleCreateGame}
-            onJoinGame={handleJoinGame}
-          />
-        )}
       </React.Suspense>
     );
   }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
