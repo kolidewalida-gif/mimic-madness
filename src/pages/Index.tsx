@@ -20,6 +20,7 @@ import React from "react";
 const HomeScreen = React.lazy(() => import("@/components/HomeScreen").then(m => ({ default: m.HomeScreen })));
 const InkHomeScreen = React.lazy(() => import("@/components/InkHomeScreen").then(m => ({ default: m.InkHomeScreen })));
 const LobbyScreen = React.lazy(() => import("@/components/LobbyScreen").then(m => ({ default: m.LobbyScreen })));
+const InkLobbyScreen = React.lazy(() => import("@/components/InkLobbyScreen").then(m => ({ default: m.InkLobbyScreen })));
 const VideoSubmissionScreen = React.lazy(() => import("@/components/VideoSubmissionScreen").then(m => ({ default: m.VideoSubmissionScreen })));
 const GamePlayScreen = React.lazy(() => import("@/components/GamePlayScreen").then(m => ({ default: m.GamePlayScreen })));
 const QuizGameScreen = React.lazy(() => import("@/components/QuizGameScreen").then(m => ({ default: m.QuizGameScreen })));
@@ -481,17 +482,31 @@ const Index = () => {
         )}
 
         {gameState === "lobby" && currentPlayer && lobby && (
-          <LobbyScreen
-            players={players}
-            lobbyCode={lobby.code}
-            lobbyId={lobby.id}
-            isHost={currentPlayer.isHost}
-            currentPlayer={currentPlayer}
-            onStartGame={handleStartGame}
-            onLeaveGame={handleLeaveGame}
-            onKickPlayer={handleKickPlayer}
-            onTransferHost={handleTransferHost}
-          />
+          useInkMode ? (
+            <InkLobbyScreen
+              players={players}
+              lobbyCode={lobby.code}
+              lobbyId={lobby.id}
+              isHost={currentPlayer.isHost}
+              currentPlayer={currentPlayer}
+              onStartGame={handleStartGame}
+              onLeaveGame={handleLeaveGame}
+              onKickPlayer={handleKickPlayer}
+              onTransferHost={handleTransferHost}
+            />
+          ) : (
+            <LobbyScreen
+              players={players}
+              lobbyCode={lobby.code}
+              lobbyId={lobby.id}
+              isHost={currentPlayer.isHost}
+              currentPlayer={currentPlayer}
+              onStartGame={handleStartGame}
+              onLeaveGame={handleLeaveGame}
+              onKickPlayer={handleKickPlayer}
+              onTransferHost={handleTransferHost}
+            />
+          )
         )}
 
         {gameState === "preparation" && currentPlayer && lobby && (
