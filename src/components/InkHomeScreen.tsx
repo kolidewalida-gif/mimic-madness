@@ -22,6 +22,8 @@ import { VolumeControl } from '@/components/VolumeControl';
 import { SoundEffectsVolumeControl } from '@/components/SoundEffectsVolumeControl';
 import { DeviceSettings } from '@/components/DeviceSettings';
 import { LobbyGameMode } from '@/lib/gameModes';
+import { InkProfileSidebar } from '@/components/InkProfileSidebar';
+import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 
 interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
@@ -168,9 +170,9 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       </div>
 
       {/* Title Header */}
-      <header className="relative z-10 pt-8 pb-4 text-center">
+      <header className="relative z-10 pt-6 pb-2 text-center">
         <motion.h1
-          className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight"
+          className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           style={{
@@ -183,9 +185,14 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         </motion.h1>
       </header>
 
-      {/* Main Content - Three Column Layout */}
-      <main className="flex-1 flex items-start justify-center px-4 py-6 relative z-10">
-        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[200px_1fr_280px] gap-6 items-start">
+      {/* Main Content - Four Column Layout with Sidebars */}
+      <main className="flex-1 flex items-start justify-center px-4 py-4 relative z-10">
+        <div className="w-full max-w-[1400px] grid grid-cols-1 lg:grid-cols-[280px_180px_1fr_280px] gap-4 items-start">
+          
+          {/* Left Sidebar - Profile */}
+          <aside className="hidden lg:block">
+            <InkProfileSidebar />
+          </aside>
           
           {/* Left Column - Game Modes */}
           <aside className="space-y-1">
@@ -284,8 +291,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             </AnimatePresence>
           </div>
 
-          {/* Right Column - Actions */}
-          <aside className="space-y-4">
+          {/* Center Right - Actions */}
+          <div className="space-y-4">
             {viewMode === 'home' ? (
               <>
                 {/* Create Game Button */}
@@ -342,7 +349,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   className="w-full flex items-center justify-center gap-2 py-3 text-muted-foreground hover:text-primary transition-colors"
                 >
                   <Settings className="w-4 h-4" />
-                  <span className="text-sm">Paramètres Audio/Vidéo</span>
+                  <span className="text-sm">Paramètres</span>
                 </button>
               </>
             ) : (
@@ -362,7 +369,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     onChange={(e) => setLobbyCode(e.target.value.toUpperCase())}
                     onKeyPress={(e) => e.key === 'Enter' && handleJoinGame()}
                     maxLength={4}
-                    className="text-center text-4xl tracking-[0.3em] uppercase font-bold h-20 bg-background/50 border-2 border-primary/50 rounded-xl focus:border-primary"
+                    className="text-center text-3xl tracking-[0.3em] uppercase font-bold h-16 bg-background/50 border-2 border-primary/50 rounded-xl focus:border-primary"
                   />
                 </div>
 
@@ -391,6 +398,16 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                 </div>
               </motion.div>
             )}
+          </div>
+
+          {/* Right Sidebar - Friends */}
+          <aside className="hidden lg:block">
+            <InkFriendsSidebar onJoinFriend={(code) => {
+              setLobbyCode(code);
+              if (playerName.trim()) {
+                onJoinGame(playerName.trim(), code);
+              }
+            }} />
           </aside>
         </div>
       </main>
