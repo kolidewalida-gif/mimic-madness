@@ -99,11 +99,11 @@ const InkFriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: InkFrien
   if (!user && !authLoading) {
     return (
       <motion.div 
-        className="w-[280px] bg-card/80 backdrop-blur-sm border-2 border-primary/30 rounded-xl overflow-hidden"
+        className="w-full bg-card/80 backdrop-blur-sm border border-primary/30 rounded-xl overflow-hidden"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
       >
-        <div className="p-4">
+        <div className="p-3">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
               <Users className="h-5 w-5 text-primary" />
@@ -142,18 +142,18 @@ const InkFriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: InkFrien
   if (authLoading) {
     return (
       <motion.div 
-        className="w-[280px] bg-card/80 backdrop-blur-sm border-2 border-border/30 rounded-xl overflow-hidden"
+        className="w-full bg-card/80 backdrop-blur-sm border border-border/30 rounded-xl overflow-hidden"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
       >
-        <div className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted animate-pulse" />
-            <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+        <div className="p-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-muted animate-pulse" />
+            <div className="h-4 w-20 bg-muted rounded animate-pulse" />
           </div>
-          <div className="mt-4 space-y-3">
-            <div className="h-12 bg-muted/50 rounded-lg animate-pulse" />
-            <div className="h-12 bg-muted/50 rounded-lg animate-pulse" />
+          <div className="mt-3 space-y-2">
+            <div className="h-10 bg-muted/50 rounded-lg animate-pulse" />
+            <div className="h-10 bg-muted/50 rounded-lg animate-pulse" />
           </div>
         </div>
       </motion.div>
@@ -164,11 +164,11 @@ const InkFriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: InkFrien
 
   return (
     <motion.div 
-      className="w-[280px] bg-card/80 backdrop-blur-sm border-2 border-primary/30 rounded-xl overflow-hidden max-h-[580px] flex flex-col"
+      className="w-full bg-card/80 backdrop-blur-sm border border-primary/30 rounded-xl overflow-hidden flex flex-col"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
     >
-      <div className="p-4 flex flex-col h-full">
+      <div className="p-3 flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
