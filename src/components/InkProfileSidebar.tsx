@@ -99,11 +99,11 @@ const InkProfileSidebarComponent = () => {
   if (!user && !isLoading) {
     return (
       <motion.div 
-        className="w-[280px] bg-card/80 backdrop-blur-sm border-2 border-primary/30 rounded-xl overflow-hidden"
+        className="w-full bg-card/80 backdrop-blur-sm border border-primary/30 rounded-xl overflow-hidden"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
       >
-        <div className="px-4 py-3 border-b border-primary/20 bg-primary/5">
+        <div className="px-3 py-2 border-b border-primary/20 bg-primary/5">
           <h2 className="text-lg font-bold text-primary flex items-center gap-2" style={{ fontFamily: "'Caveat', cursive" }}>
             <User className="h-5 w-5" />
             Mon Profil
@@ -138,16 +138,16 @@ const InkProfileSidebarComponent = () => {
   // Loading
   if (isLoading) {
     return (
-      <div className="w-[280px] bg-card/80 backdrop-blur-sm border-2 border-border/30 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border/20">
+      <div className="w-full bg-card/80 backdrop-blur-sm border border-border/30 rounded-xl overflow-hidden">
+        <div className="px-3 py-2 border-b border-border/20">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-muted animate-pulse" />
-            <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+            <div className="w-4 h-4 rounded bg-muted animate-pulse" />
+            <div className="h-3 w-16 bg-muted rounded animate-pulse" />
           </div>
         </div>
-        <div className="p-6 space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-full bg-muted animate-pulse" />
-          <div className="h-4 w-24 mx-auto bg-muted rounded animate-pulse" />
+        <div className="p-4 space-y-3">
+          <div className="w-16 h-16 mx-auto rounded-full bg-muted animate-pulse" />
+          <div className="h-3 w-20 mx-auto bg-muted rounded animate-pulse" />
         </div>
       </div>
     );
@@ -160,7 +160,7 @@ const InkProfileSidebarComponent = () => {
   return (
     <>
       <motion.div 
-        className="w-[280px] bg-card/80 backdrop-blur-sm border-2 border-primary/30 rounded-xl overflow-hidden flex flex-col"
+        className="w-full bg-card/80 backdrop-blur-sm border border-primary/30 rounded-xl overflow-hidden flex flex-col"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
       >
