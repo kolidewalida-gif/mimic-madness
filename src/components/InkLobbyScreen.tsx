@@ -10,6 +10,8 @@ import { DeviceSettings } from '@/components/DeviceSettings';
 import { useGameTeams } from '@/hooks/useGameTeams';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { InkLobbyCanvas } from '@/components/InkLobbyCanvas';
+import { InkCursorParticles } from '@/components/InkCursorParticles';
 import { getStartStatus, getModeLabel, type LobbyGameMode } from '@/lib/gameModes';
 
 interface Player {
@@ -131,6 +133,12 @@ export const InkLobbyScreen = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground relative overflow-hidden">
+      {/* Collaborative Drawing Canvas */}
+      <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
+      
+      {/* Cursor Particles */}
+      <InkCursorParticles />
+
       {/* Background Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-10 left-10 w-60 h-60 bg-primary/10 rounded-full blur-[100px]" />
