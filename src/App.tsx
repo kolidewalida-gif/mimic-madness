@@ -10,6 +10,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { XpProvider } from "@/contexts/XpContext";
 import { XpGainPopup } from "@/components/XpGainPopup";
 import { RewardNotification } from "@/components/RewardNotification";
+import { AdminPanel } from "@/components/AdminPanel";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -28,6 +29,7 @@ const App = () => (
                 {/* Global XP and Reward notifications */}
                 <XpGainPopup />
                 <RewardNotification />
+                <AdminPanel />
                 <BrowserRouter>
                   <Routes>
                     <Route path="/" element={<Index />} />

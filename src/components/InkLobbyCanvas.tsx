@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useInkMode } from '@/hooks/useInkMode';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pen, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DrawPoint {
   x: number;
@@ -22,13 +23,18 @@ interface InkLobbyCanvasProps {
   playerId: string;
 }
 
-/**
- * Collaborative ink drawing canvas for the lobby.
- * Toggle draw mode with a button. Strokes fade after 4s.
- */
+const COLORS = [
+  { value: '#dc2626', label: 'Rouge' },
+  { value: '#1a1a1a', label: 'Noir' },
+  { value: '#ffffff', label: 'Blanc' },
+  { value: '#f59e0b', label: 'Or' },
+  { value: '#3b82f6', label: 'Bleu' },
+];
+
 const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => {
   const { isInkMode } = useInkMode();
   const [drawMode, setDrawMode] = useState(false);
+  const [selectedColor, setSelectedColor] = useState('#dc2626');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const strokesRef = useRef<DrawStroke[]>([]);
   const isDrawingRef = useRef(false);
@@ -36,8 +42,14 @@ const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => 
   const rafRef = useRef<number>(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const lastSendRef = useRef(0);
+  const selectedColorRef = useRef(selectedColor);
 
   const FADE_DURATION = 4000;
+
+  // Keep ref in sync
+  useEffect(() => {
+    selectedColorRef.current = selectedColor;
+  }, [selectedColor]);
 
   const broadcastStroke = useCallback((points: DrawPoint[]) => {
     if (!channelRef.current || points.length < 2) return;
@@ -75,7 +87,7 @@ const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => 
     };
   }, [lobbyId, isInkMode]);
 
-  // Canvas rendering (always active to show others' drawings)
+  // Canvas rendering
   useEffect(() => {
     if (!isInkMode) return;
 
@@ -122,10 +134,8 @@ const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => 
         }
       }
 
-      // Current stroke
+      // Current stroke being drawn
       if (isDrawingRef.current && currentStrokeRef.current.length > 1) {
-        const W = window.innerWidth;
-        const H = window.innerHeight;
         ctx.globalAlpha = 1;
         for (let i = 1; i < currentStrokeRef.current.length; i++) {
           const prev = currentStrokeRef.current[i - 1];
@@ -151,7 +161,7 @@ const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => 
     };
   }, [isInkMode]);
 
-  // Drawing input handlers - only when drawMode is on
+  // Drawing input handlers
   useEffect(() => {
     if (!isInkMode || !drawMode) return;
 
@@ -166,25 +176,26 @@ const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => 
     };
 
     const onDown = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
       isDrawingRef.current = true;
       const pos = getPos(e);
-      const isRed = Math.random() > 0.5;
       currentStrokeRef.current = [{
         x: pos.x / window.innerWidth,
         y: pos.y / window.innerHeight,
         size: 3 + Math.random() * 4,
-        color: isRed ? '#dc2626' : '#1a1a1a',
+        color: selectedColorRef.current,
       }];
     };
 
     const onMove = (e: MouseEvent | TouchEvent) => {
       if (!isDrawingRef.current) return;
+      e.preventDefault();
       const pos = getPos(e);
       currentStrokeRef.current.push({
         x: pos.x / window.innerWidth,
         y: pos.y / window.innerHeight,
         size: 3 + Math.random() * 4,
-        color: currentStrokeRef.current[0]?.color || '#dc2626',
+        color: selectedColorRef.current,
       });
 
       const now = Date.now();
@@ -211,8 +222,8 @@ const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => 
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseup', onUp);
     canvas.addEventListener('mouseleave', onUp);
-    canvas.addEventListener('touchstart', onDown, { passive: true });
-    canvas.addEventListener('touchmove', onMove, { passive: true });
+    canvas.addEventListener('touchstart', onDown, { passive: false });
+    canvas.addEventListener('touchmove', onMove, { passive: false });
     canvas.addEventListener('touchend', onUp);
 
     return () => {
@@ -230,27 +241,61 @@ const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => 
 
   return (
     <>
-      {/* Canvas - pointer-events only when drawing */}
+      {/* Canvas */}
       <canvas
         ref={canvasRef}
-        className={`fixed inset-0 z-[1] ${drawMode ? 'cursor-crosshair' : 'pointer-events-none'}`}
+        className={cn(
+          'fixed inset-0 z-[1]',
+          drawMode ? 'cursor-crosshair' : 'pointer-events-none'
+        )}
         style={{ width: '100vw', height: '100vh', touchAction: 'none' }}
       />
 
-      {/* Draw toggle button */}
-      <motion.button
-        onClick={() => setDrawMode(!drawMode)}
-        className={`fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${
-          drawMode
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-card/80 text-primary border border-primary/30 hover:bg-primary/10'
-        }`}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        title={drawMode ? 'Arrêter de dessiner' : 'Dessiner sur le fond'}
-      >
-        {drawMode ? <X className="w-5 h-5" /> : <Pen className="w-5 h-5" />}
-      </motion.button>
+      {/* Draw toggle + color picker */}
+      <div className="fixed bottom-20 right-4 z-50 flex flex-col items-center gap-2">
+        {/* Color picker - only visible in draw mode */}
+        <AnimatePresence>
+          {drawMode && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="flex flex-col gap-1.5 p-1.5 bg-card/90 backdrop-blur-sm border border-border/50 rounded-xl shadow-lg"
+            >
+              {COLORS.map(c => (
+                <button
+                  key={c.value}
+                  onClick={() => setSelectedColor(c.value)}
+                  className={cn(
+                    'w-8 h-8 rounded-full border-2 transition-transform',
+                    selectedColor === c.value
+                      ? 'border-primary scale-110 ring-2 ring-primary/50'
+                      : 'border-border/50 hover:scale-105'
+                  )}
+                  style={{ backgroundColor: c.value }}
+                  title={c.label}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Toggle button */}
+        <motion.button
+          onClick={() => setDrawMode(!drawMode)}
+          className={cn(
+            'w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors',
+            drawMode
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-card/80 text-primary border border-primary/30 hover:bg-primary/10'
+          )}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          title={drawMode ? 'Arrêter de dessiner' : 'Dessiner sur le fond'}
+        >
+          {drawMode ? <X className="w-5 h-5" /> : <Pen className="w-5 h-5" />}
+        </motion.button>
+      </div>
 
       {/* Draw mode indicator */}
       <AnimatePresence>
@@ -259,7 +304,7 @@ const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-[88px] right-4 z-50 bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg"
+            className="fixed bottom-[140px] right-4 z-50 bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg"
           >
             ✏️ Mode dessin actif
           </motion.div>
