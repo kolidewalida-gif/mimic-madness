@@ -4,6 +4,7 @@ import { User, Crown, Wifi, WifiOff, MoreVertical, UserMinus, ArrowRightLeft, Co
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useToast } from '@/hooks/use-toast';
+import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +39,7 @@ export const InkPlayersList = ({
 }: InkPlayersListProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const { getAvatar } = useMultiplePlayerAvatars(players.map(p => p.id));
 
   const handleCopyCode = async () => {
     try {
@@ -86,6 +88,7 @@ export const InkPlayersList = ({
         {players.map((player, index) => {
           const isCurrentPlayer = player.id === currentPlayerId;
           const canManage = isHost && !isCurrentPlayer && !player.isHost;
+          const avatar = getAvatar(player.id);
 
           return (
             <motion.div
@@ -100,16 +103,31 @@ export const InkPlayersList = ({
                 player.isDisconnected && 'opacity-50'
               )}
             >
-              {/* Avatar */}
+              {/* Avatar with profile photo */}
               <div className={cn(
-                'w-10 h-10 rounded-full flex items-center justify-center',
-                'bg-muted border-2',
+                'w-10 h-10 rounded-full flex items-center justify-center overflow-hidden',
+                'border-2',
                 player.isHost ? 'border-primary' : 'border-border'
               )}>
-                {player.isHost ? (
-                  <Crown className="w-5 h-5 text-primary" />
+                {avatar.type === 'image' && avatar.imageUrl ? (
+                  <img 
+                    src={avatar.imageUrl} 
+                    alt={player.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : player.isHost ? (
+                  <div className="w-full h-full flex items-center justify-center bg-primary/20">
+                    <Crown className="w-5 h-5 text-primary" />
+                  </div>
                 ) : (
-                  <User className="w-5 h-5 text-muted-foreground" />
+                  <div 
+                    className="w-full h-full flex items-center justify-center bg-muted"
+                    style={avatar.backgroundColor ? { backgroundColor: avatar.backgroundColor } : undefined}
+                  >
+                    <span className="text-sm font-bold text-foreground">
+                      {player.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
                 )}
               </div>
 
