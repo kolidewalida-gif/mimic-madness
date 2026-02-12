@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { InkLobbyCanvas } from '@/components/InkLobbyCanvas';
 import { InkCursorParticles } from '@/components/InkCursorParticles';
+import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { getStartStatus, getModeLabel, type LobbyGameMode } from '@/lib/gameModes';
 
 interface Player {
@@ -214,6 +215,14 @@ export const InkLobbyScreen = ({
                 onTransferHost={isHost ? onTransferHost : undefined}
               />
             </div>
+
+            {/* Friend Invitation Panel */}
+            <LobbyInvitePanel
+              lobbyCode={lobbyCode}
+              lobbyId={lobbyId}
+              players={players}
+              isHost={isHost}
+            />
           </div>
 
           {/* Right Column - Game Mode + Actions */}
