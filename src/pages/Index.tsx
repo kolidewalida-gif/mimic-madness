@@ -378,15 +378,27 @@ const Index = () => {
   }, [toast]);
   
   const handleStartActualGame = useCallback(async () => {
+    console.log('[Index] handleStartActualGame called', { lobby: !!lobby, isHost: currentPlayer?.isHost });
     if (lobby && currentPlayer?.isHost) {
       try {
-        await supabase
+        console.log('[Index] Updating game_phase to playing for lobby:', lobby.id);
+        const { error } = await supabase
           .from('lobbies')
           .update({ game_phase: 'playing' })
           .eq('id', lobby.id);
+        
+        if (error) {
+          console.error('[Index] Error updating game phase:', error);
+        } else {
+          console.log('[Index] Game phase updated to playing successfully');
+          // Host transitions immediately
+          setGameState('playing');
+        }
       } catch (error) {
-        console.error('Error updating game phase:', error);
+        console.error('[Index] Error updating game phase:', error);
       }
+    } else {
+      console.warn('[Index] handleStartActualGame: conditions not met', { lobby: !!lobby, isHost: currentPlayer?.isHost });
     }
   }, [lobby, currentPlayer?.isHost]);
 

@@ -112,6 +112,8 @@ export const InkLobbyScreen = ({
   };
 
   const handleStartGame = async () => {
+    console.log('[InkLobby] handleStartGame called', { gameMode, canStart, teamsCount: teams.length });
+    
     if (gameMode === '2v2' && teams.length === 0) {
       toast({
         title: "Équipes requises",
@@ -122,7 +124,12 @@ export const InkLobbyScreen = ({
     }
 
     playInkSound('inkSuccess', 0.5);
-    await onStartGame(gameMode);
+    try {
+      await onStartGame(gameMode);
+      console.log('[InkLobby] onStartGame completed successfully');
+    } catch (error) {
+      console.error('[InkLobby] onStartGame failed:', error);
+    }
   };
 
   const connectedCount = players.filter(p => !p.isDisconnected).length;
