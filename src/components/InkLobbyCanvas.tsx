@@ -245,8 +245,8 @@ const InkLobbyCanvasComponent = ({ lobbyId, playerId }: InkLobbyCanvasProps) => 
       <canvas
         ref={canvasRef}
         className={cn(
-          'fixed inset-0 z-[1]',
-          drawMode ? 'cursor-crosshair' : 'pointer-events-none'
+          'fixed inset-0',
+          drawMode ? 'cursor-crosshair z-[15]' : 'pointer-events-none z-[1]'
         )}
         style={{ width: '100vw', height: '100vh', touchAction: 'none' }}
       />
