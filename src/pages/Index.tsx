@@ -207,12 +207,12 @@ const Index = () => {
           
           console.log('[Index] Game phase change:', { currentState: gameState, newPhase });
           
-          if (newPhase === 'preparation' && gameState !== 'preparation') {
+          if (newPhase === 'preparation' && gameState !== 'playing') {
             playSoundEffect('transition', 0.4);
-            setGameState('preparation');
+            setGameState('playing');
             toast({
               title: "La partie commence !",
-              description: "Préparez vos défis vidéo.",
+              description: "C'est parti !",
             });
           } else if (newPhase === 'quiz' && gameState !== 'quiz') {
             playSoundEffect('quizReveal', 0.5);
@@ -312,7 +312,7 @@ const Index = () => {
     
     if (lobby && currentPlayer?.isHost) {
       try {
-        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : 'preparation';
+        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : 'playing';
         console.log('[Index] Updating lobby to phase:', gamePhase);
         
         const { error } = await supabase
@@ -344,7 +344,7 @@ const Index = () => {
         } else if (mode === 'pixoguess') {
           setGameState('pixoguess');
         } else {
-          setGameState('preparation');
+          setGameState('playing');
         }
       } catch (error) {
         console.error('[Index] Error updating lobby status:', error);
