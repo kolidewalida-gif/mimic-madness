@@ -25,6 +25,7 @@ import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkCursorParticles } from '@/components/InkCursorParticles';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { WorldLeaderboard } from '@/components/WorldLeaderboard';
 
 interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
@@ -213,10 +214,10 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               </div>
             </div>
 
-            {/* Center - Username + Mode Description + Actions */}
-            <div className="flex-1 flex flex-col gap-3 min-w-0">
+            {/* Center - Username + Mode Description + Leaderboard + Actions */}
+            <div className="flex-1 flex flex-col gap-3 min-w-0 min-h-0">
               {/* Username Input */}
-              <div className="w-full max-w-md mx-auto">
+              <div className="w-full max-w-md mx-auto flex-shrink-0">
                 <Input
                   placeholder="Entrez votre pseudo..."
                   value={playerName}
@@ -234,7 +235,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="relative w-full max-w-md mx-auto"
+                    className="relative w-full max-w-md mx-auto flex-shrink-0"
                   >
                     <div className="absolute inset-0 bg-primary/20 rounded-xl blur-sm" />
                     <div className="relative bg-card/80 backdrop-blur-sm border border-primary/40 rounded-xl p-4 shadow-lg shadow-primary/10">
@@ -262,8 +263,13 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                 )}
               </AnimatePresence>
 
+              {/* World Leaderboard - fills remaining space */}
+              <div className="flex-1 min-h-0 w-full max-w-md mx-auto">
+                <WorldLeaderboard />
+              </div>
+
               {/* Actions */}
-              <div className="w-full max-w-md mx-auto space-y-2">
+              <div className="w-full max-w-md mx-auto space-y-2 flex-shrink-0">
                 {viewMode === 'home' ? (
                   <>
                     <motion.button
