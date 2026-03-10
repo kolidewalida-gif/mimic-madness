@@ -20,6 +20,7 @@ export const GameModeSelector = ({
   const canPlayQuiz = playerCount >= 2;
   const canPlayAudioPhone = playerCount >= 2;
   const canPlayPixoguess = playerCount >= 2;
+  const canPlayMonopoly = playerCount >= 2;
 
   const modes = [
     {
