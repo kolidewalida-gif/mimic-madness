@@ -73,6 +73,16 @@ export const GameModeSelector = ({
       bgColor: 'bg-fuchsia-500',
       inkColor: 'border-primary bg-primary text-primary-foreground',
     },
+    {
+      id: 'monopoly' as const,
+      name: 'Monopoly',
+      subtitle: canPlayMonopoly ? '3D Board' : 'Min. 2',
+      icon: Landmark,
+      canPlay: canPlayMonopoly,
+      color: 'from-emerald-500 to-green-600',
+      bgColor: 'bg-emerald-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
+    },
   ];
 
   return (
