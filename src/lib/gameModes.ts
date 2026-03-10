@@ -1,4 +1,4 @@
-export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess';
+export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly';
 
 export const GAME_MODE_META: Record<
   LobbyGameMode,
