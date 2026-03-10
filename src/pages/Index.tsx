@@ -236,6 +236,13 @@ const Index = () => {
               title: "⚡ BlurRush !",
               description: "Devinez l'image avant les autres !",
             });
+          } else if (newPhase === 'monopoly' && gameState !== 'monopoly') {
+            playSoundEffect('start', 0.5);
+            setGameState('monopoly');
+            toast({
+              title: "🏠 Monopoly !",
+              description: "Le plateau 3D vous attend !",
+            });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             playSoundEffect('start', 0.5);
             setGameState('playing');
