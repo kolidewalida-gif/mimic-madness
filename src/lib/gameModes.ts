@@ -33,6 +33,11 @@ export const GAME_MODE_META: Record<
     emojiLabel: '⚡ BlurRush',
     minPlayers: 2,
   },
+  monopoly: {
+    label: 'Monopoly',
+    emojiLabel: '🏠 Monopoly',
+    minPlayers: 2,
+  },
 };
 
 export function getModeLabel(mode: LobbyGameMode): string {
