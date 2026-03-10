@@ -470,6 +470,203 @@ export type Database = {
           },
         ]
       }
+      monopoly_actions: {
+        Row: {
+          action_data: Json | null
+          action_type: string
+          created_at: string
+          game_id: string
+          id: string
+          player_id: string
+        }
+        Insert: {
+          action_data?: Json | null
+          action_type: string
+          created_at?: string
+          game_id: string
+          id?: string
+          player_id: string
+        }
+        Update: {
+          action_data?: Json | null
+          action_type?: string
+          created_at?: string
+          game_id?: string
+          id?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monopoly_actions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "monopoly_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monopoly_games: {
+        Row: {
+          created_at: string
+          current_player_index: number
+          doubles_count: number
+          free_parking_pot: number
+          id: string
+          is_finished: boolean
+          last_dice_1: number | null
+          last_dice_2: number | null
+          lobby_id: string
+          phase: string
+          player_order: string[]
+          trade_from_player: string | null
+          trade_offer: Json | null
+          trade_to_player: string | null
+          updated_at: string
+          winner_id: string | null
+          winner_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_player_index?: number
+          doubles_count?: number
+          free_parking_pot?: number
+          id?: string
+          is_finished?: boolean
+          last_dice_1?: number | null
+          last_dice_2?: number | null
+          lobby_id: string
+          phase?: string
+          player_order?: string[]
+          trade_from_player?: string | null
+          trade_offer?: Json | null
+          trade_to_player?: string | null
+          updated_at?: string
+          winner_id?: string | null
+          winner_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_player_index?: number
+          doubles_count?: number
+          free_parking_pot?: number
+          id?: string
+          is_finished?: boolean
+          last_dice_1?: number | null
+          last_dice_2?: number | null
+          lobby_id?: string
+          phase?: string
+          player_order?: string[]
+          trade_from_player?: string | null
+          trade_offer?: Json | null
+          trade_to_player?: string | null
+          updated_at?: string
+          winner_id?: string | null
+          winner_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monopoly_games_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: true
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monopoly_players: {
+        Row: {
+          created_at: string
+          game_id: string
+          has_get_out_of_jail_card: number
+          id: string
+          in_jail: boolean
+          is_bankrupt: boolean
+          jail_turns: number
+          money: number
+          player_id: string
+          player_name: string
+          player_order: number
+          position: number
+          token_type: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          has_get_out_of_jail_card?: number
+          id?: string
+          in_jail?: boolean
+          is_bankrupt?: boolean
+          jail_turns?: number
+          money?: number
+          player_id: string
+          player_name: string
+          player_order?: number
+          position?: number
+          token_type?: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          has_get_out_of_jail_card?: number
+          id?: string
+          in_jail?: boolean
+          is_bankrupt?: boolean
+          jail_turns?: number
+          money?: number
+          player_id?: string
+          player_name?: string
+          player_order?: number
+          position?: number
+          token_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monopoly_players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "monopoly_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monopoly_properties: {
+        Row: {
+          created_at: string
+          game_id: string
+          houses: number
+          id: string
+          is_mortgaged: boolean
+          owner_id: string | null
+          property_index: number
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          houses?: number
+          id?: string
+          is_mortgaged?: boolean
+          owner_id?: string | null
+          property_index: number
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          houses?: number
+          id?: string
+          is_mortgaged?: boolean
+          owner_id?: string | null
+          property_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monopoly_properties_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "monopoly_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pixoguess_guesses: {
         Row: {
           created_at: string
