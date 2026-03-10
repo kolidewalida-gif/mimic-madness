@@ -343,6 +343,8 @@ const Index = () => {
           setGameState('audiophone');
         } else if (mode === 'pixoguess') {
           setGameState('pixoguess');
+        } else if (mode === 'monopoly') {
+          setGameState('monopoly');
         } else {
           setGameState('preparation');
         }
