@@ -1,10 +1,10 @@
-import { Users, Swords, Brain, Check, Phone, Image } from "lucide-react";
+import { Users, Swords, Brain, Check, Phone, Image, Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInkMode } from "@/hooks/useInkMode";
 
 interface GameModeSelectorProps {
-  gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess';
-  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess') => void;
+  gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly';
+  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly') => void;
   disabled?: boolean;
   playerCount: number;
 }
