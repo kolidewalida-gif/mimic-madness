@@ -1,10 +1,10 @@
-import { Users, Swords, Brain, Check, Phone, Image } from "lucide-react";
+import { Users, Swords, Brain, Check, Phone, Image, Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInkMode } from "@/hooks/useInkMode";
 
 interface GameModeSelectorProps {
-  gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess';
-  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess') => void;
+  gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly';
+  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly') => void;
   disabled?: boolean;
   playerCount: number;
 }
@@ -20,6 +20,7 @@ export const GameModeSelector = ({
   const canPlayQuiz = playerCount >= 2;
   const canPlayAudioPhone = playerCount >= 2;
   const canPlayPixoguess = playerCount >= 2;
+  const canPlayMonopoly = playerCount >= 2;
 
   const modes = [
     {
@@ -70,6 +71,16 @@ export const GameModeSelector = ({
       canPlay: canPlayPixoguess,
       color: 'from-fuchsia-500 to-violet-600',
       bgColor: 'bg-fuchsia-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
+    },
+    {
+      id: 'monopoly' as const,
+      name: 'Monopoly',
+      subtitle: canPlayMonopoly ? '3D Board' : 'Min. 2',
+      icon: Landmark,
+      canPlay: canPlayMonopoly,
+      color: 'from-emerald-500 to-green-600',
+      bgColor: 'bg-emerald-500',
       inkColor: 'border-primary bg-primary text-primary-foreground',
     },
   ];

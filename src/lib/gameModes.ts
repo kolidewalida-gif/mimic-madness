@@ -1,4 +1,4 @@
-export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess';
+export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly';
 
 export const GAME_MODE_META: Record<
   LobbyGameMode,
@@ -31,6 +31,11 @@ export const GAME_MODE_META: Record<
   pixoguess: {
     label: 'BlurRush',
     emojiLabel: '⚡ BlurRush',
+    minPlayers: 2,
+  },
+  monopoly: {
+    label: 'Monopoly',
+    emojiLabel: '🏠 Monopoly',
     minPlayers: 2,
   },
 };

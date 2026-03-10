@@ -26,6 +26,7 @@ const GamePlayScreen = React.lazy(() => import("@/components/GamePlayScreen").th
 const QuizGameScreen = React.lazy(() => import("@/components/QuizGameScreen").then(m => ({ default: m.QuizGameScreen })));
 const AudioPhoneGameScreen = React.lazy(() => import("@/components/AudioPhoneGameScreen").then(m => ({ default: m.AudioPhoneGameScreen })));
 const PixoguessGameScreen = React.lazy(() => import("@/components/PixoguessGameScreen").then(m => ({ default: m.PixoguessGameScreen })));
+const MonopolyGameScreen = React.lazy(() => import("@/components/monopoly/MonopolyGameScreen").then(m => ({ default: m.MonopolyGameScreen })));
 
 interface Player {
   id: string;
@@ -33,8 +34,8 @@ interface Player {
   isHost: boolean;
 }
 
-type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess";
-type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess";
+type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly";
+type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly";
 
 const LoadingFallback = memo(() => (
   <div className="h-screen flex items-center justify-center">
@@ -236,6 +237,13 @@ const Index = () => {
               title: "⚡ BlurRush !",
               description: "Devinez l'image avant les autres !",
             });
+          } else if (newPhase === 'monopoly' && gameState !== 'monopoly') {
+            playSoundEffect('start', 0.5);
+            setGameState('monopoly');
+            toast({
+              title: "🏠 Monopoly !",
+              description: "Le plateau 3D vous attend !",
+            });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             playSoundEffect('start', 0.5);
             setGameState('playing');
@@ -312,7 +320,7 @@ const Index = () => {
     
     if (lobby && currentPlayer?.isHost) {
       try {
-        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : 'preparation';
+        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : 'preparation';
         console.log('[Index] Updating lobby to phase:', gamePhase);
         
         const { error } = await supabase
@@ -343,6 +351,8 @@ const Index = () => {
           setGameState('audiophone');
         } else if (mode === 'pixoguess') {
           setGameState('pixoguess');
+        } else if (mode === 'monopoly') {
+          setGameState('monopoly');
         } else {
           setGameState('preparation');
         }
@@ -563,6 +573,15 @@ const Index = () => {
 
         {gameState === "pixoguess" && currentPlayer && lobby && (
           <PixoguessGameScreen
+            currentPlayer={currentPlayer}
+            players={players}
+            lobbyId={lobby.id}
+            onEndGame={handleEndGame}
+          />
+        )}
+
+        {gameState === "monopoly" && currentPlayer && lobby && (
+          <MonopolyGameScreen
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}
