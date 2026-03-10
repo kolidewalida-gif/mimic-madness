@@ -33,8 +33,8 @@ interface Player {
   isHost: boolean;
 }
 
-type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess";
-type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess";
+type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly";
+type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly";
 
 const LoadingFallback = memo(() => (
   <div className="h-screen flex items-center justify-center">
