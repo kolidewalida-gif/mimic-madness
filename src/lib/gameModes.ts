@@ -1,4 +1,4 @@
-export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly';
+export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly' | 'undercover';
 
 export const GAME_MODE_META: Record<
   LobbyGameMode,
@@ -37,6 +37,11 @@ export const GAME_MODE_META: Record<
     label: 'Monopoly',
     emojiLabel: '🏠 Monopoly',
     minPlayers: 2,
+  },
+  undercover: {
+    label: 'Undercover',
+    emojiLabel: '🕵️ Undercover',
+    minPlayers: 3,
   },
 };
 

@@ -27,6 +27,7 @@ const QuizGameScreen = React.lazy(() => import("@/components/QuizGameScreen").th
 const AudioPhoneGameScreen = React.lazy(() => import("@/components/AudioPhoneGameScreen").then(m => ({ default: m.AudioPhoneGameScreen })));
 const PixoguessGameScreen = React.lazy(() => import("@/components/PixoguessGameScreen").then(m => ({ default: m.PixoguessGameScreen })));
 const MonopolyGameScreen = React.lazy(() => import("@/components/monopoly/MonopolyGameScreen").then(m => ({ default: m.MonopolyGameScreen })));
+const UndercoverGameScreen = React.lazy(() => import("@/components/undercover/UndercoverGameScreen").then(m => ({ default: m.UndercoverGameScreen })));
 
 interface Player {
   id: string;
@@ -34,8 +35,8 @@ interface Player {
   isHost: boolean;
 }
 
-type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly";
-type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly";
+type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover";
+type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover";
 
 const LoadingFallback = memo(() => (
   <div className="h-screen flex items-center justify-center">
@@ -244,6 +245,13 @@ const Index = () => {
               title: "🏠 Monopoly !",
               description: "Le plateau 3D vous attend !",
             });
+          } else if (newPhase === 'undercover' && gameState !== 'undercover') {
+            playSoundEffect('start', 0.5);
+            setGameState('undercover');
+            toast({
+              title: "🕵️ Undercover !",
+              description: "Trouvez l'infiltré parmi vous !",
+            });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             playSoundEffect('start', 0.5);
             setGameState('playing');
@@ -320,7 +328,7 @@ const Index = () => {
     
     if (lobby && currentPlayer?.isHost) {
       try {
-        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : 'preparation';
+        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : mode === 'undercover' ? 'undercover' : 'preparation';
         console.log('[Index] Updating lobby to phase:', gamePhase);
         
         const { error } = await supabase
@@ -353,6 +361,8 @@ const Index = () => {
           setGameState('pixoguess');
         } else if (mode === 'monopoly') {
           setGameState('monopoly');
+        } else if (mode === 'undercover') {
+          setGameState('undercover');
         } else {
           setGameState('preparation');
         }
@@ -589,6 +599,15 @@ const Index = () => {
           />
         )}
 
+        {gameState === "undercover" && currentPlayer && lobby && (
+          <UndercoverGameScreen
+            currentPlayer={currentPlayer}
+            players={players}
+            lobbyId={lobby.id}
+            onEndGame={handleEndGame}
+          />
+        )}
+
       </React.Suspense>
     );
   }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
@@ -636,7 +655,7 @@ const Index = () => {
       </ScreenTransition>
       
       {/* Only show music bar in non-ink mode */}
-      {!useInkMode && <MusicPlayerBar />}
+      <MusicPlayerBar />
       
       {/* Premium Game Invitation Notification */}
       {activeInvitation && (

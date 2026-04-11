@@ -1,6 +1,6 @@
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, RoundedBox, Environment, Float, MeshWobbleMaterial } from '@react-three/drei';
+import { OrbitControls, Text, RoundedBox, Environment, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { BOARD_SPACES, getBoardPosition, TOKEN_COLORS, type TokenType, type PropertyGroup, GROUP_COLORS } from '@/lib/monopolyBoard';
 
