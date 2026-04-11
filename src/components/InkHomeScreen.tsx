@@ -14,6 +14,7 @@ import {
   Zap,
   X,
   Settings,
+  UserX,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -25,7 +26,7 @@ import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkCursorParticles } from '@/components/InkCursorParticles';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { WorldLeaderboard } from '@/components/WorldLeaderboard';
+// WorldLeaderboard removed
 
 interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
@@ -96,6 +97,17 @@ const GAME_MODES: GameModeInfo[] = [
       'Une image se dépixelise progressivement',
       "Soyez le premier à deviner ce que c'est",
       'Plus vous êtes rapide, plus vous gagnez de points!',
+    ],
+  },
+  {
+    id: 'undercover',
+    name: 'Undercover',
+    icon: <UserX className="w-5 h-5" />,
+    description: "Trouvez l'infiltré parmi les joueurs",
+    rules: [
+      'Chaque joueur reçoit un mot secret',
+      "L'Undercover a un mot similaire mais différent",
+      'Donnez des indices et votez pour éliminer le suspect!',
     ],
   },
 ];
@@ -263,10 +275,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                 )}
               </AnimatePresence>
 
-              {/* World Leaderboard - fills remaining space */}
-              <div className="flex-1 min-h-0 w-full max-w-md mx-auto">
-                <WorldLeaderboard />
-              </div>
+              {/* Spacer */}
+              <div className="flex-1 min-h-0" />
 
               {/* Actions */}
               <div className="w-full max-w-md mx-auto space-y-2 flex-shrink-0">
