@@ -599,6 +599,15 @@ const Index = () => {
           />
         )}
 
+        {gameState === "undercover" && currentPlayer && lobby && (
+          <UndercoverGameScreen
+            currentPlayer={currentPlayer}
+            players={players}
+            lobbyId={lobby.id}
+            onEndGame={handleEndGame}
+          />
+        )}
+
       </React.Suspense>
     );
   }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
