@@ -1,10 +1,11 @@
-import { Users, Swords, Brain, Check, Phone, Image, Landmark } from "lucide-react";
+import { Users, Swords, Brain, Check, Phone, Image, Landmark, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInkMode } from "@/hooks/useInkMode";
+import { LobbyGameMode } from "@/lib/gameModes";
 
 interface GameModeSelectorProps {
-  gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly';
-  onGameModeChange: (mode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly') => void;
+  gameMode: LobbyGameMode;
+  onGameModeChange: (mode: LobbyGameMode) => void;
   disabled?: boolean;
   playerCount: number;
 }
@@ -21,6 +22,7 @@ export const GameModeSelector = ({
   const canPlayAudioPhone = playerCount >= 2;
   const canPlayPixoguess = playerCount >= 2;
   const canPlayMonopoly = playerCount >= 2;
+  const canPlayUndercover = playerCount >= 3;
 
   const modes = [
     {
@@ -81,6 +83,16 @@ export const GameModeSelector = ({
       canPlay: canPlayMonopoly,
       color: 'from-emerald-500 to-green-600',
       bgColor: 'bg-emerald-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
+    },
+    {
+      id: 'undercover' as const,
+      name: 'Undercover',
+      subtitle: canPlayUndercover ? 'Démasque !' : 'Min. 3',
+      icon: UserX,
+      canPlay: canPlayUndercover,
+      color: 'from-rose-500 to-red-600',
+      bgColor: 'bg-rose-500',
       inkColor: 'border-primary bg-primary text-primary-foreground',
     },
   ];
