@@ -655,7 +655,7 @@ const Index = () => {
       </ScreenTransition>
       
       {/* Only show music bar in non-ink mode */}
-      {!useInkMode && <MusicPlayerBar />}
+      <MusicPlayerBar />
       
       {/* Premium Game Invitation Notification */}
       {activeInvitation && (
