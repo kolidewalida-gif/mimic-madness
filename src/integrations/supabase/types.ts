@@ -1196,6 +1196,112 @@ export type Database = {
           },
         ]
       }
+      undercover_games: {
+        Row: {
+          civilian_word: string
+          created_at: string
+          current_player_index: number
+          current_round: number
+          eliminated_player_id: string | null
+          eliminated_role: string | null
+          id: string
+          is_finished: boolean
+          lobby_id: string
+          phase: string
+          player_order: string[]
+          undercover_word: string
+          updated_at: string
+          winner_role: string | null
+        }
+        Insert: {
+          civilian_word: string
+          created_at?: string
+          current_player_index?: number
+          current_round?: number
+          eliminated_player_id?: string | null
+          eliminated_role?: string | null
+          id?: string
+          is_finished?: boolean
+          lobby_id: string
+          phase?: string
+          player_order?: string[]
+          undercover_word: string
+          updated_at?: string
+          winner_role?: string | null
+        }
+        Update: {
+          civilian_word?: string
+          created_at?: string
+          current_player_index?: number
+          current_round?: number
+          eliminated_player_id?: string | null
+          eliminated_role?: string | null
+          id?: string
+          is_finished?: boolean
+          lobby_id?: string
+          phase?: string
+          player_order?: string[]
+          undercover_word?: string
+          updated_at?: string
+          winner_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "undercover_games_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: true
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      undercover_players: {
+        Row: {
+          created_at: string
+          current_clue: string | null
+          game_id: string
+          id: string
+          is_alive: boolean
+          player_id: string
+          player_name: string
+          role: string
+          vote_target: string | null
+          word: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_clue?: string | null
+          game_id: string
+          id?: string
+          is_alive?: boolean
+          player_id: string
+          player_name: string
+          role?: string
+          vote_target?: string | null
+          word?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_clue?: string | null
+          game_id?: string
+          id?: string
+          is_alive?: boolean
+          player_id?: string
+          player_name?: string
+          role?: string
+          vote_target?: string | null
+          word?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "undercover_players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "undercover_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
