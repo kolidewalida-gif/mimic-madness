@@ -39,7 +39,7 @@ interface LobbyScreenProps {
   lobbyId: string;
   isHost: boolean;
   currentPlayer: Player;
-  onStartGame: (gameMode: 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly') => void | Promise<void>;
+  onStartGame: (gameMode: LobbyGameMode) => void | Promise<void>;
   onLeaveGame: () => void;
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
