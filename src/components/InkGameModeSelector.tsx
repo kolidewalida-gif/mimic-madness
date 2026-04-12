@@ -97,7 +97,7 @@ export const InkGameModeSelector = ({
       <div className="space-y-1">
         {GAME_MODES.map((mode) => {
           const isSelected = gameMode === mode.id;
-          const isDisabled = playerCount < mode.minPlayers;
+          const isDisabled = !isAdmin && playerCount < mode.minPlayers;
 
           return (
             <motion.button
