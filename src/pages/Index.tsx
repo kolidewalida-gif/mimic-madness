@@ -60,6 +60,7 @@ interface GameInvitation {
 const Index = () => {
   const { user, signInWithGoogle, isLoading: authLoading } = useAuth();
   const { theme, inkModeEnabled } = useTheme();
+  const { isAdmin } = useAdmin();
   const [gameState, setGameState] = useState<GameState>("home");
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
