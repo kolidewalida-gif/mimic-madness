@@ -11,6 +11,7 @@ import { useGameInvitations, setOnNewInvitationCallback } from "@/hooks/useGameI
 import { supabase } from "@/integrations/supabase/client";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 import { useTheme } from "@/hooks/useTheme";
 import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import { LobbyGameMode } from "@/lib/gameModes";
