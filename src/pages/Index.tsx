@@ -330,6 +330,27 @@ const Index = () => {
     
     if (lobby && currentPlayer?.isHost) {
       try {
+        // Admin solo: add bots if only 1 player connected
+        const connectedPlayers = players.filter(p => !(p as any).isDisconnected);
+        if (isAdmin && connectedPlayers.length === 1) {
+          const botNames = ['Bot Alpha', 'Bot Bravo', 'Bot Charlie', 'Bot Delta'];
+          const neededBots = mode === '2v2' ? 3 : mode === 'undercover' ? 2 : 1;
+          const botsToAdd = botNames.slice(0, neededBots);
+          
+          for (const botName of botsToAdd) {
+            const botId = `bot-${crypto.randomUUID().slice(0, 8)}`;
+            await supabase.from('lobby_players').insert({
+              lobby_id: lobby.id,
+              player_id: botId,
+              player_name: botName,
+              is_host: false,
+              connection_status: 'connected',
+            });
+          }
+          
+          console.log(`[Index] Added ${botsToAdd.length} bots for admin solo play`);
+        }
+
         const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : mode === 'undercover' ? 'undercover' : 'preparation';
         console.log('[Index] Updating lobby to phase:', gamePhase);
         
