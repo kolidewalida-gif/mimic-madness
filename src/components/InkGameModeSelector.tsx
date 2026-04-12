@@ -1,5 +1,5 @@
 import { LobbyGameMode } from '@/lib/gameModes';
-import { Phone, Copy, Swords, Brain, Zap } from 'lucide-react';
+import { Phone, Copy, Swords, Brain, Zap, Landmark, UserX } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -51,8 +51,22 @@ const GAME_MODES: GameModeInfo[] = [
     id: 'pixoguess',
     name: 'BlurRush',
     icon: <Zap className="w-5 h-5" />,
-    description: 'Devinez l\'image',
+    description: "Devinez l'image",
     minPlayers: 2,
+  },
+  {
+    id: 'monopoly',
+    name: 'Monopoly',
+    icon: <Landmark className="w-5 h-5" />,
+    description: 'Plateau 3D multijoueur',
+    minPlayers: 2,
+  },
+  {
+    id: 'undercover',
+    name: 'Undercover',
+    icon: <UserX className="w-5 h-5" />,
+    description: 'Démasque l\'imposteur',
+    minPlayers: 3,
   },
 ];
 
