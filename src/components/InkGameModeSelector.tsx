@@ -8,6 +8,7 @@ interface InkGameModeSelectorProps {
   gameMode: LobbyGameMode;
   onGameModeChange: (mode: LobbyGameMode) => void;
   playerCount: number;
+  isAdmin?: boolean;
 }
 
 interface GameModeInfo {

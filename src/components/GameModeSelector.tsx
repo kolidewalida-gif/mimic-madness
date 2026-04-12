@@ -8,6 +8,7 @@ interface GameModeSelectorProps {
   onGameModeChange: (mode: LobbyGameMode) => void;
   disabled?: boolean;
   playerCount: number;
+  isAdmin?: boolean;
 }
 
 export const GameModeSelector = ({
@@ -15,14 +16,15 @@ export const GameModeSelector = ({
   onGameModeChange,
   disabled = false,
   playerCount,
+  isAdmin = false,
 }: GameModeSelectorProps) => {
   const { isInkMode, inkFont } = useInkMode();
-  const canPlay2v2 = playerCount >= 4 && playerCount % 2 === 0;
-  const canPlayQuiz = playerCount >= 2;
-  const canPlayAudioPhone = playerCount >= 2;
-  const canPlayPixoguess = playerCount >= 2;
-  const canPlayMonopoly = playerCount >= 2;
-  const canPlayUndercover = playerCount >= 3;
+  const canPlay2v2 = isAdmin || (playerCount >= 4 && playerCount % 2 === 0);
+  const canPlayQuiz = isAdmin || playerCount >= 2;
+  const canPlayAudioPhone = isAdmin || playerCount >= 2;
+  const canPlayPixoguess = isAdmin || playerCount >= 2;
+  const canPlayMonopoly = isAdmin || playerCount >= 2;
+  const canPlayUndercover = isAdmin || playerCount >= 3;
 
   const modes = [
     {
