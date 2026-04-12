@@ -57,9 +57,15 @@ export function getStartStatus(params: {
   mode: LobbyGameMode;
   connectedCount: number;
   teamsCount?: number;
+  isAdmin?: boolean;
 }): { canStart: boolean; reasons: string[] } {
-  const { mode, connectedCount, teamsCount = 0 } = params;
+  const { mode, connectedCount, teamsCount = 0, isAdmin = false } = params;
   const reasons: string[] = [];
+
+  // Admins can play solo — skip all player count checks
+  if (isAdmin) {
+    return { canStart: true, reasons: [] };
+  }
 
   if (mode === '2v2') {
     if (connectedCount < 4) reasons.push('Il faut au moins 4 joueurs connectés.');
