@@ -58,6 +58,7 @@ export const LobbyScreen = ({
   onTransferHost
 }: LobbyScreenProps) => {
   const { isInkMode, inkClasses, inkFont } = useInkMode();
+  const { isAdmin } = useAdmin();
   const [showSettings, setShowSettings] = useState(false);
   const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
   const [lastStartAttemptAt, setLastStartAttemptAt] = useState<string | null>(null);
