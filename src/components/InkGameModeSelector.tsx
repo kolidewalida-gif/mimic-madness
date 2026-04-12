@@ -75,6 +75,7 @@ export const InkGameModeSelector = ({
   gameMode,
   onGameModeChange,
   playerCount,
+  isAdmin = false,
 }: InkGameModeSelectorProps) => {
   const handleSelect = (mode: LobbyGameMode) => {
     playInkSound('brushTap', 0.4);
