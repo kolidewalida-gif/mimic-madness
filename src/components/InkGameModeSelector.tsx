@@ -8,6 +8,7 @@ interface InkGameModeSelectorProps {
   gameMode: LobbyGameMode;
   onGameModeChange: (mode: LobbyGameMode) => void;
   playerCount: number;
+  isAdmin?: boolean;
 }
 
 interface GameModeInfo {
@@ -74,6 +75,7 @@ export const InkGameModeSelector = ({
   gameMode,
   onGameModeChange,
   playerCount,
+  isAdmin = false,
 }: InkGameModeSelectorProps) => {
   const handleSelect = (mode: LobbyGameMode) => {
     playInkSound('brushTap', 0.4);
@@ -95,7 +97,7 @@ export const InkGameModeSelector = ({
       <div className="space-y-1">
         {GAME_MODES.map((mode) => {
           const isSelected = gameMode === mode.id;
-          const isDisabled = playerCount < mode.minPlayers;
+          const isDisabled = !isAdmin && playerCount < mode.minPlayers;
 
           return (
             <motion.button

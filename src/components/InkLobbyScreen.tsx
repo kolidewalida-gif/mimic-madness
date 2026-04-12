@@ -243,6 +243,7 @@ export const InkLobbyScreen = ({
                   gameMode={gameMode}
                   onGameModeChange={handleGameModeChange}
                   playerCount={connectedCount}
+                  isAdmin={isAdmin}
                 />
               </div>
             )}

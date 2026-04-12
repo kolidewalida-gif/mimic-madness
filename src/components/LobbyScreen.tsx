@@ -362,6 +362,7 @@ export const LobbyScreen = ({
                     gameMode={gameMode}
                     onGameModeChange={handleGameModeChange}
                     playerCount={players.filter(p => !p.isDisconnected).length}
+                    isAdmin={isAdmin}
                   />
                 </InkCard>
               ) : (
@@ -370,6 +371,7 @@ export const LobbyScreen = ({
                     gameMode={gameMode}
                     onGameModeChange={handleGameModeChange}
                     playerCount={players.filter(p => !p.isDisconnected).length}
+                    isAdmin={isAdmin}
                   />
                 </HolographicCard>
               )
