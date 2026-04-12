@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAdmin } from '@/hooks/useAdmin';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Settings, Users, Wifi, Play, X, Bug } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,7 @@ export const InkLobbyScreen = ({
   onTransferHost,
 }: InkLobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
+  const { isAdmin } = useAdmin();
   const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
   const { teams, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
@@ -137,6 +139,7 @@ export const InkLobbyScreen = ({
     mode: gameMode,
     connectedCount,
     teamsCount: teams.length,
+    isAdmin,
   });
 
   return (

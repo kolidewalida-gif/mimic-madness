@@ -1,4 +1,5 @@
 import { GameLogo } from "@/components/GameLogo";
+import { useAdmin } from "@/hooks/useAdmin";
 import { PlayersList } from "@/components/PlayersList";
 import { LobbyChat } from "@/components/LobbyChat";
 import { GameModeSelector } from "@/components/GameModeSelector";
@@ -57,6 +58,7 @@ export const LobbyScreen = ({
   onTransferHost
 }: LobbyScreenProps) => {
   const { isInkMode, inkClasses, inkFont } = useInkMode();
+  const { isAdmin } = useAdmin();
   const [showSettings, setShowSettings] = useState(false);
   const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
   const [lastStartAttemptAt, setLastStartAttemptAt] = useState<string | null>(null);
@@ -153,6 +155,7 @@ export const LobbyScreen = ({
     mode: gameMode,
     connectedCount,
     teamsCount: teams.length,
+    isAdmin,
   });
 
   return (
