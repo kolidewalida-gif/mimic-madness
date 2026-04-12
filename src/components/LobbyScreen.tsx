@@ -155,6 +155,7 @@ export const LobbyScreen = ({
     mode: gameMode,
     connectedCount,
     teamsCount: teams.length,
+    isAdmin,
   });
 
   return (

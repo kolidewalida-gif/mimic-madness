@@ -139,6 +139,7 @@ export const InkLobbyScreen = ({
     mode: gameMode,
     connectedCount,
     teamsCount: teams.length,
+    isAdmin,
   });
 
   return (
