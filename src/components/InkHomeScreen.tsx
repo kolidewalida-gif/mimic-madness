@@ -275,8 +275,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                 )}
               </AnimatePresence>
 
-              {/* Spacer */}
-              <div className="flex-1 min-h-0" />
 
               {/* Actions */}
               <div className="w-full max-w-md mx-auto space-y-2 flex-shrink-0">
