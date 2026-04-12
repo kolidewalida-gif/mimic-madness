@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAdmin } from '@/hooks/useAdmin';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Settings, Users, Wifi, Play, X, Bug } from 'lucide-react';
 import { cn } from '@/lib/utils';

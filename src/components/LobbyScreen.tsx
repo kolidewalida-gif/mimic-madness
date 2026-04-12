@@ -1,4 +1,5 @@
 import { GameLogo } from "@/components/GameLogo";
+import { useAdmin } from "@/hooks/useAdmin";
 import { PlayersList } from "@/components/PlayersList";
 import { LobbyChat } from "@/components/LobbyChat";
 import { GameModeSelector } from "@/components/GameModeSelector";
