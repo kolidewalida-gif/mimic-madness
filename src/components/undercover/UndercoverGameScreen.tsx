@@ -4,7 +4,7 @@ import { useUndercoverGame } from '@/hooks/useUndercoverGame';
 import {
   Eye, EyeOff, MessageCircle, Vote, Skull, Crown, Shield,
   UserX, AlertTriangle, ArrowRight, Send, Timer, Users,
-  CheckCircle2, Sparkles, Fingerprint, Search, Lock
+  CheckCircle2, Sparkles, Fingerprint, Search, Lock, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -23,9 +23,9 @@ interface UndercoverGameScreenProps {
 }
 
 const roleConfig = {
-  civilian: { label: 'Civil', emoji: '🛡️', icon: Shield, gradient: 'from-blue-500 to-cyan-500', text: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', glow: 'shadow-blue-500/20' },
-  undercover: { label: 'Undercover', emoji: '🕵️', icon: UserX, gradient: 'from-red-500 to-orange-500', text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30', glow: 'shadow-red-500/20' },
-  mr_white: { label: 'Mr. White', emoji: '👻', icon: AlertTriangle, gradient: 'from-gray-300 to-white', text: 'text-gray-200', bg: 'bg-white/5', border: 'border-white/20', glow: 'shadow-white/10' },
+  civilian: { label: 'Civil', emoji: '🛡️', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', ring: 'ring-blue-500/40' },
+  undercover: { label: 'Undercover', emoji: '🕵️', icon: UserX, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30', ring: 'ring-red-500/40' },
+  mr_white: { label: 'Mr. White', emoji: '👻', icon: AlertTriangle, color: 'text-gray-300', bg: 'bg-white/5', border: 'border-white/20', ring: 'ring-white/20' },
 };
 
 const phaseLabels: Record<string, { label: string; emoji: string }> = {
@@ -37,49 +37,100 @@ const phaseLabels: Record<string, { label: string; emoji: string }> = {
   game_over: { label: 'Fin', emoji: '🏆' },
 };
 
-// Floating particle background
-const FloatingParticle = ({ delay, size }: { delay: number; size: number }) => (
-  <motion.div
-    className="absolute rounded-full bg-primary/10 pointer-events-none"
-    style={{ width: size, height: size }}
-    initial={{ opacity: 0, x: Math.random() * 100 - 50, y: '110%' }}
-    animate={{
-      opacity: [0, 0.6, 0],
-      y: '-10%',
-      x: Math.random() * 200 - 100,
-    }}
-    transition={{
-      duration: 8 + Math.random() * 6,
-      delay,
-      repeat: Infinity,
-      ease: 'linear',
-    }}
-  />
-);
+// Player circle avatar
+const PlayerBubble = ({ 
+  player, 
+  index, 
+  isCurrent, 
+  isMe, 
+  isEliminated,
+  hasClue,
+  hasVoted,
+  isSelected,
+  onClick,
+}: {
+  player: { player_name: string; player_id: string; is_alive: boolean; current_clue: string | null; role: string };
+  index: number;
+  isCurrent: boolean;
+  isMe: boolean;
+  isEliminated: boolean;
+  hasClue: boolean;
+  hasVoted: boolean;
+  isSelected: boolean;
+  onClick?: () => void;
+}) => {
+  const colors = [
+    'from-violet-500 to-purple-600',
+    'from-blue-500 to-cyan-500',
+    'from-emerald-500 to-green-500',
+    'from-orange-500 to-amber-500',
+    'from-pink-500 to-rose-500',
+    'from-teal-500 to-cyan-500',
+    'from-indigo-500 to-blue-500',
+    'from-fuchsia-500 to-pink-500',
+  ];
+  const gradient = colors[index % colors.length];
 
-// Vote progress ring
-const VoteProgressRing = ({ voted, total }: { voted: number; total: number }) => {
-  const pct = total > 0 ? (voted / total) * 100 : 0;
-  const r = 28;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (pct / 100) * circ;
   return (
-    <div className="relative w-20 h-20 mx-auto">
-      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="4" opacity={0.3} />
-        <motion.circle
-          cx="32" cy="32" r={r} fill="none"
-          stroke="hsl(var(--primary))" strokeWidth="4" strokeLinecap="round"
-          strokeDasharray={circ} strokeDashoffset={offset}
-          initial={{ strokeDashoffset: circ }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
+    <motion.button
+      onClick={onClick}
+      disabled={!onClick || isEliminated}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className={cn(
+        'flex flex-col items-center gap-1.5 relative group',
+        isEliminated && 'opacity-30',
+        onClick && !isEliminated && 'cursor-pointer',
+      )}
+    >
+      {/* Selection ring */}
+      {isSelected && (
+        <motion.div
+          layoutId="vote-ring"
+          className="absolute -inset-1.5 rounded-full border-2 border-red-500 z-0"
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
         />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-lg font-black text-primary">{voted}/{total}</span>
+      )}
+      
+      {/* Current turn indicator */}
+      {isCurrent && !isEliminated && (
+        <motion.div
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary z-10 flex items-center justify-center"
+          animate={{ scale: [1, 1.3, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          <span className="text-[8px]">💬</span>
+        </motion.div>
+      )}
+
+      {/* Clue/vote check */}
+      {(hasClue || hasVoted) && !isEliminated && (
+        <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 z-10 flex items-center justify-center">
+          <CheckCircle2 className="w-3 h-3 text-white" />
+        </div>
+      )}
+
+      <div className={cn(
+        'w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-white font-black text-sm sm:text-base relative overflow-hidden',
+        isEliminated ? 'bg-muted/30' : `bg-gradient-to-br ${gradient}`,
+        isMe && !isEliminated && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+      )}>
+        {isEliminated ? (
+          <Skull className="w-5 h-5 text-muted-foreground" />
+        ) : (
+          player.player_name[0]?.toUpperCase()
+        )}
       </div>
-    </div>
+      <span className={cn(
+        'text-[10px] sm:text-xs font-semibold max-w-[60px] truncate',
+        isMe ? 'text-primary' : 'text-muted-foreground',
+        isEliminated && 'line-through',
+      )}>
+        {isMe ? 'Moi' : player.player_name.split(' ')[0]}
+      </span>
+    </motion.button>
   );
 };
 
@@ -89,38 +140,21 @@ const DiscussionTimer = ({ onExpire }: { onExpire?: () => void }) => {
   const [seconds, setSeconds] = useState(DURATION);
 
   useEffect(() => {
-    if (seconds <= 0) {
-      onExpire?.();
-      return;
-    }
+    if (seconds <= 0) { onExpire?.(); return; }
     const t = setTimeout(() => setSeconds(s => s - 1), 1000);
     return () => clearTimeout(t);
   }, [seconds, onExpire]);
 
-  const pct = (seconds / DURATION) * 100;
   const urgent = seconds <= 10;
 
   return (
-    <motion.div
-      className={cn(
-        'flex items-center gap-2 px-4 py-2 rounded-full border',
-        urgent ? 'border-red-500/50 bg-red-500/10' : 'border-primary/30 bg-primary/5'
-      )}
-      animate={urgent ? { scale: [1, 1.05, 1] } : {}}
-      transition={{ duration: 0.5, repeat: urgent ? Infinity : 0 }}
-    >
-      <Timer className={cn('w-4 h-4', urgent ? 'text-red-400' : 'text-primary')} />
-      <div className="w-24 h-2 rounded-full bg-muted/30 overflow-hidden">
-        <motion.div
-          className={cn('h-full rounded-full', urgent ? 'bg-red-500' : 'bg-primary')}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-      <span className={cn('text-sm font-mono font-bold min-w-[2ch]', urgent ? 'text-red-400' : 'text-primary')}>
-        {seconds}s
-      </span>
-    </motion.div>
+    <div className={cn(
+      'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-mono font-bold',
+      urgent ? 'bg-red-500/20 text-red-400' : 'bg-muted/20 text-muted-foreground'
+    )}>
+      <Timer className="w-3.5 h-3.5" />
+      {Math.floor(seconds / 60)}:{(seconds % 60).toString().padStart(2, '0')}
+    </div>
   );
 };
 
@@ -139,17 +173,11 @@ export const UndercoverGameScreen = memo(({ currentPlayer, players, lobbyId, onE
   const [wordRevealed, setWordRevealed] = useState(false);
 
   const handleSubmitClue = useCallback(() => {
-    if (clueInput.trim()) {
-      submitClue(clueInput.trim());
-      setClueInput('');
-    }
+    if (clueInput.trim()) { submitClue(clueInput.trim()); setClueInput(''); }
   }, [clueInput, submitClue]);
 
   const handleVote = useCallback(() => {
-    if (selectedVote) {
-      submitVote(selectedVote);
-      setHasVoted(true);
-    }
+    if (selectedVote) { submitVote(selectedVote); setHasVoted(true); }
   }, [selectedVote, submitVote]);
 
   const handleRevealWord = useCallback(() => {
@@ -158,31 +186,16 @@ export const UndercoverGameScreen = memo(({ currentPlayer, players, lobbyId, onE
     setTimeout(() => setShowWord(false), 4000);
   }, []);
 
-  // Reset vote state on phase change
   useEffect(() => {
-    if (game?.phase === 'voting') {
-      setHasVoted(false);
-      setSelectedVote(null);
-    }
+    if (game?.phase === 'voting') { setHasVoted(false); setSelectedVote(null); }
   }, [game?.phase]);
 
   if (loading || !game) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          className="text-center space-y-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <motion.div
-            className="w-24 h-24 mx-auto rounded-full border-4 border-primary/30 border-t-primary"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          />
-          <div className="space-y-2">
-            <p className="text-xl font-bold">🕵️ Undercover</p>
-            <p className="text-muted-foreground text-sm">Préparation de la partie...</p>
-          </div>
+        <motion.div className="text-center space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.div className="w-16 h-16 mx-auto rounded-full border-4 border-primary/30 border-t-primary" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} />
+          <p className="text-lg font-bold text-muted-foreground">Préparation...</p>
         </motion.div>
       </div>
     );
@@ -194,311 +207,161 @@ export const UndercoverGameScreen = memo(({ currentPlayer, players, lobbyId, onE
   const phaseInfo = phaseLabels[phase] || { label: phase, emoji: '🎮' };
   const votedCount = alivePlayers.filter(p => p.vote_target !== null).length;
 
+  // Word display with blanks
+  const renderWordDisplay = () => {
+    if (myPlayer?.role === 'mr_white') return '? ? ? ? ?';
+    if (showWord && myPlayer?.word) return myPlayer.word;
+    if (myPlayer?.word) return myPlayer.word.split('').map((c) => c === ' ' ? '  ' : '_ ').join('');
+    return '_ _ _ _ _';
+  };
+
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Floating particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <FloatingParticle key={i} delay={i * 1.5} size={4 + Math.random() * 8} />
-        ))}
-      </div>
-
-      <div className="relative z-10 p-4 pb-32 max-w-lg mx-auto space-y-4">
-        {/* Header compact */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-lg">
-              🕵️
-            </div>
-            <div>
-              <h1 className="text-lg font-black tracking-tight">UNDERCOVER</h1>
-              <p className="text-xs text-muted-foreground">Manche {game.current_round}</p>
-            </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* ═══ TOP BAR: Word Banner ═══ */}
+      <motion.div
+        initial={{ y: -60 }}
+        animate={{ y: 0 }}
+        className="bg-card/90 backdrop-blur-xl border-b border-border/30 px-4 py-3"
+      >
+        <div className="max-w-lg mx-auto flex items-center gap-3">
+          {/* Phase badge */}
+          <div className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary shrink-0">
+            <span>{phaseInfo.emoji}</span>
+            <span className="hidden sm:inline">{phaseInfo.label}</span>
+            <span className="sm:hidden">R{game.current_round}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 font-semibold">
-              {phaseInfo.emoji} {phaseInfo.label}
-            </span>
-          </div>
-        </motion.div>
 
-        {/* Player status strip */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide"
-        >
-          {gamePlayers.map((p, i) => {
-            const isCurrent = currentTurnPlayerId === p.player_id;
-            const isMe = p.player_id === currentPlayer.id;
-            return (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.05 * i }}
-                className={cn(
-                  'flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all',
-                  !p.is_alive && 'opacity-30 line-through',
-                  isCurrent && p.is_alive && 'bg-primary/20 border-primary text-primary ring-2 ring-primary/30',
-                  !isCurrent && p.is_alive && 'bg-card/50 border-border/30',
-                  isMe && p.is_alive && !isCurrent && 'border-primary/40',
-                )}
-              >
-                <div className={cn(
-                  'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black',
-                  isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted/40'
-                )}>
-                  {!p.is_alive ? '💀' : p.player_name[0]?.toUpperCase()}
-                </div>
-                {p.player_name.length > 8 ? p.player_name.slice(0, 7) + '…' : p.player_name}
-                {isMe && <span className="text-primary/60">(moi)</span>}
-              </motion.div>
-            );
-          })}
-        </motion.div>
-
-        {/* My role card - always visible */}
-        {myPlayer && myRoleConfig && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.15 }}
-            className={cn(
-              'relative overflow-hidden rounded-2xl border-2 p-3',
-              myRoleConfig.border, myRoleConfig.bg
-            )}
-          >
-            <div className={cn('absolute inset-0 opacity-5 bg-gradient-to-br', myRoleConfig.gradient)} />
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{myRoleConfig.emoji}</span>
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Votre rôle</p>
-                  <p className={cn('text-sm font-black', myRoleConfig.text)}>{myRoleConfig.label}</p>
-                </div>
+          {/* Word display */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground shrink-0">Votre mot</span>
+              <div className={cn(
+                'flex-1 text-center font-black text-lg sm:text-xl tracking-[0.2em] py-1 px-3 rounded-xl border transition-all',
+                showWord 
+                  ? 'bg-primary/10 border-primary/30 text-primary' 
+                  : 'bg-muted/10 border-border/20 text-muted-foreground',
+                myPlayer?.role === 'mr_white' && 'text-white/40',
+              )}>
+                {renderWordDisplay()}
               </div>
-              {myPlayer.is_alive ? (
-                <div className="flex items-center gap-1 text-xs text-green-400">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  En vie
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-xs text-red-400">
-                  <Skull className="w-3 h-3" /> Éliminé
-                </div>
-              )}
             </div>
-          </motion.div>
-        )}
+          </div>
 
-        {/* Main content phases */}
-        <AnimatePresence mode="wait">
-          {/* ═══ WORD REVEAL ═══ */}
-          {phase === 'word_reveal' && myPlayer && (
-            <motion.div
-              key="word-reveal"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-4"
+          {/* Show/hide word toggle */}
+          {phase === 'word_reveal' && !hasSeenWord ? (
+            <motion.button
+              onClick={() => { handleRevealWord(); confirmWordSeen(); }}
+              className="shrink-0 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:brightness-110 transition-all"
+              whileTap={{ scale: 0.95 }}
             >
-              <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-border/30 p-6 text-center space-y-5 shadow-xl shadow-primary/5">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', bounce: 0.5, delay: 0.2 }}
-                >
-                  <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
-                    {myPlayer.role === 'mr_white' ? (
-                      <AlertTriangle className="w-10 h-10 text-white/60" />
-                    ) : (
-                      <Fingerprint className="w-10 h-10 text-primary" />
-                    )}
-                  </div>
-                </motion.div>
+              OK
+            </motion.button>
+          ) : (
+            <motion.button
+              onClick={showWord ? () => setShowWord(false) : handleRevealWord}
+              className={cn(
+                'shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border transition-all',
+                showWord 
+                  ? 'bg-primary/20 border-primary/30 text-primary' 
+                  : 'bg-muted/10 border-border/20 text-muted-foreground hover:bg-muted/20'
+              )}
+              whileTap={{ scale: 0.9 }}
+            >
+              {showWord ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
 
-                <div className="space-y-2">
-                  <h2 className="text-xl font-black">
-                    {myPlayer.role === 'mr_white' ? "Vous êtes Mr. White" : "Votre mot secret"}
-                  </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {myPlayer.role === 'mr_white'
-                      ? "Vous n'avez aucun mot. Bluffez et essayez de deviner le mot des civils grâce aux indices donnés !"
-                      : "Mémorisez-le bien. Donnez des indices subtils sans le révéler directement !"}
+      {/* ═══ PLAYERS ROW ═══ */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="bg-card/40 border-b border-border/20 px-4 py-3"
+      >
+        <div className="max-w-lg mx-auto">
+          <div className="flex justify-center gap-3 sm:gap-4 overflow-x-auto pb-1 scrollbar-hide">
+            {gamePlayers.map((p, i) => (
+              <PlayerBubble
+                key={p.id}
+                player={p}
+                index={i}
+                isCurrent={currentTurnPlayerId === p.player_id && phase === 'clue_giving'}
+                isMe={p.player_id === currentPlayer.id}
+                isEliminated={!p.is_alive}
+                hasClue={!!p.current_clue && phase === 'clue_giving'}
+                hasVoted={!!p.vote_target && phase === 'voting'}
+                isSelected={selectedVote === p.player_id}
+                onClick={
+                  phase === 'voting' && myPlayer?.is_alive && !hasVoted && p.player_id !== currentPlayer.id && p.is_alive
+                    ? () => setSelectedVote(p.player_id)
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ═══ MAIN CONTENT ═══ */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="max-w-lg mx-auto">
+          <AnimatePresence mode="wait">
+            {/* WORD REVEAL */}
+            {phase === 'word_reveal' && (
+              <motion.div key="reveal" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+                <div className="bg-card/80 backdrop-blur rounded-2xl border border-border/30 p-6 text-center space-y-4">
+                  {myPlayer?.role === 'mr_white' ? (
+                    <>
+                      <div className="text-5xl">👻</div>
+                      <h2 className="text-xl font-black">Vous êtes Mr. White</h2>
+                      <p className="text-sm text-muted-foreground">Aucun mot. Bluffez grâce aux indices !</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-5xl">{myRoleConfig?.emoji}</div>
+                      <h2 className="text-xl font-black">Votre rôle : {myRoleConfig?.label}</h2>
+                      <p className="text-sm text-muted-foreground">Appuyez sur <strong>OK</strong> en haut pour voir et confirmer votre mot.</p>
+                    </>
+                  )}
+
+                  {hasSeenWord && currentPlayer.isHost && (
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      onClick={startCluePhase}
+                      className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:brightness-110 transition-all"
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Commencer les indices <ArrowRight className="w-4 h-4 inline ml-1" />
+                    </motion.button>
+                  )}
+                  {hasSeenWord && !currentPlayer.isHost && (
+                    <p className="text-sm text-muted-foreground animate-pulse">⏳ En attente de l'hôte...</p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* CLUE GIVING */}
+            {phase === 'clue_giving' && (
+              <motion.div key="clue" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="space-y-3">
+                {/* Current turn */}
+                <div className={cn(
+                  'text-center py-3 rounded-xl border',
+                  isMyTurn ? 'bg-primary/10 border-primary/30' : 'bg-muted/10 border-border/20'
+                )}>
+                  <p className="text-xs text-muted-foreground">C'est au tour de</p>
+                  <p className={cn('text-xl font-black', isMyTurn && 'text-primary')}>
+                    {isMyTurn ? '🎯 Vous !' : gamePlayers.find(p => p.player_id === currentTurnPlayerId)?.player_name}
                   </p>
                 </div>
 
-                {myPlayer.role !== 'mr_white' && (
-                  <>
-                    {!showWord && !wordRevealed && (
-                      <motion.button
-                        onClick={handleRevealWord}
-                        className="mx-auto flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/20 rounded-2xl transition-all border border-primary/30 group"
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                      >
-                        <Eye className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                        <span className="font-bold text-primary">Révéler mon mot</span>
-                      </motion.button>
-                    )}
-
-                    {showWord && myPlayer.word && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.5, rotateX: 90 }}
-                        animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                        className="relative py-6"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-2xl blur-xl" />
-                        <div className="relative">
-                          <p className="text-4xl font-black bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                            {myPlayer.word}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
-                            <EyeOff className="w-3 h-3" /> Disparaît dans quelques secondes...
-                          </p>
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {!showWord && wordRevealed && (
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
-                        <p className="text-sm text-green-400 flex items-center justify-center gap-1">
-                          <Lock className="w-3 h-3" /> Mot caché
-                        </p>
-                        <button
-                          onClick={handleRevealWord}
-                          className="text-xs text-muted-foreground underline hover:text-primary transition-colors"
-                        >
-                          Revoir le mot
-                        </button>
-                      </motion.div>
-                    )}
-                  </>
-                )}
-
-                {!hasSeenWord ? (
-                  <motion.button
-                    onClick={confirmWordSeen}
-                    className="w-full py-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl font-black text-lg hover:brightness-110 transition-all shadow-lg shadow-primary/20"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <span className="flex items-center justify-center gap-2">
-                      <CheckCircle2 className="w-5 h-5" /> J'ai mémorisé !
-                    </span>
-                  </motion.button>
-                ) : (
-                  <div className="space-y-3">
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex items-center justify-center gap-2 text-green-400 text-sm font-semibold"
-                    >
-                      <CheckCircle2 className="w-4 h-4" /> Mot mémorisé
-                    </motion.div>
-                    {currentPlayer.isHost ? (
-                      <motion.button
-                        onClick={startCluePhase}
-                        className="w-full py-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl font-black hover:brightness-110 transition-all shadow-lg shadow-primary/20"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <span className="flex items-center justify-center gap-2">
-                          Commencer les indices <ArrowRight className="w-5 h-5" />
-                        </span>
-                      </motion.button>
-                    ) : (
-                      <p className="text-muted-foreground text-sm text-center animate-pulse">
-                        ⏳ En attente de l'hôte...
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* ═══ CLUE GIVING ═══ */}
-          {phase === 'clue_giving' && (
-            <motion.div
-              key="clue-giving"
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
-              className="space-y-4"
-            >
-              <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-border/30 p-5 space-y-5 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5 text-primary" />
-                    <h2 className="text-lg font-black">Tour d'indices</h2>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/20 px-2 py-1 rounded-full">
-                    <Users className="w-3 h-3" />
-                    {gamePlayers.filter(p => p.is_alive && p.current_clue).length}/{alivePlayers.length}
-                  </div>
-                </div>
-
-                {/* Current player spotlight */}
-                {currentTurnPlayerId && (
-                  <motion.div
-                    key={currentTurnPlayerId}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={cn(
-                      'text-center py-4 rounded-2xl border',
-                      isMyTurn
-                        ? 'bg-primary/10 border-primary/30'
-                        : 'bg-muted/10 border-border/20'
-                    )}
-                  >
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">C'est au tour de</p>
-                    <p className={cn('text-2xl font-black mt-1', isMyTurn ? 'text-primary' : '')}>
-                      {isMyTurn ? '🎯 Vous !' : gamePlayers.find(p => p.player_id === currentTurnPlayerId)?.player_name}
-                    </p>
-                  </motion.div>
-                )}
-
-                {/* Clues list */}
-                {gamePlayers.filter(p => p.is_alive && p.current_clue).length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Indices donnés</p>
-                    {gamePlayers
-                      .filter(p => p.is_alive && p.current_clue)
-                      .map((p, i) => (
-                        <motion.div
-                          key={p.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-muted/10 border border-border/10"
-                        >
-                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-black text-primary">
-                            {p.player_name[0]?.toUpperCase()}
-                          </div>
-                          <span className="text-sm text-muted-foreground">{p.player_name}</span>
-                          <span className="ml-auto text-sm font-bold text-primary">« {p.current_clue} »</span>
-                        </motion.div>
-                      ))}
-                  </div>
-                )}
-
                 {/* Input */}
                 {isMyTurn && myPlayer?.is_alive && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-3"
-                  >
-                    <p className="text-sm text-center text-primary font-semibold">
-                      💡 Donnez un indice en UN mot
-                    </p>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                    <p className="text-sm text-center text-primary font-semibold">💡 Donnez un indice en UN mot</p>
                     <div className="flex gap-2">
                       <Input
                         value={clueInput}
@@ -512,9 +375,8 @@ export const UndercoverGameScreen = memo(({ currentPlayer, players, lobbyId, onE
                       <motion.button
                         onClick={handleSubmitClue}
                         disabled={!clueInput.trim()}
-                        className="h-12 w-12 bg-primary text-primary-foreground rounded-xl font-bold disabled:opacity-30 hover:brightness-110 transition-all flex items-center justify-center"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        className="h-12 w-12 bg-primary text-primary-foreground rounded-xl disabled:opacity-30 flex items-center justify-center"
+                        whileTap={{ scale: 0.9 }}
                       >
                         <Send className="w-5 h-5" />
                       </motion.button>
@@ -522,392 +384,235 @@ export const UndercoverGameScreen = memo(({ currentPlayer, players, lobbyId, onE
                   </motion.div>
                 )}
 
-                {!isMyTurn && (
-                  <div className="text-center py-3">
-                    <motion.div
-                      animate={{ opacity: [0.4, 1, 0.4] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="text-sm text-muted-foreground"
-                    >
-                      ⏳ En attente de l'indice...
-                    </motion.div>
+                {/* Clues list */}
+                {gamePlayers.filter(p => p.is_alive && p.current_clue).length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Indices donnés</p>
+                    {gamePlayers.filter(p => p.is_alive && p.current_clue).map((p, i) => (
+                      <motion.div
+                        key={p.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/10 border border-border/10"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-black text-primary">
+                          {p.player_name[0]?.toUpperCase()}
+                        </div>
+                        <span className="text-sm text-muted-foreground">{p.player_name}</span>
+                        <span className="ml-auto text-sm font-bold text-primary">« {p.current_clue} »</span>
+                      </motion.div>
+                    ))}
                   </div>
                 )}
-              </div>
-            </motion.div>
-          )}
 
-          {/* ═══ DISCUSSION ═══ */}
-          {phase === 'discussion' && (
-            <motion.div
-              key="discussion"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="space-y-4"
-            >
-              <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-border/30 p-5 space-y-5 shadow-xl">
+                {!isMyTurn && (
+                  <p className="text-center text-sm text-muted-foreground animate-pulse">⏳ En attente...</p>
+                )}
+              </motion.div>
+            )}
+
+            {/* DISCUSSION */}
+            {phase === 'discussion' && (
+              <motion.div key="discussion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-black flex items-center gap-2">
-                    🗣️ Discussion
-                  </h2>
+                  <h2 className="text-lg font-black flex items-center gap-2">🗣️ Discussion</h2>
                   <DiscussionTimer />
                 </div>
 
-                <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-3">
-                  <p className="text-sm text-center font-medium">
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 text-center">
+                  <p className="text-sm font-medium">
                     <Search className="w-4 h-4 inline mr-1 text-yellow-400" />
-                    Discutez et trouvez l'Undercover ! Qui est suspect ?
+                    Discutez et trouvez l'Undercover !
                   </p>
                 </div>
 
                 {/* All clues recap */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <p className="text-xs uppercase tracking-wider text-muted-foreground">Récap des indices</p>
-                  {gamePlayers
-                    .filter(p => p.is_alive && p.current_clue)
-                    .map((p, i) => {
-                      const isMe = p.player_id === currentPlayer.id;
-                      return (
-                        <motion.div
-                          key={p.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.08 }}
-                          className={cn(
-                            'flex items-center gap-3 p-3 rounded-xl border',
-                            isMe
-                              ? 'bg-primary/5 border-primary/20'
-                              : 'bg-muted/5 border-border/10'
-                          )}
-                        >
-                          <div className={cn(
-                            'w-8 h-8 rounded-full flex items-center justify-center text-xs font-black',
-                            isMe ? 'bg-primary/20 text-primary' : 'bg-muted/20'
-                          )}>
-                            {p.player_name[0]?.toUpperCase()}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-muted-foreground">{p.player_name}{isMe ? ' (moi)' : ''}</p>
-                            <p className="font-bold text-sm">« {p.current_clue} »</p>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+                  {gamePlayers.filter(p => p.is_alive && p.current_clue).map((p, i) => (
+                    <div key={p.id} className={cn(
+                      'flex items-center gap-2 p-2.5 rounded-xl border',
+                      p.player_id === currentPlayer.id ? 'bg-primary/5 border-primary/20' : 'bg-muted/5 border-border/10'
+                    )}>
+                      <div className={cn(
+                        'w-7 h-7 rounded-full flex items-center justify-center text-xs font-black',
+                        p.player_id === currentPlayer.id ? 'bg-primary/20 text-primary' : 'bg-muted/20'
+                      )}>
+                        {p.player_name[0]?.toUpperCase()}
+                      </div>
+                      <span className="text-sm text-muted-foreground flex-1">{p.player_name}</span>
+                      <span className="text-sm font-bold">« {p.current_clue} »</span>
+                    </div>
+                  ))}
                 </div>
 
                 {currentPlayer.isHost && (
                   <motion.button
                     onClick={startVoting}
-                    className="w-full py-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-2xl font-black hover:brightness-110 transition-all shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
-                    whileHover={{ scale: 1.02 }}
+                    className="w-full py-3 bg-red-500 text-white rounded-xl font-bold hover:brightness-110 transition-all flex items-center justify-center gap-2"
                     whileTap={{ scale: 0.98 }}
                   >
                     <Vote className="w-5 h-5" /> Passer au vote
                   </motion.button>
                 )}
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
 
-          {/* ═══ VOTING ═══ */}
-          {phase === 'voting' && (
-            <motion.div
-              key="voting"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-4"
-            >
-              <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-red-500/20 p-5 space-y-5 shadow-xl shadow-red-500/5">
-                <div className="text-center space-y-3">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', bounce: 0.5 }}
-                  >
-                    <VoteProgressRing voted={votedCount} total={alivePlayers.length} />
-                  </motion.div>
-                  <h2 className="text-lg font-black">🗳️ Vote d'élimination</h2>
-                  <p className="text-sm text-muted-foreground">Qui voulez-vous éliminer ?</p>
+            {/* VOTING */}
+            {phase === 'voting' && (
+              <motion.div key="voting" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+                <div className="text-center space-y-2">
+                  <h2 className="text-lg font-black">🗳️ Votez en cliquant sur un joueur</h2>
+                  <p className="text-sm text-muted-foreground">{votedCount}/{alivePlayers.length} votes</p>
                 </div>
 
                 {!myPlayer?.is_alive ? (
-                  <div className="text-center py-6 space-y-2">
-                    <Skull className="w-8 h-8 mx-auto text-red-400/50" />
-                    <p className="text-muted-foreground text-sm">Vous êtes éliminé, vous observez.</p>
+                  <div className="text-center py-6">
+                    <Skull className="w-8 h-8 mx-auto text-red-400/50 mb-2" />
+                    <p className="text-muted-foreground text-sm">Vous observez.</p>
                   </div>
                 ) : hasVoted ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center space-y-3 py-4"
-                  >
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', bounce: 0.6 }}
-                    >
-                      <CheckCircle2 className="w-12 h-12 mx-auto text-green-400" />
-                    </motion.div>
-                    <p className="text-green-400 font-black">Vote soumis !</p>
-                    <motion.p
-                      animate={{ opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="text-sm text-muted-foreground"
-                    >
-                      En attente des autres joueurs...
-                    </motion.p>
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-6 space-y-2">
+                    <CheckCircle2 className="w-10 h-10 mx-auto text-green-400" />
+                    <p className="font-bold text-green-400">Vote soumis !</p>
+                    <p className="text-sm text-muted-foreground animate-pulse">En attente des autres...</p>
                   </motion.div>
                 ) : (
-                  <div className="space-y-2">
-                    {alivePlayers
-                      .filter(p => p.player_id !== currentPlayer.id)
-                      .map((p, i) => (
+                  <div className="space-y-3">
+                    <p className="text-sm text-center text-muted-foreground">
+                      👆 Cliquez sur un joueur ci-dessus pour le sélectionner
+                    </p>
+                    {selectedVote && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-3">
+                        <p className="text-sm">
+                          Vous voulez éliminer <strong className="text-red-400">{gamePlayers.find(p => p.player_id === selectedVote)?.player_name}</strong> ?
+                        </p>
                         <motion.button
-                          key={p.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.08 }}
-                          onClick={() => setSelectedVote(p.player_id)}
-                          className={cn(
-                            'w-full p-4 rounded-2xl border-2 transition-all text-left flex items-center gap-3 group',
-                            selectedVote === p.player_id
-                              ? 'border-red-500 bg-red-500/15 shadow-lg shadow-red-500/10'
-                              : 'border-border/20 bg-muted/5 hover:bg-muted/10 hover:border-border/40'
-                          )}
+                          onClick={handleVote}
+                          className="px-8 py-3 bg-red-500 text-white rounded-xl font-bold hover:brightness-110 transition-all"
+                          whileTap={{ scale: 0.95 }}
                         >
-                          <div className={cn(
-                            'w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm transition-all',
-                            selectedVote === p.player_id
-                              ? 'bg-red-500 text-white scale-110'
-                              : 'bg-muted/20 group-hover:bg-muted/30'
-                          )}>
-                            {p.player_name[0]?.toUpperCase()}
-                          </div>
-                          <span className="font-semibold flex-1">{p.player_name}</span>
-                          {selectedVote === p.player_id && (
-                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                              <Skull className="w-5 h-5 text-red-400" />
-                            </motion.div>
-                          )}
+                          <Vote className="w-4 h-4 inline mr-2" />
+                          Confirmer le vote
                         </motion.button>
-                      ))}
-
-                    <motion.button
-                      onClick={handleVote}
-                      disabled={!selectedVote}
-                      className="w-full py-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-2xl font-black disabled:opacity-30 disabled:grayscale hover:brightness-110 transition-all shadow-lg shadow-red-500/20 mt-3"
-                      whileHover={{ scale: selectedVote ? 1.02 : 1 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <span className="flex items-center justify-center gap-2">
-                        <Vote className="w-5 h-5" /> Confirmer le vote
-                      </span>
-                    </motion.button>
+                      </motion.div>
+                    )}
                   </div>
                 )}
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
 
-          {/* ═══ VOTE RESULT ═══ */}
-          {phase === 'vote_result' && (
-            <motion.div
-              key="vote-result"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ type: 'spring', bounce: 0.4 }}
-              className="space-y-4"
-            >
-              <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-border/30 p-6 text-center space-y-5 shadow-xl">
-                {game.eliminated_player_id ? (
-                  <>
-                    <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', bounce: 0.5 }}
-                    >
-                      <div className="w-20 h-20 mx-auto rounded-full bg-red-500/20 border-2 border-red-500/30 flex items-center justify-center">
-                        <Skull className="w-10 h-10 text-red-400" />
-                      </div>
-                    </motion.div>
-                    <div className="space-y-2">
-                      <h2 className="text-2xl font-black">
+            {/* VOTE RESULT */}
+            {phase === 'vote_result' && (
+              <motion.div key="result" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                <div className="bg-card/80 backdrop-blur rounded-2xl border border-border/30 p-6 text-center space-y-4">
+                  {game.eliminated_player_id ? (
+                    <>
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.5 }}>
+                        <div className="w-16 h-16 mx-auto rounded-full bg-red-500/20 border-2 border-red-500/30 flex items-center justify-center">
+                          <Skull className="w-8 h-8 text-red-400" />
+                        </div>
+                      </motion.div>
+                      <h2 className="text-xl font-black">
                         {gamePlayers.find(p => p.player_id === game.eliminated_player_id)?.player_name}
                       </h2>
                       <p className="text-muted-foreground">a été éliminé !</p>
-                    </div>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 }}
-                      className={cn(
-                        'inline-flex items-center gap-2 px-6 py-3 rounded-2xl border-2 font-black text-lg',
+                      <div className={cn(
+                        'inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-bold',
                         roleConfig[game.eliminated_role as keyof typeof roleConfig]?.bg,
                         roleConfig[game.eliminated_role as keyof typeof roleConfig]?.border,
-                        roleConfig[game.eliminated_role as keyof typeof roleConfig]?.text,
-                      )}
-                    >
-                      <span>{roleConfig[game.eliminated_role as keyof typeof roleConfig]?.emoji}</span>
-                      {roleConfig[game.eliminated_role as keyof typeof roleConfig]?.label}
-                    </motion.div>
-                  </>
-                ) : (
-                  <>
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', bounce: 0.5 }}
-                    >
-                      <div className="w-20 h-20 mx-auto rounded-full bg-yellow-500/20 border-2 border-yellow-500/30 flex items-center justify-center">
-                        <AlertTriangle className="w-10 h-10 text-yellow-400" />
+                        roleConfig[game.eliminated_role as keyof typeof roleConfig]?.color,
+                      )}>
+                        {roleConfig[game.eliminated_role as keyof typeof roleConfig]?.emoji}
+                        {roleConfig[game.eliminated_role as keyof typeof roleConfig]?.label}
                       </div>
-                    </motion.div>
-                    <h2 className="text-2xl font-black">Égalité !</h2>
-                    <p className="text-muted-foreground">Personne n'est éliminé ce tour.</p>
-                  </>
-                )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-5xl">⚖️</div>
+                      <h2 className="text-xl font-black">Égalité !</h2>
+                      <p className="text-muted-foreground">Personne n'est éliminé.</p>
+                    </>
+                  )}
 
-                {currentPlayer.isHost && (
+                  {currentPlayer.isHost && (
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 1 }}
+                      onClick={() => { nextRound(); setHasVoted(false); setSelectedVote(null); }}
+                      className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:brightness-110 transition-all"
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Manche suivante <ArrowRight className="w-4 h-4 inline ml-1" />
+                    </motion.button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* GAME OVER */}
+            {phase === 'game_over' && (
+              <motion.div key="gameover" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
+                <div className="bg-card/80 backdrop-blur rounded-2xl border border-primary/30 p-6 text-center space-y-5">
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.5 }}>
+                    <Crown className="w-12 h-12 mx-auto text-yellow-400" />
+                  </motion.div>
+
+                  <h2 className="text-2xl font-black">Partie terminée !</h2>
+                  <div className={cn(
+                    'text-lg font-black py-3 px-4 rounded-xl inline-block',
+                    game.winner_role === 'civilian' ? 'text-blue-400 bg-blue-500/10 border border-blue-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20'
+                  )}>
+                    {game.winner_role === 'civilian' ? '🛡️ Les Civils gagnent !' : '🕵️ Les Undercovers gagnent !'}
+                  </div>
+
+                  {/* Roles reveal */}
+                  <div className="space-y-2 text-left">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground text-center">Tous les rôles</p>
+                    {gamePlayers.map((p) => {
+                      const cfg = roleConfig[p.role as keyof typeof roleConfig];
+                      return (
+                        <div key={p.id} className={cn('flex items-center justify-between p-2.5 rounded-xl border', cfg?.bg, cfg?.border, !p.is_alive && 'opacity-40')}>
+                          <div className="flex items-center gap-2">
+                            <span>{cfg?.emoji}</span>
+                            <span className="font-semibold text-sm">{p.player_name}</span>
+                            {!p.is_alive && <Skull className="w-3 h-3 text-red-400" />}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={cn('text-xs font-bold', cfg?.color)}>{cfg?.label}</span>
+                            {p.word && <span className="text-[10px] text-muted-foreground bg-muted/20 px-2 py-0.5 rounded-full">{p.word}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Words */}
+                  <div className="flex gap-3">
+                    <div className="flex-1 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                      <p className="text-[10px] uppercase text-muted-foreground">Mot Civil</p>
+                      <p className="text-base font-black text-blue-400">{game.civilian_word}</p>
+                    </div>
+                    <div className="flex-1 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                      <p className="text-[10px] uppercase text-muted-foreground">Mot Undercover</p>
+                      <p className="text-base font-black text-red-400">{game.undercover_word}</p>
+                    </div>
+                  </div>
+
                   <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1 }}
-                    onClick={() => {
-                      nextRound();
-                      setHasVoted(false);
-                      setSelectedVote(null);
-                    }}
-                    className="w-full py-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl font-black hover:brightness-110 transition-all shadow-lg shadow-primary/20"
-                    whileHover={{ scale: 1.02 }}
+                    onClick={onEndGame}
+                    className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:brightness-110 transition-all"
                     whileTap={{ scale: 0.98 }}
                   >
-                    <span className="flex items-center justify-center gap-2">
-                      Manche suivante <ArrowRight className="w-5 h-5" />
-                    </span>
+                    Retour au menu
                   </motion.button>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* ═══ GAME OVER ═══ */}
-          {phase === 'game_over' && (
-            <motion.div
-              key="game-over"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ type: 'spring', bounce: 0.4 }}
-              className="space-y-4"
-            >
-              <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-primary/30 p-6 text-center space-y-6 shadow-xl shadow-primary/10">
-                {/* Confetti-like sparkles */}
-                <motion.div
-                  initial={{ scale: 0, rotate: -20 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', bounce: 0.5, delay: 0.1 }}
-                  className="relative"
-                >
-                  <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-yellow-500/20 to-amber-500/10 border-2 border-yellow-500/30 flex items-center justify-center">
-                    <Crown className="w-12 h-12 text-yellow-400" />
-                  </div>
-                  <motion.div
-                    className="absolute -top-2 -right-2"
-                    animate={{ rotate: [0, 15, -15, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <Sparkles className="w-6 h-6 text-yellow-400" />
-                  </motion.div>
-                </motion.div>
-
-                <div className="space-y-2">
-                  <h2 className="text-3xl font-black">Partie terminée !</h2>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className={cn(
-                      'text-xl font-black py-4 px-6 rounded-2xl inline-block',
-                      game.winner_role === 'civilian'
-                        ? 'text-blue-400 bg-blue-500/10 border border-blue-500/20'
-                        : 'text-red-400 bg-red-500/10 border border-red-500/20'
-                    )}
-                  >
-                    {game.winner_role === 'civilian' ? '🛡️ Les Civils gagnent !' : '🕵️ Les Undercovers gagnent !'}
-                  </motion.div>
                 </div>
-
-                {/* All roles reveal */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Tous les rôles</h3>
-                  {gamePlayers.map((p, i) => {
-                    const cfg = roleConfig[p.role as keyof typeof roleConfig];
-                    return (
-                      <motion.div
-                        key={p.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4 + i * 0.1 }}
-                        className={cn(
-                          'flex items-center justify-between p-3 rounded-xl border',
-                          cfg?.bg, cfg?.border,
-                          !p.is_alive && 'opacity-40'
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{cfg?.emoji}</span>
-                          <span className="font-semibold text-sm">{p.player_name}</span>
-                          {!p.is_alive && <Skull className="w-3 h-3 text-red-400" />}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={cn('text-xs font-black', cfg?.text)}>{cfg?.label}</span>
-                          {p.word && <span className="text-[10px] text-muted-foreground bg-muted/20 px-2 py-0.5 rounded-full">{p.word}</span>}
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-
-                {/* Words reveal */}
-                <div className="flex gap-3 justify-center">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8 }}
-                    className="flex-1 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20"
-                  >
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Mot Civil</p>
-                    <p className="text-lg font-black text-blue-400 mt-1">{game.civilian_word}</p>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.9 }}
-                    className="flex-1 p-4 rounded-2xl bg-red-500/10 border border-red-500/20"
-                  >
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Mot Undercover</p>
-                    <p className="text-lg font-black text-red-400 mt-1">{game.undercover_word}</p>
-                  </motion.div>
-                </div>
-
-                <motion.button
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.2 }}
-                  onClick={onEndGame}
-                  className="w-full py-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl font-black hover:brightness-110 transition-all shadow-lg shadow-primary/20"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Retour au menu
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
