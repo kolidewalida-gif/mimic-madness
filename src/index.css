@@ -349,6 +349,16 @@
     border: 2px solid hsl(0 0% 8%);
     border-radius: 6px;
   }
+
+  /* Selected mode tile (GameModeSelector) — bright pop with black text */
+  body.cartoon-mode button[class*="bg-gradient-to-br"] {
+    background: hsl(48 100% 60%) !important;
+    color: hsl(0 0% 8%) !important;
+  }
+  body.cartoon-mode button[class*="bg-gradient-to-br"] .text-white,
+  body.cartoon-mode button[class*="bg-gradient-to-br"] [class*="text-white"] {
+    color: hsl(0 0% 8%) !important;
+  }
 }
 
 @layer base {
