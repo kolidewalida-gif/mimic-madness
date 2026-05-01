@@ -38,16 +38,17 @@ export const AudioPhoneRecordingAllPhase = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRafRef = useRef<number | null>(null);
+  const startedAtRef = useRef<number>(0);
   const animationRef = useRef<number | null>(null);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    if (timerRafRef.current) {
+      cancelAnimationFrame(timerRafRef.current);
+      timerRafRef.current = null;
     }
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
@@ -99,16 +100,19 @@ export const AudioPhoneRecordingAllPhase = ({
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => {
-          if (prev >= maxSeconds) {
-            stopRecording();
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 1000);
+      // Smooth, drift-free timer using performance.now() + rAF
+      startedAtRef.current = performance.now();
+      const tick = () => {
+        const elapsed = (performance.now() - startedAtRef.current) / 1000;
+        const clamped = Math.min(elapsed, maxSeconds);
+        setRecordingTime(clamped);
+        if (elapsed >= maxSeconds) {
+          stopRecording();
+          return;
+        }
+        timerRafRef.current = requestAnimationFrame(tick);
+      };
+      timerRafRef.current = requestAnimationFrame(tick);
 
       // Animate audio level
       const updateLevel = () => {
@@ -138,7 +142,7 @@ export const AudioPhoneRecordingAllPhase = ({
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRafRef.current) cancelAnimationFrame(timerRafRef.current);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       if (audioContextRef.current) audioContextRef.current.close();
     };
@@ -251,7 +255,7 @@ export const AudioPhoneRecordingAllPhase = ({
           {/* Timer */}
           {isRecording && (
             <div className="text-3xl font-mono font-bold text-red-400">
-              {recordingTime}s / {maxSeconds}s
+              {recordingTime.toFixed(1)}s / {maxSeconds}s
             </div>
           )}
 

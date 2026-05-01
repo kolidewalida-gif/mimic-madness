@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type ThemeType = 'neon' | 'cosmic' | 'fire' | 'ice' | 'ink';
+export type ThemeType = 'neon' | 'cosmic' | 'fire' | 'ice' | 'ink' | 'cartoon';
 
 interface ThemeContextType {
   theme: ThemeType;
@@ -12,7 +12,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const themes: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice', 'ink'];
+export const themes: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice', 'ink', 'cartoon'];
 
 export const themeConfig: Record<ThemeType, {
   name: string;
@@ -128,6 +128,25 @@ export const themeConfig: Record<ThemeType, {
       glowSecondary: '0 75% 45%',
     },
   },
+  cartoon: {
+    name: 'Cartoon',
+    emoji: '💥',
+    description: 'Comic BD - couleurs vives & contours',
+    colors: {
+      primary: '48 100% 55%',      // jaune vif
+      secondary: '350 95% 58%',    // rouge BD
+      accent: '195 95% 55%',       // cyan pop
+      background: '40 70% 92%',    // crème
+      foreground: '0 0% 8%',       // noir encre
+      card: '0 0% 100%',
+      cardForeground: '0 0% 8%',
+      muted: '40 40% 88%',
+      mutedForeground: '0 0% 25%',
+      border: '0 0% 8%',
+      glow: '48 100% 55%',
+      glowSecondary: '350 95% 58%',
+    },
+  },
 };
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
@@ -180,6 +199,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       document.body.classList.add('ink-mode');
     } else {
       document.body.classList.remove('ink-mode');
+    }
+
+    // Add cartoon-mode class for comic-book overrides
+    if (theme === 'cartoon') {
+      document.body.classList.add('cartoon-mode');
+    } else {
+      document.body.classList.remove('cartoon-mode');
     }
   }, [theme]);
 
