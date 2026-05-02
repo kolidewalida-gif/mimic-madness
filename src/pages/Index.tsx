@@ -15,6 +15,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { useTheme } from "@/hooks/useTheme";
 import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import { LobbyGameMode } from "@/lib/gameModes";
+import { useBackgroundMusic, type MusicSituation } from "@/hooks/useBackgroundMusic";
 import React from "react";
 
 // Lazy load heavy components
@@ -70,6 +71,23 @@ const Index = () => {
   const [inkAnimationCompleted, setInkAnimationCompleted] = useState(false);
   const { toast } = useToast();
   const { acceptInvitation, declineInvitation } = useGameInvitations();
+  const { setSituation } = useBackgroundMusic();
+
+  // Sync background music situation with current game state for adaptive auto mode
+  useEffect(() => {
+    const map: Record<GameState, MusicSituation> = {
+      home: "home",
+      lobby: "lobby",
+      preparation: "preparation",
+      playing: "playing",
+      quiz: "quiz",
+      audiophone: "audiophone",
+      pixoguess: "pixoguess",
+      monopoly: "monopoly",
+      undercover: "undercover",
+    };
+    setSituation(map[gameState] ?? "home");
+  }, [gameState, setSituation]);
   
   // Check if we need to show ink animation (fresh load with ink mode)
   useEffect(() => {
