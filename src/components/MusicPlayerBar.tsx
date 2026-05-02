@@ -11,7 +11,8 @@ import {
   Music,
   ChevronUp,
   ChevronDown,
-  Disc3
+  Disc3,
+  Sparkles
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
@@ -88,7 +89,10 @@ const MusicPlayerBarComponent = () => {
     setVolume: setMusicVolume,
     progress,
     duration,
-    seek
+    seek,
+    autoMode,
+    setAutoMode,
+    situation,
   } = useBackgroundMusic();
 
   const { volume: sfxVolume, setVolume: setSfxVolume } = useSoundEffectsVolume();
@@ -195,6 +199,19 @@ const MusicPlayerBarComponent = () => {
 
               {/* Controls */}
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAutoMode(!autoMode)}
+                  title={autoMode ? `Auto ON · situation: ${situation}` : "Auto OFF"}
+                  className={cn(
+                    "px-2 py-1 rounded-full text-[10px] font-bold tracking-wide flex items-center gap-1 transition-all border",
+                    autoMode
+                      ? "bg-primary/20 text-primary border-primary/50 shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+                      : "bg-background-secondary text-foreground-muted border-transparent hover:text-foreground"
+                  )}
+                >
+                  <Sparkles className="h-3 w-3" />
+                  AUTO
+                </button>
                 <button 
                   onClick={previousTrack}
                   className="p-2 hover:bg-background-secondary rounded-full transition-colors"
