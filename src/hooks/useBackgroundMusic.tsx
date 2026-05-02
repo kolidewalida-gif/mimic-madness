@@ -19,23 +19,83 @@ export interface MusicTrack {
   id: number;
   name: string;
   src: string;
+  /** Mood tags used by the adaptive auto-selector */
+  moods?: MusicMood[];
 }
 
+/**
+ * Moods used to map a game situation to a track.
+ * - `chill`        : menu/lobby vibe
+ * - `energetic`    : in-game general
+ * - `tense`        : voting / countdown / undercover
+ * - `epic`         : victory / big moment
+ * - `mysterious`   : undercover / detective
+ * - `playful`      : audio-phone / quiz
+ */
+export type MusicMood = "chill" | "energetic" | "tense" | "epic" | "mysterious" | "playful";
+
+/** Game situation broadcast by the app — drives auto track selection. */
+export type MusicSituation =
+  | "home"
+  | "lobby"
+  | "preparation"
+  | "playing"
+  | "voting"
+  | "victory"
+  | "defeat"
+  | "undercover"
+  | "audiophone"
+  | "quiz"
+  | "monopoly"
+  | "pixoguess";
+
 const musicTracks: MusicTrack[] = [
-  { id: 1, name: "Neon Dreams", src: music1 },
-  { id: 2, name: "Cyber Wave", src: music2 },
-  { id: 3, name: "Digital Pulse", src: music3 },
-  { id: 4, name: "Synth Horizon", src: music4 },
-  { id: 5, name: "Electric Night", src: music5 },
-  { id: 6, name: "Midnight Glow", src: music6 },
-  { id: 7, name: "Retro Vibes", src: music7 },
-  { id: 8, name: "Future Bass", src: music8 },
-  { id: 9, name: "Pixel Party", src: music9 },
-  { id: 10, name: "Neon Rush", src: music10 },
-  { id: 11, name: "Cosmic Flow", src: music11 },
-  { id: 12, name: "Stellar Beat", src: music12 },
-  { id: 13, name: "Original Mafieux", src: music13 },
+  { id: 1, name: "Neon Dreams", src: music1, moods: ["chill"] },
+  { id: 2, name: "Cyber Wave", src: music2, moods: ["chill", "playful"] },
+  { id: 3, name: "Digital Pulse", src: music3, moods: ["energetic"] },
+  { id: 4, name: "Synth Horizon", src: music4, moods: ["chill", "epic"] },
+  { id: 5, name: "Electric Night", src: music5, moods: ["tense", "mysterious"] },
+  { id: 6, name: "Midnight Glow", src: music6, moods: ["mysterious", "tense"] },
+  { id: 7, name: "Retro Vibes", src: music7, moods: ["playful", "chill"] },
+  { id: 8, name: "Future Bass", src: music8, moods: ["energetic", "epic"] },
+  { id: 9, name: "Pixel Party", src: music9, moods: ["playful", "energetic"] },
+  { id: 10, name: "Neon Rush", src: music10, moods: ["energetic", "tense"] },
+  { id: 11, name: "Cosmic Flow", src: music11, moods: ["chill", "mysterious"] },
+  { id: 12, name: "Stellar Beat", src: music12, moods: ["epic", "energetic"] },
+  { id: 13, name: "Original Mafieux", src: music13, moods: ["mysterious", "tense"] },
 ];
+
+/** Map each game situation to a list of preferred moods (in priority order). */
+const SITUATION_TO_MOODS: Record<MusicSituation, MusicMood[]> = {
+  home: ["chill", "playful"],
+  lobby: ["chill", "playful"],
+  preparation: ["playful", "energetic"],
+  playing: ["energetic", "epic"],
+  voting: ["tense", "mysterious"],
+  victory: ["epic", "energetic"],
+  defeat: ["mysterious", "chill"],
+  undercover: ["mysterious", "tense"],
+  audiophone: ["playful", "chill"],
+  quiz: ["playful", "energetic"],
+  monopoly: ["epic", "energetic"],
+  pixoguess: ["playful", "energetic"],
+};
+
+function pickTrackForSituation(
+  situation: MusicSituation,
+  excludeId?: number,
+): MusicTrack {
+  const moods = SITUATION_TO_MOODS[situation] ?? ["energetic"];
+  for (const mood of moods) {
+    const candidates = musicTracks.filter(
+      (t) => t.moods?.includes(mood) && t.id !== excludeId,
+    );
+    if (candidates.length > 0) {
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+  }
+  return musicTracks[Math.floor(Math.random() * musicTracks.length)];
+}
 
 interface BackgroundMusicContextType {
   volume: number;
@@ -51,6 +111,12 @@ interface BackgroundMusicContextType {
   progress: number;
   duration: number;
   seek: (time: number) => void;
+  /** Auto adaptive mode: when true, music auto-switches with the current situation. */
+  autoMode: boolean;
+  setAutoMode: (v: boolean) => void;
+  /** Current situation (set by the app) used by the auto-selector. */
+  situation: MusicSituation;
+  setSituation: (s: MusicSituation) => void;
 }
 
 const BackgroundMusicContext = createContext<BackgroundMusicContextType | undefined>(undefined);
@@ -70,9 +136,38 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasUserInteracted = useRef(false);
 
+  const [autoMode, setAutoModeState] = useState<boolean>(() => {
+    const saved = localStorage.getItem('backgroundMusicAuto');
+    return saved === null ? true : saved === 'true';
+  });
+  const [situation, setSituationState] = useState<MusicSituation>("home");
+  const lastAutoSituation = useRef<MusicSituation | null>(null);
+
+  const setAutoMode = useCallback((v: boolean) => {
+    setAutoModeState(v);
+    localStorage.setItem('backgroundMusicAuto', String(v));
+  }, []);
+
+  const setSituation = useCallback((s: MusicSituation) => {
+    setSituationState(s);
+  }, []);
+
   const currentTrack = useMemo(() => 
     musicTracks[currentTrackIndex] || null
   , [currentTrackIndex]);
+
+  // Auto-switch track when situation changes (only if autoMode is on)
+  useEffect(() => {
+    if (!autoMode) return;
+    if (lastAutoSituation.current === situation) return;
+    lastAutoSituation.current = situation;
+    const currentId = musicTracks[currentTrackIndex]?.id;
+    const next = pickTrackForSituation(situation, currentId);
+    const nextIdx = musicTracks.findIndex((t) => t.id === next.id);
+    if (nextIdx !== -1 && nextIdx !== currentTrackIndex) {
+      setCurrentTrackIndex(nextIdx);
+    }
+  }, [autoMode, situation, currentTrackIndex]);
 
   // Throttled progress update
   const progressUpdateRef = useRef<number>(0);
@@ -193,8 +288,12 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     selectTrack,
     progress,
     duration,
-    seek
-  }), [volume, setVolume, isPlaying, pause, play, currentTrack, nextTrack, previousTrack, selectTrack, progress, duration, seek]);
+    seek,
+    autoMode,
+    setAutoMode,
+    situation,
+    setSituation,
+  }), [volume, setVolume, isPlaying, pause, play, currentTrack, nextTrack, previousTrack, selectTrack, progress, duration, seek, autoMode, setAutoMode, situation, setSituation]);
 
   return (
     <BackgroundMusicContext.Provider value={contextValue}>
