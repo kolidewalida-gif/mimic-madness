@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 
 interface Player {
   id: string;
@@ -63,6 +64,20 @@ export const ResultsPhase = ({
   const [downloadingPlayer, setDownloadingPlayer] = useState<string | null>(null);
   const { playSound } = useSoundEffects();
   const { toast } = useToast();
+  const { setSituation, play, autoMode } = useBackgroundMusic();
+
+  // Trigger victory music when results screen mounts (auto mode only)
+  useEffect(() => {
+    if (autoMode) {
+      setSituation("victory");
+      // Ensure music is playing (it may have been paused during voting)
+      play();
+    }
+    return () => {
+      // Restore lobby vibe after results
+      if (autoMode) setSituation("lobby");
+    };
+  }, [autoMode, setSituation, play]);
 
   const handleDownloadImitation = async (playerId: string, playerName: string) => {
     setDownloadingPlayer(playerId);
