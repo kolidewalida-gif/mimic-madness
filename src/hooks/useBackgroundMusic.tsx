@@ -15,6 +15,16 @@ import music11 from '@/assets/background-music-11.mp3';
 import music12 from '@/assets/background-music-12.mp3';
 import music13 from '@/assets/background-music-13.mp3';
 
+// Adaptive original tracks (composed for each situation)
+import aLobby from '@/assets/adaptive/lobby.mp3';
+import aGameplay from '@/assets/adaptive/gameplay.mp3';
+import aVote from '@/assets/adaptive/vote.mp3';
+import aVictory from '@/assets/adaptive/victory.mp3';
+import aDefeat from '@/assets/adaptive/defeat.mp3';
+import aUndercover from '@/assets/adaptive/undercover.mp3';
+import aAudiophone from '@/assets/adaptive/audio-phone.mp3';
+import aQuiz from '@/assets/adaptive/quiz.mp3';
+
 export interface MusicTrack {
   id: number;
   name: string;
@@ -63,7 +73,32 @@ const musicTracks: MusicTrack[] = [
   { id: 11, name: "Cosmic Flow", src: music11, moods: ["chill", "mysterious"] },
   { id: 12, name: "Stellar Beat", src: music12, moods: ["epic", "energetic"] },
   { id: 13, name: "Original Mafieux", src: music13, moods: ["mysterious", "tense"] },
+  // Adaptive originals (id 100+) — preferred per situation
+  { id: 100, name: "🎪 Lobby Theme", src: aLobby, moods: ["chill", "playful"] },
+  { id: 101, name: "⚡ Game On", src: aGameplay, moods: ["energetic"] },
+  { id: 102, name: "🕯️ The Vote", src: aVote, moods: ["tense", "mysterious"] },
+  { id: 103, name: "🏆 Victory Fanfare", src: aVictory, moods: ["epic"] },
+  { id: 104, name: "💀 Sad Trombone", src: aDefeat, moods: ["chill"] },
+  { id: 105, name: "🕵️ Undercover Noir", src: aUndercover, moods: ["mysterious", "tense"] },
+  { id: 106, name: "📞 Audio Phone", src: aAudiophone, moods: ["playful"] },
+  { id: 107, name: "🧠 Quiz Show", src: aQuiz, moods: ["playful", "energetic"] },
 ];
+
+/** Direct mapping from situation -> preferred adaptive track id. */
+const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number>> = {
+  home: 100,
+  lobby: 100,
+  preparation: 100,
+  playing: 101,
+  voting: 102,
+  victory: 103,
+  defeat: 104,
+  undercover: 105,
+  audiophone: 106,
+  quiz: 107,
+  monopoly: 101,
+  pixoguess: 101,
+};
 
 /** Map each game situation to a list of preferred moods (in priority order). */
 const SITUATION_TO_MOODS: Record<MusicSituation, MusicMood[]> = {
@@ -85,6 +120,12 @@ function pickTrackForSituation(
   situation: MusicSituation,
   excludeId?: number,
 ): MusicTrack {
+  // Prefer the dedicated adaptive original if available
+  const adaptiveId = SITUATION_TO_ADAPTIVE_ID[situation];
+  if (adaptiveId !== undefined && adaptiveId !== excludeId) {
+    const adaptive = musicTracks.find((t) => t.id === adaptiveId);
+    if (adaptive) return adaptive;
+  }
   const moods = SITUATION_TO_MOODS[situation] ?? ["energetic"];
   for (const mood of moods) {
     const candidates = musicTracks.filter(
