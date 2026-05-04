@@ -97,7 +97,12 @@ export const VotingPhase = ({
       pause();
     }
     return () => {
-      if (!autoMode) play();
+      if (autoMode) {
+        // Hand back to "playing" — ResultsPhase (if it mounts) will override to victory.
+        setSituation("playing");
+      } else {
+        play();
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMode]);
