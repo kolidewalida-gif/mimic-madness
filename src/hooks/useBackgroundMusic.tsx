@@ -252,19 +252,25 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
         audioRef.current = null;
       }
     };
-  }, [handleEnded, handleTimeUpdate, handleLoadedMetadata, volume]);
+  }, [handleEnded, handleTimeUpdate, handleLoadedMetadata]);
 
   // Load track when index changes
   useEffect(() => {
     if (audioRef.current && musicTracks[currentTrackIndex]) {
+      // Avoid reloading the same source (prevents stalls during rapid situation switches)
+      const nextSrc = musicTracks[currentTrackIndex].src;
+      const currentSrc = audioRef.current.src;
+      if (currentSrc && currentSrc.endsWith(nextSrc)) {
+        return;
+      }
       audioRef.current.src = musicTracks[currentTrackIndex].src;
       audioRef.current.preload = 'auto';
       localStorage.setItem('backgroundMusicTrack', currentTrackIndex.toString());
-      if (isPlaying && hasUserInteracted.current) {
+      if (hasUserInteracted.current) {
         audioRef.current.play().catch(() => {});
       }
     }
-  }, [currentTrackIndex, isPlaying]);
+  }, [currentTrackIndex]);
 
   // Update volume
   const setVolume = useCallback((newVolume: number) => {

@@ -78,7 +78,7 @@ export const VotingPhase = ({
   const [showCountdown, setShowCountdown] = useState(false);
   const [pendingPlay, setPendingPlay] = useState(false);
   const { toast } = useToast();
-  const { pause, play } = useBackgroundMusic();
+  const { pause, play, setSituation, autoMode } = useBackgroundMusic();
   const videoRef = useRef<VideoWithAudioOverlayRef>(null);
   const teamVideoRef = useRef<TeamVideoOverlayRef>(null);
   const { playSound } = useSoundEffects();
@@ -88,13 +88,24 @@ export const VotingPhase = ({
   const displayItems = gameMode === '2v2' ? teamImitations : imitations;
   const totalItems = displayItems.length;
 
-  // Pause music during voting phase
+  // Switch music to "voting" situation (tense theme) during voting phase.
+  // When autoMode is OFF, fall back to pausing the music entirely.
   useEffect(() => {
-    pause();
+    if (autoMode) {
+      setSituation("voting");
+    } else {
+      pause();
+    }
     return () => {
-      play();
+      if (autoMode) {
+        // Hand back to "playing" — ResultsPhase (if it mounts) will override to victory.
+        setSituation("playing");
+      } else {
+        play();
+      }
     };
-  }, [pause, play]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMode]);
 
   // Initialize or join voting session
   useEffect(() => {

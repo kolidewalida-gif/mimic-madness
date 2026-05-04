@@ -67,17 +67,18 @@ export const ResultsPhase = ({
   const { setSituation, play, autoMode } = useBackgroundMusic();
 
   // Trigger victory music when results screen mounts (auto mode only)
+  // NOTE: deps intentionally omit `play` (it changes whenever the current track
+  // changes, which would create an infinite loop with the auto-switch effect).
   useEffect(() => {
     if (autoMode) {
       setSituation("victory");
-      // Ensure music is playing (it may have been paused during voting)
       play();
     }
     return () => {
-      // Restore lobby vibe after results
       if (autoMode) setSituation("lobby");
     };
-  }, [autoMode, setSituation, play]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMode]);
 
   const handleDownloadImitation = async (playerId: string, playerName: string) => {
     setDownloadingPlayer(playerId);
