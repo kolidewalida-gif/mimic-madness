@@ -273,33 +273,79 @@ export const UndercoverGameScreen = memo(({ currentPlayer, players, lobbyId, onE
         </div>
       </motion.div>
 
-      {/* ═══ PLAYERS ROW ═══ */}
+      {/* ═══ PLAYERS COLUMNS (sketch layout) ═══ */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
-        className="bg-card/40 border-b border-border/20 px-4 py-3"
+        className="bg-card/30 border-b border-border/20 px-4 py-4"
       >
-        <div className="max-w-lg mx-auto">
-          <div className="flex justify-center gap-3 sm:gap-4 overflow-x-auto pb-1 scrollbar-hide">
-            {gamePlayers.map((p, i) => (
-              <PlayerBubble
-                key={p.id}
-                player={p}
-                index={i}
-                isCurrent={currentTurnPlayerId === p.player_id && phase === 'clue_giving'}
-                isMe={p.player_id === currentPlayer.id}
-                isEliminated={!p.is_alive}
-                hasClue={!!p.current_clue && phase === 'clue_giving'}
-                hasVoted={!!p.vote_target && phase === 'voting'}
-                isSelected={selectedVote === p.player_id}
-                onClick={
-                  phase === 'voting' && myPlayer?.is_alive && !hasVoted && p.player_id !== currentPlayer.id && p.is_alive
-                    ? () => setSelectedVote(p.player_id)
-                    : undefined
-                }
-              />
-            ))}
+        <div className="max-w-5xl mx-auto">
+          <div className="flex justify-start sm:justify-center gap-3 sm:gap-5 overflow-x-auto pb-2 scrollbar-hide">
+            {gamePlayers.map((p, i) => {
+              const isCurrent = currentTurnPlayerId === p.player_id && phase === 'clue_giving';
+              const isMe = p.player_id === currentPlayer.id;
+              const isEliminated = !p.is_alive;
+              const isSelectable = phase === 'voting' && myPlayer?.is_alive && !hasVoted && p.player_id !== currentPlayer.id && p.is_alive;
+              const isSelected = selectedVote === p.player_id;
+              const playerHistory = (p as any).clue_history as string[] | undefined;
+              const cluesArray: string[] = Array.isArray(playerHistory) && playerHistory.length > 0
+                ? playerHistory
+                : (p.current_clue ? [p.current_clue] : []);
+
+              return (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className={cn(
+                    'flex flex-col items-center min-w-[80px] sm:min-w-[96px] gap-2 rounded-2xl p-2 transition-all',
+                    isMe && 'bg-primary/5 ring-1 ring-primary/30',
+                    isSelected && 'ring-2 ring-red-500 bg-red-500/10',
+                    isEliminated && 'opacity-40',
+                    isSelectable && 'cursor-pointer hover:bg-primary/10',
+                  )}
+                  onClick={isSelectable ? () => setSelectedVote(p.player_id) : undefined}
+                >
+                  <PlayerBubble
+                    player={p}
+                    index={i}
+                    isCurrent={isCurrent}
+                    isMe={isMe}
+                    isEliminated={isEliminated}
+                    hasClue={!!p.current_clue && phase === 'clue_giving'}
+                    hasVoted={!!p.vote_target && phase === 'voting'}
+                    isSelected={false}
+                  />
+                  {/* Stacked clues per round */}
+                  <div className="flex flex-col items-center gap-1 w-full">
+                    {cluesArray.length === 0 ? (
+                      <>
+                        <div className="h-1.5 w-10 bg-border/40 rounded-full" />
+                        <div className="h-1.5 w-8 bg-border/30 rounded-full" />
+                        <div className="h-1.5 w-6 bg-border/20 rounded-full" />
+                      </>
+                    ) : (
+                      cluesArray.map((c, idx) => (
+                        <div
+                          key={idx}
+                          className={cn(
+                            'text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md max-w-[80px] truncate border',
+                            idx === cluesArray.length - 1
+                              ? 'bg-primary/15 border-primary/30 text-primary'
+                              : 'bg-muted/20 border-border/30 text-muted-foreground'
+                          )}
+                          title={c}
+                        >
+                          {c}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </motion.div>
