@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Check, Send, Zap, Brain, Timer, AlertTriangle } from 'lucide-react';
+import { Check, Send, Zap, Brain, Timer, AlertTriangle, Flame, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuizLiveScoreboard } from './QuizLiveScoreboard';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { QuizJokers, type JokersState } from './QuizJokers';
 
 interface Player {
   id: string;
@@ -29,15 +30,22 @@ interface QuizQuestionProps {
   roundNumber: number;
   totalRounds: number;
   timeRemaining: number;
+  totalTime?: number;
   hasAnswered: boolean;
   answeredPlayers: string[];
   players: Player[];
   scores: QuizScore[];
   currentPlayerId: string;
   onSubmitAnswer: (answer: string) => void;
+  jokers?: JokersState | null;
+  onFiftyFifty?: () => void;
+  onFreeze?: () => void;
+  onSkip?: () => void;
+  hiddenOptions?: string[];
+  currentStreak?: number;
+  bestStreak?: number;
 }
 
-const TOTAL_TIME = 30000;
 
 const categoryLabels: Record<string, string> = {
   culture: '🎭 Culture',
@@ -80,17 +88,25 @@ export const QuizQuestion = ({
   roundNumber,
   totalRounds,
   timeRemaining,
+  totalTime = 30000,
   hasAnswered,
   answeredPlayers,
   players,
   scores,
   currentPlayerId,
-  onSubmitAnswer
+  onSubmitAnswer,
+  jokers,
+  onFiftyFifty,
+  onFreeze,
+  onSkip,
+  hiddenOptions = [],
+  currentStreak = 0,
+  bestStreak = 0,
 }: QuizQuestionProps) => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const progress = (timeRemaining / TOTAL_TIME) * 100;
+  const progress = (timeRemaining / totalTime) * 100;
   const isUrgent = timeRemaining <= 5000;
   const isCritical = timeRemaining <= 3000;
   const seconds = Math.ceil(timeRemaining / 1000);
@@ -243,18 +259,43 @@ export const QuizQuestion = ({
           </h2>
         </div>
 
+        {/* Streak indicator */}
+        {currentStreak >= 2 && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/20 border border-orange-500/40 animate-pulse">
+            <Flame className="h-4 w-4 text-orange-400" />
+            <span className="text-sm font-bold text-orange-300">Série x{currentStreak}</span>
+            {bestStreak > currentStreak && (
+              <span className="text-xs text-orange-300/70 flex items-center gap-1">
+                <Trophy className="h-3 w-3" /> {bestStreak}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Jokers */}
+        {jokers && !hasAnswered && (
+          <QuizJokers
+            jokers={jokers}
+            onUseFiftyFifty={() => onFiftyFifty?.()}
+            onUseFreeze={() => onFreeze?.()}
+            onUseSkip={() => onSkip?.()}
+            disabled={hasAnswered}
+          />
+        )}
+
         {/* QCM Options - 2x2 Grid */}
         {questionType === 'qcm' && options && options.length > 0 ? (
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3">
             {options.map((option, index) => {
               const style = optionStyles[index % 4];
               const isSelected = selectedOption === option;
+              const isHidden = hiddenOptions.includes(option);
               
               return (
                 <button
                   key={index}
                   onClick={() => handleSelectOption(option)}
-                  disabled={hasAnswered}
+                  disabled={hasAnswered || isHidden}
                   className={cn(
                     "relative h-auto min-h-[90px] p-5 text-left",
                     "border-2 rounded-2xl backdrop-blur-sm",
@@ -262,9 +303,10 @@ export const QuizQuestion = ({
                     "flex items-center gap-4",
                     "animate-optionAppear",
                     style.bg, style.border,
-                    !hasAnswered && cn(style.hover, "hover:scale-[1.02] hover:shadow-lg", style.glow, "active:scale-[0.98]"),
+                    !hasAnswered && !isHidden && cn(style.hover, "hover:scale-[1.02] hover:shadow-lg", style.glow, "active:scale-[0.98]"),
                     isSelected && "ring-4 ring-primary/60 scale-[1.02] shadow-xl shadow-primary/30",
-                    hasAnswered && !isSelected && "opacity-40 scale-95"
+                    hasAnswered && !isSelected && "opacity-40 scale-95",
+                    isHidden && "opacity-20 grayscale line-through"
                   )}
                   style={{ animationDelay: `${index * 80}ms` }}
                 >

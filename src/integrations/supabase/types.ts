@@ -1104,46 +1104,58 @@ export type Database = {
       }
       quiz_rounds: {
         Row: {
+          answer_duration_ms: number
           category: string
           correct_answer: string
           created_at: string
           difficulty: string
+          difficulty_filter: string | null
           id: string
           lobby_id: string
           options: string[] | null
           phase: string
+          question_mode: string
           question_text: string
           question_type: string | null
           round_number: number
           started_at: string | null
+          total_rounds: number
         }
         Insert: {
+          answer_duration_ms?: number
           category?: string
           correct_answer: string
           created_at?: string
           difficulty?: string
+          difficulty_filter?: string | null
           id?: string
           lobby_id: string
           options?: string[] | null
           phase?: string
+          question_mode?: string
           question_text: string
           question_type?: string | null
           round_number?: number
           started_at?: string | null
+          total_rounds?: number
         }
         Update: {
+          answer_duration_ms?: number
           category?: string
           correct_answer?: string
           created_at?: string
           difficulty?: string
+          difficulty_filter?: string | null
           id?: string
           lobby_id?: string
           options?: string[] | null
           phase?: string
+          question_mode?: string
           question_text?: string
           question_type?: string | null
           round_number?: number
           started_at?: string | null
+          total_rounds?: number
         }
         Relationships: [
           {

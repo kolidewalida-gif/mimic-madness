@@ -4,6 +4,7 @@ import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { emitXpGain } from '@/components/XpGainPopup';
 import { emitLevelUpNotification } from '@/components/RewardNotification';
 import { usePlayerLevel, XP_REWARDS } from '@/hooks/usePlayerLevel';
+import { DEFAULT_QUIZ_SETTINGS, type QuizSettings } from '@/components/QuizSettingsPanel';
 
 interface Player {
   id: string;
@@ -39,19 +40,10 @@ interface QuizAnswer {
 
 type QuizPhase = 'waiting' | 'countdown' | 'answering' | 'reveal' | 'scores' | 'final';
 
-const TOTAL_ROUNDS = 10;
-const ANSWER_TIME_MS = 30000; // 30 seconds
-
-// Calculate points based on response time (30 seconds max)
-const calculatePoints = (responseTimeMs: number): number => {
-  if (responseTimeMs < 3000) return 10;
-  if (responseTimeMs < 6000) return 8;
-  if (responseTimeMs < 10000) return 6;
-  if (responseTimeMs < 15000) return 4;
-  if (responseTimeMs < 20000) return 3;
-  if (responseTimeMs < 25000) return 2;
-  if (responseTimeMs < 30000) return 1;
-  return 0;
+// Calculate points proportionally to total duration (max 10 base points)
+const calculatePoints = (responseTimeMs: number, durationMs: number): number => {
+  const ratio = Math.max(0, 1 - responseTimeMs / durationMs);
+  return Math.max(0, Math.round(ratio * 10));
 };
 
 // Normalize answer for comparison (lowercase, trim, remove accents)
@@ -68,12 +60,15 @@ export const useQuizGame = (
   lobbyId: string,
   currentPlayer: Player,
   players: Player[],
-  selectedCategory: string = 'mixed'
+  selectedCategory: string = 'mixed',
+  hostSettings: QuizSettings = DEFAULT_QUIZ_SETTINGS
 ) => {
   const [phase, setPhase] = useState<QuizPhase>('waiting');
   const [currentRound, setCurrentRound] = useState(1);
   const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState(ANSWER_TIME_MS);
+  const [answerDurationMs, setAnswerDurationMs] = useState(hostSettings.answerDurationMs);
+  const [totalRounds, setTotalRounds] = useState(hostSettings.totalRounds);
+  const [timeRemaining, setTimeRemaining] = useState(hostSettings.answerDurationMs);
   const [serverStartTime, setServerStartTime] = useState<string | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [scores, setScores] = useState<QuizScore[]>([]);
@@ -81,6 +76,9 @@ export const useQuizGame = (
   const [previousQuestions, setPreviousQuestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [answeredPlayers, setAnsweredPlayers] = useState<string[]>([]);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [freezeBonusMs, setFreezeBonusMs] = useState(0);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const phaseRef = useRef(phase);
@@ -155,6 +153,8 @@ export const useQuizGame = (
             console.log('[Quiz] Round update:', newRound.phase, 'round:', newRound.round_number);
             
             setCurrentRound(newRound.round_number);
+            if (newRound.total_rounds) setTotalRounds(newRound.total_rounds);
+            if (newRound.answer_duration_ms) setAnswerDurationMs(newRound.answer_duration_ms);
             
             const options: string[] = newRound.options || [];
             const questionType = newRound.question_type || 'qcm';
@@ -173,6 +173,7 @@ export const useQuizGame = (
               setHasAnswered(false);
               setAnsweredPlayers([]);
               setRoundAnswers([]);
+              setFreezeBonusMs(0);
               playSoundEffect('quizReveal', 0.5);
             } else if (newRound.phase === 'answering') {
               setPhase('answering');
@@ -184,10 +185,10 @@ export const useQuizGame = (
                 const startTime = new Date(newRound.started_at).getTime();
                 const now = Date.now();
                 const elapsed = now - startTime;
-                const remaining = Math.max(0, ANSWER_TIME_MS - elapsed);
+                const remaining = Math.max(0, (newRound.answer_duration_ms || answerDurationMs) - elapsed);
                 setTimeRemaining(remaining);
               } else {
-                setTimeRemaining(ANSWER_TIME_MS);
+                setTimeRemaining(newRound.answer_duration_ms || answerDurationMs);
               }
             } else if (newRound.phase === 'reveal') {
               setPhase('reveal');
@@ -281,7 +282,7 @@ export const useQuizGame = (
         const startTime = new Date(serverStartTime).getTime();
         const now = Date.now();
         const elapsed = now - startTime;
-        const remaining = Math.max(0, ANSWER_TIME_MS - elapsed);
+        const remaining = Math.max(0, (answerDurationMs + freezeBonusMs) - elapsed);
         
         setTimeRemaining(remaining);
         
@@ -320,7 +321,7 @@ export const useQuizGame = (
         timerRef.current = null;
       }
     };
-  }, [phase, serverStartTime, currentPlayer.isHost, advanceToReveal]);
+  }, [phase, serverStartTime, currentPlayer.isHost, advanceToReveal, answerDurationMs, freezeBonusMs]);
 
   // Generate a new question using the edge function
   const generateQuestion = useCallback(async (category: string = 'mixed'): Promise<QuizQuestion | null> => {
@@ -334,6 +335,7 @@ export const useQuizGame = (
       const { data, error } = await supabase.functions.invoke('generate-quiz-question', {
         body: { 
           category: categoryToUse,
+          difficulty: hostSettings.difficulty !== 'mixed' ? hostSettings.difficulty : undefined,
           previousQuestions 
         }
       });
@@ -342,8 +344,11 @@ export const useQuizGame = (
       
       setPreviousQuestions(prev => [...prev, data.question]);
       
-      // 70% chance QCM, 30% chance text input
-      const questionType: 'qcm' | 'text' = Math.random() < 0.7 ? 'qcm' : 'text';
+      // Question type based on host settings
+      let questionType: 'qcm' | 'text';
+      if (hostSettings.questionMode === 'qcm') questionType = 'qcm';
+      else if (hostSettings.questionMode === 'text') questionType = 'text';
+      else questionType = Math.random() < 0.7 ? 'qcm' : 'text';
       
       return {
         question: data.question,
@@ -366,7 +371,7 @@ export const useQuizGame = (
     } finally {
       setIsLoading(false);
     }
-  }, [previousQuestions]);
+  }, [previousQuestions, hostSettings.difficulty, hostSettings.questionMode]);
 
   // Start a new round (host only)
   const startRound = useCallback(async (category: string = selectedCategory, roundNum: number = currentRound) => {
@@ -396,7 +401,11 @@ export const useQuizGame = (
       category: question.category,
       difficulty: question.difficulty,
       phase: 'countdown',
-      started_at: null
+      started_at: null,
+      total_rounds: hostSettings.totalRounds,
+      answer_duration_ms: hostSettings.answerDurationMs,
+      difficulty_filter: hostSettings.difficulty,
+      question_mode: hostSettings.questionMode,
     });
 
     // After countdown, transition to answering
@@ -410,14 +419,14 @@ export const useQuizGame = (
         .eq('lobby_id', lobbyId)
         .eq('round_number', roundNum);
     }, 3500);
-  }, [currentPlayer.isHost, lobbyId, currentRound, generateQuestion, selectedCategory]);
+  }, [currentPlayer.isHost, lobbyId, currentRound, generateQuestion, selectedCategory, hostSettings]);
 
   // Submit an answer
   const submitAnswer = useCallback(async (answer: string) => {
     if (hasAnswered || !serverStartTime || !currentQuestion) return;
     
     const startTime = new Date(serverStartTime).getTime();
-    const responseTime = Date.now() - startTime;
+    const responseTime = Math.max(0, Date.now() - startTime - freezeBonusMs);
     const normalizedUserAnswer = normalizeAnswer(answer);
     const normalizedCorrectAnswer = normalizeAnswer(currentQuestion.answer);
     
@@ -426,7 +435,17 @@ export const useQuizGame = (
                       normalizedUserAnswer.includes(normalizedCorrectAnswer) ||
                       normalizedUserAnswer === normalizedCorrectAnswer;
     
-    const points = isCorrect ? calculatePoints(responseTime) : 0;
+    let points = isCorrect ? calculatePoints(responseTime, answerDurationMs) : 0;
+
+    // Streak bonus
+    if (isCorrect && hostSettings.enableStreak) {
+      const newStreak = currentStreak + 1;
+      setCurrentStreak(newStreak);
+      setBestStreak(b => Math.max(b, newStreak));
+      if (newStreak >= 3) points += Math.min(5, newStreak - 2); // +1, +2, +3, capped at +5
+    } else if (!isCorrect) {
+      setCurrentStreak(0);
+    }
     
     setHasAnswered(true);
     
@@ -453,7 +472,12 @@ export const useQuizGame = (
       is_correct: isCorrect,
       points_earned: points
     });
-  }, [hasAnswered, serverStartTime, currentQuestion, lobbyId, currentRound, currentPlayer, addXp]);
+  }, [hasAnswered, serverStartTime, currentQuestion, lobbyId, currentRound, currentPlayer, addXp, freezeBonusMs, answerDurationMs, currentStreak, hostSettings.enableStreak]);
+
+  // Joker: freeze adds 5s of personal grace (extends timer for me)
+  const useFreezeJoker = useCallback(() => {
+    setFreezeBonusMs(b => b + 5000);
+  }, []);
 
   // advanceToReveal is declared earlier in the file for timer usage
 
@@ -472,7 +496,7 @@ export const useQuizGame = (
   const nextRound = useCallback(async () => {
     if (!currentPlayer.isHost) return;
     
-    if (currentRound >= TOTAL_ROUNDS) {
+    if (currentRound >= totalRounds) {
       console.log('[Quiz] Moving to final results');
       await supabase.from('quiz_rounds')
         .update({ phase: 'final' })
@@ -485,7 +509,7 @@ export const useQuizGame = (
       setHasAnswered(false);
       startRound(selectedCategory, nextRoundNum);
     }
-  }, [currentPlayer.isHost, currentRound, lobbyId, startRound, selectedCategory]);
+  }, [currentPlayer.isHost, currentRound, lobbyId, startRound, selectedCategory, totalRounds]);
 
   // Start the quiz game (host only)
   const startQuiz = useCallback(async (category: string = 'mixed') => {
@@ -500,6 +524,8 @@ export const useQuizGame = (
     
     setCurrentRound(1);
     setPreviousQuestions([]);
+    setCurrentStreak(0);
+    setBestStreak(0);
     setScores(players.map(p => ({
       player_id: p.id,
       player_name: p.name,
@@ -514,14 +540,18 @@ export const useQuizGame = (
   return {
     phase,
     currentRound,
-    totalRounds: TOTAL_ROUNDS,
+    totalRounds,
     currentQuestion,
     timeRemaining,
+    answerDurationMs,
     hasAnswered,
     scores,
     roundAnswers,
     answeredPlayers,
     isLoading,
+    currentStreak,
+    bestStreak,
+    useFreezeJoker,
     startQuiz,
     submitAnswer,
     advanceToReveal,
