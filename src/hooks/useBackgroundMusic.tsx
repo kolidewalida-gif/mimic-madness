@@ -17,6 +17,7 @@ import music13 from '@/assets/background-music-13.mp3';
 
 // Adaptive original tracks (composed for each situation)
 import aLobby from '@/assets/adaptive/lobby.mp3';
+import aLobby2 from '@/assets/adaptive/lobby2.mp3';
 import aGameplay from '@/assets/adaptive/gameplay.mp3';
 import aVote from '@/assets/adaptive/vote.mp3';
 import aVictory from '@/assets/adaptive/victory.mp3';
@@ -82,13 +83,14 @@ const musicTracks: MusicTrack[] = [
   { id: 105, name: "🕵️ Undercover Noir", src: aUndercover, moods: ["mysterious", "tense"] },
   { id: 106, name: "📞 Audio Phone", src: aAudiophone, moods: ["playful"] },
   { id: 107, name: "🧠 Quiz Show", src: aQuiz, moods: ["playful", "energetic"] },
+  { id: 108, name: "🎪 Lobby Theme II", src: aLobby2, moods: ["chill", "playful"] },
 ];
 
-/** Direct mapping from situation -> preferred adaptive track id. */
-const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number>> = {
-  home: 100,
-  lobby: 100,
-  preparation: 100,
+/** Direct mapping from situation -> preferred adaptive track id(s). Arrays are randomized. */
+const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number | number[]>> = {
+  home: [100, 108],
+  lobby: [100, 108],
+  preparation: [100, 108],
   playing: 101,
   voting: 102,
   victory: 103,
@@ -121,10 +123,13 @@ function pickTrackForSituation(
   excludeId?: number,
 ): MusicTrack {
   // Prefer the dedicated adaptive original if available
-  const adaptiveId = SITUATION_TO_ADAPTIVE_ID[situation];
-  if (adaptiveId !== undefined && adaptiveId !== excludeId) {
-    const adaptive = musicTracks.find((t) => t.id === adaptiveId);
-    if (adaptive) return adaptive;
+  const adaptive = SITUATION_TO_ADAPTIVE_ID[situation];
+  if (adaptive !== undefined) {
+    const ids = Array.isArray(adaptive) ? adaptive : [adaptive];
+    const pool = ids.filter((id) => id !== excludeId);
+    const pickId = (pool.length > 0 ? pool : ids)[Math.floor(Math.random() * (pool.length > 0 ? pool.length : ids.length))];
+    const track = musicTracks.find((t) => t.id === pickId);
+    if (track) return track;
   }
   const moods = SITUATION_TO_MOODS[situation] ?? ["energetic"];
   for (const mood of moods) {
