@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Mic, MicOff, Check, Play, Pause, Volume2, Loader2, ChevronRight, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+=======
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Mic, MicOff, Check, Play, Pause, Volume2, Loader2, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
 interface AudioPhoneImitationPhaseProps {
   currentPhraseIndex: number;
@@ -13,9 +21,12 @@ interface AudioPhoneImitationPhaseProps {
   hasImitated: boolean;
   isAuthor: boolean;
   allImitationsDone: boolean;
+<<<<<<< HEAD
   completedImitations: number;
   totalImitations: number;
   pendingPlayerNames: string[];
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   isHost: boolean;
   isSubmitting: boolean;
   maxSeconds: number;
@@ -28,12 +39,19 @@ export const AudioPhoneImitationPhase = ({
   totalPhrases,
   authorName,
   reversedAudioUrl,
+<<<<<<< HEAD
   hasImitated,
   isAuthor,
   allImitationsDone,
   completedImitations,
   totalImitations,
   pendingPlayerNames,
+=======
+  shouldImitate,
+  hasImitated,
+  isAuthor,
+  allImitationsDone,
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   isHost,
   isSubmitting,
   maxSeconds,
@@ -46,7 +64,11 @@ export const AudioPhoneImitationPhase = ({
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -57,6 +79,7 @@ export const AudioPhoneImitationPhase = ({
   const animationRef = useRef<number | null>(null);
 
   const playReversedAudio = () => {
+<<<<<<< HEAD
     if (!audioRef.current) return;
     audioRef.current.play();
     setIsPlaying(true);
@@ -66,6 +89,19 @@ export const AudioPhoneImitationPhase = ({
     if (!audioRef.current) return;
     audioRef.current.pause();
     setIsPlaying(false);
+=======
+    if (audioRef.current) {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const pauseAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   };
 
   const stopRecording = useCallback(() => {
@@ -86,9 +122,17 @@ export const AudioPhoneImitationPhase = ({
 
   const startRecording = async () => {
     try {
+<<<<<<< HEAD
       setRecordedBlob(null);
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+=======
+      // Reset recorded blob before starting new recording
+      setRecordedBlob(null);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       analyserRef.current = audioContextRef.current.createAnalyser();
@@ -104,6 +148,7 @@ export const AudioPhoneImitationPhase = ({
         }
       }
 
+<<<<<<< HEAD
       mediaRecorderRef.current = new MediaRecorder(stream, {
         mimeType: selectedMimeType || undefined,
       });
@@ -111,18 +156,35 @@ export const AudioPhoneImitationPhase = ({
 
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) chunksRef.current.push(event.data);
+=======
+      mediaRecorderRef.current = new MediaRecorder(stream, { 
+        mimeType: selectedMimeType || undefined 
+      });
+      chunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       };
 
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: selectedMimeType || 'audio/webm' });
         setRecordedBlob(blob);
+<<<<<<< HEAD
         stream.getTracks().forEach((track) => track.stop());
+=======
+        stream.getTracks().forEach(track => track.stop());
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       };
 
       mediaRecorderRef.current.start(100);
       setIsRecording(true);
       setRecordingTime(0);
 
+<<<<<<< HEAD
+=======
+      // Drift-free timer using performance.now() + rAF (smooth + survives bg tabs)
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       startedAtRef.current = performance.now();
       const tick = () => {
         const elapsed = (performance.now() - startedAtRef.current) / 1000;
@@ -140,8 +202,13 @@ export const AudioPhoneImitationPhase = ({
         if (analyserRef.current) {
           const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
           analyserRef.current.getByteFrequencyData(dataArray);
+<<<<<<< HEAD
           const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
           setAudioLevel(average / 255);
+=======
+          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          setAudioLevel(avg / 255);
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
         }
         animationRef.current = requestAnimationFrame(updateLevel);
       };
@@ -152,11 +219,20 @@ export const AudioPhoneImitationPhase = ({
   };
 
   const handleSubmit = async () => {
+<<<<<<< HEAD
     if (!recordedBlob) return;
     const success = await onSubmitImitation(recordedBlob);
     if (success) {
       setRecordedBlob(null);
       setHasListened(false);
+=======
+    if (recordedBlob) {
+      const success = await onSubmitImitation(recordedBlob);
+      if (success) {
+        setRecordedBlob(null);
+        setHasListened(false);
+      }
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     }
   };
 
@@ -168,6 +244,10 @@ export const AudioPhoneImitationPhase = ({
     };
   }, []);
 
+<<<<<<< HEAD
+=======
+  // Reset state when phrase changes
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   useEffect(() => {
     setHasListened(false);
     setRecordedBlob(null);
@@ -175,16 +255,25 @@ export const AudioPhoneImitationPhase = ({
     setIsPlaying(false);
   }, [currentPhraseIndex]);
 
+<<<<<<< HEAD
   const progressPercent = totalImitations > 0 ? (completedImitations / totalImitations) * 100 : 0;
 
   if (isAuthor) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-amber-950/80 to-orange-950/80 border-amber-500/30 backdrop-blur-xl">
+=======
+  // This player is the author - just wait for others
+  if (isAuthor) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-amber-950/80 to-orange-950/80 border-amber-500/30 backdrop-blur-xl">
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           <div className="text-center space-y-6">
             <div className="w-20 h-20 mx-auto bg-amber-500/20 rounded-full flex items-center justify-center">
               <Volume2 className="w-10 h-10 text-amber-400 animate-pulse" />
             </div>
+<<<<<<< HEAD
 
             <div>
               <h2 className="text-2xl font-bold text-amber-400 mb-2">
@@ -208,6 +297,20 @@ export const AudioPhoneImitationPhase = ({
                   Encore attendus : <span className="text-foreground">{pendingPlayerNames.join(', ')}</span>
                 </p>
               )}
+=======
+            
+            <div>
+              <h2 className="text-2xl font-bold text-amber-400 mb-2">
+                C'est ta phrase !
+              </h2>
+              <p className="text-muted-foreground">
+                Les autres joueurs essaient de l'imiter...
+              </p>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              Phrase {currentPhraseIndex + 1} / {totalPhrases}
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
             </div>
 
             {allImitationsDone && isHost && (
@@ -226,14 +329,23 @@ export const AudioPhoneImitationPhase = ({
     );
   }
 
+<<<<<<< HEAD
   if (hasImitated) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-emerald-950/80 to-teal-950/80 border-emerald-500/30 backdrop-blur-xl">
+=======
+  // Already imitated - waiting
+  if (hasImitated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-emerald-950/80 to-teal-950/80 border-emerald-500/30 backdrop-blur-xl">
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           <div className="text-center space-y-6">
             <div className="w-20 h-20 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
               <Check className="w-10 h-10 text-emerald-400" />
             </div>
+<<<<<<< HEAD
 
             <div>
               <h2 className="text-2xl font-bold text-emerald-400 mb-2">
@@ -257,6 +369,20 @@ export const AudioPhoneImitationPhase = ({
                   En attente de : <span className="text-foreground">{pendingPlayerNames.join(', ')}</span>
                 </p>
               )}
+=======
+            
+            <div>
+              <h2 className="text-2xl font-bold text-emerald-400 mb-2">
+                Imitation envoyée !
+              </h2>
+              <p className="text-muted-foreground">
+                En attente des autres joueurs...
+              </p>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              Phrase de {authorName} • {currentPhraseIndex + 1} / {totalPhrases}
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
             </div>
 
             {allImitationsDone && isHost && (
@@ -277,8 +403,14 @@ export const AudioPhoneImitationPhase = ({
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
+<<<<<<< HEAD
       <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-cyan-950/80 to-blue-950/80 border-cyan-500/30 backdrop-blur-xl">
         <div className="text-center space-y-6">
+=======
+      <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-cyan-950/80 to-blue-950/80 border-cyan-500/30 backdrop-blur-xl">
+        <div className="text-center space-y-6">
+          {/* Hidden audio element */}
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           {reversedAudioUrl && (
             <audio
               ref={audioRef}
@@ -298,6 +430,7 @@ export const AudioPhoneImitationPhase = ({
               Phrase de {authorName}
             </h2>
             <p className="text-muted-foreground">
+<<<<<<< HEAD
               Ecoute l audio inverse, capte son rythme, puis rejoue-le.
             </p>
           </div>
@@ -320,16 +453,30 @@ export const AudioPhoneImitationPhase = ({
             )}
           </div>
 
+=======
+              Écoute l'audio inversé puis imite-le !
+            </p>
+          </div>
+
+          {/* Listen section */}
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           <div className="space-y-4">
             <Button
               onClick={isPlaying ? pauseAudio : playReversedAudio}
               disabled={!reversedAudioUrl}
               size="lg"
               className={cn(
+<<<<<<< HEAD
                 'w-full',
                 isPlaying
                   ? 'bg-cyan-500 hover:bg-cyan-600'
                   : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700'
+=======
+                "w-full",
+                isPlaying 
+                  ? "bg-cyan-500 hover:bg-cyan-600" 
+                  : "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
               )}
             >
               {isPlaying ? (
@@ -340,7 +487,11 @@ export const AudioPhoneImitationPhase = ({
               ) : (
                 <>
                   <Play className="w-5 h-5 mr-2" />
+<<<<<<< HEAD
                   Ecouter l audio inverse
+=======
+                  Écouter l'audio inversé
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                 </>
               )}
             </Button>
@@ -348,22 +499,37 @@ export const AudioPhoneImitationPhase = ({
             {hasListened && (
               <div className="flex items-center justify-center gap-2 text-emerald-400 text-sm">
                 <Check className="w-4 h-4" />
+<<<<<<< HEAD
                 Ecoute terminee. Tu peux enregistrer.
+=======
+                Audio écouté
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
               </div>
             )}
           </div>
 
+<<<<<<< HEAD
           {hasListened && !recordedBlob && (
             <div className="space-y-4 pt-4 border-t border-cyan-500/20">
               <p className="text-sm text-muted-foreground">
                 Reproduis le groove et les attaques du son. Le naturel vaut mieux qu un volume trop fort.
               </p>
 
+=======
+          {/* Recording section */}
+          {hasListened && !recordedBlob && (
+            <div className="space-y-4 pt-4 border-t border-cyan-500/20">
+              <p className="text-sm text-muted-foreground">
+                Maintenant, enregistre ton imitation (parle à l'envers !)
+              </p>
+              
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
               <div className="relative flex justify-center">
                 <button
                   onClick={isRecording ? stopRecording : startRecording}
                   disabled={isSubmitting}
                   className={cn(
+<<<<<<< HEAD
                     'w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300',
                     isRecording
                       ? 'bg-red-500 hover:bg-red-600 animate-pulse'
@@ -373,6 +539,17 @@ export const AudioPhoneImitationPhase = ({
                     boxShadow: isRecording
                       ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(239, 68, 68, 0.4)`
                       : '0 0 30px rgba(6, 182, 212, 0.3)',
+=======
+                    "w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300",
+                    isRecording
+                      ? "bg-red-500 hover:bg-red-600 animate-pulse"
+                      : "bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
+                  )}
+                  style={{
+                    boxShadow: isRecording 
+                      ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(239, 68, 68, 0.4)`
+                      : '0 0 30px rgba(6, 182, 212, 0.3)'
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                   }}
                 >
                   {isRecording ? (
@@ -391,11 +568,20 @@ export const AudioPhoneImitationPhase = ({
             </div>
           )}
 
+<<<<<<< HEAD
           {recordedBlob && (
             <div className="space-y-4 pt-4 border-t border-cyan-500/20">
               <audio
                 src={URL.createObjectURL(recordedBlob)}
                 controls
+=======
+          {/* Submit recorded audio */}
+          {recordedBlob && (
+            <div className="space-y-4 pt-4 border-t border-cyan-500/20">
+              <audio 
+                src={URL.createObjectURL(recordedBlob)} 
+                controls 
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                 className="w-full"
               />
               <div className="flex gap-3">
@@ -404,7 +590,11 @@ export const AudioPhoneImitationPhase = ({
                   variant="outline"
                   className="flex-1"
                 >
+<<<<<<< HEAD
                   Reenregistrer
+=======
+                  Réenregistrer
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                 </Button>
                 <Button
                   onClick={handleSubmit}

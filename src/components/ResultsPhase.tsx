@@ -64,18 +64,30 @@ export const ResultsPhase = ({
   const [downloadingPlayer, setDownloadingPlayer] = useState<string | null>(null);
   const { playSound } = useSoundEffects();
   const { toast } = useToast();
+<<<<<<< HEAD
   const { setSituation, clearSituationOverride, play, autoMode } = useBackgroundMusic();
+=======
+  const { setSituation, play, autoMode } = useBackgroundMusic();
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
   // Trigger victory music when results screen mounts (auto mode only)
   // NOTE: deps intentionally omit `play` (it changes whenever the current track
   // changes, which would create an infinite loop with the auto-switch effect).
   useEffect(() => {
     if (autoMode) {
+<<<<<<< HEAD
       setSituation("victory", { priority: 3, holdMs: 4500, source: "results-phase" });
       play();
     }
     return () => {
       if (autoMode) clearSituationOverride("results-phase");
+=======
+      setSituation("victory");
+      play();
+    }
+    return () => {
+      if (autoMode) setSituation("lobby");
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMode]);
@@ -445,4 +457,8 @@ export const ResultsPhase = ({
       )}
     </div>
   );
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974

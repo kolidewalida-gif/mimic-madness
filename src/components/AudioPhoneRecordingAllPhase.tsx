@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Mic, MicOff, Check, Users, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+=======
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Mic, MicOff, Check, Users, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
 interface AudioPhoneRecordingAllPhaseProps {
   maxSeconds: number;
@@ -11,9 +19,12 @@ interface AudioPhoneRecordingAllPhaseProps {
   allSubmitted: boolean;
   playersCount: number;
   submittedCount: number;
+<<<<<<< HEAD
   submittedPlayerIds: string[];
   pendingPlayerNames: string[];
   playerNames: string[];
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   isHost: boolean;
   isSubmitting: boolean;
   onSubmit: (audioBlob: Blob) => Promise<boolean>;
@@ -27,8 +38,11 @@ export const AudioPhoneRecordingAllPhase = ({
   allSubmitted,
   playersCount,
   submittedCount,
+<<<<<<< HEAD
   pendingPlayerNames,
   playerNames,
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   isHost,
   isSubmitting,
   onSubmit,
@@ -38,7 +52,11 @@ export const AudioPhoneRecordingAllPhase = ({
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -66,13 +84,22 @@ export const AudioPhoneRecordingAllPhase = ({
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+<<<<<<< HEAD
 
+=======
+      
+      // Set up audio analysis
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
       source.connect(analyserRef.current);
 
+<<<<<<< HEAD
+=======
+      // Determine supported mime type
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
       let selectedMimeType = '';
       for (const mimeType of mimeTypes) {
@@ -82,6 +109,7 @@ export const AudioPhoneRecordingAllPhase = ({
         }
       }
 
+<<<<<<< HEAD
       mediaRecorderRef.current = new MediaRecorder(stream, {
         mimeType: selectedMimeType || undefined,
       });
@@ -90,19 +118,37 @@ export const AudioPhoneRecordingAllPhase = ({
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
+=======
+      mediaRecorderRef.current = new MediaRecorder(stream, { 
+        mimeType: selectedMimeType || undefined 
+      });
+      chunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
         }
       };
 
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: selectedMimeType || 'audio/webm' });
         setRecordedBlob(blob);
+<<<<<<< HEAD
         stream.getTracks().forEach((track) => track.stop());
+=======
+        stream.getTracks().forEach(track => track.stop());
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       };
 
       mediaRecorderRef.current.start(100);
       setIsRecording(true);
       setRecordingTime(0);
 
+<<<<<<< HEAD
+=======
+      // Smooth, drift-free timer using performance.now() + rAF
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       startedAtRef.current = performance.now();
       const tick = () => {
         const elapsed = (performance.now() - startedAtRef.current) / 1000;
@@ -116,26 +162,47 @@ export const AudioPhoneRecordingAllPhase = ({
       };
       timerRafRef.current = requestAnimationFrame(tick);
 
+<<<<<<< HEAD
+=======
+      // Animate audio level
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       const updateLevel = () => {
         if (analyserRef.current) {
           const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
           analyserRef.current.getByteFrequencyData(dataArray);
+<<<<<<< HEAD
           const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
           setAudioLevel(average / 255);
+=======
+          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          setAudioLevel(avg / 255);
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
         }
         animationRef.current = requestAnimationFrame(updateLevel);
       };
       updateLevel();
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     } catch (error) {
       console.error('Error starting recording:', error);
     }
   };
 
   const handleSubmit = async () => {
+<<<<<<< HEAD
     if (!recordedBlob) return;
     const success = await onSubmit(recordedBlob);
     if (success) {
       setRecordedBlob(null);
+=======
+    if (recordedBlob) {
+      const success = await onSubmit(recordedBlob);
+      if (success) {
+        setRecordedBlob(null);
+      }
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     }
   };
 
@@ -147,6 +214,7 @@ export const AudioPhoneRecordingAllPhase = ({
     };
   }, []);
 
+<<<<<<< HEAD
   const renderRoster = () => (
     <div className="grid gap-2 text-left">
       {playerNames.map((name, index) => {
@@ -167,10 +235,18 @@ export const AudioPhoneRecordingAllPhase = ({
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-emerald-950/80 to-teal-950/80 border-emerald-500/30 backdrop-blur-xl">
+=======
+  // Already submitted - waiting for others
+  if (hasSubmitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-emerald-950/80 to-teal-950/80 border-emerald-500/30 backdrop-blur-xl">
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           <div className="text-center space-y-6">
             <div className="w-20 h-20 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
               <Check className="w-10 h-10 text-emerald-400" />
             </div>
+<<<<<<< HEAD
 
             <div>
               <h2 className="text-2xl font-bold text-emerald-400 mb-2">
@@ -178,6 +254,15 @@ export const AudioPhoneRecordingAllPhase = ({
               </h2>
               <p className="text-muted-foreground">
                 La manche attend maintenant les derniers micros.
+=======
+            
+            <div>
+              <h2 className="text-2xl font-bold text-emerald-400 mb-2">
+                Phrase enregistrée !
+              </h2>
+              <p className="text-muted-foreground">
+                En attente des autres joueurs...
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
               </p>
             </div>
 
@@ -188,13 +273,20 @@ export const AudioPhoneRecordingAllPhase = ({
               </span>
             </div>
 
+<<<<<<< HEAD
             <div className="w-full bg-muted/30 rounded-full h-3 overflow-hidden">
               <div
+=======
+            {/* Progress bar */}
+            <div className="w-full bg-muted/30 rounded-full h-3 overflow-hidden">
+              <div 
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                 className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
                 style={{ width: `${(submittedCount / playersCount) * 100}%` }}
               />
             </div>
 
+<<<<<<< HEAD
             {renderRoster()}
 
             {pendingPlayerNames.length > 0 && (
@@ -203,6 +295,8 @@ export const AudioPhoneRecordingAllPhase = ({
               </p>
             )}
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
             {allSubmitted && isHost && (
               <Button
                 onClick={onStartImitation}
@@ -220,25 +314,40 @@ export const AudioPhoneRecordingAllPhase = ({
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
+<<<<<<< HEAD
       <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-violet-950/80 to-purple-950/80 border-violet-500/30 backdrop-blur-xl">
         <div className="text-center space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-violet-300 mb-2">
               {playerName}, enregistre ta phrase
+=======
+      <Card className="w-full max-w-lg p-8 bg-gradient-to-br from-violet-950/80 to-purple-950/80 border-violet-500/30 backdrop-blur-xl">
+        <div className="text-center space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold text-violet-300 mb-2">
+              {playerName}, enregistre ta phrase !
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
             </h2>
             <p className="text-muted-foreground">
               Dis une phrase originale (max {maxSeconds} secondes)
             </p>
+<<<<<<< HEAD
             <p className="mt-2 text-sm text-violet-200/80">
               Les meilleures phrases sont courtes, rythmiques et faciles a rejouer a l envers.
             </p>
           </div>
 
+=======
+          </div>
+
+          {/* Recording button */}
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           <div className="relative">
             <button
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isSubmitting}
               className={cn(
+<<<<<<< HEAD
                 'w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300',
                 isRecording
                   ? 'bg-red-500 hover:bg-red-600 animate-pulse'
@@ -248,6 +357,17 @@ export const AudioPhoneRecordingAllPhase = ({
                 boxShadow: isRecording
                   ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(239, 68, 68, 0.4)`
                   : '0 0 30px rgba(139, 92, 246, 0.3)',
+=======
+                "w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300",
+                isRecording
+                  ? "bg-red-500 hover:bg-red-600 animate-pulse"
+                  : "bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+              )}
+              style={{
+                boxShadow: isRecording 
+                  ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(239, 68, 68, 0.4)`
+                  : '0 0 30px rgba(139, 92, 246, 0.3)'
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
               }}
             >
               {isRecording ? (
@@ -257,6 +377,7 @@ export const AudioPhoneRecordingAllPhase = ({
               )}
             </button>
 
+<<<<<<< HEAD
             {isRecording && (
               <div className="absolute inset-0 pointer-events-none">
                 {[...Array(3)].map((_, index) => (
@@ -266,6 +387,18 @@ export const AudioPhoneRecordingAllPhase = ({
                     style={{
                       transform: `scale(${1 + audioLevel * (index + 1) * 0.3})`,
                       opacity: 1 - audioLevel * 0.3 * index,
+=======
+            {/* Audio visualizer rings */}
+            {isRecording && (
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute inset-0 rounded-full border-2 border-red-400/50"
+                    style={{
+                      transform: `scale(${1 + audioLevel * (i + 1) * 0.3})`,
+                      opacity: 1 - audioLevel * 0.3 * i,
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                       transition: 'transform 0.1s, opacity 0.1s',
                     }}
                   />
@@ -274,17 +407,30 @@ export const AudioPhoneRecordingAllPhase = ({
             )}
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* Timer */}
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           {isRecording && (
             <div className="text-3xl font-mono font-bold text-red-400">
               {recordingTime.toFixed(1)}s / {maxSeconds}s
             </div>
           )}
 
+<<<<<<< HEAD
           {recordedBlob && !isRecording && (
             <div className="space-y-4">
               <audio
                 src={URL.createObjectURL(recordedBlob)}
                 controls
+=======
+          {/* Recorded audio preview and submit */}
+          {recordedBlob && !isRecording && (
+            <div className="space-y-4">
+              <audio 
+                src={URL.createObjectURL(recordedBlob)} 
+                controls 
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                 className="w-full"
               />
               <div className="flex gap-3">
@@ -293,7 +439,11 @@ export const AudioPhoneRecordingAllPhase = ({
                   variant="outline"
                   className="flex-1"
                 >
+<<<<<<< HEAD
                   Reenregistrer
+=======
+                  Réenregistrer
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                 </Button>
                 <Button
                   onClick={handleSubmit}
@@ -311,12 +461,21 @@ export const AudioPhoneRecordingAllPhase = ({
             </div>
           )}
 
+<<<<<<< HEAD
           <div className="pt-4 border-t border-violet-500/20 space-y-3">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Users className="w-4 h-4" />
               <span>{submittedCount} / {playersCount} phrases enregistrees</span>
             </div>
             {renderRoster()}
+=======
+          {/* Progress info */}
+          <div className="pt-4 border-t border-violet-500/20">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Users className="w-4 h-4" />
+              <span>{submittedCount} / {playersCount} phrases enregistrées</span>
+            </div>
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           </div>
         </div>
       </Card>

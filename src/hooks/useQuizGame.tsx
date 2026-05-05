@@ -40,6 +40,7 @@ interface QuizAnswer {
 
 type QuizPhase = 'waiting' | 'countdown' | 'answering' | 'reveal' | 'scores' | 'final';
 
+<<<<<<< HEAD
 interface RoundInsight {
   correctCount: number;
   accuracyPercent: number;
@@ -47,6 +48,8 @@ interface RoundInsight {
   fastestCorrectAnswer: QuizAnswer | null;
 }
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 // Calculate points proportionally to total duration (max 10 base points)
 const calculatePoints = (responseTimeMs: number, durationMs: number): number => {
   const ratio = Math.max(0, 1 - responseTimeMs / durationMs);
@@ -89,7 +92,10 @@ export const useQuizGame = (
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const phaseRef = useRef(phase);
+<<<<<<< HEAD
   const advanceToRevealRef = useRef<(() => Promise<void>) | null>(null);
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   phaseRef.current = phase;
   
   // XP system
@@ -143,6 +149,7 @@ export const useQuizGame = (
     }
   }, [lobbyId, players]);
 
+<<<<<<< HEAD
   // Advance to reveal phase (host only) - declared early for timer usage
   const advanceToReveal = useCallback(async () => {
     if (!currentPlayer.isHost) return;
@@ -155,6 +162,8 @@ export const useQuizGame = (
   }, [currentPlayer.isHost, lobbyId, currentRound]);
   advanceToRevealRef.current = advanceToReveal;
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   // Subscribe to quiz round updates - SYNCHRONIZED
   useEffect(() => {
     const channel = supabase
@@ -240,6 +249,7 @@ export const useQuizGame = (
             
             // Update answered players list
             setAnsweredPlayers(prev => {
+<<<<<<< HEAD
               if (prev.includes(payload.new.player_id)) {
                 return prev;
               }
@@ -260,6 +270,12 @@ export const useQuizGame = (
               }
 
               return next;
+=======
+              if (!prev.includes(payload.new.player_id)) {
+                return [...prev, payload.new.player_id];
+              }
+              return prev;
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
             });
             
             // Update round answers
@@ -296,7 +312,22 @@ export const useQuizGame = (
     return () => {
       supabase.removeChannel(channel);
     };
+<<<<<<< HEAD
   }, [lobbyId, fetchScoresFromDB, players, currentPlayer.isHost, answerDurationMs]);
+=======
+  }, [lobbyId, fetchScoresFromDB]);
+
+  // Advance to reveal phase (host only) - declared early for timer usage
+  const advanceToReveal = useCallback(async () => {
+    if (!currentPlayer.isHost) return;
+    
+    console.log('[Quiz] Advancing to reveal');
+    await supabase.from('quiz_rounds')
+      .update({ phase: 'reveal' })
+      .eq('lobby_id', lobbyId)
+      .eq('round_number', currentRound);
+  }, [currentPlayer.isHost, lobbyId, currentRound]);
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
   // Synchronized Timer - based on server time
   useEffect(() => {
@@ -536,6 +567,7 @@ export const useQuizGame = (
     }
   }, [currentPlayer.isHost, currentRound, lobbyId, startRound, selectedCategory, totalRounds]);
 
+<<<<<<< HEAD
   const correctAnswers = roundAnswers.filter(answer => answer.is_correct);
   const fastestCorrectAnswer = correctAnswers.reduce<QuizAnswer | null>((best, answer) => {
     if (!best || answer.response_time_ms < best.response_time_ms) {
@@ -553,6 +585,8 @@ export const useQuizGame = (
     fastestCorrectAnswer,
   };
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   // Start the quiz game (host only)
   const startQuiz = useCallback(async (category: string = 'mixed') => {
     if (!currentPlayer.isHost) return;
@@ -590,11 +624,17 @@ export const useQuizGame = (
     scores,
     roundAnswers,
     answeredPlayers,
+<<<<<<< HEAD
     playersRemaining: Math.max(0, players.length - answeredPlayers.length),
     isLoading,
     currentStreak,
     bestStreak,
     roundInsight,
+=======
+    isLoading,
+    currentStreak,
+    bestStreak,
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     useFreezeJoker,
     startQuiz,
     submitAnswer,

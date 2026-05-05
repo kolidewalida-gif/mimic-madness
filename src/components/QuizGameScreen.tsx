@@ -52,11 +52,17 @@ export const QuizGameScreen = ({
     scores,
     roundAnswers,
     answeredPlayers,
+<<<<<<< HEAD
     playersRemaining,
     isLoading,
     currentStreak,
     bestStreak,
     roundInsight,
+=======
+    isLoading,
+    currentStreak,
+    bestStreak,
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     useFreezeJoker,
     startQuiz,
     submitAnswer,
@@ -287,7 +293,10 @@ export const QuizGameScreen = ({
           totalTime={answerDurationMs}
           hasAnswered={hasAnswered}
           answeredPlayers={answeredPlayers}
+<<<<<<< HEAD
           playersRemaining={playersRemaining}
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           players={players}
           scores={scores}
           currentPlayerId={currentPlayer.id}
@@ -339,7 +348,10 @@ export const QuizGameScreen = ({
           roundNumber={currentRound}
           totalRounds={totalRounds}
           roundAnswers={roundAnswers}
+<<<<<<< HEAD
           roundInsight={roundInsight}
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           isHost={currentPlayer.isHost}
           onNextRound={nextRound}
         />

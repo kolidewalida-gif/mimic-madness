@@ -510,6 +510,7 @@ export const usePixoguessGame = (
     setRoundWinner(null);
   }, [isHost, currentRound, roundData, lobbyId, getRandomImage, scores, currentPlayer.id, xp]);
 
+<<<<<<< HEAD
   const roundAttemptCount = Object.values(liveStats).reduce((sum, stat) => sum + (stat.attempts ?? 0), 0);
   const solvedPlayersCount = Object.values(liveStats).filter((stat) => stat.solved).length;
   let roundHint: string | null = null;
@@ -528,6 +529,8 @@ export const usePixoguessGame = (
     }
   }
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   return {
     phase,
     currentRound,
@@ -542,9 +545,12 @@ export const usePixoguessGame = (
     roundWinner,
     liveStats,
     cooldownUntil,
+<<<<<<< HEAD
     roundHint,
     roundAttemptCount,
     solvedPlayersCount,
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     isLoading,
     isHost,
     selectedCategories,

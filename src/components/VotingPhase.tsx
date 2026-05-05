@@ -78,7 +78,11 @@ export const VotingPhase = ({
   const [showCountdown, setShowCountdown] = useState(false);
   const [pendingPlay, setPendingPlay] = useState(false);
   const { toast } = useToast();
+<<<<<<< HEAD
   const { pause, play, setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
+=======
+  const { pause, play, setSituation, autoMode } = useBackgroundMusic();
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   const videoRef = useRef<VideoWithAudioOverlayRef>(null);
   const teamVideoRef = useRef<TeamVideoOverlayRef>(null);
   const { playSound } = useSoundEffects();
@@ -92,13 +96,22 @@ export const VotingPhase = ({
   // When autoMode is OFF, fall back to pausing the music entirely.
   useEffect(() => {
     if (autoMode) {
+<<<<<<< HEAD
       setSituation("voting", { priority: 2, source: "voting-phase" });
+=======
+      setSituation("voting");
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     } else {
       pause();
     }
     return () => {
       if (autoMode) {
+<<<<<<< HEAD
         clearSituationOverride("voting-phase");
+=======
+        // Hand back to "playing" — ResultsPhase (if it mounts) will override to victory.
+        setSituation("playing");
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       } else {
         play();
       }
@@ -815,4 +828,8 @@ export const VotingPhase = ({
     </div>
     </>
   );
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974

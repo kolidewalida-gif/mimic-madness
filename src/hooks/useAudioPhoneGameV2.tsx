@@ -360,6 +360,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     return players.every(p => originalRecordings.some(r => r.player_id === p.id));
   }, [players, originalRecordings]);
 
+<<<<<<< HEAD
   const getSubmittedOriginalPlayerIds = useCallback(() => {
     return originalRecordings.map((recording) => recording.player_id);
   }, [originalRecordings]);
@@ -369,6 +370,8 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     return players.filter((player) => !submittedIds.has(player.id));
   }, [players, getSubmittedOriginalPlayerIds]);
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   // Start imitation phase (host only)
   const startImitationPhase = useCallback(async () => {
     if (!currentRound) return;
@@ -494,6 +497,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     );
   }, [getCurrentPhraseToImitate, getPlayersToImitateCurrentPhrase, imitations]);
 
+<<<<<<< HEAD
   const getCurrentPhraseProgress = useCallback(() => {
     const currentPhrase = getCurrentPhraseToImitate();
     if (!currentPhrase) {
@@ -515,6 +519,8 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     };
   }, [getCurrentPhraseToImitate, getPlayersToImitateCurrentPhrase, imitations]);
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   // Move to next phrase (host only)
   const moveToNextPhrase = useCallback(async () => {
     if (!currentRound) return;
@@ -673,13 +679,19 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     // Helpers
     hasSubmittedOriginalPhrase,
     allPhrasesSubmitted,
+<<<<<<< HEAD
     getSubmittedOriginalPlayerIds,
     getPendingOriginalPlayers,
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     getCurrentPhraseToImitate,
     getPlayersToImitateCurrentPhrase,
     shouldImitateCurrentPhrase,
     allImitationsForCurrentPhraseDone,
+<<<<<<< HEAD
     getCurrentPhraseProgress,
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     getRevealDataForPhrase,
     getPlayerById,
     getReversedAudioUrl,

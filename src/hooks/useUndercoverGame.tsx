@@ -48,8 +48,11 @@ export const useUndercoverGame = (
   const [myPlayer, setMyPlayer] = useState<UndercoverPlayer | null>(null);
   const [hasSeenWord, setHasSeenWord] = useState(false);
   const initRef = useRef(false);
+<<<<<<< HEAD
   const turnAdvanceLockRef = useRef<string | null>(null);
   const voteResolutionLockRef = useRef<string | null>(null);
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
   // Fetch game state
   const fetchGame = useCallback(async () => {
@@ -57,8 +60,11 @@ export const useUndercoverGame = (
       .from('undercover_games')
       .select('*')
       .eq('lobby_id', lobbyId)
+<<<<<<< HEAD
       .order('created_at', { ascending: false })
       .limit(1)
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       .maybeSingle();
 
     if (gameData) {
@@ -165,7 +171,34 @@ export const useUndercoverGame = (
       .from('undercover_players')
       .update({ current_clue: clue })
       .eq('id', myPlayer.id);
+<<<<<<< HEAD
   }, [game, myPlayer]);
+=======
+
+    // Move to next player or to discussion
+    const alivePlayers = gamePlayers.filter(p => p.is_alive);
+    const aliveOrder = game.player_order.filter(id => alivePlayers.some(p => p.player_id === id));
+    const currentIdx = game.current_player_index;
+    
+    if (currentIdx + 1 >= aliveOrder.length) {
+      // All players gave clues -> discussion
+      if (currentPlayer.isHost) {
+        await supabase
+          .from('undercover_games')
+          .update({ phase: 'discussion', current_player_index: 0 })
+          .eq('id', game.id);
+      }
+    } else {
+      // Next player
+      if (currentPlayer.isHost) {
+        await supabase
+          .from('undercover_games')
+          .update({ current_player_index: currentIdx + 1 })
+          .eq('id', game.id);
+      }
+    }
+  }, [game, myPlayer, gamePlayers, currentPlayer.isHost]);
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
   // Start voting (host)
   const startVoting = useCallback(async () => {
@@ -191,16 +224,23 @@ export const useUndercoverGame = (
       .from('undercover_players')
       .update({ vote_target: targetPlayerId })
       .eq('id', myPlayer.id);
+<<<<<<< HEAD
   }, [game, myPlayer]);
 
   const resolveVotingRound = useCallback(async () => {
     if (!game || !currentPlayer.isHost) return;
 
     const { data: latestPlayers } = await supabase
+=======
+
+    // Check if all alive players voted
+    const { data: updatedPlayers } = await supabase
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       .from('undercover_players')
       .select('*')
       .eq('game_id', game.id);
 
+<<<<<<< HEAD
     if (!latestPlayers) return;
 
     const alivePlayers = (latestPlayers as unknown as UndercoverPlayer[]).filter((player) => player.is_alive);
@@ -294,6 +334,114 @@ export const useUndercoverGame = (
       })
       .eq('id', game.id);
   }, [game, currentPlayer.isHost]);
+=======
+    if (updatedPlayers) {
+      const alive = (updatedPlayers as unknown as UndercoverPlayer[]).filter(p => p.is_alive);
+      const allVoted = alive.every(p => 
+        p.player_id === targetPlayerId ? true : p.vote_target !== null || p.player_id === currentPlayer.id
+      );
+
+      // Re-check with updated data
+      const { data: recheckPlayers } = await supabase
+        .from('undercover_players')
+        .select('*')
+        .eq('game_id', game.id);
+      
+      if (recheckPlayers) {
+        const aliveRecheck = (recheckPlayers as unknown as UndercoverPlayer[]).filter(p => p.is_alive);
+        const allVotedRecheck = aliveRecheck.every(p => p.vote_target !== null);
+        
+        if (allVotedRecheck) {
+          // Tally votes
+          const voteCounts: Record<string, number> = {};
+          aliveRecheck.forEach(p => {
+            if (p.vote_target) {
+              voteCounts[p.vote_target] = (voteCounts[p.vote_target] || 0) + 1;
+            }
+          });
+
+          // Find the most voted player
+          let maxVotes = 0;
+          let eliminatedId = '';
+          let isTie = false;
+          
+          Object.entries(voteCounts).forEach(([id, count]) => {
+            if (count > maxVotes) {
+              maxVotes = count;
+              eliminatedId = id;
+              isTie = false;
+            } else if (count === maxVotes) {
+              isTie = true;
+            }
+          });
+
+          if (isTie) {
+            // Tie: no elimination, new round
+            await supabase
+              .from('undercover_games')
+              .update({
+                phase: 'vote_result',
+                eliminated_player_id: null,
+                eliminated_role: null,
+              })
+              .eq('id', game.id);
+          } else {
+            const eliminatedPlayer = aliveRecheck.find(p => p.player_id === eliminatedId);
+            
+            // Eliminate
+            await supabase
+              .from('undercover_players')
+              .update({ is_alive: false })
+              .eq('game_id', game.id)
+              .eq('player_id', eliminatedId);
+
+            // Check win condition
+            const remainingAlive = aliveRecheck.filter(p => p.player_id !== eliminatedId);
+            const remainingUndercover = remainingAlive.filter(p => p.role === 'undercover');
+            const remainingMrWhite = remainingAlive.filter(p => p.role === 'mr_white');
+            const remainingCivilians = remainingAlive.filter(p => p.role === 'civilian');
+
+            const allBadGuysEliminated = remainingUndercover.length === 0 && remainingMrWhite.length === 0;
+            const undercoverWins = remainingUndercover.length + remainingMrWhite.length >= remainingCivilians.length;
+
+            if (allBadGuysEliminated) {
+              await supabase
+                .from('undercover_games')
+                .update({
+                  phase: 'game_over',
+                  is_finished: true,
+                  winner_role: 'civilian',
+                  eliminated_player_id: eliminatedId,
+                  eliminated_role: eliminatedPlayer?.role || null,
+                })
+                .eq('id', game.id);
+            } else if (undercoverWins) {
+              await supabase
+                .from('undercover_games')
+                .update({
+                  phase: 'game_over',
+                  is_finished: true,
+                  winner_role: 'undercover',
+                  eliminated_player_id: eliminatedId,
+                  eliminated_role: eliminatedPlayer?.role || null,
+                })
+                .eq('id', game.id);
+            } else {
+              await supabase
+                .from('undercover_games')
+                .update({
+                  phase: 'vote_result',
+                  eliminated_player_id: eliminatedId,
+                  eliminated_role: eliminatedPlayer?.role || null,
+                })
+                .eq('id', game.id);
+            }
+          }
+        }
+      }
+    }
+  }, [game, myPlayer, currentPlayer.id]);
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
   // Next round (host)
   const nextRound = useCallback(async () => {
@@ -344,10 +492,13 @@ export const useUndercoverGame = (
       .eq('id', game.id);
   }, [game, currentPlayer.isHost]);
 
+<<<<<<< HEAD
   useEffect(() => {
     setHasSeenWord(false);
   }, [game?.id, game?.current_round]);
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   // Init + realtime
   useEffect(() => {
     if (currentPlayer.isHost) {
@@ -357,6 +508,7 @@ export const useUndercoverGame = (
     }
   }, [currentPlayer.isHost, initializeGame, fetchGame]);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (!game || !currentPlayer.isHost || game.phase !== 'clue_giving') {
       turnAdvanceLockRef.current = null;
@@ -437,6 +589,8 @@ export const useUndercoverGame = (
     void resolveVotingRound();
   }, [game, gamePlayers, currentPlayer.isHost, resolveVotingRound]);
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   // Realtime subscriptions
   useEffect(() => {
     if (!game) return;

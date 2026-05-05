@@ -14,13 +14,19 @@ import { AchievementsPanel } from '@/components/AchievementsPanel';
 import { TitleSelector } from '@/components/TitleSelector';
 import { useEquippedTitle } from '@/hooks/useEquippedTitle';
 import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
+<<<<<<< HEAD
 import { usePlayerLoadout } from '@/hooks/usePlayerLoadout';
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 import { cn } from '@/lib/utils';
 
 const ProfileSidebarComponent = () => {
   const { user, profile, stats, isLoading, signInWithGoogle, signOut, updateProfile } = useAuth();
   const { equippedTitle } = useEquippedTitle();
+<<<<<<< HEAD
   const { effectTier, frameTier, prestigeScore } = usePlayerLoadout(user?.id || "");
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   const { avatarData, setAvatarImage, isLoading: avatarLoading } = useGlobalPlayerAvatar(user?.id || '');
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -242,6 +248,7 @@ const ProfileSidebarComponent = () => {
           {/* Level Progress Bar */}
           <LevelProgressBar className="bg-background/30 rounded-xl p-3 border border-border/10" />
 
+<<<<<<< HEAD
           <div className="bg-background/30 rounded-xl p-3 border border-border/10 space-y-2">
             <div className="flex items-center justify-between text-xs uppercase tracking-wider text-foreground-muted">
               <span>Loadout actif</span>
@@ -263,6 +270,8 @@ const ProfileSidebarComponent = () => {
             </div>
           </div>
 
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           {/* Win Rate */}
           <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-3 text-center border border-primary/10">
             <div className="text-3xl font-black bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{winRate}%</div>

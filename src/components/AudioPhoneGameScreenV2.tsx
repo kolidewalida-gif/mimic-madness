@@ -108,9 +108,12 @@ export const AudioPhoneGameScreenV2 = memo(({
           allSubmitted={game.allPhrasesSubmitted()}
           playersCount={players.length}
           submittedCount={game.originalRecordings.length}
+<<<<<<< HEAD
           submittedPlayerIds={game.getSubmittedOriginalPlayerIds()}
           pendingPlayerNames={game.getPendingOriginalPlayers().map((player) => player.name)}
           playerNames={players.map((player) => player.name)}
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           isHost={currentPlayer.isHost}
           isSubmitting={game.isSubmitting}
           onSubmit={game.submitOriginalPhrase}
@@ -127,7 +130,10 @@ export const AudioPhoneGameScreenV2 = memo(({
     const currentPhrase = game.getCurrentPhraseToImitate();
     const shouldImitate = game.shouldImitateCurrentPhrase();
     const allDone = game.allImitationsForCurrentPhraseDone();
+<<<<<<< HEAD
     const phraseProgress = game.getCurrentPhraseProgress();
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     const reversedAudioUrl = currentPhrase ? game.getReversedAudioUrl(currentPhrase) : null;
     const authorPlayer = currentPhrase ? game.getPlayerById(currentPhrase.player_id) : null;
     
@@ -153,9 +159,12 @@ export const AudioPhoneGameScreenV2 = memo(({
           hasImitated={hasAlreadyImitated}
           isAuthor={isAuthor}
           allImitationsDone={allDone}
+<<<<<<< HEAD
           completedImitations={phraseProgress.completedCount}
           totalImitations={phraseProgress.requiredCount}
           pendingPlayerNames={phraseProgress.pendingPlayers.map((player) => player.name)}
+=======
+>>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           isHost={currentPlayer.isHost}
           isSubmitting={game.isSubmitting}
           maxSeconds={game.currentRound.max_recording_seconds}
