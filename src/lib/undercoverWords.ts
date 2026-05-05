@@ -1,0 +1,154 @@
+// Word pairs for the Undercover game
+// Each pair has a civilian word and an undercover word (similar but different)
+export interface WordPair {
+  civilian: string;
+  undercover: string;
+  category?: string;
+}
+
+export const WORD_PAIRS: WordPair[] = [
+  // Animaux
+  { civilian: "Chat", undercover: "Chien", category: "animaux" },
+  { civilian: "Tigre", undercover: "Lion", category: "animaux" },
+  { civilian: "Requin", undercover: "Dauphin", category: "animaux" },
+  { civilian: "Serpent", undercover: "Lézard", category: "animaux" },
+  { civilian: "Aigle", undercover: "Faucon", category: "animaux" },
+  { civilian: "Cheval", undercover: "Âne", category: "animaux" },
+  { civilian: "Lapin", undercover: "Hamster", category: "animaux" },
+  { civilian: "Loup", undercover: "Renard", category: "animaux" },
+  { civilian: "Papillon", undercover: "Libellule", category: "animaux" },
+  { civilian: "Crocodile", undercover: "Alligator", category: "animaux" },
+
+  // Nourriture
+  { civilian: "Pizza", undercover: "Burger", category: "nourriture" },
+  { civilian: "Pomme", undercover: "Poire", category: "nourriture" },
+  { civilian: "Chocolat", undercover: "Caramel", category: "nourriture" },
+  { civilian: "Croissant", undercover: "Pain au chocolat", category: "nourriture" },
+  { civilian: "Hamburger", undercover: "Hot-dog", category: "nourriture" },
+  { civilian: "Chips", undercover: "Pop-corn", category: "nourriture" },
+  { civilian: "Sushi", undercover: "Maki", category: "nourriture" },
+  { civilian: "Glace", undercover: "Sorbet", category: "nourriture" },
+  { civilian: "Crêpe", undercover: "Gaufre", category: "nourriture" },
+  { civilian: "Frites", undercover: "Potatoes", category: "nourriture" },
+  { civilian: "Steak", undercover: "Entrecôte", category: "nourriture" },
+  { civilian: "Bonbon", undercover: "Sucette", category: "nourriture" },
+  { civilian: "Ketchup", undercover: "Mayonnaise", category: "nourriture" },
+  { civilian: "Baguette", undercover: "Pain de mie", category: "nourriture" },
+
+  // Boissons
+  { civilian: "Café", undercover: "Thé", category: "boissons" },
+  { civilian: "Whisky", undercover: "Rhum", category: "boissons" },
+  { civilian: "Bière", undercover: "Vin", category: "boissons" },
+  { civilian: "Coca-Cola", undercover: "Pepsi", category: "boissons" },
+  { civilian: "Jus d'orange", undercover: "Limonade", category: "boissons" },
+  { civilian: "Champagne", undercover: "Prosecco", category: "boissons" },
+
+  // Sport
+  { civilian: "Football", undercover: "Rugby", category: "sport" },
+  { civilian: "Ski", undercover: "Snowboard", category: "sport" },
+  { civilian: "Basket", undercover: "Handball", category: "sport" },
+  { civilian: "Tennis", undercover: "Badminton", category: "sport" },
+  { civilian: "Boxe", undercover: "MMA", category: "sport" },
+  { civilian: "Surf", undercover: "Bodyboard", category: "sport" },
+  { civilian: "Natation", undercover: "Plongée", category: "sport" },
+  { civilian: "Marathon", undercover: "Sprint", category: "sport" },
+
+  // Technologie / Marques
+  { civilian: "iPhone", undercover: "Samsung", category: "tech" },
+  { civilian: "Netflix", undercover: "YouTube", category: "tech" },
+  { civilian: "TikTok", undercover: "Instagram", category: "tech" },
+  { civilian: "Nike", undercover: "Adidas", category: "tech" },
+  { civilian: "McDonald's", undercover: "Burger King", category: "tech" },
+  { civilian: "PlayStation", undercover: "Xbox", category: "tech" },
+  { civilian: "Google", undercover: "Bing", category: "tech" },
+  { civilian: "Spotify", undercover: "Deezer", category: "tech" },
+  { civilian: "Tesla", undercover: "BMW", category: "tech" },
+  { civilian: "Amazon", undercover: "AliExpress", category: "tech" },
+
+  // Pop Culture
+  { civilian: "Superman", undercover: "Batman", category: "popculture" },
+  { civilian: "Spider-Man", undercover: "Iron Man", category: "popculture" },
+  { civilian: "Mario", undercover: "Sonic", category: "popculture" },
+  { civilian: "Dragon Ball", undercover: "Naruto", category: "popculture" },
+  { civilian: "Fortnite", undercover: "Minecraft", category: "popculture" },
+  { civilian: "Manga", undercover: "Comics", category: "popculture" },
+  { civilian: "Harry Potter", undercover: "Seigneur des Anneaux", category: "popculture" },
+  { civilian: "Star Wars", undercover: "Star Trek", category: "popculture" },
+  { civilian: "Disney", undercover: "Pixar", category: "popculture" },
+  { civilian: "One Piece", undercover: "Bleach", category: "popculture" },
+  { civilian: "Pokémon", undercover: "Digimon", category: "popculture" },
+  { civilian: "GTA", undercover: "Red Dead Redemption", category: "popculture" },
+  { civilian: "Joker", undercover: "Harley Quinn", category: "popculture" },
+
+  // Musique
+  { civilian: "Rap", undercover: "R&B", category: "musique" },
+  { civilian: "Guitare", undercover: "Ukulélé", category: "musique" },
+  { civilian: "Piano", undercover: "Violon", category: "musique" },
+  { civilian: "Rock", undercover: "Metal", category: "musique" },
+  { civilian: "DJ", undercover: "Beatmaker", category: "musique" },
+  { civilian: "Concert", undercover: "Festival", category: "musique" },
+
+  // Nature / Géographie
+  { civilian: "Océan", undercover: "Mer", category: "nature" },
+  { civilian: "Soleil", undercover: "Lune", category: "nature" },
+  { civilian: "Paris", undercover: "Londres", category: "nature" },
+  { civilian: "Montagne", undercover: "Colline", category: "nature" },
+  { civilian: "Pluie", undercover: "Neige", category: "nature" },
+  { civilian: "Volcan", undercover: "Geyser", category: "nature" },
+  { civilian: "Forêt", undercover: "Jungle", category: "nature" },
+  { civilian: "Désert", undercover: "Savane", category: "nature" },
+  { civilian: "Lac", undercover: "Étang", category: "nature" },
+  { civilian: "Île", undercover: "Presqu'île", category: "nature" },
+  { civilian: "Tornade", undercover: "Ouragan", category: "nature" },
+
+  // Objets du quotidien
+  { civilian: "Couteau", undercover: "Fourchette", category: "objets" },
+  { civilian: "Lunettes", undercover: "Lentilles", category: "objets" },
+  { civilian: "Bague", undercover: "Bracelet", category: "objets" },
+  { civilian: "Chaussettes", undercover: "Chaussures", category: "objets" },
+  { civilian: "Rose", undercover: "Tulipe", category: "objets" },
+  { civilian: "Canapé", undercover: "Fauteuil", category: "objets" },
+  { civilian: "Stylo", undercover: "Crayon", category: "objets" },
+  { civilian: "Miroir", undercover: "Vitre", category: "objets" },
+  { civilian: "Parapluie", undercover: "Imperméable", category: "objets" },
+  { civilian: "Bougie", undercover: "Lampe", category: "objets" },
+  { civilian: "Oreiller", undercover: "Coussin", category: "objets" },
+  { civilian: "Valise", undercover: "Sac à dos", category: "objets" },
+
+  // Transport
+  { civilian: "Train", undercover: "Métro", category: "transport" },
+  { civilian: "Vélo", undercover: "Trottinette", category: "transport" },
+  { civilian: "Voiture", undercover: "Moto", category: "transport" },
+  { civilian: "Avion", undercover: "Hélicoptère", category: "transport" },
+  { civilian: "Bus", undercover: "Tramway", category: "transport" },
+  { civilian: "Bateau", undercover: "Yacht", category: "transport" },
+  { civilian: "Taxi", undercover: "Uber", category: "transport" },
+
+  // Métiers / Lieux
+  { civilian: "Dentiste", undercover: "Médecin", category: "metiers" },
+  { civilian: "Cinéma", undercover: "Théâtre", category: "metiers" },
+  { civilian: "Piscine", undercover: "Lac", category: "metiers" },
+  { civilian: "Dictionnaire", undercover: "Encyclopédie", category: "metiers" },
+  { civilian: "Clown", undercover: "Magicien", category: "metiers" },
+  { civilian: "Fantôme", undercover: "Zombie", category: "metiers" },
+  { civilian: "Pompier", undercover: "Policier", category: "metiers" },
+  { civilian: "Professeur", undercover: "Directeur", category: "metiers" },
+  { civilian: "Hôpital", undercover: "Clinique", category: "metiers" },
+  { civilian: "Bibliothèque", undercover: "Librairie", category: "metiers" },
+  { civilian: "Restaurant", undercover: "Brasserie", category: "metiers" },
+  { civilian: "Prison", undercover: "Caserne", category: "metiers" },
+
+  // Concepts abstraits / fun
+  { civilian: "Rêve", undercover: "Cauchemar", category: "concepts" },
+  { civilian: "Amour", undercover: "Amitié", category: "concepts" },
+  { civilian: "Courage", undercover: "Témérité", category: "concepts" },
+  { civilian: "Vacances", undercover: "Week-end", category: "concepts" },
+  { civilian: "Anniversaire", undercover: "Mariage", category: "concepts" },
+  { civilian: "Noël", undercover: "Nouvel An", category: "concepts" },
+  { civilian: "Examen", undercover: "Contrôle", category: "concepts" },
+  { civilian: "Blague", undercover: "Devinette", category: "concepts" },
+];
+
+export function getRandomWordPair(): WordPair {
+  return WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)];
+}

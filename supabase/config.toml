@@ -1,0 +1,7 @@
+project_id = "whmtywgllrjslmytdbvb"
+
+[functions.generate-subtitles]
+verify_jwt = false
+
+[functions.generate-quiz-question]
+verify_jwt = false
