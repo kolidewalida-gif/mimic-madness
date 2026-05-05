@@ -217,29 +217,35 @@ export const UndercoverGameScreen = memo(({ currentPlayer, players, lobbyId, onE
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* ═══ TOP BAR: Word Banner ═══ */}
+      {/* ═══ TOP BAR: Word Banner (sketch style) ═══ */}
       <motion.div
         initial={{ y: -60 }}
         animate={{ y: 0 }}
-        className="bg-card/90 backdrop-blur-xl border-b border-border/30 px-4 py-3"
+        className="px-4 pt-4 pb-2"
       >
-        <div className="max-w-lg mx-auto flex items-center gap-3">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
           {/* Phase badge */}
-          <div className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary shrink-0">
+          <div className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary shrink-0">
             <span>{phaseInfo.emoji}</span>
             <span className="hidden sm:inline">{phaseInfo.label}</span>
             <span className="sm:hidden">R{game.current_round}</span>
           </div>
 
-          {/* Word display */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground shrink-0">Votre mot</span>
+          {/* Big handwritten-style word box */}
+          <div className="flex-1 relative">
+            <div className={cn(
+              'rounded-2xl border-2 px-5 py-4 flex items-center gap-4 transition-all',
+              'bg-card/60 backdrop-blur',
+              showWord ? 'border-primary/60 shadow-lg shadow-primary/10' : 'border-border/60',
+            )}
+              style={{ borderStyle: showWord ? 'solid' : 'dashed' }}
+            >
+              <span className="text-[11px] sm:text-sm font-bold uppercase tracking-widest text-muted-foreground shrink-0">
+                Votre mot
+              </span>
               <div className={cn(
-                'flex-1 text-center font-black text-lg sm:text-xl tracking-[0.2em] py-1 px-3 rounded-xl border transition-all',
-                showWord 
-                  ? 'bg-primary/10 border-primary/30 text-primary' 
-                  : 'bg-muted/10 border-border/20 text-muted-foreground',
+                'flex-1 text-center font-black text-xl sm:text-3xl tracking-[0.25em] truncate',
+                showWord ? 'text-primary' : 'text-muted-foreground/70',
                 myPlayer?.role === 'mr_white' && 'text-white/40',
               )}>
                 {renderWordDisplay()}
@@ -251,7 +257,7 @@ export const UndercoverGameScreen = memo(({ currentPlayer, players, lobbyId, onE
           {phase === 'word_reveal' && !hasSeenWord ? (
             <motion.button
               onClick={() => { handleRevealWord(); confirmWordSeen(); }}
-              className="shrink-0 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:brightness-110 transition-all"
+              className="shrink-0 px-5 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:brightness-110 transition-all"
               whileTap={{ scale: 0.95 }}
             >
               OK
@@ -260,14 +266,14 @@ export const UndercoverGameScreen = memo(({ currentPlayer, players, lobbyId, onE
             <motion.button
               onClick={showWord ? () => setShowWord(false) : handleRevealWord}
               className={cn(
-                'shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border transition-all',
-                showWord 
-                  ? 'bg-primary/20 border-primary/30 text-primary' 
-                  : 'bg-muted/10 border-border/20 text-muted-foreground hover:bg-muted/20'
+                'shrink-0 w-11 h-11 rounded-xl flex items-center justify-center border-2 transition-all',
+                showWord
+                  ? 'bg-primary/20 border-primary/40 text-primary'
+                  : 'bg-card/60 border-border/60 text-muted-foreground hover:bg-muted/20'
               )}
               whileTap={{ scale: 0.9 }}
             >
-              {showWord ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showWord ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </motion.button>
           )}
         </div>
