@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { QuizQuestion } from './QuizQuestion';
 import { QuizReveal } from './QuizReveal';
@@ -6,6 +6,8 @@ import { QuizLeaderboard } from './QuizLeaderboard';
 import { QuizFinalResults } from './QuizFinalResults';
 import { QuizCountdown } from './QuizCountdown';
 import { QuizCategorySelector } from './QuizCategorySelector';
+import { QuizSettingsPanel, DEFAULT_QUIZ_SETTINGS, type QuizSettings } from './QuizSettingsPanel';
+import { INITIAL_JOKERS, type JokersState } from './QuizJokers';
 import { LobbyChat } from './LobbyChat';
 import { useQuizGame } from '@/hooks/useQuizGame';
 import { useInkMode } from '@/hooks/useInkMode';
@@ -33,6 +35,9 @@ export const QuizGameScreen = ({
   onEndGame
 }: QuizGameScreenProps) => {
   const [selectedCategory, setSelectedCategory] = useState('mixed');
+  const [hostSettings, setHostSettings] = useState<QuizSettings>(DEFAULT_QUIZ_SETTINGS);
+  const [jokers, setJokers] = useState<JokersState>(INITIAL_JOKERS);
+  const [hiddenOptions, setHiddenOptions] = useState<string[]>([]);
   
   const { isInkMode, inkClasses, inkFont } = useInkMode();
   
@@ -42,17 +47,42 @@ export const QuizGameScreen = ({
     totalRounds,
     currentQuestion,
     timeRemaining,
+    answerDurationMs,
     hasAnswered,
     scores,
     roundAnswers,
     answeredPlayers,
     isLoading,
+    currentStreak,
+    bestStreak,
+    useFreezeJoker,
     startQuiz,
     submitAnswer,
     advanceToReveal,
     advanceToScores,
     nextRound
-  } = useQuizGame(lobbyId, currentPlayer, players, selectedCategory);
+  } = useQuizGame(lobbyId, currentPlayer, players, selectedCategory, hostSettings);
+
+  // Reset hidden options each new question
+  useEffect(() => {
+    if (phase === 'countdown' || phase === 'answering') setHiddenOptions([]);
+  }, [currentRound, phase]);
+
+  const handleFiftyFifty = () => {
+    if (!currentQuestion?.options || hiddenOptions.length > 0) return;
+    const wrong = currentQuestion.options.filter(o => o !== currentQuestion.answer);
+    const shuffled = [...wrong].sort(() => Math.random() - 0.5).slice(0, 2);
+    setHiddenOptions(shuffled);
+    setJokers(j => ({ ...j, fiftyFifty: false }));
+  };
+  const handleFreeze = () => {
+    useFreezeJoker();
+    setJokers(j => ({ ...j, freeze: false }));
+  };
+  const handleSkip = () => {
+    submitAnswer('__SKIP__');
+    setJokers(j => ({ ...j, skip: false }));
+  };
 
   // Waiting phase - show category selector and start button for host
   if (phase === 'waiting') {
@@ -153,6 +183,17 @@ export const QuizGameScreen = ({
                 </div>
               )}
 
+              {/* Host advanced settings */}
+              {currentPlayer.isHost && (
+                <div className="relative mb-8">
+                  <QuizSettingsPanel
+                    settings={hostSettings}
+                    onChange={setHostSettings}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="relative space-y-4">
                 {currentPlayer.isHost ? (
@@ -241,12 +282,20 @@ export const QuizGameScreen = ({
           roundNumber={currentRound}
           totalRounds={totalRounds}
           timeRemaining={timeRemaining}
+          totalTime={answerDurationMs}
           hasAnswered={hasAnswered}
           answeredPlayers={answeredPlayers}
           players={players}
           scores={scores}
           currentPlayerId={currentPlayer.id}
           onSubmitAnswer={submitAnswer}
+          jokers={hostSettings.enableJokers ? jokers : null}
+          onFiftyFifty={handleFiftyFifty}
+          onFreeze={handleFreeze}
+          onSkip={handleSkip}
+          hiddenOptions={hiddenOptions}
+          currentStreak={hostSettings.enableStreak ? currentStreak : 0}
+          bestStreak={hostSettings.enableStreak ? bestStreak : 0}
         />
         <LobbyChat
           lobbyId={lobbyId}
