@@ -103,7 +103,9 @@ export const SubmissionStatus = ({
   const everyPlayerHasClip = players.length > 0 &&
     players.every((player) => hasPlayableClip(player.id));
 
-  const canStartGame = allPlayersSubmitted && everyPlayerHasClip;
+  // Le clip est juste un avertissement : on ne bloque plus le lancement
+  // si la soumission est validée (évite le faux blocage "Clip manquant").
+  const canStartGame = allPlayersSubmitted;
 
   if (isLoading) {
     return (
