@@ -243,7 +243,6 @@ class VideoStorageSupabase {
     }));
   }
 
-<<<<<<< HEAD
   async getPlayableChallengeClipsByLobby(lobbyId: string): Promise<VideoClip[]> {
     const originalClips = await this.getChallengeClipsByLobby(lobbyId);
     if (originalClips.length > 0) {
@@ -262,8 +261,6 @@ class VideoStorageSupabase {
     return Array.from(latestByPlayer.values());
   }
 
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   async getLatestClipByPlayerInLobby(playerId: string, lobbyId: string): Promise<VideoClip | null> {
     // Retry logic for better reliability
     const maxRetries = 3;

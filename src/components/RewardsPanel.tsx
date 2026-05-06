@@ -194,13 +194,8 @@ const RewardCard = ({
         </div>
 
         {/* Content */}
-<<<<<<< HEAD
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-=======
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
             <h3 className={cn(
               "font-semibold truncate",
               isUnlocked ? "text-foreground" : "text-muted-foreground"
@@ -210,18 +205,12 @@ const RewardCard = ({
             {isUnlocked && (
               <Check className="h-4 w-4 text-green-500 shrink-0" />
             )}
-<<<<<<< HEAD
             </div>
             <p className="text-sm text-muted-foreground truncate">{reward.description}</p>
             {reward.perk && (
               <p className="text-xs text-primary/80 mt-1">{reward.perk}</p>
             )}
             <div className="flex items-center gap-2 mt-1">
-=======
-          </div>
-          <p className="text-sm text-muted-foreground truncate">{reward.description}</p>
-          <div className="flex items-center gap-2 mt-1">
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
             <span className={cn(
               "text-xs px-2 py-0.5 rounded-full",
               isUnlocked 

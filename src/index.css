@@ -400,7 +400,6 @@
   }
 }
 
-<<<<<<< HEAD
 .game-cursor-enabled,
 .game-cursor-enabled * {
   cursor: none !important;
@@ -537,8 +536,6 @@ body.game-cursor-effect-glow .game-cursor-ring {
     0 0 56px rgba(255, 255, 255, 0.1);
 }
 
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 @layer components {
   /* ===== ULTRA MODERN GLASS CARDS ===== */
   .glass-ultra {

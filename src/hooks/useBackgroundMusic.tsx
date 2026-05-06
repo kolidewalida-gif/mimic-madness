@@ -60,7 +60,6 @@ export type MusicSituation =
   | "monopoly"
   | "pixoguess";
 
-<<<<<<< HEAD
 interface SituationOverride {
   situation: MusicSituation;
   priority: number;
@@ -74,8 +73,6 @@ interface SetSituationOptions {
   source?: string;
 }
 
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 const musicTracks: MusicTrack[] = [
   { id: 1, name: "Neon Dreams", src: music1, moods: ["chill"] },
   { id: 2, name: "Cyber Wave", src: music2, moods: ["chill", "playful"] },
@@ -178,12 +175,8 @@ interface BackgroundMusicContextType {
   setAutoMode: (v: boolean) => void;
   /** Current situation (set by the app) used by the auto-selector. */
   situation: MusicSituation;
-<<<<<<< HEAD
   setSituation: (s: MusicSituation, options?: SetSituationOptions) => void;
   clearSituationOverride: (source?: string) => void;
-=======
-  setSituation: (s: MusicSituation) => void;
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 }
 
 const BackgroundMusicContext = createContext<BackgroundMusicContextType | undefined>(undefined);
@@ -207,12 +200,8 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     const saved = localStorage.getItem('backgroundMusicAuto');
     return saved === null ? true : saved === 'true';
   });
-<<<<<<< HEAD
   const [baseSituation, setBaseSituation] = useState<MusicSituation>("home");
   const [overrideSituation, setOverrideSituation] = useState<SituationOverride | null>(null);
-=======
-  const [situation, setSituationState] = useState<MusicSituation>("home");
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   const lastAutoSituation = useRef<MusicSituation | null>(null);
 
   const setAutoMode = useCallback((v: boolean) => {
@@ -220,7 +209,6 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     localStorage.setItem('backgroundMusicAuto', String(v));
   }, []);
 
-<<<<<<< HEAD
   const clearSituationOverride = useCallback((source?: string) => {
     setOverrideSituation((current) => {
       if (!current) return null;
@@ -279,12 +267,6 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     return overrideSituation.situation;
   }, [baseSituation, overrideSituation]);
 
-=======
-  const setSituation = useCallback((s: MusicSituation) => {
-    setSituationState(s);
-  }, []);
-
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   const currentTrack = useMemo(() => 
     musicTracks[currentTrackIndex] || null
   , [currentTrackIndex]);
@@ -313,7 +295,6 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   }, []);
 
   const handleEnded = useCallback(() => {
-<<<<<<< HEAD
     setCurrentTrackIndex((prev) => {
       if (autoMode) {
         const currentId = musicTracks[prev]?.id;
@@ -326,10 +307,6 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
       return (prev + 1) % musicTracks.length;
     });
   }, [autoMode, situation]);
-=======
-    setCurrentTrackIndex(prev => (prev + 1) % musicTracks.length);
-  }, []);
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
   const handleLoadedMetadata = useCallback(() => {
     if (audioRef.current) {
@@ -447,12 +424,8 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     setAutoMode,
     situation,
     setSituation,
-<<<<<<< HEAD
     clearSituationOverride,
   }), [volume, setVolume, isPlaying, pause, play, currentTrack, nextTrack, previousTrack, selectTrack, progress, duration, seek, autoMode, setAutoMode, situation, setSituation, clearSituationOverride]);
-=======
-  }), [volume, setVolume, isPlaying, pause, play, currentTrack, nextTrack, previousTrack, selectTrack, progress, duration, seek, autoMode, setAutoMode, situation, setSituation]);
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
   return (
     <BackgroundMusicContext.Provider value={contextValue}>
