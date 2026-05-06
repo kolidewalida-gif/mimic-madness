@@ -11,10 +11,7 @@ import { XpProvider } from "@/contexts/XpContext";
 import { XpGainPopup } from "@/components/XpGainPopup";
 import { RewardNotification } from "@/components/RewardNotification";
 import { AdminPanel } from "@/components/AdminPanel";
-<<<<<<< HEAD
 import { GameCursor } from "@/components/GameCursor";
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -33,10 +30,7 @@ const App = () => (
                 {/* Global XP and Reward notifications */}
                 <XpGainPopup />
                 <RewardNotification />
-<<<<<<< HEAD
                 <GameCursor />
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                 <AdminPanel />
                 <BrowserRouter>
                   <Routes>

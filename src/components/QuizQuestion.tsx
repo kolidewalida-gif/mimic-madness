@@ -33,10 +33,7 @@ interface QuizQuestionProps {
   totalTime?: number;
   hasAnswered: boolean;
   answeredPlayers: string[];
-<<<<<<< HEAD
   playersRemaining: number;
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   players: Player[];
   scores: QuizScore[];
   currentPlayerId: string;
@@ -95,10 +92,7 @@ export const QuizQuestion = ({
   totalTime = 30000,
   hasAnswered,
   answeredPlayers,
-<<<<<<< HEAD
   playersRemaining,
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   players,
   scores,
   currentPlayerId,
@@ -125,7 +119,6 @@ export const QuizQuestion = ({
     }
   }, [questionType, hasAnswered]);
 
-<<<<<<< HEAD
   useEffect(() => {
     if (questionType !== 'qcm' || hasAnswered || options.length === 0) {
       return;
@@ -166,8 +159,6 @@ export const QuizQuestion = ({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [questionType, hasAnswered, options, hiddenOptions]);
 
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   // Play tick sound when urgent
   useEffect(() => {
     if (isUrgent && !hasAnswered && seconds > 0) {
@@ -230,12 +221,9 @@ export const QuizQuestion = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-<<<<<<< HEAD
             <span className="px-3 py-1.5 rounded-xl text-xs font-semibold backdrop-blur-sm border bg-cyan-500/10 border-cyan-400/20 text-cyan-100">
               {answeredPlayers.length}/{players.length} reponses
             </span>
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
             <span className="px-3 py-1.5 rounded-xl text-xs font-medium backdrop-blur-sm border bg-card/50 border-border/50">
               {categoryLabels[category] || category}
             </span>
@@ -314,7 +302,6 @@ export const QuizQuestion = ({
           <h2 className="text-xl md:text-2xl font-display font-bold leading-relaxed">
             {question}
           </h2>
-<<<<<<< HEAD
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-foreground-secondary">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
               <Check className="h-4 w-4 text-success" />
@@ -337,8 +324,6 @@ export const QuizQuestion = ({
               </span>
             )}
           </div>
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
         </div>
 
         {/* Streak indicator */}
@@ -405,15 +390,12 @@ export const QuizQuestion = ({
                   <span className="text-base md:text-lg font-semibold line-clamp-3 flex-1">
                     {option}
                   </span>
-<<<<<<< HEAD
 
                   {!isSelected && !hasAnswered && !isHidden && (
                     <div className="absolute top-2 right-2 rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
                       {style.letter}
                     </div>
                   )}
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                   
                   {/* Selected checkmark */}
                   {isSelected && (
@@ -514,8 +496,4 @@ export const QuizQuestion = ({
       </div>
     </div>
   );
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974

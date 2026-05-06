@@ -47,12 +47,9 @@ export const PixoguessGameScreen = ({
     roundWinner,
     liveStats,
     cooldownUntil,
-<<<<<<< HEAD
     roundHint,
     roundAttemptCount,
     solvedPlayersCount,
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
     isLoading,
     isHost,
     selectedCategories,
@@ -410,7 +407,6 @@ export const PixoguessGameScreen = ({
 
               {/* Guess Input */}
               <HolographicCard className="p-4">
-<<<<<<< HEAD
                 <div className="mb-4 grid gap-3 md:grid-cols-3">
                   <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
                     <div className="text-[11px] uppercase tracking-[0.24em] text-foreground-muted">Pression</div>
@@ -430,8 +426,6 @@ export const PixoguessGameScreen = ({
                   </div>
                 </div>
 
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                 <div className="flex gap-3">
                   <input
                     ref={inputRef}
@@ -465,15 +459,12 @@ export const PixoguessGameScreen = ({
                         Cooldown {Math.ceil(cooldownMs / 100) / 10}s
                       </span>
                     )}
-<<<<<<< HEAD
                     {!cooldownMs && roundHint && (
                       <span className="inline-flex items-center gap-1">
                         <Sparkles className="h-3.5 w-3.5" />
                         {roundHint}
                       </span>
                     )}
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                   </div>
                   {lastInfo && <span className="truncate max-w-[60%]">{lastInfo}</span>}
                 </div>

@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
 import { GameCard } from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
 import { AlertTriangle, CheckCircle, Clock, Rocket, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { videoStorage } from "@/lib/videoStorageSupabase";
-=======
-import { CheckCircle, Clock, Rocket } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
 interface Player {
   id: string;
@@ -28,7 +23,6 @@ interface SubmissionStatusProps {
   onStartGame: () => void;
 }
 
-<<<<<<< HEAD
 export const SubmissionStatus = ({
   lobbyId,
   players,
@@ -37,20 +31,10 @@ export const SubmissionStatus = ({
 }: SubmissionStatusProps) => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [playersWithClips, setPlayersWithClips] = useState<string[]>([]);
-=======
-export const SubmissionStatus = ({ 
-  lobbyId, 
-  players, 
-  isHost,
-  onStartGame 
-}: SubmissionStatusProps) => {
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
-<<<<<<< HEAD
 
     const loadSubmissionsData = async () => {
       try {
@@ -61,37 +45,21 @@ export const SubmissionStatus = ({
             .eq("lobby_id", lobbyId),
           videoStorage.getPlayableChallengeClipsByLobby(lobbyId),
         ]);
-=======
-    
-    const loadSubmissionsData = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('player_submissions')
-          .select('*')
-          .eq('lobby_id', lobbyId);
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
         if (error) throw error;
 
         if (isMounted) {
           setSubmissions(data || []);
-<<<<<<< HEAD
           setPlayersWithClips([...new Set(playableClips.map((clip) => clip.playerId))]);
         }
       } catch (error) {
         console.error("Error loading submissions:", error);
-=======
-        }
-      } catch (error) {
-        console.error('Error loading submissions:', error);
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       } finally {
         if (isMounted) {
           setIsLoading(false);
         }
       }
     };
-<<<<<<< HEAD
 
     loadSubmissionsData();
 
@@ -109,25 +77,6 @@ export const SubmissionStatus = ({
           if (isMounted) {
             loadSubmissionsData();
           }
-=======
-    
-    loadSubmissionsData();
-
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel(`submissions:${lobbyId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'player_submissions',
-          filter: `lobby_id=eq.${lobbyId}`
-        },
-        (payload) => {
-          console.log('Submission update:', payload);
-          if (isMounted) loadSubmissionsData();
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
         }
       )
       .subscribe();
@@ -138,7 +87,6 @@ export const SubmissionStatus = ({
     };
   }, [lobbyId]);
 
-<<<<<<< HEAD
   const hasSubmission = (playerId: string) =>
     submissions.some((sub) => sub.player_id === playerId && sub.challenges_count > 0);
 
@@ -156,21 +104,6 @@ export const SubmissionStatus = ({
     players.every((player) => hasPlayableClip(player.id));
 
   const canStartGame = allPlayersSubmitted && everyPlayerHasClip;
-=======
-  const allPlayersSubmitted = players.length > 0 && 
-    players.every(player => 
-      submissions.some(sub => sub.player_id === player.id && sub.challenges_count > 0)
-    );
-
-  const hasSubmission = (playerId: string) => {
-    return submissions.some(sub => sub.player_id === playerId && sub.challenges_count > 0);
-  };
-
-  const getSubmissionCount = (playerId: string) => {
-    const submission = submissions.find(sub => sub.player_id === playerId);
-    return submission?.challenges_count || 0;
-  };
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
   if (isLoading) {
     return (
@@ -193,7 +126,6 @@ export const SubmissionStatus = ({
         </div>
 
         <div className="space-y-2">
-<<<<<<< HEAD
           {players.map((player) => {
             const ready = hasSubmission(player.id);
             const playable = hasPlayableClip(player.id);
@@ -259,43 +191,6 @@ export const SubmissionStatus = ({
         )}
 
         {canStartGame && isHost && (
-=======
-          {players.map((player) => (
-            <div
-              key={player.id}
-              className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                hasSubmission(player.id)
-                  ? "bg-primary/10 border border-primary/30"
-                  : "bg-background-secondary/30 border border-glass-border"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {hasSubmission(player.id) ? (
-                  <CheckCircle className="h-5 w-5 text-primary" />
-                ) : (
-                  <Clock className="h-5 w-5 text-foreground-secondary" />
-                )}
-                <div>
-                  <p className="font-medium">{player.name}</p>
-                  {hasSubmission(player.id) && (
-                    <p className="text-sm text-foreground-secondary">
-                      {getSubmissionCount(player.id)} défi(s) soumis
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              {hasSubmission(player.id) ? (
-                <span className="text-sm text-primary font-medium">✓ Prêt</span>
-              ) : (
-                <span className="text-sm text-foreground-secondary">En attente...</span>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {allPlayersSubmitted && isHost && (
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           <div className="pt-4 border-t border-glass-border animate-fadeIn">
             <Button
               variant="hero"
@@ -312,11 +207,7 @@ export const SubmissionStatus = ({
         {!allPlayersSubmitted && (
           <div className="text-center py-2">
             <p className="text-sm text-foreground-secondary">
-<<<<<<< HEAD
               {submissions.length}/{players.length} joueur(s) pret(s)
-=======
-              {submissions.length}/{players.length} joueur(s) prêt(s)
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
             </p>
           </div>
         )}

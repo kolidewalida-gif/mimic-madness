@@ -1,29 +1,18 @@
-<<<<<<< HEAD
 import { Award, Crown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGlobalPlayerAvatar } from "@/hooks/useGlobalPlayerAvatar";
 import { usePlayerLoadout } from "@/hooks/usePlayerLoadout";
-=======
-import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
-import { Crown } from 'lucide-react';
-import { cn } from '@/lib/utils';
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
 interface PlayerAvatarProps {
   playerId: string;
   playerName: string;
-<<<<<<< HEAD
   size?: "sm" | "md" | "lg" | "xl";
-=======
-  size?: 'sm' | 'md' | 'lg' | 'xl';
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
   isHost?: boolean;
   animated?: boolean;
   className?: string;
 }
 
 const sizeClasses = {
-<<<<<<< HEAD
   sm: "w-10 h-10 text-sm",
   md: "w-14 h-14 text-base",
   lg: "w-20 h-20 text-xl",
@@ -56,25 +45,11 @@ const titleRarityClasses = {
   rare: "bg-blue-500/85 text-white border-blue-300/30",
   epic: "bg-fuchsia-500/85 text-white border-fuchsia-300/30",
   legendary: "bg-amber-400/90 text-black border-yellow-100/30",
-=======
-  sm: 'w-10 h-10 text-sm',
-  md: 'w-14 h-14 text-base',
-  lg: 'w-20 h-20 text-xl',
-  xl: 'w-28 h-28 text-3xl',
-};
-
-const crownSizes = {
-  sm: 'w-4 h-4 -top-1 -right-1',
-  md: 'w-5 h-5 -top-1 -right-1',
-  lg: 'w-6 h-6 -top-2 -right-2',
-  xl: 'w-8 h-8 -top-2 -right-2',
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 };
 
 export const PlayerAvatar = ({
   playerId,
   playerName,
-<<<<<<< HEAD
   size = "md",
   isHost = false,
   animated = false,
@@ -82,28 +57,14 @@ export const PlayerAvatar = ({
 }: PlayerAvatarProps) => {
   const { avatarData } = useGlobalPlayerAvatar(playerId);
   const { equippedTitle, effectTier, featuredBadge, frameTier, isCurrentUser } = usePlayerLoadout(playerId);
-=======
-  size = 'md',
-  isHost = false,
-  animated = false,
-  className = '',
-}: PlayerAvatarProps) => {
-  const { avatarData } = useGlobalPlayerAvatar(playerId);
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 
   const getInitials = (name: string) => {
     return name.slice(0, 2).toUpperCase();
   };
 
   const getDefaultColor = (name: string) => {
-<<<<<<< HEAD
     let hash = 0;
     for (let i = 0; i < name.length; i += 1) {
-=======
-    // Generate consistent color based on name
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = Math.abs(hash % 360);
@@ -111,7 +72,6 @@ export const PlayerAvatar = ({
   };
 
   const backgroundColor = avatarData.backgroundColor || getDefaultColor(playerName);
-<<<<<<< HEAD
   const showTitleChip = isCurrentUser && !!equippedTitle && titleChipVisibility[size];
 
   return (
@@ -144,26 +104,6 @@ export const PlayerAvatar = ({
         }}
       >
         {avatarData.type === "image" && avatarData.imageUrl ? (
-=======
-
-  return (
-    <div className={cn("relative", className)}>
-      <div
-        className={cn(
-          sizeClasses[size],
-          "rounded-full overflow-hidden",
-          "flex items-center justify-center",
-          "font-display font-bold text-white",
-          "border-3 border-primary/40 shadow-lg shadow-primary/20",
-          "ring-2 ring-background/50",
-          animated && "transition-all hover:scale-110 hover:ring-4 hover:ring-primary/50"
-        )}
-        style={{
-          backgroundColor: avatarData.type === 'initials' ? backgroundColor : undefined,
-        }}
-      >
-        {avatarData.type === 'image' && avatarData.imageUrl ? (
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
           <img
             src={avatarData.imageUrl}
             alt={playerName}
@@ -172,15 +112,12 @@ export const PlayerAvatar = ({
         ) : (
           <span>{getInitials(playerName)}</span>
         )}
-<<<<<<< HEAD
 
         {isCurrentUser && featuredBadge && (
           <div className="absolute -left-1 -bottom-1 rounded-full bg-card/90 border border-primary/30 p-1">
             <Award className="h-3 w-3 text-primary" />
           </div>
         )}
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
       </div>
 
       {isHost && (
@@ -188,7 +125,6 @@ export const PlayerAvatar = ({
           <Crown className="w-2/3 h-2/3 text-yellow-900" />
         </div>
       )}
-<<<<<<< HEAD
 
       {showTitleChip && equippedTitle && (
         <div
@@ -203,8 +139,3 @@ export const PlayerAvatar = ({
     </div>
   );
 };
-=======
-    </div>
-  );
-};
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974

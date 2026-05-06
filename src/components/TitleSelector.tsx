@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-<<<<<<< HEAD
 import { X, Crown, Check, Star, Shield, Award, Sparkles, Zap, Sun, Trophy, Compass, Circle, User } from 'lucide-react';
-=======
-import { X, Crown, Check, Star, Shield, Award, Sparkles, Zap, Sun, Trophy, Compass } from 'lucide-react';
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 import { cn } from '@/lib/utils';
 import { usePlayerLevel, LEVEL_REWARDS, LevelReward } from '@/hooks/usePlayerLevel';
 import { useEquippedTitle } from '@/hooks/useEquippedTitle';
@@ -27,11 +23,8 @@ const iconMap: Record<string, React.ReactNode> = {
   compass: <Compass className="h-4 w-4" />,
   zap: <Zap className="h-4 w-4" />,
   sun: <Sun className="h-4 w-4" />,
-<<<<<<< HEAD
   circle: <Circle className="h-4 w-4" />,
   user: <User className="h-4 w-4" />,
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
 };
 
 const rarityColors = {
@@ -177,12 +170,9 @@ export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
                             <div>
                               <h3 className="font-semibold">{title.name}</h3>
                               <p className="text-xs text-muted-foreground">{title.description}</p>
-<<<<<<< HEAD
                               {title.perk && (
                                 <p className="text-[11px] text-primary/80 mt-1">{title.perk}</p>
                               )}
-=======
->>>>>>> 4d1066ba9b8b72909602ff02d4b8f23fac9a6974
                               <span className={cn(
                                 "text-[10px] px-1.5 py-0.5 rounded-full text-white mt-1 inline-block bg-gradient-to-r",
                                 rarityColors[title.rarity]
