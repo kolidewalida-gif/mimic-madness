@@ -103,7 +103,9 @@ export const SubmissionStatus = ({
   const everyPlayerHasClip = players.length > 0 &&
     players.every((player) => hasPlayableClip(player.id));
 
-  const canStartGame = allPlayersSubmitted && everyPlayerHasClip;
+  // Le clip est juste un avertissement : on ne bloque plus le lancement
+  // si la soumission est validée (évite le faux blocage "Clip manquant").
+  const canStartGame = allPlayersSubmitted;
 
   if (isLoading) {
     return (
@@ -182,10 +184,10 @@ export const SubmissionStatus = ({
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
             <div className="flex items-center gap-2 font-medium">
               <AlertTriangle className="h-4 w-4 text-amber-400" />
-              Verification des clips
+              Avertissement clips
             </div>
             <p className="mt-1 text-amber-200/80">
-              Certains joueurs ont valide leur preparation, mais aucun clip exploitable n'a ete retrouve pour eux. Le lancement reste bloque pour eviter le chargement infini en partie.
+              Certains clips n'ont pas pu etre detectes pour le moment, mais le lancement reste possible. Si le chargement bloque en partie, demandez aux joueurs concernes de re-soumettre leur defi.
             </p>
           </div>
         )}
