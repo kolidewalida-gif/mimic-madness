@@ -70,8 +70,11 @@ export function useDirectMessages(friendUserId?: string | null) {
 
   const send = useCallback(
     async (content: string) => {
-      const text = content.trim();
-      if (!user || !friendUserId || !text) return;
+      if (!user || !friendUserId) return;
+      // Lazy import keeps zod out of the initial DM dialog render path
+      const { dmMessageSchema, safeParse } = await import('@/lib/validation');
+      const text = safeParse(dmMessageSchema, content);
+      if (!text) return;
       const { data, error } = await supabase
         .from("direct_messages")
         .insert({ sender_id: user.id, receiver_id: friendUserId, content: text })
