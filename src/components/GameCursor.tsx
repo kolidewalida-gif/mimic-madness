@@ -189,6 +189,3 @@ export const GameCursor = () => {
     </>
   );
 };
-    </>
-  );
-};
