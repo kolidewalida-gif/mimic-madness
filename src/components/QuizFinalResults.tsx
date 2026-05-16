@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Trophy, Medal, Star, Crown, Sparkles, Home, Flame, Zap, PartyPopper, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { juice } from '@/lib/juice';
 import { ParticleSystem } from './ParticleSystem';
 import { emitXpGain } from '@/components/XpGainPopup';
 import { emitLevelUpNotification } from '@/components/RewardNotification';
@@ -39,6 +40,12 @@ export const QuizFinalResults = ({
 
   useEffect(() => {
     playSoundEffect('celebration', 0.6);
+    juice.confetti({ count: 160 });
+    juice.flash('primary', 360);
+    juice.shake(280, 0.9);
+    const wave = setTimeout(() => juice.confetti({ count: 90 }), 800);
+    const wave2 = setTimeout(() => juice.confetti({ count: 70 }), 1600);
+    // cleanup is handled below in original effect
     
     // Award XP based on position (only once)
     const awardXp = async () => {
