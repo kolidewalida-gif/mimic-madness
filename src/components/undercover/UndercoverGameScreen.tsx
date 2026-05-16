@@ -119,14 +119,11 @@ export const UndercoverGameScreen = memo(({
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [showWord, setShowWord] = useState(true);
-  const [submitPulse, setSubmitPulse] = useState(0);
-
   const handleSubmitClue = useCallback(() => {
     const trimmed = clueInput.trim();
     if (!trimmed) return;
     submitClue(trimmed);
     setClueInput('');
-    setSubmitPulse((n) => n + 1);
   }, [clueInput, submitClue]);
 
   const handleVote = useCallback(() => {
