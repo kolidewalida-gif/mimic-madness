@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFriends } from '@/hooks/useFriends';
 import { useOnlinePresence } from '@/hooks/useOnlinePresence';
 import { useGameInvitations } from '@/hooks/useGameInvitations';
-import { Users, Copy, Send, Check, X, Loader2, LogIn, UserPlus, Play, Circle, Mail, Bell } from 'lucide-react';
+import { Users, Copy, Send, Check, X, Loader2, LogIn, UserPlus, Play, Circle, Mail, Bell, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { useUnreadCounts } from '@/hooks/useDirectMessages';
+import { DirectMessageDialog } from '@/components/DirectMessageDialog';
 
 interface InkFriendsSidebarProps {
   onJoinFriend?: (lobbyCode: string) => void;
@@ -26,6 +28,8 @@ const InkFriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: InkFrien
   const [friendCodeInput, setFriendCodeInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [chatFriend, setChatFriend] = useState<{ user_id: string; display_name: string | null; avatar_url: string | null } | null>(null);
+  const unreadCounts = useUnreadCounts();
 
   const handleSendRequest = async () => {
     if (!friendCodeInput.trim()) return;
@@ -411,6 +415,27 @@ const InkFriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: InkFrien
 
                         {/* Actions */}
                         <div className="flex gap-1">
+                          <motion.button
+                            onClick={() => {
+                              playInkSound('brushTap', 0.3);
+                              setChatFriend({
+                                user_id: friend.user_id,
+                                display_name: friend.display_name,
+                                avatar_url: friend.avatar_url,
+                              });
+                            }}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="relative h-7 w-7 rounded-lg bg-foreground/10 text-foreground flex items-center justify-center hover:bg-foreground/20"
+                            title="Envoyer un message"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            {unreadCounts[friend.user_id] > 0 && (
+                              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                                {unreadCounts[friend.user_id]}
+                              </span>
+                            )}
+                          </motion.button>
                           {lobbyCode && (
                             <motion.button
                               onClick={() => handleJoinFriend(lobbyCode)}
@@ -443,6 +468,11 @@ const InkFriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: InkFrien
           </div>
         </div>
       </div>
+      <DirectMessageDialog
+        open={!!chatFriend}
+        onOpenChange={(o) => !o && setChatFriend(null)}
+        friend={chatFriend}
+      />
     </motion.div>
   );
 };
