@@ -366,17 +366,6 @@
     @apply border-border;
   }
 
-  /* ===== Fluid UI scaling =====
-     Tailwind's `rem` units are tied to <html>'s font-size. By making that
-     font-size proportional to the viewport width, the entire UI scales
-     smoothly when the browser is zoomed or resized.
-
-     Design base width: 1440px → 16px root. Floor 13px, ceiling 19px so the
-     UI never collapses on small screens or balloons on ultra-wide ones. */
-  html {
-    font-size: clamp(13px, calc(0.55vw + 0.55vh + 8px), 19px);
-  }
-
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
