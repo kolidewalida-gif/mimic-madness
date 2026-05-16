@@ -142,79 +142,142 @@ export const GameCursor = () => {
         )}
       >
         {/*
-          Fountain-pen pointer cursor.
-          The writing tip is anchored at SVG coord (4, 4) so the CSS margin
-          places that point exactly under the mouse — pointer-style hot spot.
+          AAA Fountain-pen pointer cursor.
+          Pen is laid diagonally with the nib tip anchored at SVG (4,4) so
+          the CSS margin places that exact point under the pointer.
         */}
-        <svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+        <svg viewBox="0 0 80 80" width="56" height="56" aria-hidden="true" className="game-cursor-pen-svg">
           <defs>
+            {/* Polished black lacquer barrel */}
             <linearGradient id="mm-pen-barrel" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#3a3a3a" />
-              <stop offset="50%" stopColor="#0a0a0a" />
-              <stop offset="100%" stopColor="#1a1a1a" />
+              <stop offset="0%" stopColor="#4a4a4a" />
+              <stop offset="25%" stopColor="#0d0d0d" />
+              <stop offset="55%" stopColor="#1c1c1c" />
+              <stop offset="80%" stopColor="#050505" />
+              <stop offset="100%" stopColor="#222222" />
             </linearGradient>
+            {/* Deep red lacquer accents */}
+            <linearGradient id="mm-pen-red" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="hsl(var(--primary) / 1)" />
+              <stop offset="55%" stopColor="hsl(var(--primary))" />
+              <stop offset="100%" stopColor="#5b0a10" />
+            </linearGradient>
+            {/* Nib: two-tone black with subtle red veining */}
             <linearGradient id="mm-pen-nib" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#2a2a2a" />
-              <stop offset="100%" stopColor="#000000" />
+              <stop offset="0%" stopColor="#1a1a1a" />
+              <stop offset="50%" stopColor="#000000" />
+              <stop offset="100%" stopColor="#2a2a2a" />
             </linearGradient>
+            {/* Chrome / silver ring */}
+            <linearGradient id="mm-pen-chrome" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#f5f5f5" />
+              <stop offset="45%" stopColor="#9ca3af" />
+              <stop offset="100%" stopColor="#3f3f46" />
+            </linearGradient>
+            {/* Specular highlight strip */}
             <linearGradient id="mm-pen-shine" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.6)" />
+              <stop offset="0%" stopColor="rgba(255,255,255,0.75)" />
               <stop offset="100%" stopColor="rgba(255,255,255,0)" />
             </linearGradient>
+            {/* Moving glint that sweeps along the barrel on hover */}
+            <linearGradient id="mm-pen-glint" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+              <stop offset="50%" stopColor="rgba(255,255,255,0.9)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            </linearGradient>
+            {/* Clip mask for the glint sweep */}
+            <clipPath id="mm-pen-barrel-clip">
+              <path d="M18 22 L60 64 L66 58 L24 16 Z" />
+            </clipPath>
           </defs>
 
-          {/* Drop shadow of the whole pen */}
-          <g transform="translate(2,3)" opacity="0.45">
-            <path d="M4 4 L18 14 L56 52 L52 56 L14 18 Z" fill="#000" />
+          {/* Drop shadow under the entire pen */}
+          <g transform="translate(2.5,3.5)" opacity="0.5" filter="blur(0.2px)">
+            <path d="M4 4 L20 14 L66 60 L60 66 L14 20 Z" fill="#000" />
           </g>
 
-          {/* Nib tip (the pointer point) — red ink at the very tip */}
+          {/* ===== NIB ===== */}
+          {/* Red ink already loaded at the tip */}
+          <path d="M4 4 L14 11 L10 15 Z" fill="url(#mm-pen-red)" />
+          {/* Nib body — pointed shield shape */}
           <path
-            d="M4 4 L16 12 L12 16 Z"
-            fill="hsl(var(--primary))"
-          />
-          {/* Nib body — black metal */}
-          <path
-            d="M4 4 L20 16 L16 20 Z"
+            d="M4 4 L22 16 L18 22 L7 12 Z"
             fill="url(#mm-pen-nib)"
             stroke="#ffffff"
-            strokeWidth="1.2"
+            strokeWidth="0.9"
             strokeLinejoin="round"
           />
-          {/* Nib slit */}
-          <line x1="6" y1="6" x2="18" y2="18" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
+          {/* Breather hole */}
+          <circle cx="15.5" cy="15.5" r="1.4" fill="#000" stroke="#ffffff" strokeWidth="0.5" />
+          {/* Central slit */}
+          <line x1="6.5" y1="6.5" x2="15.5" y2="15.5" stroke="#ffffff" strokeWidth="0.6" opacity="0.55" />
+          {/* Engraved hairline pattern */}
+          <path d="M9 6 L17 14 M11 5 L18 12 M7 8 L14 15" stroke="#ffffff" strokeWidth="0.25" opacity="0.35" />
+          {/* Tiny red glint on the nib edge */}
+          <circle cx="5" cy="5" r="0.9" fill="hsl(var(--primary))" opacity="0.95" />
 
-          {/* Barrel (the pen body, diagonal) */}
+          {/* ===== GRIP SECTION (chrome ring + red lacquer) ===== */}
           <path
-            d="M16 20 L48 52 L54 46 L22 14 Z"
-            fill="url(#mm-pen-barrel)"
-            stroke="#ffffff"
-            strokeWidth="1.2"
-            strokeLinejoin="round"
-          />
-          {/* Red grip band */}
-          <path
-            d="M19 17 L27 25 L24 28 L16 20 Z"
-            fill="hsl(var(--primary))"
+            d="M18 22 L26 30 L23 33 L15 25 Z"
+            fill="url(#mm-pen-chrome)"
             stroke="#ffffff"
             strokeWidth="0.8"
+            strokeLinejoin="round"
           />
-          {/* Barrel highlight */}
           <path
-            d="M22 16 L50 44 L48 46 L20 18 Z"
-            fill="url(#mm-pen-shine)"
-            opacity="0.5"
+            d="M22 26 L30 34 L27 37 L19 29 Z"
+            fill="url(#mm-pen-red)"
+            stroke="#ffffff"
+            strokeWidth="0.7"
           />
-          {/* Cap end ring */}
+          {/* Chrome ring after the grip */}
           <path
-            d="M48 52 L54 46 L57 49 L51 55 Z"
-            fill="hsl(var(--primary))"
+            d="M27 31 L33 37 L31 39 L25 33 Z"
+            fill="url(#mm-pen-chrome)"
+            stroke="#ffffff"
+            strokeWidth="0.6"
+          />
+
+          {/* ===== BARREL ===== */}
+          <path
+            d="M30 34 L60 64 L66 58 L36 28 Z"
+            fill="url(#mm-pen-barrel)"
             stroke="#ffffff"
             strokeWidth="1"
             strokeLinejoin="round"
           />
-          {/* Tiny red ink droplet about to fall */}
-          <circle cx="10" cy="14" r="1.6" fill="hsl(var(--primary))" opacity="0.85" />
+          {/* Top specular highlight strip on the barrel */}
+          <path
+            d="M32 32 L62 62 L60 64 L30 34 Z"
+            fill="url(#mm-pen-shine)"
+            opacity="0.55"
+          />
+          {/* Hairline second highlight */}
+          <path d="M34 30 L64 60" stroke="#ffffff" strokeWidth="0.45" opacity="0.4" />
+          {/* Engraved logo dot */}
+          <circle cx="45" cy="47" r="1" fill="hsl(var(--primary))" opacity="0.9" />
+
+          {/* Animated glint sweep — clipped to the barrel */}
+          <g clipPath="url(#mm-pen-barrel-clip)" className="game-cursor-pen-glint">
+            <rect x="-30" y="0" width="20" height="80" fill="url(#mm-pen-glint)" transform="rotate(45 40 40)" />
+          </g>
+
+          {/* ===== CAP END ===== */}
+          <path
+            d="M60 64 L66 58 L70 62 L64 68 Z"
+            fill="url(#mm-pen-red)"
+            stroke="#ffffff"
+            strokeWidth="0.9"
+            strokeLinejoin="round"
+          />
+          {/* Chrome cap finial */}
+          <circle cx="67" cy="65" r="1.6" fill="url(#mm-pen-chrome)" stroke="#ffffff" strokeWidth="0.5" />
+
+          {/* Floating ink droplet (idle bob) */}
+          <g className="game-cursor-pen-droplet">
+            <circle cx="9" cy="16" r="1.7" fill="hsl(var(--primary))" />
+            <circle cx="9" cy="16" r="0.6" fill="#ffffff" opacity="0.7" />
+          </g>
         </svg>
       </div>
     </>
