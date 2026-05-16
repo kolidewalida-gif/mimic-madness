@@ -795,6 +795,22 @@ export const VotingPhase = ({
                 <ChevronRight className="h-5 w-5" />
               </Button>
             )}
+
+            {currentPlayer.isHost && (() => {
+              const current = gameMode === '2v2' ? currentTeamImitation : currentImitation;
+              if (!current) return null;
+              const votesCast = (current.likes || 0) + (current.dislikes || 0);
+              // Eligible voters = everyone except the imitator(s)
+              const excludedIds = gameMode === '2v2'
+                ? new Set((currentTeamImitation?.players || []).map(p => p.id))
+                : new Set([currentImitation!.playerId]);
+              const eligible = players.filter(p => !excludedIds.has(p.id)).length;
+              return (
+                <p className="text-xs text-foreground-muted font-body">
+                  {votesCast}/{eligible} vote{eligible > 1 ? 's' : ''} reçu{votesCast > 1 ? 's' : ''}
+                </p>
+              );
+            })()}
           </div>
         </div>
       </GameCard>
