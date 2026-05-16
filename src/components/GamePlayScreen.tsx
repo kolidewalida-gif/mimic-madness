@@ -438,6 +438,7 @@ export const GamePlayScreen = ({
 
         {gamePhase === "preview" && (
           <ChallengePreviewPhase
+            key={`preview-${roundNumber}`}
             lobbyId={lobbyId}
             roundNumber={roundNumber}
             currentPlayer={currentPlayer}
@@ -449,6 +450,7 @@ export const GamePlayScreen = ({
 
         {gamePhase === "imitation" && (
           <ImitationPhase
+            key={`imitation-${roundNumber}`}
             lobbyId={lobbyId}
             roundNumber={roundNumber}
             currentPlayer={currentPlayer}
@@ -462,6 +464,7 @@ export const GamePlayScreen = ({
 
         {gamePhase === "voting" && (
           <VotingPhase
+            key={`voting-${roundNumber}`}
             lobbyId={lobbyId}
             roundNumber={roundNumber}
             currentPlayer={currentPlayer}
@@ -475,6 +478,7 @@ export const GamePlayScreen = ({
 
         {gamePhase === "results" && (
           <ResultsPhase
+            key={`results-${roundNumber}`}
             lobbyId={lobbyId}
             roundNumber={roundNumber}
             players={players}
