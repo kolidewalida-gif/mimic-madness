@@ -182,9 +182,19 @@ export const VideoSubmissionScreen = ({
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Video Upload Section */}
-          <div className="space-y-4">
+        <div className="grid md:grid-cols-3 gap-8 items-start">
+          {/* Submission Status — small left column */}
+          <div className="space-y-4 md:col-span-1">
+            <SubmissionStatus
+              lobbyId={lobbyId}
+              players={players}
+              isHost={isHost}
+              onStartGame={onStartActualGame}
+            />
+          </div>
+
+          {/* Right column: Upload (top) + Selection (bottom) stacked */}
+          <div className="space-y-6 md:col-span-2">
             <VideoUploadSimple
               playerId={currentPlayer.id}
               playerName={currentPlayer.name}
@@ -192,10 +202,9 @@ export const VideoSubmissionScreen = ({
               onVideoSaved={handleClipSaved}
               lobbyId={lobbyId}
             />
-          </div>
 
-          {/* Challenge Selection Section */}
-          <div className="space-y-4">
+            <div className="h-px bg-glass-border w-full" />
+
             <GameCard>
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -272,16 +281,6 @@ export const VideoSubmissionScreen = ({
                 )}
               </div>
             </GameCard>
-          </div>
-          
-          {/* Submission Status Section */}
-          <div className="space-y-4">
-            <SubmissionStatus
-              lobbyId={lobbyId}
-              players={players}
-              isHost={isHost}
-              onStartGame={onStartActualGame}
-            />
           </div>
         </div>
       </div>
