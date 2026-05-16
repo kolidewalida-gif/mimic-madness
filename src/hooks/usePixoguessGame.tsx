@@ -4,6 +4,7 @@ import { useOptionalXp } from '@/hooks/useOptionalXp';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import type { BlurRushLiveStats } from '@/components/BlurRushLiveScoreboard';
 import { BLURRUSH_IMAGES, type BlurRushImage, type BlurRushCategory, getImagesByCategory } from '@/lib/blurRushImages';
+import { guessSchema, safeParse } from '@/lib/validation';
 
 interface Player {
   id: string;
@@ -36,18 +37,18 @@ type PixoguessPhase = 'waiting' | 'playing' | 'reveal' | 'scores' | 'final';
 const TOTAL_ROUNDS = 5;
 const ROUND_DURATION_MS = 20000; // 20 seconds per round
 const PIXELATION_STEPS = 20; // Number of depixelation steps
-// Anti-spam cooldown disabled (requested)
-const GUESS_COOLDOWN_MS = 0;
+// Anti-spam cooldown between wrong guesses
+const GUESS_COOLDOWN_MS = 300;
+// Extra grace before any client triggers fallback phase advance
+const HOST_FALLBACK_GRACE_MS = 2000;
+// Auto-reveal delay after a winner claims the round
+const AUTO_REVEAL_DELAY_MS = 1600;
 
-// Points based on pixelation level (higher = more pixelated = more points)
-const calculatePoints = (pixelLevel: number): number => {
-  if (pixelLevel >= 18) return 100;
-  if (pixelLevel >= 15) return 80;
-  if (pixelLevel >= 12) return 60;
-  if (pixelLevel >= 9) return 40;
-  if (pixelLevel >= 6) return 25;
-  if (pixelLevel >= 3) return 15;
-  return 10;
+// Score from response time (faster = more points). Server-fair.
+const calculatePointsFromTime = (timeMs: number): number => {
+  const ratio = Math.max(0, Math.min(1, timeMs / ROUND_DURATION_MS));
+  // 100 pts at t=0, 10 pts at t=ROUND_DURATION_MS
+  return Math.round(100 - ratio * 90);
 };
 
 // Normalize answer for comparison
@@ -81,12 +82,30 @@ export const usePixoguessGame = (
   const [imagePool, setImagePool] = useState<BlurRushImage[]>(BLURRUSH_IMAGES);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const pixelTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoRevealRef = useRef<NodeJS.Timeout | null>(null);
   const cooldownUntilRef = useRef<number>(0);
+  const advancingRef = useRef(false);
+  const roundDataRef = useRef<PixoguessRound | null>(null);
+  const phaseRef = useRef<PixoguessPhase>('waiting');
+  const playersRef = useRef<Player[]>(players);
+  const nextRoundLockRef = useRef(false);
+  const startGameLockRef = useRef(false);
   const xp = useOptionalXp();
 
   const isHost = currentPlayer.isHost;
+
+  useEffect(() => { roundDataRef.current = roundData; }, [roundData]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { playersRef.current = players; }, [players]);
+
+  // Deterministic fallback "host election": lowest player id of currently
+  // known players. Any client can be the fallback acter when the host is gone.
+  const isFallbackActor = useCallback(() => {
+    const sorted = [...playersRef.current].map((p) => p.id).sort();
+    return sorted[0] === currentPlayer.id;
+  }, [currentPlayer.id]);
+
+  const canActAsHost = useCallback(() => isHost || isFallbackActor(), [isHost, isFallbackActor]);
 
   // Initialize scores
   useEffect(() => {
@@ -163,13 +182,14 @@ export const usePixoguessGame = (
             setRoundData(round);
             setCurrentRound(round.round_number);
 
-            if (round.phase === 'playing' && phase !== 'playing') {
+            if (round.phase === 'playing' && phaseRef.current !== 'playing') {
               setPhase('playing');
               setHasGuessedCorrectly(false);
               setRoundWinner(null);
               setPixelLevel(PIXELATION_STEPS);
               cooldownUntilRef.current = 0;
               setCooldownUntil(0);
+              advancingRef.current = false;
 
               // Reset per-round live stats
               setLiveStats(prev => {
@@ -190,6 +210,7 @@ export const usePixoguessGame = (
               playSoundEffect('quizReveal', 0.5);
             } else if (round.phase === 'reveal') {
               setPhase('reveal');
+              advancingRef.current = false;
               if (round.winner_id && round.winner_name) {
                 setRoundWinner({ id: round.winner_id, name: round.winner_name, points: 0 });
               }
@@ -216,8 +237,9 @@ export const usePixoguessGame = (
         },
         (payload: any) => {
           if (!payload.new) return;
-          if (!roundData) return;
-          if (payload.new.round_number !== roundData.round_number) return;
+          const currentRound = roundDataRef.current;
+          if (!currentRound) return;
+          if (payload.new.round_number !== currentRound.round_number) return;
 
           // Update live stats (no spoiler: only attempts + last time + solved)
           setLiveStats(prev => {
@@ -252,18 +274,22 @@ export const usePixoguessGame = (
 
             playSoundEffect('success', 0.5);
 
-            // Host: auto-advance to reveal shortly after a winner
-            // (do it inline here to avoid referencing callbacks declared later)
-            if (isHost) {
-              if (autoRevealRef.current) clearTimeout(autoRevealRef.current);
-              autoRevealRef.current = setTimeout(() => {
-                // Fire-and-forget; all clients will sync via realtime round update
-                supabase
-                  .from('pixoguess_rounds')
-                  .update({ phase: 'reveal' })
-                  .eq('id', roundData.id);
-              }, 1600);
-            }
+            // Auto-advance to reveal. Any client can trigger it after a delay,
+            // but the atomic .eq('phase','playing') ensures only one update wins.
+            if (autoRevealRef.current) clearTimeout(autoRevealRef.current);
+            const delay = isHost
+              ? AUTO_REVEAL_DELAY_MS
+              : AUTO_REVEAL_DELAY_MS + HOST_FALLBACK_GRACE_MS;
+            autoRevealRef.current = setTimeout(() => {
+              if (advancingRef.current) return;
+              advancingRef.current = true;
+              supabase
+                .from('pixoguess_rounds')
+                .update({ phase: 'reveal' })
+                .eq('id', currentRound.id)
+                .eq('phase', 'playing')
+                .then(() => {}, () => { advancingRef.current = false; });
+            }, delay);
           }
         }
       )
@@ -273,53 +299,59 @@ export const usePixoguessGame = (
       if (autoRevealRef.current) clearTimeout(autoRevealRef.current);
       supabase.removeChannel(channel);
     };
-  }, [lobbyId, phase, fetchScoresFromDB, roundData, currentPlayer.id, isHost]);
+  }, [lobbyId, fetchScoresFromDB, currentPlayer.id, isHost]);
 
-  // Timer and pixelation effect
+  // Timer + pixelation derived from server `started_at` (synced across clients)
   useEffect(() => {
     if (phase !== 'playing' || !roundData?.started_at) return;
 
     const startTime = new Date(roundData.started_at).getTime();
+    const roundId = roundData.id;
 
-    // Timer countdown
     timerRef.current = setInterval(() => {
       const now = Date.now();
       const elapsed = now - startTime;
       const remaining = Math.max(0, ROUND_DURATION_MS - elapsed);
       setTimeRemaining(remaining);
 
-      if (remaining <= 0 && isHost) {
-        advanceToReveal();
+      // Derive pixel level from elapsed time -> perfectly synced across clients
+      const progress = Math.min(1, elapsed / ROUND_DURATION_MS);
+      const lvl = Math.max(1, Math.ceil(PIXELATION_STEPS * (1 - progress)));
+      setPixelLevel(lvl);
+
+      // Fallback auto-advance when timer expires. Any client may attempt it
+      // (host first, others after grace) — atomic update guarantees uniqueness.
+      if (remaining <= 0 && !advancingRef.current) {
+        const grace = isHost ? 0 : HOST_FALLBACK_GRACE_MS;
+        if (now - startTime >= ROUND_DURATION_MS + grace && canActAsHost()) {
+          advancingRef.current = true;
+          supabase
+            .from('pixoguess_rounds')
+            .update({ phase: 'reveal' })
+            .eq('id', roundId)
+            .eq('phase', 'playing')
+            .then(() => {}, () => { advancingRef.current = false; });
+        }
       }
     }, 100);
 
-    // Pixelation decrease
-    pixelTimerRef.current = setInterval(() => {
-      setPixelLevel(prev => Math.max(1, prev - 1));
-    }, ROUND_DURATION_MS / PIXELATION_STEPS);
-
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (pixelTimerRef.current) clearInterval(pixelTimerRef.current);
     };
-  }, [phase, roundData?.started_at, isHost]);
+  }, [phase, roundData?.started_at, roundData?.id, isHost, canActAsHost]);
 
-  // Get random unused image from the selected pool
-  const getRandomImage = useCallback((): BlurRushImage => {
-    const availableIndices = imagePool
-      .map((_, i) => i)
-      .filter(i => !usedImageIndices.includes(i));
-
-    if (availableIndices.length === 0) {
-      // Reset if all images used
-      setUsedImageIndices([]);
-      return imagePool[Math.floor(Math.random() * imagePool.length)];
-    }
-
-    const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-    setUsedImageIndices(prev => [...prev, randomIndex]);
-    return imagePool[randomIndex];
-  }, [usedImageIndices, imagePool]);
+  // Get random unused image from selected pool — used set comes from DB so
+  // a host change mid-game still avoids repeats.
+  const getRandomImage = useCallback(async (): Promise<BlurRushImage> => {
+    const { data: previous } = await supabase
+      .from('pixoguess_rounds')
+      .select('image_url')
+      .eq('lobby_id', lobbyId);
+    const usedUrls = new Set((previous ?? []).map((r: any) => r.image_url));
+    const available = imagePool.filter((img) => !usedUrls.has(img.url));
+    const pool = available.length > 0 ? available : imagePool;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }, [imagePool, lobbyId]);
 
   // Set categories and update image pool
   const setCategories = useCallback((categories: BlurRushCategory[]) => {
@@ -338,23 +370,28 @@ export const usePixoguessGame = (
   // Start game (host only)
   const startGame = useCallback(async () => {
     if (!isHost) return;
+    if (startGameLockRef.current) return;
+    startGameLockRef.current = true;
 
-    const image = getRandomImage();
+    try {
+      const image = await getRandomImage();
 
-    const { error } = await supabase
-      .from('pixoguess_rounds')
-      .insert({
-        lobby_id: lobbyId,
-        round_number: 1,
-        phase: 'playing',
-        image_url: image.url,
-        correct_answer: image.answer,
-        acceptable_answers: image.acceptable,
-        category: image.category,
-        started_at: new Date().toISOString()
-      });
-
-    if (error) console.error('Error starting pixoguess:', error);
+      const { error } = await supabase
+        .from('pixoguess_rounds')
+        .insert({
+          lobby_id: lobbyId,
+          round_number: 1,
+          phase: 'playing',
+          image_url: image.url,
+          correct_answer: image.answer,
+          acceptable_answers: image.acceptable,
+          category: image.category,
+          started_at: new Date().toISOString()
+        });
+      if (error) console.error('Error starting pixoguess:', error);
+    } finally {
+      setTimeout(() => { startGameLockRef.current = false; }, 1500);
+    }
   }, [isHost, lobbyId, getRandomImage]);
 
   // Submit guess
@@ -363,17 +400,19 @@ export const usePixoguessGame = (
     if (roundData.winner_id || roundWinner) return { outcome: 'blocked' };
     if (hasGuessedCorrectly) return { outcome: 'blocked' };
 
-    // Cooldown disabled (GUESS_COOLDOWN_MS = 0)
-    if (GUESS_COOLDOWN_MS > 0) {
-      const now = Date.now();
-      if (now < cooldownUntilRef.current) {
-        return { outcome: 'cooldown', cooldownMs: cooldownUntilRef.current - now };
-      }
-      cooldownUntilRef.current = now + GUESS_COOLDOWN_MS;
-      setCooldownUntil(cooldownUntilRef.current);
-    }
+    // Validate + sanitize input (max 80 chars, strip control chars, trim)
+    const cleaned = safeParse(guessSchema, guess);
+    if (!cleaned) return { outcome: 'blocked' };
 
-    const normalizedGuess = normalizeAnswer(guess);
+    // Anti-spam cooldown
+    const now0 = Date.now();
+    if (now0 < cooldownUntilRef.current) {
+      return { outcome: 'cooldown', cooldownMs: cooldownUntilRef.current - now0 };
+    }
+    cooldownUntilRef.current = now0 + GUESS_COOLDOWN_MS;
+    setCooldownUntil(cooldownUntilRef.current);
+
+    const normalizedGuess = normalizeAnswer(cleaned);
     const normalizedAnswer = normalizeAnswer(roundData.correct_answer);
     const acceptableNormalized = (roundData.acceptable_answers ?? []).map(a => normalizeAnswer(a));
 
@@ -397,7 +436,7 @@ export const usePixoguessGame = (
           round_number: currentRound,
           player_id: currentPlayer.id,
           player_name: currentPlayer.name,
-          guess,
+          guess: cleaned,
           guess_time_ms: guessTimeMs,
           is_correct: false,
           points_earned: 0
@@ -417,7 +456,8 @@ export const usePixoguessGame = (
       .select('id');
 
     const didClaim = Array.isArray(claimed) && claimed.length > 0;
-    const points = didClaim ? calculatePoints(pixelLevel) : 0;
+    // Score based on response time (server-fair, independent of client render lag)
+    const points = didClaim ? calculatePointsFromTime(guessTimeMs) : 0;
 
     await supabase
       .from('pixoguess_guesses')
@@ -426,7 +466,7 @@ export const usePixoguessGame = (
         round_number: currentRound,
         player_id: currentPlayer.id,
         player_name: currentPlayer.name,
-        guess,
+        guess: cleaned,
         guess_time_ms: guessTimeMs,
         is_correct: true,
         points_earned: points
@@ -440,75 +480,89 @@ export const usePixoguessGame = (
     }
 
     return { outcome: 'late' };
-  }, [roundData, phase, roundWinner, hasGuessedCorrectly, pixelLevel, currentRound, currentPlayer, lobbyId, xp]);
+  }, [roundData, phase, roundWinner, hasGuessedCorrectly, currentRound, currentPlayer, lobbyId, xp]);
 
   // Advance to reveal (host)
   const advanceToReveal = useCallback(async () => {
-    if (!isHost || !roundData) return;
+    if (!canActAsHost() || !roundData) return;
+    if (advancingRef.current) return;
+    advancingRef.current = true;
 
     if (timerRef.current) clearInterval(timerRef.current);
-    if (pixelTimerRef.current) clearInterval(pixelTimerRef.current);
 
     await supabase
       .from('pixoguess_rounds')
       .update({ phase: 'reveal' })
-      .eq('id', roundData.id);
-  }, [isHost, roundData]);
+      .eq('id', roundData.id)
+      .eq('phase', 'playing');
+  }, [canActAsHost, roundData]);
 
   // Advance to scores (host)
   const advanceToScores = useCallback(async () => {
-    if (!isHost || !roundData) return;
+    if (!canActAsHost() || !roundData) return;
 
     await supabase
       .from('pixoguess_rounds')
       .update({ phase: 'scores' })
-      .eq('id', roundData.id);
-  }, [isHost, roundData]);
+      .eq('id', roundData.id)
+      .eq('phase', 'reveal');
+  }, [canActAsHost, roundData]);
 
   // Next round (host)
   const nextRound = useCallback(async () => {
-    if (!isHost) return;
+    if (!canActAsHost()) return;
+    if (nextRoundLockRef.current) return;
+    nextRoundLockRef.current = true;
 
-    const nextRoundNumber = currentRound + 1;
+    try {
+      const nextRoundNumber = currentRound + 1;
 
-    if (nextRoundNumber > TOTAL_ROUNDS) {
-      // Final phase
-      if (roundData) {
-        await supabase
-          .from('pixoguess_rounds')
-          .update({ phase: 'final' })
-          .eq('id', roundData.id);
+      if (nextRoundNumber > TOTAL_ROUNDS) {
+        if (roundData) {
+          await supabase
+            .from('pixoguess_rounds')
+            .update({ phase: 'final' })
+            .eq('id', roundData.id);
+        }
+        const winner = scores[0];
+        if (winner && winner.player_id === currentPlayer.id) {
+          xp?.onQuizWin?.();
+        } else {
+          xp?.onGameParticipation?.();
+        }
+        return;
       }
-      
-      // Award XP to winner
-      const winner = scores[0];
-      if (winner && winner.player_id === currentPlayer.id) {
-        xp?.onQuizWin?.();
-      } else {
-        xp?.onGameParticipation?.();
-      }
-      return;
+
+      // Idempotency: don't double-insert if a row for this round already exists
+      const { data: existing } = await supabase
+        .from('pixoguess_rounds')
+        .select('id')
+        .eq('lobby_id', lobbyId)
+        .eq('round_number', nextRoundNumber)
+        .maybeSingle();
+      if (existing) return;
+
+      const image = await getRandomImage();
+      await supabase
+        .from('pixoguess_rounds')
+        .insert({
+          lobby_id: lobbyId,
+          round_number: nextRoundNumber,
+          phase: 'playing',
+          image_url: image.url,
+          correct_answer: image.answer,
+          acceptable_answers: image.acceptable,
+          category: image.category,
+          started_at: new Date().toISOString()
+        });
+
+      setPixelLevel(PIXELATION_STEPS);
+      setHasGuessedCorrectly(false);
+      setRoundWinner(null);
+    } finally {
+      setTimeout(() => { nextRoundLockRef.current = false; }, 1500);
     }
-
-    const image = getRandomImage();
-
-    await supabase
-      .from('pixoguess_rounds')
-      .insert({
-        lobby_id: lobbyId,
-        round_number: nextRoundNumber,
-        phase: 'playing',
-        image_url: image.url,
-        correct_answer: image.answer,
-        acceptable_answers: image.acceptable,
-        category: image.category,
-        started_at: new Date().toISOString()
-      });
-
-    setPixelLevel(PIXELATION_STEPS);
-    setHasGuessedCorrectly(false);
-    setRoundWinner(null);
-  }, [isHost, currentRound, roundData, lobbyId, getRandomImage, scores, currentPlayer.id, xp]);
+  }, [canActAsHost, currentRound, roundData, lobbyId, getRandomImage, scores, currentPlayer.id, xp]);
 
   const roundAttemptCount = Object.values(liveStats).reduce((sum, stat) => sum + (stat.attempts ?? 0), 0);
   const solvedPlayersCount = Object.values(liveStats).filter((stat) => stat.solved).length;
