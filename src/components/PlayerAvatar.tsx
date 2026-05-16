@@ -31,7 +31,7 @@ const orbitRadius = { sm: 16, md: 22, lg: 32, xl: 44 };
 const titleChipVisibility = { sm: false, md: true, lg: true, xl: true };
 
 const frameRing = {
-  none: "border-3 border-primary/40 shadow-lg shadow-primary/20",
+  none: "border-2 border-primary/40 shadow-lg shadow-primary/20",
   bronze: "",
   silver: "",
   gold: "",
