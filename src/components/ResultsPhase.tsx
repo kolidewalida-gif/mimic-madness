@@ -4,6 +4,7 @@ import { GameCard } from "@/components/GameCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VictoryAnimation } from "@/components/VictoryAnimation";
 import { Trophy, ThumbsUp, ThumbsDown, ArrowRight, Medal, Sparkles, Swords, Download, Loader2 } from "lucide-react";
+import { juice } from "@/lib/juice";
 import { supabase } from "@/integrations/supabase/client";
 import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
@@ -139,8 +140,17 @@ export const ResultsPhase = ({
   // Play success sound and hide animation after delay
   useEffect(() => {
     playSound('success');
+    // 🎉 Dopamine burst on results reveal
+    juice.confetti({ count: 140 });
+    juice.flash('primary', 320);
+    juice.shake(260, 0.8);
+    // Second wave for sustained celebration
+    const wave = setTimeout(() => juice.confetti({ count: 80 }), 700);
     const timer = setTimeout(() => setShowVictoryAnimation(false), 4000);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(wave);
+    };
   }, [playSound]);
 
   useEffect(() => {
