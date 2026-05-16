@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 
@@ -24,6 +24,11 @@ export const CountdownOverlay = ({
   const [isVisible, setIsVisible] = useState(false);
   const [tick, setTick] = useState(0);
   const [started, setStarted] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     if (isActive) {
@@ -52,7 +57,7 @@ export const CountdownOverlay = ({
         // Snappy hand-off — keep the start chime audible but don't stall the video.
         setTimeout(() => {
           setIsVisible(false);
-          onComplete();
+          onCompleteRef.current();
         }, 220);
       } else {
         setCount(count - 1);
@@ -60,7 +65,7 @@ export const CountdownOverlay = ({
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [count, isVisible, started, onComplete]);
+  }, [count, isVisible, started]);
 
   if (!isVisible) return null;
 
