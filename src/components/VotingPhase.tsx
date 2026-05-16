@@ -490,6 +490,7 @@ export const VotingPhase = ({
   // Host controls play/pause for everyone - with countdown
   const handleTogglePlay = async () => {
     if (!votingSessionId || !currentPlayer.isHost) return;
+    if (pendingPlay || showCountdown) return;
 
     if (!isPlayingSynced) {
       // Starting playback - show countdown for all, synchronized via wall-clock startAt.
@@ -771,7 +772,7 @@ export const VotingPhase = ({
                 onClick={handleTogglePlay}
                 variant="outline"
                 size="lg"
-                disabled={!votingSessionId}
+                disabled={!votingSessionId || pendingPlay || showCountdown}
                 className="gap-2"
               >
                 {isPlayingSynced ? (
