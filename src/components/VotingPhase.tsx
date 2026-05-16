@@ -77,6 +77,9 @@ export const VotingPhase = ({
   const [hasVotedCurrent, setHasVotedCurrent] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [pendingPlay, setPendingPlay] = useState(false);
+  const [countdownStartAt, setCountdownStartAt] = useState<number | null>(null);
+  const countdownChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const countdownReadyRef = useRef(false);
   const { toast } = useToast();
   const { pause, play, setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
   const videoRef = useRef<VideoWithAudioOverlayRef>(null);
@@ -471,17 +474,22 @@ export const VotingPhase = ({
     if (!votingSessionId || !currentPlayer.isHost) return;
 
     if (!isPlayingSynced) {
-      // Starting playback - show countdown for all
+      // Starting playback - show countdown for all, synchronized via wall-clock startAt.
+      // 350 ms buffer gives broadcast time to reach every client before the first tick.
+      const startAt = Date.now() + 350;
       setPendingPlay(true);
-      
-      // Broadcast countdown start to all players
-      await supabase.channel(`countdown:${lobbyId}:${roundNumber}`).send({
-        type: 'broadcast',
-        event: 'countdown_start',
-        payload: { startTime: Date.now() }
-      });
-      
+      setCountdownStartAt(startAt);
       setShowCountdown(true);
+
+      // Persistent channel is already subscribed — send is instant.
+      const ch = countdownChannelRef.current;
+      if (ch && countdownReadyRef.current) {
+        ch.send({
+          type: 'broadcast',
+          event: 'countdown_start',
+          payload: { startAt },
+        });
+      }
     } else {
       // Pausing - no countdown needed
       const { error } = await supabase
@@ -502,6 +510,7 @@ export const VotingPhase = ({
   const handleCountdownComplete = async () => {
     setShowCountdown(false);
     setPendingPlay(false);
+    setCountdownStartAt(null);
     
     if (currentPlayer.isHost && votingSessionId) {
       const { error } = await supabase
@@ -518,22 +527,36 @@ export const VotingPhase = ({
     }
   };
 
-  // Listen for countdown broadcasts (for non-host players)
+  // Persistent countdown broadcast channel — created once per round and pre-subscribed
+  // so that .send() / receive happens instantly (no per-click handshake latency).
   useEffect(() => {
-    if (!lobbyId || currentPlayer.isHost) return;
+    if (!lobbyId) return;
 
+    countdownReadyRef.current = false;
     const channel = supabase
-      .channel(`countdown:${lobbyId}:${roundNumber}`)
-      .on('broadcast', { event: 'countdown_start' }, () => {
+      .channel(`countdown:${lobbyId}:${roundNumber}`, {
+        config: { broadcast: { self: false, ack: false } },
+      })
+      .on('broadcast', { event: 'countdown_start' }, (msg) => {
+        const startAt: number | undefined = msg?.payload?.startAt;
+        setCountdownStartAt(startAt ?? Date.now());
         setShowCountdown(true);
         setPendingPlay(true);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          countdownReadyRef.current = true;
+        }
+      });
+
+    countdownChannelRef.current = channel;
 
     return () => {
+      countdownReadyRef.current = false;
+      countdownChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [lobbyId, roundNumber, currentPlayer.isHost]);
+  }, [lobbyId, roundNumber]);
 
   // Only host can advance to next imitation
   const handleNext = async () => {
@@ -602,6 +625,7 @@ export const VotingPhase = ({
         onComplete={handleCountdownComplete}
         duration={3}
         title="La vidéo commence dans..."
+        startAt={countdownStartAt ?? undefined}
       />
 
       <div className="max-w-5xl mx-auto space-y-6">
