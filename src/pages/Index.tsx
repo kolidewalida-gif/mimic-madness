@@ -274,6 +274,12 @@ const Index = () => {
             });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             playSoundEffect('start', 0.5);
+            // Dopamine launch — fires for every client when the game starts
+            import('@/lib/juice').then(({ juice }) => {
+              juice.confetti({ count: 80 });
+              juice.flash('primary', 240);
+              juice.shake(220, 0.8);
+            });
             setGameState('playing');
             toast({
               title: "🎮 Que le jeu commence !",
