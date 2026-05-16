@@ -5,6 +5,7 @@ import { emitXpGain } from '@/components/XpGainPopup';
 import { emitLevelUpNotification } from '@/components/RewardNotification';
 import { usePlayerLevel, XP_REWARDS } from '@/hooks/usePlayerLevel';
 import { DEFAULT_QUIZ_SETTINGS, type QuizSettings } from '@/components/QuizSettingsPanel';
+import { quizAnswerSchema, safeParse } from '@/lib/validation';
 
 interface Player {
   id: string;
@@ -150,10 +151,12 @@ export const useQuizGame = (
     if (!currentPlayer.isHost) return;
     
     console.log('[Quiz] Advancing to reveal');
+    // Atomic guard: only transition if still in 'answering'
     await supabase.from('quiz_rounds')
       .update({ phase: 'reveal' })
       .eq('lobby_id', lobbyId)
-      .eq('round_number', currentRound);
+      .eq('round_number', currentRound)
+      .eq('phase', 'answering');
   }, [currentPlayer.isHost, lobbyId, currentRound]);
   advanceToRevealRef.current = advanceToReveal;
 
@@ -466,17 +469,22 @@ export const useQuizGame = (
           started_at: now
         })
         .eq('lobby_id', lobbyId)
-        .eq('round_number', roundNum);
+        .eq('round_number', roundNum)
+        .eq('phase', 'countdown');
     }, 3500);
   }, [currentPlayer.isHost, lobbyId, currentRound, generateQuestion, selectedCategory, hostSettings]);
 
   // Submit an answer
   const submitAnswer = useCallback(async (answer: string) => {
     if (hasAnswered || !serverStartTime || !currentQuestion) return;
-    
+
+    // Input validation: strip control chars, enforce max length
+    const cleanAnswer = safeParse(quizAnswerSchema, answer);
+    if (!cleanAnswer) return;
+
     const startTime = new Date(serverStartTime).getTime();
     const responseTime = Math.max(0, Date.now() - startTime - freezeBonusMs);
-    const normalizedUserAnswer = normalizeAnswer(answer);
+    const normalizedUserAnswer = normalizeAnswer(cleanAnswer);
     const normalizedCorrectAnswer = normalizeAnswer(currentQuestion.answer);
     
     // Check if answer is correct
@@ -516,7 +524,7 @@ export const useQuizGame = (
       round_number: currentRound,
       player_id: currentPlayer.id,
       player_name: currentPlayer.name,
-      answer: answer,
+      answer: cleanAnswer,
       response_time_ms: responseTime,
       is_correct: isCorrect,
       points_earned: points
@@ -538,7 +546,8 @@ export const useQuizGame = (
     await supabase.from('quiz_rounds')
       .update({ phase: 'scores' })
       .eq('lobby_id', lobbyId)
-      .eq('round_number', currentRound);
+      .eq('round_number', currentRound)
+      .eq('phase', 'reveal');
   }, [currentPlayer.isHost, lobbyId, currentRound]);
   advanceToScoresRef.current = advanceToScores;
 
@@ -551,7 +560,8 @@ export const useQuizGame = (
       await supabase.from('quiz_rounds')
         .update({ phase: 'final' })
         .eq('lobby_id', lobbyId)
-        .eq('round_number', currentRound);
+        .eq('round_number', currentRound)
+        .eq('phase', 'scores');
     } else {
       const nextRoundNum = currentRound + 1;
       console.log('[Quiz] Moving to round:', nextRoundNum);
