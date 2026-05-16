@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
+import { AutoAdvanceBar } from './AutoAdvanceBar';
 import { Check, X, Clock, ArrowRight, Sparkles, Trophy, Zap, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
