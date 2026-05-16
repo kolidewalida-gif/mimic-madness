@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX, Music, X, Sparkles } from "lucide-react";
+import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX, Music, X } from "lucide-react";
 import { useMediaDevices, MediaDeviceInfo } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
@@ -241,7 +241,7 @@ const DeviceSettingsContent = ({
   onToggleNoiseSuppression,
 }: DeviceSettingsContentProps) => {
   return (
-    <>
+    <div className="space-y-5">
       {error && (
         <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
           {error}
@@ -249,12 +249,12 @@ const DeviceSettingsContent = ({
       )}
 
       {/* Audio Input Selection */}
-      <div className="space-y-2">
+      <section className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
+        <header className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <Mic className="h-3.5 w-3.5 text-primary" /> Microphone
+        </header>
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <Mic className="h-4 w-4 text-secondary" />
-            Microphone
-          </label>
+          <span className="text-sm text-muted-foreground">Choisissez votre entrée audio</span>
           <Button
             variant="outline"
             size="sm"
@@ -285,7 +285,7 @@ const DeviceSettingsContent = ({
         </Select>
 
         {/* Noise Suppression Toggle */}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-background-secondary/30 border border-glass-border">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-card/60 border border-border/60">
           <div className="flex items-center gap-2">
             {noiseSuppressionEnabled ? (
               <VolumeX className="h-4 w-4 text-success" />
@@ -354,14 +354,13 @@ const DeviceSettingsContent = ({
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Video Input Selection */}
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-medium">
-          <Video className="h-4 w-4 text-secondary" />
-          Caméra
-        </label>
+      <section className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
+        <header className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <Video className="h-3.5 w-3.5 text-primary" /> Caméra
+        </header>
         <Select
           value={selectedVideoId}
           onValueChange={onChangeVideoInput}
@@ -378,12 +377,10 @@ const DeviceSettingsContent = ({
             ))}
           </SelectContent>
         </Select>
-      </div>
 
-      {/* Video Preview */}
-      {showPreview && (
-        <div className="space-y-3">
-          <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+        {showPreview && (
+          <div className="space-y-3">
+            <div className="relative bg-black rounded-lg overflow-hidden aspect-video border border-border/60">
             {isPreviewActive ? (
               <video
                 ref={videoRef}
@@ -400,9 +397,9 @@ const DeviceSettingsContent = ({
                 </div>
               </div>
             )}
-          </div>
+            </div>
 
-          <div className="flex gap-3">
+            <div className="flex gap-3">
             {!isPreviewActive ? (
               <Button
                 onClick={onStartPreview}
@@ -422,19 +419,20 @@ const DeviceSettingsContent = ({
                 Arrêter l'Aperçu
               </Button>
             )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
       {/* Volume Controls */}
       <VolumeSettings />
 
       {/* Device Info */}
-      <div className="pt-4 border-t border-glass-border text-sm text-foreground-secondary space-y-1">
+      <div className="rounded-xl border border-border/60 bg-background/30 p-3 text-xs text-muted-foreground space-y-1">
         <p>• {audioInputs.length} microphone(s) détecté(s)</p>
         <p>• {videoInputs.length} caméra(s) détectée(s)</p>
       </div>
-    </>
+    </div>
   );
 };
 
@@ -444,11 +442,10 @@ const VolumeSettings = () => {
   const { volume: sfxVolume, setVolume: setSfxVolume } = useSoundEffectsVolume();
 
   return (
-    <div className="space-y-4 pt-4 border-t border-glass-border">
-      <h4 className="text-sm font-semibold flex items-center gap-2">
-        <Volume2 className="h-4 w-4 text-secondary" />
-        Volume
-      </h4>
+    <section className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-4">
+      <header className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <Volume2 className="h-3.5 w-3.5 text-primary" /> Volume
+      </header>
 
       {/* Music Volume */}
       <div className="space-y-2">
@@ -485,6 +482,6 @@ const VolumeSettings = () => {
           className="w-full"
         />
       </div>
-    </div>
+    </section>
   );
 };
