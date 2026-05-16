@@ -14,6 +14,7 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { emitXpGain } from "@/components/XpGainPopup";
 import { emitLevelUpNotification } from "@/components/RewardNotification";
 import { usePlayerLevel, XP_REWARDS } from "@/hooks/usePlayerLevel";
+import { juice, centerOf } from "@/lib/juice";
 interface Player {
   id: string;
   name: string;
@@ -378,7 +379,24 @@ export const VotingPhase = ({
     setHasVotedCurrent(false);
   }, [currentIndex]);
 
-  const handleVote = async (voteType: 'like' | 'dislike') => {
+  const handleVote = async (voteType: 'like' | 'dislike', evt?: React.MouseEvent) => {
+    // Juice — instant haptic-style feedback before async work
+    const origin = centerOf(evt?.currentTarget ?? null);
+    if (origin) {
+      juice.burst({
+        x: origin.x,
+        y: origin.y,
+        color: voteType === 'like' ? 'hsl(140 70% 55%)' : 'hsl(0 84% 60%)',
+        intensity: voteType === 'like' ? 1.2 : 0.9,
+      });
+      juice.pop(evt!.currentTarget as HTMLElement, voteType === 'like' ? 1.18 : 1.1);
+    }
+    if (voteType === 'like') {
+      juice.flash('success', 180);
+    } else {
+      juice.shake(160, 0.7);
+    }
+
     // Award XP for voting
     const xpResult = await addXp('voteLike');
     emitXpGain(XP_REWARDS.voteLike, 'voteLike');
@@ -775,8 +793,8 @@ export const VotingPhase = ({
           <div className="flex flex-col gap-4 items-center">
             {!isOwnVideo && !hasVotedCurrent && (
               <div className="flex gap-4 justify-center w-full max-w-md">
-                <Button
-                  onClick={() => handleVote('dislike')}
+                 <Button
+                   onClick={(e) => handleVote('dislike', e)}
                   variant="outline"
                   size="lg"
                   className="flex-1 border-destructive/50 text-destructive hover:bg-destructive/10 hover:border-destructive"
@@ -785,8 +803,8 @@ export const VotingPhase = ({
                   <ThumbsDown className="h-6 w-6" />
                   Dislike
                 </Button>
-                <Button
-                  onClick={() => handleVote('like')}
+                 <Button
+                   onClick={(e) => handleVote('like', e)}
                   variant="secondary"
                   size="lg"
                   className="flex-1"
