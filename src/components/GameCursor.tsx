@@ -141,53 +141,80 @@ export const GameCursor = () => {
           hovering && "game-cursor-nib-hover"
         )}
       >
-        {/* Mimic Master mask cursor — theatre mask with a red smile */}
-        <svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true">
+        {/*
+          Fountain-pen pointer cursor.
+          The writing tip is anchored at SVG coord (4, 4) so the CSS margin
+          places that point exactly under the mouse — pointer-style hot spot.
+        */}
+        <svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
           <defs>
-            <radialGradient id="mm-mask-body" cx="40%" cy="35%" r="75%">
+            <linearGradient id="mm-pen-barrel" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#3a3a3a" />
+              <stop offset="50%" stopColor="#0a0a0a" />
+              <stop offset="100%" stopColor="#1a1a1a" />
+            </linearGradient>
+            <linearGradient id="mm-pen-nib" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#2a2a2a" />
-              <stop offset="55%" stopColor="#0d0d0d" />
               <stop offset="100%" stopColor="#000000" />
-            </radialGradient>
-            <linearGradient id="mm-mask-shine" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
+            </linearGradient>
+            <linearGradient id="mm-pen-shine" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.6)" />
               <stop offset="100%" stopColor="rgba(255,255,255,0)" />
             </linearGradient>
           </defs>
-          {/* Drop shadow */}
+
+          {/* Drop shadow of the whole pen */}
+          <g transform="translate(2,3)" opacity="0.45">
+            <path d="M4 4 L18 14 L56 52 L52 56 L14 18 Z" fill="#000" />
+          </g>
+
+          {/* Nib tip (the pointer point) — red ink at the very tip */}
           <path
-            d="M14 8 C 28 4, 44 4, 54 12 C 58 24, 50 44, 36 54 C 22 60, 12 50, 8 36 C 6 22, 8 12, 14 8 Z"
-            fill="rgba(0,0,0,0.4)"
-            transform="translate(2,3)"
+            d="M4 4 L16 12 L12 16 Z"
+            fill="hsl(var(--primary))"
           />
-          {/* Mask body */}
+          {/* Nib body — black metal */}
           <path
-            d="M14 8 C 28 4, 44 4, 54 12 C 58 24, 50 44, 36 54 C 22 60, 12 50, 8 36 C 6 22, 8 12, 14 8 Z"
-            fill="url(#mm-mask-body)"
+            d="M4 4 L20 16 L16 20 Z"
+            fill="url(#mm-pen-nib)"
             stroke="#ffffff"
-            strokeWidth="1.6"
+            strokeWidth="1.2"
             strokeLinejoin="round"
           />
-          {/* Eye holes */}
-          <ellipse cx="22" cy="26" rx="4.2" ry="5.4" fill="#000" stroke="#ffffff" strokeWidth="1" />
-          <ellipse cx="40" cy="24" rx="4.2" ry="5.4" fill="#000" stroke="#ffffff" strokeWidth="1" />
-          {/* Eye glints */}
-          <circle cx="23.5" cy="24.5" r="1" fill="#ffffff" />
-          <circle cx="41.5" cy="22.5" r="1" fill="#ffffff" />
-          {/* Red smirk */}
+          {/* Nib slit */}
+          <line x1="6" y1="6" x2="18" y2="18" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
+
+          {/* Barrel (the pen body, diagonal) */}
           <path
-            d="M22 42 Q 32 50, 44 40"
-            fill="none"
-            stroke="hsl(var(--primary))"
-            strokeWidth="3"
-            strokeLinecap="round"
+            d="M16 20 L48 52 L54 46 L22 14 Z"
+            fill="url(#mm-pen-barrel)"
+            stroke="#ffffff"
+            strokeWidth="1.2"
+            strokeLinejoin="round"
           />
-          {/* Forehead highlight */}
+          {/* Red grip band */}
           <path
-            d="M16 12 Q 26 8, 38 10 L 36 16 Q 26 14, 18 18 Z"
-            fill="url(#mm-mask-shine)"
-            opacity="0.45"
+            d="M19 17 L27 25 L24 28 L16 20 Z"
+            fill="hsl(var(--primary))"
+            stroke="#ffffff"
+            strokeWidth="0.8"
           />
+          {/* Barrel highlight */}
+          <path
+            d="M22 16 L50 44 L48 46 L20 18 Z"
+            fill="url(#mm-pen-shine)"
+            opacity="0.5"
+          />
+          {/* Cap end ring */}
+          <path
+            d="M48 52 L54 46 L57 49 L51 55 Z"
+            fill="hsl(var(--primary))"
+            stroke="#ffffff"
+            strokeWidth="1"
+            strokeLinejoin="round"
+          />
+          {/* Tiny red ink droplet about to fall */}
+          <circle cx="10" cy="14" r="1.6" fill="hsl(var(--primary))" opacity="0.85" />
         </svg>
       </div>
     </>

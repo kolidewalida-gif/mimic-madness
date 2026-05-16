@@ -419,15 +419,16 @@
 }
 
 .game-cursor-nib {
-  /* Anchor: top-left of the mask sits at the pointer (natural arrow feel) */
-  margin-left: -6px;
-  margin-top: -4px;
-  width: 52px;
-  height: 52px;
+  /* Hot spot = nib tip at SVG (4,4). SVG is 44px wide for 64 vb units
+     -> 1 unit ≈ 0.6875 px, so (4,4) sits at ~(2.75, 2.75) inside the box. */
+  margin-left: -3px;
+  margin-top: -3px;
+  width: 44px;
+  height: 44px;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
   /* No transition on transform — must follow the mouse 1:1 */
   transition: filter 160ms ease;
-  transform-origin: 15% 15%;
+  transform-origin: 6% 6%;
 }
 
 .game-cursor-nib svg {
