@@ -2007,28 +2007,39 @@ const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number)
     }
     
     case 'start': {
+      // Elegant chime — soft bell-like cluster with long tail
       const notes = [
-        { freq: 523.25, time: 0 },
-        { freq: 659.25, time: 0.1 },
-        { freq: 783.99, time: 0.2 },
-        { freq: 1046.50, time: 0.35 },
+        { freq: 587.33, time: 0 },     // D5
+        { freq: 880.0,  time: 0.05 },  // A5
+        { freq: 1174.66, time: 0.12 }, // D6
       ];
-      
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(4500, now);
+      filter.Q.setValueAtTime(0.7, now);
+      filter.connect(masterGain);
+
       notes.forEach(({ freq, time }) => {
         const osc = ctx.createOscillator();
+        const partial = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
-        gain.connect(masterGain);
-        
+        partial.connect(gain);
+        gain.connect(filter);
+
+        osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, now + time);
-        osc.type = 'triangle';
-        
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.setValueAtTime(volume * 0.6, now + time);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + time + 0.3);
-        
+        partial.type = 'sine';
+        partial.frequency.setValueAtTime(freq * 2.01, now + time);
+
+        gain.gain.setValueAtTime(0, now + time);
+        gain.gain.linearRampToValueAtTime(volume * 0.4, now + time + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + time + 0.9);
+
         osc.start(now + time);
-        osc.stop(now + time + 0.35);
+        partial.start(now + time);
+        osc.stop(now + time + 0.95);
+        partial.stop(now + time + 0.6);
       });
       masterGain.gain.setValueAtTime(1, now);
       break;
