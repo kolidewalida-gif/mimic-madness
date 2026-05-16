@@ -3,7 +3,7 @@ import { GameLogo } from "@/components/GameLogo";
 import { VideoUploadSimple } from "@/components/VideoUploadSimple";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
-import { ArrowLeft, Send, Clock } from "lucide-react";
+import { ArrowLeft, Send, Clock, ChevronDown, ChevronUp, Video as VideoIcon } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,11 +41,35 @@ export const VideoSubmissionScreen = ({
   const [savedClips, setSavedClips] = useState<VideoClip[]>([]);
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadCollapsed, setUploadCollapsed] = useState(false);
+  const [clipUrls, setClipUrls] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   useEffect(() => {
     loadPlayerClips();
   }, [currentPlayer.id]);
+
+  // Auto-collapse upload card as soon as the player has at least one clip,
+  // so the selection list takes the spotlight (per user request).
+  useEffect(() => {
+    if (savedClips.length > 0) setUploadCollapsed(true);
+  }, [savedClips.length > 0]);
+
+  // Resolve public URLs for thumbnails / inline previews
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = { ...clipUrls };
+      for (const clip of savedClips) {
+        if (next[clip.id]) continue;
+        const url = await videoStorage.getVideoUrl(clip.id);
+        if (url) next[clip.id] = url;
+      }
+      if (!cancelled) setClipUrls(next);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedClips]);
 
   const loadPlayerClips = async () => {
     try {
@@ -58,6 +82,7 @@ export const VideoSubmissionScreen = ({
 
   const handleClipSaved = (newClip: VideoClip) => {
     setSavedClips([...savedClips, newClip]);
+    setUploadCollapsed(true);
   };
 
   const toggleClipSelection = (clipId: string) => {
@@ -182,29 +207,56 @@ export const VideoSubmissionScreen = ({
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 items-start">
-          {/* Submission Status — small left column */}
+        <div className="grid md:grid-cols-3 gap-6 items-start">
+          {/* Column 1: Upload (collapsible once clips exist) */}
           <div className="space-y-4 md:col-span-1">
-            <SubmissionStatus
-              lobbyId={lobbyId}
-              players={players}
-              isHost={isHost}
-              onStartGame={onStartActualGame}
-            />
+            {uploadCollapsed ? (
+              <GameCard>
+                <button
+                  type="button"
+                  onClick={() => setUploadCollapsed(false)}
+                  className="w-full flex items-center justify-between gap-2 group"
+                >
+                  <div className="flex items-center gap-2">
+                    <VideoIcon className="h-5 w-5 text-secondary" />
+                    <h3 className="text-base font-semibold text-gradient">
+                      Ajouter une Vidéo
+                    </h3>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-foreground-secondary group-hover:text-foreground transition" />
+                </button>
+                <p className="text-xs text-foreground-secondary mt-2">
+                  Cliquez pour importer une nouvelle vidéo.
+                </p>
+              </GameCard>
+            ) : (
+              <div className="space-y-2">
+                {savedClips.length > 0 && (
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setUploadCollapsed(true)}
+                      className="gap-1 text-xs"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                      Réduire
+                    </Button>
+                  </div>
+                )}
+                <VideoUploadSimple
+                  playerId={currentPlayer.id}
+                  playerName={currentPlayer.name}
+                  maxVideos={5}
+                  onVideoSaved={handleClipSaved}
+                  lobbyId={lobbyId}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Right column: Upload (top) + Selection (bottom) stacked */}
-          <div className="space-y-6 md:col-span-2">
-            <VideoUploadSimple
-              playerId={currentPlayer.id}
-              playerName={currentPlayer.name}
-              maxVideos={5}
-              onVideoSaved={handleClipSaved}
-              lobbyId={lobbyId}
-            />
-
-            <div className="h-px bg-glass-border w-full" />
-
+          {/* Column 2: Selection */}
+          <div className="md:col-span-1">
             <GameCard>
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -219,7 +271,7 @@ export const VideoSubmissionScreen = ({
                 </p>
 
                 {savedClips.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                     {savedClips.map((clip) => (
                       <div
                         key={clip.id}
@@ -230,12 +282,28 @@ export const VideoSubmissionScreen = ({
                         }`}
                         onClick={() => toggleClipSelection(clip.id)}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          {/* Thumbnail */}
+                          <div className="flex-shrink-0 w-20 h-14 rounded-md overflow-hidden bg-black border border-glass-border">
+                            {clipUrls[clip.id] ? (
+                              <video
+                                src={`${clipUrls[clip.id]}#t=${Math.max(0.1, clip.startTime || 0.1)}`}
+                                className="w-full h-full object-cover"
+                                preload="metadata"
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <VideoIcon className="h-5 w-5 text-foreground-secondary opacity-50" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-foreground">{clip.name}</h4>
                             <p className="text-sm text-foreground-secondary">
-                              Durée: {Math.round(clip.duration)}s • 
-                              {clip.createdAt.toLocaleDateString()}
+                              Durée: {Math.round(clip.duration)}s • {clip.createdAt.toLocaleDateString()}
                             </p>
                           </div>
                           
@@ -251,26 +319,6 @@ export const VideoSubmissionScreen = ({
                         </div>
                       </div>
                     ))}
-
-                    <div className="pt-4 border-t border-glass-border">
-                      <div className="flex items-center justify-between text-sm text-foreground-secondary mb-4">
-                        <span>Défis sélectionnés: {selectedClips.length}/3</span>
-                      </div>
-
-                      <Button
-                        variant="hero"
-                        size="lg"
-                        onClick={handleSubmitChallenges}
-                        disabled={selectedClips.length === 0 || isSubmitting}
-                        className="w-full"
-                      >
-                        <Send className="h-5 w-5" />
-                        {isSubmitting 
-                          ? "Envoi en cours..." 
-                          : `Soumettre ${selectedClips.length} Défi(s)`
-                        }
-                      </Button>
-                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8 text-foreground-secondary">
@@ -279,8 +327,39 @@ export const VideoSubmissionScreen = ({
                     <p className="text-sm">Importez d'abord des vidéos pour créer des défis</p>
                   </div>
                 )}
+
+                {savedClips.length > 0 && (
+                  <div className="pt-4 border-t border-glass-border">
+                    <div className="flex items-center justify-between text-sm text-foreground-secondary mb-4">
+                      <span>Défis sélectionnés: {selectedClips.length}/3</span>
+                    </div>
+                    <Button
+                      variant="hero"
+                      size="lg"
+                      onClick={handleSubmitChallenges}
+                      disabled={selectedClips.length === 0 || isSubmitting}
+                      className="w-full"
+                    >
+                      <Send className="h-5 w-5" />
+                      {isSubmitting 
+                        ? "Envoi en cours..." 
+                        : `Soumettre ${selectedClips.length} Défi(s)`
+                      }
+                    </Button>
+                  </div>
+                )}
               </div>
             </GameCard>
+          </div>
+
+          {/* Column 3: Submission Status */}
+          <div className="space-y-4 md:col-span-1">
+            <SubmissionStatus
+              lobbyId={lobbyId}
+              players={players}
+              isHost={isHost}
+              onStartGame={onStartActualGame}
+            />
           </div>
         </div>
       </div>
