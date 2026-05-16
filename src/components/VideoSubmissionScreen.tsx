@@ -95,6 +95,19 @@ export const VideoSubmissionScreen = ({
       
       console.log('Submitting challenges:', clipsToSubmit);
       
+      // Link selected clips to the current lobby so they are playable in this game.
+      // Without this, clips uploaded in a previous lobby keep their old lobby_id and
+      // the game launcher reports "Manche indisponible" because no clip matches.
+      const { error: linkError } = await supabase
+        .from('video_clips')
+        .update({ lobby_id: lobbyId, round_number: null })
+        .in('id', clipsToSubmit.map((c) => c.id));
+
+      if (linkError) {
+        console.error('Error linking clips to lobby:', linkError);
+        throw linkError;
+      }
+
       // Save submission to database
       const { error } = await supabase
         .from('player_submissions')
