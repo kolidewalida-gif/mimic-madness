@@ -1285,27 +1285,38 @@ const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number)
     }
     
     case 'countdown': {
-      const osc = ctx.createOscillator();
+      // Warm "tock" — soft sine body + subtle harmonic, low-pass smoothed
+      const body = ctx.createOscillator();
+      const harm = ctx.createOscillator();
       const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
-      
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(masterGain);
-      
-      filter.type = 'highpass';
-      filter.frequency.setValueAtTime(800, now);
-      
-      osc.frequency.setValueAtTime(1000, now);
-      osc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
-      osc.type = 'square';
-      
-      gain.gain.setValueAtTime(volume * 0.5, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      body.connect(gain);
+      harm.connect(gain);
+      gain.connect(filter);
+      filter.connect(masterGain);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2200, now);
+      filter.Q.setValueAtTime(0.8, now);
+
+      body.type = 'sine';
+      body.frequency.setValueAtTime(660, now);
+      body.frequency.exponentialRampToValueAtTime(440, now + 0.18);
+
+      harm.type = 'triangle';
+      harm.frequency.setValueAtTime(1320, now);
+      harm.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume * 0.45, now + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
       masterGain.gain.setValueAtTime(1, now);
-      
-      osc.start(now);
-      osc.stop(now + 0.12);
+
+      body.start(now);
+      harm.start(now);
+      body.stop(now + 0.3);
+      harm.stop(now + 0.18);
       break;
     }
     
