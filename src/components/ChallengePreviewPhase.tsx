@@ -80,10 +80,14 @@ export const ChallengePreviewPhase = ({
 
   // Check if all players are ready
   useEffect(() => {
-    if (readyPlayers.length === players.length && readyPlayers.length > 0) {
+    if (
+      currentPlayer.isHost &&
+      readyPlayers.length === players.length &&
+      readyPlayers.length > 0
+    ) {
       onAllReady();
     }
-  }, [readyPlayers.length, players.length, onAllReady]);
+  }, [readyPlayers.length, players.length, onAllReady, currentPlayer.isHost]);
 
   const handleReady = async () => {
     try {
