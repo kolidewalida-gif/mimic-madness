@@ -1634,3 +1634,60 @@ body.game-cursor-effect-glow .game-cursor-ring {
   100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 .animate-bubble-spawn { animation: bubble-spawn-kf 520ms cubic-bezier(0.34,1.56,0.64,1) both; }
+
+/* ===== Avatar loadout: animated frames, effects & title shimmer ===== */
+@keyframes avatar-frame-rotate {
+  to { transform: rotate(360deg); }
+}
+@keyframes avatar-glow-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1.18); }
+  50%      { opacity: 0.95; transform: scale(1.32); }
+}
+@keyframes avatar-sparkle-orbit {
+  from { transform: rotate(0deg) translateX(var(--orbit, 22px)) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(var(--orbit, 22px)) rotate(-360deg); }
+}
+@keyframes avatar-sparkle-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.7); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+@keyframes title-shimmer {
+  0%   { background-position: -120% 0; }
+  100% { background-position: 220% 0; }
+}
+@keyframes title-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}
+
+.avatar-frame-gold {
+  background: conic-gradient(from 0deg,
+    #fde68a, #f59e0b, #fbbf24, #fef3c7, #f59e0b, #fde68a);
+  animation: avatar-frame-rotate 6s linear infinite;
+}
+.avatar-frame-silver {
+  background: conic-gradient(from 0deg,
+    #e5e7eb, #94a3b8, #f8fafc, #cbd5e1, #94a3b8, #e5e7eb);
+  animation: avatar-frame-rotate 9s linear infinite;
+}
+.avatar-frame-bronze {
+  background: conic-gradient(from 0deg,
+    #fcd9b6, #b45309, #f59e0b, #92400e, #fcd9b6);
+  animation: avatar-frame-rotate 12s linear infinite;
+}
+.avatar-glow {
+  animation: avatar-glow-pulse 2.4s ease-in-out infinite;
+}
+.avatar-sparkle-orbit {
+  animation: avatar-sparkle-orbit 5s linear infinite, avatar-sparkle-twinkle 1.4s ease-in-out infinite;
+}
+.title-shimmer-legendary {
+  background-image: linear-gradient(110deg,
+    #fbbf24 0%, #fde68a 35%, #ffffff 50%, #fde68a 65%, #fbbf24 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: title-shimmer 2.6s linear infinite;
+}
+.title-bob { animation: title-bob 2.4s ease-in-out infinite; }
