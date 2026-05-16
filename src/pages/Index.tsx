@@ -10,6 +10,7 @@ import { useLobbySync } from "@/hooks/useLobbySync";
 import { useGameInvitations, setOnNewInvitationCallback } from "@/hooks/useGameInvitations";
 import { supabase } from "@/integrations/supabase/client";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
+import { juice } from "@/lib/juice";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useTheme } from "@/hooks/useTheme";
@@ -275,11 +276,9 @@ const Index = () => {
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             playSoundEffect('start', 0.5);
             // Dopamine launch — fires for every client when the game starts
-            import('@/lib/juice').then(({ juice }) => {
-              juice.confetti({ count: 80 });
-              juice.flash('primary', 240);
-              juice.shake(220, 0.8);
-            });
+            juice.confetti({ count: 80 });
+            juice.flash('primary', 240);
+            juice.shake(220, 0.8);
             setGameState('playing');
             toast({
               title: "🎮 Que le jeu commence !",
