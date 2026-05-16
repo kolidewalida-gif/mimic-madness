@@ -195,11 +195,13 @@ export const VotingPhase = ({
     const totalItems = gameMode === '2v2' ? teamImitations.length : imitations.length;
     if (currentIndex >= totalItems && totalItems > 0) {
       setHasVotedAll(true);
-      setTimeout(() => {
-        onVotingComplete();
-      }, 2000);
+      if (currentPlayer.isHost) {
+        setTimeout(() => {
+          onVotingComplete();
+        }, 2000);
+      }
     }
-  }, [currentIndex, gameMode, teamImitations.length, imitations.length, onVotingComplete]);
+  }, [currentIndex, gameMode, teamImitations.length, imitations.length, onVotingComplete, currentPlayer.isHost]);
 
   // Load imitations and their clips - using round_number for accurate tracking
   useEffect(() => {
