@@ -115,7 +115,7 @@ export const useFriends = () => {
     fetchFriends();
 
     const channel = supabase
-      .channel('friendships-changes')
+      .channel(`friendships-changes-${user.id}`)
       .on(
         'postgres_changes',
         {

@@ -50,7 +50,7 @@ export const useGameInvitations = () => {
     fetchInvitations();
 
     const channel = supabase
-      .channel('game-invitations-realtime')
+      .channel(`game-invitations-realtime-${user.id}`)
       .on(
         'postgres_changes',
         {
