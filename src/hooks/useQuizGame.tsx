@@ -90,6 +90,8 @@ export const useQuizGame = (
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const phaseRef = useRef(phase);
   const advanceToRevealRef = useRef<(() => Promise<void>) | null>(null);
+  const advanceToScoresRef = useRef<(() => Promise<void>) | null>(null);
+  const nextRoundRef = useRef<(() => Promise<void>) | null>(null);
   phaseRef.current = phase;
   
   // XP system
@@ -354,7 +356,7 @@ export const useQuizGame = (
     if (phase === 'reveal') {
       const t = setTimeout(() => {
         if (phaseRef.current === 'reveal') {
-          void advanceToScores();
+          void advanceToScoresRef.current?.();
         }
       }, 3500);
       return () => clearTimeout(t);
