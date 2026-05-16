@@ -119,12 +119,14 @@ export const UndercoverGameScreen = memo(({
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [showWord, setShowWord] = useState(true);
+  const [submitPulse, setSubmitPulse] = useState(0);
 
   const handleSubmitClue = useCallback(() => {
     const trimmed = clueInput.trim();
     if (!trimmed) return;
     submitClue(trimmed);
     setClueInput('');
+    setSubmitPulse((n) => n + 1);
   }, [clueInput, submitClue]);
 
   const handleVote = useCallback(() => {
@@ -213,6 +215,15 @@ export const UndercoverGameScreen = memo(({
               const isSelected = selectedVote === player.player_id;
               const history = (player as { clue_history?: string[] }).clue_history ?? [];
               const lastClue = history[history.length - 1] ?? player.current_clue;
+              // Live typing: show the bubble in real time for the current player
+              // while it's their turn and they haven't submitted yet.
+              const isLiveTyping =
+                isMe &&
+                isMyTurn &&
+                game.phase === 'clue_giving' &&
+                Boolean(myPlayer?.is_alive) &&
+                clueInput.trim().length > 0;
+              const displayClue = isLiveTyping ? clueInput.trim() : lastClue;
               const revealedRole = isGameOver
                 ? roleConfig[player.role as keyof typeof roleConfig]
                 : null;
@@ -223,34 +234,51 @@ export const UndercoverGameScreen = memo(({
                     {/* Clue bubble */}
                     <div className="h-14 flex items-end justify-center w-full">
                       <AnimatePresence mode="wait">
-                        {lastClue ? (
+                        {displayClue ? (
                           <motion.div
-                            key={lastClue}
-                            initial={{ scale: 0.2, y: 20, opacity: 0 }}
+                            key={isLiveTyping ? `live-${isMe}` : `final-${displayClue}`}
+                            initial={
+                              isLiveTyping
+                                ? { scale: 0.9, y: 6, opacity: 0 }
+                                : { scale: 0.2, y: 20, opacity: 0 }
+                            }
                             animate={{
-                              scale: 1,
+                              scale: isLiveTyping ? [1, 1.06, 1] : 1,
                               y: 0,
                               opacity: 1,
-                              transition: {
-                                type: 'spring',
-                                stiffness: 380,
-                                damping: 16,
-                              },
+                              transition: isLiveTyping
+                                ? { duration: 0.18, ease: 'easeOut' }
+                                : { type: 'spring', stiffness: 420, damping: 14 },
                             }}
                             exit={{ scale: 0.4, opacity: 0, y: -10 }}
                             className={cn(
                               'relative max-w-full rounded-2xl border-2 px-3 py-1.5 text-sm font-bold shadow-lg',
-                              isCurrent
+                              isLiveTyping
+                                ? 'border-dashed border-cyan-400/80 bg-cyan-400/10 text-cyan-100'
+                                : isCurrent
                                 ? 'border-primary bg-primary/20 text-primary'
                                 : 'border-border bg-card text-foreground',
                             )}
                           >
-                            <span className="block truncate max-w-[6rem]">{lastClue}</span>
+                            <span className="block truncate max-w-[6rem]">
+                              {displayClue}
+                              {isLiveTyping && (
+                                <motion.span
+                                  className="ml-0.5 inline-block"
+                                  animate={{ opacity: [0.2, 1, 0.2] }}
+                                  transition={{ duration: 0.9, repeat: Infinity }}
+                                >
+                                  |
+                                </motion.span>
+                              )}
+                            </span>
                             {/* speech tail */}
                             <div
                               className={cn(
                                 'absolute left-1/2 -bottom-2 h-3 w-3 -translate-x-1/2 rotate-45 border-b-2 border-r-2',
-                                isCurrent
+                                isLiveTyping
+                                  ? 'border-cyan-400/80 bg-cyan-400/10'
+                                  : isCurrent
                                   ? 'border-primary bg-primary/20'
                                   : 'border-border bg-card',
                               )}
