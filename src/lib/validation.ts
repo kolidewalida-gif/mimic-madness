@@ -28,6 +28,11 @@ export const lobbyCodeSchema = z
   .transform((s) => s.trim().toUpperCase())
   .pipe(z.string().regex(/^[A-Z0-9]{4,8}$/, "Code invalide"));
 
+export const guessSchema = z
+  .string()
+  .transform((s) => stripControlChars(s).trim())
+  .pipe(z.string().min(1, "Vide").max(80, "Max 80 caractères"));
+
 /**
  * Validate and return either the cleaned value or null on failure.
  * Convenience helper for fire-and-forget client validation.
