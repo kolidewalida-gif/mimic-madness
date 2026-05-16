@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { GameLogo } from "@/components/GameLogo";
 import { Button } from "@/components/ui/button";
 import { ChallengePreviewPhase } from "@/components/ChallengePreviewPhase";
@@ -51,6 +51,8 @@ export const GamePlayScreen = ({
   const { toast } = useToast();
   const { playSound } = useSoundEffects();
   const { teams, getTeammate } = useGameTeams(lobbyId);
+  const gamePhaseRef = useRef<GamePhase>("preview");
+  useEffect(() => { gamePhaseRef.current = gamePhase; }, [gamePhase]);
 
   const buildChallenge = useCallback((challengeId: string, challengePlayerId: string) => ({
     id: challengeId,
@@ -207,7 +209,7 @@ export const GamePlayScreen = ({
           const newRound = payload.new.round_number;
           const newPhase = payload.new.phase as GamePhase;
 
-          if (newPhase !== gamePhase) {
+          if (newPhase !== gamePhaseRef.current) {
             playSound("transition");
           }
 
@@ -228,15 +230,10 @@ export const GamePlayScreen = ({
       supabase.removeChannel(channel);
     };
   }, [
-    buildChallenge,
     currentPlayer.isHost,
-    gamePhase,
     lobbyId,
-    pickNextChallenge,
-    playSound,
     retryKey,
     roundNumber,
-    toast,
   ]);
 
   const handlePreviewReady = async () => {
