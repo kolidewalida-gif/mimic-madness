@@ -1598,3 +1598,39 @@ body.game-cursor-effect-glow .game-cursor-ring {
 @media (prefers-reduced-motion: reduce) {
   .juice-shake { animation: none !important; }
 }
+
+/* ===== VICTORY ANIMATION ===== */
+@keyframes victory-spin-kf {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-victory-spin { animation: victory-spin-kf 14s linear infinite; }
+
+@keyframes victory-trophy-kf {
+  0% { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+  55% { transform: scale(1.18) rotate(6deg); opacity: 1; }
+  75% { transform: scale(0.96) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.animate-victory-trophy { animation: victory-trophy-kf 900ms cubic-bezier(0.34,1.56,0.64,1) both; }
+
+@keyframes victory-crown-kf {
+  0% { transform: translateX(-50%) translateY(-30px) rotate(-25deg); opacity: 0; }
+  60% { transform: translateX(-50%) translateY(0) rotate(10deg); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(0) rotate(0deg); opacity: 1; }
+}
+.animate-victory-crown { animation: victory-crown-kf 1.2s cubic-bezier(0.34,1.56,0.64,1) 0.3s both; }
+
+@keyframes victory-spark-kf {
+  0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+}
+.animate-victory-spark { animation: victory-spark-kf 2s ease-in-out infinite; }
+
+/* ===== UNDERCOVER BUBBLE SPAWN ===== */
+@keyframes bubble-spawn-kf {
+  0% { transform: scale(0.2) translateY(20px); opacity: 0; }
+  60% { transform: scale(1.12) translateY(-4px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.animate-bubble-spawn { animation: bubble-spawn-kf 520ms cubic-bezier(0.34,1.56,0.64,1) both; }
