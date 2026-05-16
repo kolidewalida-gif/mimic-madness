@@ -540,6 +540,7 @@ export const useQuizGame = (
       .eq('lobby_id', lobbyId)
       .eq('round_number', currentRound);
   }, [currentPlayer.isHost, lobbyId, currentRound]);
+  advanceToScoresRef.current = advanceToScores;
 
   // Move to next round or final results (host only)
   const nextRound = useCallback(async () => {
@@ -559,6 +560,7 @@ export const useQuizGame = (
       startRound(selectedCategory, nextRoundNum);
     }
   }, [currentPlayer.isHost, currentRound, lobbyId, startRound, selectedCategory, totalRounds]);
+  nextRoundRef.current = nextRound;
 
   const correctAnswers = roundAnswers.filter(answer => answer.is_correct);
   const fastestCorrectAnswer = correctAnswers.reduce<QuizAnswer | null>((best, answer) => {
