@@ -58,6 +58,18 @@ const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number)
   const masterGain = ctx.createGain();
   masterGain.connect(ctx.destination);
 
+  // ============================================================
+  //  INK PALETTE OVERRIDE LAYER
+  //  Re-synthesizes the most-played SFX with a consistent
+  //  ink-on-paper character: dry attacks, short decays, warm
+  //  low-mids, soft paper-grain noise. Falls through to the
+  //  classic switch for any sound not overridden here.
+  // ============================================================
+  if (playInkSound(ctx, masterGain, type, volume, now)) {
+    masterGain.gain.setValueAtTime(1, now);
+    return;
+  }
+
   switch (type) {
     case 'click': {
       const osc1 = ctx.createOscillator();
