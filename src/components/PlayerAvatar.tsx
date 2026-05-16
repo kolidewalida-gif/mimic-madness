@@ -1,7 +1,7 @@
 import { Award, Crown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGlobalPlayerAvatar } from "@/hooks/useGlobalPlayerAvatar";
-import { usePlayerLoadout } from "@/hooks/usePlayerLoadout";
+import { usePlayerLoadoutById } from "@/hooks/usePlayerLoadoutById";
 
 interface PlayerAvatarProps {
   playerId: string;
@@ -9,6 +9,7 @@ interface PlayerAvatarProps {
   size?: "sm" | "md" | "lg" | "xl";
   isHost?: boolean;
   animated?: boolean;
+  showTitle?: boolean;
   className?: string;
 }
 
@@ -26,25 +27,21 @@ const crownSizes = {
   xl: "w-8 h-8 -top-2 -right-2",
 };
 
-const titleChipVisibility = {
-  sm: false,
-  md: true,
-  lg: true,
-  xl: true,
-};
+const orbitRadius = { sm: 16, md: 22, lg: 32, xl: 44 };
+const titleChipVisibility = { sm: false, md: true, lg: true, xl: true };
 
-const frameClasses = {
-  none: "border-primary/40 shadow-lg shadow-primary/20",
-  bronze: "border-amber-500/80 shadow-[0_0_18px_rgba(245,158,11,0.35)]",
-  silver: "border-slate-300/90 shadow-[0_0_20px_rgba(226,232,240,0.35)]",
-  gold: "border-yellow-400/90 shadow-[0_0_24px_rgba(250,204,21,0.45)]",
+const frameRing = {
+  none: "border-3 border-primary/40 shadow-lg shadow-primary/20",
+  bronze: "",
+  silver: "",
+  gold: "",
 };
 
 const titleRarityClasses = {
-  common: "bg-black/65 text-white border-white/10",
-  rare: "bg-blue-500/85 text-white border-blue-300/30",
-  epic: "bg-fuchsia-500/85 text-white border-fuchsia-300/30",
-  legendary: "bg-amber-400/90 text-black border-yellow-100/30",
+  common: "bg-black/70 text-white border-white/10",
+  rare: "bg-blue-500/90 text-white border-blue-300/40",
+  epic: "bg-fuchsia-500/90 text-white border-fuchsia-300/40",
+  legendary: "bg-black/85 border-yellow-300/50",
 };
 
 export const PlayerAvatar = ({
@@ -53,75 +50,114 @@ export const PlayerAvatar = ({
   size = "md",
   isHost = false,
   animated = false,
+  showTitle = true,
   className = "",
 }: PlayerAvatarProps) => {
   const { avatarData } = useGlobalPlayerAvatar(playerId);
-  const { equippedTitle, effectTier, featuredBadge, frameTier, isCurrentUser } = usePlayerLoadout(playerId);
+  const { equippedTitle, effectTier, featuredBadge, frameTier } = usePlayerLoadoutById(playerId);
 
-  const getInitials = (name: string) => {
-    return name.slice(0, 2).toUpperCase();
-  };
-
+  const getInitials = (name: string) => name.slice(0, 2).toUpperCase();
   const getDefaultColor = (name: string) => {
     let hash = 0;
-    for (let i = 0; i < name.length; i += 1) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const hue = Math.abs(hash % 360);
-    return `hsl(${hue}, 70%, 50%)`;
+    for (let i = 0; i < name.length; i += 1) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return `hsl(${Math.abs(hash % 360)}, 70%, 50%)`;
   };
 
   const backgroundColor = avatarData.backgroundColor || getDefaultColor(playerName);
-  const showTitleChip = isCurrentUser && !!equippedTitle && titleChipVisibility[size];
+  const hasAnimatedFrame = frameTier !== "none";
+  const showTitleChip = showTitle && !!equippedTitle && titleChipVisibility[size];
+  const orbit = orbitRadius[size];
 
   return (
     <div className={cn("relative inline-flex flex-col items-center", className)}>
-      {isCurrentUser && effectTier !== "none" && (
+      {/* Outer glow halo */}
+      {effectTier !== "none" && (
         <div
           className={cn(
-            "pointer-events-none absolute inset-0 rounded-full blur-xl",
-            effectTier === "glow" ? "bg-yellow-400/35 scale-[1.25]" : "bg-cyan-400/25 scale-[1.15]"
+            "pointer-events-none absolute inset-0 rounded-full blur-2xl avatar-glow",
+            effectTier === "glow" ? "bg-yellow-300/55" : "bg-cyan-400/40",
           )}
         />
       )}
 
-      {isCurrentUser && effectTier === "sparkle" && (
-        <>
-          <Sparkles className="pointer-events-none absolute -left-1 -top-1 h-4 w-4 text-cyan-300 animate-pulse" />
-          <Sparkles className="pointer-events-none absolute -right-1 top-1 h-3 w-3 text-fuchsia-300 animate-pulse" />
-        </>
+      {/* Sparkle orbit (rare+) */}
+      {effectTier === "sparkle" && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          {[0, 120, 240].map((angle, i) => (
+            <span
+              key={angle}
+              className="absolute avatar-sparkle-orbit"
+              style={
+                {
+                  "--orbit": `${orbit}px`,
+                  transform: `rotate(${angle}deg) translateX(${orbit}px)`,
+                  animationDelay: `${i * 0.3}s`,
+                } as React.CSSProperties
+              }
+            >
+              <Sparkles className="h-3 w-3 text-cyan-300 drop-shadow-[0_0_4px_rgba(34,211,238,0.9)]" />
+            </span>
+          ))}
+        </div>
+      )}
+      {effectTier === "glow" && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          {[0, 90, 180, 270].map((angle, i) => (
+            <span
+              key={angle}
+              className="absolute avatar-sparkle-orbit"
+              style={
+                {
+                  "--orbit": `${orbit + 4}px`,
+                  transform: `rotate(${angle}deg) translateX(${orbit + 4}px)`,
+                  animationDelay: `${i * 0.25}s`,
+                } as React.CSSProperties
+              }
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-200 drop-shadow-[0_0_6px_rgba(252,211,77,0.95)]" />
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Animated metallic frame (rotating conic gradient) */}
+      {hasAnimatedFrame && (
+        <div
+          className={cn(
+            "pointer-events-none absolute rounded-full -inset-[3px]",
+            frameTier === "gold" && "avatar-frame-gold",
+            frameTier === "silver" && "avatar-frame-silver",
+            frameTier === "bronze" && "avatar-frame-bronze",
+          )}
+        />
       )}
 
       <div
         className={cn(
-          "relative rounded-full overflow-hidden flex items-center justify-center font-display font-bold text-white ring-2 ring-background/50 border-3",
+          "relative rounded-full overflow-hidden flex items-center justify-center font-display font-bold text-white ring-2 ring-background/60",
           sizeClasses[size],
-          frameClasses[frameTier],
-          animated && "transition-all hover:scale-110 hover:ring-4 hover:ring-primary/50"
+          frameRing[frameTier],
+          animated && "transition-all hover:scale-110 hover:ring-4 hover:ring-primary/50",
         )}
         style={{
           backgroundColor: avatarData.type === "initials" ? backgroundColor : undefined,
         }}
       >
         {avatarData.type === "image" && avatarData.imageUrl ? (
-          <img
-            src={avatarData.imageUrl}
-            alt={playerName}
-            className="w-full h-full object-cover"
-          />
+          <img src={avatarData.imageUrl} alt={playerName} className="w-full h-full object-cover" />
         ) : (
           <span>{getInitials(playerName)}</span>
         )}
 
-        {isCurrentUser && featuredBadge && (
-          <div className="absolute -left-1 -bottom-1 rounded-full bg-card/90 border border-primary/30 p-1">
+        {featuredBadge && (
+          <div className="absolute -left-1 -bottom-1 rounded-full bg-card/90 border border-primary/30 p-1 shadow">
             <Award className="h-3 w-3 text-primary" />
           </div>
         )}
       </div>
 
       {isHost && (
-        <div className={cn("absolute bg-yellow-500 rounded-full flex items-center justify-center", crownSizes[size])}>
+        <div className={cn("absolute bg-yellow-500 rounded-full flex items-center justify-center shadow-lg", crownSizes[size])}>
           <Crown className="w-2/3 h-2/3 text-yellow-900" />
         </div>
       )}
@@ -129,11 +165,13 @@ export const PlayerAvatar = ({
       {showTitleChip && equippedTitle && (
         <div
           className={cn(
-            "pointer-events-none absolute -bottom-3 max-w-[110px] truncate rounded-full border px-2 py-0.5 text-[10px] font-bold shadow-lg",
-            titleRarityClasses[equippedTitle.rarity]
+            "pointer-events-none absolute -bottom-3 max-w-[130px] truncate rounded-full border px-2 py-0.5 text-[10px] font-extrabold shadow-lg title-bob",
+            titleRarityClasses[equippedTitle.rarity],
           )}
         >
-          {equippedTitle.name}
+          <span className={equippedTitle.rarity === "legendary" ? "title-shimmer-legendary" : ""}>
+            {equippedTitle.name}
+          </span>
         </div>
       )}
     </div>
