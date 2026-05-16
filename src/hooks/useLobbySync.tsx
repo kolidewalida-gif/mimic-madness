@@ -47,6 +47,13 @@ export const useLobbySync = (): UseLobbyResult => {
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
   const currentPlayerIdRef = useRef<string | null>(null);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+  const lobbyRef = useRef<Lobby | null>(null);
+  const playersRef = useRef<Player[]>([]);
+  const toastRef = useRef(toast);
+
+  useEffect(() => { lobbyRef.current = lobby; }, [lobby]);
+  useEffect(() => { playersRef.current = players; }, [players]);
+  useEffect(() => { toastRef.current = toast; }, [toast]);
 
   // Reset state
   const resetState = useCallback(() => {
@@ -520,22 +527,23 @@ export const useLobbySync = (): UseLobbyResult => {
     }
   }, [lobby]);
 
-  // Subscribe to lobby changes
+  // Subscribe to lobby changes — keyed only on lobby.id so the channel
+  // is created once per lobby and not torn down on every player change.
   useEffect(() => {
-    if (!lobby) {
+    if (!lobby?.id) {
       setPlayers([]);
       return;
     }
 
     let isSubscribed = true;
-    const currentPlayerId = currentPlayerIdRef.current;
+    const lobbyId = lobby.id;
 
     const fetchPlayers = async () => {
       try {
         const { data, error } = await supabase
           .from('lobby_players')
           .select('*')
-          .eq('lobby_id', lobby.id)
+          .eq('lobby_id', lobbyId)
           .order('joined_at', { ascending: true });
 
         if (error) {
@@ -544,10 +552,11 @@ export const useLobbySync = (): UseLobbyResult => {
         }
 
         if (data && isSubscribed) {
+          const currentPlayerId = currentPlayerIdRef.current;
           // Check if current player was removed (kicked)
           if (currentPlayerId) {
             const stillInLobby = data.some(p => p.player_id === currentPlayerId);
-            if (!stillInLobby && players.length > 0) {
+            if (!stillInLobby && playersRef.current.length > 0) {
               console.log('Current player was kicked from lobby');
               setWasKicked(true);
               playSoundEffect('error', 0.5);
@@ -582,44 +591,62 @@ export const useLobbySync = (): UseLobbyResult => {
       }
     };
 
-    const checkLobbyExists = async () => {
-      const { data, error } = await supabase
-        .from('lobbies')
-        .select('id, host_id')
-        .eq('id', lobby.id)
-        .maybeSingle();
-
-      if (error || !data) {
-        console.log('Lobby was deleted');
-        setLobbyDeleted(true);
-        playSoundEffect('error', 0.5);
-      } else if (data.host_id !== lobby.host_id) {
-        // Host changed, update lobby
-        setLobby(prev => prev ? { ...prev, host_id: data.host_id } : null);
-      }
-    };
-
     // Initial fetch
     fetchPlayers();
 
+    // Inline heartbeat helpers using refs (avoid stale closures + re-subscriptions)
+    const beatConnected = async () => {
+      const pid = currentPlayerIdRef.current;
+      if (!pid) return;
+      try {
+        await supabase
+          .from('lobby_players')
+          .update({ connection_status: 'connected', disconnected_at: null })
+          .eq('lobby_id', lobbyId)
+          .eq('player_id', pid);
+      } catch (e) { console.error('heartbeat connected error', e); }
+    };
+    const beatDisconnected = async () => {
+      const pid = currentPlayerIdRef.current;
+      if (!pid) return;
+      try {
+        await supabase
+          .from('lobby_players')
+          .update({ connection_status: 'disconnected', disconnected_at: new Date().toISOString() })
+          .eq('lobby_id', lobbyId)
+          .eq('player_id', pid);
+      } catch (e) { console.error('heartbeat disconnected error', e); }
+    };
+    const cleanupExpired = async () => {
+      try {
+        const cutoff = new Date(Date.now() - RECONNECTION_TIMEOUT).toISOString();
+        await supabase
+          .from('lobby_players')
+          .delete()
+          .eq('lobby_id', lobbyId)
+          .eq('connection_status', 'disconnected')
+          .lt('disconnected_at', cutoff);
+      } catch (e) { console.error('cleanup error', e); }
+    };
+
     // Set up heartbeat
     heartbeatRef.current = setInterval(() => {
-      markConnected();
-      cleanupDisconnectedPlayers();
+      beatConnected();
+      cleanupExpired();
       fetchPlayers();
     }, 5000); // Every 5 seconds
 
     // Handle page visibility
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        markDisconnected();
+        beatDisconnected();
       } else {
-        markConnected();
+        beatConnected();
       }
     };
 
     const handleBeforeUnload = () => {
-      markDisconnected();
+      beatDisconnected();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -627,7 +654,7 @@ export const useLobbySync = (): UseLobbyResult => {
 
     // Subscribe to realtime changes
     const newChannel = supabase
-      .channel(`lobby:${lobby.id}`, {
+      .channel(`lobby:${lobbyId}`, {
         config: {
           broadcast: { self: true },
         },
@@ -638,11 +665,11 @@ export const useLobbySync = (): UseLobbyResult => {
           event: '*',
           schema: 'public',
           table: 'lobby_players',
-          filter: `lobby_id=eq.${lobby.id}`
+          filter: `lobby_id=eq.${lobbyId}`
         },
         (payload) => {
           console.log('Realtime player event:', payload);
-          
+          const currentPlayerId = currentPlayerIdRef.current;
           // Check if current player was deleted
           if (payload.eventType === 'DELETE' && currentPlayerId) {
             const oldData = payload.old as { player_id?: string };
@@ -663,25 +690,26 @@ export const useLobbySync = (): UseLobbyResult => {
           event: 'UPDATE',
           schema: 'public',
           table: 'lobbies',
-          filter: `id=eq.${lobby.id}`
+          filter: `id=eq.${lobbyId}`
         },
         (payload) => {
           console.log('Lobby updated:', payload);
           if (payload.new && isSubscribed) {
             const newLobby = payload.new as Lobby;
+            const prevHostId = lobbyRef.current?.host_id;
             setLobby(newLobby);
-            
             // Check if host changed
-            if (newLobby.host_id !== lobby.host_id) {
-              const newHost = players.find(p => p.id === newLobby.host_id);
+            if (prevHostId && newLobby.host_id !== prevHostId) {
+              const currentPlayerId = currentPlayerIdRef.current;
+              const newHost = playersRef.current.find(p => p.id === newLobby.host_id);
               if (newHost && newLobby.host_id === currentPlayerId) {
                 playSoundEffect('success', 0.5);
-                toast({
+                toastRef.current({
                   title: "Vous êtes l'hôte !",
                   description: "L'ancien hôte vous a transféré les droits",
                 });
               } else if (newHost) {
-                toast({
+                toastRef.current({
                   title: "Nouvel hôte",
                   description: `${newHost.name} est maintenant l'hôte`,
                 });
@@ -697,7 +725,7 @@ export const useLobbySync = (): UseLobbyResult => {
           event: 'DELETE',
           schema: 'public',
           table: 'lobbies',
-          filter: `id=eq.${lobby.id}`
+          filter: `id=eq.${lobbyId}`
         },
         () => {
           console.log('Lobby was deleted');
@@ -710,7 +738,7 @@ export const useLobbySync = (): UseLobbyResult => {
       .subscribe((status) => {
         console.log('Channel status:', status);
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to lobby:', lobby.id);
+          console.log('Successfully subscribed to lobby:', lobbyId);
         }
       });
 
@@ -727,7 +755,7 @@ export const useLobbySync = (): UseLobbyResult => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [lobby?.id, lobby?.host_id, players.length, markConnected, markDisconnected, cleanupDisconnectedPlayers, toast]);
+  }, [lobby?.id]);
 
   return {
     lobby,
