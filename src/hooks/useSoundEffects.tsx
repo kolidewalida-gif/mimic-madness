@@ -1285,27 +1285,38 @@ const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number)
     }
     
     case 'countdown': {
-      const osc = ctx.createOscillator();
+      // Warm "tock" — soft sine body + subtle harmonic, low-pass smoothed
+      const body = ctx.createOscillator();
+      const harm = ctx.createOscillator();
       const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
-      
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(masterGain);
-      
-      filter.type = 'highpass';
-      filter.frequency.setValueAtTime(800, now);
-      
-      osc.frequency.setValueAtTime(1000, now);
-      osc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
-      osc.type = 'square';
-      
-      gain.gain.setValueAtTime(volume * 0.5, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      body.connect(gain);
+      harm.connect(gain);
+      gain.connect(filter);
+      filter.connect(masterGain);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2200, now);
+      filter.Q.setValueAtTime(0.8, now);
+
+      body.type = 'sine';
+      body.frequency.setValueAtTime(660, now);
+      body.frequency.exponentialRampToValueAtTime(440, now + 0.18);
+
+      harm.type = 'triangle';
+      harm.frequency.setValueAtTime(1320, now);
+      harm.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume * 0.45, now + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
       masterGain.gain.setValueAtTime(1, now);
-      
-      osc.start(now);
-      osc.stop(now + 0.12);
+
+      body.start(now);
+      harm.start(now);
+      body.stop(now + 0.3);
+      harm.stop(now + 0.18);
       break;
     }
     
@@ -1996,28 +2007,39 @@ const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number)
     }
     
     case 'start': {
+      // Elegant chime — soft bell-like cluster with long tail
       const notes = [
-        { freq: 523.25, time: 0 },
-        { freq: 659.25, time: 0.1 },
-        { freq: 783.99, time: 0.2 },
-        { freq: 1046.50, time: 0.35 },
+        { freq: 587.33, time: 0 },     // D5
+        { freq: 880.0,  time: 0.05 },  // A5
+        { freq: 1174.66, time: 0.12 }, // D6
       ];
-      
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(4500, now);
+      filter.Q.setValueAtTime(0.7, now);
+      filter.connect(masterGain);
+
       notes.forEach(({ freq, time }) => {
         const osc = ctx.createOscillator();
+        const partial = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
-        gain.connect(masterGain);
-        
+        partial.connect(gain);
+        gain.connect(filter);
+
+        osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, now + time);
-        osc.type = 'triangle';
-        
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.setValueAtTime(volume * 0.6, now + time);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + time + 0.3);
-        
+        partial.type = 'sine';
+        partial.frequency.setValueAtTime(freq * 2.01, now + time);
+
+        gain.gain.setValueAtTime(0, now + time);
+        gain.gain.linearRampToValueAtTime(volume * 0.4, now + time + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + time + 0.9);
+
         osc.start(now + time);
-        osc.stop(now + time + 0.35);
+        partial.start(now + time);
+        osc.stop(now + time + 0.95);
+        partial.stop(now + time + 0.6);
       });
       masterGain.gain.setValueAtTime(1, now);
       break;
