@@ -35,7 +35,9 @@ interface UseLobbyResult {
   resetState: () => void;
 }
 
-const RECONNECTION_TIMEOUT = 60000; // 60 seconds
+const RECONNECTION_TIMEOUT = 30000; // 30 seconds before disconnected players are removed
+const HEARTBEAT_INTERVAL = 3000; // 3 seconds heartbeat tick
+const HOST_MIGRATION_GRACE = 8000; // wait 8s before promoting a new host
 
 export const useLobbySync = (): UseLobbyResult => {
   const [lobby, setLobby] = useState<Lobby | null>(null);
@@ -50,6 +52,10 @@ export const useLobbySync = (): UseLobbyResult => {
   const lobbyRef = useRef<Lobby | null>(null);
   const playersRef = useRef<Player[]>([]);
   const toastRef = useRef(toast);
+  const prevPlayerIdsRef = useRef<Set<string>>(new Set());
+  const prevDisconnectedRef = useRef<Set<string>>(new Set());
+  const onlinePresenceRef = useRef<Set<string>>(new Set());
+  const hostMigrationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => { lobbyRef.current = lobby; }, [lobby]);
   useEffect(() => { playersRef.current = players; }, [players]);
@@ -629,12 +635,75 @@ export const useLobbySync = (): UseLobbyResult => {
       } catch (e) { console.error('cleanup error', e); }
     };
 
+    // Auto host migration: if current host is offline > grace period,
+    // the player with the smallest (alphabetical) player_id among the
+    // connected ones promotes themselves. Deterministic, no race.
+    const maybeMigrateHost = async () => {
+      const lob = lobbyRef.current;
+      const me = currentPlayerIdRef.current;
+      if (!lob || !me) return;
+      const list = playersRef.current;
+      const host = list.find(p => p.isHost);
+      if (!host) return;
+      const hostOnline = onlinePresenceRef.current.has(host.id) && !host.isDisconnected;
+      if (hostOnline) return;
+      const connected = list
+        .filter(p => !p.isDisconnected && onlinePresenceRef.current.has(p.id))
+        .map(p => p.id)
+        .sort();
+      if (connected.length === 0) return;
+      const elected = connected[0];
+      if (elected !== me) return; // only the elected player performs the update
+      try {
+        const { error: lobbyErr } = await supabase
+          .from('lobbies')
+          .update({ host_id: me })
+          .eq('id', lobbyId)
+          .eq('host_id', host.id); // optimistic: only if host hasn't changed already
+        if (lobbyErr) return;
+        await supabase
+          .from('lobby_players')
+          .update({ is_host: false })
+          .eq('lobby_id', lobbyId)
+          .eq('is_host', true);
+        await supabase
+          .from('lobby_players')
+          .update({ is_host: true })
+          .eq('lobby_id', lobbyId)
+          .eq('player_id', me);
+      } catch (e) {
+        console.error('host migration failed', e);
+      }
+    };
+
+    const scheduleHostMigration = () => {
+      if (hostMigrationTimerRef.current) return;
+      hostMigrationTimerRef.current = setTimeout(() => {
+        hostMigrationTimerRef.current = null;
+        maybeMigrateHost();
+      }, HOST_MIGRATION_GRACE);
+    };
+    const cancelHostMigration = () => {
+      if (hostMigrationTimerRef.current) {
+        clearTimeout(hostMigrationTimerRef.current);
+        hostMigrationTimerRef.current = null;
+      }
+    };
+
     // Set up heartbeat
     heartbeatRef.current = setInterval(() => {
       beatConnected();
       cleanupExpired();
       fetchPlayers();
-    }, 5000); // Every 5 seconds
+      // Re-evaluate host migration each tick
+      const lob = lobbyRef.current;
+      const host = playersRef.current.find(p => p.isHost);
+      if (lob && host) {
+        const hostOnline = onlinePresenceRef.current.has(host.id) && !host.isDisconnected;
+        if (!hostOnline) scheduleHostMigration();
+        else cancelHostMigration();
+      }
+    }, HEARTBEAT_INTERVAL);
 
     // Handle page visibility
     const handleVisibilityChange = () => {
@@ -657,7 +726,31 @@ export const useLobbySync = (): UseLobbyResult => {
       .channel(`lobby:${lobbyId}`, {
         config: {
           broadcast: { self: true },
+          presence: { key: currentPlayerIdRef.current ?? `anon-${Math.random()}` },
         },
+      })
+      .on('presence', { event: 'sync' }, () => {
+        const state = newChannel.presenceState();
+        const ids = new Set<string>(Object.keys(state));
+        onlinePresenceRef.current = ids;
+        // Mark presence-based disconnects (faster than DB heartbeat)
+        const list = playersRef.current;
+        list.forEach(p => {
+          const presentOnSocket = ids.has(p.id);
+          if (!presentOnSocket && !p.isDisconnected && p.id !== currentPlayerIdRef.current) {
+            // Soft mark in DB so other clients converge — fire & forget
+            supabase
+              .from('lobby_players')
+              .update({
+                connection_status: 'disconnected',
+                disconnected_at: new Date().toISOString(),
+              })
+              .eq('lobby_id', lobbyId)
+              .eq('player_id', p.id)
+              .eq('connection_status', 'connected')
+              .then(() => {});
+          }
+        });
       })
       .on(
         'postgres_changes',
@@ -739,6 +832,11 @@ export const useLobbySync = (): UseLobbyResult => {
         console.log('Channel status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to lobby:', lobbyId);
+          // Announce ourselves on the presence layer
+          const me = currentPlayerIdRef.current;
+          if (me) {
+            newChannel.track({ player_id: me, at: new Date().toISOString() });
+          }
         }
       });
 
@@ -746,6 +844,7 @@ export const useLobbySync = (): UseLobbyResult => {
 
     return () => {
       isSubscribed = false;
+      cancelHostMigration();
       if (newChannel) {
         supabase.removeChannel(newChannel);
       }
@@ -756,6 +855,66 @@ export const useLobbySync = (): UseLobbyResult => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [lobby?.id]);
+
+  // Diff players list → emit toasts for join / leave / disconnect / reconnect
+  useEffect(() => {
+    const me = currentPlayerIdRef.current;
+    const currentIds = new Set(players.map(p => p.id));
+    const currentDisc = new Set(players.filter(p => p.isDisconnected).map(p => p.id));
+    const prevIds = prevPlayerIdsRef.current;
+    const prevDisc = prevDisconnectedRef.current;
+
+    if (prevIds.size > 0) {
+      // Joined
+      players.forEach(p => {
+        if (!prevIds.has(p.id) && p.id !== me) {
+          toastRef.current({
+            title: 'Joueur rejoint',
+            description: `${p.name} a rejoint le lobby`,
+          });
+        }
+      });
+      // Left (was present, no longer in list and wasn't disconnected)
+      prevIds.forEach(id => {
+        if (!currentIds.has(id) && id !== me) {
+          const prevPlayer = playersRef.current.find(p => p.id === id);
+          const name = prevPlayer?.name ?? 'Un joueur';
+          toastRef.current({
+            title: 'Joueur parti',
+            description: `${name} a quitté la partie`,
+          });
+        }
+      });
+      // Disconnected (new)
+      currentDisc.forEach(id => {
+        if (!prevDisc.has(id) && id !== me) {
+          const p = players.find(x => x.id === id);
+          if (p) {
+            toastRef.current({
+              title: 'Connexion perdue',
+              description: `${p.name} s'est déconnecté`,
+              variant: 'destructive',
+            });
+          }
+        }
+      });
+      // Reconnected
+      prevDisc.forEach(id => {
+        if (currentIds.has(id) && !currentDisc.has(id) && id !== me) {
+          const p = players.find(x => x.id === id);
+          if (p) {
+            toastRef.current({
+              title: 'Reconnecté',
+              description: `${p.name} est de retour`,
+            });
+          }
+        }
+      });
+    }
+
+    prevPlayerIdsRef.current = currentIds;
+    prevDisconnectedRef.current = currentDisc;
+  }, [players]);
 
   return {
     lobby,
