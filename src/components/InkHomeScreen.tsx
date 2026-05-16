@@ -166,8 +166,9 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       <header className="relative z-10 pt-4 pb-2 text-center flex-shrink-0">
         <motion.h1
           className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: -30, letterSpacing: '0.4em', filter: 'blur(8px)' }}
+          animate={{ opacity: 1, y: 0, letterSpacing: '-0.02em', filter: 'blur(0px)' }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           style={{
             fontFamily: "'Caveat', cursive",
             color: 'hsl(var(--primary))',
@@ -183,16 +184,26 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         <div className="w-full max-w-[1400px] flex gap-3 h-full">
           
           {/* Left Sidebar - Profile (scrollable) */}
-          <aside className="hidden lg:flex w-[260px] flex-shrink-0">
+          <motion.aside
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="hidden lg:flex w-[260px] flex-shrink-0"
+          >
             <ScrollArea className="h-full w-full">
               <div className="pr-2">
                 <InkProfileSidebar />
               </div>
             </ScrollArea>
-          </aside>
+          </motion.aside>
           
           {/* Center Content */}
-          <div className="flex-1 flex flex-col lg:flex-row gap-3 min-w-0">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="flex-1 flex flex-col lg:flex-row gap-3 min-w-0"
+          >
             {/* Game Modes List */}
             <div className="lg:w-[160px] flex-shrink-0">
               <div className="bg-card/50 backdrop-blur-sm rounded-xl border border-primary/20 p-2">
@@ -229,14 +240,19 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             {/* Center - Username + Mode Description + Leaderboard + Actions */}
             <div className="flex-1 flex flex-col gap-3 min-w-0 min-h-0">
               {/* Username Input */}
-              <div className="w-full max-w-md mx-auto flex-shrink-0">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.25 }}
+                className="w-full max-w-md mx-auto flex-shrink-0"
+              >
                 <Input
                   placeholder="Entrez votre pseudo..."
                   value={playerName}
                   onChange={(e) => setPlayerName(e.target.value)}
                   className="h-11 bg-card/50 border border-primary/30 rounded-xl text-center text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                 />
-              </div>
+              </motion.div>
 
               {/* Mode Description Card */}
               <AnimatePresence mode="wait">
@@ -278,8 +294,16 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
               {/* Actions */}
               <div className="w-full max-w-md mx-auto space-y-2 flex-shrink-0">
+                <AnimatePresence mode="wait" initial={false}>
                 {viewMode === 'home' ? (
-                  <>
+                  <motion.div
+                    key="home-actions"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    className="space-y-2"
+                  >
                     <motion.button
                       onClick={handleCreateGame}
                       disabled={!playerName.trim()}
@@ -333,11 +357,14 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                       <Settings className="w-4 h-4" />
                       Paramètres
                     </button>
-                  </>
+                  </motion.div>
                 ) : (
                   <motion.div
+                    key="join-actions"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
                     className="space-y-3"
                   >
                     <div className="space-y-1.5">
@@ -380,12 +407,18 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     </div>
                   </motion.div>
                 )}
+                </AnimatePresence>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Right Sidebar - Friends (scrollable) */}
-          <aside className="hidden lg:flex w-[260px] flex-shrink-0">
+          <motion.aside
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="hidden lg:flex w-[260px] flex-shrink-0"
+          >
             <ScrollArea className="h-full w-full">
               <div className="pl-2">
                 <InkFriendsSidebar onJoinFriend={(code) => {
@@ -396,7 +429,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                 }} />
               </div>
             </ScrollArea>
-          </aside>
+          </motion.aside>
         </div>
       </main>
 
