@@ -7,6 +7,10 @@ interface CountdownOverlayProps {
   onComplete: () => void;
   duration?: number;
   title?: string;
+  /** Optional wall-clock timestamp (ms, Date.now()) at which the first tick should appear.
+   *  Used to synchronize the countdown across multiple clients. If omitted or in the past,
+   *  starts immediately. */
+  startAt?: number;
 }
 
 export const CountdownOverlay = ({
@@ -14,21 +18,29 @@ export const CountdownOverlay = ({
   onComplete,
   duration = 3,
   title = "La vidéo commence dans...",
+  startAt,
 }: CountdownOverlayProps) => {
   const [count, setCount] = useState(duration);
   const [isVisible, setIsVisible] = useState(false);
   const [tick, setTick] = useState(0);
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     if (isActive) {
       setIsVisible(true);
       setCount(duration);
-      setTick((t) => t + 1);
+      setStarted(false);
+      const delay = Math.max(0, (startAt ?? 0) - Date.now());
+      const t = setTimeout(() => {
+        setStarted(true);
+        setTick((x) => x + 1);
+      }, delay);
+      return () => clearTimeout(t);
     }
-  }, [isActive, duration]);
+  }, [isActive, duration, startAt]);
 
   useEffect(() => {
-    if (!isVisible || count <= 0) return;
+    if (!isVisible || !started || count <= 0) return;
 
     playSoundEffect('countdown', 0.45);
     setTick((t) => t + 1);
@@ -46,7 +58,7 @@ export const CountdownOverlay = ({
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [count, isVisible, onComplete]);
+  }, [count, isVisible, started, onComplete]);
 
   if (!isVisible) return null;
 
