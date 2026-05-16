@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
+import { AutoAdvanceBar } from './AutoAdvanceBar';
 import { Check, X, Clock, ArrowRight, Sparkles, Trophy, Zap, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
@@ -215,23 +216,13 @@ export const QuizReveal = ({
         </div>
       </div>
 
-      {/* Continue Button (Host only) */}
-      {isHost ? (
-        <Button 
-          onClick={onContinue} 
-          variant="hero"
-          size="lg"
-          className="relative z-10 gap-2 h-14 px-8 rounded-xl animate-fadeInUp"
-        >
-          <span className="font-bold">Voir le classement</span>
-          <ArrowRight className="h-5 w-5" />
-        </Button>
-      ) : (
-        <p className="relative z-10 text-foreground-muted animate-pulse flex items-center gap-2">
-          <Zap className="h-4 w-4 text-primary" />
-          En attente de l'hôte...
-        </p>
-      )}
+      {/* Auto-advance indicator (everyone) + skip for host */}
+      <AutoAdvanceBar
+        durationMs={3500}
+        label="Classement"
+        canSkip={isHost}
+        onSkip={onContinue}
+      />
     </div>
   );
 };

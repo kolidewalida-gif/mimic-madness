@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
+import { AutoAdvanceBar } from './AutoAdvanceBar';
 import { Trophy, Medal, ArrowRight, Star, TrendingUp, Zap, Flame, Timer, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
@@ -274,25 +275,12 @@ export const QuizLeaderboard = ({
         </div>
       </div>
 
-      {isHost ? (
-        <Button
-          onClick={onNextRound}
-          variant="hero"
-          size="lg"
-          className="relative z-10 gap-2 h-14 px-8 rounded-xl animate-fadeInUp"
-          style={{ animationDelay: '0.4s' }}
-        >
-          <span className="font-bold">
-            {isLastRound ? 'Voir les resultats finaux' : 'Question suivante'}
-          </span>
-          <ArrowRight className="h-5 w-5" />
-        </Button>
-      ) : (
-        <p className="relative z-10 flex items-center gap-2 text-foreground-muted animate-pulse">
-          <Zap className="h-4 w-4 text-primary" />
-          En attente de l'hote...
-        </p>
-      )}
+      <AutoAdvanceBar
+        durationMs={4500}
+        label={isLastRound ? 'Résultats finaux' : 'Question suivante'}
+        canSkip={isHost}
+        onSkip={onNextRound}
+      />
     </div>
   );
 };

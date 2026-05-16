@@ -90,6 +90,8 @@ export const useQuizGame = (
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const phaseRef = useRef(phase);
   const advanceToRevealRef = useRef<(() => Promise<void>) | null>(null);
+  const advanceToScoresRef = useRef<(() => Promise<void>) | null>(null);
+  const nextRoundRef = useRef<(() => Promise<void>) | null>(null);
   phaseRef.current = phase;
   
   // XP system
@@ -348,6 +350,28 @@ export const useQuizGame = (
     };
   }, [phase, serverStartTime, currentPlayer.isHost, advanceToReveal, answerDurationMs, freezeBonusMs]);
 
+  // Auto-advance: reveal -> scores -> nextRound (host only, fully synced for everyone)
+  useEffect(() => {
+    if (!currentPlayer.isHost) return;
+    if (phase === 'reveal') {
+      const t = setTimeout(() => {
+        if (phaseRef.current === 'reveal') {
+          void advanceToScoresRef.current?.();
+        }
+      }, 3500);
+      return () => clearTimeout(t);
+    }
+    if (phase === 'scores') {
+      const t = setTimeout(() => {
+        if (phaseRef.current === 'scores') {
+          void nextRoundRef.current?.();
+        }
+      }, 4500);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, currentPlayer.isHost]);
+
   // Generate a new question using the edge function
   const generateQuestion = useCallback(async (category: string = 'mixed'): Promise<QuizQuestion | null> => {
     setIsLoading(true);
@@ -516,6 +540,7 @@ export const useQuizGame = (
       .eq('lobby_id', lobbyId)
       .eq('round_number', currentRound);
   }, [currentPlayer.isHost, lobbyId, currentRound]);
+  advanceToScoresRef.current = advanceToScores;
 
   // Move to next round or final results (host only)
   const nextRound = useCallback(async () => {
@@ -535,6 +560,7 @@ export const useQuizGame = (
       startRound(selectedCategory, nextRoundNum);
     }
   }, [currentPlayer.isHost, currentRound, lobbyId, startRound, selectedCategory, totalRounds]);
+  nextRoundRef.current = nextRound;
 
   const correctAnswers = roundAnswers.filter(answer => answer.is_correct);
   const fastestCorrectAnswer = correctAnswers.reduce<QuizAnswer | null>((best, answer) => {

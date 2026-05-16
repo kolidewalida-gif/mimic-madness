@@ -414,20 +414,9 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-card rounded-2xl p-5 w-full max-w-md shadow-2xl border border-primary/30"
+              className="w-full max-w-3xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-primary" style={{ fontFamily: "'Caveat', cursive" }}>
-                  Paramètres
-                </h2>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="p-1.5 hover:bg-primary/10 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
               <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
             </motion.div>
           </motion.div>
