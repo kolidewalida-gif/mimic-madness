@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlayerLoadout } from "@/hooks/usePlayerLoadout";
@@ -9,7 +9,10 @@ export const GameCursor = () => {
   const [enabled, setEnabled] = useState(false);
   const [pressed, setPressed] = useState(false);
   const [hovering, setHovering] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const dotRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const target = useRef({ x: -100, y: -100 });
+  const ring = useRef({ x: -100, y: -100 });
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(pointer: fine)");
@@ -21,9 +24,13 @@ export const GameCursor = () => {
     };
 
     const onMove = (event: MouseEvent) => {
-      setPosition({ x: event.clientX, y: event.clientY });
-      const target = event.target as HTMLElement | null;
-      const interactive = !!target?.closest("button, a, input, textarea, select, [role='button'], summary");
+      target.current.x = event.clientX;
+      target.current.y = event.clientY;
+      if (dotRef.current) {
+        dotRef.current.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
+      }
+      const t = event.target as HTMLElement | null;
+      const interactive = !!t?.closest("button, a, input, textarea, select, [role='button'], summary, label, [data-cursor='hover']");
       setHovering(interactive);
     };
 
@@ -37,7 +44,19 @@ export const GameCursor = () => {
     mediaQuery.addEventListener("change", syncEnabled);
     reduceMotion.addEventListener("change", syncEnabled);
 
+    let raf = 0;
+    const tick = () => {
+      ring.current.x += (target.current.x - ring.current.x) * 0.18;
+      ring.current.y += (target.current.y - ring.current.y) * 0.18;
+      if (ringRef.current) {
+        ringRef.current.style.transform = `translate3d(${ring.current.x}px, ${ring.current.y}px, 0)`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
     return () => {
+      cancelAnimationFrame(raf);
       document.body.classList.remove("game-cursor-enabled");
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mousedown", onDown);
@@ -76,20 +95,20 @@ export const GameCursor = () => {
   return (
     <>
       <div
+        ref={dotRef}
         className={cn(
           "game-cursor-dot",
           pressed && "game-cursor-dot-pressed",
           hovering && "game-cursor-dot-hover"
         )}
-        style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
       />
       <div
+        ref={ringRef}
         className={cn(
           "game-cursor-ring",
           pressed && "game-cursor-ring-pressed",
           hovering && "game-cursor-ring-hover"
         )}
-        style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
       />
     </>
   );
