@@ -33,6 +33,16 @@ export const guessSchema = z
   .transform((s) => stripControlChars(s).trim())
   .pipe(z.string().min(1, "Vide").max(80, "Max 80 caractères"));
 
+export const quizAnswerSchema = z
+  .string()
+  .transform((s) => stripControlChars(s).trim())
+  .pipe(z.string().min(1, "Vide").max(200, "Max 200 caractères"));
+
+export const undercoverClueSchema = z
+  .string()
+  .transform((s) => stripControlChars(s).trim())
+  .pipe(z.string().min(1, "Indice vide").max(60, "Max 60 caractères"));
+
 /**
  * Validate and return either the cleaned value or null on failure.
  * Convenience helper for fire-and-forget client validation.
