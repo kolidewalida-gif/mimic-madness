@@ -30,7 +30,8 @@ export const CountdownOverlay = ({
       setIsVisible(true);
       setCount(duration);
       setStarted(false);
-      const delay = Math.max(0, (startAt ?? 0) - Date.now());
+      // If startAt is in the past or missing, start immediately (no wasted ms).
+      const delay = Math.max(0, Math.min((startAt ?? 0) - Date.now(), 400));
       const t = setTimeout(() => {
         setStarted(true);
         setTick((x) => x + 1);
@@ -48,10 +49,11 @@ export const CountdownOverlay = ({
     const timer = setTimeout(() => {
       if (count === 1) {
         playSoundEffect('start', 0.55);
+        // Snappy hand-off — keep the start chime audible but don't stall the video.
         setTimeout(() => {
           setIsVisible(false);
           onComplete();
-        }, 550);
+        }, 220);
       } else {
         setCount(count - 1);
       }
@@ -92,8 +94,8 @@ export const CountdownOverlay = ({
           className="relative flex items-center justify-center"
           style={{ width: size, height: size }}
         >
-          {/* Expanding ink ripples on each tick */}
-          {[0, 1, 2].map((i) => (
+          {/* Expanding ink ripples on each tick (only after timer started) */}
+          {started && [0, 1, 2].map((i) => (
             <span
               key={`${tick}-${i}`}
               className="absolute rounded-full border border-primary/30"
@@ -140,18 +142,20 @@ export const CountdownOverlay = ({
             />
           </svg>
 
-          {/* Number */}
+          {/* Number — only after started, so we never show an empty ring */}
+          {started && (
           <span
-            key={count}
+            key={`n-${tick}-${count}`}
             className="font-display text-[7rem] leading-none font-light text-foreground tabular-nums"
             style={{
-              animation: 'countdown-number 1s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+              animation: 'countdown-number 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards',
               textShadow:
                 '0 0 24px hsl(var(--primary) / 0.55), 0 0 60px hsl(var(--primary) / 0.25)',
             }}
           >
             {count}
           </span>
+          )}
         </div>
 
         {/* Tick marks */}
