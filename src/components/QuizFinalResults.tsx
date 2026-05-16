@@ -84,6 +84,8 @@ export const QuizFinalResults = ({
       clearTimeout(timer2);
       clearTimeout(timer3);
       clearTimeout(timer4);
+      clearTimeout(wave);
+      clearTimeout(wave2);
     };
   }, [addXp, currentPlayerId, sortedScores]);
 
