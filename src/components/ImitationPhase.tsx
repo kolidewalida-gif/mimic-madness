@@ -90,10 +90,10 @@ export const ImitationPhase = ({
   // Pause music during imitation phase
   useEffect(() => {
     pause();
-    return () => {
-      play();
-    };
-  }, [pause, play]);
+    // Do NOT resume on unmount — the next phase decides the music
+    // (prevents an audible glitch during phase transitions).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Subscribe to ready status
   useEffect(() => {
@@ -137,14 +137,19 @@ export const ImitationPhase = ({
 
   // Check if all players are ready
   useEffect(() => {
-    if (readyPlayers.length === players.length && readyPlayers.length > 0) {
+    if (
+      currentPlayer.isHost &&
+      readyPlayers.length === players.length &&
+      readyPlayers.length > 0
+    ) {
       onAllReady();
     }
-  }, [readyPlayers.length, players.length, onAllReady]);
+  }, [readyPlayers.length, players.length, onAllReady, currentPlayer.isHost]);
 
   const handleSubmit = async () => {
     try {
-      // Update the clip with round_number for better tracking
+      // Tag the clip with round_number FIRST so that subscribers
+      // immediately find it once is_ready flips.
       if (recordedClipId) {
         await supabase
           .from('video_clips')
@@ -188,6 +193,12 @@ export const ImitationPhase = ({
     setHasRecorded(true);
     setRecordedClipId(clip.id);
     setIsRecording(false);
+    // Stop & reset the challenge video preview
+    if (challengeVideoRef.current) {
+      challengeVideoRef.current.pause();
+      const startTime = challengeClipData?.startTime ?? 0;
+      try { challengeVideoRef.current.currentTime = startTime; } catch {}
+    }
     toast({
       title: "✅ Imitation enregistrée !",
       description: "Vous pouvez maintenant la soumettre ou recommencer.",
@@ -202,7 +213,13 @@ export const ImitationPhase = ({
         console.error('Error deleting clip:', error);
       }
     }
-    
+
+    if (challengeVideoRef.current) {
+      challengeVideoRef.current.pause();
+      const startTime = challengeClipData?.startTime ?? 0;
+      try { challengeVideoRef.current.currentTime = startTime; } catch {}
+    }
+
     setHasRecorded(false);
     setRecordedClipId(null);
     setUploadKey(prev => prev + 1);
@@ -214,13 +231,18 @@ export const ImitationPhase = ({
     if (challengeVideoRef.current) {
       const startTime = challengeClipData?.startTime ?? 0;
       challengeVideoRef.current.currentTime = startTime;
-      challengeVideoRef.current.play();
+      challengeVideoRef.current.play().catch(() => {});
     }
   };
 
   const handleRecordingStop = () => {
     setIsRecording(false);
     broadcastStatus(false, 0);
+    if (challengeVideoRef.current) {
+      challengeVideoRef.current.pause();
+      const startTime = challengeClipData?.startTime ?? 0;
+      try { challengeVideoRef.current.currentTime = startTime; } catch {}
+    }
   };
 
   const teammateReady = teammate ? readyPlayers.includes(teammate.id) : false;

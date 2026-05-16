@@ -195,11 +195,13 @@ export const VotingPhase = ({
     const totalItems = gameMode === '2v2' ? teamImitations.length : imitations.length;
     if (currentIndex >= totalItems && totalItems > 0) {
       setHasVotedAll(true);
-      setTimeout(() => {
-        onVotingComplete();
-      }, 2000);
+      if (currentPlayer.isHost) {
+        setTimeout(() => {
+          onVotingComplete();
+        }, 2000);
+      }
     }
-  }, [currentIndex, gameMode, teamImitations.length, imitations.length, onVotingComplete]);
+  }, [currentIndex, gameMode, teamImitations.length, imitations.length, onVotingComplete, currentPlayer.isHost]);
 
   // Load imitations and their clips - using round_number for accurate tracking
   useEffect(() => {
@@ -793,6 +795,22 @@ export const VotingPhase = ({
                 <ChevronRight className="h-5 w-5" />
               </Button>
             )}
+
+            {currentPlayer.isHost && (() => {
+              const current = gameMode === '2v2' ? currentTeamImitation : currentImitation;
+              if (!current) return null;
+              const votesCast = (current.likes || 0) + (current.dislikes || 0);
+              // Eligible voters = everyone except the imitator(s)
+              const excludedIds = gameMode === '2v2'
+                ? new Set((currentTeamImitation?.players || []).map(p => p.id))
+                : new Set([currentImitation!.playerId]);
+              const eligible = players.filter(p => !excludedIds.has(p.id)).length;
+              return (
+                <p className="text-xs text-foreground-muted font-body">
+                  {votesCast}/{eligible} vote{eligible > 1 ? 's' : ''} reçu{votesCast > 1 ? 's' : ''}
+                </p>
+              );
+            })()}
           </div>
         </div>
       </GameCard>

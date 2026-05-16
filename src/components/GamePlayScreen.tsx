@@ -68,7 +68,14 @@ export const GamePlayScreen = ({
       return null;
     }
 
-    const randomClip = availableClips[Math.floor(Math.random() * availableClips.length)];
+    // Prefer clips from players who haven't been challenged yet in this game
+    const usedPlayerIds = new Set<string>();
+    for (const clip of playableClips) {
+      if (usedChallengeIds.has(clip.id)) usedPlayerIds.add(clip.playerId);
+    }
+    const freshPlayerClips = availableClips.filter((c) => !usedPlayerIds.has(c.playerId));
+    const pool = freshPlayerClips.length > 0 ? freshPlayerClips : availableClips;
+    const randomClip = pool[Math.floor(Math.random() * pool.length)];
     return {
       clip: randomClip,
       challenge: buildChallenge(randomClip.id, randomClip.playerId),
@@ -438,6 +445,7 @@ export const GamePlayScreen = ({
 
         {gamePhase === "preview" && (
           <ChallengePreviewPhase
+            key={`preview-${roundNumber}`}
             lobbyId={lobbyId}
             roundNumber={roundNumber}
             currentPlayer={currentPlayer}
@@ -449,6 +457,7 @@ export const GamePlayScreen = ({
 
         {gamePhase === "imitation" && (
           <ImitationPhase
+            key={`imitation-${roundNumber}`}
             lobbyId={lobbyId}
             roundNumber={roundNumber}
             currentPlayer={currentPlayer}
@@ -462,6 +471,7 @@ export const GamePlayScreen = ({
 
         {gamePhase === "voting" && (
           <VotingPhase
+            key={`voting-${roundNumber}`}
             lobbyId={lobbyId}
             roundNumber={roundNumber}
             currentPlayer={currentPlayer}
@@ -475,6 +485,7 @@ export const GamePlayScreen = ({
 
         {gamePhase === "results" && (
           <ResultsPhase
+            key={`results-${roundNumber}`}
             lobbyId={lobbyId}
             roundNumber={roundNumber}
             players={players}

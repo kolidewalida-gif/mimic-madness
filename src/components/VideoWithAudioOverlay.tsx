@@ -212,14 +212,16 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
     console.log("External control sync:", { isPlayingExternal, mediaReady, isPlaying });
     
     if (isPlayingExternal) {
-      // Wait for media to be ready before playing
-      if (mediaReady.video) {
+      // Wait for BOTH video and audio to be ready before playing.
+      // If there is no audio URL we only need video.
+      const audioReady = !audioUrl || mediaReady.audio;
+      if (mediaReady.video && audioReady) {
         handlePlay();
       }
     } else {
       handlePause();
     }
-  }, [isPlayingExternal, externalControl, mediaReady.video]);
+  }, [isPlayingExternal, externalControl, mediaReady.video, mediaReady.audio, audioUrl]);
 
   const handleVideoEnded = () => {
     setIsPlaying(false);
@@ -270,6 +272,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
           playsInline
           preload="auto"
           onCanPlay={handleVideoCanPlay}
+          onLoadedData={handleVideoCanPlay}
           onEnded={handleVideoEnded}
           onError={handleVideoError}
         />
@@ -301,6 +304,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
           src={audioUrl} 
           preload="auto"
           onCanPlay={handleAudioCanPlay}
+          onLoadedData={handleAudioCanPlay}
           onError={handleAudioError}
         />
       )}

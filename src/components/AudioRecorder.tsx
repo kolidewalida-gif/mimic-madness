@@ -121,21 +121,25 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         setRecordedBlob(blob);
-        
+
         // Create preview URL
         const url = URL.createObjectURL(blob);
         setPreviewUrl(url);
-        
-        // Set default audio name
-        setAudioName(`Imitation ${new Date().toLocaleTimeString()}`);
-        
+
+        // Auto-generate a name (no user input required)
+        const autoName = `Imitation ${new Date().toLocaleTimeString()}`;
+        setAudioName(autoName);
+
         // Stop the stream and visualizer
         stopStream();
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close();
         setAudioLevel(0);
-        
+
         onRecordingStop?.();
+
+        // Auto-save immediately so the parent gets the clip without an extra click
+        void autoSaveClip(blob, autoName);
       };
 
       mediaRecorderRef.current.start();
@@ -173,6 +177,35 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+    }
+  };
+
+  const autoSaveClip = async (blob: Blob, name: string) => {
+    setIsLoading(true);
+    try {
+      const file = new File([blob], `${name}.webm`, { type: 'audio/webm' });
+      const clipData = {
+        id: `${playerId}-${Date.now()}`,
+        name,
+        playerId,
+        playerName,
+        startTime: 0,
+        endTime: 0,
+        duration: 0,
+        isMuted: false,
+        lobbyId,
+      };
+      const savedClip = await videoStorage.uploadVideo(file, clipData);
+      onAudioSaved?.(savedClip);
+    } catch (error) {
+      console.error("Error auto-saving audio clip:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder l'audio automatiquement",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
