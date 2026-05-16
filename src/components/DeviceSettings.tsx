@@ -1,9 +1,8 @@
-import { GameCard } from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX, Music } from "lucide-react";
+import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX, Music, X } from "lucide-react";
 import { useMediaDevices, MediaDeviceInfo } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
@@ -80,11 +79,38 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
   const showAvatarTab = playerId && playerName;
 
   return (
-    <GameCard>
-      <div className="space-y-6">
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl">
+      {/* Decorative top accent */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+      <div className="pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
+            <Settings className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold leading-tight">Paramètres</h3>
+            <p className="text-xs text-muted-foreground">Audio · Vidéo · Avatar</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={reloadDevices} disabled={isLoading} title="Recharger les appareils">
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+          </Button>
+          {onClose && (
+            <Button variant="ghost" size="icon" onClick={onClose} title="Fermer">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="max-h-[75vh] overflow-y-auto px-6 py-5 space-y-5">
         {showAvatarTab ? (
           <Tabs defaultValue="devices" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 bg-background/60 p-1">
               <TabsTrigger value="devices" className="gap-2">
                 <Settings className="h-4 w-4" />
                 Audio/Vidéo
@@ -127,25 +153,7 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
             </TabsContent>
           </Tabs>
         ) : (
-          <>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-secondary" />
-                <h3 className="text-xl font-semibold text-gradient">
-                  Paramètres Audio/Vidéo
-                </h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={reloadDevices}
-                disabled={isLoading}
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-            
-            <DeviceSettingsContent
+          <DeviceSettingsContent
               audioInputs={audioInputs}
               videoInputs={videoInputs}
               selectedAudioId={selectedAudioId}
@@ -168,21 +176,18 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
               onStartMicTest={startMicTest}
               onStopMicTest={stopMicTest}
               onToggleNoiseSuppression={toggleNoiseSuppression}
-            />
-          </>
-        )}
-
-        {onClose && (
-          <Button
-            onClick={onClose}
-            variant="hero"
-            className="w-full"
-          >
-            Fermer
-          </Button>
+          />
         )}
       </div>
-    </GameCard>
+
+      {onClose && (
+        <div className="border-t border-border/60 px-6 py-3">
+          <Button onClick={onClose} variant="hero" className="w-full">
+            Fermer
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -236,7 +241,7 @@ const DeviceSettingsContent = ({
   onToggleNoiseSuppression,
 }: DeviceSettingsContentProps) => {
   return (
-    <>
+    <div className="space-y-5">
       {error && (
         <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
           {error}
@@ -244,12 +249,12 @@ const DeviceSettingsContent = ({
       )}
 
       {/* Audio Input Selection */}
-      <div className="space-y-2">
+      <section className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
+        <header className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <Mic className="h-3.5 w-3.5 text-primary" /> Microphone
+        </header>
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <Mic className="h-4 w-4 text-secondary" />
-            Microphone
-          </label>
+          <span className="text-sm text-muted-foreground">Choisissez votre entrée audio</span>
           <Button
             variant="outline"
             size="sm"
@@ -280,7 +285,7 @@ const DeviceSettingsContent = ({
         </Select>
 
         {/* Noise Suppression Toggle */}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-background-secondary/30 border border-glass-border">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-card/60 border border-border/60">
           <div className="flex items-center gap-2">
             {noiseSuppressionEnabled ? (
               <VolumeX className="h-4 w-4 text-success" />
@@ -349,14 +354,13 @@ const DeviceSettingsContent = ({
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Video Input Selection */}
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-medium">
-          <Video className="h-4 w-4 text-secondary" />
-          Caméra
-        </label>
+      <section className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
+        <header className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <Video className="h-3.5 w-3.5 text-primary" /> Caméra
+        </header>
         <Select
           value={selectedVideoId}
           onValueChange={onChangeVideoInput}
@@ -373,12 +377,10 @@ const DeviceSettingsContent = ({
             ))}
           </SelectContent>
         </Select>
-      </div>
 
-      {/* Video Preview */}
-      {showPreview && (
-        <div className="space-y-3">
-          <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+        {showPreview && (
+          <div className="space-y-3">
+            <div className="relative bg-black rounded-lg overflow-hidden aspect-video border border-border/60">
             {isPreviewActive ? (
               <video
                 ref={videoRef}
@@ -395,9 +397,9 @@ const DeviceSettingsContent = ({
                 </div>
               </div>
             )}
-          </div>
+            </div>
 
-          <div className="flex gap-3">
+            <div className="flex gap-3">
             {!isPreviewActive ? (
               <Button
                 onClick={onStartPreview}
@@ -417,19 +419,20 @@ const DeviceSettingsContent = ({
                 Arrêter l'Aperçu
               </Button>
             )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
       {/* Volume Controls */}
       <VolumeSettings />
 
       {/* Device Info */}
-      <div className="pt-4 border-t border-glass-border text-sm text-foreground-secondary space-y-1">
+      <div className="rounded-xl border border-border/60 bg-background/30 p-3 text-xs text-muted-foreground space-y-1">
         <p>• {audioInputs.length} microphone(s) détecté(s)</p>
         <p>• {videoInputs.length} caméra(s) détectée(s)</p>
       </div>
-    </>
+    </div>
   );
 };
 
@@ -439,11 +442,10 @@ const VolumeSettings = () => {
   const { volume: sfxVolume, setVolume: setSfxVolume } = useSoundEffectsVolume();
 
   return (
-    <div className="space-y-4 pt-4 border-t border-glass-border">
-      <h4 className="text-sm font-semibold flex items-center gap-2">
-        <Volume2 className="h-4 w-4 text-secondary" />
-        Volume
-      </h4>
+    <section className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-4">
+      <header className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <Volume2 className="h-3.5 w-3.5 text-primary" /> Volume
+      </header>
 
       {/* Music Volume */}
       <div className="space-y-2">
@@ -480,6 +482,6 @@ const VolumeSettings = () => {
           className="w-full"
         />
       </div>
-    </div>
+    </section>
   );
 };

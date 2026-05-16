@@ -15,6 +15,7 @@ import {
   Vote,
   HelpCircle,
   X,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -39,30 +40,27 @@ const roleConfig = {
     icon: Shield,
     color: 'text-sky-300',
     bg: 'bg-sky-500/15 border-sky-400/40',
-    description: 'Trouvez les imposteurs avant qu\'ils ne survivent au vote.',
   },
   undercover: {
     label: 'Undercover',
     icon: UserX,
     color: 'text-rose-300',
     bg: 'bg-rose-500/15 border-rose-400/40',
-    description: 'Mélangez-vous aux civils sans vous faire repérer.',
   },
   mr_white: {
     label: 'Mr White',
     icon: HelpCircle,
     color: 'text-amber-200',
     bg: 'bg-amber-500/15 border-amber-400/40',
-    description: 'Vous n\'avez aucun mot. Bluffez pour survivre.',
   },
 } as const;
 
 const phaseLabels: Record<string, string> = {
-  word_reveal: 'Découverte des mots',
+  word_reveal: 'Découverte du mot',
   clue_giving: 'Donnez votre indice',
   discussion: 'Discussion',
   voting: 'Vote',
-  vote_result: 'Résultat du vote',
+  vote_result: 'Résultat',
   game_over: 'Fin de partie',
 };
 
@@ -120,7 +118,7 @@ export const UndercoverGameScreen = memo(({
   const [clueInput, setClueInput] = useState('');
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
-  const [showWord, setShowWord] = useState(false);
+  const [showWord, setShowWord] = useState(true);
 
   const handleSubmitClue = useCallback(() => {
     const trimmed = clueInput.trim();
@@ -157,84 +155,189 @@ export const UndercoverGameScreen = memo(({
     );
   }
 
-  const myRole = (myPlayer?.role ?? 'civilian') as keyof typeof roleConfig;
-  const myRoleConfig = roleConfig[myRole];
-  const RoleIcon = myRoleConfig.icon;
+  const isGameOver = game.phase === 'game_over';
   const votedCount = alivePlayers.filter((p) => p.vote_target !== null).length;
+
+  // Order players by speaking order (alive first, then eliminated at the end)
+  const orderedPlayers = (() => {
+    const byId = new Map(gamePlayers.map((p) => [p.player_id, p]));
+    const ordered = game.player_order
+      .map((id) => byId.get(id))
+      .filter(Boolean) as typeof gamePlayers;
+    // append any extras not in order
+    gamePlayers.forEach((p) => {
+      if (!ordered.find((o) => o.player_id === p.player_id)) ordered.push(p);
+    });
+    return ordered;
+  })();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-5xl px-4 py-6 pb-28">
+      <div className="mx-auto max-w-6xl px-4 py-6 pb-40">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               Manche {game.current_round} · {phaseLabels[game.phase] ?? game.phase}
             </p>
-            <h1 className="text-3xl font-bold">Undercover</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Undercover</h1>
           </div>
           <div className="flex gap-3 text-sm">
             <div className="rounded-lg border border-border bg-card/40 px-3 py-2 text-center">
-              <div className="text-xs text-muted-foreground">Vivants</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Vivants</div>
               <div className="font-bold">{alivePlayers.length}/{players.length}</div>
             </div>
             {game.phase === 'voting' && (
               <div className="rounded-lg border border-border bg-card/40 px-3 py-2 text-center">
-                <div className="text-xs text-muted-foreground">Votes</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Votes</div>
                 <div className="font-bold">{votedCount}/{alivePlayers.length}</div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Ma carte */}
-        <div className={cn('mb-6 rounded-2xl border-2 p-5', myRoleConfig.bg)}>
-          <div className="flex items-start gap-4">
-            <div className={cn('flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-background/40', myRoleConfig.color)}>
-              <RoleIcon className="h-7 w-7" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={cn('text-xs font-bold uppercase tracking-wide', myRoleConfig.color)}>Votre rôle</span>
-              </div>
-              <h2 className="text-xl font-bold mb-1">{myRoleConfig.label}</h2>
-              <p className="text-sm text-muted-foreground">{myRoleConfig.description}</p>
-            </div>
-          </div>
+        {/* PLAYERS ROW — flowing like a relay, bubbles spawn above */}
+        <div className="mb-8 overflow-x-auto pb-4">
+          <div className="flex min-w-max items-end gap-3">
+            {orderedPlayers.map((player, idx) => {
+              const isCurrent =
+                currentTurnPlayerId === player.player_id && game.phase === 'clue_giving';
+              const isMe = player.player_id === currentPlayer.id;
+              const isEliminated = !player.is_alive;
+              const canVote =
+                game.phase === 'voting' &&
+                Boolean(myPlayer?.is_alive) &&
+                !hasVoted &&
+                player.player_id !== currentPlayer.id &&
+                player.is_alive;
+              const isSelected = selectedVote === player.player_id;
+              const history = (player as { clue_history?: string[] }).clue_history ?? [];
+              const lastClue = history[history.length - 1] ?? player.current_clue;
+              const revealedRole = isGameOver
+                ? roleConfig[player.role as keyof typeof roleConfig]
+                : null;
 
-          {myPlayer?.role !== 'mr_white' && myPlayer?.word && (
-            <div className="mt-4 flex items-center gap-3">
-              <div className="flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 text-center">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Votre mot secret</div>
-                <div className="text-2xl font-black tracking-wide">
-                  {showWord ? myPlayer.word : '• • • • •'}
+              return (
+                <div key={player.id} className="flex items-end gap-3">
+                  <div className="flex flex-col items-center gap-2 w-28">
+                    {/* Clue bubble */}
+                    <div className="h-14 flex items-end justify-center w-full">
+                      <AnimatePresence mode="wait">
+                        {lastClue ? (
+                          <motion.div
+                            key={lastClue}
+                            initial={{ scale: 0.2, y: 20, opacity: 0 }}
+                            animate={{
+                              scale: 1,
+                              y: 0,
+                              opacity: 1,
+                              transition: {
+                                type: 'spring',
+                                stiffness: 380,
+                                damping: 16,
+                              },
+                            }}
+                            exit={{ scale: 0.4, opacity: 0, y: -10 }}
+                            className={cn(
+                              'relative max-w-full rounded-2xl border-2 px-3 py-1.5 text-sm font-bold shadow-lg',
+                              isCurrent
+                                ? 'border-primary bg-primary/20 text-primary'
+                                : 'border-border bg-card text-foreground',
+                            )}
+                          >
+                            <span className="block truncate max-w-[6rem]">{lastClue}</span>
+                            {/* speech tail */}
+                            <div
+                              className={cn(
+                                'absolute left-1/2 -bottom-2 h-3 w-3 -translate-x-1/2 rotate-45 border-b-2 border-r-2',
+                                isCurrent
+                                  ? 'border-primary bg-primary/20'
+                                  : 'border-border bg-card',
+                              )}
+                            />
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="empty"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0.4 }}
+                            exit={{ opacity: 0 }}
+                            className="rounded-2xl border-2 border-dashed border-border/60 px-3 py-1.5 text-xs text-muted-foreground italic"
+                          >
+                            mot…
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Player chip */}
+                    <motion.button
+                      type="button"
+                      layout
+                      whileHover={canVote ? { y: -2 } : undefined}
+                      onClick={canVote ? () => setSelectedVote(player.player_id) : undefined}
+                      disabled={!canVote}
+                      className={cn(
+                        'relative w-full rounded-2xl border-2 p-2 text-center transition-all',
+                        isSelected
+                          ? 'border-rose-500 bg-rose-500/15 ring-2 ring-rose-500/40'
+                          : isCurrent
+                            ? 'border-primary bg-primary/10 shadow-[0_0_20px_hsl(var(--primary)/0.5)]'
+                            : 'border-border bg-card/50',
+                        isMe && !isSelected && !isCurrent && 'border-cyan-400/60',
+                        isEliminated && 'opacity-40 saturate-0',
+                        canVote && 'cursor-pointer hover:border-rose-400',
+                        !canVote && 'cursor-default',
+                      )}
+                    >
+                      <div className={cn(
+                        'mx-auto mb-1 flex h-12 w-12 items-center justify-center rounded-full text-lg font-black',
+                        isEliminated
+                          ? 'bg-muted text-muted-foreground'
+                          : 'bg-gradient-to-br from-primary/30 to-primary/10 text-foreground',
+                      )}>
+                        {isEliminated ? <Skull className="h-5 w-5" /> : player.player_name[0]?.toUpperCase()}
+                      </div>
+                      <p className="truncate text-xs font-semibold">
+                        {player.player_name}
+                        {isMe && <span className="block text-[10px] text-cyan-400">vous</span>}
+                      </p>
+                      {isCurrent && (
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary-foreground">
+                          à lui
+                        </span>
+                      )}
+                      {revealedRole && (
+                        <div className={cn(
+                          'mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold',
+                          revealedRole.bg,
+                          revealedRole.color,
+                        )}>
+                          <revealedRole.icon className="h-3 w-3" />
+                          {revealedRole.label}
+                        </div>
+                      )}
+                    </motion.button>
+                  </div>
+
+                  {/* Arrow between players */}
+                  {idx < orderedPlayers.length - 1 && (
+                    <ChevronRight
+                      className={cn(
+                        'mb-9 h-6 w-6 shrink-0',
+                        game.phase === 'clue_giving' && lastClue
+                          ? 'text-primary'
+                          : 'text-muted-foreground/40',
+                      )}
+                    />
+                  )}
                 </div>
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowWord((v) => !v)}
-                aria-label={showWord ? 'Cacher le mot' : 'Voir le mot'}
-              >
-                {showWord ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </Button>
-            </div>
-          )}
-
-          {game.phase === 'word_reveal' && !hasSeenWord && (
-            <Button
-              className="mt-4 w-full"
-              onClick={() => {
-                setShowWord(true);
-                confirmWordSeen();
-              }}
-            >
-              J'ai vu mon mot
-            </Button>
-          )}
+              );
+            })}
+          </div>
         </div>
 
-        {/* Action en cours */}
+        {/* Action zone */}
         <div className="mb-6 rounded-2xl border border-border bg-card/40 p-5">
           {game.phase === 'word_reveal' && (
             <div className="text-center">
@@ -346,91 +449,56 @@ export const UndercoverGameScreen = memo(({
             />
           )}
 
-          {game.phase === 'game_over' && (
+          {isGameOver && (
             <div className="text-center">
               <Crown className="mx-auto mb-3 h-12 w-12 text-amber-400" />
               <h3 className="text-2xl font-bold mb-2">
                 {game.winner_role === 'civilian' ? 'Victoire des Civils !' : 'Victoire des Infiltrés !'}
               </h3>
+              <p className="text-sm text-muted-foreground">
+                Mot civil : <span className="font-bold text-foreground">{game.civilian_word}</span> ·
+                Mot undercover : <span className="font-bold text-foreground">{game.undercover_word}</span>
+              </p>
               <Button onClick={onEndGame} className="mt-4 w-full">
                 Retour au lobby
               </Button>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Joueurs */}
-        <div className="mb-6">
-          <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Joueurs</h3>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            <AnimatePresence>
-              {gamePlayers.map((player) => {
-                const isCurrent = currentTurnPlayerId === player.player_id && game.phase === 'clue_giving';
-                const isMe = player.player_id === currentPlayer.id;
-                const isEliminated = !player.is_alive;
-                const canVote =
-                  game.phase === 'voting' &&
-                  Boolean(myPlayer?.is_alive) &&
-                  !hasVoted &&
-                  player.player_id !== currentPlayer.id &&
-                  player.is_alive;
-                const isSelected = selectedVote === player.player_id;
-                const history = (player as { clue_history?: string[] }).clue_history ?? [];
-                const lastClue = history[history.length - 1] ?? player.current_clue;
-
-                return (
-                  <motion.button
-                    key={player.id}
-                    type="button"
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileHover={canVote ? { y: -2 } : undefined}
-                    onClick={canVote ? () => setSelectedVote(player.player_id) : undefined}
-                    disabled={!canVote}
-                    className={cn(
-                      'rounded-2xl border-2 p-3 text-left transition-all',
-                      isSelected
-                        ? 'border-rose-500 bg-rose-500/15'
-                        : isCurrent
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border bg-card/40',
-                      isMe && !isSelected && !isCurrent && 'border-cyan-400/50',
-                      isEliminated && 'opacity-40 saturate-0',
-                      canVote && 'hover:border-rose-400 cursor-pointer',
-                      !canVote && 'cursor-default'
-                    )}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={cn(
-                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-bold',
-                        isEliminated ? 'bg-muted text-muted-foreground' : 'bg-primary/20 text-foreground'
-                      )}>
-                        {isEliminated ? <Skull className="h-4 w-4" /> : player.player_name[0]?.toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm font-semibold">
-                          {player.player_name}
-                          {isMe && <span className="ml-1 text-xs text-cyan-400">(vous)</span>}
-                        </p>
-                        {isCurrent && (
-                          <p className="text-[10px] uppercase tracking-wider text-primary font-bold">À son tour</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className={cn(
-                      'rounded-lg px-2 py-1.5 text-xs min-h-[28px]',
-                      lastClue ? 'bg-background/60 font-medium' : 'bg-background/30 text-muted-foreground italic'
-                    )}>
-                      {lastClue ?? '...'}
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </AnimatePresence>
+      {/* MY WORD — fixed bottom card (no role shown) */}
+      {!isGameOver && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30 w-[min(92vw,480px)]">
+          <div className="relative rounded-2xl border-2 border-primary/50 bg-background/95 backdrop-blur-md p-4 shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.6)]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1">
+                  Votre mot
+                </div>
+                <div className="text-2xl font-black tracking-wide truncate">
+                  {myPlayer?.word
+                    ? (showWord ? myPlayer.word : '• • • • •')
+                    : <span className="text-amber-300">??? · à vous d'improviser</span>}
+                </div>
+              </div>
+              {myPlayer?.word && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowWord((v) => !v)}
+                  aria-label={showWord ? 'Cacher le mot' : 'Voir le mot'}
+                >
+                  {showWord ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </Button>
+              )}
+              {game.phase === 'word_reveal' && !hasSeenWord && (
+                <Button onClick={confirmWordSeen}>J'ai vu</Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 });
