@@ -3,7 +3,7 @@ import { GameLogo } from "@/components/GameLogo";
 import { VideoUploadSimple } from "@/components/VideoUploadSimple";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
-import { ArrowLeft, Send, Clock } from "lucide-react";
+import { ArrowLeft, Send, Clock, ChevronDown, ChevronUp, Video as VideoIcon } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,11 +41,35 @@ export const VideoSubmissionScreen = ({
   const [savedClips, setSavedClips] = useState<VideoClip[]>([]);
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadCollapsed, setUploadCollapsed] = useState(false);
+  const [clipUrls, setClipUrls] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   useEffect(() => {
     loadPlayerClips();
   }, [currentPlayer.id]);
+
+  // Auto-collapse upload card as soon as the player has at least one clip,
+  // so the selection list takes the spotlight (per user request).
+  useEffect(() => {
+    if (savedClips.length > 0) setUploadCollapsed(true);
+  }, [savedClips.length > 0]);
+
+  // Resolve public URLs for thumbnails / inline previews
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = { ...clipUrls };
+      for (const clip of savedClips) {
+        if (next[clip.id]) continue;
+        const url = await videoStorage.getVideoUrl(clip.id);
+        if (url) next[clip.id] = url;
+      }
+      if (!cancelled) setClipUrls(next);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedClips]);
 
   const loadPlayerClips = async () => {
     try {
@@ -58,6 +82,7 @@ export const VideoSubmissionScreen = ({
 
   const handleClipSaved = (newClip: VideoClip) => {
     setSavedClips([...savedClips, newClip]);
+    setUploadCollapsed(true);
   };
 
   const toggleClipSelection = (clipId: string) => {
