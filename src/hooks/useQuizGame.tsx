@@ -348,6 +348,28 @@ export const useQuizGame = (
     };
   }, [phase, serverStartTime, currentPlayer.isHost, advanceToReveal, answerDurationMs, freezeBonusMs]);
 
+  // Auto-advance: reveal -> scores -> nextRound (host only, fully synced for everyone)
+  useEffect(() => {
+    if (!currentPlayer.isHost) return;
+    if (phase === 'reveal') {
+      const t = setTimeout(() => {
+        if (phaseRef.current === 'reveal') {
+          void advanceToScores();
+        }
+      }, 3500);
+      return () => clearTimeout(t);
+    }
+    if (phase === 'scores') {
+      const t = setTimeout(() => {
+        if (phaseRef.current === 'scores') {
+          void nextRoundRef.current?.();
+        }
+      }, 4500);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, currentPlayer.isHost]);
+
   // Generate a new question using the edge function
   const generateQuestion = useCallback(async (category: string = 'mixed'): Promise<QuizQuestion | null> => {
     setIsLoading(true);
