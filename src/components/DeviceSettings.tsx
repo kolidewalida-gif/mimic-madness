@@ -1,9 +1,8 @@
-import { GameCard } from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX, Music } from "lucide-react";
+import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX, Music, X, Sparkles } from "lucide-react";
 import { useMediaDevices, MediaDeviceInfo } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
@@ -80,11 +79,38 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
   const showAvatarTab = playerId && playerName;
 
   return (
-    <GameCard>
-      <div className="space-y-6">
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl">
+      {/* Decorative top accent */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+      <div className="pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
+            <Settings className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold leading-tight">Paramètres</h3>
+            <p className="text-xs text-muted-foreground">Audio · Vidéo · Avatar</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={reloadDevices} disabled={isLoading} title="Recharger les appareils">
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+          </Button>
+          {onClose && (
+            <Button variant="ghost" size="icon" onClick={onClose} title="Fermer">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="max-h-[75vh] overflow-y-auto px-6 py-5 space-y-5">
         {showAvatarTab ? (
           <Tabs defaultValue="devices" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 bg-background/60 p-1">
               <TabsTrigger value="devices" className="gap-2">
                 <Settings className="h-4 w-4" />
                 Audio/Vidéo
@@ -127,25 +153,7 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
             </TabsContent>
           </Tabs>
         ) : (
-          <>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-secondary" />
-                <h3 className="text-xl font-semibold text-gradient">
-                  Paramètres Audio/Vidéo
-                </h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={reloadDevices}
-                disabled={isLoading}
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-            
-            <DeviceSettingsContent
+          <DeviceSettingsContent
               audioInputs={audioInputs}
               videoInputs={videoInputs}
               selectedAudioId={selectedAudioId}
@@ -168,21 +176,18 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
               onStartMicTest={startMicTest}
               onStopMicTest={stopMicTest}
               onToggleNoiseSuppression={toggleNoiseSuppression}
-            />
-          </>
-        )}
-
-        {onClose && (
-          <Button
-            onClick={onClose}
-            variant="hero"
-            className="w-full"
-          >
-            Fermer
-          </Button>
+          />
         )}
       </div>
-    </GameCard>
+
+      {onClose && (
+        <div className="border-t border-border/60 px-6 py-3">
+          <Button onClick={onClose} variant="hero" className="w-full">
+            Fermer
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 
