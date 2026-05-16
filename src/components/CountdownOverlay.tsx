@@ -124,8 +124,8 @@ export const CountdownOverlay = ({
               stroke="hsl(var(--primary) / 0.15)"
               strokeWidth={stroke}
             />
-            <circle
-              key={tick}
+            {started && <circle
+              key={`s-${tick}`}
               cx={size / 2}
               cy={size / 2}
               r={radius}
@@ -139,7 +139,7 @@ export const CountdownOverlay = ({
                 animation: 'countdown-sweep 1s linear forwards',
                 filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.6))',
               }}
-            />
+            />}
           </svg>
 
           {/* Number — only after started, so we never show an empty ring */}
