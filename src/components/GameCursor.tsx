@@ -141,49 +141,53 @@ export const GameCursor = () => {
           hovering && "game-cursor-nib-hover"
         )}
       >
-        <svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+        {/* Mimic Master mask cursor — theatre mask with a red smile */}
+        <svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true">
           <defs>
-            <linearGradient id="mm-nib-body" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#1a1a1a" />
-              <stop offset="55%" stopColor="#000000" />
-              <stop offset="100%" stopColor="#2a2a2a" />
-            </linearGradient>
-            <linearGradient id="mm-nib-shine" x1="0" y1="0" x2="0" y2="1">
+            <radialGradient id="mm-mask-body" cx="40%" cy="35%" r="75%">
+              <stop offset="0%" stopColor="#2a2a2a" />
+              <stop offset="55%" stopColor="#0d0d0d" />
+              <stop offset="100%" stopColor="#000000" />
+            </radialGradient>
+            <linearGradient id="mm-mask-shine" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
               <stop offset="100%" stopColor="rgba(255,255,255,0)" />
             </linearGradient>
           </defs>
-          {/* Nib shadow */}
+          {/* Drop shadow */}
           <path
-            d="M5 5 L20 5 L40 36 L34 42 Z"
-            fill="rgba(0,0,0,0.35)"
-            transform="translate(1.5,2)"
+            d="M14 8 C 28 4, 44 4, 54 12 C 58 24, 50 44, 36 54 C 22 60, 12 50, 8 36 C 6 22, 8 12, 14 8 Z"
+            fill="rgba(0,0,0,0.4)"
+            transform="translate(2,3)"
           />
-          {/* Nib body */}
+          {/* Mask body */}
           <path
-            d="M4 4 L19 4 L39 35 L33 41 Z"
-            fill="url(#mm-nib-body)"
+            d="M14 8 C 28 4, 44 4, 54 12 C 58 24, 50 44, 36 54 C 22 60, 12 50, 8 36 C 6 22, 8 12, 14 8 Z"
+            fill="url(#mm-mask-body)"
             stroke="#ffffff"
-            strokeWidth="1.1"
+            strokeWidth="1.6"
             strokeLinejoin="round"
           />
-          {/* Center slit */}
+          {/* Eye holes */}
+          <ellipse cx="22" cy="26" rx="4.2" ry="5.4" fill="#000" stroke="#ffffff" strokeWidth="1" />
+          <ellipse cx="40" cy="24" rx="4.2" ry="5.4" fill="#000" stroke="#ffffff" strokeWidth="1" />
+          {/* Eye glints */}
+          <circle cx="23.5" cy="24.5" r="1" fill="#ffffff" />
+          <circle cx="41.5" cy="22.5" r="1" fill="#ffffff" />
+          {/* Red smirk */}
           <path
-            d="M11 7 L33 37"
-            stroke="#ffffff"
-            strokeWidth="0.8"
+            d="M22 42 Q 32 50, 44 40"
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth="3"
             strokeLinecap="round"
-            opacity="0.55"
           />
-          {/* Highlight */}
+          {/* Forehead highlight */}
           <path
-            d="M6 6 L16 6 L24 18 L18 20 Z"
-            fill="url(#mm-nib-shine)"
-            opacity="0.55"
+            d="M16 12 Q 26 8, 38 10 L 36 16 Q 26 14, 18 18 Z"
+            fill="url(#mm-mask-shine)"
+            opacity="0.45"
           />
-          {/* Red ink drop at the writing tip */}
-          <circle cx="35" cy="38" r="2.6" fill="hsl(var(--primary))" />
-          <circle cx="35" cy="38" r="4.6" fill="hsl(var(--primary))" opacity="0.35" />
         </svg>
       </div>
     </>
