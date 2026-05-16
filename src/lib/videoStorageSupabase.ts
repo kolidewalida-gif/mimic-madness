@@ -258,7 +258,47 @@ class VideoStorageSupabase {
       }
     }
 
-    return Array.from(latestByPlayer.values());
+    if (latestByPlayer.size > 0) {
+      return Array.from(latestByPlayer.values());
+    }
+
+    // Last-resort fallback: clips might have been uploaded in a previous lobby
+    // and never re-tagged. Use player_submissions to find which players
+    // submitted in this lobby, then grab their most recent clip globally.
+    const { data: submissions } = await supabase
+      .from("player_submissions")
+      .select("player_id")
+      .eq("lobby_id", lobbyId);
+
+    const playerIds = Array.from(new Set((submissions || []).map((s) => s.player_id)));
+    if (playerIds.length === 0) return [];
+
+    const { data: globalClips } = await supabase
+      .from("video_clips")
+      .select("*")
+      .in("player_id", playerIds)
+      .order("created_at", { ascending: false });
+
+    const latestGlobal = new Map<string, VideoClip>();
+    for (const clip of globalClips || []) {
+      if (!latestGlobal.has(clip.player_id)) {
+        latestGlobal.set(clip.player_id, {
+          id: clip.id,
+          name: clip.name,
+          playerId: clip.player_id,
+          playerName: clip.player_name,
+          startTime: clip.start_time,
+          endTime: clip.end_time,
+          duration: clip.duration,
+          isMuted: clip.is_muted,
+          storagePath: clip.storage_path,
+          createdAt: new Date(clip.created_at),
+          lobbyId: clip.lobby_id,
+        });
+      }
+    }
+
+    return Array.from(latestGlobal.values());
   }
 
   async getLatestClipByPlayerInLobby(playerId: string, lobbyId: string): Promise<VideoClip | null> {
