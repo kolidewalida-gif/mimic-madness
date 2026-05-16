@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Check, X, Clock, ArrowRight, Sparkles, Trophy, Zap, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { juice } from '@/lib/juice';
 
 interface QuizAnswer {
   player_id: string;
@@ -33,11 +34,18 @@ export const QuizReveal = ({
 
   useEffect(() => {
     playSoundEffect('reveal', 0.5);
+    juice.flash('info', 220);
+    juice.shake(180, 0.6);
     
     // Stagger the reveal of the correct answer and player answers
     const timer1 = setTimeout(() => setShowAnswers(true), 800);
+    // Confetti burst when the correct answer pops in
+    const timer2 = setTimeout(() => juice.confetti({ count: 70 }), 800);
     
-    return () => clearTimeout(timer1);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
   }, []);
 
   // Stagger reveal player answers

@@ -12,6 +12,7 @@ import { XpGainPopup } from "@/components/XpGainPopup";
 import { RewardNotification } from "@/components/RewardNotification";
 import { AdminPanel } from "@/components/AdminPanel";
 import { GameCursor } from "@/components/GameCursor";
+import { JuiceFxHost } from "@/components/JuiceFxHost";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
                 <XpGainPopup />
                 <RewardNotification />
                 <GameCursor />
+                <JuiceFxHost />
                 <AdminPanel />
                 <BrowserRouter>
                   <Routes>
