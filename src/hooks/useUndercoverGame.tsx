@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getRandomWordPair } from '@/lib/undercoverWords';
+import { undercoverClueSchema, safeParse } from '@/lib/validation';
 
 interface UndercoverPlayer {
   id: string;
@@ -124,6 +125,17 @@ export const useUndercoverGame = (
       words[shuffled[i]] = wordPair.civilian;
     }
 
+    // Re-check just before insert to mitigate 2-host race
+    const { data: existing2 } = await supabase
+      .from('undercover_games')
+      .select('id')
+      .eq('lobby_id', lobbyId)
+      .maybeSingle();
+    if (existing2) {
+      await fetchGame();
+      return;
+    }
+
     const { data: newGame, error: gameError } = await supabase
       .from('undercover_games')
       .insert({
@@ -161,9 +173,12 @@ export const useUndercoverGame = (
   const submitClue = useCallback(async (clue: string) => {
     if (!game || !myPlayer) return;
 
+    const cleanClue = safeParse(undercoverClueSchema, clue);
+    if (!cleanClue) return;
+
     await supabase
       .from('undercover_players')
-      .update({ current_clue: clue })
+      .update({ current_clue: cleanClue })
       .eq('id', myPlayer.id);
   }, [game, myPlayer]);
 

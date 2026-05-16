@@ -142,11 +142,11 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     }
   }, [lobbyId]);
 
-  // Initialize and poll
+  // Initial fetch only — realtime subscriptions below keep state in sync.
+  // (Removed 3s polling loop to prevent redundant network traffic and
+  //  state races between poll vs realtime payloads.)
   useEffect(() => {
     fetchGameState();
-    const interval = setInterval(fetchGameState, 3000);
-    return () => clearInterval(interval);
   }, [fetchGameState]);
 
   // Keep round id ref updated
