@@ -493,8 +493,8 @@ export const VotingPhase = ({
 
     if (!isPlayingSynced) {
       // Starting playback - show countdown for all, synchronized via wall-clock startAt.
-      // 350 ms buffer gives broadcast time to reach every client before the first tick.
-      const startAt = Date.now() + 350;
+      // 120 ms buffer is enough for the persistent channel; visually snappier.
+      const startAt = Date.now() + 120;
       setPendingPlay(true);
       setCountdownStartAt(startAt);
       setShowCountdown(true);

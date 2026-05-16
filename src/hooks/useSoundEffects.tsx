@@ -49,6 +49,212 @@ type SoundType =
   | 'brushStroke';
 
 // Create sophisticated sounds using multiple oscillators, filters, and effects
+
+/* ============================================================
+ *  INK PALETTE — shared primitives
+ * ============================================================ */
+
+// Cached noise buffers (one per audio context) for "paper grain".
+const _noiseBuffers = new WeakMap<AudioContext, AudioBuffer>();
+const getNoiseBuffer = (ctx: AudioContext): AudioBuffer => {
+  let buf = _noiseBuffers.get(ctx);
+  if (buf) return buf;
+  const len = ctx.sampleRate * 1.2;
+  buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  _noiseBuffers.set(ctx, buf);
+  return buf;
+};
+
+/** Short filtered noise burst — "brush on paper" texture. */
+const inkNoise = (
+  ctx: AudioContext,
+  dest: AudioNode,
+  startTime: number,
+  durationS: number,
+  centerHz: number,
+  q: number,
+  peakGain: number,
+  attackS = 0.004,
+) => {
+  const src = ctx.createBufferSource();
+  src.buffer = getNoiseBuffer(ctx);
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'bandpass';
+  filt.frequency.setValueAtTime(centerHz, startTime);
+  filt.Q.setValueAtTime(q, startTime);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, startTime);
+  g.gain.linearRampToValueAtTime(peakGain, startTime + attackS);
+  g.gain.exponentialRampToValueAtTime(0.0008, startTime + durationS);
+  src.connect(filt); filt.connect(g); g.connect(dest);
+  src.start(startTime);
+  src.stop(startTime + durationS + 0.02);
+};
+
+/** Soft tonal body — sine + triangle blend, gentle attack. */
+const inkBody = (
+  ctx: AudioContext,
+  dest: AudioNode,
+  startTime: number,
+  durationS: number,
+  fromHz: number,
+  toHz: number,
+  peakGain: number,
+  type: OscillatorType = 'sine',
+) => {
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(fromHz, startTime);
+  if (toHz !== fromHz) osc.frequency.exponentialRampToValueAtTime(toHz, startTime + durationS * 0.85);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, startTime);
+  g.gain.linearRampToValueAtTime(peakGain, startTime + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0008, startTime + durationS);
+  osc.connect(g); g.connect(dest);
+  osc.start(startTime);
+  osc.stop(startTime + durationS + 0.02);
+};
+
+/**
+ * Returns true if the sound was handled by the Ink layer.
+ * Returns false to fall through to the legacy synth bank.
+ */
+function playInkSound(
+  ctx: AudioContext,
+  master: AudioNode,
+  type: string,
+  vol: number,
+  now: number,
+): boolean {
+  // Gentle low-pass on all ink sounds to keep highs soft (paper feel)
+  const tone = ctx.createBiquadFilter();
+  tone.type = 'lowpass';
+  tone.frequency.setValueAtTime(5500, now);
+  tone.Q.setValueAtTime(0.6, now);
+  tone.connect(master);
+
+  switch (type) {
+    case 'click': {
+      // Dry ink dot — tiny noise burst + low sine tap
+      inkNoise(ctx, tone, now, 0.05, 3500, 4, vol * 0.35);
+      inkBody(ctx, tone, now, 0.07, 720, 360, vol * 0.32);
+      return true;
+    }
+    case 'pop': {
+      // Ink drop on paper — soft circular splash
+      inkBody(ctx, tone, now, 0.16, 520, 180, vol * 0.5, 'sine');
+      inkNoise(ctx, tone, now, 0.10, 1800, 2, vol * 0.25);
+      return true;
+    }
+    case 'ding':
+    case 'message': {
+      // Warm woodblock bell — short, contained
+      inkBody(ctx, tone, now, 0.45, 880, 660, vol * 0.40, 'sine');
+      inkBody(ctx, tone, now + 0.005, 0.35, 1320, 1100, vol * 0.18, 'sine');
+      inkNoise(ctx, tone, now, 0.04, 5000, 8, vol * 0.20);
+      return true;
+    }
+    case 'vote': {
+      // Decisive ink stroke — quick downward sweep with body
+      inkNoise(ctx, tone, now, 0.18, 2200, 3, vol * 0.45, 0.002);
+      inkBody(ctx, tone, now, 0.22, 540, 240, vol * 0.55, 'sine');
+      inkBody(ctx, tone, now, 0.20, 270, 140, vol * 0.35, 'triangle');
+      return true;
+    }
+    case 'success':
+    case 'reveal': {
+      // Calligraphic flourish — 3 ascending soft tones
+      const notes = [523.25, 698.46, 1046.5]; // C5, F5, C6
+      notes.forEach((f, i) => {
+        inkBody(ctx, tone, now + i * 0.08, 0.55, f, f, vol * 0.32, 'sine');
+        inkBody(ctx, tone, now + i * 0.08, 0.40, f * 2.01, f * 2.01, vol * 0.12, 'sine');
+      });
+      inkNoise(ctx, tone, now, 0.12, 3000, 4, vol * 0.18);
+      return true;
+    }
+    case 'celebration': {
+      // Bigger flourish — 4 notes + sparkle noise
+      const notes = [523.25, 659.25, 783.99, 1174.66];
+      notes.forEach((f, i) => {
+        inkBody(ctx, tone, now + i * 0.07, 0.7, f, f, vol * 0.30, 'sine');
+        inkBody(ctx, tone, now + i * 0.07, 0.5, f * 2.01, f * 2.01, vol * 0.13, 'sine');
+      });
+      inkNoise(ctx, tone, now, 0.20, 4200, 3, vol * 0.20);
+      return true;
+    }
+    case 'error': {
+      // Muted thud — no shrill, just damp low body
+      inkBody(ctx, tone, now, 0.30, 180, 110, vol * 0.55, 'sine');
+      inkBody(ctx, tone, now + 0.06, 0.25, 165, 95, vol * 0.40, 'triangle');
+      inkNoise(ctx, tone, now, 0.08, 600, 2, vol * 0.30);
+      return true;
+    }
+    case 'whoosh':
+    case 'transition': {
+      // Paper slide — filtered noise sweep
+      const src = ctx.createBufferSource();
+      src.buffer = getNoiseBuffer(ctx);
+      const filt = ctx.createBiquadFilter();
+      filt.type = 'bandpass';
+      filt.Q.setValueAtTime(1.2, now);
+      filt.frequency.setValueAtTime(400, now);
+      filt.frequency.exponentialRampToValueAtTime(2800, now + 0.18);
+      filt.frequency.exponentialRampToValueAtTime(500, now + 0.38);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(vol * 0.45, now + 0.06);
+      g.gain.exponentialRampToValueAtTime(0.0008, now + 0.40);
+      src.connect(filt); filt.connect(g); g.connect(tone);
+      src.start(now); src.stop(now + 0.45);
+      return true;
+    }
+    case 'countdown': {
+      // Soft ink-tap — warm woody tock, very short
+      inkBody(ctx, tone, now, 0.18, 620, 380, vol * 0.45, 'sine');
+      inkBody(ctx, tone, now, 0.10, 1240, 760, vol * 0.18, 'triangle');
+      inkNoise(ctx, tone, now, 0.04, 3000, 6, vol * 0.18);
+      return true;
+    }
+    case 'start': {
+      // Elegant chime — soft bell cluster
+      const notes = [587.33, 880.0, 1174.66]; // D5, A5, D6
+      notes.forEach((f, i) => {
+        inkBody(ctx, tone, now + i * 0.05, 0.95, f, f, vol * 0.35, 'sine');
+        inkBody(ctx, tone, now + i * 0.05, 0.55, f * 2.01, f * 2.01, vol * 0.14, 'sine');
+      });
+      return true;
+    }
+    case 'join': {
+      // Two-tone soft arrival
+      inkBody(ctx, tone, now,        0.25, 440, 660, vol * 0.40, 'sine');
+      inkBody(ctx, tone, now + 0.08, 0.30, 660, 880, vol * 0.30, 'sine');
+      inkNoise(ctx, tone, now, 0.06, 3000, 4, vol * 0.18);
+      return true;
+    }
+    case 'leave': {
+      // Reverse arrival — descending
+      inkBody(ctx, tone, now,        0.25, 660, 440, vol * 0.35, 'sine');
+      inkBody(ctx, tone, now + 0.08, 0.30, 440, 280, vol * 0.28, 'sine');
+      return true;
+    }
+    case 'scoreUp':
+    case 'xpGain': {
+      // Bright but soft — two stacked tones with quick decay
+      inkBody(ctx, tone, now,        0.28, 880,  1175, vol * 0.32, 'sine');
+      inkBody(ctx, tone, now + 0.06, 0.32, 1175, 1568, vol * 0.30, 'sine');
+      inkNoise(ctx, tone, now, 0.05, 5000, 6, vol * 0.16);
+      return true;
+    }
+    default:
+      // Disconnect unused tone node to avoid dangling allocations
+      tone.disconnect();
+      return false;
+  }
+}
+
+// ----------------------------------------------------------------
 const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number) => {
   const now = ctx.currentTime;
   // Apply global sound effects volume
@@ -57,6 +263,18 @@ const createRichSound = (ctx: AudioContext, type: SoundType, baseVolume: number)
   
   const masterGain = ctx.createGain();
   masterGain.connect(ctx.destination);
+
+  // ============================================================
+  //  INK PALETTE OVERRIDE LAYER
+  //  Re-synthesizes the most-played SFX with a consistent
+  //  ink-on-paper character: dry attacks, short decays, warm
+  //  low-mids, soft paper-grain noise. Falls through to the
+  //  classic switch for any sound not overridden here.
+  // ============================================================
+  if (playInkSound(ctx, masterGain, type, volume, now)) {
+    masterGain.gain.setValueAtTime(1, now);
+    return;
+  }
 
   switch (type) {
     case 'click': {
