@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { chatMessageSchema, safeParse } from '@/lib/validation';
 
 export interface ChatMessage {
   id: string;
@@ -126,7 +127,19 @@ export const useLobbyChat = (
 
   const sendMessage = useCallback(
     async (content: string, messageType: 'text' | 'image' | 'gif' | 'voice' = 'text') => {
-      if (!lobbyId || !content.trim()) return;
+      if (!lobbyId) return;
+      // For text messages we apply strict sanitization + length limits.
+      // For gif/image/voice the content is a URL or storage path and is
+      // produced internally → only length-cap it.
+      let cleaned = content;
+      if (messageType === 'text') {
+        const parsed = safeParse(chatMessageSchema, content);
+        if (!parsed) return;
+        cleaned = parsed;
+      } else {
+        cleaned = content.trim().slice(0, 2000);
+        if (!cleaned) return;
+      }
 
       setIsSending(true);
       try {
@@ -134,7 +147,7 @@ export const useLobbyChat = (
           lobby_id: lobbyId,
           player_id: playerId,
           player_name: playerName,
-          content: content.trim(),
+          content: cleaned,
           message_type: messageType,
         });
 
