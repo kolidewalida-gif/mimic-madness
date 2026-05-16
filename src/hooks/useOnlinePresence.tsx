@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface PresenceState {
   [userId: string]: {
@@ -13,18 +14,17 @@ interface PresenceState {
 export const useOnlinePresence = (lobbyCode?: string | null) => {
   const { user } = useAuth();
   const [presenceState, setPresenceState] = useState<PresenceState>({});
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const isSubscribedRef = useRef(false);
 
-  // Update own presence
+  // Update own presence (re-tracks on the already-subscribed channel)
   const updatePresence = useCallback(async (newLobbyCode?: string | null) => {
-    if (!user) return;
-
-    const channel = supabase.channel('online-users');
-    
-    await channel.track({
+    if (!user || !channelRef.current || !isSubscribedRef.current) return;
+    await channelRef.current.track({
       user_id: user.id,
       online: true,
-      lobbyCode: newLobbyCode || null,
-      lastSeen: new Date().toISOString()
+      lobbyCode: newLobbyCode ?? null,
+      lastSeen: new Date().toISOString(),
     });
   }, [user]);
 
@@ -38,6 +38,8 @@ export const useOnlinePresence = (lobbyCode?: string | null) => {
         }
       }
     });
+    channelRef.current = channel;
+    isSubscribedRef.current = false;
 
     channel
       .on('presence', { event: 'sync' }, () => {
@@ -82,6 +84,7 @@ export const useOnlinePresence = (lobbyCode?: string | null) => {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
           await channel.track({
             user_id: user.id,
             online: true,
@@ -92,6 +95,8 @@ export const useOnlinePresence = (lobbyCode?: string | null) => {
       });
 
     return () => {
+      isSubscribedRef.current = false;
+      channelRef.current = null;
       supabase.removeChannel(channel);
     };
   }, [user, lobbyCode]);
