@@ -2,8 +2,6 @@ import {
   memo,
   useCallback,
   useEffect,
-  useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -11,7 +9,6 @@ import { motion, PanInfo } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { LobbyGameMode } from '@/lib/gameModes';
 import { InkHomeCenterPanel } from '@/components/InkHomeCenterPanel';
 import { InkSettingsPanel } from '@/components/InkSettingsPanel';
@@ -22,7 +19,7 @@ export type InkHomePanel = 'settings' | 'home' | 'friends';
 const PANEL_ORDER: InkHomePanel[] = ['settings', 'home', 'friends'];
 
 const PANEL_LABELS: Record<InkHomePanel, string> = {
-  settings: 'Paramètres',
+  settings: 'Parametres',
   home: 'Accueil',
   friends: 'Profil et amis',
 };
@@ -32,63 +29,64 @@ interface InkHomeCarouselProps {
   onJoinGame: (playerName: string, lobbyCode: string) => void;
 }
 
+// 3D transform configs for each panel position relative to active
+const PANEL_VARIANTS = {
+  left: {
+    x: '-55%',
+    scale: 0.82,
+    rotateY: 8,
+    opacity: 0.45,
+    zIndex: 10,
+    filter: 'blur(2px)',
+  },
+  center: {
+    x: '0%',
+    scale: 1,
+    rotateY: 0,
+    opacity: 1,
+    zIndex: 30,
+    filter: 'blur(0px)',
+  },
+  right: {
+    x: '55%',
+    scale: 0.82,
+    rotateY: -8,
+    opacity: 0.45,
+    zIndex: 10,
+    filter: 'blur(2px)',
+  },
+};
+
+type PanelPosition = 'left' | 'center' | 'right';
+
+function getPanelPosition(panelIdx: number, activeIdx: number): PanelPosition {
+  if (panelIdx === activeIdx) return 'center';
+  if (panelIdx < activeIdx) return 'left';
+  return 'right';
+}
+
+const TRANSITION = {
+  duration: 0.6,
+  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+};
+
 const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselProps) => {
-  const isMobile = useIsMobile();
   const [activePanel, setActivePanel] = useState<InkHomePanel>('home');
-  // Lifted state so the right panel's "join friend" flow can populate the
-  // join input in the center panel and so the pseudo persists across panels.
   const [playerName, setPlayerName] = useState('');
   const [lobbyCode, setLobbyCode] = useState('');
 
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [trackWidth, setTrackWidth] = useState(0);
   const panelRefs = useRef<Record<InkHomePanel, HTMLDivElement | null>>({
     settings: null,
     home: null,
     friends: null,
   });
 
-  // FEAT-001 step 3 calls for a 640px boundary; we deliberately reuse the
-  // existing useIsMobile() hook (768px) to avoid introducing a new hook.
-  // Documented in the feature findings.
-  const previewBand = isMobile ? 0.12 : 0.2;
-  const panelWidth = trackWidth > 0 ? trackWidth * (1 - 2 * previewBand) : 0;
-  const sidePreviewWidth = trackWidth * previewBand;
-
-  // Measure the track width and react to viewport resizes.
-  useLayoutEffect(() => {
-    if (!trackRef.current) return;
-    const node = trackRef.current;
-
-    const updateWidth = () => setTrackWidth(node.clientWidth);
-    updateWidth();
-
-    if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(updateWidth);
-      observer.observe(node);
-      return () => observer.disconnect();
-    }
-
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
-
   const activeIndex = PANEL_ORDER.indexOf(activePanel);
-
-  // Translate so that the active panel sits inside the visible center band,
-  // i.e. its left edge is at sidePreviewWidth from the track's left.
-  const targetX = useMemo(() => {
-    if (trackWidth === 0) return 0;
-    return sidePreviewWidth - activeIndex * panelWidth;
-  }, [activeIndex, panelWidth, sidePreviewWidth, trackWidth]);
 
   const goTo = useCallback(
     (next: InkHomePanel, source: 'arrow' | 'indicator' | 'swipe' | 'keyboard') => {
       if (next === activePanel) return;
 
-      // One sound per gesture. We dropped the extra `inkSuccess` accent on
-      // landing on a side panel because it stacked on top of the source sound
-      // (review issue #4).
       switch (source) {
         case 'arrow':
         case 'keyboard':
@@ -123,11 +121,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
     [activePanel, goTo]
   );
 
-  // Keyboard navigation: ArrowLeft / ArrowRight. Skip if focus is in a text
-  // input, textarea, contenteditable element, or any ARIA widget that
-  // consumes arrow keys (Radix Slider, Select, Combobox, etc.). Without this
-  // the volume Sliders and the device-picker Selects would also switch
-  // panels (review issue #1).
+  // Keyboard navigation
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
@@ -154,9 +148,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
     return () => window.removeEventListener('keydown', handler);
   }, [goPrev, goNext]);
 
-  // Focus management: move focus to the active panel after each user-driven
-  // switch. We skip the initial mount so the auto-opening (untrapped) patch
-  // note modal isn't fighting the panel root for focus (review issue #5).
+  // Focus management
   const hasNavigatedRef = useRef(false);
   useEffect(() => {
     if (!hasNavigatedRef.current) {
@@ -169,11 +161,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
     return () => cancelAnimationFrame(raf);
   }, [activePanel]);
 
-  // Toggle the `inert` attribute on inactive panels so their descendants are
-  // removed from the sequential focus order, blocked from pointer events, and
-  // hidden from assistive tech as a single switch (review issue #2). We set
-  // it imperatively because React 18 standard typings don't expose `inert` as
-  // a JSX prop yet.
+  // Inert attribute on inactive panels
   useEffect(() => {
     PANEL_ORDER.forEach((panel) => {
       const node = panelRefs.current[panel];
@@ -184,12 +172,9 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
         node.setAttribute('inert', '');
       }
     });
-  }, [activePanel, trackWidth]);
+  }, [activePanel]);
 
-  // Swipe threshold differs by pointer type: a small diagonal mouse drag onto
-  // a button shouldn't yank the carousel and eat the click (review issue #7).
-  // Touch keeps the original 40px threshold; mouse/pen requires 80px and
-  // a horizontal-dominant gesture.
+  // Swipe handling
   const handleDragEnd = useCallback(
     (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       const isTouch =
@@ -245,82 +230,78 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
 
   return (
     <div className="relative flex-1 min-h-0 flex flex-col">
-      {/* Track */}
-      <div
-        ref={trackRef}
+      {/* 3D Perspective Container */}
+      <motion.div
         className="relative flex-1 min-h-0 overflow-hidden"
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.15}
+        onDragEnd={handleDragEnd}
+        style={{ transformStyle: 'preserve-3d' }}
       >
-        {trackWidth > 0 && (
-          <motion.div
-            className="absolute inset-y-0 left-0 flex"
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
-            onDragEnd={handleDragEnd}
-            animate={{ x: targetX }}
-            transition={{ type: 'spring', stiffness: 260, damping: 32 }}
-            style={{ width: panelWidth * PANEL_ORDER.length }}
-          >
-            {PANEL_ORDER.map((panel) => {
-              const isActive = panel === activePanel;
-              return (
-                <div
-                  key={panel}
-                  className="h-full px-2 flex-shrink-0"
-                  style={{ width: panelWidth }}
-                >
-                  <motion.div
-                    animate={
-                      isActive
-                        ? { rotate: 0 }
-                        : { rotate: [-0.15, 0.15, -0.1] }
-                    }
-                    transition={
-                      isActive
-                        ? { duration: 0.3, ease: [0.22, 1, 0.36, 1] }
-                        : { repeat: Infinity, duration: 6, ease: 'easeInOut' }
-                    }
-                    className={cn(
-                      'h-full rounded-2xl overflow-hidden transition-[opacity,border-color] duration-300',
-                      isActive
-                        ? 'border border-solid border-primary/30 opacity-100 pointer-events-auto'
-                        : 'border border-dashed border-primary/60 opacity-50 pointer-events-none'
-                    )}
-                  >
-                    <div
-                      ref={(el) => {
-                        panelRefs.current[panel] = el;
-                      }}
-                      tabIndex={-1}
-                      role="region"
-                      aria-label={PANEL_LABELS[panel]}
-                      aria-hidden={!isActive}
-                      className="h-full w-full outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-0 rounded-2xl"
-                    >
-                      {renderPanelContent(panel)}
-                    </div>
-                  </motion.div>
-                </div>
-              );
-            })}
-          </motion.div>
-        )}
+        {PANEL_ORDER.map((panel, idx) => {
+          const position = getPanelPosition(idx, activeIndex);
+          const variant = PANEL_VARIANTS[position];
+          const isActive = panel === activePanel;
 
-        {/* Navigation arrows - always visible */}
+          return (
+            <motion.div
+              key={panel}
+              className="absolute inset-0 flex items-center justify-center"
+              animate={{
+                x: variant.x,
+                scale: variant.scale,
+                rotateY: variant.rotateY,
+                opacity: variant.opacity,
+                zIndex: variant.zIndex,
+              }}
+              transition={TRANSITION}
+              style={{
+                filter: variant.filter,
+                transformStyle: 'preserve-3d',
+              }}
+            >
+              <div
+                className={cn(
+                  'w-full max-w-lg h-full rounded-2xl overflow-hidden',
+                  isActive ? 'pointer-events-auto' : 'pointer-events-none'
+                )}
+              >
+                <div
+                  ref={(el) => {
+                    panelRefs.current[panel] = el;
+                  }}
+                  tabIndex={-1}
+                  role="region"
+                  aria-label={PANEL_LABELS[panel]}
+                  aria-hidden={!isActive}
+                  className="h-full w-full outline-none focus-visible:ring-2 focus-visible:ring-[#ff2b2b]/40 focus-visible:ring-offset-0 rounded-2xl"
+                >
+                  {renderPanelContent(panel)}
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+
+        {/* Navigation arrows */}
         <motion.button
           type="button"
           onClick={() => goPrev('arrow')}
           disabled={isFirst}
-          whileHover={isFirst ? undefined : { scale: 1.08 }}
-          whileTap={isFirst ? undefined : { scale: 0.94 }}
-          aria-label="Panneau précédent"
+          whileHover={isFirst ? undefined : { scale: 1.1 }}
+          whileTap={isFirst ? undefined : { scale: 0.9 }}
+          aria-label="Panneau precedent"
           className={cn(
-            'absolute left-2 top-1/2 -translate-y-1/2 z-20',
-            'rounded-full p-2 bg-card/40 backdrop-blur-sm',
-            'border border-primary/40 text-primary',
-            'transition-opacity duration-200',
-            isFirst ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:bg-card/60'
+            'absolute left-3 top-1/2 -translate-y-1/2 z-40',
+            'w-10 h-10 rounded-full flex items-center justify-center',
+            'bg-black/80 border border-[#ff2b2b]/50',
+            'transition-all duration-200',
+            isFirst
+              ? 'opacity-30 cursor-not-allowed'
+              : 'opacity-100 hover:border-[#ff2b2b] hover:shadow-[0_0_15px_rgba(255,43,43,0.4)]'
           )}
+          style={{ color: '#ff2b2b' }}
         >
           <ChevronLeft className="w-5 h-5" />
         </motion.button>
@@ -329,37 +310,50 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
           type="button"
           onClick={() => goNext('arrow')}
           disabled={isLast}
-          whileHover={isLast ? undefined : { scale: 1.08 }}
-          whileTap={isLast ? undefined : { scale: 0.94 }}
+          whileHover={isLast ? undefined : { scale: 1.1 }}
+          whileTap={isLast ? undefined : { scale: 0.9 }}
           aria-label="Panneau suivant"
           className={cn(
-            'absolute right-2 top-1/2 -translate-y-1/2 z-20',
-            'rounded-full p-2 bg-card/40 backdrop-blur-sm',
-            'border border-primary/40 text-primary',
-            'transition-opacity duration-200',
-            isLast ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:bg-card/60'
+            'absolute right-3 top-1/2 -translate-y-1/2 z-40',
+            'w-10 h-10 rounded-full flex items-center justify-center',
+            'bg-black/80 border border-[#ff2b2b]/50',
+            'transition-all duration-200',
+            isLast
+              ? 'opacity-30 cursor-not-allowed'
+              : 'opacity-100 hover:border-[#ff2b2b] hover:shadow-[0_0_15px_rgba(255,43,43,0.4)]'
           )}
+          style={{ color: '#ff2b2b' }}
         >
           <ChevronRight className="w-5 h-5" />
         </motion.button>
-      </div>
+      </motion.div>
 
-      {/* Page indicators */}
-      <div className="flex-shrink-0 flex items-center justify-center gap-2 py-2">
-        {PANEL_ORDER.map((panel, idx) => {
+      {/* Dot indicators */}
+      <div className="flex-shrink-0 flex items-center justify-center gap-3 py-3">
+        {PANEL_ORDER.map((panel) => {
           const isActive = panel === activePanel;
           return (
             <button
               key={panel}
               type="button"
               onClick={() => goTo(panel, 'indicator')}
-              aria-label={`Aller au panneau ${idx + 1} de ${PANEL_ORDER.length}`}
+              aria-label={`Aller au panneau ${PANEL_LABELS[panel]}`}
               className={cn(
-                'rounded-full transition-all duration-200',
+                'rounded-full transition-all duration-300',
                 isActive
-                  ? 'w-2 h-2 bg-primary'
-                  : 'w-1.5 h-1.5 border border-primary/50 bg-transparent hover:border-primary'
+                  ? 'w-3 h-3'
+                  : 'w-2 h-2 hover:opacity-80'
               )}
+              style={
+                isActive
+                  ? {
+                      background: '#ff2b2b',
+                      boxShadow: '0 0 8px rgba(255,43,43,0.8), 0 0 16px rgba(255,43,43,0.4)',
+                    }
+                  : {
+                      background: 'rgba(255,43,43,0.4)',
+                    }
+              }
             />
           );
         })}

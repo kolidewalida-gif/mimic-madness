@@ -3,28 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
-import {
-  ArrowRight,
-  ChevronLeft,
-  Hash,
-  Phone,
-  Copy,
-  Swords,
-  Brain,
-  Zap,
-  UserX,
-} from 'lucide-react';
+import { ArrowRight, ChevronLeft, Hash, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
-import { VolumeControl } from '@/components/VolumeControl';
-import { SoundEffectsVolumeControl } from '@/components/SoundEffectsVolumeControl';
+import { toast } from 'sonner';
 import { LobbyGameMode } from '@/lib/gameModes';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
-
-// NOTE: The Settings cog button that used to open DeviceSettings as a modal
-// has been removed. The carousel's left panel (InkSettingsPanel) is the new
-// in-app entry point for device settings. The "Notes de version" button
-// remains here at the bottom of the center panel.
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface InkHomeCenterPanelProps {
   playerName: string;
@@ -37,83 +22,6 @@ interface InkHomeCenterPanelProps {
 
 type ViewMode = 'home' | 'join';
 
-interface GameModeInfo {
-  id: LobbyGameMode;
-  name: string;
-  icon: React.ReactNode;
-  description: string;
-  rules: string[];
-}
-
-const GAME_MODES: GameModeInfo[] = [
-  {
-    id: 'audiophone',
-    name: 'Audiophone',
-    icon: <Phone className="w-5 h-5" />,
-    description: 'Le téléphone arabe version audio inversé',
-    rules: [
-      'Enregistrez une phrase qui sera automatiquement inversée',
-      "Les autres joueurs écoutent et imitent ce qu'ils entendent",
-      'Fou rires garantis lors de la révélation finale!',
-    ],
-  },
-  {
-    id: 'normal',
-    name: 'Imitation',
-    icon: <Copy className="w-5 h-5" />,
-    description: 'Imitez les défis vidéo des autres joueurs',
-    rules: [
-      'Un joueur lance un défi vidéo',
-      "Les autres doivent l'imiter le plus fidèlement possible",
-      'Votez pour la meilleure imitation!',
-    ],
-  },
-  {
-    id: '2v2',
-    name: '2v2',
-    icon: <Swords className="w-5 h-5" />,
-    description: 'Affrontement en équipes de 2',
-    rules: [
-      'Formez des équipes de 2 joueurs',
-      'Collaborez pour réaliser les défis ensemble',
-      "L'équipe avec le plus de points gagne!",
-    ],
-  },
-  {
-    id: 'quiz',
-    name: 'Quiz',
-    icon: <Brain className="w-5 h-5" />,
-    description: 'Testez vos connaissances en temps réel',
-    rules: [
-      'Questions variées: culture générale, jeux, films...',
-      'Répondez le plus vite possible pour plus de points',
-      'Le plus rapide et précis gagne!',
-    ],
-  },
-  {
-    id: 'pixoguess',
-    name: 'Blurrush',
-    icon: <Zap className="w-5 h-5" />,
-    description: "Devinez l'image pixelisée",
-    rules: [
-      'Une image se dépixelise progressivement',
-      "Soyez le premier à deviner ce que c'est",
-      'Plus vous êtes rapide, plus vous gagnez de points!',
-    ],
-  },
-  {
-    id: 'undercover',
-    name: 'Undercover',
-    icon: <UserX className="w-5 h-5" />,
-    description: "Trouvez l'infiltré parmi les joueurs",
-    rules: [
-      'Chaque joueur reçoit un mot secret',
-      "L'Undercover a un mot similaire mais différent",
-      'Donnez des indices et votez pour éliminer le suspect!',
-    ],
-  },
-];
-
 const InkHomeCenterPanelComponent = ({
   playerName,
   onPlayerNameChange,
@@ -122,16 +30,12 @@ const InkHomeCenterPanelComponent = ({
   onCreateGame,
   onJoinGame,
 }: InkHomeCenterPanelProps) => {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [showPatchNote, setShowPatchNote] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<LobbyGameMode>('audiophone');
   const { play } = useBackgroundMusic();
 
-  // Initialize the pseudo from the profile display name exactly once. We
-  // intentionally do NOT depend on `playerName`: re-running on every keystroke
-  // would refill the field as soon as the user clears it, blocking them from
-  // typing a different pseudo while logged in (review issue #3).
+  // Initialize the pseudo from the profile display name exactly once.
   const initializedFromProfileRef = useRef(false);
   useEffect(() => {
     if (initializedFromProfileRef.current) return;
@@ -145,9 +49,9 @@ const InkHomeCenterPanelComponent = ({
     if (playerName.trim()) {
       play();
       playInkSound('inkSuccess', 0.5);
-      onCreateGame(playerName.trim(), selectedMode || 'normal');
+      onCreateGame(playerName.trim(), 'audiophone');
     }
-  }, [playerName, selectedMode, play, onCreateGame]);
+  }, [playerName, play, onCreateGame]);
 
   const handleJoinGame = useCallback(() => {
     if (playerName.trim() && lobbyCode.trim()) {
@@ -157,227 +61,203 @@ const InkHomeCenterPanelComponent = ({
     }
   }, [playerName, lobbyCode, play, onJoinGame]);
 
-  const handleSelectMode = (mode: GameModeInfo) => {
-    playInkSound('brushTap', 0.4);
-    setSelectedMode(mode.id);
-  };
+  const handleBibliotheque = useCallback(() => {
+    playInkSound('brushTap', 0.3);
+    toast('Bientot disponible!');
+  }, []);
 
-  const selectedModeInfo = GAME_MODES.find((m) => m.id === selectedMode);
+  const handleSignOut = useCallback(() => {
+    playInkSound('brushTap', 0.3);
+    signOut();
+  }, [signOut]);
+
+  const avatarUrl = profile?.avatar_url;
+  const displayName = profile?.display_name || playerName || 'Joueur';
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-3 min-w-0">
-      {/* Game Modes List */}
-      <div className="lg:w-[160px] flex-shrink-0">
-        <div className="bg-card/50 backdrop-blur-sm rounded-xl border border-primary/20 p-2">
-          <h3
-            className="text-xs font-bold text-primary uppercase tracking-wider px-2 py-1 mb-1"
-            style={{ fontFamily: "'Caveat', cursive" }}
-          >
-            Mode de Jeu
-          </h3>
-          <div className="space-y-0.5">
-            {GAME_MODES.map((mode, index) => (
-              <motion.button
-                key={mode.id}
-                onClick={() => handleSelectMode(mode)}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.03 }}
-                className={cn(
-                  'w-full text-left px-3 py-2 rounded-lg transition-all duration-200',
-                  'border-l-2 text-sm',
-                  selectedMode === mode.id
-                    ? 'border-primary bg-primary/15 text-primary font-semibold'
-                    : 'border-transparent text-foreground/70 hover:text-foreground hover:bg-primary/5 hover:border-primary/50'
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  {mode.icon}
-                  {mode.name}
-                </span>
-              </motion.button>
-            ))}
-          </div>
+    <div
+      className="h-full w-full flex flex-col items-center rounded-2xl overflow-hidden relative"
+      style={{
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255,43,43,0.3)',
+        boxShadow: '0 0 30px rgba(255,43,43,0.15), inset 0 0 30px rgba(0,0,0,0.3)',
+      }}
+    >
+      {/* Avatar - overflows slightly above */}
+      <div className="flex-shrink-0 -mt-4 pt-8 flex flex-col items-center gap-2">
+        <div
+          className="rounded-full p-1"
+          style={{
+            boxShadow: '0 0 20px rgba(255,43,43,0.5), 0 0 40px rgba(255,43,43,0.2)',
+            border: '2px solid rgba(255,43,43,0.6)',
+          }}
+        >
+          <Avatar className="w-20 h-20 md:w-24 md:h-24">
+            {avatarUrl ? (
+              <AvatarImage src={avatarUrl} alt={displayName} />
+            ) : null}
+            <AvatarFallback className="bg-black/80 text-[#ff2b2b] text-2xl font-bold">
+              {displayName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
         </div>
+        <h2 className="text-xl md:text-2xl font-bold text-white truncate max-w-[200px]">
+          {displayName}
+        </h2>
       </div>
 
-      {/* Center - Username + Mode Description + Actions */}
-      <div className="flex-1 flex flex-col gap-3 min-w-0 min-h-0">
-        {/* Username Input */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
-          className="w-full max-w-md mx-auto flex-shrink-0"
-        >
-          <Input
-            placeholder="Entrez votre pseudo..."
-            value={playerName}
-            onChange={(e) => onPlayerNameChange(e.target.value)}
-            className="h-11 bg-card/50 border border-primary/30 rounded-xl text-center text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-          />
-        </motion.div>
-
-        {/* Mode Description Card */}
-        <AnimatePresence mode="wait">
-          {selectedModeInfo && (
+      {/* Main content area */}
+      <div className="flex-1 w-full px-4 md:px-6 py-4 flex flex-col min-h-0 overflow-y-auto">
+        <AnimatePresence mode="wait" initial={false}>
+          {viewMode === 'home' ? (
             <motion.div
-              key={selectedMode}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="relative w-full max-w-md mx-auto flex-shrink-0"
+              key="home-actions"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="flex-1 flex flex-col gap-3"
             >
-              <div className="absolute inset-0 bg-primary/20 rounded-xl blur-sm" />
-              <div className="relative bg-card/80 backdrop-blur-sm border border-primary/40 rounded-xl p-4 shadow-lg shadow-primary/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1.5 bg-primary/20 rounded-lg text-primary">
-                    {selectedModeInfo.icon}
-                  </div>
-                  <h3
-                    className="text-lg font-bold text-primary"
-                    style={{ fontFamily: "'Caveat', cursive" }}
-                  >
-                    {selectedModeInfo.name}
-                  </h3>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {selectedModeInfo.description}
-                </p>
-                <ul className="mt-2 space-y-1">
-                  {selectedModeInfo.rules.slice(0, 2).map((rule, i) => (
-                    <li key={i} className="flex gap-2 text-xs text-muted-foreground">
-                      <span className="text-primary">•</span>
-                      {rule}
-                    </li>
-                  ))}
-                </ul>
+              {/* Player name input */}
+              <Input
+                placeholder="Entrez votre pseudo..."
+                value={playerName}
+                onChange={(e) => onPlayerNameChange(e.target.value)}
+                className="h-11 bg-black/50 border border-[#ff2b2b]/30 rounded-xl text-center text-white placeholder:text-gray-500 focus:border-[#ff2b2b] focus:ring-1 focus:ring-[#ff2b2b]/50"
+              />
+
+              {/* Creer une partie */}
+              <motion.button
+                onClick={handleCreateGame}
+                disabled={!playerName.trim()}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={cn(
+                  'w-full py-3 px-5 rounded-xl font-bold text-base transition-all duration-200',
+                  'bg-black border border-[#ff2b2b]/50 text-[#ff2b2b]',
+                  'hover:border-[#ff2b2b] hover:shadow-[0_0_20px_rgba(255,43,43,0.3)]',
+                  'disabled:opacity-40 disabled:cursor-not-allowed'
+                )}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  Creer une partie
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </motion.button>
+
+              {/* Rejoindre une partie */}
+              <motion.button
+                onClick={() => {
+                  playInkSound('brushTap', 0.3);
+                  setViewMode('join');
+                }}
+                disabled={!playerName.trim()}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={cn(
+                  'w-full py-3 px-5 rounded-xl font-semibold text-base transition-all duration-200',
+                  'bg-black border border-[#ff2b2b]/30 text-[#ff2b2b]/80',
+                  'hover:border-[#ff2b2b]/60 hover:text-[#ff2b2b] hover:shadow-[0_0_15px_rgba(255,43,43,0.2)]',
+                  'disabled:opacity-40 disabled:cursor-not-allowed'
+                )}
+              >
+                Rejoindre une partie
+              </motion.button>
+
+              {/* Bibliotheque */}
+              <motion.button
+                onClick={handleBibliotheque}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={cn(
+                  'w-full py-3 px-5 rounded-xl font-semibold text-base transition-all duration-200',
+                  'bg-black border border-[#ff2b2b]/20 text-[#ff2b2b]/60',
+                  'hover:border-[#ff2b2b]/40 hover:text-[#ff2b2b]/80 hover:shadow-[0_0_10px_rgba(255,43,43,0.15)]'
+                )}
+              >
+                Bibliotheque
+              </motion.button>
+
+              {/* Spacer */}
+              <div className="flex-1" />
+
+              {/* Deconnexion */}
+              <motion.button
+                onClick={handleSignOut}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-2 px-4 rounded-xl text-sm transition-all duration-200 text-gray-500 hover:text-[#ff2b2b]/70 flex items-center justify-center gap-2"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Deconnexion
+              </motion.button>
+
+              {/* Patch note link */}
+              <button
+                onClick={() => {
+                  playInkSound('brushTap', 0.2);
+                  setShowPatchNote(true);
+                }}
+                className="w-full flex items-center justify-center gap-1.5 py-1 text-gray-600 hover:text-[#ff2b2b]/60 transition-colors text-xs"
+              >
+                <span className="text-[10px] font-mono opacity-60">v{CURRENT_VERSION}</span>
+                Notes de version
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="join-actions"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="flex-1 flex flex-col gap-3"
+            >
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-gray-400">
+                  <Hash className="h-3 w-3" />
+                  Code du Lobby
+                </label>
+                <Input
+                  placeholder="XXXX"
+                  value={lobbyCode}
+                  onChange={(e) => onLobbyCodeChange(e.target.value.toUpperCase())}
+                  onKeyPress={(e) => e.key === 'Enter' && handleJoinGame()}
+                  maxLength={4}
+                  className="text-center text-2xl tracking-[0.3em] uppercase font-bold h-14 bg-black/50 border-2 border-[#ff2b2b]/50 rounded-xl text-white focus:border-[#ff2b2b]"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    playInkSound('brushTap', 0.3);
+                    setViewMode('home');
+                  }}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-gray-700 text-gray-300 hover:border-[#ff2b2b]/50 hover:text-[#ff2b2b] transition-all flex items-center justify-center gap-1 text-sm"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Retour
+                </button>
+                <button
+                  onClick={handleJoinGame}
+                  disabled={!playerName.trim() || lobbyCode.length !== 4}
+                  className={cn(
+                    'flex-1 py-2.5 px-4 rounded-xl font-semibold transition-all text-sm',
+                    'bg-[#ff2b2b] text-white hover:bg-[#ff2b2b]/90',
+                    'disabled:opacity-40 disabled:cursor-not-allowed'
+                  )}
+                >
+                  Rejoindre
+                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Actions */}
-        <div className="w-full max-w-md mx-auto space-y-2 flex-shrink-0">
-          <AnimatePresence mode="wait" initial={false}>
-            {viewMode === 'home' ? (
-              <motion.div
-                key="home-actions"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="space-y-2"
-              >
-                <motion.button
-                  onClick={handleCreateGame}
-                  disabled={!playerName.trim()}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  className={cn(
-                    'w-full py-3 px-5 rounded-xl font-bold text-base transition-all duration-200',
-                    'border-2 border-primary bg-primary/10 text-primary',
-                    'hover:bg-primary hover:text-primary-foreground',
-                    'disabled:opacity-50 disabled:cursor-not-allowed',
-                    'shadow-lg shadow-primary/20'
-                  )}
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    Créer une partie
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                </motion.button>
-
-                <motion.button
-                  onClick={() => {
-                    playInkSound('brushTap', 0.3);
-                    setViewMode('join');
-                  }}
-                  disabled={!playerName.trim()}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  className={cn(
-                    'w-full py-3 px-5 rounded-xl font-semibold text-base transition-all duration-200',
-                    'border border-border text-foreground/80',
-                    'hover:border-primary hover:text-primary',
-                    'disabled:opacity-50 disabled:cursor-not-allowed'
-                  )}
-                >
-                  Rejoindre une partie
-                </motion.button>
-
-                {/* Audio Controls */}
-                <div className="pt-3 space-y-2 border-t border-border/30">
-                  <VolumeControl />
-                  <SoundEffectsVolumeControl />
-                </div>
-
-                <button
-                  onClick={() => {
-                    playInkSound('brushTap', 0.2);
-                    setShowPatchNote(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-1.5 py-1.5 text-muted-foreground/60 hover:text-primary/70 transition-colors text-xs"
-                >
-                  <span className="text-[10px] font-mono opacity-60">v{CURRENT_VERSION}</span>
-                  Notes de version
-                </button>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="join-actions"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="space-y-3"
-              >
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground">
-                    <Hash className="h-3 w-3" />
-                    Code du Lobby
-                  </label>
-                  <Input
-                    placeholder="XXXX"
-                    value={lobbyCode}
-                    onChange={(e) => onLobbyCodeChange(e.target.value.toUpperCase())}
-                    onKeyPress={(e) => e.key === 'Enter' && handleJoinGame()}
-                    maxLength={4}
-                    className="text-center text-2xl tracking-[0.3em] uppercase font-bold h-14 bg-card/50 border-2 border-primary/50 rounded-xl focus:border-primary"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      playInkSound('brushTap', 0.3);
-                      setViewMode('home');
-                    }}
-                    className="flex-1 py-2.5 px-4 rounded-xl border border-border text-foreground/80 hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-1 text-sm"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Retour
-                  </button>
-                  <button
-                    onClick={handleJoinGame}
-                    disabled={!playerName.trim() || lobbyCode.length !== 4}
-                    className={cn(
-                      'flex-1 py-2.5 px-4 rounded-xl font-semibold transition-all text-sm',
-                      'bg-primary text-primary-foreground hover:bg-primary/90',
-                      'disabled:opacity-50 disabled:cursor-not-allowed'
-                    )}
-                  >
-                    Rejoindre
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
       </div>
 
-      {/* Patch Note Modal — auto-opens on new version, or manually via button */}
+      {/* Patch Note Modal */}
       <InkPatchNoteModal
         forceOpen={showPatchNote}
         onClose={() => setShowPatchNote(false)}
