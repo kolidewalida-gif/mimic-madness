@@ -40,16 +40,20 @@ export function useDirectMessages(friendUserId?: string | null) {
   // Realtime subscription
   useEffect(() => {
     if (!user) return;
-    
-    const channelName = `dm-${user.id}-${friendUserId ?? "all"}`;
-    
-    // Remove any existing channel with this name first
-    const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
-    if (existingChannel) {
-      supabase.removeChannel(existingChannel);
+
+    // Use a unique channel name per effect run so React 18 StrictMode's
+    // double-invocation never reuses an already-subscribed channel instance
+    // (which would throw "cannot add postgres_changes callbacks ... after subscribe()").
+    const channelName = `dm-${user.id}-${friendUserId ?? "all"}-${crypto.randomUUID()}`;
+
+    // Defensively remove any pre-existing channel registered under the same name.
+    for (const existing of supabase.getChannels()) {
+      if (existing.topic === `realtime:${channelName}`) {
+        supabase.removeChannel(existing);
+      }
     }
-    
-    const channel = supabase
+
+    let channel: ReturnType<typeof supabase.channel> | null = supabase
       .channel(channelName)
       .on(
         "postgres_changes",
@@ -74,7 +78,12 @@ export function useDirectMessages(friendUserId?: string | null) {
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+    };
   }, [user, friendUserId]);
 
   const send = useCallback(
@@ -139,16 +148,18 @@ export function useUnreadCounts() {
 
   useEffect(() => {
     if (!user) return;
-    
-    const channelName = `dm-unread-${user.id}`;
-    
-    // Remove any existing channel with this name first
-    const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
-    if (existingChannel) {
-      supabase.removeChannel(existingChannel);
+
+    // Use a unique channel name per effect run so React 18 StrictMode's
+    // double-invocation never reuses an already-subscribed channel instance.
+    const channelName = `dm-unread-${user.id}-${crypto.randomUUID()}`;
+
+    for (const existing of supabase.getChannels()) {
+      if (existing.topic === `realtime:${channelName}`) {
+        supabase.removeChannel(existing);
+      }
     }
-    
-    const channel = supabase
+
+    let channel: ReturnType<typeof supabase.channel> | null = supabase
       .channel(channelName)
       .on(
         "postgres_changes",
@@ -156,7 +167,12 @@ export function useUnreadCounts() {
         () => { load(); }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+    };
   }, [user, load]);
 
   return counts;
