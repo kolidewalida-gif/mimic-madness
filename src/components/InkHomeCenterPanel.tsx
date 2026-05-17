@@ -64,7 +64,7 @@ const InkHomeCenterPanelComponent = ({
 
   const handleBibliotheque = useCallback(() => {
     playInkSound('brushTap', 0.3);
-    toast('Bientôt disponible!');
+    toast('Bientôt disponible !');
   }, []);
 
   const handleSignOut = useCallback(() => {
@@ -172,7 +172,7 @@ const InkHomeCenterPanelComponent = ({
                   'hover:border-[#ff2b2b]/40 hover:text-[#ff2b2b]/80 hover:shadow-[0_0_10px_rgba(255,43,43,0.15)]'
                 )}
               >
-                Bibliotheque
+                Bibliothèque
               </motion.button>
 
               {/* Spacer */}
@@ -186,7 +186,7 @@ const InkHomeCenterPanelComponent = ({
                 className="w-full py-2 px-4 rounded-xl text-sm transition-all duration-200 text-gray-500 hover:text-[#ff2b2b]/70 flex items-center justify-center gap-2"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                Deconnexion
+                Déconnexion
               </motion.button>
 
               {/* Patch note link */}
