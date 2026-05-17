@@ -114,8 +114,16 @@ export const useFriends = () => {
 
     fetchFriends();
 
+    const channelName = `friendships-changes-${user.id}`;
+    
+    // Remove any existing channel with this name first
+    const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
+
     const channel = supabase
-      .channel(`friendships-changes-${user.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

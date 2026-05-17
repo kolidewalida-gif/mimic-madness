@@ -41,8 +41,16 @@ export const useEquippedTitle = () => {
 
     // Subscribe to changes
     if (user?.id) {
+      const channelName = `equipped-title:${user.id}`;
+      
+      // Remove any existing channel with this name first
+      const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
+      if (existingChannel) {
+        supabase.removeChannel(existingChannel);
+      }
+      
       const channel = supabase
-        .channel(`equipped-title:${user.id}`)
+        .channel(channelName)
         .on(
           'postgres_changes',
           {

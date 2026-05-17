@@ -40,8 +40,17 @@ export function useDirectMessages(friendUserId?: string | null) {
   // Realtime subscription
   useEffect(() => {
     if (!user) return;
+    
+    const channelName = `dm-${user.id}-${friendUserId ?? "all"}`;
+    
+    // Remove any existing channel with this name first
+    const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
+    
     const channel = supabase
-      .channel(`dm-${user.id}-${friendUserId ?? "all"}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "direct_messages" },
@@ -130,8 +139,17 @@ export function useUnreadCounts() {
 
   useEffect(() => {
     if (!user) return;
+    
+    const channelName = `dm-unread-${user.id}`;
+    
+    // Remove any existing channel with this name first
+    const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
+    
     const channel = supabase
-      .channel(`dm-unread-${user.id}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "direct_messages" },

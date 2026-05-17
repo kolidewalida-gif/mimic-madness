@@ -4,6 +4,7 @@ import { ScreenTransition } from "@/components/ScreenTransition";
 import { MusicPlayerBar } from "@/components/MusicPlayerBar";
 import { GameInvitationNotification } from "@/components/GameInvitationNotification";
 import { InkSplashAnimation } from "@/components/InkSplashAnimation";
+import { SocialHub } from "@/components/SocialHub";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
@@ -710,6 +711,15 @@ const Index = () => {
       
       {/* Only show music bar in non-ink mode */}
       <MusicPlayerBar />
+      
+      {/* Social Hub - Floating button always accessible */}
+      <SocialHub
+        currentLobbyCode={lobby?.code}
+        onJoinFriend={(lobbyCode) => {
+          const storedName = localStorage.getItem('playerName') || profile?.display_name || `Joueur${Math.floor(Math.random() * 1000)}`;
+          handleJoinGame(storedName, lobbyCode);
+        }}
+      />
       
       {/* Premium Game Invitation Notification */}
       {activeInvitation && (

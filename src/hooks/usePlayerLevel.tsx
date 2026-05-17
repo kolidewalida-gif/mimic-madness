@@ -159,8 +159,17 @@ export const usePlayerLevel = () => {
 
     fetchRewards();
 
+    // Use a unique channel name per user to avoid conflicts
+    const channelName = `player-rewards:${user.id}`;
+    
+    // Remove any existing channel with this name first
+    const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
+    
     const channel = supabase
-      .channel("player-rewards")
+      .channel(channelName)
       .on(
         "postgres_changes",
         {

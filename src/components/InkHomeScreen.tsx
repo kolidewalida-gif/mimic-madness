@@ -26,6 +26,7 @@ import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkCursorParticles } from '@/components/InkCursorParticles';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
 // WorldLeaderboard removed
 
 interface InkHomeScreenProps {
@@ -118,6 +119,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [lobbyCode, setLobbyCode] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [showSettings, setShowSettings] = useState(false);
+  const [showPatchNote, setShowPatchNote] = useState(false);
   const [selectedMode, setSelectedMode] = useState<LobbyGameMode>('audiophone');
   const { play } = useBackgroundMusic();
 
@@ -357,6 +359,17 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                       <Settings className="w-4 h-4" />
                       Paramètres
                     </button>
+
+                    <button
+                      onClick={() => {
+                        playInkSound('brushTap', 0.2);
+                        setShowPatchNote(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 text-muted-foreground/60 hover:text-primary/70 transition-colors text-xs"
+                    >
+                      <span className="text-[10px] font-mono opacity-60">v{CURRENT_VERSION}</span>
+                      Notes de version
+                    </button>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -455,6 +468,12 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Patch Note Modal — auto-opens on new version, or manually via button */}
+      <InkPatchNoteModal
+        forceOpen={showPatchNote}
+        onClose={() => setShowPatchNote(false)}
+      />
     </div>
   );
 };
