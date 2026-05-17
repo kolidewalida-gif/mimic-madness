@@ -92,11 +92,11 @@ export const PixoguessGameScreen = ({
     img.onload = () => {
       imageRef.current = img;
       
-      // Set canvas size - LARGER for better visibility
-      const maxSize = 520;
-      const ratio = Math.min(maxSize / img.width, maxSize / img.height);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
+      // Set canvas size - LARGER for better visibility, upscale small sources
+      const targetSize = 560;
+      const ratio = targetSize / Math.max(img.width, img.height);
+      canvas.width = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
 
       drawPixelated(ctx, img, canvas.width, canvas.height, pixelLevel);
     };
@@ -526,21 +526,34 @@ export const PixoguessGameScreen = ({
             <HolographicCard className="p-8 text-center max-w-lg">
               <h2 className="text-2xl font-bold mb-6">La réponse était...</h2>
               
-              <img
-                src={proxyImageUrl(roundData.image_url)}
-                alt={roundData.correct_answer || 'Answer'}
-                className="w-64 h-64 object-contain mx-auto rounded-lg mb-6 bg-black/40"
-                onError={(e) => {
-                  const img = e.currentTarget;
-                  const tried = (img.dataset.tried || '0');
-                  const idx = parseInt(tried, 10) + 1;
-                  const candidates = getProxyImageCandidates(roundData.image_url);
-                  if (idx < candidates.length) {
-                    img.dataset.tried = String(idx);
-                    img.src = candidates[idx];
-                  }
-                }}
-              />
+              <div className="relative w-80 h-80 mx-auto mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-card/60 to-black/40 border border-white/10 flex items-center justify-center">
+                <img
+                  src={proxyImageUrl(roundData.image_url)}
+                  alt={roundData.correct_answer || 'Answer'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const imgEl = e.currentTarget;
+                    const tried = (imgEl.dataset.tried || '0');
+                    const idx = parseInt(tried, 10) + 1;
+                    const candidates = getProxyImageCandidates(roundData.image_url);
+                    if (idx < candidates.length) {
+                      imgEl.dataset.tried = String(idx);
+                      imgEl.src = candidates[idx];
+                    } else {
+                      // Final fallback: hide broken icon, show text placeholder
+                      imgEl.style.display = 'none';
+                      const parent = imgEl.parentElement;
+                      if (parent && !parent.querySelector('[data-fallback]')) {
+                        const ph = document.createElement('div');
+                        ph.dataset.fallback = 'true';
+                        ph.className = 'absolute inset-0 flex flex-col items-center justify-center gap-2 text-foreground-muted';
+                        ph.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><span class="text-xs uppercase tracking-widest">image indisponible</span>`;
+                        parent.appendChild(ph);
+                      }
+                    }
+                  }}
+                />
+              </div>
               
               <div className="text-3xl font-bold text-primary mb-4 capitalize">
                 {roundData.correct_answer}
