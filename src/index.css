@@ -2003,3 +2003,25 @@ body.game-cursor-effect-glow .game-cursor-nib {
 .neon-glitch-hover:hover {
   animation: neon-glitch 0.3s steps(2, end);
 }
+
+/* ============= Ink AAA Enter Animation ============= */
+@keyframes ink-enter {
+  0% {
+    opacity: 0;
+    transform: scale(1.04) translateY(8px);
+    filter: blur(6px) saturate(140%);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0) saturate(110%);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0) saturate(100%);
+  }
+}
+
+.ink-enter-anim {
+  animation: ink-enter 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
