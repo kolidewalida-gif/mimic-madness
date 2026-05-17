@@ -22,6 +22,7 @@ import React from "react";
 // Lazy load heavy components
 const HomeScreen = React.lazy(() => import("@/components/HomeScreen").then(m => ({ default: m.HomeScreen })));
 const InkHomeScreen = React.lazy(() => import("@/components/InkHomeScreen").then(m => ({ default: m.InkHomeScreen })));
+const NeonHomeScreen = React.lazy(() => import("@/components/neon/NeonHomeScreen").then(m => ({ default: m.NeonHomeScreen })));
 const LobbyScreen = React.lazy(() => import("@/components/LobbyScreen").then(m => ({ default: m.LobbyScreen })));
 const InkLobbyScreen = React.lazy(() => import("@/components/InkLobbyScreen").then(m => ({ default: m.InkLobbyScreen })));
 const VideoSubmissionScreen = React.lazy(() => import("@/components/VideoSubmissionScreen").then(m => ({ default: m.VideoSubmissionScreen })));
@@ -110,6 +111,8 @@ const Index = () => {
   
   // Determine if we should show Ink UI
   const useInkMode = inkModeEnabled && theme === 'ink' && inkAnimationCompleted;
+  // Neon Hub UI — used when the Cyber Hub theme is active (default theme)
+  const useNeonHub = !inkModeEnabled && theme === 'neon';
   const { 
     lobby, 
     players, 
@@ -546,7 +549,12 @@ const Index = () => {
     return (
       <React.Suspense fallback={<LoadingFallback />}>
         {gameState === "home" && (
-          useInkMode ? (
+          useNeonHub ? (
+            <NeonHomeScreen
+              onCreateGame={handleCreateGame}
+              onJoinGame={handleJoinGame}
+            />
+          ) : useInkMode ? (
             <InkHomeScreen 
               onCreateGame={handleCreateGame}
               onJoinGame={handleJoinGame}
@@ -560,7 +568,7 @@ const Index = () => {
         )}
 
         {gameState === "lobby" && currentPlayer && lobby && (
-          useInkMode ? (
+          (useInkMode || useNeonHub) ? (
             <InkLobbyScreen
               players={players}
               lobbyCode={lobby.code}
@@ -656,7 +664,7 @@ const Index = () => {
 
       </React.Suspense>
     );
-  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   // Enforce login before Ink intro animation
   if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {

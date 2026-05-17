@@ -1,42 +1,116 @@
-## Audit des problèmes de synchronisation multijoueur
+## Refonte AAA — Cyber Néon Hub
 
-Après inspection de l'ensemble des hooks/composants utilisant Supabase Realtime, voici les problèmes confirmés et les correctifs.
+Direction validée : **Cyber Néon** (fond `#0d0d1a` / `#1a1a2e`, accents cyan `#00f0ff` + magenta `#ff006e`), navigation **Hub central type console (PS5/Xbox)**, animations **niveau 5 (cinématique max)**.
 
-### 1. REPLICA IDENTITY manquant sur la majorité des tables temps‑réel
-Sur 33 tables publiées dans `supabase_realtime`, seules 4 sont en `REPLICA IDENTITY FULL` (lobbies, direct_messages, audio_phone_recordings, audio_phone_rounds). Pour les autres, les événements UPDATE/DELETE arrivent avec un `payload.old` vide (PK seule) → la détection de kick (`useLobbySync`), le diff des UPDATE Monopoly/Undercover/Quiz/Pixoguess, le suivi des votes, etc. sont fragiles ou cassés.
+Le thème Ink (noir & rouge) reste disponible — on ajoute un **nouveau thème "Neon Hub"** sélectionnable, sans casser l'existant.
 
-**Fix:** migration SQL qui passe en `REPLICA IDENTITY FULL` toutes les tables publiées en realtime.
+---
 
-### 2. `useLobbySync` : re-souscription en boucle
-L'effet de souscription a `players.length`, `markConnected`, `markDisconnected`, `cleanupDisconnectedPlayers`, `toast` dans ses deps. Chaque arrivée/départ démonte et reconstruit le canal Realtime + l'interval heartbeat → événements perdus, races, "Lobby was deleted" parasite.
+### 1. Nouveau design system "Neon Hub"
 
-**Fix:** réduire les deps à `[lobby?.id]`, stabiliser les helpers via `useRef` (lobby/players courants), garder un seul canal pour la durée du lobby.
+Ajouter dans `src/index.css` un bloc `.theme-neon` avec :
+- Tokens HSL : `--background` noir bleuté, `--primary` cyan, `--accent` magenta, `--neon-glow-cyan` / `--neon-glow-magenta`
+- Gradients : `--gradient-hud` (cyan→magenta), `--gradient-tile` (verre + bord néon)
+- Shadows : `--shadow-neon-cyan`, `--shadow-neon-magenta` (multi-layer glow)
+- Bordures animées : keyframes `neon-pulse`, `scan-line`, `hud-flicker`, `tile-hover-lift`
 
-### 3. `useLobbySync` : détection de kick basée sur `payload.old`
-Sans REPLICA IDENTITY FULL, `payload.old.player_id` est `undefined` → le joueur kické ne voit rien jusqu'au prochain heartbeat (5 s).
+Étendre `tailwind.config.ts` avec ces animations + une font display futuriste (Orbitron pour titres, Inter pour le reste).
 
-**Fix:** corrigé par #1 + fallback déjà présent via `fetchPlayers` (garder).
+Brancher le thème via `useTheme` (ajouter `'neon'` à côté de `'ink'` / `'cartoon'`).
 
-### 4. `useOnlinePresence` : `updatePresence` inopérant
-La fonction crée un nouveau `supabase.channel('online-users')` et appelle `.track()` sans `.subscribe()` → l'appel est silencieusement ignoré. De plus deux canaux portent le même nom dans le hook.
+---
 
-**Fix:** garder une seule référence `channelRef`, exposer `updatePresence` qui re‑track sur ce canal souscrit.
+### 2. Écran d'accueil — Hub central
 
-### 5. Noms de canaux non uniques par instance
-`friendships-changes`, `game-invitations-realtime`, `player-rewards`, `online-users` sont partagés entre tous les utilisateurs. Sur Supabase Realtime, un même nom est OK (rooms), mais des handlers globaux non filtrés font que chaque client reçoit *tous* les events → re-fetchs inutiles, et bugs de scope (ex: `player-rewards` ne filtre pas par user_id).
+Nouveau composant `NeonHomeScreen.tsx` :
+- **Fond animé** : grille perspective qui défile (style Tron) + particules cyan/magenta + parallax léger à la souris
+- **Logo central XL** avec halo néon pulsant
+- **3 tuiles HUD géantes** au centre : `JOUER`, `REJOINDRE`, `PROFIL` — bordure cyan animée, scan-line interne, hover = lift + magenta glow
+- **Barre du bas** : ticker XP/niveau + presence amis en ligne (style overlay console)
+- **Coin haut-droit** : pastille compte Google + bouton réglages
 
-**Fix:** suffixer par `user.id` quand pertinent, et/ou ajouter un `filter` postgres_changes (`receiver_id=eq.${user.id}`, `user_id=eq.${user.id}`).
+`InkAdaptive` rend `NeonHomeScreen` quand `theme === 'neon'`.
 
-### 6. Heartbeat / cleanup
-L'intervalle de 5 s appelle `markConnected`, `cleanupDisconnectedPlayers`, `fetchPlayers`. Combiné avec #2, il fuit. Une fois #2 corrigé, OK.
+---
 
-### Plan d'implémentation
+### 3. Sélecteur de mode — Carrousel console
 
-1. **Migration SQL** — `ALTER TABLE ... REPLICA IDENTITY FULL` pour toutes les tables publiées en realtime (sauf celles déjà FULL).
-2. **`src/hooks/useLobbySync.tsx`** — refonte de l'effet de souscription (deps `[lobby?.id]`), refs pour `lobby`/`players`/`currentPlayerId`, suppression du re-mount sur `players.length`.
-3. **`src/hooks/useOnlinePresence.tsx`** — `channelRef`, `updatePresence` réutilise le canal souscrit.
-4. **`src/hooks/useFriends.tsx`** — ajouter `filter` `requester_id=eq.${user.id}` et `addressee_id=eq.${user.id}` (deux listeners) + suffixe `user.id` au channel name.
-5. **`src/hooks/useGameInvitations.tsx`** — `filter: receiver_id=eq.${user.id}` + suffixe.
-6. **`src/hooks/usePlayerLevel.tsx`** — `filter: user_id=eq.${user.id}` sur `player-rewards` + suffixe.
+Nouveau `NeonGameModeSelector.tsx` :
+- **Layout type Steam Big Picture / PS5** : grande tuile mode actif au centre (artwork plein cadre + nom néon + courte description + bouton "Lancer"), vignettes secondaires défilantes en bas
+- Navigation clavier ←/→ + clics, transitions `scale + glow + blur du fond`
+- Chaque mode reçoit son **palette d'accent** (Quiz=cyan, BlurRush=magenta, Undercover=violet, AudioPhone=lime, Monopoly=or, Pixoguess=rose) — déjà semantique dans `gameModes.ts`, on les remappe sur le neon
+- **Badge HUD** : nb joueurs requis, durée estimée, difficulté
+- Animation d'entrée : tuiles arrivent en cascade depuis le bas avec trail néon
 
-Pas de changement fonctionnel visible côté UI : seuls la robustesse et la latence des updates temps‑réel s'améliorent (kick instantané, statuts présence corrects, pas de re-fetchs inutiles, fin des re-subscribe en boucle dans le lobby).
+---
+
+### 4. Lobby — Salle de briefing
+
+Nouveau `NeonLobbyScreen.tsx` :
+- **Layout 3 zones HUD** :
+  - Gauche : carte du mode sélectionné + paramètres (compact, modifiable par host)
+  - Centre : "PLAYER SLOTS" — cartes joueur 3D-tilt avec avatar, niveau, titre équipé, anneau néon (host = doré, prêt = vert, attente = pulse cyan)
+  - Droite : chat lobby version "comms terminal" (monospace, scan-lines)
+- **Bouton LANCER** géant en bas, cyan→magenta gradient, animation chargement type "system boot"
+- **Countdown** plein écran avec overlay glitch quand la partie démarre
+- Conserver toute la logique de `InkLobbyScreen` (props, hooks, realtime) — c'est uniquement la couche présentationnelle qui change
+
+---
+
+### 5. Panneaux latéraux (Profil, Amis, Récompenses)
+
+Nouveaux : `NeonProfileSidebar.tsx`, `NeonFriendsSidebar.tsx`, et harmoniser `RewardsPanel` / `AchievementsPanel` :
+- Drawer qui slide depuis la droite avec **effet "boot screen"** (lignes de scan qui se remplissent)
+- En-tête : avatar holographique (anneau rotatif) + niveau + barre XP néon segmentée
+- Onglets en haut style **HUD tabs** (Profil / Amis / Récompenses / Succès)
+- Liste amis : statut en pastille néon, hover = preview du dernier mode joué
+- Récompenses verrouillées : effet "static TV" + cadenas magenta
+
+Trigger : un bouton flottant en haut-droite (visible sur toutes les pages) avec icône avatar.
+
+---
+
+### 6. Transitions inter-écrans
+
+Remplacer `InkPageTransition` par `NeonPageTransition` :
+- Sortie : glitch RGB split + fade
+- Entrée : scan-line verticale qui révèle le contenu
+- Durée ~400ms, respect de `prefers-reduced-motion`
+
+---
+
+### 7. Détails techniques
+
+- **Aucune logique métier modifiée** : hooks (`useLobbySync`, `useAuth`, `useFriends`, `useXp`, `useTheme`) restent intacts
+- **Réutilise** les composants premium existants (`HolographicCard`, `NeonText`, `PremiumButton`, `FloatingParticles`) en les retunant avec les nouveaux tokens
+- **Theme switcher** dans `ThemeSelector.tsx` : ajouter option "Neon Hub" (preview vignette)
+- **Performance** : particules canvas avec cap fps + pause sur tab inactif ; grille perspective en pur CSS (pas de WebGL) pour rester léger
+- **Mobile** : tuiles passent en 1 colonne, sidebars deviennent bottom-sheet, animations réduites
+- **Mémoire projet** : ajouter `mem://style/theme-neon-hub` documentant tokens et règles
+
+---
+
+### Fichiers créés
+- `src/components/NeonHomeScreen.tsx`
+- `src/components/NeonGameModeSelector.tsx`
+- `src/components/NeonLobbyScreen.tsx`
+- `src/components/NeonProfileSidebar.tsx`
+- `src/components/NeonFriendsSidebar.tsx`
+- `src/components/NeonPageTransition.tsx`
+- `src/components/NeonHUDFrame.tsx` (composant réutilisable : cadre HUD avec coins + scan-line)
+
+### Fichiers édités
+- `src/index.css` (tokens `.theme-neon`)
+- `src/tailwind.config.ts` (keyframes + animations)
+- `src/hooks/useTheme.tsx` (ajout `'neon'`)
+- `src/components/InkAdaptive.tsx` (route vers les nouveaux composants si neon)
+- `src/components/ThemeSelector.tsx` (option Neon Hub)
+
+### Hors scope (pour rester focus)
+- Écrans in-game des modes (Quiz, BlurRush, etc.) — on touche uniquement les **menus**
+- Refonte backend / RLS
+- Nouveaux modes de jeu
+
+---
+
+Tu valides ? Je peux aussi commencer **uniquement par le Home + Mode Selector** en premier livrable si tu veux voir le rendu avant d'attaquer Lobby + Sidebars.
