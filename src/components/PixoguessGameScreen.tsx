@@ -92,11 +92,11 @@ export const PixoguessGameScreen = ({
     img.onload = () => {
       imageRef.current = img;
       
-      // Set canvas size - LARGER for better visibility
-      const maxSize = 520;
-      const ratio = Math.min(maxSize / img.width, maxSize / img.height);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
+      // Set canvas size - LARGER for better visibility, upscale small sources
+      const targetSize = 560;
+      const ratio = targetSize / Math.max(img.width, img.height);
+      canvas.width = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
 
       drawPixelated(ctx, img, canvas.width, canvas.height, pixelLevel);
     };
