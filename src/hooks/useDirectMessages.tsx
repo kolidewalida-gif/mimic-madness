@@ -40,8 +40,18 @@ export function useDirectMessages(friendUserId?: string | null) {
   // Realtime subscription
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel(`dm-${user.id}-${friendUserId ?? "all"}`)
+    // Use a unique channel name per effect run so React 18 StrictMode's
+    // double-invocation never reuses an already-subscribed channel instance
+    // (which would throw "cannot add postgres_changes callbacks ... after subscribe()").
+    const channelName = `dm-${user.id}-${friendUserId ?? "all"}-${crypto.randomUUID()}`;
+    // Defensively remove any pre-existing channel registered under the same name.
+    for (const existing of supabase.getChannels()) {
+      if (existing.topic === `realtime:${channelName}`) {
+        supabase.removeChannel(existing);
+      }
+    }
+    let channel: ReturnType<typeof supabase.channel> | null = supabase
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "direct_messages" },
@@ -65,7 +75,12 @@ export function useDirectMessages(friendUserId?: string | null) {
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+    };
   }, [user, friendUserId]);
 
   const send = useCallback(
@@ -130,15 +145,28 @@ export function useUnreadCounts() {
 
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel(`dm-unread-${user.id}`)
+    // Use a unique channel name per effect run so React 18 StrictMode's
+    // double-invocation never reuses an already-subscribed channel instance.
+    const channelName = `dm-unread-${user.id}-${crypto.randomUUID()}`;
+    for (const existing of supabase.getChannels()) {
+      if (existing.topic === `realtime:${channelName}`) {
+        supabase.removeChannel(existing);
+      }
+    }
+    let channel: ReturnType<typeof supabase.channel> | null = supabase
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "direct_messages" },
         () => { load(); }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+    };
   }, [user, load]);
 
   return counts;
