@@ -111,8 +111,8 @@ const Index = () => {
   
   // Determine if we should show Ink UI
   const useInkMode = inkModeEnabled && theme === 'ink' && inkAnimationCompleted;
-  // Neon Hub UI — used when the Cyber Hub theme is active (default theme)
-  const useNeonHub = !inkModeEnabled && theme === 'neon';
+  // Neon Hub désactivé — on reste sur l'Ink polish
+  const useNeonHub = false;
   const { 
     lobby, 
     players, 
