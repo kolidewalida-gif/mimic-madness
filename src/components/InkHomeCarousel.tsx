@@ -259,6 +259,8 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
             
             // Calculate transforms for 3D carousel effect
             const getTransform = () => {
+              const baseWidth = isMobile ? 320 : 600;
+              
               if (offset === 0) {
                 // Active panel - center, full size
                 return {
@@ -272,7 +274,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
               } else if (offset === -1) {
                 // Left panel
                 return {
-                  x: isMobile ? '-85%' : '-75%',
+                  x: -(baseWidth * 0.85),
                   scale: 0.75,
                   opacity: 0.35,
                   rotateY: 25,
@@ -282,7 +284,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
               } else if (offset === 1) {
                 // Right panel
                 return {
-                  x: isMobile ? '85%' : '75%',
+                  x: baseWidth * 0.85,
                   scale: 0.75,
                   opacity: 0.35,
                   rotateY: -25,
@@ -292,7 +294,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
               } else {
                 // Hidden panels
                 return {
-                  x: offset < 0 ? '-150%' : '150%',
+                  x: offset < 0 ? -(baseWidth * 1.5) : baseWidth * 1.5,
                   scale: 0.6,
                   opacity: 0,
                   rotateY: offset < 0 ? 45 : -45,
