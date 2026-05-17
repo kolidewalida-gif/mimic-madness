@@ -4,6 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { DeviceSettings } from '@/components/DeviceSettings';
 import { VolumeControl } from '@/components/VolumeControl';
 import { SoundEffectsVolumeControl } from '@/components/SoundEffectsVolumeControl';
+import { INK_PANEL_GLASS_STYLE } from '@/components/ink-panel-styles';
 
 interface InkSettingsPanelProps {
   isActive: boolean;
@@ -24,12 +25,7 @@ const InkSettingsPanelComponent = ({ isActive }: InkSettingsPanelProps) => {
   return (
     <div
       className="w-full h-full rounded-2xl overflow-hidden flex flex-col"
-      style={{
-        background: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,43,43,0.3)',
-        boxShadow: '0 0 30px rgba(255,43,43,0.15), inset 0 0 30px rgba(0,0,0,0.3)',
-      }}
+      style={INK_PANEL_GLASS_STYLE}
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#ff2b2b]/20 flex items-center gap-3 flex-shrink-0">
@@ -51,7 +47,7 @@ const InkSettingsPanelComponent = ({ isActive }: InkSettingsPanelProps) => {
             textShadow: '0 0 10px rgba(255,43,43,0.5)',
           }}
         >
-          PARAMETRES
+          PARAMÈTRES
         </h2>
       </div>
 
@@ -69,7 +65,7 @@ const InkSettingsPanelComponent = ({ isActive }: InkSettingsPanelProps) => {
               <DeviceSettings showPreview />
             ) : (
               <div className="p-6 text-sm text-gray-500 text-center">
-                Ouvrez ce panneau pour configurer vos appareils audio et video.
+                Ouvrez ce panneau pour configurer vos appareils audio et vidéo.
               </div>
             )}
           </div>

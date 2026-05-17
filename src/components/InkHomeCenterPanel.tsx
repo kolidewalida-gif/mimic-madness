@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { LobbyGameMode } from '@/lib/gameModes';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { INK_PANEL_GLASS_STYLE } from '@/components/ink-panel-styles';
 
 interface InkHomeCenterPanelProps {
   playerName: string;
@@ -63,7 +64,7 @@ const InkHomeCenterPanelComponent = ({
 
   const handleBibliotheque = useCallback(() => {
     playInkSound('brushTap', 0.3);
-    toast('Bientot disponible!');
+    toast('Bientôt disponible!');
   }, []);
 
   const handleSignOut = useCallback(() => {
@@ -77,12 +78,7 @@ const InkHomeCenterPanelComponent = ({
   return (
     <div
       className="h-full w-full flex flex-col items-center rounded-2xl overflow-hidden relative"
-      style={{
-        background: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,43,43,0.3)',
-        boxShadow: '0 0 30px rgba(255,43,43,0.15), inset 0 0 30px rgba(0,0,0,0.3)',
-      }}
+      style={INK_PANEL_GLASS_STYLE}
     >
       {/* Avatar - overflows slightly above */}
       <div className="flex-shrink-0 -mt-4 pt-8 flex flex-col items-center gap-2">
@@ -141,7 +137,7 @@ const InkHomeCenterPanelComponent = ({
                 )}
               >
                 <span className="flex items-center justify-center gap-2">
-                  Creer une partie
+                  Créer une partie
                   <ArrowRight className="w-4 h-4" />
                 </span>
               </motion.button>

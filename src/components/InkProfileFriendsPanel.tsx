@@ -3,6 +3,7 @@ import { Users } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
+import { INK_PANEL_GLASS_STYLE } from '@/components/ink-panel-styles';
 
 interface InkProfileFriendsPanelProps {
   onJoinFriend: (lobbyCode: string) => void;
@@ -12,12 +13,7 @@ const InkProfileFriendsPanelComponent = ({ onJoinFriend }: InkProfileFriendsPane
   return (
     <div
       className="w-full h-full rounded-2xl overflow-hidden flex flex-col"
-      style={{
-        background: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,43,43,0.3)',
-        boxShadow: '0 0 30px rgba(255,43,43,0.15), inset 0 0 30px rgba(0,0,0,0.3)',
-      }}
+      style={INK_PANEL_GLASS_STYLE}
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#ff2b2b]/20 flex items-center gap-3 flex-shrink-0">

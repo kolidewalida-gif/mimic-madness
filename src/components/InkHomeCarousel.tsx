@@ -19,7 +19,7 @@ export type InkHomePanel = 'settings' | 'home' | 'friends';
 const PANEL_ORDER: InkHomePanel[] = ['settings', 'home', 'friends'];
 
 const PANEL_LABELS: Record<InkHomePanel, string> = {
-  settings: 'Parametres',
+  settings: 'Paramètres',
   home: 'Accueil',
   friends: 'Profil et amis',
 };
@@ -234,6 +234,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
       <motion.div
         className="relative flex-1 min-h-0 overflow-hidden"
         drag="x"
+        dragDirectionLock={true}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.15}
         onDragEnd={handleDragEnd}
@@ -254,10 +255,10 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
                 rotateY: variant.rotateY,
                 opacity: variant.opacity,
                 zIndex: variant.zIndex,
+                filter: variant.filter,
               }}
               transition={TRANSITION}
               style={{
-                filter: variant.filter,
                 transformStyle: 'preserve-3d',
               }}
             >
@@ -291,7 +292,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
           disabled={isFirst}
           whileHover={isFirst ? undefined : { scale: 1.1 }}
           whileTap={isFirst ? undefined : { scale: 0.9 }}
-          aria-label="Panneau precedent"
+          aria-label="Panneau précédent"
           className={cn(
             'absolute left-3 top-1/2 -translate-y-1/2 z-40',
             'w-10 h-10 rounded-full flex items-center justify-center',
