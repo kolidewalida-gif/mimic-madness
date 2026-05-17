@@ -272,19 +272,24 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
                   <motion.div
                     animate={
                       isActive
-                        ? { rotate: 0 }
-                        : { rotate: [-0.15, 0.15, -0.1] }
+                        ? { rotate: 0, scale: 1, opacity: 1 }
+                        : { rotate: [-0.15, 0.15, -0.1], scale: 0.82, opacity: 0.45 }
                     }
                     transition={
                       isActive
-                        ? { duration: 0.3, ease: [0.22, 1, 0.36, 1] }
-                        : { repeat: Infinity, duration: 6, ease: 'easeInOut' }
+                        ? { duration: 0.35, ease: [0.22, 1, 0.36, 1] }
+                        : {
+                            rotate: { repeat: Infinity, duration: 6, ease: 'easeInOut' },
+                            scale: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                            opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                          }
                     }
+                    style={{ transformOrigin: 'center center' }}
                     className={cn(
-                      'h-full rounded-2xl overflow-hidden transition-[opacity,border-color] duration-300',
+                      'h-full rounded-2xl overflow-hidden transition-[border-color] duration-300',
                       isActive
-                        ? 'border border-solid border-primary/30 opacity-100 pointer-events-auto'
-                        : 'border border-dashed border-primary/60 opacity-50 pointer-events-none'
+                        ? 'border border-solid border-primary/30 pointer-events-auto'
+                        : 'border border-dashed border-primary/60 pointer-events-none'
                     )}
                   >
                     <div
