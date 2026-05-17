@@ -86,8 +86,12 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
     (next: InkHomePanel, source: 'arrow' | 'indicator' | 'swipe' | 'keyboard') => {
       if (next === activePanel) return;
 
+      // One sound per gesture. We dropped the extra `inkSuccess` accent on
+      // landing on a side panel because it stacked on top of the source sound
+      // (review issue #4).
       switch (source) {
         case 'arrow':
+        case 'keyboard':
           playInkSound('brushTap', 0.4);
           break;
         case 'indicator':
@@ -96,14 +100,6 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
         case 'swipe':
           playInkSound('inkTransition', 0.35);
           break;
-        case 'keyboard':
-          playInkSound('brushTap', 0.4);
-          break;
-      }
-
-      // Subtle accent when a side panel becomes the active one.
-      if (next !== 'home') {
-        playInkSound('inkSuccess', 0.5);
       }
 
       setActivePanel(next);
@@ -128,20 +124,23 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
   );
 
   // Keyboard navigation: ArrowLeft / ArrowRight. Skip if focus is in a text
-  // input, textarea, or contenteditable element so typing the pseudo or the
-  // lobby code does not navigate the carousel.
+  // input, textarea, contenteditable element, or any ARIA widget that
+  // consumes arrow keys (Radix Slider, Select, Combobox, etc.). Without this
+  // the volume Sliders and the device-picker Selects would also switch
+  // panels (review issue #1).
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
 
       const target = event.target as HTMLElement | null;
       if (target) {
-        const tag = target.tagName;
         if (
-          tag === 'INPUT' ||
-          tag === 'TEXTAREA' ||
-          tag === 'SELECT' ||
-          target.isContentEditable
+          target.matches(
+            'input, textarea, select, [contenteditable="true"]'
+          ) ||
+          target.closest(
+            '[role="slider"], [role="combobox"], [role="listbox"], [role="menu"], [role="menuitem"], [role="option"], [role="spinbutton"], [role="tab"], [role="radio"]'
+          )
         ) {
           return;
         }
@@ -155,19 +154,56 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
     return () => window.removeEventListener('keydown', handler);
   }, [goPrev, goNext]);
 
-  // Focus management: move focus to the active panel after each switch.
+  // Focus management: move focus to the active panel after each user-driven
+  // switch. We skip the initial mount so the auto-opening (untrapped) patch
+  // note modal isn't fighting the panel root for focus (review issue #5).
+  const hasNavigatedRef = useRef(false);
   useEffect(() => {
+    if (!hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      return;
+    }
     const raf = requestAnimationFrame(() => {
       panelRefs.current[activePanel]?.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(raf);
   }, [activePanel]);
 
+  // Toggle the `inert` attribute on inactive panels so their descendants are
+  // removed from the sequential focus order, blocked from pointer events, and
+  // hidden from assistive tech as a single switch (review issue #2). We set
+  // it imperatively because React 18 standard typings don't expose `inert` as
+  // a JSX prop yet.
+  useEffect(() => {
+    PANEL_ORDER.forEach((panel) => {
+      const node = panelRefs.current[panel];
+      if (!node) return;
+      if (panel === activePanel) {
+        node.removeAttribute('inert');
+      } else {
+        node.setAttribute('inert', '');
+      }
+    });
+  }, [activePanel, trackWidth]);
+
+  // Swipe threshold differs by pointer type: a small diagonal mouse drag onto
+  // a button shouldn't yank the carousel and eat the click (review issue #7).
+  // Touch keeps the original 40px threshold; mouse/pen requires 80px and
+  // a horizontal-dominant gesture.
   const handleDragEnd = useCallback(
-    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      if (info.offset.x < -40) {
+    (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const isTouch =
+        (typeof TouchEvent !== 'undefined' && event instanceof TouchEvent) ||
+        (event as PointerEvent).pointerType === 'touch';
+      const threshold = isTouch ? 40 : 80;
+      const horizontalDominant =
+        Math.abs(info.offset.x) > Math.abs(info.offset.y);
+
+      if (!horizontalDominant) return;
+
+      if (info.offset.x < -threshold) {
         goNext('swipe');
-      } else if (info.offset.x > 40) {
+      } else if (info.offset.x > threshold) {
         goPrev('swipe');
       }
     },
@@ -187,7 +223,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
   const renderPanelContent = (panel: InkHomePanel) => {
     switch (panel) {
       case 'settings':
-        return <InkSettingsPanel />;
+        return <InkSettingsPanel isActive={activePanel === 'settings'} />;
       case 'home':
         return (
           <InkHomeCenterPanel

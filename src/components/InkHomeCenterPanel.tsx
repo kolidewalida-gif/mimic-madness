@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -128,11 +128,18 @@ const InkHomeCenterPanelComponent = ({
   const [selectedMode, setSelectedMode] = useState<LobbyGameMode>('audiophone');
   const { play } = useBackgroundMusic();
 
+  // Initialize the pseudo from the profile display name exactly once. We
+  // intentionally do NOT depend on `playerName`: re-running on every keystroke
+  // would refill the field as soon as the user clears it, blocking them from
+  // typing a different pseudo while logged in (review issue #3).
+  const initializedFromProfileRef = useRef(false);
   useEffect(() => {
-    if (profile?.display_name && !playerName) {
+    if (initializedFromProfileRef.current) return;
+    if (profile?.display_name) {
+      initializedFromProfileRef.current = true;
       onPlayerNameChange(profile.display_name);
     }
-  }, [profile?.display_name, playerName, onPlayerNameChange]);
+  }, [profile?.display_name, onPlayerNameChange]);
 
   const handleCreateGame = useCallback(() => {
     if (playerName.trim()) {
