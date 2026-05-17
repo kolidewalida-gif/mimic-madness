@@ -244,12 +244,12 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
   const isLast = activeIndex === PANEL_ORDER.length - 1;
 
   return (
-    <div className="relative flex-1 min-h-0 flex flex-col">
+    <div className="relative flex-1 min-h-0 flex flex-col bg-[#050505]">
       {/* Track - 3D Carousel Container */}
       <div
         ref={trackRef}
         className="relative flex-1 min-h-0 overflow-hidden"
-        style={{ perspective: '1200px' }}
+        style={{ perspective: '1500px' }}
       >
         {/* Panels - Absolute positioning with 3D transforms */}
         <div className="absolute inset-0 flex items-center justify-center">
@@ -257,12 +257,12 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
             const isActive = panel === activePanel;
             const offset = idx - activeIndex;
             
-            // Calculate transforms for 3D carousel effect
+            // Calculate transforms for AAA-style 3D carousel effect
             const getTransform = () => {
-              const baseWidth = isMobile ? 280 : 450;
+              const baseWidth = isMobile ? 320 : 520;
               
               if (offset === 0) {
-                // Active panel - center, full size
+                // Active panel - center, full size, strong glow
                 return {
                   x: 0,
                   scale: 1,
@@ -272,34 +272,34 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
                   filter: 'blur(0px)',
                 };
               } else if (offset === -1) {
-                // Left panel - visible on the side
+                // Left panel - behind, smaller, transparent
                 return {
-                  x: -(baseWidth * 1.15),
-                  scale: 0.8,
-                  opacity: 0.4,
-                  rotateY: 15,
-                  z: -150,
-                  filter: 'blur(0.5px)',
+                  x: -(baseWidth * 1.1),
+                  scale: 0.82,
+                  opacity: 0.45,
+                  rotateY: 18,
+                  z: -200,
+                  filter: 'blur(1px)',
                 };
               } else if (offset === 1) {
-                // Right panel - visible on the side
+                // Right panel - behind, smaller, transparent
                 return {
-                  x: baseWidth * 1.15,
-                  scale: 0.8,
-                  opacity: 0.4,
-                  rotateY: -15,
-                  z: -150,
-                  filter: 'blur(0.5px)',
+                  x: baseWidth * 1.1,
+                  scale: 0.82,
+                  opacity: 0.45,
+                  rotateY: -18,
+                  z: -200,
+                  filter: 'blur(1px)',
                 };
               } else {
                 // Hidden panels - completely off screen
                 return {
-                  x: offset < 0 ? -(baseWidth * 2.5) : baseWidth * 2.5,
-                  scale: 0.6,
+                  x: offset < 0 ? -(baseWidth * 3) : baseWidth * 3,
+                  scale: 0.5,
                   opacity: 0,
-                  rotateY: offset < 0 ? 45 : -45,
-                  z: -400,
-                  filter: 'blur(2px)',
+                  rotateY: offset < 0 ? 60 : -60,
+                  z: -500,
+                  filter: 'blur(3px)',
                 };
               }
             };
@@ -334,14 +334,14 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
                     'w-full h-full rounded-2xl overflow-hidden',
                     'transition-shadow duration-300',
                     isActive
-                      ? 'max-w-3xl border-2 border-primary/40'
-                      : 'max-w-2xl border border-primary/20'
+                      ? 'max-w-4xl border-2 border-[#ff2b2b]/50'
+                      : 'max-w-3xl border border-[#ff2b2b]/20'
                   )}
                   style={{
                     transformStyle: 'preserve-3d',
                     boxShadow: isActive 
-                      ? '0 0 60px hsl(var(--primary) / 0.4), 0 0 100px hsl(var(--primary) / 0.2)'
-                      : '0 0 20px rgba(0,0,0,0.3)',
+                      ? '0 0 80px rgba(255, 43, 43, 0.5), 0 0 120px rgba(255, 43, 43, 0.3), 0 0 160px rgba(255, 43, 43, 0.2)'
+                      : '0 0 30px rgba(255, 43, 43, 0.15)',
                   }}
                 >
                   <div
@@ -371,14 +371,14 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
           whileTap={isFirst ? undefined : { scale: 0.94 }}
           aria-label="Panneau précédent"
           className={cn(
-            'absolute left-2 top-1/2 -translate-y-1/2 z-20',
-            'rounded-full p-2 bg-card/40 backdrop-blur-sm',
-            'border border-primary/40 text-primary',
-            'transition-opacity duration-200',
-            isFirst ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:bg-card/60'
+            'absolute left-4 top-1/2 -translate-y-1/2 z-20',
+            'rounded-full p-3 bg-[#050505]/80 backdrop-blur-sm',
+            'border border-[#ff2b2b]/50 text-[#ff2b2b]',
+            'transition-all duration-200',
+            isFirst ? 'opacity-20 cursor-not-allowed' : 'opacity-100 hover:bg-[#050505] hover:border-[#ff2b2b] hover:shadow-[0_0_20px_rgba(255,43,43,0.4)]'
           )}
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-6 h-6" />
         </motion.button>
 
         <motion.button
@@ -389,19 +389,19 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
           whileTap={isLast ? undefined : { scale: 0.94 }}
           aria-label="Panneau suivant"
           className={cn(
-            'absolute right-2 top-1/2 -translate-y-1/2 z-20',
-            'rounded-full p-2 bg-card/40 backdrop-blur-sm',
-            'border border-primary/40 text-primary',
-            'transition-opacity duration-200',
-            isLast ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:bg-card/60'
+            'absolute right-4 top-1/2 -translate-y-1/2 z-20',
+            'rounded-full p-3 bg-[#050505]/80 backdrop-blur-sm',
+            'border border-[#ff2b2b]/50 text-[#ff2b2b]',
+            'transition-all duration-200',
+            isLast ? 'opacity-20 cursor-not-allowed' : 'opacity-100 hover:bg-[#050505] hover:border-[#ff2b2b] hover:shadow-[0_0_20px_rgba(255,43,43,0.4)]'
           )}
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-6 h-6" />
         </motion.button>
       </div>
 
       {/* Page indicators */}
-      <div className="flex-shrink-0 flex items-center justify-center gap-2 py-2">
+      <div className="flex-shrink-0 flex items-center justify-center gap-2.5 py-4">
         {PANEL_ORDER.map((panel, idx) => {
           const isActive = panel === activePanel;
           return (
@@ -411,10 +411,10 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
               onClick={() => goTo(panel, 'indicator')}
               aria-label={`Aller au panneau ${idx + 1} de ${PANEL_ORDER.length}`}
               className={cn(
-                'rounded-full transition-all duration-200',
+                'rounded-full transition-all duration-300',
                 isActive
-                  ? 'w-2 h-2 bg-primary'
-                  : 'w-1.5 h-1.5 border border-primary/50 bg-transparent hover:border-primary'
+                  ? 'w-2.5 h-2.5 bg-[#ff2b2b] shadow-[0_0_10px_rgba(255,43,43,0.6)]'
+                  : 'w-2 h-2 border border-[#ff2b2b]/40 bg-transparent hover:border-[#ff2b2b] hover:bg-[#ff2b2b]/20'
               )}
             />
           );

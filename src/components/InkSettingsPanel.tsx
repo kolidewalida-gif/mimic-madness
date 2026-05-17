@@ -25,14 +25,17 @@ const InkSettingsPanelComponent = ({ isActive }: InkSettingsPanelProps) => {
   }, [isActive]);
 
   return (
-    <div className="w-full h-full bg-card/80 backdrop-blur-sm border border-primary/30 rounded-xl overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-primary/20 bg-primary/5 flex items-center gap-2 flex-shrink-0">
-        <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
-          <SettingsIcon className="h-4 w-4 text-primary" />
+    <div className="w-full h-full bg-[#050505]/95 backdrop-blur-md border border-[#ff2b2b]/30 rounded-2xl overflow-hidden flex flex-col">
+      <div className="px-5 py-4 border-b border-[#ff2b2b]/20 bg-[#ff2b2b]/5 flex items-center gap-3 flex-shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-[#ff2b2b]/20 flex items-center justify-center border border-[#ff2b2b]/40">
+          <SettingsIcon className="h-5 w-5 text-[#ff2b2b]" />
         </div>
         <h2
-          className="text-xl font-bold text-primary"
-          style={{ fontFamily: "'Caveat', cursive" }}
+          className="text-2xl font-bold text-[#ff2b2b]"
+          style={{ 
+            fontFamily: "'Caveat', cursive",
+            textShadow: '0 0 20px rgba(255, 43, 43, 0.4)',
+          }}
         >
           Paramètres
         </h2>

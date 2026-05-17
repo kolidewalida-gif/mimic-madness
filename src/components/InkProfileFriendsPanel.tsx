@@ -9,12 +9,14 @@ interface InkProfileFriendsPanelProps {
 
 const InkProfileFriendsPanelComponent = ({ onJoinFriend }: InkProfileFriendsPanelProps) => {
   return (
-    <ScrollArea className="h-full w-full">
-      <div className="flex flex-col gap-3 pr-2">
-        <InkProfileSidebar />
-        <InkFriendsSidebar onJoinFriend={onJoinFriend} />
-      </div>
-    </ScrollArea>
+    <div className="w-full h-full bg-[#050505]/95 backdrop-blur-md border border-[#ff2b2b]/30 rounded-2xl overflow-hidden">
+      <ScrollArea className="h-full w-full">
+        <div className="flex flex-col gap-3 p-4">
+          <InkProfileSidebar />
+          <InkFriendsSidebar onJoinFriend={onJoinFriend} />
+        </div>
+      </ScrollArea>
+    </div>
   );
 };
 
