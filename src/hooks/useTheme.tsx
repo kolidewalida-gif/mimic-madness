@@ -34,22 +34,26 @@ export const themeConfig: Record<ThemeType, {
   };
 }> = {
   neon: {
-    name: 'Neon',
-    emoji: '💜',
-    description: 'Violet & Cyan électrique',
+    name: 'Cyber Hub',
+    emoji: '⚡',
+    description: 'Cyan & Magenta — console next-gen',
     colors: {
-      primary: '262 92% 55%',
-      secondary: '186 100% 50%',
-      accent: '280 100% 60%',
-      background: '240 20% 4%',
+      // #00f0ff cyan primary
+      primary: '186 100% 50%',
+      // Magenta secondary #ff006e
+      secondary: '336 100% 50%',
+      // Hot magenta accent
+      accent: '336 100% 50%',
+      // Deep midnight blue-black
+      background: '240 40% 5%',
       foreground: '0 0% 98%',
-      card: '240 15% 8%',
+      card: '240 35% 9%',
       cardForeground: '0 0% 98%',
-      muted: '240 10% 15%',
-      mutedForeground: '240 5% 65%',
-      border: '262 50% 30%',
-      glow: '262 92% 55%',
-      glowSecondary: '186 100% 50%',
+      muted: '240 25% 14%',
+      mutedForeground: '186 20% 70%',
+      border: '186 80% 35%',
+      glow: '186 100% 50%',
+      glowSecondary: '336 100% 55%',
     },
   },
   cosmic: {
