@@ -245,71 +245,120 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
 
   return (
     <div className="relative flex-1 min-h-0 flex flex-col">
-      {/* Track */}
+      {/* Track - 3D Carousel Container */}
       <div
         ref={trackRef}
         className="relative flex-1 min-h-0 overflow-hidden"
+        style={{ perspective: '1200px' }}
       >
-        {trackWidth > 0 && (
-          <motion.div
-            className="absolute inset-y-0 left-0 flex"
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
-            onDragEnd={handleDragEnd}
-            animate={{ x: targetX }}
-            transition={{ type: 'spring', stiffness: 260, damping: 32 }}
-            style={{ width: panelWidth * PANEL_ORDER.length }}
-          >
-            {PANEL_ORDER.map((panel) => {
-              const isActive = panel === activePanel;
-              return (
+        {/* Panels - Absolute positioning with 3D transforms */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          {PANEL_ORDER.map((panel, idx) => {
+            const isActive = panel === activePanel;
+            const offset = idx - activeIndex;
+            
+            // Calculate transforms for 3D carousel effect
+            const getTransform = () => {
+              if (offset === 0) {
+                // Active panel - center, full size
+                return {
+                  x: 0,
+                  scale: 1,
+                  opacity: 1,
+                  rotateY: 0,
+                  z: 0,
+                  filter: 'blur(0px)',
+                };
+              } else if (offset === -1) {
+                // Left panel
+                return {
+                  x: isMobile ? '-85%' : '-75%',
+                  scale: 0.75,
+                  opacity: 0.35,
+                  rotateY: 25,
+                  z: -200,
+                  filter: 'blur(1px)',
+                };
+              } else if (offset === 1) {
+                // Right panel
+                return {
+                  x: isMobile ? '85%' : '75%',
+                  scale: 0.75,
+                  opacity: 0.35,
+                  rotateY: -25,
+                  z: -200,
+                  filter: 'blur(1px)',
+                };
+              } else {
+                // Hidden panels
+                return {
+                  x: offset < 0 ? '-150%' : '150%',
+                  scale: 0.6,
+                  opacity: 0,
+                  rotateY: offset < 0 ? 45 : -45,
+                  z: -400,
+                  filter: 'blur(2px)',
+                };
+              }
+            };
+
+            const transform = getTransform();
+
+            return (
+              <motion.div
+                key={panel}
+                className="absolute inset-0 flex items-center justify-center"
+                style={{
+                  pointerEvents: isActive ? 'auto' : 'none',
+                  zIndex: isActive ? 10 : offset === 0 ? 10 : 5 - Math.abs(offset),
+                }}
+                animate={{
+                  x: transform.x,
+                  scale: transform.scale,
+                  opacity: transform.opacity,
+                  rotateY: transform.rotateY,
+                  z: transform.z,
+                  filter: transform.filter,
+                }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 300,
+                  damping: 35,
+                  mass: 0.8,
+                }}
+              >
                 <div
-                  key={panel}
-                  className="h-full px-2 flex-shrink-0"
-                  style={{ width: panelWidth }}
+                  className={cn(
+                    'w-full max-w-2xl h-full rounded-2xl overflow-hidden',
+                    'transition-shadow duration-300',
+                    isActive
+                      ? 'border-2 border-primary/40'
+                      : 'border border-primary/20'
+                  )}
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    boxShadow: isActive 
+                      ? '0 0 60px hsl(var(--primary) / 0.4), 0 0 100px hsl(var(--primary) / 0.2)'
+                      : '0 0 20px rgba(0,0,0,0.3)',
+                  }}
                 >
-                  <motion.div
-                    animate={
-                      isActive
-                        ? { rotate: 0, scale: 1, opacity: 1 }
-                        : { rotate: [-0.15, 0.15, -0.1], scale: 0.82, opacity: 0.45 }
-                    }
-                    transition={
-                      isActive
-                        ? { duration: 0.35, ease: [0.22, 1, 0.36, 1] }
-                        : {
-                            rotate: { repeat: Infinity, duration: 6, ease: 'easeInOut' },
-                            scale: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
-                            opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
-                          }
-                    }
-                    style={{ transformOrigin: 'center center' }}
-                    className={cn(
-                      'h-full rounded-2xl overflow-hidden transition-[border-color] duration-300',
-                      isActive
-                        ? 'border border-solid border-primary/30 pointer-events-auto'
-                        : 'border border-dashed border-primary/60 pointer-events-none'
-                    )}
+                  <div
+                    ref={(el) => {
+                      panelRefs.current[panel] = el;
+                    }}
+                    tabIndex={-1}
+                    role="region"
+                    aria-label={PANEL_LABELS[panel]}
+                    aria-hidden={!isActive}
+                    className="h-full w-full outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-0 rounded-2xl"
                   >
-                    <div
-                      ref={(el) => {
-                        panelRefs.current[panel] = el;
-                      }}
-                      tabIndex={-1}
-                      role="region"
-                      aria-label={PANEL_LABELS[panel]}
-                      aria-hidden={!isActive}
-                      className="h-full w-full outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-0 rounded-2xl"
-                    >
-                      {renderPanelContent(panel)}
-                    </div>
-                  </motion.div>
+                    {renderPanelContent(panel)}
+                  </div>
                 </div>
-              );
-            })}
-          </motion.div>
-        )}
+              </motion.div>
+            );
+          })}
+        </div>
 
         {/* Navigation arrows - always visible */}
         <motion.button
