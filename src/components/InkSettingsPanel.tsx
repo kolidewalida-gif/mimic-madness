@@ -46,7 +46,7 @@ const InkSettingsPanelComponent = ({ isActive }: InkSettingsPanelProps) => {
             <DeviceSettings showPreview />
           ) : (
             <div className="p-6 text-sm text-muted-foreground text-center">
-              Chargement des paramètres...
+              Ouvrez ce panneau pour configurer vos appareils audio et vidéo.
             </div>
           )}
         </div>
