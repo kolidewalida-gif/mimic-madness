@@ -259,7 +259,7 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
             
             // Calculate transforms for 3D carousel effect
             const getTransform = () => {
-              const baseWidth = isMobile ? 320 : 600;
+              const baseWidth = isMobile ? 280 : 450;
               
               if (offset === 0) {
                 // Active panel - center, full size
@@ -272,29 +272,29 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
                   filter: 'blur(0px)',
                 };
               } else if (offset === -1) {
-                // Left panel
+                // Left panel - visible on the side
                 return {
-                  x: -(baseWidth * 0.85),
-                  scale: 0.75,
-                  opacity: 0.35,
-                  rotateY: 25,
-                  z: -200,
-                  filter: 'blur(1px)',
+                  x: -(baseWidth * 1.15),
+                  scale: 0.8,
+                  opacity: 0.4,
+                  rotateY: 15,
+                  z: -150,
+                  filter: 'blur(0.5px)',
                 };
               } else if (offset === 1) {
-                // Right panel
+                // Right panel - visible on the side
                 return {
-                  x: baseWidth * 0.85,
-                  scale: 0.75,
-                  opacity: 0.35,
-                  rotateY: -25,
-                  z: -200,
-                  filter: 'blur(1px)',
+                  x: baseWidth * 1.15,
+                  scale: 0.8,
+                  opacity: 0.4,
+                  rotateY: -15,
+                  z: -150,
+                  filter: 'blur(0.5px)',
                 };
               } else {
-                // Hidden panels
+                // Hidden panels - completely off screen
                 return {
-                  x: offset < 0 ? -(baseWidth * 1.5) : baseWidth * 1.5,
+                  x: offset < 0 ? -(baseWidth * 2.5) : baseWidth * 2.5,
                   scale: 0.6,
                   opacity: 0,
                   rotateY: offset < 0 ? 45 : -45,
@@ -331,11 +331,11 @@ const InkHomeCarouselComponent = ({ onCreateGame, onJoinGame }: InkHomeCarouselP
               >
                 <div
                   className={cn(
-                    'w-full max-w-2xl h-full rounded-2xl overflow-hidden',
+                    'w-full h-full rounded-2xl overflow-hidden',
                     'transition-shadow duration-300',
                     isActive
-                      ? 'border-2 border-primary/40'
-                      : 'border border-primary/20'
+                      ? 'max-w-3xl border-2 border-primary/40'
+                      : 'max-w-2xl border border-primary/20'
                   )}
                   style={{
                     transformStyle: 'preserve-3d',
