@@ -1765,3 +1765,241 @@ body.game-cursor-effect-glow .game-cursor-nib {
   animation: title-shimmer 2.6s linear infinite;
 }
 .title-bob { animation: title-bob 2.4s ease-in-out infinite; }
+
+/* ========================================================
+   CYBER NEON HUB — Console-style next-gen menus
+   Activated by body.theme-neon
+   ======================================================== */
+@layer base {
+  body.theme-neon {
+    --background: 240 40% 5%;
+    --background-secondary: 240 35% 8%;
+    --background-accent: 240 30% 12%;
+
+    --foreground: 0 0% 98%;
+    --foreground-secondary: 186 30% 80%;
+    --foreground-muted: 186 20% 60%;
+
+    --primary: 186 100% 50%;
+    --primary-hover: 186 100% 60%;
+    --primary-light: 186 100% 70%;
+    --primary-foreground: 240 40% 5%;
+
+    --secondary: 336 100% 50%;
+    --secondary-hover: 336 100% 60%;
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 336 100% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --card: 240 35% 9%;
+    --card-hover: 240 35% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --muted: 240 25% 14%;
+    --muted-foreground: 186 20% 70%;
+
+    --popover: 240 35% 9%;
+    --popover-foreground: 0 0% 98%;
+
+    --input: 240 30% 12%;
+    --input-border: 186 60% 30%;
+    --input-focus: 186 100% 50%;
+    --border: 186 60% 25%;
+    --ring: 186 100% 50%;
+
+    --success: 140 80% 50%;
+    --warning: 45 100% 55%;
+    --destructive: 336 100% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --radius: 4px;
+
+    --shadow-sm: 0 0 12px hsl(186 100% 50% / 0.25);
+    --shadow-md: 0 0 24px hsl(186 100% 50% / 0.35);
+    --shadow-lg: 0 0 48px hsl(186 100% 50% / 0.45);
+    --shadow-glow: 0 0 32px hsl(186 100% 50% / 0.55), 0 0 64px hsl(186 100% 50% / 0.25);
+    --shadow-glow-intense: 0 0 48px hsl(186 100% 50% / 0.7), 0 0 96px hsl(336 100% 50% / 0.4);
+    --shadow-glow-cyan: 0 0 32px hsl(186 100% 50% / 0.5);
+
+    --gradient-primary: linear-gradient(135deg, hsl(186 100% 50%), hsl(336 100% 50%));
+    --gradient-accent: linear-gradient(135deg, hsl(336 100% 55%), hsl(280 100% 60%));
+    --gradient-dark: radial-gradient(ellipse at center, hsl(240 40% 8%) 0%, hsl(240 50% 3%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(240 35% 11% / 0.9) 0%, hsl(240 40% 7% / 0.9) 100%);
+    --gradient-glass: linear-gradient(145deg, hsl(186 100% 50% / 0.06) 0%, hsl(336 100% 50% / 0.03) 100%);
+
+    font-family: 'Rajdhani', 'Outfit', sans-serif;
+    background: var(--gradient-dark);
+  }
+
+  /* Futuristic typography */
+  body.theme-neon h1,
+  body.theme-neon h2,
+  body.theme-neon h3,
+  body.theme-neon h4 {
+    font-family: 'Orbitron', 'Rajdhani', sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  body.theme-neon .font-mono,
+  body.theme-neon code,
+  body.theme-neon pre {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  /* Perspective grid backdrop */
+  body.theme-neon::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(hsl(186 100% 50% / 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(186 100% 50% / 0.08) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+    animation: neon-grid-scroll 14s linear infinite;
+  }
+
+  body.theme-neon::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(circle at 15% 20%, hsl(186 100% 50% / 0.12), transparent 35%),
+      radial-gradient(circle at 85% 80%, hsl(336 100% 50% / 0.12), transparent 35%);
+  }
+
+  /* Scrollbar */
+  body.theme-neon ::-webkit-scrollbar-track {
+    background: hsl(240 35% 8%);
+  }
+  body.theme-neon ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(186 100% 50%), hsl(336 100% 50%));
+    border-radius: 0;
+  }
+}
+
+/* Cyber Neon keyframes (global, available everywhere) */
+@keyframes neon-grid-scroll {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: 0 60px, 60px 0; }
+}
+
+@keyframes neon-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 8px hsl(var(--primary) / 0.6),
+      inset 0 0 8px hsl(var(--primary) / 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 24px hsl(var(--primary) / 0.9),
+      0 0 48px hsl(var(--primary) / 0.4),
+      inset 0 0 16px hsl(var(--primary) / 0.35);
+  }
+}
+
+@keyframes neon-scan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  20%  { opacity: 0.9; }
+  100% { transform: translateY(220%); opacity: 0; }
+}
+
+@keyframes neon-flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    text-shadow:
+      0 0 6px hsl(var(--primary) / 0.9),
+      0 0 18px hsl(var(--primary) / 0.6),
+      0 0 36px hsl(var(--primary) / 0.4);
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    text-shadow: none;
+    opacity: 0.85;
+  }
+}
+
+@keyframes neon-text-glow {
+  0%, 100% {
+    text-shadow:
+      0 0 8px hsl(var(--primary) / 0.7),
+      0 0 20px hsl(var(--primary) / 0.4);
+  }
+  50% {
+    text-shadow:
+      0 0 14px hsl(var(--primary) / 0.95),
+      0 0 32px hsl(var(--primary) / 0.6),
+      0 0 60px hsl(var(--secondary) / 0.35);
+  }
+}
+
+@keyframes neon-glitch {
+  0%, 100% { transform: translate(0); }
+  20%      { transform: translate(-2px, 1px); }
+  40%      { transform: translate(2px, -1px); }
+  60%      { transform: translate(-1px, -1px); }
+  80%      { transform: translate(1px, 1px); }
+}
+
+@keyframes neon-boot {
+  0%   { clip-path: inset(0 100% 0 0); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+@keyframes neon-corner-spin {
+  0%   { stroke-dashoffset: 200; opacity: 0; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes neon-ticker {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Utility classes used by Neon components */
+.neon-text-glow {
+  text-shadow:
+    0 0 8px hsl(var(--primary) / 0.7),
+    0 0 20px hsl(var(--primary) / 0.4);
+  animation: neon-text-glow 3.2s ease-in-out infinite;
+}
+
+.neon-text-flicker {
+  animation: neon-flicker 4.2s linear infinite;
+}
+
+.neon-scan-line {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.neon-scan-line::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 28%;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    hsl(var(--primary) / 0.18) 50%,
+    transparent 100%);
+  filter: blur(2px);
+  animation: neon-scan 4.5s linear infinite;
+}
+
+.neon-boot-in {
+  animation: neon-boot 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.neon-glitch-hover:hover {
+  animation: neon-glitch 0.3s steps(2, end);
+}
