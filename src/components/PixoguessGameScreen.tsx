@@ -526,10 +526,20 @@ export const PixoguessGameScreen = ({
             <HolographicCard className="p-8 text-center max-w-lg">
               <h2 className="text-2xl font-bold mb-6">La réponse était...</h2>
               
-              <img 
-                src={proxyImageUrl(roundData.image_url)} 
-                alt="Answer"
-                className="w-64 h-64 object-contain mx-auto rounded-lg mb-6"
+              <img
+                src={proxyImageUrl(roundData.image_url)}
+                alt={roundData.correct_answer || 'Answer'}
+                className="w-64 h-64 object-contain mx-auto rounded-lg mb-6 bg-black/40"
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  const tried = (img.dataset.tried || '0');
+                  const idx = parseInt(tried, 10) + 1;
+                  const candidates = getProxyImageCandidates(roundData.image_url);
+                  if (idx < candidates.length) {
+                    img.dataset.tried = String(idx);
+                    img.src = candidates[idx];
+                  }
+                }}
               />
               
               <div className="text-3xl font-bold text-primary mb-4 capitalize">
