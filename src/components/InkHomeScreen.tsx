@@ -1,9 +1,11 @@
-import { memo } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { LobbyGameMode } from '@/lib/gameModes';
 import { InkCursorParticles } from '@/components/InkCursorParticles';
 import { InkPatchNoteModal } from '@/components/InkPatchNoteModal';
-import { InkHomeCarousel } from '@/components/InkHomeCarousel';
+import { InkProfileSidebar } from '@/components/InkProfileSidebar';
+import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
+import { InkHomeCenterPanel } from '@/components/InkHomeCenterPanel';
 
 interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
@@ -11,6 +13,16 @@ interface InkHomeScreenProps {
 }
 
 const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps) => {
+  const [playerName, setPlayerName] = useState('');
+  const [lobbyCode, setLobbyCode] = useState('');
+
+  const handleJoinFriend = useCallback(
+    (code: string) => {
+      setLobbyCode(code);
+      if (playerName.trim()) onJoinGame(playerName.trim(), code);
+    },
+    [playerName, onJoinGame]
+  );
 
   return (
     <div className="h-screen flex flex-col bg-[#050505] text-foreground relative overflow-hidden">
@@ -42,10 +54,25 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         </motion.h1>
       </header>
 
-      {/* Main Content - Carousel */}
-      <main className="flex-1 flex items-stretch justify-center px-4 pb-4 relative z-10 min-h-0 overflow-hidden">
-        <div className="w-full max-w-[1600px] flex h-full">
-          <InkHomeCarousel onCreateGame={onCreateGame} onJoinGame={onJoinGame} />
+      {/* Main Content - 3 columns layout */}
+      <main className="flex-1 flex items-stretch justify-center px-4 pb-28 relative z-10 min-h-0 overflow-hidden">
+        <div className="w-full max-w-[1600px] grid grid-cols-1 lg:grid-cols-[300px_1fr_300px] gap-4 h-full">
+          <aside className="hidden lg:block h-full min-h-0 overflow-y-auto rounded-2xl border border-[#ff2b2b]/20">
+            <InkProfileSidebar />
+          </aside>
+          <section className="h-full min-h-0 overflow-y-auto rounded-2xl border-2 border-[#ff2b2b]/50 shadow-[0_0_60px_rgba(255,43,43,0.35)]">
+            <InkHomeCenterPanel
+              playerName={playerName}
+              onPlayerNameChange={setPlayerName}
+              lobbyCode={lobbyCode}
+              onLobbyCodeChange={setLobbyCode}
+              onCreateGame={onCreateGame}
+              onJoinGame={onJoinGame}
+            />
+          </section>
+          <aside className="hidden lg:block h-full min-h-0 overflow-y-auto rounded-2xl border border-[#ff2b2b]/20">
+            <InkFriendsSidebar onJoinFriend={handleJoinFriend} />
+          </aside>
         </div>
       </main>
 
