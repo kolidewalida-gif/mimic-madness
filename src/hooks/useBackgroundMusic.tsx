@@ -26,6 +26,15 @@ import aUndercover from '@/assets/adaptive/undercover.mp3';
 import aAudiophone from '@/assets/adaptive/audio-phone.mp3';
 import aQuiz from '@/assets/adaptive/quiz.mp3';
 
+/**
+ * User-provided gameplay tracks dropped in /public/music/.
+ * Referenced by URL so they're served as static assets (no bundling).
+ */
+const USER_GAMEPLAY_TRACKS: { id: number; name: string; src: string }[] = [
+  { id: 200, name: '🎲 Cubic Confetti', src: '/music/cubic-confetti.mp3' },
+  { id: 201, name: '⛏️ Mineclap Mayhem', src: '/music/mineclap-mayhem.mp3' },
+];
+
 export interface MusicTrack {
   id: number;
   name: string;
@@ -97,6 +106,11 @@ const musicTracks: MusicTrack[] = [
   { id: 106, name: "📞 Audio Phone", src: aAudiophone, moods: ["playful"] },
   { id: 107, name: "🧠 Quiz Show", src: aQuiz, moods: ["playful", "energetic"] },
   { id: 108, name: "🎪 Lobby Theme II", src: aLobby2, moods: ["chill", "playful"] },
+  // User-provided gameplay tracks (id 200+) — preferred for the "playing" situation
+  ...USER_GAMEPLAY_TRACKS.map((t) => ({
+    ...t,
+    moods: ["energetic", "epic"] as MusicMood[],
+  })),
 ];
 
 /** Direct mapping from situation -> preferred adaptive track id(s). Arrays are randomized. */
@@ -104,15 +118,15 @@ const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number | number[]
   home: [100, 108],
   lobby: [100, 108],
   preparation: [100, 108],
-  playing: 101,
+  playing: [200, 201, 101], // 🎮 user gameplay tracks first, original 101 as fallback
   voting: 102,
   victory: 103,
   defeat: 104,
   undercover: 105,
   audiophone: 106,
   quiz: 107,
-  monopoly: 101,
-  pixoguess: 101,
+  monopoly: [200, 201, 101],
+  pixoguess: [200, 201, 101],
 };
 
 /** Map each game situation to a list of preferred moods (in priority order). */
