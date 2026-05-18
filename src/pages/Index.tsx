@@ -62,7 +62,7 @@ interface GameInvitation {
 }
 
 const Index = () => {
-  const { user, signInWithGoogle, isLoading: authLoading } = useAuth();
+  const { user, profile, signInWithGoogle, isLoading: authLoading } = useAuth();
   const { theme, inkModeEnabled } = useTheme();
   const { isAdmin } = useAdmin();
   const [gameState, setGameState] = useState<GameState>("home");
