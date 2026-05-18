@@ -410,7 +410,7 @@ export const InkLobbyScreen = ({
           }
         />
         {/* Subtle dark overlay so the foreground UI stays legible */}
-        <div className="absolute inset-0 bg-[#1a0d2e]/35" />
+        <div className="absolute inset-0 bg-[#1a0d2e]/15" />
         {/* Soft glow halo on top */}
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[400px] rounded-full opacity-25"
@@ -786,7 +786,7 @@ export const InkLobbyScreen = ({
 
           {/* MODE CARD GRID — uses real images */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-4 max-w-[820px] mx-auto">
               {MODE_CARDS.map((card) => {
                 const isActive = card.id === gameMode;
                 const meta = GAME_MODE_META[card.id];
