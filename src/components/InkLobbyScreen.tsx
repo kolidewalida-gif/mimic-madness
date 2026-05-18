@@ -54,9 +54,9 @@ interface ModeCard {
   id: LobbyGameMode;
   label: string;
   tagline: string;
-  /** Image path in /public/lobby/cards/ */
-  image: string;
-  /** Fallback emoji shown if image is missing */
+  /** Image candidates in /public/lobby/cards/ — first one that loads is used */
+  imageCandidates: string[];
+  /** Fallback emoji shown if no image loads */
   fallbackEmoji: string;
   /** Card body color when fallback is used */
   fallbackColor: string;
@@ -69,7 +69,7 @@ const MODE_CARDS: ModeCard[] = [
     id: 'normal',
     label: 'IMITATION',
     tagline: 'Imite le son ou le chanteur !',
-    image: '/lobby/cards/imitation.png',
+    imageCandidates: ['/lobby/cards/imitation.png', '/lobby/cards/imitation.jpg'],
     fallbackEmoji: '🎤',
     fallbackColor: '#8b5cf6',
     glowColor: '#a855f7',
@@ -78,7 +78,7 @@ const MODE_CARDS: ModeCard[] = [
     id: 'audiophone',
     label: 'AUDIO PIONNER',
     tagline: 'Téléphone arabe audio',
-    image: '/lobby/cards/audiophone.png',
+    imageCandidates: ['/lobby/cards/audiophone.png', '/lobby/cards/audiophone.jpg'],
     fallbackEmoji: '🔊',
     fallbackColor: '#f59e0b',
     glowColor: '#fbbf24',
@@ -87,7 +87,7 @@ const MODE_CARDS: ModeCard[] = [
     id: '2v2',
     label: '2 VS 2',
     tagline: 'Combat en équipes',
-    image: '/lobby/cards/2v2.png',
+    imageCandidates: ['/lobby/cards/2v2.png', '/lobby/cards/2v2.jpg'],
     fallbackEmoji: '⚔️',
     fallbackColor: '#3b82f6',
     glowColor: '#60a5fa',
@@ -96,7 +96,7 @@ const MODE_CARDS: ModeCard[] = [
     id: 'quiz',
     label: 'QUIZ',
     tagline: 'Connaissances générales',
-    image: '/lobby/cards/quiz.png',
+    imageCandidates: ['/lobby/cards/quiz.png', '/lobby/cards/quiz.jpg'],
     fallbackEmoji: '❓',
     fallbackColor: '#84cc16',
     glowColor: '#a3e635',
@@ -105,7 +105,7 @@ const MODE_CARDS: ModeCard[] = [
     id: 'pixoguess',
     label: 'BLIND TEST',
     tagline: 'Devine la musique',
-    image: '/lobby/cards/blindtest.png',
+    imageCandidates: ['/lobby/cards/blindtest.png', '/lobby/cards/blindtest.jpg'],
     fallbackEmoji: '🎧',
     fallbackColor: '#06b6d4',
     glowColor: '#22d3ee',
@@ -114,7 +114,7 @@ const MODE_CARDS: ModeCard[] = [
     id: 'monopoly',
     label: 'MEMORY',
     tagline: 'Plateau aventure',
-    image: '/lobby/cards/memory.png',
+    imageCandidates: ['/lobby/cards/memory.png', '/lobby/cards/memory.jpg'],
     fallbackEmoji: '🔐',
     fallbackColor: '#ec4899',
     glowColor: '#f472b6',
@@ -123,7 +123,7 @@ const MODE_CARDS: ModeCard[] = [
     id: 'undercover',
     label: 'UNDERCOVER',
     tagline: 'Trouve l\'infiltré',
-    image: '/lobby/cards/undercover.png',
+    imageCandidates: ['/lobby/cards/undercover.png', '/lobby/cards/undercover.jpg'],
     fallbackEmoji: '🕵️',
     fallbackColor: '#a855f7',
     glowColor: '#c084fc',
@@ -131,8 +131,8 @@ const MODE_CARDS: ModeCard[] = [
 ];
 
 /**
- * Card image with graceful fallback to an emoji + colored card if the image
- * isn't available (e.g. on first load before the user uploads PNGs).
+ * Card image with multi-candidate fallback chain (tries .png then .jpg, etc.)
+ * Falls back to a stylized colored card with emoji if no image loads.
  */
 const CardArt = ({
   card,
@@ -141,9 +141,20 @@ const CardArt = ({
   card: ModeCard;
   isActive: boolean;
 }) => {
-  const [imageOk, setImageOk] = useState(true);
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [allFailed, setAllFailed] = useState(false);
 
-  if (!imageOk) {
+  const currentSrc = card.imageCandidates[candidateIndex];
+
+  const handleError = () => {
+    if (candidateIndex + 1 < card.imageCandidates.length) {
+      setCandidateIndex(candidateIndex + 1);
+    } else {
+      setAllFailed(true);
+    }
+  };
+
+  if (allFailed || !currentSrc) {
     // Fallback: stylized colored card with emoji and label
     return (
       <div
@@ -179,9 +190,10 @@ const CardArt = ({
 
   return (
     <img
-      src={card.image}
+      key={currentSrc}
+      src={currentSrc}
       alt={card.label}
-      onError={() => setImageOk(false)}
+      onError={handleError}
       className="absolute inset-0 w-full h-full object-cover rounded-2xl"
       style={{
         filter: isActive
@@ -193,8 +205,8 @@ const CardArt = ({
 };
 
 /**
- * Optional asset with fallback. Renders the image if it loads, otherwise
- * renders the children fallback element.
+ * Optional asset with fallback. Tries multiple candidate URLs (.png/.jpg/etc.)
+ * before rendering the fallback element.
  */
 const ImageWithFallback = ({
   src,
@@ -202,14 +214,35 @@ const ImageWithFallback = ({
   className,
   fallback,
 }: {
-  src: string;
+  src: string | string[];
   alt: string;
   className?: string;
   fallback: React.ReactNode;
 }) => {
-  const [ok, setOk] = useState(true);
-  if (!ok) return <>{fallback}</>;
-  return <img src={src} alt={alt} className={className} onError={() => setOk(false)} />;
+  const candidates = useMemo(() => {
+    if (Array.isArray(src)) return src;
+    // Auto-derive jpg fallback from a .png src (and vice-versa)
+    if (src.endsWith('.png')) return [src, src.replace(/\.png$/, '.jpg')];
+    if (src.endsWith('.jpg')) return [src, src.replace(/\.jpg$/, '.png')];
+    return [src];
+  }, [src]);
+
+  const [idx, setIdx] = useState(0);
+  const [allFailed, setAllFailed] = useState(false);
+
+  if (allFailed) return <>{fallback}</>;
+  return (
+    <img
+      key={candidates[idx]}
+      src={candidates[idx]}
+      alt={alt}
+      className={className}
+      onError={() => {
+        if (idx + 1 < candidates.length) setIdx(idx + 1);
+        else setAllFailed(true);
+      }}
+    />
+  );
 };
 
 /* ============================================================
@@ -646,7 +679,7 @@ export const InkLobbyScreen = ({
                 }}
               >
                 <ImageWithFallback
-                  src={selectedCard.image}
+                  src={selectedCard.imageCandidates[0]}
                   alt={selectedCard.label}
                   className="w-full h-full object-cover"
                   fallback={<span className="text-3xl">{selectedCard.fallbackEmoji}</span>}
