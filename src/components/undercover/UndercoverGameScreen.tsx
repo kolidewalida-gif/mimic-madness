@@ -280,6 +280,24 @@ export const UndercoverGameScreen = memo(
       }
     }, [game?.phase]);
 
+    // ⚠️ HOOKS MUST BE CALLED BEFORE ANY EARLY RETURN
+    // Order players by speaking order (computed every render, safe even if game is null)
+    const orderedPlayers = useMemo(() => {
+      if (!game) return [] as typeof gamePlayers;
+      const byId = new Map(gamePlayers.map((p) => [p.player_id, p]));
+      const ordered = game.player_order
+        .map((id) => byId.get(id))
+        .filter(Boolean) as typeof gamePlayers;
+      gamePlayers.forEach((p) => {
+        if (!ordered.find((o) => o.player_id === p.player_id)) ordered.push(p);
+      });
+      return ordered;
+    }, [game, gamePlayers]);
+
+    // Player avatars (image / color saved in DB) — must be called unconditionally
+    const playerIds = useMemo(() => orderedPlayers.map((p) => p.player_id), [orderedPlayers]);
+    const { getAvatar } = useMultiplePlayerAvatars(playerIds);
+
     if (loading || !game) {
       return (
         <div className="flex min-h-screen items-center justify-center bg-[#0a0810]">
@@ -304,22 +322,6 @@ export const UndercoverGameScreen = memo(
 
     const isGameOver = game.phase === 'game_over';
     const votedCount = alivePlayers.filter((p) => p.vote_target !== null).length;
-
-    // Order players by speaking order
-    const orderedPlayers = (() => {
-      const byId = new Map(gamePlayers.map((p) => [p.player_id, p]));
-      const ordered = game.player_order
-        .map((id) => byId.get(id))
-        .filter(Boolean) as typeof gamePlayers;
-      gamePlayers.forEach((p) => {
-        if (!ordered.find((o) => o.player_id === p.player_id)) ordered.push(p);
-      });
-      return ordered;
-    })();
-
-    // Player avatars (image / color saved in DB)
-    const playerIds = useMemo(() => orderedPlayers.map((p) => p.player_id), [orderedPlayers]);
-    const { getAvatar } = useMultiplePlayerAvatars(playerIds);
 
     return (
       <div className="min-h-screen bg-[#0a0810] text-white relative overflow-x-hidden">
