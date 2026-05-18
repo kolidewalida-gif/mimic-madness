@@ -457,7 +457,23 @@ export const InkLobbyScreen = ({
 
           {/* Players card */}
           <div className="relative flex-1 rounded-3xl bg-black/40 backdrop-blur-md border-2 border-white/15 overflow-hidden flex flex-col min-h-0">
-            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+            {/* Custom column background image — drop /public/lobby/players-column.png to override */}
+            <ImageWithFallback
+              src={[
+                '/lobby/players-column.png',
+                '/lobby/players-column.jpg',
+                '/lobby/players-column.jpeg',
+                '/lobby/joueurs.png',
+                '/lobby/joueurs.jpg',
+              ]}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+              fallback={<></>}
+            />
+            {/* Subtle dark overlay so text stays readable on top of the custom image */}
+            <div className="absolute inset-0 bg-[#1a0d2e]/40 pointer-events-none" />
+
+            <div className="relative px-4 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Users className="w-3.5 h-3.5 text-purple-400" />
                 <span
@@ -483,7 +499,7 @@ export const InkLobbyScreen = ({
             </div>
 
             {/* Player list */}
-            <div className="overflow-y-auto custom-scrollbar p-3 max-h-[280px]">
+            <div className="relative overflow-y-auto custom-scrollbar p-3 max-h-[280px]">
               <div className="space-y-2">
                 <AnimatePresence>
                   {players.map((player, idx) => {
@@ -620,7 +636,7 @@ export const InkLobbyScreen = ({
             </div>
 
             {/* Waiting message + INVITER button + mascot */}
-            <div className="flex-1 px-3 pb-2 flex flex-col items-center justify-end min-h-0 overflow-hidden">
+            <div className="relative flex-1 px-3 pb-2 flex flex-col items-center justify-end min-h-0 overflow-hidden">
               <p className="text-xs text-white/50 italic text-center mb-1">
                 En attente d'autres joueurs…
               </p>
