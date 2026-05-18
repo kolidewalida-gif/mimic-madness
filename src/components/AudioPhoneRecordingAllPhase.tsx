@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Check, Users, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DoodleBorder, DoodleStage } from '@/components/doodle/Doodle';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 
 interface AudioPhoneRecordingAllPhaseProps {
   maxSeconds: number;
@@ -15,6 +16,8 @@ interface AudioPhoneRecordingAllPhaseProps {
   submittedPlayerIds: string[];
   pendingPlayerNames: string[];
   playerNames: string[];
+  /** Optional player ids paired with playerNames (same order) for avatar lookup */
+  playerIds?: string[];
   isHost: boolean;
   isSubmitting: boolean;
   onSubmit: (audioBlob: Blob) => Promise<boolean>;
@@ -33,6 +36,7 @@ export const AudioPhoneRecordingAllPhase = ({
   submittedCount,
   pendingPlayerNames,
   playerNames,
+  playerIds = [],
   isHost,
   isSubmitting,
   onSubmit,
@@ -148,39 +152,13 @@ export const AudioPhoneRecordingAllPhase = ({
     };
   }, []);
 
+  const memoizedIds = useMemo(() => playerIds ?? [], [playerIds]);
   const renderRoster = () => (
-    <div className="grid gap-2 text-left">
-      {playerNames.map((name, index) => {
-        const isPending = pendingPlayerNames.includes(name);
-        return (
-          <motion.div
-            key={`${name}-${index}`}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.04 }}
-            className="relative px-3 py-2 flex items-center justify-between text-sm"
-          >
-            <DoodleBorder
-              color={isPending ? 'rgba(255,255,255,0.18)' : READY_COLOR}
-              filled={!isPending}
-              rotation={index % 2 === 0 ? -0.5 : 0.5}
-            />
-            <span
-              className="relative font-bold text-white"
-              style={{ fontFamily: "'Caveat', cursive" }}
-            >
-              {name}
-            </span>
-            <span
-              className="relative text-[10px] uppercase tracking-wider font-bold"
-              style={{ color: isPending ? 'rgba(255,255,255,0.45)' : READY_COLOR }}
-            >
-              {isPending ? 'En attente' : '✓ Prêt'}
-            </span>
-          </motion.div>
-        );
-      })}
-    </div>
+    <RosterList
+      playerNames={playerNames}
+      pendingPlayerNames={pendingPlayerNames}
+      playerIds={memoizedIds}
+    />
   );
 
   if (hasSubmitted) {
@@ -450,5 +428,82 @@ export const AudioPhoneRecordingAllPhase = ({
         </motion.div>
       </div>
     </DoodleStage>
+  );
+};
+
+
+/**
+ * Internal roster list with avatar lookup.
+ */
+const RosterList = ({
+  playerNames,
+  pendingPlayerNames,
+  playerIds,
+}: {
+  playerNames: string[];
+  pendingPlayerNames: string[];
+  playerIds: string[];
+}) => {
+  const { getAvatar } = useMultiplePlayerAvatars(playerIds);
+  return (
+    <div className="grid gap-2 text-left">
+      {playerNames.map((name, index) => {
+        const isPending = pendingPlayerNames.includes(name);
+        const id = playerIds[index];
+        const av = id ? getAvatar(id) : null;
+        const hasImage = av?.type === 'image' && av.imageUrl;
+        return (
+          <motion.div
+            key={`${name}-${index}`}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.04 }}
+            className="relative px-3 py-2 flex items-center gap-3 text-sm"
+          >
+            <DoodleBorder
+              color={isPending ? 'rgba(255,255,255,0.18)' : READY_COLOR}
+              filled={!isPending}
+              rotation={index % 2 === 0 ? -0.5 : 0.5}
+            />
+            <div
+              className="relative w-7 h-7 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+              style={{
+                background: hasImage
+                  ? 'transparent'
+                  : isPending
+                    ? 'rgba(255,255,255,0.08)'
+                    : `${READY_COLOR}33`,
+              }}
+            >
+              {hasImage ? (
+                <img src={av!.imageUrl} alt={name} className="w-full h-full object-cover" />
+              ) : (
+                <span
+                  className="text-xs font-black"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    color: isPending ? 'rgba(255,255,255,0.6)' : READY_COLOR,
+                  }}
+                >
+                  {name[0]?.toUpperCase()}
+                </span>
+              )}
+            </div>
+            <span
+              className="relative font-bold text-white flex-1 truncate"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              {name}
+            </span>
+            <span
+              className="relative text-[10px] uppercase tracking-wider font-bold flex-shrink-0"
+              style={{ color: isPending ? 'rgba(255,255,255,0.45)' : READY_COLOR }}
+            >
+              {isPending ? 'En attente' : '✓ Prêt'}
+            </span>
+          </motion.div>
+        );
+      })}
+    </div>
   );
 };

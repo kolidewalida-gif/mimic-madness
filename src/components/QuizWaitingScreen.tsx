@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Brain,
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { DoodleBorder, DoodleOval, DoodleStage } from '@/components/doodle/Doodle';
 import { QuizCategorySelector } from './QuizCategorySelector';
 import { QuizSettingsPanel, type QuizSettings } from './QuizSettingsPanel';
+import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 
 interface Player {
   id: string;
@@ -51,6 +52,9 @@ export const QuizWaitingScreen = memo(
     onStart,
     onLeave,
   }: QuizWaitingScreenProps) => {
+    const playerIds = useMemo(() => players.map((p) => p.id), [players]);
+    const { getAvatar } = useMultiplePlayerAvatars(playerIds);
+
     return (
       <DoodleStage accent={ACCENT}>
         <div className="relative z-10 min-h-screen flex flex-col items-center justify-start px-5 py-8 pb-[120px]">
@@ -108,6 +112,8 @@ export const QuizWaitingScreen = memo(
             <div className="flex flex-wrap justify-center gap-3">
               {players.map((p, idx) => {
                 const isMe = p.id === currentPlayerId;
+                const av = getAvatar(p.id);
+                const hasImage = av.type === 'image' && av.imageUrl;
                 return (
                   <motion.div
                     key={p.id}
@@ -118,15 +124,23 @@ export const QuizWaitingScreen = memo(
                   >
                     <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
                       <DoodleOval color={isMe ? ACCENT : 'rgba(255,255,255,0.3)'} filled={isMe} />
-                      <span
-                        className="relative text-2xl font-black"
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          color: isMe ? ACCENT : 'white',
-                        }}
-                      >
-                        {p.name[0]?.toUpperCase()}
-                      </span>
+                      {hasImage ? (
+                        <img
+                          src={av.imageUrl}
+                          alt={p.name}
+                          className="relative w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span
+                          className="relative text-2xl font-black"
+                          style={{
+                            fontFamily: "'Caveat', cursive",
+                            color: isMe ? ACCENT : 'white',
+                          }}
+                        >
+                          {p.name[0]?.toUpperCase()}
+                        </span>
+                      )}
                       {p.isHost && (
                         <Crown
                           className="absolute -top-2 -right-1 w-4 h-4 text-amber-400"
