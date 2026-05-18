@@ -317,7 +317,7 @@ export const UndercoverGameScreen = memo(
     })();
 
     return (
-      <div className="min-h-screen bg-[#0a0810] text-white relative overflow-hidden">
+      <div className="min-h-screen bg-[#0a0810] text-white relative overflow-x-hidden">
         {/* Background — phase-tinted halos */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-br from-[#0c0813] via-[#0a0810] to-[#0c0814]" />
@@ -667,7 +667,7 @@ export const UndercoverGameScreen = memo(
         </div>
 
         {/* ACTION ZONE — INDICE field / discussion / vote / etc */}
-        <div className="relative z-10 mx-auto max-w-2xl px-5 mb-32">
+        <div className="relative z-10 mx-auto max-w-2xl px-5 pb-[200px]">
           <div className="relative px-5 py-5 min-h-[120px]">
             <DoodleBorder color={accent} filled />
 
@@ -905,9 +905,9 @@ export const UndercoverGameScreen = memo(
           </div>
         </div>
 
-        {/* "VOIR MON MOT" — fixed bottom button */}
+        {/* "VOIR MON MOT" — fixed bottom button (above music bar) */}
         {!isGameOver && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 w-[min(92vw,500px)]">
+          <div className="fixed bottom-[88px] left-1/2 -translate-x-1/2 z-30 w-[min(92vw,500px)]">
             <motion.button
               type="button"
               onClick={() => {

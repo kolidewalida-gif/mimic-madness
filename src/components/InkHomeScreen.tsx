@@ -315,7 +315,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-6 min-h-0">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-[88px] min-h-0 overflow-y-auto custom-scrollbar">
         {/* Pseudo input — inline, premium */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}

@@ -462,7 +462,7 @@ export const InkLobbyScreen = ({
       </AnimatePresence>
 
       {/* MAIN — 2 columns */}
-      <main className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden px-5 pb-3">
+      <main className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden px-5 pb-[88px]">
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-3 min-h-0">
           {/* LEFT — Players column */}
           <section className="rounded-2xl bg-black/35 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
