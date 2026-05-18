@@ -410,39 +410,41 @@ export const GamePlayScreen = ({
   }
 
   return (
-    <div className="min-h-screen animated-bg p-6 relative">
+    <div className="min-h-screen animated-bg relative">
       <div className="absolute top-20 right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl animate-float pointer-events-none" />
       <div className="absolute bottom-20 left-10 w-48 h-48 bg-secondary/10 rounded-full blur-3xl animate-float pointer-events-none" style={{ animationDelay: "1.5s" }} />
 
-      <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn relative z-10">
-        <header className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={onEndGame}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Quitter</span>
-          </Button>
+      {/* Floating header — overlays the phase content so phases can use full width */}
+      <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 sm:px-6 py-3 backdrop-blur-md bg-black/30 border-b border-white/5">
+        <Button
+          variant="ghost"
+          onClick={onEndGame}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Quitter</span>
+        </Button>
 
-          <GameLogo size="sm" />
+        <GameLogo size="sm" />
 
-          <div className="flex items-center gap-3">
-            {gameMode === "2v2" && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary/10 border border-secondary/30">
-                <Swords className="h-4 w-4 text-secondary" />
-                <span className="font-display font-bold text-secondary text-sm">2v2</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/30">
-              <Zap className="h-4 w-4 text-primary" />
-              <span className="font-display font-bold text-primary">
-                MANCHE {roundNumber}
-              </span>
+        <div className="flex items-center gap-3">
+          {gameMode === "2v2" && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary/10 border border-secondary/30">
+              <Swords className="h-4 w-4 text-secondary" />
+              <span className="font-display font-bold text-secondary text-sm">2v2</span>
             </div>
+          )}
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/30">
+            <Zap className="h-4 w-4 text-primary" />
+            <span className="font-display font-bold text-primary">
+              MANCHE {roundNumber}
+            </span>
           </div>
-        </header>
+        </div>
+      </header>
 
+      {/* Phase content — full width, each phase manages its own internal max-width */}
+      <div className="relative z-10 pt-16 animate-fadeIn">
         {gamePhase === "preview" && (
           <ChallengePreviewPhase
             key={`preview-${roundNumber}`}
