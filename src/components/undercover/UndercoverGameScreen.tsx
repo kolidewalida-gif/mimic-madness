@@ -1,6 +1,7 @@
-import { useState, memo, useCallback, useEffect } from 'react';
+import { useState, memo, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUndercoverGame } from '@/hooks/useUndercoverGame';
+import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import {
   ArrowRight,
   CheckCircle2,
@@ -316,6 +317,10 @@ export const UndercoverGameScreen = memo(
       return ordered;
     })();
 
+    // Player avatars (image / color saved in DB)
+    const playerIds = useMemo(() => orderedPlayers.map((p) => p.player_id), [orderedPlayers]);
+    const { getAvatar } = useMultiplePlayerAvatars(playerIds);
+
     return (
       <div className="min-h-screen bg-[#0a0810] text-white relative overflow-x-hidden">
         {/* Background — phase-tinted halos */}
@@ -567,26 +572,38 @@ export const UndercoverGameScreen = memo(
                       <div className="relative flex flex-col items-center justify-center">
                         {isEliminated ? (
                           <Skull className="w-10 h-10 text-white/50" />
-                        ) : (
-                          <span
-                            className="text-3xl font-black"
-                            style={{
-                              fontFamily: "'Caveat', cursive",
-                              color: isSelected
-                                ? '#ff5050'
-                                : isCurrent
-                                ? accent
-                                : isMe
-                                ? '#0ea5e9'
-                                : 'white',
-                              textShadow: `0 2px 8px ${
-                                isCurrent ? accent : 'rgba(0,0,0,0.4)'
-                              }`,
-                            }}
-                          >
-                            {player.player_name[0]?.toUpperCase()}
-                          </span>
-                        )}
+                        ) : (() => {
+                          const av = getAvatar(player.player_id);
+                          if (av.type === 'image' && av.imageUrl) {
+                            return (
+                              <img
+                                src={av.imageUrl}
+                                alt={player.player_name}
+                                className="w-16 h-16 rounded-full object-cover"
+                              />
+                            );
+                          }
+                          return (
+                            <span
+                              className="text-3xl font-black"
+                              style={{
+                                fontFamily: "'Caveat', cursive",
+                                color: isSelected
+                                  ? '#ff5050'
+                                  : isCurrent
+                                  ? accent
+                                  : isMe
+                                  ? '#0ea5e9'
+                                  : 'white',
+                                textShadow: `0 2px 8px ${
+                                  isCurrent ? accent : 'rgba(0,0,0,0.4)'
+                                }`,
+                              }}
+                            >
+                              {player.player_name[0]?.toUpperCase()}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       {/* "À TOI" stamp */}

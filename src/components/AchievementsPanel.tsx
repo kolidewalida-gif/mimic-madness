@@ -78,18 +78,29 @@ export const AchievementsPanel = ({ isOpen, onClose }: AchievementsPanelProps) =
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 300 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-card/95 backdrop-blur-xl border-l border-border/50 z-[151] overflow-hidden flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#0a0810]/95 backdrop-blur-xl border-l-2 border-white/15 z-[151] overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="p-6 border-b border-border/50">
+            <div className="p-6 border-b border-white/15">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
-                    <Trophy className="h-6 w-6 text-white" />
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center border-2"
+                    style={{
+                      background: 'linear-gradient(135deg, #fbbf24, #f87171)',
+                      borderColor: '#fbbf24',
+                      boxShadow: '0 4px 14px rgba(251, 191, 36, 0.4)',
+                    }}
+                  >
+                    <Trophy className="h-6 w-6 text-white" fill="white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-display font-bold">Badges</h2>
-                    <p className="text-sm text-muted-foreground">Votre collection</p>
+                    <h2 
+                      className="text-2xl font-black text-white"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      Badges
+                    </h2>
+                    <p className="text-xs text-white/55">Votre collection cartoon</p>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={handleClose}>

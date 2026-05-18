@@ -82,7 +82,7 @@ export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-md z-[100] bg-card/95 backdrop-blur-xl border-l border-border/30 shadow-2xl"
+            className="fixed right-0 top-0 bottom-0 w-full max-w-md z-[100] bg-[#0a0810]/95 backdrop-blur-xl border-l-2 border-white/15 shadow-2xl"
           >
             <div className="flex flex-col h-full">
               {/* Header */}

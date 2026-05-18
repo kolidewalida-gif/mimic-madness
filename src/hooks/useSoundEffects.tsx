@@ -2759,8 +2759,59 @@ export const useSoundEffects = () => {
 // Global function to play sounds without hook
 let globalAudioContext: AudioContext | null = null;
 
+// Cartoon SFX overrides for Ink mode — when body has 'ink-mode' class, the most
+// commonly triggered "neon-y" sounds are routed to lighter cartoon equivalents.
+// Imported lazily to avoid circular deps; defaults to no-op if loader fails.
+let cartoonPlayer: ((type: string, volume?: number) => void) | null = null;
+import('./useInkSoundEffects').then((m) => {
+  cartoonPlayer = m.playInkSound as any;
+}).catch(() => {});
+
+const INK_OVERRIDE_MAP: Partial<Record<SoundType, string>> = {
+  click: 'cartoonPop',
+  success: 'cartoonDing',
+  vote: 'cartoonPop',
+  start: 'cartoonFanfare',
+  ding: 'cartoonDing',
+  pop: 'cartoonPop',
+  whoosh: 'cartoonSwoosh',
+  transition: 'cartoonSwoosh',
+  transitionSwoosh: 'cartoonSwoosh',
+  transitionImpact: 'cartoonSwoosh',
+  transitionGlitch: 'cartoonSwoosh',
+  transitionPortal: 'cartoonSwoosh',
+  celebration: 'cartoonFanfare',
+  reveal: 'cartoonDing',
+  scoreUp: 'cartoonDing',
+  quizCorrect: 'cartoonDing',
+  quizReveal: 'cartoonDing',
+  quizTick: 'cartoonPop',
+  quizCountdown1: 'cartoonBoing',
+  quizCountdown2: 'cartoonBoing',
+  quizCountdown3: 'cartoonBoing',
+  countdown: 'cartoonBoing',
+  message: 'cartoonPop',
+  messageReceive: 'cartoonPop',
+  join: 'cartoonPop',
+  leave: 'cartoonSwoosh',
+};
+
+const isInkBodyMode = () => {
+  if (typeof document === 'undefined') return false;
+  return document.body.classList.contains('ink-mode');
+};
+
 export const playSoundEffect = (type: SoundType, volume: number = 0.3) => {
   try {
+    // In Ink mode, route to a softer cartoon sound when an override exists.
+    if (isInkBodyMode() && cartoonPlayer) {
+      const cartoonType = INK_OVERRIDE_MAP[type];
+      if (cartoonType) {
+        cartoonPlayer(cartoonType, volume);
+        return;
+      }
+    }
+
     if (!globalAudioContext) {
       globalAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
