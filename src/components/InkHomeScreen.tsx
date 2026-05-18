@@ -28,7 +28,6 @@ import { DeviceSettings } from '@/components/DeviceSettings';
 import { LobbyGameMode } from '@/lib/gameModes';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
-import { InkCursorParticles } from '@/components/InkCursorParticles';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
 
 interface InkHomeScreenProps {
@@ -248,8 +247,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
   return (
     <div className="h-screen w-full flex flex-col bg-[#0a0510] text-white relative overflow-hidden">
-      <InkCursorParticles />
-
       {/* ============== BACKGROUND ============== */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <ImageWithFallback

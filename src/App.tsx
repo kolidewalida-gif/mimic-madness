@@ -12,6 +12,7 @@ import { XpGainPopup } from "@/components/XpGainPopup";
 import { RewardNotification } from "@/components/RewardNotification";
 import { AdminPanel } from "@/components/AdminPanel";
 import { GameCursor } from "@/components/GameCursor";
+import { InkCursorParticles } from "@/components/InkCursorParticles";
 import { JuiceFxHost } from "@/components/JuiceFxHost";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -32,6 +33,7 @@ const App = () => (
                 <XpGainPopup />
                 <RewardNotification />
                 <GameCursor />
+                <InkCursorParticles />
                 <JuiceFxHost />
                 <AdminPanel />
                 <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

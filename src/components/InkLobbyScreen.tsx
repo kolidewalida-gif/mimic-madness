@@ -25,7 +25,6 @@ import { useGameTeams } from '@/hooks/useGameTeams';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { InkLobbyCanvas } from '@/components/InkLobbyCanvas';
-import { InkCursorParticles } from '@/components/InkCursorParticles';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { getStartStatus, GAME_MODE_META, type LobbyGameMode } from '@/lib/gameModes';
@@ -372,7 +371,6 @@ export const InkLobbyScreen = ({
     <div className="h-screen w-full flex flex-col bg-[#1a0d2e] text-white relative overflow-hidden">
       {/* Background canvas (collaborative drawing) */}
       <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
-      <InkCursorParticles />
 
       {/* Graffiti background — user image with gradient fallback */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
