@@ -111,7 +111,7 @@ export const useAdmin = () => {
     try {
       await supabase
         .from('player_stats')
-        .update(updates)
+        .update(updates as any)
         .eq('user_id', user.id);
 
       return true;
