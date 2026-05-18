@@ -8,6 +8,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { emitXpGain } from '@/components/XpGainPopup';
 import { emitLevelUpNotification } from '@/components/RewardNotification';
 import { usePlayerLevel, XP_REWARDS } from '@/hooks/usePlayerLevel';
+import { DoodleConfetti, DoodleStage } from '@/components/doodle/Doodle';
 
 interface QuizScore {
   player_id: string;
@@ -90,14 +91,9 @@ export const QuizFinalResults = ({
   }, [addXp, currentPlayerId, sortedScores]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-6 relative overflow-hidden bg-mesh">
-      {/* Background effects with gold tint */}
-      <div className="orb-container">
-        <div className="orb" style={{ background: 'radial-gradient(circle, hsl(45 100% 50% / 0.5), transparent)', top: '10%', left: '20%' }} />
-        <div className="orb" style={{ background: 'radial-gradient(circle, hsl(var(--primary) / 0.3), transparent)', top: '60%', right: '10%' }} />
-        <div className="orb" style={{ background: 'radial-gradient(circle, hsl(280 100% 60% / 0.3), transparent)', bottom: '10%', left: '40%' }} />
-      </div>
-      <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
+    <DoodleStage accent="#fbbf24">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5">
+      <DoodleConfetti show={showConfetti} count={48} />
 
       {/* Confetti Particles */}
       {showConfetti && (
@@ -272,5 +268,6 @@ export const QuizFinalResults = ({
         <PartyPopper className="h-4 w-4" />
       </Button>
     </div>
+    </DoodleStage>
   );
 };

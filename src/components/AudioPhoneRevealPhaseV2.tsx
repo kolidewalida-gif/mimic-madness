@@ -3,6 +3,7 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Play, Pause, SkipForward, RotateCcw, Home, ChevronDown, ChevronUp, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DoodleBorder, DoodleStage } from "@/components/doodle/Doodle";
 
 interface RevealPhraseData {
   original: {
@@ -197,21 +198,33 @@ export const AudioPhoneRevealPhaseV2 = ({
     : -1;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <DoodleStage accent="#c084fc">
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-5 pb-[120px]">
       <audio ref={audioRef} onEnded={handleAudioEnded} />
 
-      <Card className="w-full max-w-2xl p-6 bg-gradient-to-br from-violet-950/80 to-fuchsia-950/80 border-violet-500/30 backdrop-blur-xl">
-        <div className="space-y-6">
+      <div className="relative w-full max-w-2xl px-5 py-5">
+        <DoodleBorder color="#c084fc" filled rotation={1} thick />
+        <div className="relative space-y-5">
           {/* Header */}
           <div className="text-center">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            <h2
+              className="text-3xl md:text-4xl font-black text-white"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                textShadow: '0 0 18px rgba(192,132,252,0.4), 0 2px 8px rgba(0,0,0,0.5)',
+              }}
+            >
               Révélation !
             </h2>
-            <p className="text-muted-foreground mt-2">
-              Phrase {syncState.phraseIndex + 1} / {revealData.length}
+            <p className="text-sm text-white/55 mt-1">
+              Phrase{' '}
+              <span className="font-bold" style={{ color: '#c084fc' }}>
+                {syncState.phraseIndex + 1}
+              </span>{' '}
+              / {revealData.length}
             </p>
             {!isHost && (
-              <p className="text-xs text-amber-400 mt-1">
+              <p className="text-[11px] mt-1 italic" style={{ color: '#fbbf24' }}>
                 L'hôte contrôle la lecture
               </p>
             )}
@@ -447,7 +460,8 @@ export const AudioPhoneRevealPhaseV2 = ({
             </div>
           )}
         </div>
-      </Card>
-    </div>
+      </div>
+      </div>
+    </DoodleStage>
   );
 };

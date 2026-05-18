@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { QuizLiveScoreboard } from './QuizLiveScoreboard';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { QuizJokers, type JokersState } from './QuizJokers';
+import { DoodleStage } from '@/components/doodle/Doodle';
 
 interface Player {
   id: string;
@@ -183,16 +184,8 @@ export const QuizQuestion = ({
   const diffConfig = difficultyConfig[difficulty] || difficultyConfig.medium;
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row p-4 gap-6 relative overflow-hidden bg-mesh">
-      {/* Background effects */}
-      <div className="orb-container">
-        <div className={cn(
-          "orb transition-all duration-1000",
-          isUrgent ? "orb-destructive" : "orb-primary"
-        )} />
-        <div className="orb orb-accent" style={{ animationDelay: '2s' }} />
-      </div>
-      <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
+    <DoodleStage accent={isUrgent ? '#f87171' : '#38bdf8'}>
+      <div className="relative z-10 min-h-screen flex flex-col lg:flex-row p-4 gap-6 pb-[120px]">
 
       {/* Left Sidebar - Live Scoreboard */}
       <div className="hidden lg:block w-72 flex-shrink-0 pt-4 relative z-10">
@@ -495,5 +488,6 @@ export const QuizQuestion = ({
         </details>
       </div>
     </div>
+    </DoodleStage>
   );
 };

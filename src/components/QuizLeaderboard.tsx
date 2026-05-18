@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { AutoAdvanceBar } from './AutoAdvanceBar';
 import { Trophy, Medal, ArrowRight, Star, TrendingUp, Zap, Flame, Timer, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { DoodleBorder, DoodleStage } from '@/components/doodle/Doodle';
 
 interface QuizScore {
   player_id: string;
@@ -129,30 +131,47 @@ export const QuizLeaderboard = ({
   const unansweredCount = Math.max(0, sortedScores.length - roundAnswers.length);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-6 relative overflow-hidden bg-mesh">
-      <div className="orb-container">
-        <div className="orb orb-primary" />
-        <div className="orb orb-accent" style={{ animationDelay: '2s' }} />
-      </div>
-      <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
+    <DoodleStage accent="#fbbf24">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5">
 
-      <div className="relative z-10 text-center space-y-2 animate-fadeInDown">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Star className="h-6 w-6 text-accent animate-spin-slow" />
-          <Crown className="h-8 w-8 text-yellow-400 animate-crownBounce" />
-          <Star className="h-6 w-6 text-accent animate-spin-slow" style={{ animationDelay: '0.5s' }} />
-        </div>
-        <h1 className="text-3xl md:text-4xl font-display font-black uppercase tracking-wide text-gradient">
-          Classement
-        </h1>
-        <div className="flex items-center justify-center gap-2 text-foreground-secondary text-base">
-          <Zap className="h-4 w-4 text-primary" />
-          <span>Apres la question {roundNumber}/{totalRounds}</span>
-        </div>
-      </div>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-2"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 mb-1 relative">
+            <DoodleBorder color="#fbbf24" filled />
+            <Crown className="relative w-3.5 h-3.5" style={{ color: '#fbbf24' }} fill="currentColor" />
+            <span
+              className="relative text-xs uppercase tracking-[0.25em] font-bold"
+              style={{ color: '#fbbf24', fontFamily: "'Caveat', cursive" }}
+            >
+              Classement
+            </span>
+          </div>
+          <h1
+            className="text-3xl md:text-5xl font-black leading-none text-white"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              textShadow: '0 0 18px rgba(251,191,36,0.4), 0 2px 8px rgba(0,0,0,0.5)',
+            }}
+          >
+            Classement
+          </h1>
+          <div className="flex items-center justify-center gap-1.5 text-white/55 text-xs">
+            <Zap className="h-3 w-3" style={{ color: '#fbbf24' }} />
+            <span>
+              Après la question{' '}
+              <span className="font-bold text-white">
+                {roundNumber}/{totalRounds}
+              </span>
+            </span>
+          </div>
+        </motion.div>
 
-      <div className="relative z-10 max-w-xl w-full card-premium p-5 animate-fadeInUp">
-        <div className="space-y-3">
+        <div className="relative max-w-xl w-full px-5 py-5">
+          <DoodleBorder color="#fbbf24" rotation={1} thick />
+          <div className="relative space-y-2">
           {sortedScores.map((score, index) => {
             const pointsThisRound = roundPoints[score.player_id] || 0;
             const isCurrentPlayer = score.player_id === currentPlayerId;
@@ -282,5 +301,6 @@ export const QuizLeaderboard = ({
         onSkip={onNextRound}
       />
     </div>
+    </DoodleStage>
   );
 };

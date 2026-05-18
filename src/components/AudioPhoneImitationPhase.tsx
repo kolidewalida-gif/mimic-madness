@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
+import { motion } from 'framer-motion';
 import { Mic, MicOff, Check, Play, Pause, Volume2, Loader2, ChevronRight, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DoodleBorder, DoodleStage } from '@/components/doodle/Doodle';
+import { playInkSound } from '@/hooks/useInkSoundEffects';
 
 interface AudioPhoneImitationPhaseProps {
   currentPhraseIndex: number;
@@ -179,250 +180,422 @@ export const AudioPhoneImitationPhase = ({
 
   if (isAuthor) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-amber-950/80 to-orange-950/80 border-amber-500/30 backdrop-blur-xl">
-          <div className="text-center space-y-6">
-            <div className="w-20 h-20 mx-auto bg-amber-500/20 rounded-full flex items-center justify-center">
-              <Volume2 className="w-10 h-10 text-amber-400 animate-pulse" />
-            </div>
+      <DoodleStage accent="#fbbf24">
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-5 pb-[120px]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative w-full max-w-xl px-6 py-8"
+          >
+            <DoodleBorder color="#fbbf24" filled rotation={1} thick />
+            <div className="relative text-center space-y-5">
+              <motion.div
+                animate={{ scale: [1, 1.06, 1], rotate: [-3, 3, -3] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                className="relative w-20 h-20 mx-auto flex items-center justify-center"
+              >
+                <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
+                  <path
+                    d="M50,8 Q70,7 82,18 Q94,32 92,52 Q90,72 76,86 Q60,96 42,92 Q24,90 12,76 Q4,60 8,40 Q14,20 30,12 Q40,8 50,8 Z"
+                    fill="#fbbf24"
+                    fillOpacity="0.2"
+                    stroke="#fbbf24"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <Volume2 className="relative w-9 h-9" style={{ color: '#fbbf24' }} />
+              </motion.div>
 
-            <div>
-              <h2 className="text-2xl font-bold text-amber-400 mb-2">
-                C est ta phrase
-              </h2>
-              <p className="text-muted-foreground">
-                Observe comment les autres la reinterpretent.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Phrase {currentPhraseIndex + 1} / {totalPhrases}</span>
-                <span className="font-semibold text-amber-200">{completedImitations}/{totalImitations} imitations</span>
-              </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
-              </div>
-              {pendingPlayerNames.length > 0 && (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Encore attendus : <span className="text-foreground">{pendingPlayerNames.join(', ')}</span>
+              <div>
+                <h2
+                  className="text-3xl font-black mb-1"
+                  style={{ fontFamily: "'Caveat', cursive", color: '#fbbf24' }}
+                >
+                  C'est ta phrase
+                </h2>
+                <p className="text-sm text-white/55">
+                  Observe comment les autres la réinterprètent.
                 </p>
+              </div>
+
+              <div className="relative px-3 py-3 text-left">
+                <DoodleBorder color="rgba(255,255,255,0.18)" rotation={-1} />
+                <div className="relative">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-white/55">
+                      Phrase {currentPhraseIndex + 1} / {totalPhrases}
+                    </span>
+                    <span
+                      className="font-black"
+                      style={{ fontFamily: "'Caveat', cursive", color: '#fbbf24' }}
+                    >
+                      {completedImitations}/{totalImitations}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/8">
+                    <motion.div
+                      animate={{ width: `${progressPercent}%` }}
+                      className="h-full rounded-full"
+                      style={{ background: '#fbbf24' }}
+                    />
+                  </div>
+                  {pendingPlayerNames.length > 0 && (
+                    <p className="mt-2 text-xs text-white/45">
+                      Encore attendus :{' '}
+                      <span className="text-white font-bold">{pendingPlayerNames.join(', ')}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {allImitationsDone && isHost && (
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    playInkSound('cartoonSwoosh', 0.4);
+                    onNextPhrase();
+                  }}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="relative w-full px-6 py-3"
+                >
+                  <DoodleBorder color="#c084fc" filled rotation={-1} thick />
+                  <div className="relative flex items-center justify-center gap-2">
+                    <ChevronRight className="w-4 h-4" style={{ color: '#c084fc' }} />
+                    <span
+                      className="text-lg font-black"
+                      style={{ fontFamily: "'Caveat', cursive", color: '#c084fc' }}
+                    >
+                      Phrase suivante
+                    </span>
+                  </div>
+                </motion.button>
               )}
             </div>
-
-            {allImitationsDone && isHost && (
-              <Button
-                onClick={onNextPhrase}
-                size="lg"
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
-              >
-                <ChevronRight className="w-4 h-4 mr-2" />
-                Phrase suivante
-              </Button>
-            )}
-          </div>
-        </Card>
-      </div>
+          </motion.div>
+        </div>
+      </DoodleStage>
     );
   }
 
   if (hasImitated) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-emerald-950/80 to-teal-950/80 border-emerald-500/30 backdrop-blur-xl">
-          <div className="text-center space-y-6">
-            <div className="w-20 h-20 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
-              <Check className="w-10 h-10 text-emerald-400" />
-            </div>
+      <DoodleStage accent="#34d399">
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-5 pb-[120px]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, rotate: -2 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+            className="relative w-full max-w-xl px-6 py-8"
+          >
+            <DoodleBorder color="#34d399" filled rotation={-1} thick />
+            <div className="relative text-center space-y-5">
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', damping: 14, stiffness: 200 }}
+                className="relative w-20 h-20 mx-auto flex items-center justify-center"
+              >
+                <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
+                  <path
+                    d="M50,8 Q70,7 82,18 Q94,32 92,52 Q90,72 76,86 Q60,96 42,92 Q24,90 12,76 Q4,60 8,40 Q14,20 30,12 Q40,8 50,8 Z"
+                    fill="#34d399"
+                    fillOpacity="0.18"
+                    stroke="#34d399"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <Check className="relative w-9 h-9" style={{ color: '#34d399' }} />
+              </motion.div>
 
-            <div>
-              <h2 className="text-2xl font-bold text-emerald-400 mb-2">
-                Imitation envoyee
-              </h2>
-              <p className="text-muted-foreground">
-                Le plateau attend encore quelques performances.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Phrase de {authorName}</span>
-                <span className="font-semibold text-emerald-200">{completedImitations}/{totalImitations} imitations</span>
-              </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
-              </div>
-              {pendingPlayerNames.length > 0 && (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  En attente de : <span className="text-foreground">{pendingPlayerNames.join(', ')}</span>
+              <div>
+                <h2
+                  className="text-3xl font-black mb-1"
+                  style={{ fontFamily: "'Caveat', cursive", color: '#34d399' }}
+                >
+                  Imitation envoyée !
+                </h2>
+                <p className="text-sm text-white/55">
+                  Le plateau attend encore quelques performances.
                 </p>
+              </div>
+
+              <div className="relative px-3 py-3 text-left">
+                <DoodleBorder color="rgba(255,255,255,0.18)" rotation={1} />
+                <div className="relative">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-white/55">
+                      Phrase de{' '}
+                      <span className="font-bold text-white">{authorName}</span>
+                    </span>
+                    <span
+                      className="font-black"
+                      style={{ fontFamily: "'Caveat', cursive", color: '#34d399' }}
+                    >
+                      {completedImitations}/{totalImitations}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/8">
+                    <motion.div
+                      animate={{ width: `${progressPercent}%` }}
+                      className="h-full rounded-full"
+                      style={{ background: '#34d399' }}
+                    />
+                  </div>
+                  {pendingPlayerNames.length > 0 && (
+                    <p className="mt-2 text-xs text-white/45">
+                      En attente :{' '}
+                      <span className="text-white font-bold">{pendingPlayerNames.join(', ')}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {allImitationsDone && isHost && (
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    playInkSound('cartoonSwoosh', 0.4);
+                    onNextPhrase();
+                  }}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="relative w-full px-6 py-3"
+                >
+                  <DoodleBorder color="#c084fc" filled rotation={-1} thick />
+                  <div className="relative flex items-center justify-center gap-2">
+                    <ChevronRight className="w-4 h-4" style={{ color: '#c084fc' }} />
+                    <span
+                      className="text-lg font-black"
+                      style={{ fontFamily: "'Caveat', cursive", color: '#c084fc' }}
+                    >
+                      Phrase suivante
+                    </span>
+                  </div>
+                </motion.button>
               )}
             </div>
-
-            {allImitationsDone && isHost && (
-              <Button
-                onClick={onNextPhrase}
-                size="lg"
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
-              >
-                <ChevronRight className="w-4 h-4 mr-2" />
-                Phrase suivante
-              </Button>
-            )}
-          </div>
-        </Card>
-      </div>
+          </motion.div>
+        </div>
+      </DoodleStage>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-cyan-950/80 to-blue-950/80 border-cyan-500/30 backdrop-blur-xl">
-        <div className="text-center space-y-6">
-          {reversedAudioUrl && (
-            <audio
-              ref={audioRef}
-              src={reversedAudioUrl}
-              onEnded={() => {
-                setIsPlaying(false);
-                setHasListened(true);
-              }}
-            />
-          )}
-
-          <div>
-            <div className="text-sm text-cyan-400 mb-2 font-medium">
-              Phrase {currentPhraseIndex + 1} / {totalPhrases}
-            </div>
-            <h2 className="text-2xl font-bold text-cyan-300 mb-2">
-              Phrase de {authorName}
-            </h2>
-            <p className="text-muted-foreground">
-              Ecoute l audio inverse, capte son rythme, puis rejoue-le.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
-            <div className="flex items-center justify-between text-sm">
-              <span className="inline-flex items-center gap-2 text-muted-foreground">
-                <Users className="h-4 w-4" />
-                Avancement de la phrase
-              </span>
-              <span className="font-semibold text-cyan-100">{completedImitations}/{totalImitations}</span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
-            </div>
-            {pendingPlayerNames.length > 0 && (
-              <p className="mt-3 text-sm text-muted-foreground">
-                Encore attendus : <span className="text-foreground">{pendingPlayerNames.join(', ')}</span>
-              </p>
+    <DoodleStage accent="#38bdf8">
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-5 pb-[120px]">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="relative w-full max-w-xl px-6 py-8"
+        >
+          <DoodleBorder color="#38bdf8" filled rotation={1} thick />
+          <div className="relative text-center space-y-5">
+            {reversedAudioUrl && (
+              <audio
+                ref={audioRef}
+                src={reversedAudioUrl}
+                onEnded={() => {
+                  setIsPlaying(false);
+                  setHasListened(true);
+                }}
+              />
             )}
-          </div>
 
-          <div className="space-y-4">
-            <Button
-              onClick={isPlaying ? pauseAudio : playReversedAudio}
-              disabled={!reversedAudioUrl}
-              size="lg"
-              className={cn(
-                'w-full',
-                isPlaying
-                  ? 'bg-cyan-500 hover:bg-cyan-600'
-                  : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700'
-              )}
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="w-5 h-5 mr-2" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="w-5 h-5 mr-2" />
-                  Ecouter l audio inverse
-                </>
-              )}
-            </Button>
-
-            {hasListened && (
-              <div className="flex items-center justify-center gap-2 text-emerald-400 text-sm">
-                <Check className="w-4 h-4" />
-                Ecoute terminee. Tu peux enregistrer.
-              </div>
-            )}
-          </div>
-
-          {hasListened && !recordedBlob && (
-            <div className="space-y-4 pt-4 border-t border-cyan-500/20">
-              <p className="text-sm text-muted-foreground">
-                Reproduis le groove et les attaques du son. Le naturel vaut mieux qu un volume trop fort.
-              </p>
-
-              <div className="relative flex justify-center">
-                <button
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isSubmitting}
-                  className={cn(
-                    'w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300',
-                    isRecording
-                      ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                      : 'bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700'
-                  )}
-                  style={{
-                    boxShadow: isRecording
-                      ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(239, 68, 68, 0.4)`
-                      : '0 0 30px rgba(6, 182, 212, 0.3)',
-                  }}
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 relative">
+                <DoodleBorder color="#38bdf8" filled />
+                <span
+                  className="relative text-xs font-bold uppercase tracking-[0.2em]"
+                  style={{ color: '#38bdf8', fontFamily: "'Caveat', cursive" }}
                 >
-                  {isRecording ? (
-                    <MicOff className="w-10 h-10 text-white" />
-                  ) : (
-                    <Mic className="w-10 h-10 text-white" />
-                  )}
-                </button>
+                  Phrase {currentPhraseIndex + 1} / {totalPhrases}
+                </span>
               </div>
+              <h2
+                className="text-2xl md:text-3xl font-black mb-1 text-white"
+                style={{ fontFamily: "'Caveat', cursive" }}
+              >
+                Phrase de{' '}
+                <span style={{ color: '#38bdf8' }}>{authorName}</span>
+              </h2>
+              <p className="text-sm text-white/55">
+                Écoute l'audio inversé, capte son rythme, puis rejoue-le.
+              </p>
+            </div>
 
-              {isRecording && (
-                <div className="text-2xl font-mono font-bold text-red-400">
-                  {recordingTime.toFixed(1)}s / {maxSeconds}s
+            <div className="relative px-3 py-3 text-left">
+              <DoodleBorder color="rgba(255,255,255,0.18)" rotation={-1} />
+              <div className="relative">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="inline-flex items-center gap-2 text-white/55">
+                    <Users className="w-3.5 h-3.5" />
+                    Avancement
+                  </span>
+                  <span
+                    className="font-black"
+                    style={{ fontFamily: "'Caveat', cursive", color: '#38bdf8' }}
+                  >
+                    {completedImitations}/{totalImitations}
+                  </span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/8">
+                  <motion.div
+                    animate={{ width: `${progressPercent}%` }}
+                    className="h-full rounded-full"
+                    style={{ background: '#38bdf8' }}
+                  />
+                </div>
+                {pendingPlayerNames.length > 0 && (
+                  <p className="mt-2 text-xs text-white/45">
+                    Encore attendus :{' '}
+                    <span className="text-white font-bold">{pendingPlayerNames.join(', ')}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <motion.button
+                type="button"
+                onClick={() => {
+                  playInkSound('cartoonPop', 0.3);
+                  isPlaying ? pauseAudio() : playReversedAudio();
+                }}
+                disabled={!reversedAudioUrl}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative w-full px-6 py-3 disabled:opacity-50"
+              >
+                <DoodleBorder color="#38bdf8" filled rotation={-1} thick />
+                <div className="relative flex items-center justify-center gap-2">
+                  {isPlaying ? (
+                    <Pause className="w-5 h-5" style={{ color: '#38bdf8' }} />
+                  ) : (
+                    <Play className="w-5 h-5" style={{ color: '#38bdf8' }} />
+                  )}
+                  <span
+                    className="text-lg font-black"
+                    style={{ fontFamily: "'Caveat', cursive", color: '#38bdf8' }}
+                  >
+                    {isPlaying ? 'Pause' : 'Écouter l\'audio inversé'}
+                  </span>
+                </div>
+              </motion.button>
+
+              {hasListened && (
+                <div
+                  className="flex items-center justify-center gap-2 text-sm font-bold"
+                  style={{ color: '#34d399', fontFamily: "'Caveat', cursive" }}
+                >
+                  <Check className="w-4 h-4" />
+                  Écoute terminée. Tu peux enregistrer.
                 </div>
               )}
             </div>
-          )}
 
-          {recordedBlob && (
-            <div className="space-y-4 pt-4 border-t border-cyan-500/20">
-              <audio
-                src={URL.createObjectURL(recordedBlob)}
-                controls
-                className="w-full"
-              />
-              <div className="flex gap-3">
-                <Button
-                  onClick={startRecording}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Reenregistrer
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Check className="w-4 h-4 mr-2" />
-                  )}
-                  Envoyer
-                </Button>
+            {hasListened && !recordedBlob && (
+              <div className="space-y-3 pt-3 border-t border-white/10">
+                <p className="text-xs text-white/50 italic">
+                  Reproduis le groove. Le naturel vaut mieux qu'un volume trop fort.
+                </p>
+
+                <div className="relative flex justify-center">
+                  <motion.button
+                    type="button"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    disabled={isSubmitting}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    animate={isRecording ? { scale: [1, 1.04, 1] } : { y: [0, -3, 0] }}
+                    transition={
+                      isRecording
+                        ? { duration: 0.5, repeat: Infinity }
+                        : { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+                    }
+                    className={cn('w-24 h-24 rounded-full flex items-center justify-center')}
+                    style={{
+                      background: isRecording
+                        ? '#f87171'
+                        : `linear-gradient(135deg, #38bdf8, #38bdf8cc)`,
+                      boxShadow: isRecording
+                        ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(248,113,113,0.45)`
+                        : `0 8px 24px rgba(56,189,248,0.4)`,
+                    }}
+                  >
+                    {isRecording ? (
+                      <MicOff className="w-10 h-10 text-white" />
+                    ) : (
+                      <Mic className="w-10 h-10 text-white" />
+                    )}
+                  </motion.button>
+                </div>
+
+                {isRecording && (
+                  <div
+                    className="text-2xl font-black"
+                    style={{ fontFamily: "'Caveat', cursive", color: '#f87171' }}
+                  >
+                    {recordingTime.toFixed(1)}s / {maxSeconds}s
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </div>
-      </Card>
-    </div>
+            )}
+
+            {recordedBlob && (
+              <div className="space-y-3 pt-3 border-t border-white/10">
+                <audio
+                  src={URL.createObjectURL(recordedBlob)}
+                  controls
+                  className="w-full"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    className="relative flex-1 py-3 group"
+                  >
+                    <DoodleBorder color="rgba(255,255,255,0.2)" />
+                    <span
+                      className="relative text-base font-black text-white/70 group-hover:text-white transition-colors"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      Recommencer
+                    </span>
+                  </button>
+                  <motion.button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    whileHover={!isSubmitting ? { scale: 1.02, y: -1 } : undefined}
+                    whileTap={!isSubmitting ? { scale: 0.98 } : undefined}
+                    className="relative flex-1 py-3 disabled:opacity-50"
+                  >
+                    <DoodleBorder color="#34d399" filled rotation={-1} thick />
+                    <div className="relative flex items-center justify-center gap-1.5">
+                      {isSubmitting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#34d399' }} />
+                      ) : (
+                        <Check className="w-4 h-4" style={{ color: '#34d399' }} />
+                      )}
+                      <span
+                        className="text-base font-black"
+                        style={{ fontFamily: "'Caveat', cursive", color: '#34d399' }}
+                      >
+                        Envoyer
+                      </span>
+                    </div>
+                  </motion.button>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </DoodleStage>
   );
 };
