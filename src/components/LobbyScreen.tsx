@@ -131,7 +131,7 @@ export const LobbyScreen = ({
   };
 
   const handleStartGame = async () => {
-    if (gameMode === '2v2' && teams.length === 0) {
+    if (gameMode === '2v2' && teams.length === 0 && !isAdmin) {
       toast({
         title: "Équipes requises",
         description: "Veuillez d'abord former les équipes",

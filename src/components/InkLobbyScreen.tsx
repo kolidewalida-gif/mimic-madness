@@ -244,7 +244,7 @@ export const InkLobbyScreen = ({
   const minPlayers = GAME_MODE_META[gameMode].minPlayers;
 
   const handleStartGame = async () => {
-    if (gameMode === '2v2' && teams.length === 0) {
+    if (gameMode === '2v2' && teams.length === 0 && !isAdmin) {
       toast({ title: 'Équipes requises', description: "Formez d'abord les équipes", variant: 'destructive' });
       return;
     }
