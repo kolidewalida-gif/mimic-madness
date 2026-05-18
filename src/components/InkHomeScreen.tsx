@@ -1,4 +1,4 @@
-import { useState, memo, useCallback, useEffect } from 'react';
+import { useState, memo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { useToast } from '@/hooks/use-toast';
 import { VolumeControl } from '@/components/VolumeControl';
 import { SoundEffectsVolumeControl } from '@/components/SoundEffectsVolumeControl';
 import { DeviceSettings } from '@/components/DeviceSettings';
@@ -68,15 +69,18 @@ const itemVariants = {
 
 const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps) => {
   const { profile } = useAuth();
+  const { toast } = useToast();
   const [playerName, setPlayerName] = useState('');
   const [lobbyCode, setLobbyCode] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [showSettings, setShowSettings] = useState(false);
   const [selectedMode, setSelectedMode] = useState<LobbyGameMode>('audiophone');
   const { play } = useBackgroundMusic();
+  const hasSyncedName = useRef(false);
 
   useEffect(() => {
-    if (profile?.display_name && !playerName) {
+    if (profile?.display_name && !hasSyncedName.current) {
+      hasSyncedName.current = true;
       setPlayerName(profile.display_name);
     }
   }, [profile?.display_name]);
@@ -104,9 +108,14 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         play();
         playInkSound('inkSuccess', 0.5);
         onJoinGame(playerName.trim(), code);
+      } else {
+        toast({
+          title: "Pseudo requis",
+          description: "Entrez votre pseudo d'abord",
+        });
       }
     },
-    [playerName, play, onJoinGame],
+    [playerName, play, onJoinGame, toast],
   );
 
   return (
@@ -311,7 +320,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                           onChange={(e) =>
                             setLobbyCode(e.target.value.toUpperCase())
                           }
-                          onKeyPress={(e) =>
+                          onKeyDown={(e) =>
                             e.key === 'Enter' && handleJoinGame()
                           }
                           maxLength={4}

@@ -46,6 +46,8 @@ const InkParallaxContainerComponent = ({
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
     const animate = () => {
+      if (isTouchDevice.current) return;
+
       currentRef.current.x = lerp(
         currentRef.current.x,
         targetRef.current.x,
@@ -64,7 +66,9 @@ const InkParallaxContainerComponent = ({
       rafRef.current = requestAnimationFrame(animate);
     };
 
-    rafRef.current = requestAnimationFrame(animate);
+    if (!isTouchDevice.current) {
+      rafRef.current = requestAnimationFrame(animate);
+    }
 
     return () => {
       if (rafRef.current !== null) {

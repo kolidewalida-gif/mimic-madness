@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -43,7 +43,7 @@ const InkMenuButtonComponent = ({
   ariaLabel,
 }: InkMenuButtonProps) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const rotateRef = useRef({ x: 0, y: 0 });
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -51,13 +51,13 @@ const InkMenuButtonComponent = ({
       const rect = buttonRef.current.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width - 0.5;
       const y = (e.clientY - rect.top) / rect.height - 0.5;
-      rotateRef.current = { x: y * -6, y: x * 6 };
+      setTilt({ x: y * -6, y: x * 6 });
     },
     [],
   );
 
   const handleMouseLeave = useCallback(() => {
-    rotateRef.current = { x: 0, y: 0 };
+    setTilt({ x: 0, y: 0 });
   }, []);
 
   const handleClick = useCallback(() => {
@@ -97,6 +97,10 @@ const InkMenuButtonComponent = ({
         variantStyles[variant],
         className,
       )}
+      style={{
+        transform: `perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+        transition: tilt.x === 0 && tilt.y === 0 ? 'transform 0.3s ease' : undefined,
+      }}
     >
       {children}
     </motion.button>
