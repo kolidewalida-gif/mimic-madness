@@ -786,7 +786,7 @@ export const InkLobbyScreen = ({
 
           {/* MODE CARD GRID — uses real images */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pb-4 max-w-[560px] mx-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-4 w-full">
               {MODE_CARDS.map((card) => {
                 const isActive = card.id === gameMode;
                 const meta = GAME_MODE_META[card.id];
@@ -1076,7 +1076,7 @@ const PretButton = ({ onClick, disabled }: { onClick: () => void; disabled: bool
         !disabled ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } : undefined
       }
       className={cn(
-        'relative w-44 h-32 flex-shrink-0 select-none',
+        'relative w-60 h-44 flex-shrink-0 select-none',
         disabled && 'opacity-40 grayscale cursor-not-allowed',
       )}
       style={{
