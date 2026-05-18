@@ -374,33 +374,51 @@ export const InkLobbyScreen = ({
       <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
       <InkCursorParticles />
 
-      {/* Graffiti background — soft purple wall + ambient glow */}
+      {/* Graffiti background — user image with gradient fallback */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#160a26] to-[#0f0820]" />
-        <svg className="absolute inset-0 w-full h-full opacity-[0.04]">
-          <defs>
-            <pattern id="brick" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse">
-              <line x1="0" y1="0" x2="80" y2="0" stroke="white" strokeWidth="1" />
-              <line x1="0" y1="20" x2="80" y2="20" stroke="white" strokeWidth="1" />
-              <line x1="0" y1="0" x2="0" y2="20" stroke="white" strokeWidth="1" />
-              <line x1="40" y1="0" x2="40" y2="20" stroke="white" strokeWidth="1" />
-              <line x1="20" y1="20" x2="20" y2="40" stroke="white" strokeWidth="1" />
-              <line x1="60" y1="20" x2="60" y2="40" stroke="white" strokeWidth="1" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#brick)" />
-        </svg>
+        <ImageWithFallback
+          src={[
+            '/lobby/background.png',
+            '/lobby/background.jpg',
+            '/lobby/background.jpeg',
+            '/lobby/bakcgroundlobby.jpeg',
+            '/lobby/bakcgroundlobby.jpg',
+            '/lobby/bakcgroundlobby.png',
+          ]}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          fallback={
+            <>
+              <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#160a26] to-[#0f0820]" />
+              <svg className="absolute inset-0 w-full h-full opacity-[0.04]">
+                <defs>
+                  <pattern id="brick" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="80" y2="0" stroke="white" strokeWidth="1" />
+                    <line x1="0" y1="20" x2="80" y2="20" stroke="white" strokeWidth="1" />
+                    <line x1="0" y1="0" x2="0" y2="20" stroke="white" strokeWidth="1" />
+                    <line x1="40" y1="0" x2="40" y2="20" stroke="white" strokeWidth="1" />
+                    <line x1="20" y1="20" x2="20" y2="40" stroke="white" strokeWidth="1" />
+                    <line x1="60" y1="20" x2="60" y2="40" stroke="white" strokeWidth="1" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#brick)" />
+              </svg>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 opacity-[0.06] select-none">
+                <span className="text-[200px] leading-none">💀</span>
+              </div>
+            </>
+          }
+        />
+        {/* Subtle dark overlay so the foreground UI stays legible */}
+        <div className="absolute inset-0 bg-[#1a0d2e]/35" />
+        {/* Soft glow halo on top */}
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[400px] rounded-full opacity-30"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[400px] rounded-full opacity-25"
           style={{
             background: 'radial-gradient(ellipse, rgba(168,85,247,0.4) 0%, transparent 70%)',
             filter: 'blur(120px)',
           }}
         />
-        {/* Skull crown silhouette */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 opacity-[0.06] select-none pointer-events-none">
-          <span className="text-[200px] leading-none">💀</span>
-        </div>
       </div>
 
       {/* MAIN GRID — sidebar + main area */}
