@@ -9,10 +9,8 @@ import {
   Copy,
   Check,
   Crown,
-  Wifi,
   WifiOff,
   AlertTriangle,
-  ChevronRight,
   Phone,
   Swords,
   Brain,
@@ -21,6 +19,10 @@ import {
   UserX,
   Sparkles,
   Users,
+  MoreVertical,
+  Loader2,
+  ShieldCheck,
+  Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -58,18 +60,104 @@ interface ModeTheme {
   id: LobbyGameMode;
   label: string;
   tagline: string;
+  description: string;
+  rules: string[];
   icon: React.ReactNode;
   accent: string;
 }
 
 const MODE_THEMES: ModeTheme[] = [
-  { id: 'audiophone', label: 'Audio Phone', tagline: 'Téléphone arabe audio', icon: <Phone className="w-4 h-4" />, accent: '#ff5050' },
-  { id: 'normal', label: 'Imitation', tagline: 'Mode classique', icon: <Copy className="w-4 h-4" />, accent: '#a855f7' },
-  { id: '2v2', label: '2v2', tagline: 'Combat en équipes', icon: <Swords className="w-4 h-4" />, accent: '#f59e0b' },
-  { id: 'quiz', label: 'Quiz', tagline: 'Connaissances', icon: <Brain className="w-4 h-4" />, accent: '#0ea5e9' },
-  { id: 'pixoguess', label: 'BlurRush', tagline: 'Devinez l\'image', icon: <Zap className="w-4 h-4" />, accent: '#10b981' },
-  { id: 'monopoly', label: 'Monopoly', tagline: 'Plateau aventure', icon: <HomeIcon className="w-4 h-4" />, accent: '#ec4899' },
-  { id: 'undercover', label: 'Undercover', tagline: 'Trouvez l\'infiltré', icon: <UserX className="w-4 h-4" />, accent: '#94a3b8' },
+  {
+    id: 'audiophone',
+    label: 'Audio Phone',
+    tagline: 'Téléphone arabe audio',
+    description: 'Enregistrez, écoutez, imitez. Fou rire garanti.',
+    rules: [
+      'Une phrase est enregistrée puis inversée',
+      'Chacun écoute et tente d\'imiter ce qu\'il entend',
+      'La révélation finale décide du gagnant',
+    ],
+    icon: <Phone className="w-4 h-4" />,
+    accent: '#ff5050',
+  },
+  {
+    id: 'normal',
+    label: 'Imitation',
+    tagline: 'Mode classique',
+    description: 'Imitez les défis vidéo des autres joueurs.',
+    rules: [
+      'Un joueur lance un défi vidéo',
+      'Les autres l\'imitent au plus proche',
+      'Vote pour la meilleure imitation',
+    ],
+    icon: <Copy className="w-4 h-4" />,
+    accent: '#a855f7',
+  },
+  {
+    id: '2v2',
+    label: '2v2',
+    tagline: 'Combat en équipes',
+    description: 'Affrontement en équipes de 2, score collectif.',
+    rules: [
+      'Équipes de 2 joueurs',
+      'Collaboration sur les défis',
+      'L\'équipe avec le plus de points gagne',
+    ],
+    icon: <Swords className="w-4 h-4" />,
+    accent: '#f59e0b',
+  },
+  {
+    id: 'quiz',
+    label: 'Quiz',
+    tagline: 'Connaissances',
+    description: 'Questions variées, réponse la plus rapide gagne.',
+    rules: [
+      'Culture générale, jeux, films…',
+      'Plus rapide = plus de points',
+      'Précision compte aussi',
+    ],
+    icon: <Brain className="w-4 h-4" />,
+    accent: '#0ea5e9',
+  },
+  {
+    id: 'pixoguess',
+    label: 'BlurRush',
+    tagline: 'Devinez l\'image',
+    description: 'L\'image se dépixelise, soyez le plus rapide.',
+    rules: [
+      'L\'image se révèle progressivement',
+      'Premier à deviner remporte la manche',
+      'Plus rapide = plus de points',
+    ],
+    icon: <Zap className="w-4 h-4" />,
+    accent: '#10b981',
+  },
+  {
+    id: 'monopoly',
+    label: 'Monopoly',
+    tagline: 'Plateau aventure',
+    description: 'Avancez sur le plateau, défis à chaque case.',
+    rules: [
+      'Lancez les dés pour avancer',
+      'Chaque case = un mini-jeu',
+      'Premier au tour final gagne',
+    ],
+    icon: <HomeIcon className="w-4 h-4" />,
+    accent: '#ec4899',
+  },
+  {
+    id: 'undercover',
+    label: 'Undercover',
+    tagline: 'Trouvez l\'infiltré',
+    description: 'Donnez des indices, démasquez l\'imposteur.',
+    rules: [
+      'Chaque joueur reçoit un mot secret',
+      'L\'undercover a un mot proche mais différent',
+      'Indices et votes pour éliminer',
+    ],
+    icon: <UserX className="w-4 h-4" />,
+    accent: '#94a3b8',
+  },
 ];
 
 export const InkLobbyScreen = ({
@@ -86,12 +174,15 @@ export const InkLobbyScreen = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showInvitePanel, setShowInvitePanel] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
   const { isAdmin } = useAdmin();
   const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
   const [codeCopied, setCodeCopied] = useState(false);
   const { teams, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
 
+  // Sync game mode with backend
   useEffect(() => {
     const fetchGameMode = async () => {
       const { data } = await supabase
@@ -101,7 +192,6 @@ export const InkLobbyScreen = ({
         .single();
       if (data?.game_mode) setGameMode(data.game_mode as LobbyGameMode);
     };
-
     fetchGameMode();
 
     const channel = supabase
@@ -151,17 +241,20 @@ export const InkLobbyScreen = ({
     teamsCount: teams.length,
     isAdmin,
   });
+  const minPlayers = GAME_MODE_META[gameMode].minPlayers;
 
   const handleStartGame = async () => {
     if (gameMode === '2v2' && teams.length === 0) {
       toast({ title: 'Équipes requises', description: "Formez d'abord les équipes", variant: 'destructive' });
       return;
     }
+    setIsStarting(true);
     playInkSound('inkSuccess', 0.5);
     try {
       await onStartGame(gameMode);
     } catch (error) {
       console.error('[InkLobby] onStartGame failed:', error);
+      setIsStarting(false);
     }
   };
 
@@ -172,18 +265,23 @@ export const InkLobbyScreen = ({
     setTimeout(() => setCodeCopied(false), 1500);
   };
 
-  const minPlayers = GAME_MODE_META[gameMode].minPlayers;
-  const playerSlots = Array.from({ length: Math.max(minPlayers, 4) });
+  // Close action menu on outside click
+  useEffect(() => {
+    if (!openMenuFor) return;
+    const close = () => setOpenMenuFor(null);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, [openMenuFor]);
 
   return (
     <div className="h-screen w-full flex flex-col bg-[#0a0810] text-white relative overflow-hidden">
-      {/* Collaborative Drawing Canvas */}
+      {/* Background canvas (collaborative drawing) */}
       <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
 
-      {/* Cursor Particles */}
+      {/* Cursor particles */}
       <InkCursorParticles />
 
-      {/* Background — subtle, no big halos */}
+      {/* Background tints */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0c0813] via-[#0a0810] to-[#0c0814]" />
         <AnimatePresence mode="sync">
@@ -196,16 +294,23 @@ export const InkLobbyScreen = ({
             className="absolute inset-0"
           >
             <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full opacity-15"
+              className="absolute top-0 left-1/3 w-[500px] h-[300px] rounded-full opacity-20"
               style={{
                 background: `radial-gradient(ellipse, ${selectedTheme.accent}55 0%, transparent 70%)`,
                 filter: 'blur(80px)',
               }}
             />
+            <div
+              className="absolute bottom-0 right-1/4 w-[400px] h-[250px] rounded-full opacity-15"
+              style={{
+                background: `radial-gradient(ellipse, ${selectedTheme.accent}44 0%, transparent 70%)`,
+                filter: 'blur(70px)',
+              }}
+            />
           </motion.div>
         </AnimatePresence>
         <div
-          className="absolute inset-0 opacity-[0.015]"
+          className="absolute inset-0 opacity-[0.018]"
           style={{
             backgroundImage:
               'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
@@ -214,9 +319,8 @@ export const InkLobbyScreen = ({
         />
       </div>
 
-      {/* TOP BAR */}
+      {/* HEADER */}
       <header className="relative z-30 flex items-center justify-between px-5 py-3 flex-shrink-0">
-        {/* Leave */}
         <motion.button
           onClick={() => {
             playInkSound('brushTap', 0.3);
@@ -230,13 +334,18 @@ export const InkLobbyScreen = ({
           <span className="hidden sm:inline">Quitter</span>
         </motion.button>
 
-        {/* Center — code */}
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] tracking-[0.2em] text-white/40 font-bold uppercase">
-              {isHost ? 'Hôte' : 'Connecté'}
-            </span>
+        <div className="flex items-center gap-4">
+          <div
+            className="hidden md:block text-lg font-black tracking-[0.15em]"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              background: `linear-gradient(180deg, white, ${selectedTheme.accent})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            MIMIC MASTER
           </div>
           <motion.button
             onClick={handleCopyCode}
@@ -260,108 +369,162 @@ export const InkLobbyScreen = ({
           </motion.button>
         </div>
 
-        {/* Settings */}
-        <motion.button
-          onClick={() => {
-            playInkSound('inkClick', 0.3);
-            setShowSettings(true);
-          }}
-          whileHover={{ rotate: 90 }}
-          whileTap={{ scale: 0.96 }}
-          className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.06] flex items-center justify-center text-white/70 hover:text-white transition-all"
-          aria-label="Paramètres"
-        >
-          <Settings className="w-3.5 h-3.5" />
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button
+            onClick={() => {
+              playInkSound('brushTap', 0.3);
+              setShowInvitePanel(true);
+            }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+            style={{
+              background: `${selectedTheme.accent}15`,
+              border: `1px solid ${selectedTheme.accent}50`,
+              color: selectedTheme.accent,
+            }}
+          >
+            <Sparkles className="w-3 h-3" />
+            Inviter
+          </motion.button>
+          <motion.button
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              setShowSettings(true);
+            }}
+            whileHover={{ rotate: 90 }}
+            whileTap={{ scale: 0.96 }}
+            className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.06] flex items-center justify-center text-white/70 hover:text-white transition-all"
+            aria-label="Paramètres"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </motion.button>
+        </div>
       </header>
 
-      {/* MAIN */}
-      <main className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 px-5 pb-3 min-h-0">
-          {/* LEFT — Players */}
-          <section className="flex flex-col min-h-0">
-            <div className="relative flex-1 rounded-2xl bg-black/30 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col">
-              {/* Header */}
-              <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{
-                      background: `${selectedTheme.accent}1a`,
-                      border: `1px solid ${selectedTheme.accent}40`,
-                    }}
-                  >
-                    <Users className="w-3.5 h-3.5" style={{ color: selectedTheme.accent }} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-white leading-tight">Salle d'attente</h2>
-                    <p className="text-[10px] text-white/40 leading-tight">
-                      {connectedCount}/{players.length} joueur{players.length > 1 ? 's' : ''} · min {minPlayers}
-                    </p>
-                  </div>
-                </div>
-                <motion.button
-                  onClick={() => {
-                    playInkSound('brushTap', 0.3);
-                    setShowInvitePanel(true);
-                  }}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
-                  style={{
-                    background: `${selectedTheme.accent}15`,
-                    border: `1px solid ${selectedTheme.accent}50`,
-                    color: selectedTheme.accent,
-                  }}
-                >
-                  <Sparkles className="w-3 h-3" />
-                  Inviter
-                </motion.button>
+      {/* MAIN — packed grid */}
+      <main className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden px-5 pb-3 gap-3">
+        {/* Mode HERO bar */}
+        <section
+          className="flex-shrink-0 rounded-2xl bg-black/30 backdrop-blur-md border overflow-hidden relative"
+          style={{ borderColor: `${selectedTheme.accent}40` }}
+        >
+          <div
+            className="absolute inset-x-0 top-0 h-px"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${selectedTheme.accent}, transparent)`,
+            }}
+          />
+          <div className="relative px-5 py-3 flex items-center gap-4">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: `${selectedTheme.accent}1f`,
+                border: `1px solid ${selectedTheme.accent}66`,
+                boxShadow: `0 4px 16px ${selectedTheme.accent}33`,
+              }}
+            >
+              <div style={{ color: selectedTheme.accent }} className="scale-150">
+                {selectedTheme.icon}
               </div>
+            </div>
 
-              {/* Player grid — compact */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {playerSlots.map((_, idx) => {
-                    const player = players[idx];
-                    if (player) {
-                      const isMe = player.id === currentPlayer.id;
-                      const isDisc = player.isDisconnected;
-                      return (
-                        <motion.div
-                          key={player.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: idx * 0.03 }}
-                          className={cn(
-                            'group relative aspect-square rounded-xl border overflow-hidden flex flex-col items-center justify-center gap-1 transition-all',
-                            isMe ? 'bg-white/[0.04]' : 'bg-black/40 border-white/8 hover:border-white/15',
-                          )}
-                          style={
-                            isMe
-                              ? { borderColor: `${selectedTheme.accent}66` }
-                              : undefined
-                          }
-                        >
-                          {/* Crown */}
-                          {player.isHost && (
-                            <div className="absolute top-1 left-1">
-                              <Crown className="w-3 h-3 text-amber-400" fill="currentColor" />
-                            </div>
-                          )}
+            <div className="flex-1 min-w-0">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={selectedTheme.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="flex items-baseline gap-2">
+                    <h1
+                      className="text-2xl font-black tracking-tight leading-none"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        color: selectedTheme.accent,
+                      }}
+                    >
+                      {selectedTheme.label}
+                    </h1>
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold">
+                      · {selectedTheme.tagline}
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/50 mt-0.5 truncate">{selectedTheme.description}</p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-                          {/* Disconnect */}
-                          {isDisc && (
-                            <div className="absolute top-1 right-1">
-                              <WifiOff className="w-3 h-3 text-amber-400" />
-                            </div>
-                          )}
+            <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Joueurs</div>
+                <div className="text-lg font-black text-white">
+                  {connectedCount}
+                  <span className="text-white/30 text-sm">/{Math.max(minPlayers, players.length)}</span>
+                </div>
+              </div>
+              <div className="w-px h-8 bg-white/10" />
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Min requis</div>
+                <div className="text-lg font-black" style={{ color: selectedTheme.accent }}>
+                  {minPlayers}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-                          {/* Avatar */}
+        {/* MIDDLE — three columns: players, modes, mode info */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1.4fr_0.9fr_1fr] gap-3 min-h-0">
+          {/* PLAYERS PANEL */}
+          <section className="rounded-2xl bg-black/30 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
+            <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-white/50" />
+                <h2 className="text-xs font-bold text-white/80 uppercase tracking-[0.15em]">
+                  Joueurs ({players.length})
+                </h2>
+              </div>
+              {isHost && (
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  Hôte
+                </span>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {players.map((player, idx) => {
+                    const isMe = player.id === currentPlayer.id;
+                    const isDisc = player.isDisconnected;
+                    const playerTeam = teams.find((t) =>
+                      t.players?.some((p) => p === player.id),
+                    );
+                    return (
+                      <motion.div
+                        key={player.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ delay: idx * 0.04 }}
+                        className={cn(
+                          'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all',
+                          isMe
+                            ? 'bg-white/[0.05]'
+                            : 'bg-black/40 border-white/8 hover:bg-white/[0.03]',
+                          isDisc && 'opacity-60',
+                        )}
+                        style={isMe ? { borderColor: `${selectedTheme.accent}66` } : undefined}
+                      >
+                        <div className="relative flex-shrink-0">
                           <div
                             className={cn(
-                              'w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black text-white',
-                              isDisc && 'opacity-50 saturate-50',
+                              'w-10 h-10 rounded-xl flex items-center justify-center text-base font-black text-white',
+                              isDisc && 'saturate-50',
                             )}
                             style={{
                               background: `linear-gradient(135deg, ${selectedTheme.accent}, ${selectedTheme.accent}99)`,
@@ -369,240 +532,404 @@ export const InkLobbyScreen = ({
                           >
                             {player.name[0]?.toUpperCase()}
                           </div>
-
-                          {/* Name */}
-                          <p className="text-[10px] font-bold text-white truncate max-w-full px-1">
-                            {player.name}
-                          </p>
-
-                          {/* Status dot */}
                           <div
                             className={cn(
-                              'absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full',
+                              'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0810]',
                               isDisc ? 'bg-amber-400' : 'bg-emerald-400',
                             )}
                           />
+                        </div>
 
-                          {/* Host actions */}
-                          {isHost && !isMe && (onKickPlayer || onTransferHost) && (
-                            <div className="absolute inset-x-1 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                              {onKickPlayer && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    playInkSound('inkClick', 0.3);
-                                    onKickPlayer(player.id);
-                                  }}
-                                  className="flex-1 py-0.5 rounded bg-red-500/80 hover:bg-red-500 text-white text-[9px] font-bold"
-                                >
-                                  Kick
-                                </button>
-                              )}
-                              {onTransferHost && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    playInkSound('inkClick', 0.3);
-                                    onTransferHost(player.id);
-                                  }}
-                                  className="flex-1 py-0.5 rounded bg-amber-500/80 hover:bg-amber-500 text-white text-[9px] font-bold"
-                                >
-                                  Hôte
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </motion.div>
-                      );
-                    }
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-bold text-white truncate">
+                              {player.name}
+                            </span>
+                            {player.isHost && (
+                              <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" fill="currentColor" />
+                            )}
+                            {isMe && (
+                              <span className="text-[9px] uppercase tracking-wider font-bold text-white/40 flex-shrink-0">
+                                Vous
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-white/40">
+                            {isDisc ? (
+                              <span className="flex items-center gap-1 text-amber-400">
+                                <WifiOff className="w-2.5 h-2.5" />
+                                Reconnexion
+                                {player.disconnectedTimeLeft !== undefined && ` ${player.disconnectedTimeLeft}s`}
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                                En ligne
+                              </span>
+                            )}
+                            {playerTeam && gameMode === '2v2' && (
+                              <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-bold uppercase tracking-wider">
+                                {playerTeam.team_name || `Eq ${playerTeam.team_number}`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                    const isRequired = idx < minPlayers;
-                    return (
-                      <div
-                        key={`empty-${idx}`}
-                        className={cn(
-                          'aspect-square rounded-xl border border-dashed flex items-center justify-center transition-all',
-                          isRequired ? 'border-white/10' : 'border-white/[0.04]',
+                        {isHost && !isMe && (onKickPlayer || onTransferHost) && (
+                          <div className="relative flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                playInkSound('inkClick', 0.3);
+                                setOpenMenuFor(openMenuFor === player.id ? null : player.id);
+                              }}
+                              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
+                            <AnimatePresence>
+                              {openMenuFor === player.id && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                                  transition={{ duration: 0.15 }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute right-0 top-9 z-50 w-44 rounded-xl bg-[#0a0810]/95 backdrop-blur-xl border border-white/15 shadow-2xl overflow-hidden"
+                                >
+                                  {onTransferHost && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        playInkSound('inkClick', 0.3);
+                                        onTransferHost(player.id);
+                                        setOpenMenuFor(null);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/80 hover:bg-amber-500/10 hover:text-amber-400 transition-colors text-left"
+                                    >
+                                      <Crown className="w-3.5 h-3.5" />
+                                      Transférer l'hôte
+                                    </button>
+                                  )}
+                                  {onKickPlayer && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        playInkSound('inkClick', 0.3);
+                                        onKickPlayer(player.id);
+                                        setOpenMenuFor(null);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/80 hover:bg-red-500/10 hover:text-red-400 transition-colors text-left border-t border-white/8"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                      Exclure du lobby
+                                    </button>
+                                  )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         )}
-                      >
-                        <span className="text-[9px] text-white/20 uppercase tracking-wider font-bold">
-                          {isRequired ? 'libre' : ''}
-                        </span>
-                      </div>
+                      </motion.div>
                     );
                   })}
-                </div>
+                </AnimatePresence>
+
+                {/* Empty slots */}
+                {Array.from({ length: Math.max(0, minPlayers - players.length) }).map((_, idx) => (
+                  <div
+                    key={`empty-${idx}`}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-dashed border-white/10"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-white/20 text-xs font-bold">
+                      ?
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-xs font-bold text-white/30">En attente d'un joueur…</div>
+                      <div className="text-[10px] text-white/20">Slot requis</div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Invite CTA */}
+                {players.length >= minPlayers && players.length < 8 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playInkSound('brushTap', 0.3);
+                      setShowInvitePanel(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-dashed border-white/10 hover:border-white/25 hover:bg-white/[0.02] transition-all group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-white/30 group-hover:text-white/60 transition-colors">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="text-xs font-bold text-white/40 group-hover:text-white/70 transition-colors">
+                        Inviter un ami
+                      </div>
+                      <div className="text-[10px] text-white/25">Ajoute encore plus de joueurs</div>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
           </section>
 
-          {/* RIGHT — Mode + actions */}
-          <section className="flex flex-col gap-3 min-h-0">
-            {/* Mode picker / status */}
-            {isHost ? (
-              <div className="relative flex-1 rounded-2xl bg-black/30 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
-                <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white/80">Mode de jeu</h3>
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Hôte</span>
-                </div>
+          {/* MODE PICKER */}
+          <section className="rounded-2xl bg-black/30 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
+            <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between">
+              <h2 className="text-xs font-bold text-white/80 uppercase tracking-[0.15em]">
+                Modes
+              </h2>
+              {isHost ? (
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider"
+                  style={{ color: selectedTheme.accent }}
+                >
+                  Choisir
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                  Lecture
+                </span>
+              )}
+            </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
-                  <div className="grid grid-cols-1 gap-1">
-                    {MODE_THEMES.map((mode) => {
-                      const isActive = mode.id === gameMode;
-                      const meta = GAME_MODE_META[mode.id];
-                      const enoughPlayers = connectedCount >= meta.minPlayers || isAdmin;
-                      return (
-                        <motion.button
-                          key={mode.id}
-                          type="button"
-                          onClick={() => handleGameModeChange(mode.id)}
-                          whileHover={{ x: 2 }}
-                          whileTap={{ scale: 0.99 }}
-                          className={cn(
-                            'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-left transition-all',
-                            isActive
-                              ? 'bg-white/[0.04]'
-                              : 'bg-transparent border-white/5 hover:bg-white/[0.03] hover:border-white/10',
-                            !enoughPlayers && !isActive && 'opacity-50',
-                          )}
-                          style={
-                            isActive
-                              ? { borderColor: `${mode.accent}80` }
-                              : undefined
-                          }
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+              <div className="grid grid-cols-1 gap-1">
+                {MODE_THEMES.map((mode) => {
+                  const isActive = mode.id === gameMode;
+                  const meta = GAME_MODE_META[mode.id];
+                  const enoughPlayers = connectedCount >= meta.minPlayers || isAdmin;
+                  const disabled = !isHost;
+
+                  return (
+                    <motion.button
+                      key={mode.id}
+                      type="button"
+                      onClick={() => !disabled && handleGameModeChange(mode.id)}
+                      whileHover={!disabled ? { x: 2 } : undefined}
+                      whileTap={!disabled ? { scale: 0.99 } : undefined}
+                      disabled={disabled}
+                      className={cn(
+                        'relative w-full flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left transition-all',
+                        isActive
+                          ? 'bg-white/[0.05]'
+                          : 'bg-transparent border-white/5 hover:bg-white/[0.03] hover:border-white/10',
+                        !enoughPlayers && !isActive && 'opacity-50',
+                        disabled && 'cursor-default',
+                      )}
+                      style={isActive ? { borderColor: `${mode.accent}80` } : undefined}
+                    >
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: isActive ? `${mode.accent}25` : 'rgba(255,255,255,0.04)',
+                          border: isActive ? `1px solid ${mode.accent}60` : '1px solid rgba(255,255,255,0.08)',
+                        }}
+                      >
+                        <div style={{ color: mode.accent }}>{mode.icon}</div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className="text-[12px] font-bold leading-tight truncate"
+                          style={{ color: isActive ? mode.accent : 'rgba(255,255,255,0.95)' }}
                         >
-                          <div
-                            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{
-                              background: isActive ? `${mode.accent}25` : 'rgba(255,255,255,0.04)',
-                              border: isActive ? `1px solid ${mode.accent}60` : '1px solid rgba(255,255,255,0.08)',
-                            }}
-                          >
-                            <div style={{ color: mode.accent }}>{mode.icon}</div>
-                          </div>
+                          {mode.label}
+                        </div>
+                        <div className="text-[10px] text-white/40 leading-tight truncate">
+                          {meta.minPlayers}+ joueurs
+                        </div>
+                      </div>
 
-                          <div className="flex-1 min-w-0">
-                            <div
-                              className="text-[13px] font-bold leading-tight"
-                              style={{ color: isActive ? mode.accent : 'rgba(255,255,255,0.95)' }}
-                            >
-                              {mode.label}
-                            </div>
-                            <div className="text-[10px] text-white/40 leading-tight truncate">
-                              {mode.tagline}
-                            </div>
-                          </div>
-
-                          <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider flex-shrink-0">
-                            {meta.minPlayers}+
-                          </span>
-
-                          {isActive && (
-                            <ChevronRight
-                              className="w-3.5 h-3.5 flex-shrink-0"
-                              style={{ color: mode.accent }}
-                            />
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </div>
+                      {isActive && (
+                        <ShieldCheck
+                          className="w-3.5 h-3.5 flex-shrink-0"
+                          style={{ color: mode.accent }}
+                        />
+                      )}
+                    </motion.button>
+                  );
+                })}
               </div>
-            ) : (
-              <div className="relative flex-1 rounded-2xl bg-black/30 backdrop-blur-md border border-white/8 flex flex-col min-h-0">
-                <div className="px-4 py-3 border-b border-white/8">
-                  <h3 className="text-sm font-bold text-white/80">Mode de jeu</h3>
-                </div>
-                <div className="flex-1 flex items-center justify-center p-6">
-                  <div className="text-center space-y-3">
+            </div>
+          </section>
+
+          {/* MODE INFO PANEL — rules/tips for selected mode */}
+          <section className="rounded-2xl bg-black/30 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
+            <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Info className="w-3.5 h-3.5 text-white/50" />
+                <h2 className="text-xs font-bold text-white/80 uppercase tracking-[0.15em]">
+                  Comment jouer
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={selectedTheme.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25 }}
+                  className="space-y-3"
+                >
+                  {/* Mode preview hero */}
+                  <div
+                    className="rounded-xl p-4 flex items-center gap-3 border"
+                    style={{
+                      background: `linear-gradient(135deg, ${selectedTheme.accent}15, transparent)`,
+                      borderColor: `${selectedTheme.accent}33`,
+                    }}
+                  >
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{
-                        background: `${selectedTheme.accent}1a`,
-                        border: `1px solid ${selectedTheme.accent}40`,
+                        background: `${selectedTheme.accent}25`,
                       }}
                     >
-                      <div style={{ color: selectedTheme.accent }} className="scale-150">
+                      <div style={{ color: selectedTheme.accent }}>
                         {selectedTheme.icon}
                       </div>
                     </div>
                     <div>
-                      <p className="text-base font-bold text-white">{selectedTheme.label}</p>
-                      <p className="text-[11px] text-white/50">{selectedTheme.tagline}</p>
+                      <div
+                        className="text-base font-black leading-tight"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          color: selectedTheme.accent,
+                        }}
+                      >
+                        {selectedTheme.label}
+                      </div>
+                      <div className="text-[10px] text-white/50 leading-tight">
+                        {selectedTheme.tagline}
+                      </div>
                     </div>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/8">
-                      <Crown className="w-3 h-3 text-amber-400" />
-                      <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
-                        En attente de l'hôte
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    {selectedTheme.description}
+                  </p>
+
+                  {/* Rules */}
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40 mb-1.5">
+                      Règles principales
+                    </div>
+                    {selectedTheme.rules.map((rule, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start gap-2 text-xs text-white/70 leading-relaxed"
+                      >
+                        <div
+                          className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0"
+                          style={{ background: selectedTheme.accent }}
+                        />
+                        <span>{rule}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Min players badge */}
+                  <div className="pt-2 border-t border-white/5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-white/40">
+                        Joueurs requis
+                      </span>
+                      <span
+                        className="text-sm font-black"
+                        style={{ color: selectedTheme.accent }}
+                      >
+                        {GAME_MODE_META[selectedTheme.id].minPlayers}+
                       </span>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* Reasons */}
-            <AnimatePresence>
-              {isHost && !canStart && reasons.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden flex-shrink-0"
-                >
-                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-500/[0.08] border border-amber-500/25">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <ul className="text-[11px] text-amber-200/90 space-y-0.5">
-                      {reasons.map((reason, i) => (
-                        <li key={i}>{reason}</li>
-                      ))}
-                    </ul>
-                  </div>
                 </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* START button — only for host, compact */}
-            {isHost && (
-              <motion.button
-                onClick={handleStartGame}
-                disabled={!canStart}
-                whileHover={canStart ? { scale: 1.01 } : undefined}
-                whileTap={canStart ? { scale: 0.99 } : undefined}
-                className={cn(
-                  'relative w-full py-3.5 px-5 rounded-xl font-bold text-base tracking-wide transition-all overflow-hidden group flex-shrink-0',
-                  !canStart && 'opacity-40 cursor-not-allowed',
-                )}
-                style={
-                  canStart
-                    ? {
-                        background: `linear-gradient(135deg, ${selectedTheme.accent}, ${selectedTheme.accent}cc)`,
-                        color: 'white',
-                        boxShadow: `0 4px 20px ${selectedTheme.accent}55`,
-                      }
-                    : {
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        color: 'rgba(255,255,255,0.4)',
-                      }
-                }
-              >
-                {canStart && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
-                )}
-                <span className="relative flex items-center justify-center gap-2">
-                  <Play className="w-4 h-4" fill="currentColor" />
-                  Lancer la partie
-                </span>
-              </motion.button>
-            )}
+              </AnimatePresence>
+            </div>
           </section>
         </div>
+
+        {/* BOTTOM — Start CTA */}
+        <section className="flex-shrink-0">
+          <AnimatePresence>
+            {isHost && !canStart && reasons.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginBottom: 8 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/[0.08] border border-amber-500/25">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                  <span className="text-[11px] text-amber-200/90">
+                    {reasons.join(' · ')}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {isHost ? (
+            <motion.button
+              onClick={handleStartGame}
+              disabled={!canStart || isStarting}
+              whileHover={canStart && !isStarting ? { scale: 1.005 } : undefined}
+              whileTap={canStart && !isStarting ? { scale: 0.995 } : undefined}
+              className={cn(
+                'relative w-full py-3.5 px-5 rounded-xl font-bold text-base tracking-wide transition-all overflow-hidden group',
+                (!canStart || isStarting) && 'cursor-not-allowed',
+              )}
+              style={
+                canStart && !isStarting
+                  ? {
+                      background: `linear-gradient(135deg, ${selectedTheme.accent}, ${selectedTheme.accent}cc)`,
+                      color: 'white',
+                      boxShadow: `0 4px 20px ${selectedTheme.accent}55`,
+                    }
+                  : {
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'rgba(255,255,255,0.4)',
+                    }
+              }
+            >
+              {canStart && !isStarting && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
+              )}
+              <span className="relative flex items-center justify-center gap-2">
+                {isStarting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Démarrage…
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" fill="currentColor" />
+                    Lancer la partie
+                  </>
+                )}
+              </span>
+            </motion.button>
+          ) : (
+            <div className="w-full py-3.5 px-5 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-center gap-2 text-sm">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white/40" />
+              <span className="text-white/60 font-bold">
+                En attente du lancement par l'hôte
+              </span>
+            </div>
+          )}
+        </section>
       </main>
 
-      {/* Lobby Chat */}
+      {/* Floating chat (kept as designed, bottom-left bubble) */}
       <LobbyChat
         lobbyId={lobbyId}
         playerId={currentPlayer.id}
