@@ -1,4 +1,4 @@
-import { useState, memo, useCallback, useEffect } from 'react';
+import { useState, memo, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,17 +12,15 @@ import {
   X,
   Settings,
   UserX,
-  Users,
   Volume2,
   VolumeX,
   ChevronLeft,
-  ChevronRight,
   User,
   UsersRound,
   Hash,
-  LogOut,
-  Sparkles,
+  Crown,
   Play,
+  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -41,69 +39,160 @@ interface InkHomeScreenProps {
 interface GameModeInfo {
   id: LobbyGameMode;
   name: string;
+  shortLabel: string;
   tagline: string;
   description: string;
   icon: React.ReactNode;
-  gradient: string;
+  /** Mini card image candidates (small bottom row) */
+  cardImageCandidates: string[];
+  /** Hero banner image candidates (big top card) */
+  bannerImageCandidates: string[];
+  fallbackEmoji: string;
+  fallbackColor: string;
   accent: string;
 }
 
 const GAME_MODES: GameModeInfo[] = [
   {
-    id: 'audiophone',
-    name: 'Audio Phone',
-    tagline: 'Le téléphone arabe audio',
-    description: 'Enregistrez, écoutez, imitez. Fou rire garanti !',
-    icon: <Phone className="w-7 h-7" />,
-    gradient: 'from-rose-400 via-red-400 to-orange-400',
-    accent: '#f87171',
-  },
-  {
     id: 'normal',
-    name: 'Normal',
+    name: 'Imitation',
+    shortLabel: 'IMITATION',
     tagline: 'Imitation classique',
     description: 'Imitez les défis vidéo des autres joueurs',
     icon: <Copy className="w-7 h-7" />,
-    gradient: 'from-violet-400 via-purple-400 to-fuchsia-400',
+    cardImageCandidates: ['/lobby/cards/imitation.png', '/lobby/cards/imitation.jpg'],
+    bannerImageCandidates: ['/home/banners/normal.png', '/home/banners/normal.jpg', '/home/banners/imitation.png'],
+    fallbackEmoji: '🎤',
+    fallbackColor: '#a855f7',
     accent: '#c084fc',
   },
   {
+    id: 'audiophone',
+    name: 'Audio Phone',
+    shortLabel: 'AUDIO PIONNER',
+    tagline: 'Le téléphone arabe audio',
+    description: 'Enregistrez, écoutez, imitez. Fou rire garanti !',
+    icon: <Phone className="w-7 h-7" />,
+    cardImageCandidates: ['/lobby/cards/audiophone.png', '/lobby/cards/audiophone.jpg'],
+    bannerImageCandidates: ['/home/banners/audiophone.png', '/home/banners/audiophone.jpg'],
+    fallbackEmoji: '🔊',
+    fallbackColor: '#f59e0b',
+    accent: '#fbbf24',
+  },
+  {
     id: '2v2',
-    name: '2v2',
+    name: '2 vs 2',
+    shortLabel: '2 VS 2',
     tagline: 'Combat en équipes',
     description: 'Affrontement en équipes de 2 joueurs',
     icon: <Swords className="w-7 h-7" />,
-    gradient: 'from-amber-400 via-orange-400 to-red-400',
-    accent: '#fbbf24',
+    cardImageCandidates: ['/lobby/cards/2v2.png', '/lobby/cards/2v2.jpg'],
+    bannerImageCandidates: ['/home/banners/2v2.png', '/home/banners/2v2.jpg'],
+    fallbackEmoji: '⚔️',
+    fallbackColor: '#3b82f6',
+    accent: '#60a5fa',
   },
   {
     id: 'quiz',
     name: 'Quiz',
+    shortLabel: 'QUIZ',
     tagline: 'Testez vos connaissances',
     description: 'Questions variées en temps réel',
     icon: <Brain className="w-7 h-7" />,
-    gradient: 'from-cyan-300 via-sky-400 to-blue-500',
-    accent: '#38bdf8',
+    cardImageCandidates: ['/lobby/cards/quiz.png', '/lobby/cards/quiz.jpg'],
+    bannerImageCandidates: ['/home/banners/quiz.png', '/home/banners/quiz.jpg'],
+    fallbackEmoji: '❓',
+    fallbackColor: '#84cc16',
+    accent: '#a3e635',
   },
   {
     id: 'pixoguess',
-    name: 'BlurRush',
-    tagline: 'Devinez l\'image',
-    description: 'L\'image se dépixelise, soyez le plus rapide',
+    name: 'Blind Test',
+    shortLabel: 'BLIND TEST',
+    tagline: "Devinez l'image",
+    description: "L'image se dépixelise, soyez le plus rapide",
     icon: <Zap className="w-7 h-7" />,
-    gradient: 'from-emerald-300 via-green-400 to-teal-500',
-    accent: '#34d399',
+    cardImageCandidates: ['/lobby/cards/blindtest.png', '/lobby/cards/blindtest.jpg'],
+    bannerImageCandidates: ['/home/banners/pixoguess.png', '/home/banners/blindtest.png'],
+    fallbackEmoji: '🎧',
+    fallbackColor: '#06b6d4',
+    accent: '#22d3ee',
+  },
+  {
+    id: 'monopoly',
+    name: 'Memory',
+    shortLabel: 'MEMORY',
+    tagline: 'Plateau aventure',
+    description: 'Jeu de mémoire et plateau',
+    icon: <Brain className="w-7 h-7" />,
+    cardImageCandidates: ['/lobby/cards/memory.png', '/lobby/cards/memory.jpg'],
+    bannerImageCandidates: ['/home/banners/memory.png', '/home/banners/memory.jpg'],
+    fallbackEmoji: '🔐',
+    fallbackColor: '#ec4899',
+    accent: '#f472b6',
   },
   {
     id: 'undercover',
     name: 'Undercover',
-    tagline: 'Trouvez l\'infiltré',
-    description: 'Donnez des indices, démasquez l\'imposteur',
+    shortLabel: 'UNDERCOVER',
+    tagline: "Trouvez l'infiltré",
+    description: "Donnez des indices, démasquez l'imposteur",
     icon: <UserX className="w-7 h-7" />,
-    gradient: 'from-slate-300 via-zinc-400 to-stone-500',
-    accent: '#cbd5e1',
+    cardImageCandidates: ['/lobby/cards/undercover.png', '/lobby/cards/undercover.jpg'],
+    bannerImageCandidates: ['/home/banners/undercover.png', '/home/banners/undercover.jpg'],
+    fallbackEmoji: '🕵️',
+    fallbackColor: '#a855f7',
+    accent: '#c084fc',
   },
 ];
+
+/* ============================================================
+   Image with multi-candidate fallback
+============================================================ */
+const ImageWithFallback = ({
+  src,
+  alt,
+  className,
+  fallback,
+  style,
+}: {
+  src: string | string[];
+  alt: string;
+  className?: string;
+  fallback: React.ReactNode;
+  style?: React.CSSProperties;
+}) => {
+  const candidates = useMemo(() => {
+    if (Array.isArray(src)) return src;
+    if (src.endsWith('.png')) return [src, src.replace(/\.png$/, '.jpg')];
+    if (src.endsWith('.jpg')) return [src, src.replace(/\.jpg$/, '.png')];
+    return [src];
+  }, [src]);
+
+  const [idx, setIdx] = useState(0);
+  const [allFailed, setAllFailed] = useState(false);
+
+  // Reset on src change
+  useEffect(() => {
+    setIdx(0);
+    setAllFailed(false);
+  }, [JSON.stringify(candidates)]);
+
+  if (allFailed) return <>{fallback}</>;
+  return (
+    <img
+      key={candidates[idx]}
+      src={candidates[idx]}
+      alt={alt}
+      className={className}
+      style={style}
+      onError={() => {
+        if (idx + 1 < candidates.length) setIdx(idx + 1);
+        else setAllFailed(true);
+      }}
+    />
+  );
+};
 
 const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps) => {
   const { profile, friendCode } = useAuth();
@@ -114,7 +203,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [showPatchNote, setShowPatchNote] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
-  const [modeIndex, setModeIndex] = useState(0);
+  const [modeIndex, setModeIndex] = useState(1); // start on AUDIO PHONE like mockup
+  const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
   const isMuted = volume === 0;
 
@@ -131,31 +221,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.display_name]);
-
-  const goPrevMode = useCallback(() => {
-    playInkSound('brushTap', 0.3);
-    setModeIndex((i) => (i - 1 + GAME_MODES.length) % GAME_MODES.length);
-  }, []);
-
-  const goNextMode = useCallback(() => {
-    playInkSound('brushTap', 0.3);
-    setModeIndex((i) => (i + 1) % GAME_MODES.length);
-  }, []);
-
-  // Keyboard nav for mode carousel
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target?.matches('input, textarea, select, [contenteditable="true"]') ||
-        showJoinDialog || showSettings || showPatchNote || showProfileDrawer || showFriendsDrawer
-      ) return;
-      if (e.key === 'ArrowLeft') goPrevMode();
-      else if (e.key === 'ArrowRight') goNextMode();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [goPrevMode, goNextMode, showJoinDialog, showSettings, showPatchNote, showProfileDrawer, showFriendsDrawer]);
 
   const handleCreateGame = useCallback(() => {
     if (playerName.trim()) {
@@ -176,69 +241,57 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const handleCopyFriendCode = useCallback(async () => {
     if (!friendCode) return;
     await navigator.clipboard.writeText(friendCode);
+    setCodeCopied(true);
     playInkSound('inkSuccess', 0.4);
+    setTimeout(() => setCodeCopied(false), 1500);
   }, [friendCode]);
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[#08070d] text-white relative overflow-hidden">
+    <div className="h-screen w-full flex flex-col bg-[#0a0510] text-white relative overflow-hidden">
       <InkCursorParticles />
 
-      {/* Animated background — dynamic gradient that follows selected mode */}
+      {/* ============== BACKGROUND ============== */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Base layers */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0510] via-[#08070d] to-[#0a0512]" />
-
-        {/* Mode-tinted glow that animates between modes */}
-        <AnimatePresence mode="sync">
-          <motion.div
-            key={selectedMode.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
-            className="absolute inset-0"
-          >
-            <div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[700px] rounded-full opacity-30"
-              style={{
-                background: `radial-gradient(circle, ${selectedMode.accent}55 0%, transparent 70%)`,
-                filter: 'blur(120px)',
-              }}
-            />
-            <div
-              className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full opacity-20 animate-pulse"
-              style={{
-                background: `radial-gradient(circle, ${selectedMode.accent}88 0%, transparent 70%)`,
-                filter: 'blur(80px)',
-              }}
-            />
-            <div
-              className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] rounded-full opacity-20"
-              style={{
-                background: `radial-gradient(circle, ${selectedMode.accent}66 0%, transparent 70%)`,
-                filter: 'blur(100px)',
-              }}
-            />
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Subtle grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
+        <ImageWithFallback
+          src={[
+            '/home/background.png',
+            '/home/background.jpg',
+            '/home/background.jpeg',
+          ]}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          fallback={
+            <>
+              <div className="absolute inset-0 bg-gradient-to-br from-[#0f0820] via-[#0a0510] to-[#160a26]" />
+              {/* Mode-tinted glow */}
+              <AnimatePresence mode="sync">
+                <motion.div
+                  key={selectedMode.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8 }}
+                  className="absolute inset-0"
+                >
+                  <div
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[700px] rounded-full opacity-30"
+                    style={{
+                      background: `radial-gradient(circle, ${selectedMode.accent}55 0%, transparent 70%)`,
+                      filter: 'blur(120px)',
+                    }}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </>
+          }
         />
-
-        {/* Vignette */}
-        <div className="absolute inset-0 bg-gradient-radial from-transparent to-black/60 pointer-events-none" />
+        {/* Slight dark overlay so the foreground stays legible */}
+        <div className="absolute inset-0 bg-[#0a0510]/30" />
       </div>
 
-      {/* TOP BAR — minimal, premium */}
+      {/* ============== TOP BAR ============== */}
       <header className="relative z-30 flex items-center justify-between px-6 py-4 flex-shrink-0">
-        {/* Profile button (opens drawer) */}
+        {/* PROFILE PILL */}
         <motion.button
           onClick={() => {
             playInkSound('inkClick', 0.3);
@@ -246,311 +299,476 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           }}
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 hover:bg-white/10 transition-all group"
+          className="relative flex items-center gap-3 pl-1.5 pr-4 py-1.5 rounded-2xl"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(168,85,247,0.25), rgba(126,34,206,0.25))',
+            border: '2.5px solid #0a0810',
+            boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.1)',
+          }}
         >
           <div className="relative">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#ff2b2b] to-[#a01010] flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+            <div
+              className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center text-white font-bold text-base"
+              style={{
+                background: 'linear-gradient(135deg, #a855f7, #6b21a8)',
+                border: '2px solid #0a0810',
+              }}
+            >
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
                 (profile?.display_name?.[0] || playerName[0] || 'M').toUpperCase()
               )}
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#08070d]" />
           </div>
-          <div className="text-left pr-1">
-            <div className="text-sm font-bold text-white leading-tight truncate max-w-[120px]">
-              {profile?.display_name || 'Joueur'}
+          <div className="text-left">
+            <div className="flex items-center gap-1">
+              <span
+                className="text-lg font-black text-white leading-none truncate max-w-[110px]"
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  textShadow:
+                    '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                }}
+              >
+                {profile?.display_name || 'Joueur'}
+              </span>
+              <Crown className="w-3.5 h-3.5 text-amber-400" fill="currentColor" />
             </div>
-            <div className="text-[10px] text-white/50 leading-tight">Mon profil</div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
+                Niveau 11
+              </span>
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[9px] font-black text-emerald-300 uppercase">EN LIGNE</span>
+              </span>
+            </div>
           </div>
         </motion.button>
 
-        {/* Center logo / title */}
+        {/* CENTER LOGO */}
         <div className="flex flex-col items-center pointer-events-none">
-          <div className="relative">
-            <div
-              className="absolute inset-0 blur-2xl opacity-60"
-              style={{ background: `radial-gradient(circle, ${selectedMode.accent} 0%, transparent 70%)` }}
-            />
-            <h1
-              className="relative text-3xl md:text-4xl font-black tracking-[0.2em] leading-none"
-              style={{
-                fontFamily: "'Caveat', cursive, sans-serif",
-                background: 'linear-gradient(180deg, #ffffff 0%, #cccccc 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                filter: 'drop-shadow(0 2px 8px rgba(255, 43, 43, 0.5))',
-              }}
-            >
-              MIMIC MASTER
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 mt-1">
-            <div className="h-px w-10 bg-gradient-to-r from-transparent to-white/30" />
-            <span className="text-[10px] tracking-[0.3em] text-white/40 font-bold uppercase">Lobby</span>
-            <div className="h-px w-10 bg-gradient-to-l from-transparent to-white/30" />
-          </div>
+          <ImageWithFallback
+            src={['/home/logo.png', '/lobby/logo.png']}
+            alt="C2TV MIMIC MASTER"
+            className="h-20 md:h-24 w-auto select-none"
+            style={{ filter: 'drop-shadow(0 4px 12px rgba(168,85,247,0.5))' }}
+            fallback={
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-0.5">
+                  <Crown className="w-4 h-4 text-amber-400" fill="currentColor" />
+                </div>
+                <h1
+                  className="text-3xl md:text-4xl font-black tracking-wider leading-none"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    background:
+                      'linear-gradient(180deg, #ffffff 0%, #d4d4d4 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    filter: 'drop-shadow(0 2px 8px rgba(168,85,247,0.6))',
+                  }}
+                >
+                  C2TV
+                </h1>
+                <h2
+                  className="text-xl md:text-2xl font-black tracking-wider leading-none mt-1"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    color: '#fbbf24',
+                    textShadow:
+                      '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                  }}
+                >
+                  MIMIC MASTER
+                </h2>
+              </div>
+            }
+          />
         </div>
 
-        {/* Friends button (opens drawer) */}
-        <motion.button
-          onClick={() => {
-            playInkSound('inkClick', 0.3);
-            setShowFriendsDrawer(true);
-          }}
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 hover:bg-white/10 transition-all"
-        >
-          <div className="text-right pl-1">
-            <div className="text-sm font-bold text-white leading-tight">Mes amis</div>
-            <div className="text-[10px] text-white/50 leading-tight">Communauté</div>
-          </div>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+        {/* RIGHT — MES AMIS + SETTINGS */}
+        <div className="flex items-center gap-2">
+          <motion.button
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              setShowFriendsDrawer(true);
+            }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl"
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(168,85,247,0.25), rgba(126,34,206,0.25))',
+              border: '2.5px solid #0a0810',
+              boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.1)',
+            }}
+          >
             <UsersRound className="w-4 h-4 text-white" />
-          </div>
-        </motion.button>
+            <span
+              className="text-base font-black text-white uppercase tracking-wider"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                textShadow:
+                  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+              }}
+            >
+              MES AMIS
+            </span>
+          </motion.button>
+          <motion.button
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              setShowSettings(true);
+            }}
+            whileHover={{ scale: 1.06, rotate: 90 }}
+            whileTap={{ scale: 0.94 }}
+            className="w-11 h-11 rounded-xl flex items-center justify-center text-white"
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '2.5px solid #0a0810',
+              boxShadow: '0 4px 0 #0a0810',
+            }}
+            aria-label="Paramètres"
+          >
+            <Settings className="w-4.5 h-4.5" />
+          </motion.button>
+        </div>
       </header>
 
-      {/* MAIN CONTENT */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-[88px] min-h-0 overflow-y-auto custom-scrollbar">
-        {/* Pseudo input — inline, premium */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-6 w-full max-w-md"
-        >
-          <div className="relative group">
-            <div
-              className="absolute -inset-px rounded-2xl opacity-50 blur transition-opacity group-focus-within:opacity-100"
-              style={{ background: `linear-gradient(90deg, ${selectedMode.accent}, transparent, ${selectedMode.accent})` }}
+      {/* ============== MAIN CONTENT ============== */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar gap-4">
+        {/* HERO MODE BANNER */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selectedMode.id}
+            initial={{ opacity: 0, y: -10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
+            style={{
+              border: '4px solid #0a0810',
+              boxShadow:
+                '0 12px 0 #0a0810, 0 18px 40px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.08)',
+            }}
+          >
+            {/* Custom banner image — falls back to gradient + icon if missing */}
+            <ImageWithFallback
+              src={selectedMode.bannerImageCandidates}
+              alt={selectedMode.name}
+              className="block w-full h-auto select-none"
+              fallback={
+                <div
+                  className="relative w-full p-6 md:p-8 flex items-center gap-5"
+                  style={{
+                    background: `linear-gradient(180deg, #0a0510 0%, #1a0d2e 50%, #0a0510 100%)`,
+                  }}
+                >
+                  {/* Glow halo */}
+                  <div
+                    className="absolute inset-0 opacity-40 pointer-events-none"
+                    style={{
+                      background: `radial-gradient(circle at 30% 50%, ${selectedMode.accent}55, transparent 60%)`,
+                    }}
+                  />
+                  {/* Icon badge */}
+                  <motion.div
+                    animate={{ rotate: [-3, 3, -3] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                    className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: selectedMode.fallbackColor,
+                      border: '3px solid #0a0810',
+                      boxShadow: `0 4px 0 #0a0810, 0 8px 20px ${selectedMode.fallbackColor}88`,
+                    }}
+                  >
+                    <span className="text-5xl">{selectedMode.fallbackEmoji}</span>
+                  </motion.div>
+
+                  <div className="relative flex-1 min-w-0">
+                    <h2
+                      className="text-4xl md:text-5xl font-black leading-none tracking-tight text-white"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        textShadow:
+                          '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810, 2px 2px 0 #0a0810',
+                      }}
+                    >
+                      {selectedMode.name.toUpperCase()}
+                    </h2>
+                    <p
+                      className="text-sm md:text-base text-white/85 font-bold mt-2 uppercase tracking-wider"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      {selectedMode.tagline}
+                    </p>
+                    <p className="text-xs md:text-sm text-white/70 mt-2 font-medium">
+                      {selectedMode.description}
+                    </p>
+                  </div>
+                </div>
+              }
             />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* PSEUDO INPUT — discreet, just above the buttons */}
+        <div className="w-full max-w-3xl">
+          <div className="relative group">
             <Input
               placeholder="Votre pseudo"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              className="relative h-14 bg-black/60 backdrop-blur-xl border-2 border-white/10 rounded-2xl text-center text-2xl font-bold text-white placeholder:text-white/30 focus:border-white/30 transition-all"
+              className="h-12 bg-black/50 backdrop-blur-md border-2 border-[#0a0810] rounded-xl text-center text-xl font-black text-white placeholder:text-white/30 focus:border-purple-400/60 transition-all"
               style={{ fontFamily: "'Caveat', cursive" }}
               maxLength={20}
             />
           </div>
-        </motion.div>
-
-        {/* Mode showcase — the hero */}
-        <div className="relative w-full max-w-5xl flex items-center justify-center gap-4 mb-8">
-          {/* Prev button */}
-          <motion.button
-            onClick={goPrevMode}
-            whileHover={{ scale: 1.1, x: -3 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex-shrink-0 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
-            aria-label="Mode précédent"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </motion.button>
-
-          {/* Mode card */}
-          <div className="flex-1 max-w-2xl relative" style={{ perspective: '1000px' }}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedMode.id}
-                initial={{ opacity: 0, scale: 0.92, rotateX: -15, y: 20 }}
-                animate={{ opacity: 1, scale: 1, rotateX: 0, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, rotateX: 15, y: -20 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="relative"
-              >
-                {/* Glow shell */}
-                <div
-                  className="absolute -inset-4 rounded-3xl blur-2xl opacity-60 animate-pulse"
-                  style={{
-                    background: `linear-gradient(135deg, ${selectedMode.accent}88, transparent)`,
-                  }}
-                />
-
-                {/* Card */}
-                <div
-                  className="relative rounded-3xl overflow-hidden border-2 backdrop-blur-2xl bg-black/50"
-                  style={{
-                    borderColor: `${selectedMode.accent}66`,
-                    boxShadow: `0 0 60px ${selectedMode.accent}66, 0 0 120px ${selectedMode.accent}33, inset 0 1px 0 rgba(255,255,255,0.1)`,
-                  }}
-                >
-                  {/* Background gradient */}
-                  <div className={cn('absolute inset-0 bg-gradient-to-br opacity-10', selectedMode.gradient)} />
-
-                  {/* Top accent line */}
-                  <div
-                    className="absolute inset-x-0 top-0 h-px"
-                    style={{
-                      background: `linear-gradient(90deg, transparent, ${selectedMode.accent}, transparent)`,
-                    }}
-                  />
-
-                  {/* Decorative pattern */}
-                  <div className="absolute inset-0 opacity-5 pointer-events-none">
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        backgroundImage: `radial-gradient(${selectedMode.accent} 1px, transparent 1px)`,
-                        backgroundSize: '40px 40px',
-                      }}
-                    />
-                  </div>
-
-                  <div className="relative p-8 md:p-10 flex flex-col items-center text-center">
-                    {/* Icon */}
-                    <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                      className={cn(
-                        'w-20 h-20 rounded-2xl bg-gradient-to-br flex items-center justify-center mb-4 shadow-2xl',
-                        selectedMode.gradient
-                      )}
-                      style={{ boxShadow: `0 10px 40px ${selectedMode.accent}88` }}
-                    >
-                      <div className="text-white">{selectedMode.icon}</div>
-                    </motion.div>
-
-                    {/* Mode name */}
-                    <h2
-                      className="text-5xl md:text-6xl font-black tracking-tight mb-1"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        color: selectedMode.accent,
-                        textShadow: `0 0 30px ${selectedMode.accent}88, 0 4px 12px rgba(0,0,0,0.8)`,
-                        WebkitTextStroke: '1px rgba(0,0,0,0.4)',
-                      }}
-                    >
-                      {selectedMode.name}
-                    </h2>
-
-                    {/* Tagline */}
-                    <p className="text-sm md:text-base font-bold text-white/80 uppercase tracking-[0.2em] mb-2">
-                      {selectedMode.tagline}
-                    </p>
-
-                    {/* Description */}
-                    <p className="text-sm text-white/60 max-w-md leading-relaxed">
-                      {selectedMode.description}
-                    </p>
-
-                    {/* Mode counter */}
-                    <div className="mt-6 flex items-center gap-1.5">
-                      {GAME_MODES.map((_, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            playInkSound('inkClick', 0.3);
-                            setModeIndex(i);
-                          }}
-                          className={cn(
-                            'h-1.5 rounded-full transition-all duration-300',
-                            i === modeIndex ? 'w-8' : 'w-1.5 hover:w-3'
-                          )}
-                          style={{
-                            background: i === modeIndex ? selectedMode.accent : 'rgba(255,255,255,0.2)',
-                            boxShadow: i === modeIndex ? `0 0 10px ${selectedMode.accent}` : 'none',
-                          }}
-                          aria-label={`Aller au mode ${i + 1}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Next button */}
-          <motion.button
-            onClick={goNextMode}
-            whileHover={{ scale: 1.1, x: 3 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex-shrink-0 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
-            aria-label="Mode suivant"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </motion.button>
         </div>
 
-        {/* Action buttons row */}
+        {/* ACTION BUTTONS — JOUER + REJOINDRE */}
         <div className="w-full max-w-3xl flex flex-col sm:flex-row items-stretch gap-3">
-          {/* Join button — secondary */}
+          {/* JOUER — yellow image button (with code fallback) */}
+          <motion.button
+            onClick={handleCreateGame}
+            disabled={!playerName.trim()}
+            whileHover={!playerName.trim() ? undefined : { scale: 1.03, y: -2 }}
+            whileTap={!playerName.trim() ? undefined : { scale: 0.97 }}
+            className={cn(
+              'relative flex-[1.4] h-20 rounded-2xl overflow-hidden group transition-opacity',
+              !playerName.trim() && 'opacity-40 cursor-not-allowed grayscale',
+            )}
+            style={{
+              filter: playerName.trim()
+                ? 'drop-shadow(0 8px 20px rgba(251,191,36,0.45))'
+                : undefined,
+            }}
+          >
+            <ImageWithFallback
+              src={['/home/buttons/jouer.png', '/home/buttons/jouer.jpg']}
+              alt="JOUER"
+              className="absolute inset-0 w-full h-full object-cover"
+              fallback={
+                <div
+                  className="absolute inset-0 flex items-center justify-center gap-3"
+                  style={{
+                    background:
+                      'linear-gradient(180deg, #fde047 0%, #fbbf24 50%, #d97706 100%)',
+                    border: '4px solid #0a0810',
+                    borderRadius: '1rem',
+                    boxShadow: '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.4)',
+                  }}
+                >
+                  {/* Ink splatter behind play icon */}
+                  <div className="relative w-14 h-14 flex items-center justify-center">
+                    <svg viewBox="0 0 60 60" className="absolute inset-0 w-full h-full">
+                      <path
+                        d="M30,8 Q42,4 48,12 Q56,18 52,30 Q56,44 44,50 Q34,58 22,52 Q8,50 6,38 Q2,24 12,16 Q20,8 30,8 Z"
+                        fill="#0a0810"
+                      />
+                    </svg>
+                    <Play
+                      className="relative w-7 h-7 text-white fill-white"
+                      strokeWidth={2}
+                    />
+                  </div>
+                  <span
+                    className="text-4xl md:text-5xl font-black text-white leading-none tracking-wide"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810, 2px 2px 0 #0a0810',
+                    }}
+                  >
+                    JOUER
+                  </span>
+                </div>
+              }
+            />
+            {/* Shine sweep on hover (over the image) */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
+          </motion.button>
+
+          {/* REJOINDRE UN LOBBY — purple image button */}
           <motion.button
             onClick={() => {
               playInkSound('brushTap', 0.3);
               setShowJoinDialog(true);
             }}
             disabled={!playerName.trim()}
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={!playerName.trim() ? undefined : { scale: 1.02, y: -2 }}
+            whileTap={!playerName.trim() ? undefined : { scale: 0.98 }}
             className={cn(
-              'flex-1 py-5 px-6 rounded-2xl font-bold text-lg transition-all',
-              'bg-white/5 backdrop-blur-md border-2 border-white/15 text-white',
-              'hover:bg-white/10 hover:border-white/30',
-              'disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100'
-            )}
-          >
-            <span className="flex items-center justify-center gap-2">
-              <Hash className="w-5 h-5" />
-              REJOINDRE UN LOBBY
-            </span>
-          </motion.button>
-
-          {/* PLAY button — primary, hero */}
-          <motion.button
-            onClick={handleCreateGame}
-            disabled={!playerName.trim()}
-            whileHover={{ scale: 1.03, y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            className={cn(
-              'relative flex-[1.5] py-5 px-8 rounded-2xl font-black text-2xl tracking-wider transition-all',
-              'text-white border-2 overflow-hidden group',
-              'disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100'
+              'relative flex-1 h-20 rounded-2xl overflow-hidden transition-opacity',
+              !playerName.trim() && 'opacity-40 cursor-not-allowed grayscale',
             )}
             style={{
-              background: `linear-gradient(135deg, ${selectedMode.accent}, ${selectedMode.accent}dd)`,
-              borderColor: selectedMode.accent,
-              boxShadow: `0 0 40px ${selectedMode.accent}aa, 0 10px 30px ${selectedMode.accent}88, inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -3px 0 rgba(0,0,0,0.3)`,
+              filter: playerName.trim()
+                ? 'drop-shadow(0 8px 20px rgba(168,85,247,0.4))'
+                : undefined,
             }}
           >
-            {/* Shine */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
-            {/* Sparkle */}
-            <div className="absolute -top-1 -right-1 opacity-70 pointer-events-none">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <span className="relative flex items-center justify-center gap-3">
-              <Play className="w-7 h-7 fill-white" />
-              JOUER
-            </span>
+            <ImageWithFallback
+              src={['/home/buttons/rejoindre.png', '/home/buttons/rejoindre.jpg']}
+              alt="REJOINDRE UN LOBBY"
+              className="absolute inset-0 w-full h-full object-cover"
+              fallback={
+                <div
+                  className="absolute inset-0 flex items-center justify-center gap-3"
+                  style={{
+                    background:
+                      'linear-gradient(180deg, #a855f7 0%, #7e22ce 50%, #4c1d95 100%)',
+                    border: '4px solid #0a0810',
+                    borderRadius: '1rem',
+                    boxShadow: '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)',
+                  }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: '#0a0810',
+                      border: '2.5px solid rgba(255,255,255,0.15)',
+                    }}
+                  >
+                    <Hash className="w-6 h-6 text-white" strokeWidth={3} />
+                  </div>
+                  <span
+                    className="text-2xl md:text-3xl font-black text-white leading-none tracking-wide"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '2.5px 2.5px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                    }}
+                  >
+                    REJOINDRE UN LOBBY
+                  </span>
+                </div>
+              }
+            />
           </motion.button>
         </div>
 
-        {/* Bottom utility bar */}
-        <div className="mt-6 flex items-center gap-3">
-          {/* Friend code */}
+        {/* MINI MODE CARDS ROW */}
+        <div className="w-full max-w-3xl">
+          <div className="grid grid-cols-7 gap-2">
+            {GAME_MODES.map((mode, idx) => {
+              const isActive = idx === modeIndex;
+              return (
+                <motion.button
+                  key={mode.id}
+                  onClick={() => {
+                    playInkSound('brushTap', 0.3);
+                    setModeIndex(idx);
+                  }}
+                  whileHover={{ y: -4, scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  animate={
+                    isActive
+                      ? { y: [0, -3, 0], transition: { duration: 1.6, repeat: Infinity } }
+                      : undefined
+                  }
+                  className="relative aspect-[3/4] rounded-2xl overflow-hidden group"
+                  style={{
+                    border: isActive ? '3.5px solid #fbbf24' : '3px solid #0a0810',
+                    boxShadow: isActive
+                      ? `0 0 24px ${mode.accent}cc, 0 6px 0 #0a0810`
+                      : '0 4px 0 #0a0810',
+                  }}
+                >
+                  {/* Card image with fallback */}
+                  <ImageWithFallback
+                    src={mode.cardImageCandidates}
+                    alt={mode.shortLabel}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    fallback={
+                      <div
+                        className="absolute inset-0 flex flex-col items-center justify-between p-1.5"
+                        style={{
+                          background: `linear-gradient(180deg, ${mode.fallbackColor}, ${mode.fallbackColor}cc)`,
+                        }}
+                      >
+                        <div className="flex-1 flex items-center justify-center">
+                          <span className="text-3xl">{mode.fallbackEmoji}</span>
+                        </div>
+                      </div>
+                    }
+                  />
+                  {/* Bottom label overlay */}
+                  <div
+                    className="absolute bottom-0 inset-x-0 px-1 py-1 text-center"
+                    style={{
+                      background:
+                        'linear-gradient(180deg, transparent, rgba(0,0,0,0.85))',
+                    }}
+                  >
+                    <div
+                      className="text-[10px] font-black text-white uppercase leading-tight tracking-wide"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        textShadow:
+                          '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810',
+                      }}
+                    >
+                      {mode.shortLabel}
+                    </div>
+                  </div>
+                  {/* Active checkmark */}
+                  {isActive && (
+                    <motion.div
+                      initial={{ scale: 0, rotate: -45 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 border-[3px] border-[#0a0810] flex items-center justify-center z-10"
+                      style={{ boxShadow: '0 3px 0 #0a0810' }}
+                    >
+                      <Check className="w-3 h-3 text-[#0a0810]" strokeWidth={4} />
+                    </motion.div>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      </main>
+
+      {/* ============== BOTTOM UTILITY BAR ============== */}
+      <div className="absolute bottom-0 inset-x-0 z-20 flex items-center justify-center gap-3 px-6 py-3 pointer-events-none">
+        <div
+          className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-2xl"
+          style={{
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(8px)',
+            border: '2.5px solid #0a0810',
+            boxShadow: '0 4px 0 #0a0810',
+          }}
+        >
           {friendCode && (
             <motion.button
               onClick={handleCopyFriendCode}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 hover:bg-white/10 transition-all text-xs"
+              className="flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-white/5 transition-colors"
               title="Copier mon code ami"
             >
-              <span className="text-white/40 uppercase tracking-wider font-bold">Code ami</span>
-              <span className="font-mono font-bold tracking-wider text-white">{friendCode}</span>
-              <Copy className="w-3 h-3 text-white/40" />
+              <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">
+                Code ami
+              </span>
+              <span className="font-mono font-black tracking-wider text-amber-300 text-sm">
+                {friendCode}
+              </span>
+              {codeCopied ? (
+                <Check className="w-3 h-3 text-emerald-400" />
+              ) : (
+                <Copy className="w-3 h-3 text-white/40" />
+              )}
             </motion.button>
           )}
 
-          {/* Mute */}
+          <div className="w-px h-5 bg-white/10" />
+
           <motion.button
             onClick={() => {
               playInkSound('inkClick', 0.3);
@@ -558,13 +776,12 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-colors"
             aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </motion.button>
 
-          {/* Settings */}
           <motion.button
             onClick={() => {
               playInkSound('inkClick', 0.3);
@@ -572,32 +789,26 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             }}
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
-            className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-colors"
             aria-label="Paramètres"
           >
             <Settings className="w-4 h-4" />
           </motion.button>
 
-          {/* Version */}
           <button
             type="button"
             onClick={() => {
               playInkSound('brushTap', 0.2);
               setShowPatchNote(true);
             }}
-            className="px-3 py-2 text-[10px] font-mono text-white/30 hover:text-white/70 transition-colors"
+            className="px-2 text-[10px] font-mono text-white/40 hover:text-white/70 transition-colors"
           >
             v{CURRENT_VERSION}
           </button>
         </div>
+      </div>
 
-        {/* Hint */}
-        <div className="mt-4 text-[10px] text-white/30 uppercase tracking-[0.2em] font-bold">
-          Utilisez ← → pour naviguer
-        </div>
-      </main>
-
-      {/* PROFILE DRAWER */}
+      {/* ============== PROFILE DRAWER ============== */}
       <AnimatePresence>
         {showProfileDrawer && (
           <>
@@ -613,20 +824,57 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="fixed left-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-[#08070d]/95 backdrop-blur-2xl border-r border-white/10 shadow-2xl"
+              className="fixed left-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col"
+              style={{
+                background:
+                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                borderRight: '4px solid #0a0810',
+                boxShadow: '8px 0 24px rgba(0,0,0,0.5)',
+              }}
             >
-              <div className="flex items-center justify-between p-4 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-white/70" />
-                  <h2 className="text-lg font-bold text-white">Mon profil</h2>
+              <div
+                className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
+                  borderBottom: '3px solid #0a0810',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                    style={{
+                      background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                      border: '3px solid #0a0810',
+                      boxShadow: '0 4px 0 #0a0810',
+                    }}
+                  >
+                    <User className="w-5 h-5 text-white" strokeWidth={2.5} />
+                  </div>
+                  <h2
+                    className="text-3xl font-black text-white leading-none"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                    }}
+                  >
+                    Mon profil
+                  </h2>
                 </div>
-                <button
-                  type="button"
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setShowProfileDrawer(false)}
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                  style={{
+                    background: 'rgba(239,68,68,0.2)',
+                    border: '2.5px solid #0a0810',
+                    boxShadow: '0 3px 0 #0a0810',
+                  }}
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <X className="w-5 h-5" strokeWidth={3} />
+                </motion.button>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
                 <InkProfileSidebar />
@@ -636,7 +884,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         )}
       </AnimatePresence>
 
-      {/* FRIENDS DRAWER */}
+      {/* ============== FRIENDS DRAWER ============== */}
       <AnimatePresence>
         {showFriendsDrawer && (
           <>
@@ -652,20 +900,57 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-[#08070d]/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col"
+              style={{
+                background:
+                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                borderLeft: '4px solid #0a0810',
+                boxShadow: '-8px 0 24px rgba(0,0,0,0.5)',
+              }}
             >
-              <div className="flex items-center justify-between p-4 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <UsersRound className="w-5 h-5 text-white/70" />
-                  <h2 className="text-lg font-bold text-white">Mes amis</h2>
+              <div
+                className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
+                  borderBottom: '3px solid #0a0810',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                    style={{
+                      background: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
+                      border: '3px solid #0a0810',
+                      boxShadow: '0 4px 0 #0a0810',
+                    }}
+                  >
+                    <UsersRound className="w-5 h-5 text-white" strokeWidth={2.5} />
+                  </div>
+                  <h2
+                    className="text-3xl font-black text-white leading-none"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                    }}
+                  >
+                    Mes amis
+                  </h2>
                 </div>
-                <button
-                  type="button"
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setShowFriendsDrawer(false)}
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                  style={{
+                    background: 'rgba(239,68,68,0.2)',
+                    border: '2.5px solid #0a0810',
+                    boxShadow: '0 3px 0 #0a0810',
+                  }}
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <X className="w-5 h-5" strokeWidth={3} />
+                </motion.button>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
                 <InkFriendsSidebar
@@ -683,7 +968,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         )}
       </AnimatePresence>
 
-      {/* JOIN DIALOG */}
+      {/* ============== JOIN DIALOG ============== */}
       <AnimatePresence>
         {showJoinDialog && (
           <motion.div
@@ -694,45 +979,71 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             onClick={() => setShowJoinDialog(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+              initial={{ opacity: 0, scale: 0.85, y: 20, rotate: -2 }}
+              animate={{ opacity: 1, scale: 1, y: 0, rotate: -1 }}
+              exit={{ opacity: 0, scale: 0.85, y: 20, rotate: 2 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 260 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-md"
+              className="relative w-full max-w-md rounded-3xl overflow-hidden"
+              style={{
+                background:
+                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                border: '4px solid #0a0810',
+                boxShadow:
+                  '0 12px 0 #0a0810, 0 18px 40px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+              }}
             >
               <div
-                className="absolute -inset-4 rounded-3xl blur-2xl opacity-60"
-                style={{ background: `radial-gradient(circle, ${selectedMode.accent}88, transparent)` }}
+                className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
+                style={{ border: '2px solid rgba(168,85,247,0.4)' }}
               />
-              <div
-                className="relative bg-[#08070d]/95 backdrop-blur-2xl border-2 rounded-3xl p-6 space-y-4"
-                style={{
-                  borderColor: `${selectedMode.accent}88`,
-                  boxShadow: `0 0 60px ${selectedMode.accent}66`,
-                }}
-              >
+              <div className="relative p-6 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3
-                    className="text-2xl font-black"
+                  <div className="flex items-center gap-3">
+                    <motion.div
+                      animate={{ rotate: [-5, 5, -5] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                      style={{
+                        background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                        border: '3px solid #0a0810',
+                        boxShadow: '0 4px 0 #0a0810',
+                      }}
+                    >
+                      <Hash className="h-5 w-5 text-white" strokeWidth={3} />
+                    </motion.div>
+                    <h3
+                      className="text-3xl font-black text-white leading-none"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        textShadow:
+                          '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                      }}
+                    >
+                      Rejoindre
+                    </h3>
+                  </div>
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowJoinDialog(false)}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
                     style={{
-                      fontFamily: "'Caveat', cursive",
-                      color: selectedMode.accent,
+                      background: 'rgba(239,68,68,0.2)',
+                      border: '2.5px solid #0a0810',
+                      boxShadow: '0 3px 0 #0a0810',
                     }}
                   >
-                    Rejoindre une partie
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowJoinDialog(false)}
-                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                    <X className="w-5 h-5" strokeWidth={3} />
+                  </motion.button>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-white/60">
-                    <Hash className="h-3 w-3" />
+                  <label
+                    className="text-sm font-black text-white/80 flex items-center gap-2 px-1"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
+                    <Hash className="h-3.5 w-3.5" />
                     Code du Lobby
                   </label>
                   <Input
@@ -741,34 +1052,63 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     onChange={(e) => setLobbyCode(e.target.value.toUpperCase())}
                     onKeyPress={(e) => e.key === 'Enter' && handleJoinGame()}
                     maxLength={4}
-                    className="text-center text-3xl tracking-[0.4em] uppercase font-black h-16 bg-black/50 border-2 border-white/15 rounded-2xl focus:border-white/40 text-white"
+                    className="text-center text-4xl tracking-[0.4em] uppercase font-black h-16 bg-black/50 rounded-2xl text-white"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      border: '3px solid #0a0810',
+                      boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5)',
+                    }}
                     autoFocus
                   />
                 </div>
-                <div className="flex gap-2">
-                  <button
+                <div className="flex gap-3">
+                  <motion.button
                     type="button"
+                    whileHover={{ scale: 1.04, rotate: -2 }}
+                    whileTap={{ scale: 0.96 }}
                     onClick={() => setShowJoinDialog(false)}
-                    className="flex-1 py-3 rounded-2xl border-2 border-white/15 text-white/80 hover:border-white/30 hover:text-white transition-all flex items-center justify-center gap-2 font-bold"
+                    className="flex-1 py-3 rounded-2xl text-xl font-black text-white flex items-center justify-center gap-2"
+                    style={{
+                      background: 'linear-gradient(180deg, #4b5563, #1f2937)',
+                      border: '3px solid #0a0810',
+                      boxShadow: '0 4px 0 #0a0810',
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                    }}
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-4 w-4" strokeWidth={3} />
                     Annuler
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
                     type="button"
+                    whileHover={
+                      playerName.trim() && lobbyCode.length === 4
+                        ? { scale: 1.04, rotate: 2 }
+                        : undefined
+                    }
+                    whileTap={
+                      playerName.trim() && lobbyCode.length === 4
+                        ? { scale: 0.96 }
+                        : undefined
+                    }
                     onClick={handleJoinGame}
                     disabled={!playerName.trim() || lobbyCode.length !== 4}
                     className={cn(
-                      'flex-1 py-3 rounded-2xl font-black tracking-wider transition-all text-white',
-                      'disabled:opacity-30 disabled:cursor-not-allowed'
+                      'flex-1 py-3 rounded-2xl text-xl font-black text-white transition-opacity',
+                      (!playerName.trim() || lobbyCode.length !== 4) && 'opacity-50',
                     )}
                     style={{
-                      background: `linear-gradient(135deg, ${selectedMode.accent}, ${selectedMode.accent}cc)`,
-                      boxShadow: `0 0 30px ${selectedMode.accent}88`,
+                      background: 'linear-gradient(180deg, #a855f7, #6b21a8)',
+                      border: '3px solid #0a0810',
+                      boxShadow: '0 4px 0 #0a0810',
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
                     }}
                   >
-                    REJOINDRE
-                  </button>
+                    Rejoindre
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
@@ -776,7 +1116,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         )}
       </AnimatePresence>
 
-      {/* SETTINGS MODAL */}
+      {/* ============== SETTINGS MODAL ============== */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
@@ -787,13 +1127,27 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             onClick={() => setShowSettings(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-3xl"
+              initial={{ opacity: 0, scale: 0.92, y: 20, rotate: -1 }}
+              animate={{ opacity: 1, scale: 1, y: 0, rotate: -0.5 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20, rotate: 1 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 240 }}
+              className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
+              style={{
+                background:
+                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                border: '4px solid #0a0810',
+                boxShadow:
+                  '0 12px 0 #0a0810, 0 18px 40px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+              }}
             >
-              <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
+              <div
+                className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none z-[1]"
+                style={{ border: '2px solid rgba(168,85,247,0.4)' }}
+              />
+              <div className="relative z-[2]">
+                <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -806,9 +1160,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
-        .bg-gradient-radial { background: radial-gradient(circle at center, var(--tw-gradient-stops)); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.4); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.6); }
       `}</style>
     </div>
   );
