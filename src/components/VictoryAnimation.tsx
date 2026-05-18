@@ -1,7 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-import { Trophy, Crown, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { juice } from "@/lib/juice";
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, Crown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { juice } from '@/lib/juice';
+import { playInkSound } from '@/hooks/useInkSoundEffects';
+import {
+  DoodleBorder,
+  DoodleConfetti,
+  DoodleSpotlight,
+  DoodleWobble,
+} from '@/components/doodle/Doodle';
 
 interface VictoryAnimationProps {
   winnerName: string;
@@ -10,172 +18,170 @@ interface VictoryAnimationProps {
 }
 
 /**
- * Real, cinematic victory moment.
- * - Radial ink burst + golden rays
- * - Zoom-in trophy with crown halo
- * - Confetti waves via juice system
- * - Ink DA: black background, red primary, gold accent
+ * Cartoon doodle victory celebration.
+ * - Big sun-rays spotlight rotating
+ * - Big bouncing trophy with crown
+ * - DoodleConfetti party particles
+ * - Animated VICTOIRE title with stamp aesthetic
  */
 export const VictoryAnimation = ({ winnerName, isTeam, teamPlayers }: VictoryAnimationProps) => {
-  const [stage, setStage] = useState<"flash" | "trophy" | "name">("flash");
-
-  // Animated background rays
-  const rays = useMemo(
-    () => Array.from({ length: 14 }, (_, i) => ({ id: i, rot: (360 / 14) * i })),
-    [],
-  );
-
-  // Floating sparkles in front layer
-  const sparkles = useMemo(
-    () =>
-      Array.from({ length: 18 }, (_, i) => ({
-        id: i,
-        x: 10 + Math.random() * 80,
-        y: 15 + Math.random() * 70,
-        size: 10 + Math.random() * 18,
-        delay: Math.random() * 1.8,
-        dur: 1.6 + Math.random() * 1.6,
-      })),
-    [],
-  );
+  const [stage, setStage] = useState<'flash' | 'trophy' | 'name'>('flash');
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
-    // Multi-wave dopamine on mount
-    juice.flash("primary", 380);
-    juice.shake(320, 1.1);
-    juice.confetti({ count: 180 });
-    const w1 = setTimeout(() => juice.confetti({ count: 120 }), 500);
-    const w2 = setTimeout(() => juice.confetti({ count: 90 }), 1100);
+    // Big audio + visual celebration
+    juice.flash('primary', 380);
+    juice.shake(280, 0.9);
+    playInkSound('cartoonFanfare', 0.6);
+    setShowConfetti(true);
 
-    const t1 = setTimeout(() => setStage("trophy"), 220);
-    const t2 = setTimeout(() => setStage("name"), 800);
+    const t1 = setTimeout(() => {
+      setStage('trophy');
+      playInkSound('cartoonDing', 0.5);
+    }, 220);
+    const t2 = setTimeout(() => {
+      setStage('name');
+      playInkSound('cartoonPop', 0.4);
+    }, 900);
+
+    // Confetti waves
+    const w1 = setTimeout(() => setShowConfetti(true), 0);
+    const stopConfetti = setTimeout(() => setShowConfetti(false), 4500);
+
     return () => {
-      clearTimeout(w1);
-      clearTimeout(w2);
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(w1);
+      clearTimeout(stopConfetti);
     };
   }, []);
 
-  const displayName = isTeam && teamPlayers ? teamPlayers.join(" & ") : winnerName;
+  const displayName = isTeam && teamPlayers ? teamPlayers.join(' & ') : winnerName;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden pointer-events-none">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-background/92 backdrop-blur-sm animate-fade-in" />
-
-      {/* Golden rays sweep */}
-      <div
-        className={cn(
-          "absolute inset-0 flex items-center justify-center transition-opacity duration-700",
-          stage === "flash" ? "opacity-0" : "opacity-100",
-        )}
-      >
-        <div className="relative w-[140vmin] h-[140vmin] animate-victory-spin">
-          {rays.map((r) => (
-            <div
-              key={r.id}
-              className="absolute left-1/2 top-1/2 origin-bottom"
-              style={{
-                transform: `translate(-50%, -100%) rotate(${r.rot}deg)`,
-                width: "8vmin",
-                height: "70vmin",
-                background:
-                  "linear-gradient(to top, transparent, hsl(var(--primary) / 0.35) 40%, hsl(45 95% 60% / 0.55) 100%)",
-                filter: "blur(2px)",
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Vignette pulse */}
-      <div className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle at center, transparent 40%, hsl(var(--background) / 0.85) 85%)",
-        }}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="absolute inset-0 bg-[#0a0810]/95 backdrop-blur-sm"
       />
 
-      {/* Floating sparkles */}
-      {stage !== "flash" && sparkles.map((s) => (
-        <Sparkles
-          key={s.id}
-          className="absolute text-[hsl(45_95%_60%)] animate-victory-spark"
-          style={{
-            left: `${s.x}%`,
-            top: `${s.y}%`,
-            width: s.size,
-            height: s.size,
-            animationDelay: `${s.delay}s`,
-            animationDuration: `${s.dur}s`,
-            filter: "drop-shadow(0 0 10px hsl(45 95% 60% / 0.7))",
-          }}
-        />
-      ))}
+      {/* Confetti */}
+      <DoodleConfetti show={showConfetti} count={48} />
 
-      {/* Main stack */}
-      <div className="relative flex flex-col items-center gap-6 px-6">
-        {/* Trophy */}
-        <div
-          className={cn(
-            "relative transition-all duration-700",
-            stage === "flash" ? "opacity-0 scale-50" : "opacity-100 scale-100",
+      {/* Sun spotlight + trophy */}
+      <div className="relative flex flex-col items-center gap-6 px-6 z-10">
+        {/* Trophy with sun rays */}
+        <AnimatePresence>
+          {stage !== 'flash' && (
+            <motion.div
+              initial={{ scale: 0.3, rotate: -25, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+              className="relative"
+            >
+              <DoodleSpotlight color="#fbbf24">
+                {/* Trophy in oval */}
+                <div className="relative w-44 h-44 md:w-56 md:h-56 flex items-center justify-center">
+                  {/* Wobbly oval doodle */}
+                  <svg
+                    className="absolute inset-0 w-full h-full"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d="M50,8 Q70,7 82,18 Q94,32 92,52 Q90,72 76,86 Q60,96 42,92 Q24,90 12,76 Q4,60 8,40 Q14,20 30,12 Q40,8 50,8 Z"
+                      fill="#fbbf24"
+                      fillOpacity="0.18"
+                      stroke="#fbbf24"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+
+                  {/* Crown above */}
+                  <motion.div
+                    initial={{ y: -10, opacity: 0, rotate: -20 }}
+                    animate={{ y: 0, opacity: 1, rotate: -8 }}
+                    transition={{ delay: 0.3, type: 'spring', stiffness: 180, damping: 12 }}
+                    className="absolute -top-10 left-1/2 -translate-x-1/2"
+                  >
+                    <DoodleWobble intensity={0.7}>
+                      <Crown
+                        className="w-12 h-12 text-amber-400"
+                        fill="currentColor"
+                        style={{ filter: 'drop-shadow(0 0 12px rgba(251,191,36,0.6))' }}
+                      />
+                    </DoodleWobble>
+                  </motion.div>
+
+                  {/* Trophy */}
+                  <DoodleWobble>
+                    <Trophy
+                      className="relative w-24 h-24 md:w-28 md:h-28 text-amber-400"
+                      strokeWidth={1.5}
+                      style={{ filter: 'drop-shadow(0 0 20px rgba(251,191,36,0.7))' }}
+                    />
+                  </DoodleWobble>
+                </div>
+              </DoodleSpotlight>
+            </motion.div>
           )}
-        >
-          {/* Halo */}
-          <div className="absolute inset-0 -m-12 rounded-full bg-primary/30 blur-3xl animate-pulse" />
-          <div className="absolute inset-0 -m-6 rounded-full bg-[hsl(45_95%_60%/0.35)] blur-2xl animate-pulse"
-            style={{ animationDelay: "0.3s" }}
-          />
+        </AnimatePresence>
 
-          {/* Crown above */}
-          <Crown
-            className="absolute left-1/2 -top-12 -translate-x-1/2 h-12 w-12 text-[hsl(45_95%_60%)] animate-victory-crown"
-            style={{ filter: "drop-shadow(0 0 14px hsl(45 95% 60% / 0.8))" }}
-          />
-
-          <div className="relative animate-victory-trophy">
-            <Trophy
-              className="h-40 w-40 md:h-48 md:w-48 text-primary"
-              style={{ filter: "drop-shadow(0 0 24px hsl(var(--primary) / 0.65))" }}
-              strokeWidth={1.6}
-            />
-          </div>
-        </div>
-
-        {/* VICTOIRE title */}
-        <h1
-          className={cn(
-            "text-6xl md:text-8xl font-display font-black tracking-[0.15em] text-foreground transition-all duration-500",
-            stage === "name" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
+        {/* Title VICTOIRE */}
+        <AnimatePresence>
+          {stage === 'name' && (
+            <motion.h1
+              initial={{ opacity: 0, scale: 0.6, rotate: -8 }}
+              animate={{ opacity: 1, scale: 1, rotate: -2 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+              className="text-7xl md:text-8xl font-black leading-none"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                color: '#fbbf24',
+                textShadow:
+                  '0 0 20px rgba(251,191,36,0.5), 4px 4px 0 rgba(0,0,0,0.4)',
+              }}
+            >
+              VICTOIRE !
+            </motion.h1>
           )}
-          style={{
-            textShadow:
-              "0 0 30px hsl(var(--primary) / 0.6), 0 0 60px hsl(45 95% 60% / 0.25)",
-          }}
-        >
-          VICTOIRE
-        </h1>
+        </AnimatePresence>
 
         {/* Winner name card */}
-        <div
-          className={cn(
-            "relative px-8 py-4 rounded-2xl border-2 border-primary/60 bg-background/70 backdrop-blur transition-all duration-500 max-w-[90vw]",
-            stage === "name" ? "opacity-100 scale-100" : "opacity-0 scale-90",
+        <AnimatePresence>
+          {stage === 'name' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.6, y: 20, rotate: 5 }}
+              animate={{ opacity: 1, scale: 1, y: 0, rotate: 1 }}
+              transition={{ delay: 0.15, type: 'spring', stiffness: 220, damping: 16 }}
+              className={cn('relative px-7 py-3 max-w-[90vw]')}
+            >
+              <DoodleBorder color="#fbbf24" filled rotation={-2} thick />
+              <div className="relative text-center">
+                <p
+                  className="text-2xl md:text-4xl font-black truncate"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    color: '#fbbf24',
+                  }}
+                >
+                  {displayName}
+                </p>
+                <p
+                  className="text-[10px] md:text-xs uppercase tracking-[0.25em] font-bold text-white/60 mt-1"
+                >
+                  remporte la manche
+                </p>
+              </div>
+            </motion.div>
           )}
-          style={{
-            boxShadow:
-              "0 0 0 1px hsl(45 95% 60% / 0.35), 0 20px 60px -10px hsl(var(--primary) / 0.6)",
-          }}
-        >
-          <p className="text-center text-3xl md:text-4xl font-display font-bold text-primary truncate">
-            {displayName}
-          </p>
-          <p className="text-center text-sm md:text-base text-foreground-secondary mt-1 uppercase tracking-widest">
-            remporte la manche
-          </p>
-        </div>
+        </AnimatePresence>
       </div>
     </div>
   );
