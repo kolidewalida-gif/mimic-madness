@@ -18,11 +18,10 @@ import {
   Home as HomeIcon,
   UserX,
   Sparkles,
-  Users,
   MoreVertical,
   Loader2,
-  ShieldCheck,
-  Info,
+  Users,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -61,7 +60,7 @@ interface ModeTheme {
   label: string;
   tagline: string;
   description: string;
-  rules: string[];
+  highlights: string[];
   icon: React.ReactNode;
   accent: string;
 }
@@ -71,26 +70,18 @@ const MODE_THEMES: ModeTheme[] = [
     id: 'audiophone',
     label: 'Audio Phone',
     tagline: 'Téléphone arabe audio',
-    description: 'Enregistrez, écoutez, imitez. Fou rire garanti.',
-    rules: [
-      'Une phrase est enregistrée puis inversée',
-      'Chacun écoute et tente d\'imiter ce qu\'il entend',
-      'La révélation finale décide du gagnant',
-    ],
-    icon: <Phone className="w-4 h-4" />,
+    description: 'Une phrase est inversée, chacun tente d\'imiter ce qu\'il entend.',
+    highlights: ['Audio inversé', 'Imitation', 'Fou rire garanti'],
+    icon: <Phone className="w-5 h-5" />,
     accent: '#ff5050',
   },
   {
     id: 'normal',
     label: 'Imitation',
     tagline: 'Mode classique',
-    description: 'Imitez les défis vidéo des autres joueurs.',
-    rules: [
-      'Un joueur lance un défi vidéo',
-      'Les autres l\'imitent au plus proche',
-      'Vote pour la meilleure imitation',
-    ],
-    icon: <Copy className="w-4 h-4" />,
+    description: 'Un joueur lance un défi vidéo, les autres l\'imitent.',
+    highlights: ['Défis vidéo', 'Vote', 'Convivial'],
+    icon: <Copy className="w-5 h-5" />,
     accent: '#a855f7',
   },
   {
@@ -98,12 +89,8 @@ const MODE_THEMES: ModeTheme[] = [
     label: '2v2',
     tagline: 'Combat en équipes',
     description: 'Affrontement en équipes de 2, score collectif.',
-    rules: [
-      'Équipes de 2 joueurs',
-      'Collaboration sur les défis',
-      'L\'équipe avec le plus de points gagne',
-    ],
-    icon: <Swords className="w-4 h-4" />,
+    highlights: ['Équipes', 'Coopération', 'Compétitif'],
+    icon: <Swords className="w-5 h-5" />,
     accent: '#f59e0b',
   },
   {
@@ -111,25 +98,17 @@ const MODE_THEMES: ModeTheme[] = [
     label: 'Quiz',
     tagline: 'Connaissances',
     description: 'Questions variées, réponse la plus rapide gagne.',
-    rules: [
-      'Culture générale, jeux, films…',
-      'Plus rapide = plus de points',
-      'Précision compte aussi',
-    ],
-    icon: <Brain className="w-4 h-4" />,
+    highlights: ['Culture G', 'Vitesse', 'Précision'],
+    icon: <Brain className="w-5 h-5" />,
     accent: '#0ea5e9',
   },
   {
     id: 'pixoguess',
     label: 'BlurRush',
     tagline: 'Devinez l\'image',
-    description: 'L\'image se dépixelise, soyez le plus rapide.',
-    rules: [
-      'L\'image se révèle progressivement',
-      'Premier à deviner remporte la manche',
-      'Plus rapide = plus de points',
-    ],
-    icon: <Zap className="w-4 h-4" />,
+    description: 'L\'image se dépixelise, soyez le plus rapide à deviner.',
+    highlights: ['Réflexes', 'Dépixelisation', 'Speed'],
+    icon: <Zap className="w-5 h-5" />,
     accent: '#10b981',
   },
   {
@@ -137,12 +116,8 @@ const MODE_THEMES: ModeTheme[] = [
     label: 'Monopoly',
     tagline: 'Plateau aventure',
     description: 'Avancez sur le plateau, défis à chaque case.',
-    rules: [
-      'Lancez les dés pour avancer',
-      'Chaque case = un mini-jeu',
-      'Premier au tour final gagne',
-    ],
-    icon: <HomeIcon className="w-4 h-4" />,
+    highlights: ['Plateau', 'Mini-jeux', 'Long format'],
+    icon: <HomeIcon className="w-5 h-5" />,
     accent: '#ec4899',
   },
   {
@@ -150,12 +125,8 @@ const MODE_THEMES: ModeTheme[] = [
     label: 'Undercover',
     tagline: 'Trouvez l\'infiltré',
     description: 'Donnez des indices, démasquez l\'imposteur.',
-    rules: [
-      'Chaque joueur reçoit un mot secret',
-      'L\'undercover a un mot proche mais différent',
-      'Indices et votes pour éliminer',
-    ],
-    icon: <UserX className="w-4 h-4" />,
+    highlights: ['Bluff', 'Indices', 'Vote'],
+    icon: <UserX className="w-5 h-5" />,
     accent: '#94a3b8',
   },
 ];
@@ -249,7 +220,7 @@ export const InkLobbyScreen = ({
       return;
     }
     setIsStarting(true);
-    playInkSound('inkSuccess', 0.5);
+    playInkSound('inkSuccess', 0.6);
     try {
       await onStartGame(gameMode);
     } catch (error) {
@@ -275,10 +246,8 @@ export const InkLobbyScreen = ({
 
   return (
     <div className="h-screen w-full flex flex-col bg-[#0a0810] text-white relative overflow-hidden">
-      {/* Background canvas (collaborative drawing) */}
+      {/* Background canvas */}
       <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
-
-      {/* Cursor particles */}
       <InkCursorParticles />
 
       {/* Background tints */}
@@ -288,23 +257,23 @@ export const InkLobbyScreen = ({
           <motion.div
             key={selectedTheme.id}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
+            animate={{ opacity: 0.55 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6 }}
             className="absolute inset-0"
           >
             <div
-              className="absolute top-0 left-1/3 w-[500px] h-[300px] rounded-full opacity-20"
+              className="absolute top-0 left-1/3 w-[600px] h-[400px] rounded-full opacity-25"
               style={{
-                background: `radial-gradient(ellipse, ${selectedTheme.accent}55 0%, transparent 70%)`,
-                filter: 'blur(80px)',
+                background: `radial-gradient(ellipse, ${selectedTheme.accent}66 0%, transparent 70%)`,
+                filter: 'blur(90px)',
               }}
             />
             <div
-              className="absolute bottom-0 right-1/4 w-[400px] h-[250px] rounded-full opacity-15"
+              className="absolute bottom-0 right-1/4 w-[500px] h-[300px] rounded-full opacity-20"
               style={{
-                background: `radial-gradient(ellipse, ${selectedTheme.accent}44 0%, transparent 70%)`,
-                filter: 'blur(70px)',
+                background: `radial-gradient(ellipse, ${selectedTheme.accent}55 0%, transparent 70%)`,
+                filter: 'blur(80px)',
               }}
             />
           </motion.div>
@@ -319,40 +288,30 @@ export const InkLobbyScreen = ({
         />
       </div>
 
-      {/* HEADER */}
-      <header className="relative z-30 flex items-center justify-between px-5 py-3 flex-shrink-0">
-        <motion.button
-          onClick={() => {
-            playInkSound('brushTap', 0.3);
-            setShowLeaveConfirm(true);
-          }}
-          whileHover={{ x: -2 }}
-          whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.06] transition-all text-white/70 hover:text-white text-sm"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Quitter</span>
-        </motion.button>
-
-        <div className="flex items-center gap-4">
-          <div
-            className="hidden md:block text-lg font-black tracking-[0.15em]"
-            style={{
-              fontFamily: "'Caveat', cursive",
-              background: `linear-gradient(180deg, white, ${selectedTheme.accent})`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+      {/* HEADER — minimal left/center, big PLAY on the right */}
+      <header className="relative z-30 flex items-center justify-between gap-4 px-5 py-3 flex-shrink-0">
+        {/* Left cluster */}
+        <div className="flex items-center gap-3">
+          <motion.button
+            onClick={() => {
+              playInkSound('brushTap', 0.3);
+              setShowLeaveConfirm(true);
             }}
+            whileHover={{ x: -2 }}
+            whileTap={{ scale: 0.96 }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.06] transition-all text-white/70 hover:text-white text-sm"
           >
-            MIMIC MASTER
-          </div>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Quitter</span>
+          </motion.button>
+
+          {/* Lobby code */}
           <motion.button
             onClick={handleCopyCode}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border transition-all"
-            style={{ borderColor: `${selectedTheme.accent}40` }}
+            style={{ borderColor: `${selectedTheme.accent}50` }}
           >
             <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold">Code</span>
             <span
@@ -367,9 +326,25 @@ export const InkLobbyScreen = ({
               <Copy className="w-3 h-3 text-white/40" />
             )}
           </motion.button>
+
+          {/* Title */}
+          <div
+            className="hidden md:block text-base font-black tracking-[0.15em]"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              background: `linear-gradient(180deg, white, ${selectedTheme.accent})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            MIMIC MASTER
+          </div>
         </div>
 
+        {/* Right cluster — PLAY is the star */}
         <div className="flex items-center gap-2">
+          {/* Invite */}
           <motion.button
             onClick={() => {
               playInkSound('brushTap', 0.3);
@@ -377,7 +352,7 @@ export const InkLobbyScreen = ({
             }}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all"
             style={{
               background: `${selectedTheme.accent}15`,
               border: `1px solid ${selectedTheme.accent}50`,
@@ -385,8 +360,10 @@ export const InkLobbyScreen = ({
             }}
           >
             <Sparkles className="w-3 h-3" />
-            Inviter
+            <span className="hidden sm:inline">Inviter</span>
           </motion.button>
+
+          {/* Settings */}
           <motion.button
             onClick={() => {
               playInkSound('inkClick', 0.3);
@@ -394,105 +371,119 @@ export const InkLobbyScreen = ({
             }}
             whileHover={{ rotate: 90 }}
             whileTap={{ scale: 0.96 }}
-            className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.06] flex items-center justify-center text-white/70 hover:text-white transition-all"
+            className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.06] flex items-center justify-center text-white/70 hover:text-white transition-all"
             aria-label="Paramètres"
           >
             <Settings className="w-3.5 h-3.5" />
           </motion.button>
+
+          {/* PLAY — star of the show */}
+          {isHost ? (
+            <motion.button
+              onClick={handleStartGame}
+              disabled={!canStart || isStarting}
+              whileHover={canStart && !isStarting ? { scale: 1.04, y: -1 } : undefined}
+              whileTap={canStart && !isStarting ? { scale: 0.97 } : undefined}
+              animate={
+                canStart && !isStarting
+                  ? {
+                      boxShadow: [
+                        `0 4px 20px ${selectedTheme.accent}66`,
+                        `0 4px 30px ${selectedTheme.accent}99`,
+                        `0 4px 20px ${selectedTheme.accent}66`,
+                      ],
+                    }
+                  : undefined
+              }
+              transition={
+                canStart && !isStarting
+                  ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+                  : undefined
+              }
+              className={cn(
+                'relative ml-2 flex items-center gap-2 px-5 py-2 rounded-lg font-black text-base tracking-wide transition-all overflow-hidden group',
+                (!canStart || isStarting) && 'cursor-not-allowed opacity-50',
+              )}
+              style={
+                canStart && !isStarting
+                  ? {
+                      background: `linear-gradient(135deg, ${selectedTheme.accent}, ${selectedTheme.accent}dd)`,
+                      color: 'white',
+                    }
+                  : {
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: 'rgba(255,255,255,0.5)',
+                    }
+              }
+              title={!canStart ? reasons.join(' · ') : 'Lancer la partie'}
+            >
+              {canStart && !isStarting && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
+              )}
+              <span className="relative flex items-center gap-2">
+                {isStarting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="hidden sm:inline">Démarrage…</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" fill="currentColor" />
+                    <span>JOUER</span>
+                  </>
+                )}
+              </span>
+            </motion.button>
+          ) : (
+            <div className="ml-2 flex items-center gap-2 px-5 py-2 rounded-lg bg-white/[0.04] border border-white/10 text-white/50 text-sm">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="hidden sm:inline font-bold">En attente de l'hôte</span>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* MAIN — packed grid */}
-      <main className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden px-5 pb-3 gap-3">
-        {/* Mode HERO bar */}
-        <section
-          className="flex-shrink-0 rounded-2xl bg-black/30 backdrop-blur-md border overflow-hidden relative"
-          style={{ borderColor: `${selectedTheme.accent}40` }}
-        >
-          <div
-            className="absolute inset-x-0 top-0 h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${selectedTheme.accent}, transparent)`,
-            }}
-          />
-          <div className="relative px-5 py-3 flex items-center gap-4">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{
-                background: `${selectedTheme.accent}1f`,
-                border: `1px solid ${selectedTheme.accent}66`,
-                boxShadow: `0 4px 16px ${selectedTheme.accent}33`,
-              }}
-            >
-              <div style={{ color: selectedTheme.accent }} className="scale-150">
-                {selectedTheme.icon}
-              </div>
+      {/* Reasons banner — only for host who can't start */}
+      <AnimatePresence>
+        {isHost && !canStart && reasons.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden relative z-20 px-5 flex-shrink-0"
+          >
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/[0.1] border border-amber-500/30 mb-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span className="text-xs text-amber-200/90">{reasons.join(' · ')}</span>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            <div className="flex-1 min-w-0">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={selectedTheme.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <div className="flex items-baseline gap-2">
-                    <h1
-                      className="text-2xl font-black tracking-tight leading-none"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        color: selectedTheme.accent,
-                      }}
-                    >
-                      {selectedTheme.label}
-                    </h1>
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold">
-                      · {selectedTheme.tagline}
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/50 mt-0.5 truncate">{selectedTheme.description}</p>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-              <div className="text-right">
-                <div className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Joueurs</div>
-                <div className="text-lg font-black text-white">
-                  {connectedCount}
-                  <span className="text-white/30 text-sm">/{Math.max(minPlayers, players.length)}</span>
-                </div>
-              </div>
-              <div className="w-px h-8 bg-white/10" />
-              <div className="text-right">
-                <div className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Min requis</div>
-                <div className="text-lg font-black" style={{ color: selectedTheme.accent }}>
-                  {minPlayers}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* MIDDLE — three columns: players, modes, mode info */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1.4fr_0.9fr_1fr] gap-3 min-h-0">
-          {/* PLAYERS PANEL */}
-          <section className="rounded-2xl bg-black/30 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
-            <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between">
+      {/* MAIN — 2 columns */}
+      <main className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden px-5 pb-3">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-3 min-h-0">
+          {/* LEFT — Players column */}
+          <section className="rounded-2xl bg-black/35 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
+            <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Users className="w-3.5 h-3.5 text-white/50" />
                 <h2 className="text-xs font-bold text-white/80 uppercase tracking-[0.15em]">
-                  Joueurs ({players.length})
+                  Joueurs
                 </h2>
-              </div>
-              {isHost && (
-                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                  <Crown className="w-3 h-3" />
-                  Hôte
+                <span
+                  className="text-xs font-black"
+                  style={{ color: selectedTheme.accent }}
+                >
+                  {players.length}
                 </span>
-              )}
+              </div>
+              <div className="text-[10px] text-white/40 uppercase tracking-wider font-bold">
+                {connectedCount}/{Math.max(players.length, minPlayers)}
+                {' · '}
+                <span style={{ color: selectedTheme.accent }}>min {minPlayers}</span>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
@@ -513,9 +504,7 @@ export const InkLobbyScreen = ({
                         transition={{ delay: idx * 0.04 }}
                         className={cn(
                           'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all',
-                          isMe
-                            ? 'bg-white/[0.05]'
-                            : 'bg-black/40 border-white/8 hover:bg-white/[0.03]',
+                          isMe ? 'bg-white/[0.05]' : 'bg-black/40 border-white/8 hover:bg-white/[0.03]',
                           isDisc && 'opacity-60',
                         )}
                         style={isMe ? { borderColor: `${selectedTheme.accent}66` } : undefined}
@@ -653,7 +642,7 @@ export const InkLobbyScreen = ({
                 ))}
 
                 {/* Invite CTA */}
-                {players.length >= minPlayers && players.length < 8 && (
+                {players.length < 8 && (
                   <button
                     type="button"
                     onClick={() => {
@@ -669,7 +658,7 @@ export const InkLobbyScreen = ({
                       <div className="text-xs font-bold text-white/40 group-hover:text-white/70 transition-colors">
                         Inviter un ami
                       </div>
-                      <div className="text-[10px] text-white/25">Ajoute encore plus de joueurs</div>
+                      <div className="text-[10px] text-white/25">Code, lien, amis en ligne</div>
                     </div>
                   </button>
                 )}
@@ -677,259 +666,175 @@ export const InkLobbyScreen = ({
             </div>
           </section>
 
-          {/* MODE PICKER */}
-          <section className="rounded-2xl bg-black/30 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
-            <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between">
-              <h2 className="text-xs font-bold text-white/80 uppercase tracking-[0.15em]">
-                Modes
-              </h2>
-              {isHost ? (
-                <span
-                  className="text-[10px] font-bold uppercase tracking-wider"
-                  style={{ color: selectedTheme.accent }}
-                >
-                  Choisir
-                </span>
-              ) : (
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
-                  Lecture
-                </span>
-              )}
-            </div>
+          {/* RIGHT — Mode hero + grid */}
+          <section className="flex flex-col min-h-0 gap-3">
+            {/* HERO — selected mode preview, big and visible */}
+            <div
+              className="relative rounded-2xl overflow-hidden border-2 backdrop-blur-md flex-shrink-0"
+              style={{
+                borderColor: `${selectedTheme.accent}55`,
+                background: `linear-gradient(135deg, ${selectedTheme.accent}10 0%, transparent 60%), rgba(0,0,0,0.4)`,
+                boxShadow: `0 8px 32px ${selectedTheme.accent}22`,
+              }}
+            >
+              <div
+                className="absolute inset-x-0 top-0 h-px"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${selectedTheme.accent}, transparent)`,
+                }}
+              />
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
-              <div className="grid grid-cols-1 gap-1">
-                {MODE_THEMES.map((mode) => {
-                  const isActive = mode.id === gameMode;
-                  const meta = GAME_MODE_META[mode.id];
-                  const enoughPlayers = connectedCount >= meta.minPlayers || isAdmin;
-                  const disabled = !isHost;
-
-                  return (
-                    <motion.button
-                      key={mode.id}
-                      type="button"
-                      onClick={() => !disabled && handleGameModeChange(mode.id)}
-                      whileHover={!disabled ? { x: 2 } : undefined}
-                      whileTap={!disabled ? { scale: 0.99 } : undefined}
-                      disabled={disabled}
-                      className={cn(
-                        'relative w-full flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left transition-all',
-                        isActive
-                          ? 'bg-white/[0.05]'
-                          : 'bg-transparent border-white/5 hover:bg-white/[0.03] hover:border-white/10',
-                        !enoughPlayers && !isActive && 'opacity-50',
-                        disabled && 'cursor-default',
-                      )}
-                      style={isActive ? { borderColor: `${mode.accent}80` } : undefined}
-                    >
-                      <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{
-                          background: isActive ? `${mode.accent}25` : 'rgba(255,255,255,0.04)',
-                          border: isActive ? `1px solid ${mode.accent}60` : '1px solid rgba(255,255,255,0.08)',
-                        }}
-                      >
-                        <div style={{ color: mode.accent }}>{mode.icon}</div>
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div
-                          className="text-[12px] font-bold leading-tight truncate"
-                          style={{ color: isActive ? mode.accent : 'rgba(255,255,255,0.95)' }}
-                        >
-                          {mode.label}
-                        </div>
-                        <div className="text-[10px] text-white/40 leading-tight truncate">
-                          {meta.minPlayers}+ joueurs
-                        </div>
-                      </div>
-
-                      {isActive && (
-                        <ShieldCheck
-                          className="w-3.5 h-3.5 flex-shrink-0"
-                          style={{ color: mode.accent }}
-                        />
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-          {/* MODE INFO PANEL — rules/tips for selected mode */}
-          <section className="rounded-2xl bg-black/30 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
-            <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Info className="w-3.5 h-3.5 text-white/50" />
-                <h2 className="text-xs font-bold text-white/80 uppercase tracking-[0.15em]">
-                  Comment jouer
-                </h2>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={selectedTheme.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.25 }}
-                  className="space-y-3"
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.3 }}
+                  className="relative px-5 py-4 flex items-center gap-4"
                 >
-                  {/* Mode preview hero */}
-                  <div
-                    className="rounded-xl p-4 flex items-center gap-3 border"
+                  <motion.div
+                    initial={{ scale: 0, rotate: -90 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+                    className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{
-                      background: `linear-gradient(135deg, ${selectedTheme.accent}15, transparent)`,
-                      borderColor: `${selectedTheme.accent}33`,
+                      background: `${selectedTheme.accent}25`,
+                      border: `1px solid ${selectedTheme.accent}80`,
+                      boxShadow: `0 8px 24px ${selectedTheme.accent}55`,
                     }}
                   >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background: `${selectedTheme.accent}25`,
-                      }}
-                    >
-                      <div style={{ color: selectedTheme.accent }}>
-                        {selectedTheme.icon}
-                      </div>
+                    <div style={{ color: selectedTheme.accent }} className="scale-150">
+                      {selectedTheme.icon}
                     </div>
-                    <div>
-                      <div
-                        className="text-base font-black leading-tight"
+                  </motion.div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <h1
+                        className="text-3xl font-black tracking-tight leading-none"
                         style={{
                           fontFamily: "'Caveat', cursive",
                           color: selectedTheme.accent,
                         }}
                       >
                         {selectedTheme.label}
-                      </div>
-                      <div className="text-[10px] text-white/50 leading-tight">
-                        {selectedTheme.tagline}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-xs text-white/60 leading-relaxed">
-                    {selectedTheme.description}
-                  </p>
-
-                  {/* Rules */}
-                  <div className="space-y-1.5">
-                    <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40 mb-1.5">
-                      Règles principales
-                    </div>
-                    {selectedTheme.rules.map((rule, i) => (
-                      <div
-                        key={i}
-                        className="flex items-start gap-2 text-xs text-white/70 leading-relaxed"
-                      >
-                        <div
-                          className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0"
-                          style={{ background: selectedTheme.accent }}
-                        />
-                        <span>{rule}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Min players badge */}
-                  <div className="pt-2 border-t border-white/5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-white/40">
-                        Joueurs requis
+                      </h1>
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold">
+                        · {selectedTheme.tagline}
                       </span>
-                      <span
-                        className="text-sm font-black"
-                        style={{ color: selectedTheme.accent }}
-                      >
-                        {GAME_MODE_META[selectedTheme.id].minPlayers}+
-                      </span>
+                    </div>
+                    <p className="text-xs text-white/60 mt-1 leading-snug">
+                      {selectedTheme.description}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      {selectedTheme.highlights.map((h, i) => (
+                        <span
+                          key={i}
+                          className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
+                          style={{
+                            background: `${selectedTheme.accent}15`,
+                            border: `1px solid ${selectedTheme.accent}40`,
+                            color: selectedTheme.accent,
+                          }}
+                        >
+                          {h}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </motion.div>
               </AnimatePresence>
             </div>
+
+            {/* MODE GRID — visual mode picker */}
+            <div className="flex-1 rounded-2xl bg-black/35 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
+              <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between flex-shrink-0">
+                <h2 className="text-xs font-bold text-white/80 uppercase tracking-[0.15em]">
+                  Choisir le mode
+                </h2>
+                {!isHost && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                    <Lock className="w-3 h-3" />
+                    Hôte uniquement
+                  </span>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {MODE_THEMES.map((mode) => {
+                    const isActive = mode.id === gameMode;
+                    const meta = GAME_MODE_META[mode.id];
+                    const enoughPlayers = connectedCount >= meta.minPlayers || isAdmin;
+                    const disabled = !isHost;
+
+                    return (
+                      <motion.button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => !disabled && handleGameModeChange(mode.id)}
+                        whileHover={!disabled ? { y: -2, scale: 1.02 } : undefined}
+                        whileTap={!disabled ? { scale: 0.98 } : undefined}
+                        disabled={disabled}
+                        className={cn(
+                          'relative aspect-[3/2] rounded-xl border-2 overflow-hidden flex flex-col items-center justify-center gap-1.5 p-2 text-center transition-all group',
+                          isActive ? 'bg-white/[0.06]' : 'bg-black/40 border-white/8 hover:bg-white/[0.03] hover:border-white/15',
+                          !enoughPlayers && !isActive && 'opacity-50',
+                          disabled && 'cursor-default',
+                        )}
+                        style={
+                          isActive
+                            ? {
+                                borderColor: mode.accent,
+                                boxShadow: `0 0 0 1px ${mode.accent}40, inset 0 0 30px ${mode.accent}10`,
+                              }
+                            : undefined
+                        }
+                      >
+                        {/* Active indicator */}
+                        {isActive && (
+                          <div
+                            className="absolute top-2 right-2 w-2 h-2 rounded-full"
+                            style={{
+                              background: mode.accent,
+                              boxShadow: `0 0 8px ${mode.accent}`,
+                            }}
+                          />
+                        )}
+
+                        {/* Icon */}
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center transition-all"
+                          style={{
+                            background: isActive ? `${mode.accent}25` : 'rgba(255,255,255,0.04)',
+                            border: isActive ? `1px solid ${mode.accent}66` : '1px solid rgba(255,255,255,0.08)',
+                          }}
+                        >
+                          <div style={{ color: mode.accent }}>{mode.icon}</div>
+                        </div>
+
+                        {/* Label */}
+                        <div
+                          className="text-sm font-black leading-tight"
+                          style={{ color: isActive ? mode.accent : 'white' }}
+                        >
+                          {mode.label}
+                        </div>
+                        <div className="text-[10px] text-white/40 font-bold uppercase tracking-wider">
+                          {meta.minPlayers}+ joueurs
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </section>
         </div>
-
-        {/* BOTTOM — Start CTA */}
-        <section className="flex-shrink-0">
-          <AnimatePresence>
-            {isHost && !canStart && reasons.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                animate={{ opacity: 1, height: 'auto', marginBottom: 8 }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/[0.08] border border-amber-500/25">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                  <span className="text-[11px] text-amber-200/90">
-                    {reasons.join(' · ')}
-                  </span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {isHost ? (
-            <motion.button
-              onClick={handleStartGame}
-              disabled={!canStart || isStarting}
-              whileHover={canStart && !isStarting ? { scale: 1.005 } : undefined}
-              whileTap={canStart && !isStarting ? { scale: 0.995 } : undefined}
-              className={cn(
-                'relative w-full py-3.5 px-5 rounded-xl font-bold text-base tracking-wide transition-all overflow-hidden group',
-                (!canStart || isStarting) && 'cursor-not-allowed',
-              )}
-              style={
-                canStart && !isStarting
-                  ? {
-                      background: `linear-gradient(135deg, ${selectedTheme.accent}, ${selectedTheme.accent}cc)`,
-                      color: 'white',
-                      boxShadow: `0 4px 20px ${selectedTheme.accent}55`,
-                    }
-                  : {
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      color: 'rgba(255,255,255,0.4)',
-                    }
-              }
-            >
-              {canStart && !isStarting && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
-              )}
-              <span className="relative flex items-center justify-center gap-2">
-                {isStarting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Démarrage…
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4" fill="currentColor" />
-                    Lancer la partie
-                  </>
-                )}
-              </span>
-            </motion.button>
-          ) : (
-            <div className="w-full py-3.5 px-5 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-center gap-2 text-sm">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-white/40" />
-              <span className="text-white/60 font-bold">
-                En attente du lancement par l'hôte
-              </span>
-            </div>
-          )}
-        </section>
       </main>
 
-      {/* Floating chat (kept as designed, bottom-left bubble) */}
+      {/* Floating chat */}
       <LobbyChat
         lobbyId={lobbyId}
         playerId={currentPlayer.id}
