@@ -2,30 +2,20 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft,
   Settings,
-  Play,
   X,
   Copy,
   Check,
   Crown,
   WifiOff,
   AlertTriangle,
-  Phone,
-  Swords,
-  Brain,
-  Zap,
-  Home as HomeIcon,
-  UserX,
-  Sparkles,
   MoreVertical,
   Loader2,
   Users,
   Lock,
-  Music,
-  HelpCircle,
-  Mic,
-  Headphones,
+  LogOut,
+  UserPlus,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -64,14 +54,14 @@ interface ModeCard {
   id: LobbyGameMode;
   label: string;
   tagline: string;
-  description: string;
-  icon: React.ReactNode;
-  /** Big bright fill color for the card body */
-  cardColor: string;
-  /** Darker variant for shadows / borders */
-  cardColorDark: string;
-  /** Mascot emoji (rendered big behind the card) */
-  emoji: string;
+  /** Image path in /public/lobby/cards/ */
+  image: string;
+  /** Fallback emoji shown if image is missing */
+  fallbackEmoji: string;
+  /** Card body color when fallback is used */
+  fallbackColor: string;
+  /** Glow color for active state */
+  glowColor: string;
 }
 
 const MODE_CARDS: ModeCard[] = [
@@ -79,252 +69,148 @@ const MODE_CARDS: ModeCard[] = [
     id: 'normal',
     label: 'IMITATION',
     tagline: 'Imite le son ou le chanteur !',
-    description: 'Reproduis le défi vidéo des autres joueurs.',
-    icon: <Mic className="w-12 h-12" />,
-    cardColor: '#8b5cf6',
-    cardColorDark: '#5b21b6',
-    emoji: '🎤',
+    image: '/lobby/cards/imitation.png',
+    fallbackEmoji: '🎤',
+    fallbackColor: '#8b5cf6',
+    glowColor: '#a855f7',
   },
   {
     id: 'audiophone',
     label: 'AUDIO PIONNER',
     tagline: 'Téléphone arabe audio',
-    description: 'Une phrase est inversée, devine ce qu\'il dit.',
-    icon: <Music className="w-12 h-12" />,
-    cardColor: '#f59e0b',
-    cardColorDark: '#b45309',
-    emoji: '🔊',
+    image: '/lobby/cards/audiophone.png',
+    fallbackEmoji: '🔊',
+    fallbackColor: '#f59e0b',
+    glowColor: '#fbbf24',
   },
   {
     id: '2v2',
     label: '2 VS 2',
     tagline: 'Combat en équipes',
-    description: 'Affrontement par équipes de 2 joueurs.',
-    icon: <Swords className="w-12 h-12" />,
-    cardColor: '#3b82f6',
-    cardColorDark: '#1e40af',
-    emoji: '⚔️',
+    image: '/lobby/cards/2v2.png',
+    fallbackEmoji: '⚔️',
+    fallbackColor: '#3b82f6',
+    glowColor: '#60a5fa',
   },
   {
     id: 'quiz',
     label: 'QUIZ',
     tagline: 'Connaissances générales',
-    description: 'Réponds vite, gagne plus de points.',
-    icon: <HelpCircle className="w-12 h-12" />,
-    cardColor: '#84cc16',
-    cardColorDark: '#4d7c0f',
-    emoji: '❓',
+    image: '/lobby/cards/quiz.png',
+    fallbackEmoji: '❓',
+    fallbackColor: '#84cc16',
+    glowColor: '#a3e635',
   },
   {
     id: 'pixoguess',
     label: 'BLIND TEST',
     tagline: 'Devine la musique',
-    description: 'Trouve le titre, l\'artiste, le plus rapide.',
-    icon: <Headphones className="w-12 h-12" />,
-    cardColor: '#06b6d4',
-    cardColorDark: '#0e7490',
-    emoji: '🎧',
+    image: '/lobby/cards/blindtest.png',
+    fallbackEmoji: '🎧',
+    fallbackColor: '#06b6d4',
+    glowColor: '#22d3ee',
   },
   {
     id: 'monopoly',
     label: 'MEMORY',
     tagline: 'Plateau aventure',
-    description: 'Avance sur le plateau, défis à chaque case.',
-    icon: <HomeIcon className="w-12 h-12" />,
-    cardColor: '#ec4899',
-    cardColorDark: '#9d174d',
-    emoji: '🎲',
+    image: '/lobby/cards/memory.png',
+    fallbackEmoji: '🔐',
+    fallbackColor: '#ec4899',
+    glowColor: '#f472b6',
   },
   {
     id: 'undercover',
     label: 'UNDERCOVER',
     tagline: 'Trouve l\'infiltré',
-    description: 'Donne des indices, démasque l\'imposteur.',
-    icon: <UserX className="w-12 h-12" />,
-    cardColor: '#a855f7',
-    cardColorDark: '#6b21a8',
-    emoji: '🕵️',
+    image: '/lobby/cards/undercover.png',
+    fallbackEmoji: '🕵️',
+    fallbackColor: '#a855f7',
+    glowColor: '#c084fc',
   },
 ];
 
-/** Hand-drawn graffiti card border SVG. */
-const CardBorder = ({
-  color,
-  className,
+/**
+ * Card image with graceful fallback to an emoji + colored card if the image
+ * isn't available (e.g. on first load before the user uploads PNGs).
+ */
+const CardArt = ({
+  card,
+  isActive,
 }: {
-  color: string;
-  className?: string;
-}) => (
-  <svg
-    className={cn('absolute inset-0 w-full h-full pointer-events-none', className)}
-    viewBox="0 0 100 130"
-    preserveAspectRatio="none"
-  >
-    <path
-      d="M5,8
-         Q3,4 8,3
-         L92,4
-         Q97,3 96,9
-         L97,60
-         Q98,90 96,121
-         Q97,128 90,127
-         L8,128
-         Q3,128 4,122
-         L3,70
-         Q4,40 5,8 Z"
-      fill="none"
-      stroke="white"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      vectorEffect="non-scaling-stroke"
-      opacity="0.95"
-    />
-    <path
-      d="M5,8
-         Q3,4 8,3
-         L92,4
-         Q97,3 96,9
-         L97,60
-         Q98,90 96,121
-         Q97,128 90,127
-         L8,128
-         Q3,128 4,122
-         L3,70
-         Q4,40 5,8 Z"
-      fill={color}
-      stroke="rgba(0,0,0,0.5)"
-      strokeWidth="4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      vectorEffect="non-scaling-stroke"
-    />
-  </svg>
-);
+  card: ModeCard;
+  isActive: boolean;
+}) => {
+  const [imageOk, setImageOk] = useState(true);
 
-/** Splash burst behind the icon — stylized starburst with ink splatters. */
-const CardSplash = ({ color, className }: { color: string; className?: string }) => (
-  <svg
-    className={cn('absolute inset-0 w-full h-full pointer-events-none', className)}
-    viewBox="0 0 100 100"
-    preserveAspectRatio="xMidYMid meet"
-  >
-    <path
-      d="M50,5 L58,28 L82,12 L72,40 L98,32 L80,52 L98,72 L72,68 L82,92 L58,76 L50,98 L42,76 L18,92 L28,68 L2,72 L20,52 L2,32 L28,40 L18,12 L42,28 Z"
-      fill="white"
-      fillOpacity="0.18"
-    />
-    <circle cx="20" cy="20" r="2" fill="white" fillOpacity="0.5" />
-    <circle cx="80" cy="80" r="3" fill="white" fillOpacity="0.5" />
-    <circle cx="78" cy="22" r="1.5" fill="white" fillOpacity="0.4" />
-    <circle cx="22" cy="78" r="2" fill="white" fillOpacity="0.5" />
-  </svg>
-);
+  if (!imageOk) {
+    // Fallback: stylized colored card with emoji and label
+    return (
+      <div
+        className="absolute inset-0 rounded-2xl flex flex-col items-center justify-between p-4 overflow-hidden"
+        style={{
+          background: `linear-gradient(180deg, ${card.fallbackColor}, ${card.fallbackColor}dd)`,
+          border: '3px solid rgba(0,0,0,0.4)',
+        }}
+      >
+        <div className="flex-1 flex items-center justify-center">
+          <motion.div
+            animate={{ rotate: [-3, 3, -3], scale: [1, 1.05, 1] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="text-7xl"
+            style={{ filter: 'drop-shadow(2px 4px 0 rgba(0,0,0,0.4))' }}
+          >
+            {card.fallbackEmoji}
+          </motion.div>
+        </div>
+        <h3
+          className="text-xl font-black tracking-tight leading-none text-white text-center px-1"
+          style={{
+            fontFamily: "'Caveat', cursive",
+            textShadow:
+              '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+          }}
+        >
+          {card.label}
+        </h3>
+      </div>
+    );
+  }
 
-/** Hero header pill — wraps the selected mode info at the top. */
-const HeroHeaderBorder = ({ color }: { color: string }) => (
-  <svg
-    className="absolute inset-0 w-full h-full pointer-events-none"
-    viewBox="0 0 200 60"
-    preserveAspectRatio="none"
-  >
-    <path
-      d="M3,8
-         Q1,3 6,2
-         L195,3
-         Q199,2 198,8
-         L198,52
-         Q199,58 193,58
-         L7,58
-         Q2,58 3,52 Z"
-      fill={color}
-      stroke="rgba(0,0,0,0.4)"
-      strokeWidth="3"
-      strokeLinejoin="round"
-      strokeLinecap="round"
-      vectorEffect="non-scaling-stroke"
-    />
-    <path
-      d="M5,9
-         Q3,5 8,4
-         L193,5
-         Q197,4 196,9
-         L196,51
-         Q197,55 192,55
-         L8,55
-         Q4,55 5,51 Z"
-      fill="none"
-      stroke="rgba(255,255,255,0.4)"
-      strokeWidth="1.5"
-      strokeLinejoin="round"
-      strokeLinecap="round"
-      vectorEffect="non-scaling-stroke"
-    />
-  </svg>
-);
-
-/** Big graffiti "PRÊT !" stamp button (yellow burst) */
-const ReadyStamp = ({ onClick, disabled }: { onClick: () => void; disabled: boolean }) => (
-  <motion.button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    whileHover={!disabled ? { scale: 1.06, rotate: -2 } : undefined}
-    whileTap={!disabled ? { scale: 0.94, rotate: 1 } : undefined}
-    animate={
-      !disabled
-        ? { rotate: [-3, 3, -3] }
-        : undefined
-    }
-    transition={
-      !disabled
-        ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
-        : undefined
-    }
-    className={cn(
-      'relative w-44 h-32 flex-shrink-0',
-      disabled && 'opacity-40 grayscale cursor-not-allowed',
-    )}
-  >
-    {/* Yellow starburst */}
-    <svg viewBox="0 0 200 150" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
-      <path
-        d="M100,10
-           L120,40 L155,25 L150,60 L185,55 L165,85 L195,100 L165,115 L185,145 L150,140 L155,175 L120,160 L100,190 L80,160 L45,175 L50,140 L15,145 L35,115 L5,100 L35,85 L15,55 L50,60 L45,25 L80,40 Z"
-        fill="#fbbf24"
-        stroke="#0a0810"
-        strokeWidth="5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <path
-        d="M100,18
-           L118,45 L150,32 L145,62 L177,58 L160,85 L188,100 L160,115 L177,142 L145,138 L150,168 L118,155 L100,182 L82,155 L50,168 L55,138 L23,142 L40,115 L12,100 L40,85 L23,58 L55,62 L50,32 L82,45 Z"
-        fill="none"
-        stroke="rgba(255,255,255,0.4)"
-        strokeWidth="1.5"
-      />
-    </svg>
-    <span
-      className="absolute inset-0 flex items-center justify-center text-4xl md:text-5xl font-black tracking-wide"
+  return (
+    <img
+      src={card.image}
+      alt={card.label}
+      onError={() => setImageOk(false)}
+      className="absolute inset-0 w-full h-full object-cover rounded-2xl"
       style={{
-        fontFamily: "'Caveat', cursive",
-        color: 'white',
-        textShadow:
-          '3px 3px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+        filter: isActive
+          ? 'brightness(1.05) saturate(1.1)'
+          : 'brightness(0.9) saturate(0.95)',
       }}
-    >
-      PRÊT !
-    </span>
-    {/* Peace fingers next to */}
-    <span
-      className="absolute -right-2 top-1/2 -translate-y-1/2 text-3xl"
-      style={{ filter: 'drop-shadow(2px 2px 0 #0a0810)' }}
-    >
-      ✌️
-    </span>
-  </motion.button>
-);
+    />
+  );
+};
+
+/**
+ * Optional asset with fallback. Renders the image if it loads, otherwise
+ * renders the children fallback element.
+ */
+const ImageWithFallback = ({
+  src,
+  alt,
+  className,
+  fallback,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  fallback: React.ReactNode;
+}) => {
+  const [ok, setOk] = useState(true);
+  if (!ok) return <>{fallback}</>;
+  return <img src={src} alt={alt} className={className} onError={() => setOk(false)} />;
+};
 
 /* ============================================================
    Main lobby
@@ -446,106 +332,95 @@ export const InkLobbyScreen = ({
     return () => window.removeEventListener('click', close);
   }, [openMenuFor]);
 
+  const playerCountForMode = (modeId: LobbyGameMode) =>
+    modeId === gameMode ? connectedCount : 0;
+
   return (
     <div className="h-screen w-full flex flex-col bg-[#1a0d2e] text-white relative overflow-hidden">
       {/* Background canvas (collaborative drawing) */}
       <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
       <InkCursorParticles />
 
-      {/* Graffiti brick wall background */}
+      {/* Graffiti background — soft purple wall + ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#160a26] to-[#0f0820]" />
-
-        {/* Brick texture pattern */}
         <svg className="absolute inset-0 w-full h-full opacity-[0.04]">
           <defs>
-            <pattern id="brick-wall" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse">
-              <rect x="0" y="0" width="80" height="40" fill="none" />
+            <pattern id="brick" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse">
               <line x1="0" y1="0" x2="80" y2="0" stroke="white" strokeWidth="1" />
               <line x1="0" y1="20" x2="80" y2="20" stroke="white" strokeWidth="1" />
-              <line x1="0" y1="40" x2="80" y2="40" stroke="white" strokeWidth="1" />
               <line x1="0" y1="0" x2="0" y2="20" stroke="white" strokeWidth="1" />
               <line x1="40" y1="0" x2="40" y2="20" stroke="white" strokeWidth="1" />
               <line x1="20" y1="20" x2="20" y2="40" stroke="white" strokeWidth="1" />
               <line x1="60" y1="20" x2="60" y2="40" stroke="white" strokeWidth="1" />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#brick-wall)" />
+          <rect width="100%" height="100%" fill="url(#brick)" />
         </svg>
-
-        {/* Soft glow around top */}
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[400px] rounded-full opacity-30"
           style={{
-            background: 'radial-gradient(ellipse, rgba(168,85,247,0.5) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse, rgba(168,85,247,0.4) 0%, transparent 70%)',
             filter: 'blur(120px)',
           }}
         />
-
-        {/* Skull crown decoration on the floor */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 opacity-10 select-none pointer-events-none">
-          <svg viewBox="0 0 200 200" className="w-[300px] h-[300px]" fill="white">
-            <path d="M50,80 L60,60 L80,75 L100,55 L120,75 L140,60 L150,80 Z" />
-            <circle cx="100" cy="120" r="40" />
-            <rect x="80" y="135" width="10" height="20" fill="#1a0d2e" />
-            <rect x="110" y="135" width="10" height="20" fill="#1a0d2e" />
-          </svg>
+        {/* Skull crown silhouette */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 opacity-[0.06] select-none pointer-events-none">
+          <span className="text-[200px] leading-none">💀</span>
         </div>
-
-        {/* Spray cans corner decorations */}
-        <div className="absolute bottom-12 left-12 text-5xl opacity-40 select-none">🥤</div>
-        <div className="absolute bottom-12 right-32 text-5xl opacity-40 select-none">🔊</div>
       </div>
 
       {/* MAIN GRID — sidebar + main area */}
-      <div className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4 p-4 pb-[100px] min-h-0 overflow-hidden">
-        {/* SIDEBAR — Players */}
-        <aside className="flex flex-col min-h-0 overflow-hidden">
-          <div className="relative flex-1 rounded-3xl bg-black/40 backdrop-blur-md border-2 border-white/15 overflow-hidden flex flex-col min-h-0">
-            {/* Top accent line */}
-            <div
-              className="absolute inset-x-0 top-0 h-px"
-              style={{
-                background: 'linear-gradient(90deg, transparent, #a855f7, transparent)',
-              }}
+      <div className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 p-4 pb-[100px] min-h-0 overflow-hidden">
+
+        {/* SIDEBAR — Logo + Players + Mascot + QUITTER */}
+        <aside className="flex flex-col gap-3 min-h-0 overflow-hidden">
+          {/* C2TV / MIMIC MASTER LOGO */}
+          <div className="flex-shrink-0 flex items-center justify-center pt-2">
+            <ImageWithFallback
+              src="/lobby/logo.png"
+              alt="MIMIC MASTER"
+              className="w-full max-w-[220px] h-auto select-none pointer-events-none"
+              fallback={
+                <div className="text-center">
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-bold mb-1 flex items-center justify-center gap-2">
+                    <Crown className="w-3 h-3 text-amber-400" fill="currentColor" />
+                    MIMIC
+                    <Crown className="w-3 h-3 text-amber-400" fill="currentColor" />
+                  </div>
+                  <h1
+                    className="text-3xl font-black leading-none"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      color: '#a855f7',
+                      textShadow:
+                        '2px 2px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                    }}
+                  >
+                    MASTER
+                  </h1>
+                </div>
+              }
             />
+          </div>
 
-            {/* Logo C2TV */}
-            <div className="px-5 py-4 text-center border-b border-white/10">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-bold mb-1 flex items-center justify-center gap-2">
-                <Crown className="w-3 h-3 text-amber-400" fill="currentColor" />
-                MIMIC
-                <Crown className="w-3 h-3 text-amber-400" fill="currentColor" />
-              </div>
-              <h1
-                className="text-3xl font-black leading-none"
-                style={{
-                  fontFamily: "'Caveat', cursive",
-                  color: '#a855f7',
-                  textShadow:
-                    '2px 2px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-                }}
-              >
-                MASTER
-              </h1>
-            </div>
-
-            {/* Players header */}
+          {/* Players card */}
+          <div className="relative flex-1 rounded-3xl bg-black/40 backdrop-blur-md border-2 border-white/15 overflow-hidden flex flex-col min-h-0">
             <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
-                <Users className="w-3.5 h-3.5 text-white/50" />
-                <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-white/70">
-                  Joueurs
-                </span>
-                <span className="text-sm font-black" style={{ color: '#a855f7' }}>
-                  ({players.length})
+                <Users className="w-3.5 h-3.5 text-purple-400" />
+                <span
+                  className="text-base font-black text-white"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  JOUEURS ({players.length})
                 </span>
               </div>
               <motion.button
                 onClick={handleCopyCode}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/10 text-[10px] font-mono font-bold text-white/70 hover:text-white hover:border-white/30 flex items-center gap-1"
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/15 text-[10px] font-mono font-bold text-white/70 hover:text-white hover:border-white/30 flex items-center gap-1"
               >
                 {lobbyCode}
                 {codeCopied ? (
@@ -556,8 +431,8 @@ export const InkLobbyScreen = ({
               </motion.button>
             </div>
 
-            {/* Players list */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0">
+            {/* Player list */}
+            <div className="overflow-y-auto custom-scrollbar p-3 max-h-[280px]">
               <div className="space-y-2">
                 <AnimatePresence>
                   {players.map((player, idx) => {
@@ -573,16 +448,14 @@ export const InkLobbyScreen = ({
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ delay: idx * 0.04 }}
                         className={cn(
-                          'group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl border-2 transition-all',
-                          isMe
-                            ? 'bg-purple-500/10 border-purple-400/50'
-                            : 'bg-black/30 border-white/8 hover:bg-white/[0.03]',
+                          'group relative flex items-center gap-2.5 px-2.5 py-2 rounded-2xl transition-all',
+                          isMe ? 'bg-purple-500/10' : 'bg-transparent hover:bg-white/[0.03]',
                           isDisc && 'opacity-60',
                         )}
                       >
-                        {/* Avatar with online dot */}
                         <div className="relative flex-shrink-0">
-                          <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-base font-black text-white border-2 border-white/20"
+                          <div
+                            className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-black text-white border-2 border-white/15"
                             style={{ background: 'linear-gradient(135deg, #a855f7, #6b21a8)' }}
                           >
                             {hasImage ? (
@@ -593,7 +466,7 @@ export const InkLobbyScreen = ({
                           </div>
                           <div
                             className={cn(
-                              'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#1a0d2e]',
+                              'absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#1a0d2e]',
                               isDisc ? 'bg-amber-400' : 'bg-emerald-400',
                             )}
                             style={{
@@ -613,13 +486,10 @@ export const InkLobbyScreen = ({
                               {player.name}
                             </span>
                             {player.isHost && (
-                              <Crown
-                                className="w-3 h-3 text-amber-400 flex-shrink-0"
-                                fill="currentColor"
-                              />
+                              <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" fill="currentColor" />
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-[10px] text-white/40">
+                          <div className="flex items-center gap-1.5 text-[10px]">
                             {isDisc ? (
                               <span className="flex items-center gap-1 text-amber-400">
                                 <WifiOff className="w-2.5 h-2.5" />
@@ -629,11 +499,6 @@ export const InkLobbyScreen = ({
                               <span className="flex items-center gap-1 text-emerald-400 font-bold">
                                 <span className="w-1 h-1 rounded-full bg-emerald-400" />
                                 EN LIGNE
-                              </span>
-                            )}
-                            {isMe && (
-                              <span className="text-[9px] uppercase tracking-wider font-bold text-white/40">
-                                · vous
                               </span>
                             )}
                           </div>
@@ -649,9 +514,9 @@ export const InkLobbyScreen = ({
                                 playInkSound('cartoonPop', 0.3);
                                 setOpenMenuFor(openMenuFor === player.id ? null : player.id);
                               }}
-                              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
                             >
-                              <MoreVertical className="w-3.5 h-3.5" />
+                              <MoreVertical className="w-3 h-3" />
                             </button>
                             <AnimatePresence>
                               {openMenuFor === player.id && (
@@ -661,7 +526,7 @@ export const InkLobbyScreen = ({
                                   exit={{ opacity: 0, y: -5, scale: 0.95 }}
                                   transition={{ duration: 0.15 }}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="absolute right-0 top-9 z-50 w-44 rounded-xl bg-[#1a0d2e]/95 backdrop-blur-xl border-2 border-white/15 shadow-2xl overflow-hidden"
+                                  className="absolute right-0 top-7 z-50 w-44 rounded-xl bg-[#1a0d2e]/95 backdrop-blur-xl border-2 border-white/15 shadow-2xl overflow-hidden"
                                 >
                                   {onTransferHost && (
                                     <button
@@ -700,67 +565,64 @@ export const InkLobbyScreen = ({
                     );
                   })}
                 </AnimatePresence>
-
-                {players.length < minPlayers && (
-                  <div className="px-3 py-3 rounded-2xl border-2 border-dashed border-white/10 text-center">
-                    <p className="text-xs text-white/40 italic mb-1">
-                      En attente d'autres joueurs…
-                    </p>
-                    <p
-                      className="text-sm font-black text-purple-300"
-                      style={{ fontFamily: "'Caveat', cursive" }}
-                    >
-                      Invite tes amis pour commencer !
-                    </p>
-                    <span className="text-2xl">↓</span>
-                  </div>
-                )}
-
-                {/* Invite CTA */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    playInkSound('cartoonPop', 0.3);
-                    setShowInvitePanel(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl border-2 border-dashed border-purple-400/40 hover:border-purple-400/70 hover:bg-purple-500/10 transition-all group"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                  <span
-                    className="text-sm font-black text-purple-400"
-                    style={{ fontFamily: "'Caveat', cursive" }}
-                  >
-                    Inviter
-                  </span>
-                </button>
               </div>
             </div>
 
-            {/* Bottom — Quitter */}
-            <div className="p-3 border-t border-white/10 flex-shrink-0">
-              <motion.button
-                onClick={() => {
-                  playInkSound('cartoonSwoosh', 0.3);
-                  setShowLeaveConfirm(true);
-                }}
-                whileHover={{ scale: 1.02, x: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl bg-red-500/10 border-2 border-red-500/30 hover:bg-red-500/20 hover:border-red-500/50 text-red-300 hover:text-red-200 transition-all"
+            {/* Waiting message + mascot */}
+            <div className="flex-1 px-3 pb-2 flex flex-col items-center justify-end min-h-0 overflow-hidden">
+              <p className="text-xs text-white/50 italic text-center mb-1">
+                En attente d'autres joueurs…
+              </p>
+              {players.length < minPlayers && (
+                <>
+                  <p
+                    className="text-sm font-black text-white/85 text-center mt-1"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
+                    Invite tes amis pour commencer !
+                  </p>
+                  <div className="text-2xl text-white/40 mt-1 mb-2">↓</div>
+                </>
+              )}
+
+              {/* Mascot */}
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                className="mt-1 mb-2"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span
-                  className="text-sm font-black uppercase tracking-wider"
-                  style={{ fontFamily: "'Caveat', cursive" }}
-                >
-                  QUITTER
-                </span>
-              </motion.button>
+                <ImageWithFallback
+                  src="/lobby/mascot.png"
+                  alt="mascot"
+                  className="w-32 h-auto select-none pointer-events-none"
+                  fallback={<div className="text-6xl select-none">🎤</div>}
+                />
+              </motion.div>
             </div>
           </div>
+
+          {/* QUITTER */}
+          <motion.button
+            onClick={() => {
+              playInkSound('cartoonSwoosh', 0.3);
+              setShowLeaveConfirm(true);
+            }}
+            whileHover={{ scale: 1.02, x: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex-shrink-0 w-full flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-red-500/15 border-2 border-red-500/40 hover:bg-red-500/25 hover:border-red-500/60 text-red-300 hover:text-red-200 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            <span
+              className="text-base font-black uppercase tracking-wider"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              QUITTER
+            </span>
+          </motion.button>
         </aside>
 
         {/* MAIN CONTENT — Hero header + Mode grid + PRÊT button */}
-        <main className="flex flex-col min-h-0 overflow-hidden gap-4">
+        <main className="flex flex-col min-h-0 overflow-hidden gap-3">
           {/* Hero mode banner */}
           <AnimatePresence mode="wait">
             <motion.div
@@ -769,22 +631,28 @@ export const InkLobbyScreen = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.98 }}
               transition={{ duration: 0.3 }}
-              className="relative flex-shrink-0 px-5 py-3 flex items-center gap-4"
+              className="relative flex-shrink-0 px-4 py-3 flex items-center gap-3 rounded-2xl border-2 border-purple-400/30 bg-purple-950/30 backdrop-blur-md"
+              style={{
+                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.05), 0 6px 18px rgba(0,0,0,0.3)`,
+              }}
             >
-              <HeroHeaderBorder color={selectedCard.cardColorDark} />
-              {/* Icon badge */}
+              {/* Icon badge — uses the card image as thumbnail */}
               <div
-                className="relative w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border-2"
+                className="relative w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border-2 overflow-hidden"
                 style={{
-                  background: selectedCard.cardColor,
+                  background: selectedCard.fallbackColor,
                   borderColor: 'rgba(0,0,0,0.4)',
-                  boxShadow: `0 4px 12px ${selectedCard.cardColor}66`,
+                  boxShadow: `0 4px 12px ${selectedCard.fallbackColor}66`,
                 }}
               >
-                <span className="text-3xl">{selectedCard.emoji}</span>
+                <ImageWithFallback
+                  src={selectedCard.image}
+                  alt={selectedCard.label}
+                  className="w-full h-full object-cover"
+                  fallback={<span className="text-3xl">{selectedCard.fallbackEmoji}</span>}
+                />
               </div>
 
-              {/* Info */}
               <div className="relative flex-1 min-w-0">
                 <h2
                   className="text-2xl md:text-3xl font-black leading-none tracking-tight text-white"
@@ -807,7 +675,7 @@ export const InkLobbyScreen = ({
                     Difficulté :
                     <span
                       className="ml-1 inline-block px-1.5 py-0.5 rounded-md text-white"
-                      style={{ background: selectedCard.cardColor }}
+                      style={{ background: selectedCard.fallbackColor }}
                     >
                       NORMAL
                     </span>
@@ -815,7 +683,6 @@ export const InkLobbyScreen = ({
                 </div>
               </div>
 
-              {/* Right cluster */}
               <div className="relative flex items-center gap-2 flex-shrink-0">
                 <motion.button
                   onClick={() => {
@@ -827,7 +694,7 @@ export const InkLobbyScreen = ({
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 transition-all text-xs font-black text-white"
                   style={{ fontFamily: "'Caveat', cursive" }}
                 >
-                  <Users className="w-3 h-3" />
+                  <UserPlus className="w-3 h-3" />
                   INVITER
                 </motion.button>
                 <motion.button
@@ -844,8 +711,8 @@ export const InkLobbyScreen = ({
               </div>
 
               {/* Decorative lightning bolts */}
-              <div className="absolute -bottom-2 -left-2 text-2xl select-none pointer-events-none">⚡</div>
-              <div className="absolute -top-2 -right-3 text-2xl select-none pointer-events-none">⚡</div>
+              <Sparkles className="absolute -bottom-1 -left-1 w-4 h-4 text-amber-400 select-none pointer-events-none" />
+              <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-amber-400 select-none pointer-events-none" />
             </motion.div>
           </AnimatePresence>
 
@@ -866,22 +733,22 @@ export const InkLobbyScreen = ({
             )}
           </AnimatePresence>
 
-          {/* MODE CARD GRID */}
+          {/* MODE CARD GRID — uses real images */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
-              {MODE_CARDS.map((mode) => {
-                const isActive = mode.id === gameMode;
-                const meta = GAME_MODE_META[mode.id];
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-4">
+              {MODE_CARDS.map((card) => {
+                const isActive = card.id === gameMode;
+                const meta = GAME_MODE_META[card.id];
                 const enoughPlayers = connectedCount >= meta.minPlayers || isAdmin;
                 const disabled = !isHost;
-                const playerCountForMode = isActive ? connectedCount : 0;
+                const count = playerCountForMode(card.id);
 
                 return (
                   <motion.button
-                    key={mode.id}
+                    key={card.id}
                     type="button"
-                    onClick={() => !disabled && handleGameModeChange(mode.id)}
-                    whileHover={!disabled ? { y: -6, scale: 1.03 } : undefined}
+                    onClick={() => !disabled && handleGameModeChange(card.id)}
+                    whileHover={!disabled ? { y: -4, scale: 1.02 } : undefined}
                     whileTap={!disabled ? { scale: 0.97 } : undefined}
                     disabled={disabled}
                     animate={
@@ -893,63 +760,43 @@ export const InkLobbyScreen = ({
                         : undefined
                     }
                     className={cn(
-                      'relative aspect-[3/4] rounded-3xl overflow-hidden text-left transition-all group',
+                      'relative aspect-[3/4] rounded-2xl overflow-hidden text-left transition-all group',
                       !enoughPlayers && !isActive && 'opacity-60',
                       disabled && 'cursor-default',
-                      isActive && 'ring-4 ring-white/40 ring-offset-2 ring-offset-[#1a0d2e]',
                     )}
                     style={{
                       filter: isActive
-                        ? `drop-shadow(0 8px 24px ${mode.cardColor}cc) drop-shadow(0 0 20px ${mode.cardColor}88)`
+                        ? `drop-shadow(0 0 16px ${card.glowColor}cc) drop-shadow(0 8px 24px ${card.glowColor}88)`
                         : 'drop-shadow(0 6px 12px rgba(0,0,0,0.4))',
                     }}
                   >
-                    {/* Card background */}
-                    <CardBorder color={mode.cardColor} />
-
-                    {/* Splash */}
-                    <CardSplash color="white" className="opacity-40" />
-
-                    {/* Card content */}
-                    <div className="relative h-full flex flex-col items-center justify-between p-4">
-                      {/* Icon big emoji */}
-                      <div className="flex-1 flex items-center justify-center">
-                        <motion.div
-                          animate={{ rotate: [-3, 3, -3], scale: [1, 1.05, 1] }}
-                          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                          className="text-7xl"
-                          style={{ filter: 'drop-shadow(2px 4px 0 rgba(0,0,0,0.4))' }}
-                        >
-                          {mode.emoji}
-                        </motion.div>
-                      </div>
-
-                      {/* Label */}
-                      <div className="w-full text-center mb-2">
-                        <h3
-                          className="text-xl font-black tracking-tight leading-none text-white"
-                          style={{
-                            fontFamily: "'Caveat', cursive",
-                            textShadow:
-                              '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
-                          }}
-                        >
-                          {mode.label}
-                        </h3>
-                      </div>
-
-                      {/* Player count pill */}
+                    {/* Active outer glow ring */}
+                    {isActive && (
                       <div
-                        className="w-full px-3 py-1.5 rounded-full flex items-center justify-center gap-1.5 border-2 text-[11px] font-black uppercase tracking-wider text-white"
+                        className="absolute -inset-1 rounded-2xl pointer-events-none"
                         style={{
-                          background: `${mode.cardColorDark}`,
-                          borderColor: 'rgba(0,0,0,0.4)',
-                          fontFamily: "'Caveat', cursive",
+                          background: `${card.glowColor}`,
+                          opacity: 0.4,
+                          filter: 'blur(12px)',
                         }}
-                      >
-                        <Users className="w-3 h-3" />
-                        {playerCountForMode} JOUEUR{playerCountForMode !== 1 ? 'S' : ''}
-                      </div>
+                      />
+                    )}
+
+                    {/* Card art — image OR fallback */}
+                    <CardArt card={card} isActive={isActive} />
+
+                    {/* Player count pill — overlay at bottom */}
+                    <div
+                      className="absolute bottom-2 left-2 right-2 px-3 py-1.5 rounded-full flex items-center justify-center gap-1.5 border-2 text-[11px] font-black uppercase tracking-wider text-white"
+                      style={{
+                        background: 'rgba(0,0,0,0.55)',
+                        borderColor: 'rgba(255,255,255,0.15)',
+                        backdropFilter: 'blur(4px)',
+                        fontFamily: "'Caveat', cursive",
+                      }}
+                    >
+                      <Users className="w-3 h-3" />
+                      {count} JOUEUR{count !== 1 ? 'S' : ''}
                     </div>
 
                     {/* Active checkmark */}
@@ -957,9 +804,9 @@ export const InkLobbyScreen = ({
                       <motion.div
                         initial={{ scale: 0, rotate: -45 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        className="absolute -top-2 -right-2 w-9 h-9 rounded-full bg-amber-400 border-2 border-[#0a0810] flex items-center justify-center z-10"
+                        className="absolute -top-2 -right-2 w-9 h-9 rounded-full bg-amber-400 border-4 border-[#1a0d2e] flex items-center justify-center z-10"
                         style={{
-                          boxShadow: '0 4px 12px rgba(251, 191, 36, 0.6)',
+                          boxShadow: '0 4px 14px rgba(251, 191, 36, 0.6)',
                         }}
                       >
                         <Check className="w-5 h-5 text-[#0a0810]" strokeWidth={3} />
@@ -968,8 +815,8 @@ export const InkLobbyScreen = ({
 
                     {/* Lock for non-host */}
                     {disabled && !isActive && (
-                      <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 border border-white/15 flex items-center justify-center">
-                        <Lock className="w-3 h-3 text-white/40" />
+                      <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-sm">
+                        <Lock className="w-3 h-3 text-white/60" />
                       </div>
                     )}
                   </motion.button>
@@ -978,8 +825,8 @@ export const InkLobbyScreen = ({
             </div>
           </div>
 
-          {/* PRÊT button (host) or waiting state (guest) */}
-          <div className="flex-shrink-0 flex items-end justify-end pb-2">
+          {/* PRÊT button (host) — uses /lobby/pret-stamp.png */}
+          <div className="flex-shrink-0 flex items-end justify-end pb-2 pr-2">
             {isHost ? (
               isStarting ? (
                 <div className="px-6 py-4 rounded-2xl bg-white/5 border-2 border-white/10 flex items-center gap-3">
@@ -992,7 +839,7 @@ export const InkLobbyScreen = ({
                   </span>
                 </div>
               ) : (
-                <ReadyStamp onClick={handleStartGame} disabled={!canStart} />
+                <PretButton onClick={handleStartGame} disabled={!canStart} />
               )
             ) : (
               <div className="px-6 py-4 rounded-2xl bg-white/5 border-2 border-white/10 flex items-center gap-2">
@@ -1036,7 +883,7 @@ export const InkLobbyScreen = ({
             >
               <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" style={{ color: '#a855f7' }} />
+                  <UserPlus className="w-4 h-4" style={{ color: '#a855f7' }} />
                   <h2
                     className="text-2xl font-black text-white"
                     style={{ fontFamily: "'Caveat', cursive" }}
@@ -1157,5 +1004,78 @@ export const InkLobbyScreen = ({
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168, 85, 247, 0.5); }
       `}</style>
     </div>
+  );
+};
+
+/**
+ * PRÊT button — uses the user's pret-stamp.png with a graceful SVG fallback.
+ */
+const PretButton = ({ onClick, disabled }: { onClick: () => void; disabled: boolean }) => {
+  const [imageOk, setImageOk] = useState(true);
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      whileHover={!disabled ? { scale: 1.06, rotate: -2 } : undefined}
+      whileTap={!disabled ? { scale: 0.94, rotate: 1 } : undefined}
+      animate={!disabled ? { rotate: [-3, 3, -3] } : undefined}
+      transition={
+        !disabled ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } : undefined
+      }
+      className={cn(
+        'relative w-44 h-32 flex-shrink-0 select-none',
+        disabled && 'opacity-40 grayscale cursor-not-allowed',
+      )}
+      style={{
+        filter: !disabled
+          ? 'drop-shadow(0 6px 18px rgba(251, 191, 36, 0.4))'
+          : undefined,
+      }}
+    >
+      {imageOk ? (
+        <img
+          src="/lobby/pret-stamp.png"
+          alt="PRÊT !"
+          className="w-full h-full object-contain"
+          onError={() => setImageOk(false)}
+        />
+      ) : (
+        <>
+          <svg
+            viewBox="0 0 200 150"
+            className="absolute inset-0 w-full h-full"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <path
+              d="M100,10 L120,40 L155,25 L150,60 L185,55 L165,85 L195,100 L165,115 L185,145 L150,140 L155,175 L120,160 L100,190 L80,160 L45,175 L50,140 L15,145 L35,115 L5,100 L35,85 L15,55 L50,60 L45,25 L80,40 Z"
+              fill="#fbbf24"
+              stroke="#0a0810"
+              strokeWidth="5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span
+            className="absolute inset-0 flex items-center justify-center text-4xl md:text-5xl font-black tracking-wide"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              color: 'white',
+              textShadow:
+                '3px 3px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+            }}
+          >
+            PRÊT !
+          </span>
+          <span
+            className="absolute -right-2 top-1/2 -translate-y-1/2 text-3xl"
+            style={{ filter: 'drop-shadow(2px 2px 0 #0a0810)' }}
+          >
+            ✌️
+          </span>
+        </>
+      )}
+    </motion.button>
   );
 };
