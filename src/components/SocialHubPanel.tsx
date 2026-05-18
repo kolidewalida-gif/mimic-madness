@@ -1,6 +1,20 @@
 import { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, MessageCircle, Mail, UserPlus, Copy, Send, Check, Loader2, Play, Circle } from 'lucide-react';
+import {
+  X,
+  Users,
+  MessageCircle,
+  Mail,
+  UserPlus,
+  Copy,
+  Send,
+  Check,
+  Loader2,
+  Play,
+  Sparkles,
+  Hash,
+  Bell,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,26 +37,81 @@ interface SocialHubPanelProps {
 
 type Tab = 'friends' | 'messages' | 'requests' | 'invitations';
 
-const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFriend }: SocialHubPanelProps) => {
-  const { user, profile, friendCode } = useAuth();
-  const { friends, pendingRequests, sendFriendRequest, acceptFriendRequest, rejectFriendRequest } = useFriends();
+const GRAFFITI_TEXT_SHADOW =
+  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
+const GRAFFITI_TEXT_SHADOW_SM =
+  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
+
+const TAB_COLORS: Record<Tab, { bg: string; accent: string; glow: string }> = {
+  friends: { bg: '#06b6d4', accent: '#22d3ee', glow: 'rgba(6,182,212,0.5)' },
+  messages: { bg: '#a855f7', accent: '#c084fc', glow: 'rgba(168,85,247,0.5)' },
+  requests: { bg: '#fbbf24', accent: '#fde047', glow: 'rgba(251,191,36,0.5)' },
+  invitations: { bg: '#34d399', accent: '#6ee7b7', glow: 'rgba(52,211,153,0.5)' },
+};
+
+const SocialHubPanelComponent = ({
+  isOpen,
+  onClose,
+  currentLobbyCode,
+  onJoinFriend,
+}: SocialHubPanelProps) => {
+  const { profile, friendCode } = useAuth();
+  const {
+    friends,
+    pendingRequests,
+    sendFriendRequest,
+    acceptFriendRequest,
+    rejectFriendRequest,
+  } = useFriends();
   const { getUserStatus } = useOnlinePresence(currentLobbyCode);
-  const { pendingInvitations, sendInvitation, acceptInvitation, declineInvitation } = useGameInvitations();
+  const {
+    pendingInvitations,
+    sendInvitation,
+    acceptInvitation,
+    declineInvitation,
+  } = useGameInvitations();
   const unreadCounts = useUnreadCounts();
 
   const [activeTab, setActiveTab] = useState<Tab>('friends');
   const [friendCodeInput, setFriendCodeInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [chatFriend, setChatFriend] = useState<{ user_id: string; display_name: string | null; avatar_url: string | null } | null>(null);
+  const [chatFriend, setChatFriend] = useState<{
+    user_id: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null>(null);
 
-  const totalUnreadMessages = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+  const totalUnreadMessages = Object.values(unreadCounts).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: 'friends', label: 'Amis', icon: <Users className="w-4 h-4" />, badge: friends.length },
-    { id: 'messages', label: 'Messages', icon: <MessageCircle className="w-4 h-4" />, badge: totalUnreadMessages || undefined },
-    { id: 'requests', label: 'Demandes', icon: <UserPlus className="w-4 h-4" />, badge: pendingRequests.length || undefined },
-    { id: 'invitations', label: 'Invitations', icon: <Mail className="w-4 h-4" />, badge: pendingInvitations.length || undefined },
+  const tabs: {
+    id: Tab;
+    label: string;
+    icon: any;
+    badge?: number;
+  }[] = [
+    { id: 'friends', label: 'Amis', icon: Users, badge: friends.length },
+    {
+      id: 'messages',
+      label: 'Messages',
+      icon: MessageCircle,
+      badge: totalUnreadMessages || undefined,
+    },
+    {
+      id: 'requests',
+      label: 'Demandes',
+      icon: UserPlus,
+      badge: pendingRequests.length || undefined,
+    },
+    {
+      id: 'invitations',
+      label: 'Invits',
+      icon: Mail,
+      badge: pendingInvitations.length || undefined,
+    },
   ];
 
   const handleSendRequest = async () => {
@@ -83,9 +152,7 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
   const handleJoinFriend = (lobbyCode: string) => {
     playInkSound('inkSuccess', 0.5);
     onClose();
-    if (onJoinFriend) {
-      onJoinFriend(lobbyCode);
-    }
+    if (onJoinFriend) onJoinFriend(lobbyCode);
   };
 
   const handleInviteFriend = async (friendUserId: string) => {
@@ -120,105 +187,233 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
+            {/* BACKDROP */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55]"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[55]"
             />
 
-            {/* Panel */}
+            {/* PANEL */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-background border-l border-primary/30 shadow-2xl z-[56] flex flex-col"
+              transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-[56] flex flex-col"
+              style={{
+                background:
+                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                borderLeft: '4px solid #0a0810',
+                boxShadow: '-12px 0 30px rgba(0,0,0,0.5)',
+              }}
             >
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-border/40 bg-gradient-to-r from-primary/10 to-background">
+              {/* Inner accent line */}
+              <div
+                className="absolute inset-y-0 left-1.5 w-0.5 pointer-events-none"
+                style={{
+                  background:
+                    'linear-gradient(180deg, transparent, rgba(168,85,247,0.4), transparent)',
+                }}
+              />
+
+              {/* Decorative graffiti stars */}
+              <Sparkles
+                className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10 select-none pointer-events-none"
+                style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+              />
+              <Sparkles
+                className="absolute bottom-4 right-6 w-3.5 h-3.5 text-pink-400 z-10 select-none pointer-events-none"
+                style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+              />
+
+              {/* HEADER */}
+              <div
+                className="relative flex items-center justify-between px-5 py-4 flex-shrink-0"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
+                  borderBottom: '3px solid #0a0810',
+                }}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
+                  <motion.div
+                    animate={{ rotate: [-5, 5, -5] }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    }}
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                    style={{
+                      background:
+                        'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                      border: '3px solid #0a0810',
+                      boxShadow:
+                        '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                    }}
+                  >
+                    <Bell
+                      className="h-5 w-5 text-white"
+                      strokeWidth={2.5}
+                    />
+                  </motion.div>
                   <div>
-                    <h2 className="text-xl font-black text-primary" style={{ fontFamily: "'Caveat', cursive" }}>
+                    <h2
+                      className="text-3xl font-black text-white leading-none"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        textShadow: GRAFFITI_TEXT_SHADOW,
+                      }}
+                    >
                       Réseau Social
                     </h2>
-                    <p className="text-xs text-muted-foreground">Connectez-vous avec vos amis</p>
+                    <p
+                      className="text-sm text-purple-200/80 font-bold mt-0.5"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      Reste connecté à tes amis !
+                    </p>
                   </div>
                 </div>
                 <motion.button
-                  onClick={onClose}
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
-                  className="w-9 h-9 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center text-foreground transition-colors"
+                  onClick={onClose}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                  style={{
+                    background: 'rgba(239,68,68,0.25)',
+                    border: '2.5px solid #0a0810',
+                    boxShadow: '0 3px 0 #0a0810',
+                  }}
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5" strokeWidth={3} />
                 </motion.button>
               </div>
 
-              {/* Tabs */}
-              <div className="flex border-b border-border/40 bg-card/50">
-                {tabs.map((tab) => (
-                  <motion.button
-                    key={tab.id}
-                    onClick={() => {
-                      playInkSound('brushTap', 0.3);
-                      setActiveTab(tab.id);
-                    }}
-                    className={cn(
-                      'flex-1 flex items-center justify-center gap-2 py-3 px-2 relative transition-colors',
-                      activeTab === tab.id
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {tab.icon}
-                    <span className="text-xs font-semibold hidden sm:inline">{tab.label}</span>
-                    {tab.badge !== undefined && tab.badge > 0 && (
-                      <span className="absolute top-1 right-1 min-w-[18px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                        {tab.badge > 99 ? '99+' : tab.badge}
-                      </span>
-                    )}
-                    {activeTab === tab.id && (
-                      <motion.div
-                        layoutId="activeTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              {/* TABS — graffiti pills */}
+              <div
+                className="relative flex gap-1.5 px-3 py-2.5 flex-shrink-0"
+                style={{ borderBottom: '3px solid #0a0810' }}
+              >
+                {tabs.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  const colors = TAB_COLORS[tab.id];
+                  const Icon = tab.icon;
+                  return (
+                    <motion.button
+                      key={tab.id}
+                      onClick={() => {
+                        playInkSound('brushTap', 0.3);
+                        setActiveTab(tab.id);
+                      }}
+                      whileHover={{ scale: isActive ? 1 : 1.04, y: isActive ? 0 : -2 }}
+                      whileTap={{ scale: 0.96 }}
+                      animate={isActive ? { rotate: -2 } : { rotate: 0 }}
+                      className="relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-2xl"
+                      style={{
+                        background: isActive
+                          ? `linear-gradient(180deg, ${colors.bg}, ${colors.bg}cc)`
+                          : 'rgba(255,255,255,0.04)',
+                        border: '2.5px solid #0a0810',
+                        boxShadow: isActive ? '0 4px 0 #0a0810' : '0 2px 0 #0a0810',
+                      }}
+                    >
+                      <Icon
+                        className={cn(
+                          'w-4 h-4',
+                          isActive ? 'text-white' : 'text-white/60',
+                        )}
+                        strokeWidth={2.5}
                       />
-                    )}
-                  </motion.button>
-                ))}
+                      <span
+                        className={cn(
+                          'text-sm font-black hidden sm:inline leading-none',
+                          isActive ? 'text-white' : 'text-white/60',
+                        )}
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: isActive
+                            ? GRAFFITI_TEXT_SHADOW_SM
+                            : 'none',
+                        }}
+                      >
+                        {tab.label}
+                      </span>
+                      {tab.badge !== undefined && tab.badge > 0 && (
+                        <span
+                          className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center"
+                          style={{
+                            background:
+                              'linear-gradient(180deg, #ef4444, #b91c1c)',
+                            color: 'white',
+                            border: '2px solid #0a0810',
+                            fontFamily: "'Caveat', cursive",
+                          }}
+                        >
+                          {tab.badge > 9 ? '9+' : tab.badge}
+                        </span>
+                      )}
+                    </motion.button>
+                  );
+                })}
               </div>
 
-              {/* Content */}
-              <ScrollArea className="flex-1">
+              {/* CONTENT */}
+              <ScrollArea className="flex-1 relative">
                 <div className="p-4 space-y-4">
-                  {/* Friend Code Section - visible sur tous les onglets */}
+                  {/* FRIEND CODE — visible on all tabs */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    <SectionLabel icon={Hash} color="#06b6d4">
                       Votre Code Ami
-                    </label>
-                    <motion.div
-                      className="relative group cursor-pointer"
+                    </SectionLabel>
+                    <motion.button
                       onClick={copyFriendCode}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
+                      whileHover={{ scale: 1.02, rotate: -0.4 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="relative w-full rounded-2xl p-3 pr-14 text-center overflow-hidden"
+                      style={{
+                        background:
+                          'linear-gradient(180deg, rgba(6,182,212,0.18), rgba(6,182,212,0.05))',
+                        border: '3px solid #0a0810',
+                        boxShadow:
+                          '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.08)',
+                      }}
                     >
-                      <div className="bg-primary/10 rounded-lg p-3 pr-12 font-mono text-base font-bold text-primary tracking-[0.3em] border border-primary/30 group-hover:border-primary/50 transition-colors text-center">
+                      <div
+                        className="font-mono text-2xl font-black tracking-[0.25em] text-cyan-300"
+                        style={{ textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                      >
                         {friendCode || '...'}
                       </div>
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-                        {copied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5 text-primary" />}
+                      <div
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{
+                          background: copied
+                            ? 'linear-gradient(180deg, #34d399, #059669)'
+                            : 'linear-gradient(180deg, #06b6d4, #0e7490)',
+                          border: '2.5px solid #0a0810',
+                          boxShadow: '0 3px 0 #0a0810',
+                        }}
+                      >
+                        {copied ? (
+                          <Check
+                            className="h-4 w-4 text-white"
+                            strokeWidth={3}
+                          />
+                        ) : (
+                          <Copy
+                            className="h-4 w-4 text-white"
+                            strokeWidth={2.5}
+                          />
+                        )}
                       </div>
-                    </motion.div>
+                    </motion.button>
                   </div>
 
-                  {/* Tab Content */}
+                  {/* TAB CONTENT */}
                   <AnimatePresence mode="wait">
                     {activeTab === 'friends' && (
                       <motion.div
@@ -228,94 +423,187 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-4"
                       >
-                        {/* Add friend */}
+                        {/* ADD FRIEND */}
                         <div className="space-y-2">
-                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                            <UserPlus className="h-3.5 w-3.5" />
+                          <SectionLabel icon={UserPlus} color="#a855f7">
                             Ajouter un ami
-                          </label>
+                          </SectionLabel>
                           <div className="flex gap-2">
                             <Input
                               placeholder="CODE AMI..."
                               value={friendCodeInput}
-                              onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
-                              onKeyDown={(e) => e.key === 'Enter' && handleSendRequest()}
-                              className="flex-1 h-11 text-sm font-mono uppercase tracking-wider bg-background/50 border-primary/30 focus:border-primary"
+                              onChange={(e) =>
+                                setFriendCodeInput(e.target.value.toUpperCase())
+                              }
+                              onKeyDown={(e) =>
+                                e.key === 'Enter' && handleSendRequest()
+                              }
+                              className="flex-1 h-11 text-base font-black uppercase tracking-[0.2em] bg-black/40 text-white rounded-xl placeholder:text-white/30"
+                              style={{
+                                fontFamily: "'Caveat', cursive",
+                                border: '3px solid #0a0810',
+                                boxShadow:
+                                  'inset 0 2px 4px rgba(0,0,0,0.4)',
+                              }}
                             />
                             <motion.button
+                              whileHover={
+                                friendCodeInput.trim() && !isSending
+                                  ? { scale: 1.06, rotate: -3 }
+                                  : undefined
+                              }
+                              whileTap={
+                                friendCodeInput.trim() && !isSending
+                                  ? { scale: 0.94 }
+                                  : undefined
+                              }
                               onClick={handleSendRequest}
                               disabled={!friendCodeInput.trim() || isSending}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className="h-11 w-11 rounded-lg bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
+                              className={cn(
+                                'h-11 w-11 rounded-xl flex items-center justify-center text-white transition-opacity',
+                                (!friendCodeInput.trim() || isSending) &&
+                                  'opacity-50',
+                              )}
+                              style={{
+                                background:
+                                  'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
+                                border: '3px solid #0a0810',
+                                boxShadow:
+                                  '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)',
+                              }}
                             >
-                              {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                              {isSending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send
+                                  className="h-4 w-4"
+                                  strokeWidth={2.5}
+                                />
+                              )}
                             </motion.button>
                           </div>
                         </div>
 
-                        {/* Friends list */}
+                        {/* FRIENDS LIST */}
                         <div className="space-y-2">
-                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          <SectionLabel icon={Users} color="#34d399">
                             Mes Amis ({friends.length})
-                          </h3>
+                          </SectionLabel>
                           {friends.length === 0 ? (
-                            <div className="text-center py-8">
-                              <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                              <p className="text-sm text-muted-foreground">Aucun ami pour le moment</p>
-                              <p className="text-xs text-muted-foreground/70 mt-1">Ajoutez des amis avec leur code</p>
-                            </div>
+                            <EmptyState
+                              emoji="🤷"
+                              text="Aucun ami pour le moment !"
+                              subtext="Ajoute des amis avec leur code"
+                            />
                           ) : (
                             <div className="space-y-2">
-                              {friends.map((friend) => {
+                              {friends.map((friend, idx) => {
                                 const status = getUserStatus(friend.user_id);
                                 const isOnline = status.online;
                                 const lobbyCode = status.lobbyCode;
-                                const unread = unreadCounts[friend.user_id] || 0;
+                                const unread =
+                                  unreadCounts[friend.user_id] || 0;
 
                                 return (
                                   <motion.div
                                     key={friend.id}
-                                    className={cn(
-                                      "flex items-center gap-3 p-3 rounded-lg border transition-all",
-                                      isOnline
-                                        ? "bg-green-500/5 border-green-500/30 hover:border-green-500/50"
-                                        : "bg-background/50 border-border/30 hover:border-border/50"
-                                    )}
-                                    whileHover={{ x: 3 }}
+                                    initial={{
+                                      opacity: 0,
+                                      x: -20,
+                                      rotate: -2,
+                                    }}
+                                    animate={{
+                                      opacity: 1,
+                                      x: 0,
+                                      rotate: idx % 2 === 0 ? -0.6 : 0.6,
+                                    }}
+                                    transition={{ delay: idx * 0.04 }}
+                                    whileHover={{ x: 3, rotate: 0 }}
+                                    className="flex items-center gap-2.5 p-3 rounded-2xl"
+                                    style={{
+                                      background: isOnline
+                                        ? 'linear-gradient(180deg, rgba(52,211,153,0.14), rgba(5,150,105,0.04))'
+                                        : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+                                      border: '3px solid #0a0810',
+                                      boxShadow: '0 3px 0 #0a0810',
+                                    }}
                                   >
-                                    <div className="relative">
-                                      <Avatar className={cn(
-                                        "h-11 w-11 ring-2",
-                                        isOnline ? "ring-green-500/50" : "ring-muted/30"
-                                      )}>
-                                        <AvatarImage src={friend.avatar_url || undefined} />
-                                        <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                                          {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
+                                    <div className="relative flex-shrink-0">
+                                      <Avatar
+                                        className="h-11 w-11"
+                                        style={{
+                                          border: '2.5px solid #0a0810',
+                                          boxShadow: '0 2px 0 #0a0810',
+                                        }}
+                                      >
+                                        <AvatarImage
+                                          src={friend.avatar_url || undefined}
+                                        />
+                                        <AvatarFallback
+                                          className="text-white text-base font-black"
+                                          style={{
+                                            background: isOnline
+                                              ? 'linear-gradient(135deg, #34d399, #059669)'
+                                              : 'linear-gradient(135deg, #6b7280, #374151)',
+                                            fontFamily: "'Caveat', cursive",
+                                          }}
+                                        >
+                                          {friend.display_name
+                                            ?.charAt(0)
+                                            ?.toUpperCase() || '?'}
                                         </AvatarFallback>
                                       </Avatar>
-                                      <Circle
+                                      <div
                                         className={cn(
-                                          "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5",
-                                          isOnline ? "text-green-500 fill-green-500" : "text-muted-foreground/50 fill-muted-foreground/50"
+                                          'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0a0810]',
+                                          lobbyCode
+                                            ? 'bg-amber-400'
+                                            : isOnline
+                                              ? 'bg-emerald-400'
+                                              : 'bg-zinc-500',
                                         )}
+                                        style={{
+                                          boxShadow:
+                                            isOnline && !lobbyCode
+                                              ? '0 0 8px rgba(52,211,153,0.7)'
+                                              : lobbyCode
+                                                ? '0 0 8px rgba(251,191,36,0.7)'
+                                                : 'none',
+                                        }}
                                       />
                                     </div>
-
                                     <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-semibold text-foreground truncate">
+                                      <div
+                                        className="text-base font-black text-white truncate leading-none"
+                                        style={{
+                                          fontFamily: "'Caveat', cursive",
+                                          textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                                        }}
+                                      >
                                         {friend.display_name}
                                       </div>
-                                      <div className={cn(
-                                        "text-xs",
-                                        isOnline ? "text-green-500" : "text-muted-foreground"
-                                      )}>
-                                        {lobbyCode ? 'En partie' : isOnline ? 'En ligne' : 'Hors ligne'}
+                                      <div
+                                        className={cn(
+                                          'text-[11px] font-bold mt-0.5 flex items-center gap-1',
+                                          lobbyCode
+                                            ? 'text-amber-300'
+                                            : isOnline
+                                              ? 'text-emerald-300'
+                                              : 'text-white/40',
+                                        )}
+                                      >
+                                        {lobbyCode
+                                          ? 'EN PARTIE'
+                                          : isOnline
+                                            ? 'EN LIGNE'
+                                            : 'HORS LIGNE'}
                                       </div>
                                     </div>
-
-                                    <div className="flex gap-1.5">
-                                      <motion.button
+                                    <div className="flex gap-1.5 flex-shrink-0">
+                                      <CartoonIconButton
+                                        icon={MessageCircle}
+                                        bg="linear-gradient(180deg, #6b7280, #374151)"
+                                        badge={unread}
                                         onClick={() => {
                                           playInkSound('brushTap', 0.3);
                                           setChatFriend({
@@ -324,37 +612,28 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
                                             avatar_url: friend.avatar_url,
                                           });
                                         }}
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        className="relative h-9 w-9 rounded-lg bg-foreground/10 text-foreground flex items-center justify-center hover:bg-foreground/20"
-                                      >
-                                        <MessageCircle className="h-4 w-4" />
-                                        {unread > 0 && (
-                                          <span className="absolute -top-1 -right-1 min-w-[18px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                                            {unread}
-                                          </span>
-                                        )}
-                                      </motion.button>
+                                      />
                                       {lobbyCode && (
-                                        <motion.button
-                                          onClick={() => handleJoinFriend(lobbyCode)}
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.9 }}
-                                          className="h-9 w-9 rounded-lg bg-green-500/20 text-green-500 flex items-center justify-center hover:bg-green-500/30"
-                                        >
-                                          <Play className="h-4 w-4" />
-                                        </motion.button>
+                                        <CartoonIconButton
+                                          icon={Play}
+                                          bg="linear-gradient(180deg, #34d399, #059669)"
+                                          fill
+                                          onClick={() =>
+                                            handleJoinFriend(lobbyCode)
+                                          }
+                                        />
                                       )}
-                                      {currentLobbyCode && isOnline && !lobbyCode && (
-                                        <motion.button
-                                          onClick={() => handleInviteFriend(friend.user_id)}
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.9 }}
-                                          className="h-9 w-9 rounded-lg bg-primary/20 text-primary flex items-center justify-center hover:bg-primary/30"
-                                        >
-                                          <Send className="h-4 w-4" />
-                                        </motion.button>
-                                      )}
+                                      {currentLobbyCode &&
+                                        isOnline &&
+                                        !lobbyCode && (
+                                          <CartoonIconButton
+                                            icon={Send}
+                                            bg="linear-gradient(180deg, #fbbf24, #d97706)"
+                                            onClick={() =>
+                                              handleInviteFriend(friend.user_id)
+                                            }
+                                          />
+                                        )}
                                     </div>
                                   </motion.div>
                                 );
@@ -373,22 +652,34 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-2"
                       >
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        <SectionLabel icon={MessageCircle} color="#a855f7">
                           Conversations
-                        </h3>
+                        </SectionLabel>
                         {friends.length === 0 ? (
-                          <div className="text-center py-8">
-                            <MessageCircle className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                            <p className="text-sm text-muted-foreground">Aucune conversation</p>
-                            <p className="text-xs text-muted-foreground/70 mt-1">Ajoutez des amis pour discuter</p>
-                          </div>
+                          <EmptyState
+                            emoji="💬"
+                            text="Aucune conversation"
+                            subtext="Ajoute des amis pour discuter"
+                          />
                         ) : (
                           <div className="space-y-2">
-                            {friends.map((friend) => {
-                              const unread = unreadCounts[friend.user_id] || 0;
+                            {friends.map((friend, idx) => {
+                              const unread =
+                                unreadCounts[friend.user_id] || 0;
                               return (
                                 <motion.button
                                   key={friend.id}
+                                  initial={{
+                                    opacity: 0,
+                                    x: -20,
+                                    rotate: -2,
+                                  }}
+                                  animate={{
+                                    opacity: 1,
+                                    x: 0,
+                                    rotate: idx % 2 === 0 ? -0.6 : 0.6,
+                                  }}
+                                  whileHover={{ x: 3, rotate: 0 }}
                                   onClick={() => {
                                     playInkSound('brushTap', 0.3);
                                     setChatFriend({
@@ -397,30 +688,75 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
                                       avatar_url: friend.avatar_url,
                                     });
                                   }}
-                                  className={cn(
-                                    "w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left",
-                                    unread > 0
-                                      ? "bg-primary/10 border-primary/30 hover:border-primary/50"
-                                      : "bg-background/50 border-border/30 hover:border-border/50"
-                                  )}
-                                  whileHover={{ x: 3 }}
+                                  className="w-full flex items-center gap-3 p-3 rounded-2xl text-left"
+                                  style={{
+                                    background:
+                                      unread > 0
+                                        ? 'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(126,34,206,0.05))'
+                                        : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+                                    border: '3px solid #0a0810',
+                                    boxShadow: '0 3px 0 #0a0810',
+                                  }}
                                 >
-                                  <Avatar className="h-11 w-11 ring-2 ring-muted/30">
-                                    <AvatarImage src={friend.avatar_url || undefined} />
-                                    <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                                      {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
+                                  <Avatar
+                                    className="h-11 w-11"
+                                    style={{
+                                      border: '2.5px solid #0a0810',
+                                      boxShadow: '0 2px 0 #0a0810',
+                                    }}
+                                  >
+                                    <AvatarImage
+                                      src={friend.avatar_url || undefined}
+                                    />
+                                    <AvatarFallback
+                                      className="text-white text-base font-black"
+                                      style={{
+                                        background:
+                                          'linear-gradient(135deg, #a855f7, #6b21a8)',
+                                        fontFamily: "'Caveat', cursive",
+                                      }}
+                                    >
+                                      {friend.display_name
+                                        ?.charAt(0)
+                                        ?.toUpperCase() || '?'}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-semibold text-foreground truncate">
+                                    <div
+                                      className="text-base font-black text-white truncate leading-none"
+                                      style={{
+                                        fontFamily: "'Caveat', cursive",
+                                        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                                      }}
+                                    >
                                       {friend.display_name}
                                     </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {unread > 0 ? `${unread} nouveau${unread > 1 ? 'x' : ''} message${unread > 1 ? 's' : ''}` : 'Aucun nouveau message'}
+                                    <div
+                                      className={cn(
+                                        'text-[11px] font-bold mt-0.5',
+                                        unread > 0
+                                          ? 'text-purple-200'
+                                          : 'text-white/45',
+                                      )}
+                                    >
+                                      {unread > 0
+                                        ? `${unread} nouveau${unread > 1 ? 'x' : ''} message${unread > 1 ? 's' : ''}`
+                                        : 'Aucun nouveau message'}
                                     </div>
                                   </div>
                                   {unread > 0 && (
-                                    <div className="min-w-[24px] h-6 px-2 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                                    <div
+                                      className="min-w-[28px] h-7 px-2 rounded-xl text-base font-black flex items-center justify-center"
+                                      style={{
+                                        background:
+                                          'linear-gradient(180deg, #ef4444, #b91c1c)',
+                                        color: 'white',
+                                        border: '2.5px solid #0a0810',
+                                        boxShadow: '0 2px 0 #0a0810',
+                                        fontFamily: "'Caveat', cursive",
+                                        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                                      }}
+                                    >
                                       {unread}
                                     </div>
                                   )}
@@ -440,53 +776,96 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-2"
                       >
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                          Demandes d'amis ({pendingRequests.length})
-                        </h3>
+                        <SectionLabel icon={UserPlus} color="#fbbf24">
+                          Demandes ({pendingRequests.length})
+                        </SectionLabel>
                         {pendingRequests.length === 0 ? (
-                          <div className="text-center py-8">
-                            <UserPlus className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                            <p className="text-sm text-muted-foreground">Aucune demande en attente</p>
-                          </div>
+                          <EmptyState
+                            emoji="📭"
+                            text="Aucune demande !"
+                            subtext="Vous serez notifié quand quelqu'un vous ajoute"
+                          />
                         ) : (
                           <div className="space-y-2">
-                            {pendingRequests.map((request) => (
+                            {pendingRequests.map((request, idx) => (
                               <motion.div
                                 key={request.id}
-                                className="flex items-center gap-3 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
+                                initial={{
+                                  opacity: 0,
+                                  x: -20,
+                                  rotate: -2,
+                                }}
+                                animate={{
+                                  opacity: 1,
+                                  x: 0,
+                                  rotate: idx % 2 === 0 ? -0.6 : 0.6,
+                                }}
+                                className="flex items-center gap-3 p-3 rounded-2xl"
+                                style={{
+                                  background:
+                                    'linear-gradient(180deg, rgba(251,191,36,0.18), rgba(217,119,6,0.05))',
+                                  border: '3px solid #0a0810',
+                                  boxShadow: '0 3px 0 #0a0810',
+                                }}
                               >
-                                <Avatar className="h-11 w-11 ring-2 ring-yellow-500/30">
-                                  <AvatarImage src={request.requesterProfile?.avatar_url || undefined} />
-                                  <AvatarFallback className="bg-yellow-500/20 text-yellow-500 font-bold">
-                                    {request.requesterProfile?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                                <Avatar
+                                  className="h-11 w-11"
+                                  style={{
+                                    border: '2.5px solid #0a0810',
+                                    boxShadow: '0 2px 0 #0a0810',
+                                  }}
+                                >
+                                  <AvatarImage
+                                    src={
+                                      request.requesterProfile?.avatar_url ||
+                                      undefined
+                                    }
+                                  />
+                                  <AvatarFallback
+                                    className="text-white text-base font-black"
+                                    style={{
+                                      background:
+                                        'linear-gradient(135deg, #fbbf24, #d97706)',
+                                      fontFamily: "'Caveat', cursive",
+                                    }}
+                                  >
+                                    {request.requesterProfile?.display_name
+                                      ?.charAt(0)
+                                      ?.toUpperCase() || '?'}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-semibold text-foreground truncate">
-                                    {request.requesterProfile?.display_name || 'Inconnu'}
+                                  <div
+                                    className="text-base font-black text-white truncate leading-none"
+                                    style={{
+                                      fontFamily: "'Caveat', cursive",
+                                      textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                                    }}
+                                  >
+                                    {request.requesterProfile?.display_name ||
+                                      'Inconnu'}
                                   </div>
-                                  <div className="text-xs text-muted-foreground">Demande d'ami</div>
-                                </div>
-                                <div className="flex gap-1.5">
-                                  <motion.button
-                                    onClick={() => handleAcceptRequest(request.id)}
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    className="h-9 w-9 rounded-lg bg-green-500/20 text-green-500 flex items-center justify-center hover:bg-green-500/30"
+                                  <div
+                                    className="text-[11px] text-amber-200/80 font-bold mt-0.5"
+                                    style={{ fontFamily: "'Caveat', cursive" }}
                                   >
-                                    <Check className="h-4 w-4" />
-                                  </motion.button>
-                                  <motion.button
-                                    onClick={() => handleRejectRequest(request.id)}
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    className="h-9 w-9 rounded-lg bg-red-500/20 text-red-500 flex items-center justify-center hover:bg-red-500/30"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </motion.button>
+                                    veut être ton ami !
+                                  </div>
                                 </div>
+                                <CartoonIconButton
+                                  icon={Check}
+                                  bg="linear-gradient(180deg, #34d399, #059669)"
+                                  onClick={() =>
+                                    handleAcceptRequest(request.id)
+                                  }
+                                />
+                                <CartoonIconButton
+                                  icon={X}
+                                  bg="linear-gradient(180deg, #ef4444, #b91c1c)"
+                                  onClick={() =>
+                                    handleRejectRequest(request.id)
+                                  }
+                                />
                               </motion.div>
                             ))}
                           </div>
@@ -502,50 +881,90 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-2"
                       >
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                          Invitations de jeu ({pendingInvitations.length})
-                        </h3>
+                        <SectionLabel icon={Mail} color="#34d399">
+                          Invitations ({pendingInvitations.length})
+                        </SectionLabel>
                         {pendingInvitations.length === 0 ? (
-                          <div className="text-center py-8">
-                            <Mail className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                            <p className="text-sm text-muted-foreground">Aucune invitation</p>
-                          </div>
+                          <EmptyState
+                            emoji="🎮"
+                            text="Aucune invitation !"
+                            subtext="Tes amis te le feront savoir"
+                          />
                         ) : (
                           <div className="space-y-2">
-                            {pendingInvitations.map((invitation) => (
+                            {pendingInvitations.map((invitation, idx) => (
                               <motion.div
                                 key={invitation.id}
-                                className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg border border-primary/30"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
+                                initial={{
+                                  opacity: 0,
+                                  x: -20,
+                                  rotate: -2,
+                                }}
+                                animate={{
+                                  opacity: 1,
+                                  x: 0,
+                                  rotate: idx % 2 === 0 ? -0.6 : 0.6,
+                                }}
+                                className="flex items-center gap-3 p-3 rounded-2xl"
+                                style={{
+                                  background:
+                                    'linear-gradient(180deg, rgba(52,211,153,0.18), rgba(5,150,105,0.05))',
+                                  border: '3px solid #0a0810',
+                                  boxShadow: '0 3px 0 #0a0810',
+                                }}
                               >
-                                <div className="w-11 h-11 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
-                                  <Play className="h-5 w-5 text-primary" />
-                                </div>
+                                <motion.div
+                                  animate={{ rotate: [-5, 5, -5] }}
+                                  transition={{
+                                    duration: 1.6,
+                                    repeat: Infinity,
+                                    ease: 'easeInOut',
+                                  }}
+                                  className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+                                  style={{
+                                    background:
+                                      'linear-gradient(180deg, #34d399, #059669)',
+                                    border: '2.5px solid #0a0810',
+                                    boxShadow: '0 3px 0 #0a0810',
+                                  }}
+                                >
+                                  <Play
+                                    className="h-5 w-5 text-white"
+                                    strokeWidth={2.5}
+                                    fill="white"
+                                  />
+                                </motion.div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-semibold text-primary truncate">
+                                  <div
+                                    className="text-base font-black text-white truncate leading-none"
+                                    style={{
+                                      fontFamily: "'Caveat', cursive",
+                                      textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                                    }}
+                                  >
                                     {invitation.sender_name}
                                   </div>
-                                  <div className="text-xs text-muted-foreground">vous invite à jouer</div>
-                                </div>
-                                <div className="flex gap-1.5">
-                                  <motion.button
-                                    onClick={() => handleAcceptInvitation(invitation.id)}
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    className="h-9 w-9 rounded-lg bg-green-500/20 text-green-500 flex items-center justify-center hover:bg-green-500/30"
+                                  <div
+                                    className="text-[11px] text-emerald-200/80 font-bold mt-0.5"
+                                    style={{ fontFamily: "'Caveat', cursive" }}
                                   >
-                                    <Check className="h-4 w-4" />
-                                  </motion.button>
-                                  <motion.button
-                                    onClick={() => declineInvitation(invitation.id)}
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    className="h-9 w-9 rounded-lg bg-red-500/20 text-red-500 flex items-center justify-center hover:bg-red-500/30"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </motion.button>
+                                    t'invite à jouer !
+                                  </div>
                                 </div>
+                                <CartoonIconButton
+                                  icon={Check}
+                                  bg="linear-gradient(180deg, #34d399, #059669)"
+                                  onClick={() =>
+                                    handleAcceptInvitation(invitation.id)
+                                  }
+                                />
+                                <CartoonIconButton
+                                  icon={X}
+                                  bg="linear-gradient(180deg, #ef4444, #b91c1c)"
+                                  onClick={() =>
+                                    declineInvitation(invitation.id)
+                                  }
+                                />
                               </motion.div>
                             ))}
                           </div>
@@ -560,7 +979,6 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
         )}
       </AnimatePresence>
 
-      {/* Direct Message Dialog */}
       <DirectMessageDialog
         open={!!chatFriend}
         onOpenChange={(o) => !o && setChatFriend(null)}
@@ -569,5 +987,115 @@ const SocialHubPanelComponent = ({ isOpen, onClose, currentLobbyCode, onJoinFrie
     </>
   );
 };
+
+/* ============================================================
+   Helpers
+============================================================ */
+
+const SectionLabel = ({
+  icon: Icon,
+  children,
+  color = '#a855f7',
+}: {
+  icon?: any;
+  children: React.ReactNode;
+  color?: string;
+}) => (
+  <div className="flex items-center gap-1.5 px-1">
+    {Icon && <Icon className="h-3.5 w-3.5" style={{ color }} />}
+    <span
+      className="text-base font-black uppercase tracking-wider"
+      style={{
+        fontFamily: "'Caveat', cursive",
+        color,
+        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+      }}
+    >
+      {children}
+    </span>
+  </div>
+);
+
+const EmptyState = ({
+  emoji,
+  text,
+  subtext,
+}: {
+  emoji: string;
+  text: string;
+  subtext?: string;
+}) => (
+  <div className="text-center py-8">
+    <motion.div
+      animate={{ y: [0, -6, 0], rotate: [-3, 3, -3] }}
+      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+      className="text-5xl mb-3 inline-block"
+    >
+      {emoji}
+    </motion.div>
+    <p
+      className="text-lg font-black text-white/80"
+      style={{
+        fontFamily: "'Caveat', cursive",
+        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+      }}
+    >
+      {text}
+    </p>
+    {subtext && (
+      <p
+        className="text-sm text-white/50 font-bold mt-1 px-4"
+        style={{ fontFamily: "'Caveat', cursive" }}
+      >
+        {subtext}
+      </p>
+    )}
+  </div>
+);
+
+const CartoonIconButton = ({
+  icon: Icon,
+  bg,
+  badge,
+  fill,
+  onClick,
+}: {
+  icon: any;
+  bg: string;
+  badge?: number;
+  fill?: boolean;
+  onClick: () => void;
+}) => (
+  <motion.button
+    whileHover={{ scale: 1.1, rotate: -5 }}
+    whileTap={{ scale: 0.9 }}
+    onClick={onClick}
+    className="relative w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0"
+    style={{
+      background: bg,
+      border: '2.5px solid #0a0810',
+      boxShadow: '0 3px 0 #0a0810',
+    }}
+  >
+    <Icon
+      className="h-3.5 w-3.5"
+      strokeWidth={2.5}
+      fill={fill ? 'white' : undefined}
+    />
+    {badge !== undefined && badge > 0 && (
+      <span
+        className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center"
+        style={{
+          background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
+          color: 'white',
+          border: '2px solid #0a0810',
+          fontFamily: "'Caveat', cursive",
+        }}
+      >
+        {badge > 9 ? '9+' : badge}
+      </span>
+    )}
+  </motion.button>
+);
 
 export const SocialHubPanel = memo(SocialHubPanelComponent);
