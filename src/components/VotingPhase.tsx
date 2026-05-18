@@ -15,6 +15,8 @@ import { emitXpGain } from "@/components/XpGainPopup";
 import { emitLevelUpNotification } from "@/components/RewardNotification";
 import { usePlayerLevel, XP_REWARDS } from "@/hooks/usePlayerLevel";
 import { juice, centerOf } from "@/lib/juice";
+import { DoodleBorder, DoodleStage } from "@/components/doodle/Doodle";
+import { playInkSound } from "@/hooks/useInkSoundEffects";
 interface Player {
   id: string;
   name: string;
@@ -637,7 +639,7 @@ export const VotingPhase = ({
     : currentImitation?.playerId === currentPlayer.id;
 
   return (
-    <>
+    <DoodleStage accent="#f87171">
       {/* Countdown overlay for synchronized video start */}
       <CountdownOverlay 
         isActive={showCountdown}
@@ -647,26 +649,40 @@ export const VotingPhase = ({
         startAt={countdownStartAt ?? undefined}
       />
 
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6 px-5 py-5 pb-[120px]">
       {/* Header */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/30">
-          <Vote className="h-4 w-4 text-accent" />
-          <span className="text-sm font-display uppercase tracking-wider text-accent">
-            Phase de vote {gameMode === '2v2' && '• 2v2'}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 relative">
+          <DoodleBorder color="#f87171" filled />
+          <Vote className="relative h-3.5 w-3.5" style={{ color: '#f87171' }} />
+          <span
+            className="relative text-xs font-bold uppercase tracking-[0.25em]"
+            style={{ color: '#f87171', fontFamily: "'Caveat', cursive" }}
+          >
+            Phase de vote {gameMode === '2v2' && '· 2v2'}
           </span>
         </div>
-        
-        <h2 className="text-3xl font-display font-black text-gradient-purple">
+
+        <h2
+          className="text-3xl md:text-5xl font-black leading-none text-white"
+          style={{
+            fontFamily: "'Caveat', cursive",
+            textShadow: '0 0 18px rgba(248,113,113,0.4), 0 2px 8px rgba(0,0,0,0.5)',
+          }}
+        >
           Votez {gameMode === '2v2' && 'pour les équipes'} !
         </h2>
-        
-        <p className="text-foreground-secondary font-body">
-          {gameMode === '2v2' ? 'Équipe' : 'Imitation'} <span className="font-display text-primary">{currentIndex + 1}</span>/{displayLength}
+
+        <p className="text-sm text-white/60">
+          {gameMode === '2v2' ? 'Équipe' : 'Imitation'}{' '}
+          <span className="font-bold" style={{ color: '#f87171' }}>
+            {currentIndex + 1}
+          </span>
+          /{displayLength}
         </p>
-        
-        <p className="text-sm text-foreground-muted">
-          {currentPlayer.isHost ? "Contrôlez la lecture pour tous" : "L'hôte contrôle la lecture"}
+
+        <p className="text-xs text-white/40 italic">
+          {currentPlayer.isHost ? 'Contrôlez la lecture pour tous' : "L'hôte contrôle la lecture"}
         </p>
       </div>
 
@@ -874,6 +890,6 @@ export const VotingPhase = ({
         ))}
       </div>
     </div>
-    </>
+    </DoodleStage>
   );
 };

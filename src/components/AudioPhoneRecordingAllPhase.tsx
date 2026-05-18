@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Mic, MicOff, Check, Users, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Mic, MicOff, Check, Users, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DoodleBorder, DoodleStage } from '@/components/doodle/Doodle';
+import { playInkSound } from '@/hooks/useInkSoundEffects';
 
 interface AudioPhoneRecordingAllPhaseProps {
   maxSeconds: number;
@@ -19,6 +20,9 @@ interface AudioPhoneRecordingAllPhaseProps {
   onSubmit: (audioBlob: Blob) => Promise<boolean>;
   onStartImitation: () => void;
 }
+
+const ACCENT = '#c084fc';
+const READY_COLOR = '#34d399';
 
 export const AudioPhoneRecordingAllPhase = ({
   maxSeconds,
@@ -65,8 +69,8 @@ export const AudioPhoneRecordingAllPhase = ({
 
   const startRecording = async () => {
     try {
+      playInkSound('cartoonPop', 0.3);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       analyserRef.current = audioContextRef.current.createAnalyser();
@@ -88,9 +92,7 @@ export const AudioPhoneRecordingAllPhase = ({
       chunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) chunksRef.current.push(event.data);
       };
 
       mediaRecorderRef.current.onstop = () => {
@@ -133,10 +135,9 @@ export const AudioPhoneRecordingAllPhase = ({
 
   const handleSubmit = async () => {
     if (!recordedBlob) return;
+    playInkSound('cartoonDing', 0.5);
     const success = await onSubmit(recordedBlob);
-    if (success) {
-      setRecordedBlob(null);
-    }
+    if (success) setRecordedBlob(null);
   };
 
   useEffect(() => {
@@ -152,12 +153,31 @@ export const AudioPhoneRecordingAllPhase = ({
       {playerNames.map((name, index) => {
         const isPending = pendingPlayerNames.includes(name);
         return (
-          <div key={`${name}-${index}`} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">
-            <span className="text-foreground">{name}</span>
-            <span className={cn('font-semibold', isPending ? 'text-amber-300' : 'text-emerald-300')}>
-              {isPending ? 'En attente' : 'Pret'}
+          <motion.div
+            key={`${name}-${index}`}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.04 }}
+            className="relative px-3 py-2 flex items-center justify-between text-sm"
+          >
+            <DoodleBorder
+              color={isPending ? 'rgba(255,255,255,0.18)' : READY_COLOR}
+              filled={!isPending}
+              rotation={index % 2 === 0 ? -0.5 : 0.5}
+            />
+            <span
+              className="relative font-bold text-white"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              {name}
             </span>
-          </div>
+            <span
+              className="relative text-[10px] uppercase tracking-wider font-bold"
+              style={{ color: isPending ? 'rgba(255,255,255,0.45)' : READY_COLOR }}
+            >
+              {isPending ? 'En attente' : '✓ Prêt'}
+            </span>
+          </motion.div>
         );
       })}
     </div>
@@ -165,161 +185,270 @@ export const AudioPhoneRecordingAllPhase = ({
 
   if (hasSubmitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-emerald-950/80 to-teal-950/80 border-emerald-500/30 backdrop-blur-xl">
-          <div className="text-center space-y-6">
-            <div className="w-20 h-20 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
-              <Check className="w-10 h-10 text-emerald-400" />
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-bold text-emerald-400 mb-2">
-                Phrase enregistree
-              </h2>
-              <p className="text-muted-foreground">
-                La manche attend maintenant les derniers micros.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 text-lg">
-              <Users className="w-5 h-5 text-emerald-400" />
-              <span className="text-foreground font-medium">
-                {submittedCount} / {playersCount} joueurs
-              </span>
-            </div>
-
-            <div className="w-full bg-muted/30 rounded-full h-3 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
-                style={{ width: `${(submittedCount / playersCount) * 100}%` }}
-              />
-            </div>
-
-            {renderRoster()}
-
-            {pendingPlayerNames.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Manque encore : <span className="text-foreground">{pendingPlayerNames.join(', ')}</span>
-              </p>
-            )}
-
-            {allSubmitted && isHost && (
-              <Button
-                onClick={onStartImitation}
-                size="lg"
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+      <DoodleStage accent={READY_COLOR}>
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-5">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+            className="relative w-full max-w-xl px-6 py-8"
+          >
+            <DoodleBorder color={READY_COLOR} filled rotation={-1} thick />
+            <div className="relative text-center space-y-5">
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', damping: 14, stiffness: 200 }}
+                className="relative w-20 h-20 mx-auto flex items-center justify-center"
               >
-                Lancer les imitations
-              </Button>
-            )}
-          </div>
-        </Card>
-      </div>
+                <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
+                  <path
+                    d="M50,8 Q70,7 82,18 Q94,32 92,52 Q90,72 76,86 Q60,96 42,92 Q24,90 12,76 Q4,60 8,40 Q14,20 30,12 Q40,8 50,8 Z"
+                    fill={READY_COLOR}
+                    fillOpacity="0.18"
+                    stroke={READY_COLOR}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <Check className="relative w-9 h-9" style={{ color: READY_COLOR }} />
+              </motion.div>
+
+              <div>
+                <h2
+                  className="text-3xl md:text-4xl font-black mb-1"
+                  style={{ fontFamily: "'Caveat', cursive", color: READY_COLOR }}
+                >
+                  Phrase enregistrée !
+                </h2>
+                <p className="text-sm text-white/55">
+                  La manche attend les derniers micros.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-base">
+                <Users className="w-4 h-4" style={{ color: READY_COLOR }} />
+                <span
+                  className="font-black text-white"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  {submittedCount} / {playersCount} joueurs
+                </span>
+              </div>
+
+              <div className="w-full h-2 rounded-full bg-white/8 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(submittedCount / playersCount) * 100}%` }}
+                  transition={{ duration: 0.5 }}
+                  className="h-full"
+                  style={{ background: READY_COLOR }}
+                />
+              </div>
+
+              {renderRoster()}
+
+              {pendingPlayerNames.length > 0 && (
+                <p className="text-xs text-white/45">
+                  Manque encore :{' '}
+                  <span className="font-bold text-white">{pendingPlayerNames.join(', ')}</span>
+                </p>
+              )}
+
+              {allSubmitted && isHost && (
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    playInkSound('cartoonSwoosh', 0.4);
+                    onStartImitation();
+                  }}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="relative w-full px-6 py-3"
+                >
+                  <DoodleBorder color={ACCENT} filled rotation={-1} thick />
+                  <div className="relative flex items-center justify-center gap-2">
+                    <Sparkles className="w-4 h-4" style={{ color: ACCENT }} />
+                    <span
+                      className="text-lg font-black"
+                      style={{ fontFamily: "'Caveat', cursive", color: ACCENT }}
+                    >
+                      Lancer les imitations
+                    </span>
+                  </div>
+                </motion.button>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </DoodleStage>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-xl p-8 bg-gradient-to-br from-violet-950/80 to-purple-950/80 border-violet-500/30 backdrop-blur-xl">
-        <div className="text-center space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-violet-300 mb-2">
-              {playerName}, enregistre ta phrase
-            </h2>
-            <p className="text-muted-foreground">
-              Dis une phrase originale (max {maxSeconds} secondes)
-            </p>
-            <p className="mt-2 text-sm text-violet-200/80">
-              Les meilleures phrases sont courtes, rythmiques et faciles a rejouer a l envers.
-            </p>
-          </div>
+    <DoodleStage accent={ACCENT}>
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-5 pb-[120px]">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="relative w-full max-w-xl px-6 py-8"
+        >
+          <DoodleBorder color={ACCENT} filled rotation={1} thick />
+          <div className="relative text-center space-y-5">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 relative">
+                <DoodleBorder color={ACCENT} />
+                <Mic className="relative w-3.5 h-3.5" style={{ color: ACCENT }} />
+                <span
+                  className="relative text-xs uppercase tracking-[0.2em] font-bold"
+                  style={{ color: ACCENT, fontFamily: "'Caveat', cursive" }}
+                >
+                  À toi le micro
+                </span>
+              </div>
+              <h2
+                className="text-2xl md:text-3xl font-black mb-1 text-white"
+                style={{ fontFamily: "'Caveat', cursive" }}
+              >
+                {playerName}, enregistre ta phrase
+              </h2>
+              <p className="text-sm text-white/55">
+                Une phrase originale (max{' '}
+                <span className="font-bold" style={{ color: ACCENT }}>
+                  {maxSeconds}s
+                </span>
+                )
+              </p>
+              <p className="mt-1 text-[11px] text-white/40 italic">
+                Astuce : courte, rythmique, fun à rejouer à l'envers.
+              </p>
+            </div>
 
-          <div className="relative">
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isSubmitting}
-              className={cn(
-                'w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300',
-                isRecording
-                  ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                  : 'bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700'
+            <div className="relative inline-block">
+              <motion.button
+                type="button"
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isSubmitting}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                animate={
+                  isRecording
+                    ? { scale: [1, 1.04, 1] }
+                    : { y: [0, -3, 0] }
+                }
+                transition={
+                  isRecording
+                    ? { duration: 0.5, repeat: Infinity }
+                    : { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+                }
+                className={cn(
+                  'relative w-32 h-32 rounded-full flex items-center justify-center transition-shadow',
+                  isRecording ? 'bg-red-500' : '',
+                )}
+                style={{
+                  background: isRecording
+                    ? '#f87171'
+                    : `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
+                  boxShadow: isRecording
+                    ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(248,113,113,0.45)`
+                    : `0 8px 30px ${ACCENT}55`,
+                }}
+              >
+                {isRecording ? (
+                  <MicOff className="w-12 h-12 text-white" />
+                ) : (
+                  <Mic className="w-12 h-12 text-white" />
+                )}
+              </motion.button>
+
+              {isRecording && (
+                <div className="absolute inset-0 pointer-events-none">
+                  {[...Array(3)].map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="absolute inset-0 rounded-full border-2"
+                      style={{
+                        borderColor: '#f8717180',
+                        transform: `scale(${1 + audioLevel * (idx + 1) * 0.3})`,
+                        opacity: 1 - audioLevel * 0.3 * idx,
+                        transition: 'transform 0.1s, opacity 0.1s',
+                      }}
+                    />
+                  ))}
+                </div>
               )}
-              style={{
-                boxShadow: isRecording
-                  ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(239, 68, 68, 0.4)`
-                  : '0 0 30px rgba(139, 92, 246, 0.3)',
-              }}
-            >
-              {isRecording ? (
-                <MicOff className="w-12 h-12 text-white" />
-              ) : (
-                <Mic className="w-12 h-12 text-white" />
-              )}
-            </button>
+            </div>
 
             {isRecording && (
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(3)].map((_, index) => (
-                  <div
-                    key={index}
-                    className="absolute inset-0 rounded-full border-2 border-red-400/50"
-                    style={{
-                      transform: `scale(${1 + audioLevel * (index + 1) * 0.3})`,
-                      opacity: 1 - audioLevel * 0.3 * index,
-                      transition: 'transform 0.1s, opacity 0.1s',
-                    }}
-                  />
-                ))}
+              <div
+                className="text-3xl font-black"
+                style={{ fontFamily: "'Caveat', cursive", color: '#f87171' }}
+              >
+                {recordingTime.toFixed(1)}s / {maxSeconds}s
               </div>
             )}
-          </div>
 
-          {isRecording && (
-            <div className="text-3xl font-mono font-bold text-red-400">
-              {recordingTime.toFixed(1)}s / {maxSeconds}s
-            </div>
-          )}
-
-          {recordedBlob && !isRecording && (
-            <div className="space-y-4">
-              <audio
-                src={URL.createObjectURL(recordedBlob)}
-                controls
-                className="w-full"
-              />
-              <div className="flex gap-3">
-                <Button
-                  onClick={startRecording}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Reenregistrer
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Check className="w-4 h-4 mr-2" />
-                  )}
-                  Valider
-                </Button>
+            {recordedBlob && !isRecording && (
+              <div className="space-y-3">
+                <audio
+                  src={URL.createObjectURL(recordedBlob)}
+                  controls
+                  className="w-full"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    className="relative flex-1 py-3 group"
+                  >
+                    <DoodleBorder color="rgba(255,255,255,0.2)" />
+                    <span
+                      className="relative text-base font-black text-white/70 group-hover:text-white transition-colors"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      Recommencer
+                    </span>
+                  </button>
+                  <motion.button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    whileHover={!isSubmitting ? { scale: 1.02, y: -1 } : undefined}
+                    whileTap={!isSubmitting ? { scale: 0.98 } : undefined}
+                    className="relative flex-1 py-3 disabled:opacity-50"
+                  >
+                    <DoodleBorder color={READY_COLOR} filled rotation={-1} thick />
+                    <div className="relative flex items-center justify-center gap-1.5">
+                      {isSubmitting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: READY_COLOR }} />
+                      ) : (
+                        <Check className="w-4 h-4" style={{ color: READY_COLOR }} />
+                      )}
+                      <span
+                        className="text-base font-black"
+                        style={{ fontFamily: "'Caveat', cursive", color: READY_COLOR }}
+                      >
+                        Valider
+                      </span>
+                    </div>
+                  </motion.button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="pt-4 border-t border-violet-500/20 space-y-3">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Users className="w-4 h-4" />
-              <span>{submittedCount} / {playersCount} phrases enregistrees</span>
+            <div className="pt-4 border-t border-white/10 space-y-3">
+              <div className="flex items-center justify-center gap-2 text-sm text-white/55">
+                <Users className="w-3.5 h-3.5" />
+                <span style={{ fontFamily: "'Caveat', cursive" }} className="font-bold">
+                  {submittedCount} / {playersCount} phrases
+                </span>
+              </div>
+              {renderRoster()}
             </div>
-            {renderRoster()}
           </div>
-        </div>
-      </Card>
-    </div>
+        </motion.div>
+      </div>
+    </DoodleStage>
   );
 };

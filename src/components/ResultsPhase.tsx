@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -10,6 +11,7 @@ import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
+import { DoodleBorder, DoodleStage } from "@/components/doodle/Doodle";
 
 interface Player {
   id: string;
@@ -247,7 +249,8 @@ export const ResultsPhase = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <DoodleStage accent="#fbbf24">
+      <div className="max-w-4xl mx-auto space-y-6 px-5 py-5 pb-[120px]">
       {/* Victory Animation Overlay */}
       {showVictoryAnimation && (gameMode === '2v2' ? winnerTeam : winner) && (
         <VictoryAnimation
@@ -258,48 +261,43 @@ export const ResultsPhase = ({
       )}
 
       {/* Winner Announcement */}
-      <div className="text-center space-y-4">
-        <div className="relative inline-block">
-          <div className="absolute inset-0 bg-secondary/40 blur-3xl rounded-full animate-pulse scale-150" />
-          <div className="relative animate-float">
-            <Trophy className="h-24 w-24 text-secondary mx-auto" />
-            <Sparkles className="absolute -top-2 -right-2 h-8 w-8 text-primary animate-pulse" />
-            <Sparkles className="absolute -bottom-2 -left-2 h-6 w-6 text-accent animate-pulse" style={{ animationDelay: '0.5s' }} />
-          </div>
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 relative">
+          <DoodleBorder color="#fbbf24" filled />
+          <Trophy className="relative h-3.5 w-3.5" style={{ color: '#fbbf24' }} />
+          <span
+            className="relative text-xs uppercase tracking-[0.25em] font-bold"
+            style={{ color: '#fbbf24', fontFamily: "'Caveat', cursive" }}
+          >
+            Résultats {gameMode === '2v2' && '· 2v2'}
+          </span>
         </div>
-        
-        <h2 className="text-5xl font-display font-black text-gradient">
-          RÉSULTATS {gameMode === '2v2' && '• 2v2'}
+
+        <h2
+          className="text-4xl md:text-6xl font-black leading-none text-white"
+          style={{
+            fontFamily: "'Caveat', cursive",
+            textShadow: '0 0 20px rgba(251,191,36,0.4), 0 4px 12px rgba(0,0,0,0.5)',
+          }}
+        >
+          {gameMode === '2v2' && winnerTeam
+            ? winnerTeam.playerNames.join(' & ')
+            : winner?.playerName || ''}
         </h2>
-        
-        {gameMode === '2v2' && winnerTeam ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-center gap-2">
-              <Swords className="h-6 w-6 text-secondary" />
-              <p className="text-3xl font-display font-bold text-secondary neon-text-pink">
-                {winnerTeam.playerNames.join(' & ')}
-              </p>
-            </div>
-            <p className="text-foreground-secondary font-body text-lg">
-              remportent cette manche !
-            </p>
-          </div>
-        ) : winner && (
-          <div className="space-y-2">
-            <p className="text-3xl font-display font-bold text-secondary neon-text-pink">
-              {winner.playerName}
-            </p>
-            <p className="text-foreground-secondary font-body text-lg">
-              remporte cette manche !
-            </p>
-          </div>
-        )}
+
+        <p className="text-sm text-white/60">
+          remporte{gameMode === '2v2' ? 'nt' : ''} cette manche !
+        </p>
       </div>
 
       {/* Leaderboard */}
-      <GameCard variant="accent">
-        <div className="space-y-6">
-          <h3 className="text-xl font-display font-bold text-center uppercase tracking-wider">
+      <div className="relative px-4 py-4">
+        <DoodleBorder color="#fbbf24" rotation={-1} />
+        <div className="relative space-y-4">
+          <h3
+            className="text-xl font-black text-center"
+            style={{ fontFamily: "'Caveat', cursive", color: '#fbbf24' }}
+          >
             Classement {gameMode === '2v2' && 'des Équipes'}
           </h3>
           
@@ -420,39 +418,58 @@ export const ResultsPhase = ({
             )}
           </div>
         </div>
-      </GameCard>
+      </div>
 
       {/* Actions */}
       {currentPlayer.isHost && (
-        <div className="flex gap-4">
-          <Button
+        <div className="flex gap-3">
+          <button
+            type="button"
             onClick={onEndGame}
-            variant="ghost"
-            size="lg"
-            className="flex-1"
+            className="relative flex-1 py-3 group"
           >
-            Terminer
-          </Button>
-          <Button
+            <DoodleBorder color="rgba(255,255,255,0.18)" />
+            <span
+              className="relative text-base font-black text-white/70 group-hover:text-white transition-colors"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              Terminer
+            </span>
+          </button>
+          <motion.button
+            type="button"
             onClick={onNextRound}
-            variant="hero"
-            size="lg"
-            className="flex-1 gap-2"
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className="relative flex-1 py-3"
           >
-            Manche Suivante
-            <ArrowRight className="h-5 w-5" />
-          </Button>
+            <DoodleBorder color="#fbbf24" filled rotation={-1} thick />
+            <div className="relative flex items-center justify-center gap-2">
+              <span
+                className="text-base font-black"
+                style={{ fontFamily: "'Caveat', cursive", color: '#fbbf24' }}
+              >
+                Manche suivante
+              </span>
+              <ArrowRight className="h-4 w-4" style={{ color: '#fbbf24' }} />
+            </div>
+          </motion.button>
         </div>
       )}
 
       {!currentPlayer.isHost && (
-        <div className="text-center p-4 rounded-xl bg-primary/10 border border-primary/30">
-          <p className="text-primary font-body flex items-center justify-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            En attente de l'hôte pour la suite...
+        <div className="relative px-4 py-3 text-center">
+          <DoodleBorder color="rgba(255,255,255,0.15)" />
+          <p
+            className="relative flex items-center justify-center gap-2 text-white/60 text-sm font-bold"
+            style={{ fontFamily: "'Caveat', cursive" }}
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            En attente de l'hôte pour la suite…
           </p>
         </div>
       )}
-    </div>
+      </div>
+    </DoodleStage>
   );
 };
