@@ -56,7 +56,7 @@ export const QuizGameScreen = ({
     currentStreak,
     bestStreak,
     roundInsight,
-    useFreezeJoker,
+    triggerFreezeJoker,
     startQuiz,
     submitAnswer,
     advanceToReveal,
@@ -77,7 +77,7 @@ export const QuizGameScreen = ({
     setJokers(j => ({ ...j, fiftyFifty: false }));
   };
   const handleFreeze = () => {
-    useFreezeJoker();
+    triggerFreezeJoker();
     setJokers(j => ({ ...j, freeze: false }));
   };
   const handleSkip = () => {

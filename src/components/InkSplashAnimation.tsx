@@ -150,7 +150,7 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
       cancelled = true;
       try {
         audioCtxRef.current?.close();
-      } catch {}
+      } catch { /* noop: audio ctx already closed */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

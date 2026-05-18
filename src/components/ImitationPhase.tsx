@@ -206,7 +206,7 @@ export const ImitationPhase = ({
       const startTime = challengeClipData?.startTime ?? 0;
       try {
         challengeVideoRef.current.currentTime = startTime;
-      } catch {}
+      } catch { /* noop: video ready state may throw */ }
     }
     toast({
       title: 'Imitation enregistrée !',
@@ -228,7 +228,7 @@ export const ImitationPhase = ({
       const startTime = challengeClipData?.startTime ?? 0;
       try {
         challengeVideoRef.current.currentTime = startTime;
-      } catch {}
+      } catch { /* noop: video ready state may throw */ }
     }
 
     setHasRecorded(false);
@@ -254,7 +254,7 @@ export const ImitationPhase = ({
       const startTime = challengeClipData?.startTime ?? 0;
       try {
         challengeVideoRef.current.currentTime = startTime;
-      } catch {}
+      } catch { /* noop: video ready state may throw */ }
     }
   };
 

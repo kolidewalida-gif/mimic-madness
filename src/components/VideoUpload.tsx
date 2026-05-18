@@ -85,7 +85,7 @@ export const VideoUpload = ({
     if (videoRef.current) {
       // Clean up previous video URL if any
       if (videoRef.current.src) {
-        try { URL.revokeObjectURL(videoRef.current.src); } catch {}
+        try { URL.revokeObjectURL(videoRef.current.src); } catch { /* noop: URL.revokeObjectURL might throw */ }
       }
       setIsPlaying(false);
       setCurrentTime(0);

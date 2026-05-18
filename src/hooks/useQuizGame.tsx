@@ -554,7 +554,7 @@ export const useQuizGame = (
   }, [hasAnswered, serverStartTime, currentQuestion, lobbyId, currentRound, currentPlayer, addXp, freezeBonusMs, answerDurationMs, currentStreak, hostSettings.enableStreak]);
 
   // Joker: freeze adds 5s of personal grace (extends timer for me)
-  const useFreezeJoker = useCallback(() => {
+  const triggerFreezeJoker = useCallback(() => {
     setFreezeBonusMs(b => b + 5000);
   }, []);
 
@@ -653,7 +653,7 @@ export const useQuizGame = (
     currentStreak,
     bestStreak,
     roundInsight,
-    useFreezeJoker,
+    triggerFreezeJoker,
     startQuiz,
     submitAnswer,
     advanceToReveal,
