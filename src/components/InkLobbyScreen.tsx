@@ -28,6 +28,9 @@ import { InkLobbyCanvas } from '@/components/InkLobbyCanvas';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { getStartStatus, GAME_MODE_META, type LobbyGameMode } from '@/lib/gameModes';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { InkShortcutsModal } from '@/components/InkShortcutsModal';
+import { Share2 } from 'lucide-react';
 
 interface Player {
   id: string;
@@ -262,8 +265,10 @@ export const InkLobbyScreen = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showInvitePanel, setShowInvitePanel] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [linkShared, setLinkShared] = useState(false);
   const { isAdmin } = useAdmin();
   const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
   const [codeCopied, setCodeCopied] = useState(false);
@@ -355,6 +360,92 @@ export const InkLobbyScreen = ({
     playInkSound('cartoonPop', 0.3);
     setTimeout(() => setCodeCopied(false), 1500);
   };
+
+  // Share lobby link via Web Share API or copy to clipboard
+  const handleShareLink = useCallback(async () => {
+    const url = `${window.location.origin}${window.location.pathname}?code=${lobbyCode}`;
+    const shareData = {
+      title: 'Mimic Master',
+      text: `Rejoins-moi sur Mimic Master ! Code lobby : ${lobbyCode}`,
+      url,
+    };
+    playInkSound('cartoonPop', 0.3);
+    try {
+      if (navigator.share && /mobile|iphone|ipad|android/i.test(navigator.userAgent)) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(url);
+        setLinkShared(true);
+        toast({ title: '🔗 Lien copié !', description: url });
+        setTimeout(() => setLinkShared(false), 1800);
+      }
+    } catch {
+      /* user cancelled share */
+    }
+  }, [lobbyCode, toast]);
+
+  // Global lobby shortcuts
+  const lobbyAnyModalOpen =
+    showSettings || showInvitePanel || showLeaveConfirm || showShortcuts || !!openMenuFor;
+  useKeyboardShortcuts([
+    {
+      key: 'Escape',
+      enabled: lobbyAnyModalOpen,
+      handler: () => {
+        if (showShortcuts) setShowShortcuts(false);
+        else if (showSettings) setShowSettings(false);
+        else if (showInvitePanel) setShowInvitePanel(false);
+        else if (showLeaveConfirm) setShowLeaveConfirm(false);
+        else if (openMenuFor) setOpenMenuFor(null);
+      },
+      label: 'Fermer la modale',
+    },
+    {
+      key: '?',
+      shift: true,
+      enabled: !lobbyAnyModalOpen,
+      handler: () => setShowShortcuts(true),
+      label: 'Afficher les raccourcis',
+    },
+    {
+      key: 's',
+      enabled: !lobbyAnyModalOpen,
+      handler: () => setShowSettings(true),
+      label: 'Ouvrir les paramètres',
+    },
+    {
+      key: 'i',
+      enabled: !lobbyAnyModalOpen && isHost,
+      handler: () => setShowInvitePanel(true),
+      label: 'Inviter des amis',
+    },
+    {
+      key: 'c',
+      enabled: !lobbyAnyModalOpen,
+      handler: () => {
+        navigator.clipboard.writeText(lobbyCode).catch(() => {});
+        setCodeCopied(true);
+        toast({ title: 'Code copié !', description: lobbyCode });
+        setTimeout(() => setCodeCopied(false), 1500);
+      },
+      label: 'Copier le code lobby',
+    },
+    {
+      key: 'l',
+      enabled: !lobbyAnyModalOpen,
+      handler: () => handleShareLink(),
+      label: 'Partager le lien',
+    },
+    {
+      key: 'Enter',
+      enabled: !lobbyAnyModalOpen && isHost && !isStarting,
+      handler: () => {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        handleStartGame();
+      },
+      label: 'Lancer la partie (host)',
+    },
+  ]);
 
   // Close action menu on outside click
   useEffect(() => {
@@ -792,6 +883,36 @@ export const InkLobbyScreen = ({
 
               <div className="relative flex items-center gap-2 flex-shrink-0">
                 <motion.button
+                  onClick={handleShareLink}
+                  whileHover={{ scale: 1.06, rotate: -8 }}
+                  whileTap={{ scale: 0.94 }}
+                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
+                  title="Partager le lien (L)"
+                >
+                  {linkShared ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <Share2 className="w-3.5 h-3.5" />
+                  )}
+                </motion.button>
+                <motion.button
+                  onClick={() => {
+                    playInkSound('cartoonPop', 0.3);
+                    setShowShortcuts(true);
+                  }}
+                  whileHover={{ scale: 1.1, rotate: -10 }}
+                  whileTap={{ scale: 0.92 }}
+                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
+                  title="Raccourcis (?)"
+                >
+                  <span
+                    className="text-base font-black"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
+                    ?
+                  </span>
+                </motion.button>
+                <motion.button
                   onClick={() => {
                     playInkSound('cartoonPop', 0.3);
                     setShowSettings(true);
@@ -799,6 +920,7 @@ export const InkLobbyScreen = ({
                   whileHover={{ rotate: 90 }}
                   whileTap={{ scale: 0.96 }}
                   className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
+                  title="Paramètres (S)"
                 >
                   <Settings className="w-3.5 h-3.5" />
                 </motion.button>
@@ -1221,7 +1343,20 @@ export const InkLobbyScreen = ({
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.3); border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168, 85, 247, 0.5); }
+
       `}</style>
+
+      {/* SHORTCUTS HELP MODAL */}
+      <InkShortcutsModal
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+        extra={[
+          { keys: ['I'], label: 'Inviter des amis (host)' },
+          { keys: ['L'], label: 'Partager le lien' },
+          { keys: ['C'], label: 'Copier le code lobby' },
+          { keys: ['Enter'], label: 'Lancer la partie (host)' },
+        ]}
+      />
     </div>
   );
 };

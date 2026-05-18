@@ -29,6 +29,10 @@ import { LobbyGameMode } from '@/lib/gameModes';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
+import { InkShortcutsModal } from '@/components/InkShortcutsModal';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useRecentLobbies } from '@/hooks/useRecentLobbies';
+import { toast } from 'sonner';
 
 interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
@@ -200,12 +204,18 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPatchNote, setShowPatchNote] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
   const [modeIndex, setModeIndex] = useState(1); // start on AUDIO PHONE like mockup
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
   const isMuted = volume === 0;
+  const {
+    recent: recentLobbies,
+    pushLobby: pushRecentLobby,
+    removeLobby: removeRecentLobby,
+  } = useRecentLobbies();
 
   const selectedMode = GAME_MODES[modeIndex];
 
@@ -214,12 +224,122 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     else setVolume(0);
   }, [volume, setVolume]);
 
+  // Auto-fill lobby code from URL query param (?code=ABCD or ?lobby=ABCD)
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      const param = url.searchParams.get('code') || url.searchParams.get('lobby');
+      if (param) {
+        const cleaned = param.trim().toUpperCase().slice(0, 4);
+        if (cleaned.length === 4) {
+          setLobbyCode(cleaned);
+          setShowJoinDialog(true);
+          // Clean the URL so it doesn't reopen on refresh
+          url.searchParams.delete('code');
+          url.searchParams.delete('lobby');
+          window.history.replaceState({}, '', url.toString());
+          toast.success('Code lobby détecté !', {
+            description: `Code ${cleaned} pré-rempli`,
+          });
+        }
+      }
+    } catch {
+      /* noop */
+    }
+  }, []);
+
   useEffect(() => {
     if (profile?.display_name && !playerName) {
       setPlayerName(profile.display_name);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.display_name]);
+
+  // Close modals on Escape (already handled per-modal but extra safety)
+  const anyModalOpen =
+    showJoinDialog ||
+    showSettings ||
+    showPatchNote ||
+    showShortcuts ||
+    showProfileDrawer ||
+    showFriendsDrawer;
+
+  // Global keyboard shortcuts on the home screen
+  useKeyboardShortcuts([
+    {
+      key: 'Escape',
+      enabled: anyModalOpen,
+      handler: () => {
+        if (showShortcuts) setShowShortcuts(false);
+        else if (showJoinDialog) setShowJoinDialog(false);
+        else if (showSettings) setShowSettings(false);
+        else if (showPatchNote) setShowPatchNote(false);
+        else if (showProfileDrawer) setShowProfileDrawer(false);
+        else if (showFriendsDrawer) setShowFriendsDrawer(false);
+      },
+      label: 'Fermer la modale',
+    },
+    {
+      key: '?',
+      shift: true,
+      enabled: !anyModalOpen,
+      handler: () => setShowShortcuts(true),
+      label: 'Afficher les raccourcis',
+    },
+    {
+      key: 'm',
+      enabled: !anyModalOpen,
+      handler: () => {
+        toggleMute();
+        toast(isMuted ? '🔊 Son activé' : '🔇 Son coupé', { duration: 1500 });
+      },
+      label: 'Couper / activer le son',
+    },
+    {
+      key: 's',
+      enabled: !anyModalOpen,
+      handler: () => setShowSettings(true),
+      label: 'Ouvrir les paramètres',
+    },
+    {
+      key: 'c',
+      enabled: !anyModalOpen && !!friendCode,
+      handler: () => {
+        if (!friendCode) return;
+        navigator.clipboard.writeText(friendCode).catch(() => {});
+        toast.success('Code ami copié !');
+      },
+      label: 'Copier le code ami',
+    },
+    {
+      key: 'Enter',
+      enabled: !anyModalOpen && !!playerName.trim(),
+      handler: () => {
+        playInkSound('inkSuccess', 0.5);
+        play();
+        onCreateGame(playerName.trim(), selectedMode.id);
+      },
+      label: 'Lancer la partie',
+    },
+    {
+      key: 'ArrowLeft',
+      enabled: !anyModalOpen,
+      handler: () => {
+        playInkSound('brushTap', 0.25);
+        setModeIndex((i) => (i - 1 + GAME_MODES.length) % GAME_MODES.length);
+      },
+      label: 'Mode précédent',
+    },
+    {
+      key: 'ArrowRight',
+      enabled: !anyModalOpen,
+      handler: () => {
+        playInkSound('brushTap', 0.25);
+        setModeIndex((i) => (i + 1) % GAME_MODES.length);
+      },
+      label: 'Mode suivant',
+    },
+  ]);
 
   const handleCreateGame = useCallback(() => {
     if (playerName.trim()) {
@@ -231,11 +351,13 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
   const handleJoinGame = useCallback(() => {
     if (playerName.trim() && lobbyCode.trim()) {
+      const code = lobbyCode.trim().toUpperCase();
       play();
       playInkSound('inkSuccess', 0.5);
-      onJoinGame(playerName.trim(), lobbyCode.trim().toUpperCase());
+      pushRecentLobby(code);
+      onJoinGame(playerName.trim(), code);
     }
-  }, [playerName, lobbyCode, play, onJoinGame]);
+  }, [playerName, lobbyCode, play, onJoinGame, pushRecentLobby]);
 
   const handleCopyFriendCode = useCallback(async () => {
     if (!friendCode) return;
@@ -792,6 +914,25 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             <Settings className="w-4 h-4" />
           </motion.button>
 
+          <motion.button
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              setShowShortcuts(true);
+            }}
+            whileHover={{ scale: 1.15, rotate: -10 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+            aria-label="Raccourcis clavier"
+            title="Raccourcis (?)"
+          >
+            <span
+              className="text-base font-black"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              ?
+            </span>
+          </motion.button>
+
           <button
             type="button"
             onClick={() => {
@@ -1058,6 +1199,71 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     autoFocus
                   />
                 </div>
+
+                {/* RECENT LOBBIES — quick rejoin */}
+                {recentLobbies.length > 0 && (
+                  <div className="space-y-2">
+                    <label
+                      className="text-sm font-black text-white/70 flex items-center gap-2 px-1"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                      Récents
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {recentLobbies.slice(0, 6).map((it, idx) => (
+                        <motion.button
+                          key={it.code}
+                          type="button"
+                          initial={{ opacity: 0, scale: 0.8, rotate: -4 }}
+                          animate={{
+                            opacity: 1,
+                            scale: 1,
+                            rotate: idx % 2 === 0 ? -1.5 : 1.5,
+                          }}
+                          transition={{ delay: idx * 0.04 }}
+                          whileHover={{ scale: 1.05, rotate: 0, y: -2 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            setLobbyCode(it.code);
+                            playInkSound('brushTap', 0.3);
+                          }}
+                          className="group relative px-3 py-1.5 rounded-xl flex items-center gap-1.5"
+                          style={{
+                            background:
+                              'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(126,34,206,0.05))',
+                            border: '2.5px solid #0a0810',
+                            boxShadow: '0 3px 0 #0a0810',
+                          }}
+                          title={`Rejoindre ${it.code}`}
+                        >
+                          <span
+                            className="font-mono text-base font-black tracking-wider text-white"
+                            style={{
+                              fontFamily: "'Caveat', cursive",
+                              textShadow:
+                                '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                            }}
+                          >
+                            {it.code}
+                          </span>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeRecentLobby(it.code);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded-full bg-red-500/30 hover:bg-red-500/50 flex items-center justify-center"
+                          >
+                            <X className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                          </span>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <motion.button
                     type="button"
@@ -1152,6 +1358,17 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
       {/* PATCH NOTE MODAL */}
       <InkPatchNoteModal forceOpen={showPatchNote} onClose={() => setShowPatchNote(false)} />
+
+      {/* SHORTCUTS HELP MODAL */}
+      <InkShortcutsModal
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+        extra={[
+          { keys: ['C'], label: 'Copier le code ami' },
+          { keys: ['←', '→'], label: 'Naviguer entre les modes' },
+          { keys: ['Enter'], label: 'Lancer la partie' },
+        ]}
+      />
 
       {/* SCROLLBAR STYLE */}
       <style>{`
