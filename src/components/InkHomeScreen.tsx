@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import {
-  Hash,
   Phone,
   Copy,
   Swords,
@@ -17,6 +16,13 @@ import {
   Volume2,
   VolumeX,
   ChevronLeft,
+  ChevronRight,
+  User,
+  UsersRound,
+  Hash,
+  LogOut,
+  Sparkles,
+  Play,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -35,36 +41,88 @@ interface InkHomeScreenProps {
 interface GameModeInfo {
   id: LobbyGameMode;
   name: string;
+  tagline: string;
+  description: string;
   icon: React.ReactNode;
+  gradient: string;
+  accent: string;
 }
 
 const GAME_MODES: GameModeInfo[] = [
-  { id: 'audiophone', name: 'Audio Phone', icon: <Phone className="w-4 h-4" /> },
-  { id: 'normal', name: 'Normal', icon: <Copy className="w-4 h-4" /> },
-  { id: '2v2', name: '2v2', icon: <Swords className="w-4 h-4" /> },
-  { id: 'quiz', name: 'Quiz', icon: <Brain className="w-4 h-4" /> },
-  { id: 'pixoguess', name: 'BlurRush', icon: <Zap className="w-4 h-4" /> },
-  { id: 'undercover', name: 'Undercover', icon: <UserX className="w-4 h-4" /> },
+  {
+    id: 'audiophone',
+    name: 'Audio Phone',
+    tagline: 'Le téléphone arabe audio',
+    description: 'Enregistrez, écoutez, imitez. Fou rire garanti !',
+    icon: <Phone className="w-7 h-7" />,
+    gradient: 'from-rose-500 via-red-500 to-orange-500',
+    accent: '#ff2b2b',
+  },
+  {
+    id: 'normal',
+    name: 'Normal',
+    tagline: 'Imitation classique',
+    description: 'Imitez les défis vidéo des autres joueurs',
+    icon: <Copy className="w-7 h-7" />,
+    gradient: 'from-violet-500 via-purple-500 to-fuchsia-500',
+    accent: '#a855f7',
+  },
+  {
+    id: '2v2',
+    name: '2v2',
+    tagline: 'Combat en équipes',
+    description: 'Affrontement en équipes de 2 joueurs',
+    icon: <Swords className="w-7 h-7" />,
+    gradient: 'from-amber-500 via-orange-500 to-red-500',
+    accent: '#f59e0b',
+  },
+  {
+    id: 'quiz',
+    name: 'Quiz',
+    tagline: 'Testez vos connaissances',
+    description: 'Questions variées en temps réel',
+    icon: <Brain className="w-7 h-7" />,
+    gradient: 'from-cyan-400 via-sky-500 to-blue-600',
+    accent: '#0ea5e9',
+  },
+  {
+    id: 'pixoguess',
+    name: 'BlurRush',
+    tagline: 'Devinez l\'image',
+    description: 'L\'image se dépixelise, soyez le plus rapide',
+    icon: <Zap className="w-7 h-7" />,
+    gradient: 'from-emerald-400 via-green-500 to-teal-600',
+    accent: '#10b981',
+  },
+  {
+    id: 'undercover',
+    name: 'Undercover',
+    tagline: 'Trouvez l\'infiltré',
+    description: 'Donnez des indices, démasquez l\'imposteur',
+    icon: <UserX className="w-7 h-7" />,
+    gradient: 'from-slate-400 via-zinc-500 to-stone-600',
+    accent: '#94a3b8',
+  },
 ];
 
 const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps) => {
-  const { profile } = useAuth();
+  const { profile, friendCode } = useAuth();
   const [playerName, setPlayerName] = useState('');
   const [lobbyCode, setLobbyCode] = useState('');
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPatchNote, setShowPatchNote] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<LobbyGameMode>('audiophone');
+  const [showProfileDrawer, setShowProfileDrawer] = useState(false);
+  const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
+  const [modeIndex, setModeIndex] = useState(0);
   const { play, volume, setVolume } = useBackgroundMusic();
   const isMuted = volume === 0;
 
+  const selectedMode = GAME_MODES[modeIndex];
+
   const toggleMute = useCallback(() => {
-    if (volume === 0) {
-      setVolume(0.5);
-    } else {
-      (window as any).__prevMusicVol = volume;
-      setVolume(0);
-    }
+    if (volume === 0) setVolume(0.5);
+    else setVolume(0);
   }, [volume, setVolume]);
 
   useEffect(() => {
@@ -74,13 +132,38 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.display_name]);
 
+  const goPrevMode = useCallback(() => {
+    playInkSound('brushTap', 0.3);
+    setModeIndex((i) => (i - 1 + GAME_MODES.length) % GAME_MODES.length);
+  }, []);
+
+  const goNextMode = useCallback(() => {
+    playInkSound('brushTap', 0.3);
+    setModeIndex((i) => (i + 1) % GAME_MODES.length);
+  }, []);
+
+  // Keyboard nav for mode carousel
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.matches('input, textarea, select, [contenteditable="true"]') ||
+        showJoinDialog || showSettings || showPatchNote || showProfileDrawer || showFriendsDrawer
+      ) return;
+      if (e.key === 'ArrowLeft') goPrevMode();
+      else if (e.key === 'ArrowRight') goNextMode();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [goPrevMode, goNextMode, showJoinDialog, showSettings, showPatchNote, showProfileDrawer, showFriendsDrawer]);
+
   const handleCreateGame = useCallback(() => {
     if (playerName.trim()) {
       play();
       playInkSound('inkSuccess', 0.5);
-      onCreateGame(playerName.trim(), selectedMode || 'normal');
+      onCreateGame(playerName.trim(), selectedMode.id);
     }
-  }, [playerName, selectedMode, play, onCreateGame]);
+  }, [playerName, selectedMode.id, play, onCreateGame]);
 
   const handleJoinGame = useCallback(() => {
     if (playerName.trim() && lobbyCode.trim()) {
@@ -90,327 +173,565 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     }
   }, [playerName, lobbyCode, play, onJoinGame]);
 
-  const handleSelectMode = useCallback((mode: GameModeInfo) => {
-    playInkSound('brushTap', 0.4);
-    setSelectedMode(mode.id);
-  }, []);
+  const handleCopyFriendCode = useCallback(async () => {
+    if (!friendCode) return;
+    await navigator.clipboard.writeText(friendCode);
+    playInkSound('inkSuccess', 0.4);
+  }, [friendCode]);
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[#0a0505] text-foreground relative overflow-hidden">
-      {/* Ink Cursor Particles Effect */}
+    <div className="h-screen w-full flex flex-col bg-[#08070d] text-white relative overflow-hidden">
       <InkCursorParticles />
 
-      {/* Background — volumetric red fog */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#ff2b2b]/15 rounded-full blur-[140px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-[#ff2b2b]/12 rounded-full blur-[130px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-[#ff2b2b]/8 rounded-full blur-[180px]" />
+      {/* Animated background — dynamic gradient that follows selected mode */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Base layers */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0510] via-[#08070d] to-[#0a0512]" />
 
-        {/* Decorative cartoon elements */}
-        <div className="absolute left-12 top-1/2 -translate-y-1/2 opacity-15">
-          <svg viewBox="0 0 100 80" className="w-40 h-32">
-            <path d="M20,60 L20,30 L35,45 L50,20 L65,45 L80,30 L80,60 Z" fill="#ff2b2b" stroke="#ff2b2b" strokeWidth="2" />
-            <circle cx="20" cy="28" r="4" fill="#ff2b2b" />
-            <circle cx="50" cy="18" r="4" fill="#ff2b2b" />
-            <circle cx="80" cy="28" r="4" fill="#ff2b2b" />
-          </svg>
-        </div>
-        <div className="absolute right-12 bottom-32 opacity-15">
-          <svg viewBox="0 0 100 100" className="w-40 h-40">
-            <circle cx="50" cy="50" r="35" fill="#ff2b2b" opacity="0.6" />
-            <circle cx="40" cy="45" r="3" fill="#0a0505" />
-            <circle cx="60" cy="45" r="3" fill="#0a0505" />
-            <path d="M35,60 Q50,75 65,60" stroke="#0a0505" strokeWidth="3" fill="none" strokeLinecap="round" />
-          </svg>
-        </div>
+        {/* Mode-tinted glow that animates between modes */}
+        <AnimatePresence mode="sync">
+          <motion.div
+            key={selectedMode.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0"
+          >
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[700px] rounded-full opacity-30"
+              style={{
+                background: `radial-gradient(circle, ${selectedMode.accent}55 0%, transparent 70%)`,
+                filter: 'blur(120px)',
+              }}
+            />
+            <div
+              className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full opacity-20 animate-pulse"
+              style={{
+                background: `radial-gradient(circle, ${selectedMode.accent}88 0%, transparent 70%)`,
+                filter: 'blur(80px)',
+              }}
+            />
+            <div
+              className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] rounded-full opacity-20"
+              style={{
+                background: `radial-gradient(circle, ${selectedMode.accent}66 0%, transparent 70%)`,
+                filter: 'blur(100px)',
+              }}
+            />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Subtle grid overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+          }}
+        />
+
+        {/* Vignette */}
+        <div className="absolute inset-0 bg-gradient-radial from-transparent to-black/60 pointer-events-none" />
       </div>
 
-      {/* TITLE — Big cartoon "MIMIC MASTER" */}
-      <header className="relative z-10 pt-4 pb-2 text-center flex-shrink-0">
-        <div className="relative inline-block">
-          {/* Crown decoration top right */}
-          <div className="absolute -top-2 -right-4 text-[#ff2b2b] rotate-12 pointer-events-none">
-            <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current drop-shadow-[0_0_8px_rgba(255,43,43,0.8)]">
-              <path d="M3,18L5,8L8,12L12,4L16,12L19,8L21,18H3M5.5,16H18.5L17.7,12L15.2,15L12,8L8.8,15L6.3,12L5.5,16Z" />
-            </svg>
+      {/* TOP BAR — minimal, premium */}
+      <header className="relative z-30 flex items-center justify-between px-6 py-4 flex-shrink-0">
+        {/* Profile button (opens drawer) */}
+        <motion.button
+          onClick={() => {
+            playInkSound('inkClick', 0.3);
+            setShowProfileDrawer(true);
+          }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 hover:bg-white/10 transition-all group"
+        >
+          <div className="relative">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#ff2b2b] to-[#a01010] flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                (profile?.display_name?.[0] || playerName[0] || 'M').toUpperCase()
+              )}
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#08070d]" />
           </div>
-          {/* Crown decoration top left */}
-          <div className="absolute -top-2 -left-6 text-[#ff2b2b] -rotate-12 pointer-events-none">
-            <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current drop-shadow-[0_0_8px_rgba(255,43,43,0.8)]">
-              <path d="M3,18L5,8L8,12L12,4L16,12L19,8L21,18H3M5.5,16H18.5L17.7,12L15.2,15L12,8L8.8,15L6.3,12L5.5,16Z" />
-            </svg>
+          <div className="text-left pr-1">
+            <div className="text-sm font-bold text-white leading-tight truncate max-w-[120px]">
+              {profile?.display_name || 'Joueur'}
+            </div>
+            <div className="text-[10px] text-white/50 leading-tight">Mon profil</div>
           </div>
+        </motion.button>
 
-          <h1
-            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-none"
-            style={{
-              fontFamily: "'Caveat', cursive, sans-serif",
-              color: '#ff2b2b',
-              textShadow: '3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 30px rgba(255, 43, 43, 0.8), 0 0 60px rgba(255, 43, 43, 0.4)',
-              filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))',
-            }}
-          >
-            MIMIC
-          </h1>
-          <h1
-            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-none -mt-2"
-            style={{
-              fontFamily: "'Caveat', cursive, sans-serif",
-              color: '#ffffff',
-              textShadow: '3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 30px rgba(255, 43, 43, 0.6), 0 0 60px rgba(255, 43, 43, 0.3)',
-              filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))',
-            }}
-          >
-            MASTER
-          </h1>
+        {/* Center logo / title */}
+        <div className="flex flex-col items-center pointer-events-none">
+          <div className="relative">
+            <div
+              className="absolute inset-0 blur-2xl opacity-60"
+              style={{ background: `radial-gradient(circle, ${selectedMode.accent} 0%, transparent 70%)` }}
+            />
+            <h1
+              className="relative text-3xl md:text-4xl font-black tracking-[0.2em] leading-none"
+              style={{
+                fontFamily: "'Caveat', cursive, sans-serif",
+                background: 'linear-gradient(180deg, #ffffff 0%, #cccccc 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                filter: 'drop-shadow(0 2px 8px rgba(255, 43, 43, 0.5))',
+              }}
+            >
+              MIMIC MASTER
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="h-px w-10 bg-gradient-to-r from-transparent to-white/30" />
+            <span className="text-[10px] tracking-[0.3em] text-white/40 font-bold uppercase">Lobby</span>
+            <div className="h-px w-10 bg-gradient-to-l from-transparent to-white/30" />
+          </div>
         </div>
+
+        {/* Friends button (opens drawer) */}
+        <motion.button
+          onClick={() => {
+            playInkSound('inkClick', 0.3);
+            setShowFriendsDrawer(true);
+          }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 hover:bg-white/10 transition-all"
+        >
+          <div className="text-right pl-1">
+            <div className="text-sm font-bold text-white leading-tight">Mes amis</div>
+            <div className="text-[10px] text-white/50 leading-tight">Communauté</div>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+            <UsersRound className="w-4 h-4 text-white" />
+          </div>
+        </motion.button>
       </header>
 
-      {/* MAIN CONTENT — 3 Panels */}
-      <main className="flex-1 flex items-stretch justify-center px-6 pb-6 relative z-10 min-h-0 overflow-hidden">
-        <div className="w-full max-w-[1500px] grid grid-cols-1 lg:grid-cols-[1fr_1.3fr_1fr] gap-4 lg:gap-6 items-stretch min-h-0">
-
-          {/* LEFT PANEL — Profile */}
-          <aside className="relative hidden lg:flex flex-col min-h-0">
-            <div className="absolute inset-0 bg-[#ff2b2b]/15 rounded-3xl blur-2xl pointer-events-none" />
+      {/* MAIN CONTENT */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-6 min-h-0">
+        {/* Pseudo input — inline, premium */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-6 w-full max-w-md"
+        >
+          <div className="relative group">
             <div
-              className="relative flex-1 bg-[#0a0505]/90 backdrop-blur-xl border-2 border-[#ff2b2b]/50 rounded-3xl overflow-hidden flex flex-col"
-              style={{
-                boxShadow: '0 0 40px rgba(255, 43, 43, 0.3), 0 0 80px rgba(255, 43, 43, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-[#ff2b2b]/5 to-transparent pointer-events-none" />
-              <div className="relative h-full overflow-y-auto custom-scrollbar">
-                <InkProfileSidebar />
-              </div>
-            </div>
-          </aside>
+              className="absolute -inset-px rounded-2xl opacity-50 blur transition-opacity group-focus-within:opacity-100"
+              style={{ background: `linear-gradient(90deg, ${selectedMode.accent}, transparent, ${selectedMode.accent})` }}
+            />
+            <Input
+              placeholder="Votre pseudo"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              className="relative h-14 bg-black/60 backdrop-blur-xl border-2 border-white/10 rounded-2xl text-center text-2xl font-bold text-white placeholder:text-white/30 focus:border-white/30 transition-all"
+              style={{ fontFamily: "'Caveat', cursive" }}
+              maxLength={20}
+            />
+          </div>
+        </motion.div>
 
-          {/* CENTER PANEL — Main (Dominant) */}
-          <section className="relative flex flex-col min-h-0">
-            <div className="absolute -inset-2 bg-[#ff2b2b]/25 rounded-3xl blur-3xl pointer-events-none" />
-            <div className="absolute -inset-1 bg-[#ff2b2b]/15 rounded-3xl blur-xl pointer-events-none" />
+        {/* Mode showcase — the hero */}
+        <div className="relative w-full max-w-5xl flex items-center justify-center gap-4 mb-8">
+          {/* Prev button */}
+          <motion.button
+            onClick={goPrevMode}
+            whileHover={{ scale: 1.1, x: -3 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex-shrink-0 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
+            aria-label="Mode précédent"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </motion.button>
 
-            <div
-              className="relative flex-1 bg-[#0a0505]/95 backdrop-blur-xl border-2 border-[#ff2b2b] rounded-3xl overflow-hidden flex flex-col"
-              style={{
-                boxShadow: '0 0 60px rgba(255, 43, 43, 0.5), 0 0 120px rgba(255, 43, 43, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 40px rgba(255, 43, 43, 0.1)',
-              }}
-            >
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff2b2b] to-transparent pointer-events-none" />
-              <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#ff2b2b]/8 to-transparent pointer-events-none" />
-
-              {/* Splatter decorations */}
-              <div className="absolute top-3 left-4 opacity-20 pointer-events-none">
-                <svg viewBox="0 0 40 40" className="w-12 h-12">
-                  <circle cx="20" cy="20" r="3" fill="#ff2b2b" />
-                  <circle cx="30" cy="10" r="1.5" fill="#ff2b2b" />
-                  <circle cx="10" cy="30" r="1" fill="#ff2b2b" />
-                  <circle cx="35" cy="25" r="2" fill="#ff2b2b" />
-                </svg>
-              </div>
-              <div className="absolute top-3 right-4 opacity-20 pointer-events-none">
-                <svg viewBox="0 0 24 24" className="w-8 h-8">
-                  <path d="M3,18L5,8L8,12L12,4L16,12L19,8L21,18H3" fill="#ff2b2b" />
-                </svg>
-              </div>
-
-              <div className="relative flex-1 flex flex-col justify-center px-6 lg:px-8 py-6 gap-5 overflow-y-auto custom-scrollbar">
-                {/* Username Input */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-white/60 uppercase tracking-[0.2em] block text-center">
-                    Votre nom
-                  </label>
-                  <Input
-                    placeholder="Entrez votre pseudo..."
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    className="h-14 bg-[#1a0a0a]/80 border-2 border-[#ff2b2b]/40 rounded-2xl text-center text-2xl font-black text-white placeholder:text-white/30 placeholder:text-base focus:border-[#ff2b2b] focus:ring-2 focus:ring-[#ff2b2b]/30 transition-all"
-                    style={{ fontFamily: "'Caveat', cursive" }}
-                  />
-                </div>
-
-                {/* Game Modes — Pills */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-white/60 uppercase tracking-[0.2em] block">
-                    Mode de jeu
-                  </label>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {GAME_MODES.map((mode) => {
-                      const isActive = selectedMode === mode.id;
-                      return (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          onClick={() => handleSelectMode(mode)}
-                          className={cn(
-                            'flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border-2 hover:scale-105 active:scale-95',
-                            isActive
-                              ? 'bg-[#ff2b2b]/20 border-[#ff2b2b] text-[#ff2b2b] shadow-[0_0_20px_rgba(255,43,43,0.5)]'
-                              : 'bg-[#1a0a0a]/60 border-white/10 text-white/70 hover:border-[#ff2b2b]/40 hover:text-white'
-                          )}
-                        >
-                          {mode.icon}
-                          {mode.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* CREATE GAME — Big red button */}
-                <button
-                  type="button"
-                  onClick={handleCreateGame}
-                  disabled={!playerName.trim()}
-                  className={cn(
-                    'relative w-full py-5 px-6 rounded-2xl font-black text-xl tracking-wider transition-all duration-300',
-                    'bg-gradient-to-b from-[#ff4040] to-[#cc1818] text-white border-2 border-[#ff2b2b]',
-                    'hover:from-[#ff5050] hover:to-[#dd2020] hover:scale-[1.02]',
-                    'active:scale-[0.98]',
-                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100',
-                    'overflow-hidden group'
-                  )}
+          {/* Mode card */}
+          <div className="flex-1 max-w-2xl relative" style={{ perspective: '1000px' }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selectedMode.id}
+                initial={{ opacity: 0, scale: 0.92, rotateX: -15, y: 20 }}
+                animate={{ opacity: 1, scale: 1, rotateX: 0, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, rotateX: 15, y: -20 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="relative"
+              >
+                {/* Glow shell */}
+                <div
+                  className="absolute -inset-4 rounded-3xl blur-2xl opacity-60 animate-pulse"
                   style={{
-                    boxShadow: '0 0 40px rgba(255, 43, 43, 0.6), 0 8px 24px rgba(255, 43, 43, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.3)',
+                    background: `linear-gradient(135deg, ${selectedMode.accent}88, transparent)`,
+                  }}
+                />
+
+                {/* Card */}
+                <div
+                  className="relative rounded-3xl overflow-hidden border-2 backdrop-blur-2xl bg-black/50"
+                  style={{
+                    borderColor: `${selectedMode.accent}66`,
+                    boxShadow: `0 0 60px ${selectedMode.accent}66, 0 0 120px ${selectedMode.accent}33, inset 0 1px 0 rgba(255,255,255,0.1)`,
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
-                  <div className="absolute -top-1 -right-2 opacity-60 pointer-events-none">
-                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white">
-                      <path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z" />
-                    </svg>
+                  {/* Background gradient */}
+                  <div className={cn('absolute inset-0 bg-gradient-to-br opacity-10', selectedMode.gradient)} />
+
+                  {/* Top accent line */}
+                  <div
+                    className="absolute inset-x-0 top-0 h-px"
+                    style={{
+                      background: `linear-gradient(90deg, transparent, ${selectedMode.accent}, transparent)`,
+                    }}
+                  />
+
+                  {/* Decorative pattern */}
+                  <div className="absolute inset-0 opacity-5 pointer-events-none">
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        backgroundImage: `radial-gradient(${selectedMode.accent} 1px, transparent 1px)`,
+                        backgroundSize: '40px 40px',
+                      }}
+                    />
                   </div>
-                  <span className="relative flex items-center justify-center gap-3">
-                    CREATE GAME
-                    <Users className="w-6 h-6" />
-                  </span>
-                </button>
 
-                {/* JOIN GAME */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    playInkSound('brushTap', 0.3);
-                    setShowJoinDialog(true);
-                  }}
-                  disabled={!playerName.trim()}
-                  className={cn(
-                    'w-full py-4 px-6 rounded-2xl font-black text-lg tracking-wider transition-all duration-300',
-                    'bg-[#1a0a0a]/80 border-2 border-[#ff2b2b]/60 text-white',
-                    'hover:bg-[#1a0a0a] hover:border-[#ff2b2b] hover:shadow-[0_0_30px_rgba(255,43,43,0.4)] hover:scale-[1.02]',
-                    'active:scale-[0.98]',
-                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100'
-                  )}
-                >
-                  <span className="flex items-center justify-center gap-3">
-                    JOIN GAME
-                    <Users className="w-5 h-5" />
-                  </span>
-                </button>
+                  <div className="relative p-8 md:p-10 flex flex-col items-center text-center">
+                    {/* Icon */}
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                      className={cn(
+                        'w-20 h-20 rounded-2xl bg-gradient-to-br flex items-center justify-center mb-4 shadow-2xl',
+                        selectedMode.gradient
+                      )}
+                      style={{ boxShadow: `0 10px 40px ${selectedMode.accent}88` }}
+                    >
+                      <div className="text-white">{selectedMode.icon}</div>
+                    </motion.div>
 
-                {/* Bottom icon buttons */}
-                <div className="flex items-center justify-center gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playInkSound('inkClick', 0.3);
-                      toggleMute();
-                    }}
-                    className="w-11 h-11 rounded-full bg-[#1a0a0a]/80 border border-[#ff2b2b]/30 flex items-center justify-center text-white/70 hover:text-[#ff2b2b] hover:border-[#ff2b2b] hover:scale-110 active:scale-90 transition-all"
-                    aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
-                  >
-                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playInkSound('inkClick', 0.3);
-                      setShowSettings(true);
-                    }}
-                    className="w-11 h-11 rounded-full bg-[#1a0a0a]/80 border border-[#ff2b2b]/30 flex items-center justify-center text-white/70 hover:text-[#ff2b2b] hover:border-[#ff2b2b] hover:scale-110 active:scale-90 hover:rotate-90 transition-all"
-                    aria-label="Paramètres"
-                  >
-                    <Settings className="w-5 h-5" />
-                  </button>
+                    {/* Mode name */}
+                    <h2
+                      className="text-5xl md:text-6xl font-black tracking-tight mb-1"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        color: selectedMode.accent,
+                        textShadow: `0 0 30px ${selectedMode.accent}88, 0 4px 12px rgba(0,0,0,0.8)`,
+                        WebkitTextStroke: '1px rgba(0,0,0,0.4)',
+                      }}
+                    >
+                      {selectedMode.name}
+                    </h2>
+
+                    {/* Tagline */}
+                    <p className="text-sm md:text-base font-bold text-white/80 uppercase tracking-[0.2em] mb-2">
+                      {selectedMode.tagline}
+                    </p>
+
+                    {/* Description */}
+                    <p className="text-sm text-white/60 max-w-md leading-relaxed">
+                      {selectedMode.description}
+                    </p>
+
+                    {/* Mode counter */}
+                    <div className="mt-6 flex items-center gap-1.5">
+                      {GAME_MODES.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            playInkSound('inkClick', 0.3);
+                            setModeIndex(i);
+                          }}
+                          className={cn(
+                            'h-1.5 rounded-full transition-all duration-300',
+                            i === modeIndex ? 'w-8' : 'w-1.5 hover:w-3'
+                          )}
+                          style={{
+                            background: i === modeIndex ? selectedMode.accent : 'rgba(255,255,255,0.2)',
+                            boxShadow: i === modeIndex ? `0 0 10px ${selectedMode.accent}` : 'none',
+                          }}
+                          aria-label={`Aller au mode ${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-                {/* Version */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    playInkSound('brushTap', 0.2);
-                    setShowPatchNote(true);
-                  }}
-                  className="text-center text-[10px] text-white/30 hover:text-[#ff2b2b]/70 transition-colors font-mono"
-                >
-                  v{CURRENT_VERSION} · Notes de version
-                </button>
-              </div>
+          {/* Next button */}
+          <motion.button
+            onClick={goNextMode}
+            whileHover={{ scale: 1.1, x: 3 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex-shrink-0 w-12 h-12 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
+            aria-label="Mode suivant"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </motion.button>
+        </div>
+
+        {/* Action buttons row */}
+        <div className="w-full max-w-3xl flex flex-col sm:flex-row items-stretch gap-3">
+          {/* Join button — secondary */}
+          <motion.button
+            onClick={() => {
+              playInkSound('brushTap', 0.3);
+              setShowJoinDialog(true);
+            }}
+            disabled={!playerName.trim()}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className={cn(
+              'flex-1 py-5 px-6 rounded-2xl font-bold text-lg transition-all',
+              'bg-white/5 backdrop-blur-md border-2 border-white/15 text-white',
+              'hover:bg-white/10 hover:border-white/30',
+              'disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100'
+            )}
+          >
+            <span className="flex items-center justify-center gap-2">
+              <Hash className="w-5 h-5" />
+              REJOINDRE UN LOBBY
+            </span>
+          </motion.button>
+
+          {/* PLAY button — primary, hero */}
+          <motion.button
+            onClick={handleCreateGame}
+            disabled={!playerName.trim()}
+            whileHover={{ scale: 1.03, y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            className={cn(
+              'relative flex-[1.5] py-5 px-8 rounded-2xl font-black text-2xl tracking-wider transition-all',
+              'text-white border-2 overflow-hidden group',
+              'disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100'
+            )}
+            style={{
+              background: `linear-gradient(135deg, ${selectedMode.accent}, ${selectedMode.accent}dd)`,
+              borderColor: selectedMode.accent,
+              boxShadow: `0 0 40px ${selectedMode.accent}aa, 0 10px 30px ${selectedMode.accent}88, inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -3px 0 rgba(0,0,0,0.3)`,
+            }}
+          >
+            {/* Shine */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
+            {/* Sparkle */}
+            <div className="absolute -top-1 -right-1 opacity-70 pointer-events-none">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-          </section>
+            <span className="relative flex items-center justify-center gap-3">
+              <Play className="w-7 h-7 fill-white" />
+              JOUER
+            </span>
+          </motion.button>
+        </div>
 
-          {/* RIGHT PANEL — Friends */}
-          <aside className="relative hidden lg:flex flex-col min-h-0">
-            <div className="absolute inset-0 bg-[#ff2b2b]/15 rounded-3xl blur-2xl pointer-events-none" />
-            <div
-              className="relative flex-1 bg-[#0a0505]/90 backdrop-blur-xl border-2 border-[#ff2b2b]/50 rounded-3xl overflow-hidden flex flex-col"
-              style={{
-                boxShadow: '0 0 40px rgba(255, 43, 43, 0.3), 0 0 80px rgba(255, 43, 43, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-              }}
+        {/* Bottom utility bar */}
+        <div className="mt-6 flex items-center gap-3">
+          {/* Friend code */}
+          {friendCode && (
+            <motion.button
+              onClick={handleCopyFriendCode}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 hover:bg-white/10 transition-all text-xs"
+              title="Copier mon code ami"
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-[#ff2b2b]/5 to-transparent pointer-events-none" />
-              <div className="relative h-full overflow-y-auto custom-scrollbar">
-                <InkFriendsSidebar onJoinFriend={(code) => {
-                  setLobbyCode(code);
-                  if (playerName.trim()) {
-                    onJoinGame(playerName.trim(), code);
-                  }
-                }} />
-              </div>
-            </div>
-          </aside>
+              <span className="text-white/40 uppercase tracking-wider font-bold">Code ami</span>
+              <span className="font-mono font-bold tracking-wider text-white">{friendCode}</span>
+              <Copy className="w-3 h-3 text-white/40" />
+            </motion.button>
+          )}
+
+          {/* Mute */}
+          <motion.button
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              toggleMute();
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
+            aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
+          >
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </motion.button>
+
+          {/* Settings */}
+          <motion.button
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              setShowSettings(true);
+            }}
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
+            aria-label="Paramètres"
+          >
+            <Settings className="w-4 h-4" />
+          </motion.button>
+
+          {/* Version */}
+          <button
+            type="button"
+            onClick={() => {
+              playInkSound('brushTap', 0.2);
+              setShowPatchNote(true);
+            }}
+            className="px-3 py-2 text-[10px] font-mono text-white/30 hover:text-white/70 transition-colors"
+          >
+            v{CURRENT_VERSION}
+          </button>
+        </div>
+
+        {/* Hint */}
+        <div className="mt-4 text-[10px] text-white/30 uppercase tracking-[0.2em] font-bold">
+          Utilisez ← → pour naviguer
         </div>
       </main>
 
-      {/* Join Game Dialog */}
+      {/* PROFILE DRAWER */}
+      <AnimatePresence>
+        {showProfileDrawer && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+              onClick={() => setShowProfileDrawer(false)}
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="fixed left-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-[#08070d]/95 backdrop-blur-2xl border-r border-white/10 shadow-2xl"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <User className="w-5 h-5 text-white/70" />
+                  <h2 className="text-lg font-bold text-white">Mon profil</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileDrawer(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                <InkProfileSidebar />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* FRIENDS DRAWER */}
+      <AnimatePresence>
+        {showFriendsDrawer && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+              onClick={() => setShowFriendsDrawer(false)}
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-[#08070d]/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <UsersRound className="w-5 h-5 text-white/70" />
+                  <h2 className="text-lg font-bold text-white">Mes amis</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFriendsDrawer(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                <InkFriendsSidebar
+                  onJoinFriend={(code) => {
+                    setLobbyCode(code);
+                    setShowFriendsDrawer(false);
+                    if (playerName.trim()) {
+                      onJoinGame(playerName.trim(), code);
+                    }
+                  }}
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* JOIN DIALOG */}
       <AnimatePresence>
         {showJoinDialog && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
             onClick={() => setShowJoinDialog(false)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 280 }}
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-md"
             >
-              <div className="absolute -inset-2 bg-[#ff2b2b]/30 rounded-3xl blur-2xl pointer-events-none" />
               <div
-                className="relative bg-[#0a0505]/95 backdrop-blur-xl border-2 border-[#ff2b2b] rounded-3xl p-6 space-y-4"
+                className="absolute -inset-4 rounded-3xl blur-2xl opacity-60"
+                style={{ background: `radial-gradient(circle, ${selectedMode.accent}88, transparent)` }}
+              />
+              <div
+                className="relative bg-[#08070d]/95 backdrop-blur-2xl border-2 rounded-3xl p-6 space-y-4"
                 style={{
-                  boxShadow: '0 0 60px rgba(255, 43, 43, 0.5), 0 0 120px rgba(255, 43, 43, 0.25)',
+                  borderColor: `${selectedMode.accent}88`,
+                  boxShadow: `0 0 60px ${selectedMode.accent}66`,
                 }}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-black text-[#ff2b2b]" style={{ fontFamily: "'Caveat', cursive" }}>
+                  <h3
+                    className="text-2xl font-black"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      color: selectedMode.accent,
+                    }}
+                  >
                     Rejoindre une partie
                   </h3>
                   <button
                     type="button"
                     onClick={() => setShowJoinDialog(false)}
-                    className="w-8 h-8 rounded-full bg-[#1a0a0a] border border-[#ff2b2b]/30 flex items-center justify-center text-white/60 hover:text-[#ff2b2b] transition-colors"
+                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-white/70">
+                  <label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-white/60">
                     <Hash className="h-3 w-3" />
                     Code du Lobby
                   </label>
@@ -420,7 +741,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     onChange={(e) => setLobbyCode(e.target.value.toUpperCase())}
                     onKeyPress={(e) => e.key === 'Enter' && handleJoinGame()}
                     maxLength={4}
-                    className="text-center text-3xl tracking-[0.4em] uppercase font-black h-16 bg-[#1a0a0a]/80 border-2 border-[#ff2b2b]/50 rounded-2xl focus:border-[#ff2b2b] text-white"
+                    className="text-center text-3xl tracking-[0.4em] uppercase font-black h-16 bg-black/50 border-2 border-white/15 rounded-2xl focus:border-white/40 text-white"
                     autoFocus
                   />
                 </div>
@@ -428,7 +749,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   <button
                     type="button"
                     onClick={() => setShowJoinDialog(false)}
-                    className="flex-1 py-3 rounded-2xl border-2 border-white/20 text-white/80 hover:border-white/40 hover:text-white transition-all flex items-center justify-center gap-2 font-bold"
+                    className="flex-1 py-3 rounded-2xl border-2 border-white/15 text-white/80 hover:border-white/30 hover:text-white transition-all flex items-center justify-center gap-2 font-bold"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Annuler
@@ -438,12 +759,13 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     onClick={handleJoinGame}
                     disabled={!playerName.trim() || lobbyCode.length !== 4}
                     className={cn(
-                      'flex-1 py-3 rounded-2xl font-black tracking-wider transition-all',
-                      'bg-gradient-to-b from-[#ff4040] to-[#cc1818] text-white border-2 border-[#ff2b2b]',
-                      'hover:from-[#ff5050] hover:to-[#dd2020]',
-                      'disabled:opacity-40 disabled:cursor-not-allowed',
-                      'shadow-[0_0_30px_rgba(255,43,43,0.4)]'
+                      'flex-1 py-3 rounded-2xl font-black tracking-wider transition-all text-white',
+                      'disabled:opacity-30 disabled:cursor-not-allowed'
                     )}
+                    style={{
+                      background: `linear-gradient(135deg, ${selectedMode.accent}, ${selectedMode.accent}cc)`,
+                      boxShadow: `0 0 30px ${selectedMode.accent}88`,
+                    }}
                   >
                     REJOINDRE
                   </button>
@@ -454,14 +776,14 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         )}
       </AnimatePresence>
 
-      {/* Settings Modal */}
+      {/* SETTINGS MODAL */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
             onClick={() => setShowSettings(false)}
           >
             <motion.div
@@ -477,28 +799,16 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         )}
       </AnimatePresence>
 
-      {/* Patch Note Modal */}
-      <InkPatchNoteModal
-        forceOpen={showPatchNote}
-        onClose={() => setShowPatchNote(false)}
-      />
+      {/* PATCH NOTE MODAL */}
+      <InkPatchNoteModal forceOpen={showPatchNote} onClose={() => setShowPatchNote(false)} />
 
-      {/* Custom scrollbar styles */}
+      {/* SCROLLBAR STYLE */}
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 43, 43, 0.05);
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 43, 43, 0.3);
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 43, 43, 0.5);
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+        .bg-gradient-radial { background: radial-gradient(circle at center, var(--tw-gradient-stops)); }
       `}</style>
     </div>
   );
