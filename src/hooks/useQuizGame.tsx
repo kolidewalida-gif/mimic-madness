@@ -359,6 +359,7 @@ export const useQuizGame = (
     if (phase === 'reveal') {
       const t = setTimeout(() => {
         if (phaseRef.current === 'reveal') {
+          console.log('[Quiz] Auto-advancing reveal -> scores');
           void advanceToScoresRef.current?.();
         }
       }, 3500);
@@ -367,11 +368,32 @@ export const useQuizGame = (
     if (phase === 'scores') {
       const t = setTimeout(() => {
         if (phaseRef.current === 'scores') {
+          console.log('[Quiz] Auto-advancing scores -> nextRound');
           void nextRoundRef.current?.();
         }
       }, 4500);
       return () => clearTimeout(t);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, currentPlayer.isHost]);
+
+  // Watchdog: if for any reason we get stuck on reveal/scores past expected duration, force advance.
+  // Covers edge cases where the primary auto-advance effect's timeout was cleared by an unrelated re-render.
+  useEffect(() => {
+    if (!currentPlayer.isHost) return;
+    if (phase !== 'reveal' && phase !== 'scores') return;
+
+    const watchdog = setTimeout(() => {
+      if (phaseRef.current === 'reveal') {
+        console.log('[Quiz] Watchdog forcing reveal -> scores');
+        void advanceToScoresRef.current?.();
+      } else if (phaseRef.current === 'scores') {
+        console.log('[Quiz] Watchdog forcing scores -> nextRound');
+        void nextRoundRef.current?.();
+      }
+    }, phase === 'reveal' ? 6000 : 7000);
+
+    return () => clearTimeout(watchdog);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, currentPlayer.isHost]);
 

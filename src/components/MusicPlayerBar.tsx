@@ -152,18 +152,22 @@ const MusicPlayerBarComponent = () => {
 
       {/* Main Player Bar */}
       <div className={cn(
-        "bg-background/95 backdrop-blur-xl border-t border-glass-border transition-all duration-300",
+        "bg-[#0a0810]/95 backdrop-blur-xl border-t-2 border-white/15 transition-all duration-300",
         isExpanded ? "pb-4" : ""
       )}>
         <div className="max-w-4xl mx-auto">
-          {/* Progress Bar */}
+          {/* Progress Bar - cartoon */}
           <div 
-            className="h-1 bg-background-secondary cursor-pointer group"
+            className="h-1.5 bg-white/8 cursor-pointer group relative"
             onClick={handleProgressClick}
           >
             <div 
-              className="h-full bg-gradient-to-r from-primary to-secondary transition-all group-hover:h-2"
-              style={{ width: `${duration > 0 ? (progress / duration) * 100 : 0}%` }}
+              className="h-full transition-all group-hover:h-2.5 rounded-r-full"
+              style={{
+                width: `${duration > 0 ? (progress / duration) * 100 : 0}%`,
+                background: 'linear-gradient(90deg, #f87171, #fbbf24, #34d399, #38bdf8, #c084fc)',
+                boxShadow: '0 0 8px rgba(248, 113, 113, 0.5)',
+              }}
             />
           </div>
 
@@ -175,24 +179,31 @@ const MusicPlayerBarComponent = () => {
                 className="flex items-center gap-3 flex-1 min-w-0 group"
               >
                 <div className={cn(
-                  "w-10 h-10 rounded-lg bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center flex-shrink-0",
-                  isPlaying && "animate-pulse"
-                )}>
+                  "w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 border-2 transition-all",
+                  isPlaying 
+                    ? "border-amber-300 bg-amber-300/20" 
+                    : "border-white/20 bg-white/5 group-hover:border-white/40"
+                )}
+                style={isPlaying ? { boxShadow: '0 0 14px rgba(251, 191, 36, 0.5)' } : undefined}
+                >
                   <Disc3 className={cn(
-                    "h-5 w-5 text-primary",
-                    isPlaying && "animate-spin"
+                    "h-5 w-5",
+                    isPlaying ? "text-amber-300 animate-spin" : "text-white/50"
                   )} style={{ animationDuration: '3s' }} />
                 </div>
                 <div className="min-w-0 text-left">
-                  <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
+                  <p 
+                    className="font-black text-base truncate text-white group-hover:text-amber-300 transition-colors"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
                     {currentTrack?.name || "Aucune piste"}
                   </p>
-                  <p className="text-xs text-foreground-muted">
+                  <p className="text-[10px] text-white/40 font-mono">
                     {formatTime(progress)} / {formatTime(duration)}
                   </p>
                 </div>
                 <ChevronUp className={cn(
-                  "h-4 w-4 text-foreground-muted transition-transform",
+                  "h-4 w-4 text-white/40 transition-transform",
                   showPlaylist && "rotate-180"
                 )} />
               </button>
@@ -201,38 +212,48 @@ const MusicPlayerBarComponent = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setAutoMode(!autoMode)}
-                  title={autoMode ? `Auto ON · situation: ${situation}` : "Auto OFF"}
+                  title={autoMode ? `Auto ON · ${situation}` : "Auto OFF"}
                   className={cn(
-                    "px-2 py-1 rounded-full text-[10px] font-bold tracking-wide flex items-center gap-1 transition-all border",
+                    "px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide flex items-center gap-1 transition-all border-2",
                     autoMode
-                      ? "bg-primary/20 text-primary border-primary/50 shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
-                      : "bg-background-secondary text-foreground-muted border-transparent hover:text-foreground"
+                      ? "bg-amber-300/20 text-amber-300 border-amber-300/60"
+                      : "bg-white/5 text-white/50 border-white/15 hover:text-white/80 hover:border-white/30"
                   )}
+                  style={
+                    autoMode 
+                      ? { boxShadow: '0 0 10px rgba(251, 191, 36, 0.4)', fontFamily: "'Caveat', cursive" }
+                      : { fontFamily: "'Caveat', cursive" }
+                  }
                 >
                   <Sparkles className="h-3 w-3" />
                   AUTO
                 </button>
                 <button 
                   onClick={previousTrack}
-                  className="p-2 hover:bg-background-secondary rounded-full transition-colors"
+                  className="w-9 h-9 rounded-full bg-white/5 border border-white/15 hover:bg-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
                 >
                   <SkipBack className="h-4 w-4" />
                 </button>
                 
                 <button 
                   onClick={togglePlay}
-                  className="p-3 bg-primary hover:bg-primary/80 rounded-full transition-colors shadow-neon"
+                  className="w-12 h-12 rounded-full flex items-center justify-center transition-all border-2 hover:scale-105 active:scale-95"
+                  style={{
+                    background: 'linear-gradient(135deg, #f87171, #ef4444)',
+                    borderColor: '#f87171',
+                    boxShadow: '0 4px 16px rgba(248, 113, 113, 0.5), inset 0 1px 0 rgba(255,255,255,0.3)',
+                  }}
                 >
                   {isPlaying ? (
-                    <Pause className="h-5 w-5 text-primary-foreground" />
+                    <Pause className="h-5 w-5 text-white" fill="white" />
                   ) : (
-                    <Play className="h-5 w-5 text-primary-foreground ml-0.5" />
+                    <Play className="h-5 w-5 text-white ml-0.5" fill="white" />
                   )}
                 </button>
                 
                 <button 
                   onClick={nextTrack}
-                  className="p-2 hover:bg-background-secondary rounded-full transition-colors"
+                  className="w-9 h-9 rounded-full bg-white/5 border border-white/15 hover:bg-white/10 hover:border-white/30 flex items-center justify-center text-white/70 hover:text-white transition-all"
                 >
                   <SkipForward className="h-4 w-4" />
                 </button>
@@ -241,26 +262,26 @@ const MusicPlayerBarComponent = () => {
               {/* Volume Toggle */}
               <button 
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-2 hover:bg-background-secondary rounded-full transition-colors hidden sm:flex"
+                className="hidden sm:flex w-9 h-9 rounded-full bg-white/5 border border-white/15 hover:bg-white/10 hover:border-white/30 items-center justify-center text-white/70 hover:text-white transition-all"
               >
                 {musicVolume === 0 ? (
-                  <VolumeX className="h-5 w-5 text-foreground-muted" />
+                  <VolumeX className="h-4 w-4" />
                 ) : (
-                  <Volume2 className="h-5 w-5" />
+                  <Volume2 className="h-4 w-4" />
                 )}
               </button>
             </div>
 
             {/* Expanded Volume Controls */}
             {isExpanded && (
-              <div className="mt-4 pt-4 border-t border-glass-border animate-slideInUp grid gap-4 sm:grid-cols-2">
+              <div className="mt-4 pt-4 border-t border-white/10 grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Music className="h-4 w-4 text-primary" />
+                    <label className="flex items-center gap-2 text-sm font-bold" style={{ fontFamily: "'Caveat', cursive" }}>
+                      <Music className="h-4 w-4 text-amber-300" />
                       Musique
                     </label>
-                    <span className="text-xs text-foreground-muted">{Math.round(musicVolume * 100)}%</span>
+                    <span className="text-xs text-white/40 font-mono">{Math.round(musicVolume * 100)}%</span>
                   </div>
                   <Slider
                     value={[musicVolume * 100]}
@@ -273,11 +294,11 @@ const MusicPlayerBarComponent = () => {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Volume2 className="h-4 w-4 text-secondary" />
+                    <label className="flex items-center gap-2 text-sm font-bold" style={{ fontFamily: "'Caveat', cursive" }}>
+                      <Volume2 className="h-4 w-4 text-cyan-300" />
                       Effets sonores
                     </label>
-                    <span className="text-xs text-foreground-muted">{Math.round(sfxVolume * 100)}%</span>
+                    <span className="text-xs text-white/40 font-mono">{Math.round(sfxVolume * 100)}%</span>
                   </div>
                   <Slider
                     value={[sfxVolume * 100]}

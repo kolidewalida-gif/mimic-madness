@@ -84,12 +84,21 @@ export const AudioPhoneGameScreenV2 = memo(({
 
   // No round yet or instructions phase
   if (!game.currentRound || game.currentRound.phase === 'instructions') {
+    // Single-launch fix: startGame() now creates the round directly in 'recording_all' phase.
+    // If a round somehow already exists in 'instructions', call startRecordingPhase to advance it.
+    const handleStart = async () => {
+      if (game.currentRound) {
+        await game.startRecordingPhase();
+      } else {
+        await game.startGame();
+      }
+    };
     return (
       <div className="relative">
         <AudioPhoneInstructionsPhase
           isHost={currentPlayer.isHost}
           playerCount={players.length}
-          onStart={game.currentRound ? game.startRecordingPhase : game.startGame}
+          onStart={handleStart}
         />
         {chat}
         {debugPanel}

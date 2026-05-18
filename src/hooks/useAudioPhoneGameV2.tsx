@@ -215,20 +215,25 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     };
   }, [lobbyId]);
 
-  // Start a new game
-  const startGame = useCallback(async () => {
+  // Start a new game.
+  // When `skipInstructions` is true (default for V2 launch), the round is
+  // created directly in 'recording_all' phase so the host doesn't have to
+  // click "C'est parti" twice.
+  const startGame = useCallback(async (skipInstructions = true) => {
     try {
       setIsLoading(true);
 
       const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
       const playerOrder = shuffledPlayers.map(p => p.id);
 
+      const initialPhase: GamePhase = skipInstructions ? 'recording_all' : 'instructions';
+
       const { data, error } = await supabase
         .from('audio_phone_rounds')
         .insert({
           lobby_id: lobbyId,
           round_number: (currentRound?.round_number || 0) + 1,
-          phase: 'instructions',
+          phase: initialPhase,
           current_player_index: 0,
           player_order: playerOrder,
         })

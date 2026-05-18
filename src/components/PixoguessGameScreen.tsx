@@ -11,6 +11,7 @@ import { BlurRushLiveScoreboard } from '@/components/BlurRushLiveScoreboard';
 import { BlurRushCategorySelector } from '@/components/BlurRushCategorySelector';
 import type { BlurRushCategory } from '@/lib/blurRushImages';
 import { getProxyImageCandidates, proxyImageUrl } from '@/lib/imageProxy';
+import { DoodleStage } from '@/components/doodle/Doodle';
 
 interface Player {
   id: string;
@@ -221,23 +222,8 @@ export const PixoguessGameScreen = ({
   }
 
   return (
-    <div className={cn(
-      "h-screen relative overflow-hidden",
-      isInkMode ? "bg-background" : ""
-    )}>
-      {/* Premium effects - hidden in Ink mode */}
-      <InkHideable>
-        <CyberGrid opacity={0.03} />
-        <FloatingParticles count={30} />
-      </InkHideable>
-      
-      {/* Ink mode subtle glow */}
-      {isInkMode && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-15">
-          <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary rounded-full blur-[120px]" />
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-primary rounded-full blur-[100px]" />
-        </div>
-      )}
+    <DoodleStage accent="#34d399">
+      <div className="h-screen relative overflow-hidden">
 
       <div className="relative z-10 container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
@@ -691,6 +677,7 @@ export const PixoguessGameScreen = ({
         </div>
       </div>
     </div>
+    </DoodleStage>
   );
 };
 
