@@ -26,7 +26,7 @@ interface VideoSubmissionScreenProps {
   onStartActualGame: () => void;
 }
 
-const ACCENT = '#a855f7';
+const ACCENT = '#c084fc';
 
 export const VideoSubmissionScreen = ({
   currentPlayer,
@@ -194,12 +194,10 @@ export const VideoSubmissionScreen = ({
                 </span>
               </div>
               <h1
-                className="text-3xl md:text-5xl font-black leading-none tracking-tight"
+                className="text-2xl md:text-4xl font-black leading-none tracking-tight text-white"
                 style={{
                   fontFamily: "'Caveat', cursive",
-                  color: ACCENT,
-                  textShadow: `0 0 25px ${ACCENT}55, 0 4px 12px rgba(0,0,0,0.5)`,
-                  WebkitTextStroke: '1px rgba(0,0,0,0.3)',
+                  textShadow: `0 0 18px ${ACCENT}33, 0 2px 8px rgba(0,0,0,0.5)`,
                 }}
               >
                 Tes défis vidéo

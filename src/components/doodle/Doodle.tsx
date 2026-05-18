@@ -209,31 +209,24 @@ export const DoodleStage = ({
   className?: string;
 }) => (
   <div className={cn('min-h-screen bg-[#0a0810] text-white relative overflow-x-hidden', className)}>
-    {/* Phase-tinted background */}
+    {/* Phase-tinted background — subtle, single soft halo */}
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
       <div className="absolute inset-0 bg-gradient-to-br from-[#0c0813] via-[#0a0810] to-[#0c0814]" />
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.6 }}
+        animate={{ opacity: 0.35 }}
         transition={{ duration: 0.6 }}
         className="absolute inset-0"
       >
         <div
-          className="absolute top-0 left-1/3 w-[500px] h-[300px] rounded-full opacity-20"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full opacity-20"
           style={{
-            background: `radial-gradient(ellipse, ${accent}55 0%, transparent 70%)`,
-            filter: 'blur(80px)',
-          }}
-        />
-        <div
-          className="absolute bottom-0 right-1/4 w-[400px] h-[250px] rounded-full opacity-15"
-          style={{
-            background: `radial-gradient(ellipse, ${accent}44 0%, transparent 70%)`,
-            filter: 'blur(70px)',
+            background: `radial-gradient(ellipse, ${accent}33 0%, transparent 70%)`,
+            filter: 'blur(100px)',
           }}
         />
       </motion.div>
-      <svg className="absolute inset-0 w-full h-full opacity-[0.03]">
+      <svg className="absolute inset-0 w-full h-full opacity-[0.02]">
         <defs>
           <pattern id="scribble" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
             <path

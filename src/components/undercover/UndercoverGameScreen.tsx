@@ -48,14 +48,14 @@ const PHASE_LABELS: Record<string, string> = {
   game_over: 'Fin de partie',
 };
 
-// Cartoon palette per phase
+// Cartoon palette per phase (softer, less saturated for less eye strain)
 const PHASE_THEME: Record<string, string> = {
-  word_reveal: '#a855f7',
-  clue_giving: '#0ea5e9',
-  discussion: '#10b981',
-  voting: '#ff5050',
-  vote_result: '#f59e0b',
-  game_over: '#fbbf24',
+  word_reveal: '#c084fc',
+  clue_giving: '#38bdf8',
+  discussion: '#34d399',
+  voting: '#f87171',
+  vote_result: '#fbbf24',
+  game_over: '#fde047',
 };
 
 /* ---------- helpers / hand-drawn shapes ----------- */
@@ -375,8 +375,11 @@ export const UndercoverGameScreen = memo(
                 Manche {game.current_round}
               </p>
               <h1
-                className="text-2xl font-black tracking-tight leading-none"
-                style={{ fontFamily: "'Caveat', cursive", color: accent }}
+                className="text-2xl font-black tracking-tight leading-none text-white"
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  textShadow: `0 0 14px ${accent}33, 0 2px 6px rgba(0,0,0,0.5)`,
+                }}
               >
                 {PHASE_LABELS[game.phase] ?? game.phase}
               </h1>

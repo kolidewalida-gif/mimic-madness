@@ -73,7 +73,7 @@ const MODE_THEMES: ModeTheme[] = [
     description: 'Une phrase est inversée, chacun tente d\'imiter ce qu\'il entend.',
     highlights: ['Audio inversé', 'Imitation', 'Fou rire garanti'],
     icon: <Phone className="w-5 h-5" />,
-    accent: '#ff5050',
+    accent: '#f87171',
   },
   {
     id: 'normal',
@@ -82,7 +82,7 @@ const MODE_THEMES: ModeTheme[] = [
     description: 'Un joueur lance un défi vidéo, les autres l\'imitent.',
     highlights: ['Défis vidéo', 'Vote', 'Convivial'],
     icon: <Copy className="w-5 h-5" />,
-    accent: '#a855f7',
+    accent: '#c084fc',
   },
   {
     id: '2v2',
@@ -91,7 +91,7 @@ const MODE_THEMES: ModeTheme[] = [
     description: 'Affrontement en équipes de 2, score collectif.',
     highlights: ['Équipes', 'Coopération', 'Compétitif'],
     icon: <Swords className="w-5 h-5" />,
-    accent: '#f59e0b',
+    accent: '#fbbf24',
   },
   {
     id: 'quiz',
@@ -100,7 +100,7 @@ const MODE_THEMES: ModeTheme[] = [
     description: 'Questions variées, réponse la plus rapide gagne.',
     highlights: ['Culture G', 'Vitesse', 'Précision'],
     icon: <Brain className="w-5 h-5" />,
-    accent: '#0ea5e9',
+    accent: '#38bdf8',
   },
   {
     id: 'pixoguess',
@@ -109,7 +109,7 @@ const MODE_THEMES: ModeTheme[] = [
     description: 'L\'image se dépixelise, soyez le plus rapide à deviner.',
     highlights: ['Réflexes', 'Dépixelisation', 'Speed'],
     icon: <Zap className="w-5 h-5" />,
-    accent: '#10b981',
+    accent: '#34d399',
   },
   {
     id: 'monopoly',
@@ -118,7 +118,7 @@ const MODE_THEMES: ModeTheme[] = [
     description: 'Avancez sur le plateau, défis à chaque case.',
     highlights: ['Plateau', 'Mini-jeux', 'Long format'],
     icon: <HomeIcon className="w-5 h-5" />,
-    accent: '#ec4899',
+    accent: '#f472b6',
   },
   {
     id: 'undercover',
@@ -127,7 +127,7 @@ const MODE_THEMES: ModeTheme[] = [
     description: 'Donnez des indices, démasquez l\'imposteur.',
     highlights: ['Bluff', 'Indices', 'Vote'],
     icon: <UserX className="w-5 h-5" />,
-    accent: '#94a3b8',
+    accent: '#cbd5e1',
   },
 ];
 

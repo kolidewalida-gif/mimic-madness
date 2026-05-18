@@ -55,8 +55,8 @@ const GAME_MODES: GameModeInfo[] = [
     tagline: 'Le téléphone arabe audio',
     description: 'Enregistrez, écoutez, imitez. Fou rire garanti !',
     icon: <Phone className="w-7 h-7" />,
-    gradient: 'from-rose-500 via-red-500 to-orange-500',
-    accent: '#ff2b2b',
+    gradient: 'from-rose-400 via-red-400 to-orange-400',
+    accent: '#f87171',
   },
   {
     id: 'normal',
@@ -64,8 +64,8 @@ const GAME_MODES: GameModeInfo[] = [
     tagline: 'Imitation classique',
     description: 'Imitez les défis vidéo des autres joueurs',
     icon: <Copy className="w-7 h-7" />,
-    gradient: 'from-violet-500 via-purple-500 to-fuchsia-500',
-    accent: '#a855f7',
+    gradient: 'from-violet-400 via-purple-400 to-fuchsia-400',
+    accent: '#c084fc',
   },
   {
     id: '2v2',
@@ -73,8 +73,8 @@ const GAME_MODES: GameModeInfo[] = [
     tagline: 'Combat en équipes',
     description: 'Affrontement en équipes de 2 joueurs',
     icon: <Swords className="w-7 h-7" />,
-    gradient: 'from-amber-500 via-orange-500 to-red-500',
-    accent: '#f59e0b',
+    gradient: 'from-amber-400 via-orange-400 to-red-400',
+    accent: '#fbbf24',
   },
   {
     id: 'quiz',
@@ -82,8 +82,8 @@ const GAME_MODES: GameModeInfo[] = [
     tagline: 'Testez vos connaissances',
     description: 'Questions variées en temps réel',
     icon: <Brain className="w-7 h-7" />,
-    gradient: 'from-cyan-400 via-sky-500 to-blue-600',
-    accent: '#0ea5e9',
+    gradient: 'from-cyan-300 via-sky-400 to-blue-500',
+    accent: '#38bdf8',
   },
   {
     id: 'pixoguess',
@@ -91,8 +91,8 @@ const GAME_MODES: GameModeInfo[] = [
     tagline: 'Devinez l\'image',
     description: 'L\'image se dépixelise, soyez le plus rapide',
     icon: <Zap className="w-7 h-7" />,
-    gradient: 'from-emerald-400 via-green-500 to-teal-600',
-    accent: '#10b981',
+    gradient: 'from-emerald-300 via-green-400 to-teal-500',
+    accent: '#34d399',
   },
   {
     id: 'undercover',
@@ -100,8 +100,8 @@ const GAME_MODES: GameModeInfo[] = [
     tagline: 'Trouvez l\'infiltré',
     description: 'Donnez des indices, démasquez l\'imposteur',
     icon: <UserX className="w-7 h-7" />,
-    gradient: 'from-slate-400 via-zinc-500 to-stone-600',
-    accent: '#94a3b8',
+    gradient: 'from-slate-300 via-zinc-400 to-stone-500',
+    accent: '#cbd5e1',
   },
 ];
 

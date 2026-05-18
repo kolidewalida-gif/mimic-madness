@@ -21,32 +21,32 @@ interface AudioPhoneInstructionsPhaseProps {
   onStart: () => void;
 }
 
-const ACCENT = "#ff5050";
+const ACCENT = "#f87171";
 
 const STEPS = [
   {
     icon: Mic,
     title: "Enregistre",
     desc: "Une phrase claire et fun",
-    color: "#10b981",
+    color: "#34d399",
   },
   {
     icon: RotateCcw,
     title: "Inversion",
     desc: "L'audio est joué à l'envers",
-    color: "#a855f7",
+    color: "#c084fc",
   },
   {
     icon: Headphones,
     title: "Écoute",
     desc: "Tente de comprendre",
-    color: "#0ea5e9",
+    color: "#38bdf8",
   },
   {
     icon: MessageSquare,
     title: "Imite",
     desc: "Reproduis ce que tu entends",
-    color: "#f59e0b",
+    color: "#fbbf24",
   },
 ];
 
@@ -97,18 +97,16 @@ export const AudioPhoneInstructionsPhase = memo(({
 
           {/* Title */}
           <h1
-            className="text-5xl md:text-7xl font-black tracking-tight leading-none mb-2"
+            className="text-4xl md:text-6xl font-black tracking-tight leading-none mb-2 text-white"
             style={{
               fontFamily: "'Caveat', cursive",
-              color: ACCENT,
-              textShadow: `0 0 30px ${ACCENT}66, 0 4px 12px rgba(0,0,0,0.6)`,
-              WebkitTextStroke: "1px rgba(0,0,0,0.3)",
+              textShadow: `0 0 20px ${ACCENT}33, 0 2px 8px rgba(0,0,0,0.5)`,
             }}
           >
             Audio Phone
           </h1>
-          <p className="text-sm md:text-base text-white/60 max-w-md mx-auto">
-            Téléphone arabe version <span style={{ color: ACCENT }} className="font-black">audio inversé</span>.
+          <p className="text-sm text-white/55 max-w-md mx-auto">
+            Téléphone arabe version <span style={{ color: ACCENT }} className="font-bold">audio inversé</span>.
             Saurez-vous décoder le chaos ?
           </p>
         </motion.div>

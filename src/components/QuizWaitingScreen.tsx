@@ -35,7 +35,7 @@ interface QuizWaitingScreenProps {
   onLeave: () => void;
 }
 
-const ACCENT = '#0ea5e9';
+const ACCENT = '#38bdf8';
 
 export const QuizWaitingScreen = memo(
   ({
@@ -73,18 +73,16 @@ export const QuizWaitingScreen = memo(
             </div>
 
             <h1
-              className="text-5xl md:text-7xl font-black tracking-tight leading-none mb-2"
+              className="text-4xl md:text-6xl font-black tracking-tight leading-none mb-2 text-white"
               style={{
                 fontFamily: "'Caveat', cursive",
-                color: ACCENT,
-                textShadow: `0 0 30px ${ACCENT}66, 0 4px 12px rgba(0,0,0,0.6)`,
-                WebkitTextStroke: '1px rgba(0,0,0,0.3)',
+                textShadow: `0 0 20px ${ACCENT}33, 0 2px 8px rgba(0,0,0,0.5)`,
               }}
             >
               Quiz Time !
             </h1>
-            <p className="text-sm md:text-base text-white/60 max-w-md mx-auto">
-              <span style={{ color: ACCENT }} className="font-black">
+            <p className="text-sm text-white/55 max-w-md mx-auto">
+              <span style={{ color: ACCENT }} className="font-bold">
                 {totalRounds} questions
               </span>{' '}
               · 30 secondes chacune. Le plus rapide gagne !
