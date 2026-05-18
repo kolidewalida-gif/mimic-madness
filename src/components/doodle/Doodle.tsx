@@ -244,3 +244,270 @@ export const DoodleStage = ({
     {children}
   </div>
 );
+
+
+/* ============================================================
+   Cartoon VFX & UI primitives — modals, confetti, splash
+============================================================ */
+
+import { AnimatePresence } from 'framer-motion';
+
+/**
+ * Cartoon modal wrapper — backdrop + doodle-bordered card with rotation entry.
+ */
+export const DoodleModal = ({
+  open,
+  onClose,
+  accent = '#f87171',
+  children,
+  maxWidth = 'max-w-md',
+}: {
+  open: boolean;
+  onClose?: () => void;
+  accent?: string;
+  children: ReactNode;
+  maxWidth?: string;
+}) => (
+  <AnimatePresence>
+    {open && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
+          animate={{ opacity: 1, scale: 1, rotate: -1 }}
+          exit={{ opacity: 0, scale: 0.7, rotate: 6 }}
+          transition={{ type: 'spring', damping: 16, stiffness: 220 }}
+          onClick={(e) => e.stopPropagation()}
+          className={cn('relative w-full', maxWidth)}
+        >
+          <div className="relative px-6 py-6">
+            <DoodleBorder color={accent} filled rotation={-1} thick />
+            <div className="relative">{children}</div>
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+/**
+ * Cartoon confetti — bursts of colorful doodle particles.
+ * Use after victories, big actions, transitions.
+ */
+export const DoodleConfetti = ({
+  show,
+  count = 28,
+  colors = ['#f87171', '#fbbf24', '#34d399', '#38bdf8', '#c084fc', '#f472b6'],
+}: {
+  show: boolean;
+  count?: number;
+  colors?: string[];
+}) => (
+  <AnimatePresence>
+    {show && (
+      <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+        {Array.from({ length: count }).map((_, i) => {
+          const color = colors[i % colors.length];
+          const startX = 50 + (Math.random() - 0.5) * 20;
+          const endX = startX + (Math.random() - 0.5) * 80;
+          const endY = 110 + Math.random() * 30;
+          const duration = 1.2 + Math.random() * 1.2;
+          const delay = Math.random() * 0.4;
+          const size = 8 + Math.random() * 14;
+          const rotation = Math.random() * 720 - 360;
+          const shape = i % 4;
+
+          return (
+            <motion.div
+              key={i}
+              initial={{
+                left: `${startX}%`,
+                top: '40%',
+                opacity: 0,
+                scale: 0,
+                rotate: 0,
+              }}
+              animate={{
+                left: `${endX}%`,
+                top: `${endY}%`,
+                opacity: [0, 1, 1, 0],
+                scale: [0, 1, 1, 0.5],
+                rotate: rotation,
+              }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration,
+                delay,
+                ease: 'easeOut',
+                times: [0, 0.1, 0.7, 1],
+              }}
+              className="absolute"
+              style={{ width: size, height: size }}
+            >
+              {shape === 0 && (
+                <div
+                  className="w-full h-full rounded-sm"
+                  style={{ background: color }}
+                />
+              )}
+              {shape === 1 && (
+                <div
+                  className="w-full h-full rounded-full"
+                  style={{ background: color }}
+                />
+              )}
+              {shape === 2 && (
+                <svg viewBox="0 0 20 20" className="w-full h-full">
+                  <path
+                    d="M10,2 L13,9 L20,10 L13,11 L10,18 L7,11 L0,10 L7,9 Z"
+                    fill={color}
+                  />
+                </svg>
+              )}
+              {shape === 3 && (
+                <svg viewBox="0 0 20 20" className="w-full h-full">
+                  <path
+                    d="M2,10 Q6,2 10,10 Q14,18 18,10"
+                    stroke={color}
+                    strokeWidth="3"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+    )}
+  </AnimatePresence>
+);
+
+/**
+ * Cartoon ink splash — blooms outward from a point, used for big reveals.
+ */
+export const DoodleSplash = ({
+  show,
+  color = '#f87171',
+  origin = { x: 50, y: 50 },
+}: {
+  show: boolean;
+  color?: string;
+  origin?: { x: number; y: number };
+}) => (
+  <AnimatePresence>
+    {show && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 pointer-events-none z-[90]"
+        style={{ left: 0, top: 0 }}
+      >
+        <motion.div
+          initial={{ scale: 0, rotate: 0 }}
+          animate={{ scale: [0, 1.5, 1], rotate: 30 }}
+          exit={{ scale: 0, opacity: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="absolute"
+          style={{
+            left: `${origin.x}%`,
+            top: `${origin.y}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <svg viewBox="0 0 200 200" className="w-[400px] h-[400px]">
+            <path
+              d="M100,20
+                 Q140,10 160,40
+                 Q190,50 180,90
+                 Q200,120 170,140
+                 Q170,180 130,180
+                 Q110,200 90,180
+                 Q60,200 40,170
+                 Q10,160 20,120
+                 Q0,90 30,70
+                 Q30,30 70,30
+                 Q90,10 100,20 Z"
+              fill={color}
+              fillOpacity="0.18"
+              stroke={color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+/**
+ * Big rotating cartoon emoji or icon — perfect for celebration screens.
+ */
+export const DoodleSpotlight = ({
+  children,
+  color = '#fbbf24',
+  className,
+}: {
+  children: ReactNode;
+  color?: string;
+  className?: string;
+}) => (
+  <div className={cn('relative inline-flex items-center justify-center', className)}>
+    {/* Rotating sun rays */}
+    <motion.svg
+      className="absolute inset-0 w-full h-full"
+      viewBox="0 0 200 200"
+      animate={{ rotate: 360 }}
+      transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+      style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '160%', height: '160%' }}
+    >
+      {Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i * 360) / 12;
+        return (
+          <line
+            key={i}
+            x1="100"
+            y1="100"
+            x2="100"
+            y2="20"
+            stroke={color}
+            strokeWidth="3"
+            strokeOpacity="0.25"
+            strokeLinecap="round"
+            transform={`rotate(${angle} 100 100)`}
+          />
+        );
+      })}
+    </motion.svg>
+    <div className="relative">{children}</div>
+  </div>
+);
+
+/**
+ * Wobble animation — pumping bounce loop, for icons and emoji.
+ */
+export const DoodleWobble = ({
+  children,
+  intensity = 1,
+}: {
+  children: ReactNode;
+  intensity?: number;
+}) => (
+  <motion.div
+    animate={{
+      rotate: [-3 * intensity, 3 * intensity, -3 * intensity],
+      scale: [1, 1.05, 1],
+    }}
+    transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+  >
+    {children}
+  </motion.div>
+);

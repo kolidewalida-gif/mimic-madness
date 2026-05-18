@@ -21,7 +21,15 @@ type InkSoundType =
   | 'inkHover'         // Subtle hover sound
   | 'inkSuccess'       // Success with ink aesthetic
   | 'inkError'         // Error with ink aesthetic
-  | 'inkTransition';   // Page transition
+  | 'inkTransition'    // Page transition
+  // ── Cartoon SFX additions ─────────────────────────────────────────
+  | 'cartoonBoing'     // Springy boing
+  | 'cartoonPop'       // Bubble pop
+  | 'cartoonSwoosh'    // Whoosh transition
+  | 'cartoonDing'      // Bell ding (correct answer / reveal)
+  | 'cartoonFanfare'   // Quick victory fanfare
+  | 'cartoonWobble'    // Wobble jelly sound (selection)
+  | 'cartoonZap';      // Zap/shock
 
 let globalInkAudioContext: AudioContext | null = null;
 
@@ -341,6 +349,157 @@ const createInkSound = (ctx: AudioContext, type: InkSoundType, baseVolume: numbe
       
       source.start(now);
       source.stop(now + 0.5);
+      break;
+    }
+
+    // ── Cartoon SFX ──────────────────────────────────────────────────
+    case 'cartoonBoing': {
+      // Springy descending boing
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.35);
+
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 14;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 60;
+      lfo.connect(lfoGain).connect(osc.frequency);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume * 0.5, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+      osc.connect(gain).connect(masterGain);
+      lfo.start(now);
+      osc.start(now);
+      osc.stop(now + 0.4);
+      lfo.stop(now + 0.4);
+      break;
+    }
+
+    case 'cartoonPop': {
+      // Bubble pop
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.06);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(volume * 0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      osc.connect(gain).connect(masterGain);
+      osc.start(now);
+      osc.stop(now + 0.13);
+      break;
+    }
+
+    case 'cartoonSwoosh': {
+      // Whoosh with band-pass
+      const bufferSize = ctx.sampleRate * 0.35;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1);
+      }
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(300, now);
+      filter.frequency.exponentialRampToValueAtTime(4000, now + 0.3);
+      filter.Q.value = 6;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume * 0.4, now + 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      source.connect(filter).connect(gain).connect(masterGain);
+      source.start(now);
+      source.stop(now + 0.35);
+      break;
+    }
+
+    case 'cartoonDing': {
+      // Bell-like ding
+      const fundamental = 880;
+      const overtones = [1, 2.7, 5.4];
+      overtones.forEach((mult, idx) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = fundamental * mult;
+        const g = ctx.createGain();
+        const amp = volume * (0.4 / (idx + 1));
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(amp, now + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.6 / (idx + 1));
+        osc.connect(g).connect(masterGain);
+        osc.start(now);
+        osc.stop(now + 0.7);
+      });
+      break;
+    }
+
+    case 'cartoonFanfare': {
+      // 3-note ascending major triad
+      const notes = [523, 659, 784]; // C5, E5, G5
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = freq;
+        const g = ctx.createGain();
+        const start = now + i * 0.1;
+        g.gain.setValueAtTime(0, start);
+        g.gain.linearRampToValueAtTime(volume * 0.3, start + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
+        osc.connect(g).connect(masterGain);
+        osc.start(start);
+        osc.stop(start + 0.45);
+      });
+      break;
+    }
+
+    case 'cartoonWobble': {
+      // Wobble jelly: vibrato sine
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = 320;
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 8;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 40;
+      lfo.connect(lfoGain).connect(osc.frequency);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(volume * 0.3, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.connect(g).connect(masterGain);
+      lfo.start(now);
+      osc.start(now);
+      osc.stop(now + 0.32);
+      lfo.stop(now + 0.32);
+      break;
+    }
+
+    case 'cartoonZap': {
+      // Zap: sawtooth descending fast
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(2400, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(3000, now);
+      filter.frequency.exponentialRampToValueAtTime(400, now + 0.2);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(volume * 0.35, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.connect(filter).connect(g).connect(masterGain);
+      osc.start(now);
+      osc.stop(now + 0.22);
       break;
     }
 
