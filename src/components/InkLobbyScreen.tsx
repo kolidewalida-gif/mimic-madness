@@ -619,34 +619,76 @@ export const InkLobbyScreen = ({
               </div>
             </div>
 
-            {/* Waiting message + mascot */}
+            {/* Waiting message + INVITER button + mascot */}
             <div className="flex-1 px-3 pb-2 flex flex-col items-center justify-end min-h-0 overflow-hidden">
               <p className="text-xs text-white/50 italic text-center mb-1">
                 En attente d'autres joueurs…
               </p>
               {players.length < minPlayers && (
-                <>
-                  <p
-                    className="text-sm font-black text-white/85 text-center mt-1"
-                    style={{ fontFamily: "'Caveat', cursive" }}
-                  >
-                    Invite tes amis pour commencer !
-                  </p>
-                  <div className="text-2xl text-white/40 mt-1 mb-2">↓</div>
-                </>
+                <p
+                  className="text-sm font-black text-white/85 text-center mt-1"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  Invite tes amis pour commencer !
+                </p>
               )}
+
+              {/* INVITER — big graffiti button in the players column */}
+              <motion.button
+                onClick={() => {
+                  playInkSound('cartoonPop', 0.3);
+                  setShowInvitePanel(true);
+                }}
+                whileHover={{ scale: 1.06, rotate: -2 }}
+                whileTap={{ scale: 0.94, rotate: 1 }}
+                animate={{ rotate: [-2, 2, -2] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                className="relative mt-2 w-full max-w-[200px] py-3 px-4 rounded-2xl flex items-center justify-center gap-2 select-none"
+                style={{
+                  background:
+                    'linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
+                  border: '3px solid #0a0810',
+                  boxShadow:
+                    '0 6px 0 #0a0810, 0 10px 18px rgba(251,191,36,0.4), inset 0 2px 0 rgba(255,255,255,0.4)',
+                }}
+              >
+                <UserPlus className="w-5 h-5 text-[#0a0810]" strokeWidth={3} />
+                <span
+                  className="text-xl font-black tracking-wider text-white leading-none"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    textShadow:
+                      '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                  }}
+                >
+                  INVITER
+                </span>
+                {/* Decorative stars */}
+                <span
+                  className="absolute -top-1.5 -right-1.5 text-amber-300 select-none pointer-events-none"
+                  style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+                >
+                  ✦
+                </span>
+                <span
+                  className="absolute -bottom-1.5 -left-1.5 text-amber-300 select-none pointer-events-none"
+                  style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+                >
+                  ✦
+                </span>
+              </motion.button>
 
               {/* Mascot */}
               <motion.div
                 animate={{ y: [0, -6, 0] }}
                 transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                className="mt-1 mb-2"
+                className="mt-2 mb-1"
               >
                 <ImageWithFallback
                   src="/lobby/mascot.png"
                   alt="mascot"
-                  className="w-32 h-auto select-none pointer-events-none"
-                  fallback={<div className="text-6xl select-none">🎤</div>}
+                  className="w-24 h-auto select-none pointer-events-none"
+                  fallback={<div className="text-5xl select-none">🎤</div>}
                 />
               </motion.div>
             </div>
@@ -735,19 +777,6 @@ export const InkLobbyScreen = ({
               </div>
 
               <div className="relative flex items-center gap-2 flex-shrink-0">
-                <motion.button
-                  onClick={() => {
-                    playInkSound('cartoonPop', 0.3);
-                    setShowInvitePanel(true);
-                  }}
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 transition-all text-xs font-black text-white"
-                  style={{ fontFamily: "'Caveat', cursive" }}
-                >
-                  <UserPlus className="w-3 h-3" />
-                  INVITER
-                </motion.button>
                 <motion.button
                   onClick={() => {
                     playInkSound('cartoonPop', 0.3);
@@ -930,25 +959,70 @@ export const InkLobbyScreen = ({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-[#1a0d2e]/95 backdrop-blur-2xl border-l-2 border-white/15 shadow-2xl"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col"
+              style={{
+                background:
+                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                borderLeft: '4px solid #0a0810',
+                boxShadow: '-8px 0 24px rgba(0,0,0,0.5)',
+              }}
             >
-              <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <UserPlus className="w-4 h-4" style={{ color: '#a855f7' }} />
+              {/* Inner accent line */}
+              <div
+                className="absolute inset-y-0 left-1.5 w-0.5 pointer-events-none"
+                style={{
+                  background:
+                    'linear-gradient(180deg, transparent, rgba(168,85,247,0.4), transparent)',
+                }}
+              />
+
+              <div
+                className="relative flex items-center justify-between px-5 py-4 flex-shrink-0"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
+                  borderBottom: '3px solid #0a0810',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    animate={{ rotate: [-5, 5, -5] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                    style={{
+                      background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                      border: '3px solid #0a0810',
+                      boxShadow:
+                        '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                    }}
+                  >
+                    <UserPlus className="w-5 h-5 text-white" strokeWidth={2.5} />
+                  </motion.div>
                   <h2
-                    className="text-2xl font-black text-white"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    className="text-3xl font-black text-white leading-none"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                    }}
                   >
                     Inviter
                   </h2>
                 </div>
-                <button
+                <motion.button
                   type="button"
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setShowInvitePanel(false)}
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                  style={{
+                    background: 'rgba(239,68,68,0.2)',
+                    border: '2.5px solid #0a0810',
+                    boxShadow: '0 3px 0 #0a0810',
+                  }}
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <X className="w-5 h-5" strokeWidth={3} />
+                </motion.button>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
                 <LobbyInvitePanel
@@ -974,13 +1048,37 @@ export const InkLobbyScreen = ({
             onClick={() => setShowSettings(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-3xl"
+              initial={{ opacity: 0, scale: 0.92, y: 20, rotate: -1 }}
+              animate={{ opacity: 1, scale: 1, y: 0, rotate: -0.5 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20, rotate: 1 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 240 }}
+              className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
+              style={{
+                background:
+                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                border: '4px solid #0a0810',
+                boxShadow:
+                  '0 12px 0 #0a0810, 0 18px 40px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+              }}
             >
-              <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
+              {/* Inner accent border */}
+              <div
+                className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none z-[1]"
+                style={{ border: '2px solid rgba(168,85,247,0.4)' }}
+              />
+              {/* Decorative stars */}
+              <Sparkles
+                className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10 select-none pointer-events-none"
+                style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+              />
+              <Sparkles
+                className="absolute top-3 right-4 w-4 h-4 text-pink-400 z-10 select-none pointer-events-none"
+                style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+              />
+              <div className="relative z-[2]">
+                <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -997,51 +1095,107 @@ export const InkLobbyScreen = ({
             onClick={() => setShowLeaveConfirm(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 10, rotate: -3 }}
+              initial={{ opacity: 0, scale: 0.85, y: 20, rotate: -3 }}
               animate={{ opacity: 1, scale: 1, y: 0, rotate: -1 }}
-              exit={{ opacity: 0, scale: 0.9, y: 10, rotate: 3 }}
-              transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+              exit={{ opacity: 0, scale: 0.85, y: 20, rotate: 3 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 240 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-sm bg-[#1a0d2e]/95 backdrop-blur-2xl border-2 border-red-500/40 rounded-3xl p-5 space-y-4"
+              className="relative w-full max-w-sm rounded-3xl overflow-hidden"
+              style={{
+                background:
+                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                border: '4px solid #0a0810',
+                boxShadow:
+                  '0 12px 0 #0a0810, 0 18px 40px rgba(239,68,68,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+              }}
             >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-red-500/20 border-2 border-red-500/40 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-red-400" />
-                </div>
-                <div>
-                  <h3
-                    className="text-2xl font-black text-white"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+              {/* Inner red accent border */}
+              <div
+                className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
+                style={{ border: '2px solid rgba(239,68,68,0.4)' }}
+              />
+
+              {/* Decorative star */}
+              <Sparkles
+                className="absolute top-3 right-4 w-4 h-4 text-amber-400 z-10 select-none pointer-events-none"
+                style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+              />
+
+              <div className="relative p-5 space-y-4">
+                <div className="flex items-start gap-3">
+                  <motion.div
+                    animate={{ rotate: [-6, 6, -6] }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                      border: '3px solid #0a0810',
+                      boxShadow:
+                        '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                    }}
                   >
-                    Quitter le lobby ?
-                  </h3>
-                  <p className="text-xs text-white/55 mt-0.5">
-                    {isHost
-                      ? 'Le lobby sera transféré ou fermé.'
-                      : 'Vous serez déconnecté de la partie.'}
-                  </p>
+                    <AlertTriangle className="w-6 h-6 text-white" strokeWidth={2.5} />
+                  </motion.div>
+                  <div>
+                    <h3
+                      className="text-3xl font-black text-white leading-none"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        textShadow:
+                          '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                      }}
+                    >
+                      Quitter le lobby ?
+                    </h3>
+                    <p
+                      className="text-base text-white/70 mt-1 font-bold"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      {isHost
+                        ? 'Le lobby sera transféré ou fermé.'
+                        : 'Tu seras déconnecté de la partie.'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowLeaveConfirm(false)}
-                  className="flex-1 py-2.5 rounded-2xl border-2 border-white/15 text-white/70 hover:border-white/30 hover:text-white transition-all text-base font-black"
-                  style={{ fontFamily: "'Caveat', cursive" }}
-                >
-                  Rester
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    playInkSound('cartoonZap', 0.4);
-                    onLeaveGame();
-                  }}
-                  className="flex-1 py-2.5 rounded-2xl text-base font-black text-white bg-red-500 hover:bg-red-400 border-2 border-red-700 transition-all"
-                  style={{ fontFamily: "'Caveat', cursive" }}
-                >
-                  Quitter
-                </button>
+                <div className="flex gap-3">
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.04, rotate: -2 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setShowLeaveConfirm(false)}
+                    className="flex-1 py-3 rounded-2xl text-xl font-black text-white"
+                    style={{
+                      background: 'linear-gradient(180deg, #4b5563, #1f2937)',
+                      border: '3px solid #0a0810',
+                      boxShadow: '0 4px 0 #0a0810',
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                    }}
+                  >
+                    Rester
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.04, rotate: 2 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      playInkSound('cartoonZap', 0.4);
+                      onLeaveGame();
+                    }}
+                    className="flex-1 py-3 rounded-2xl text-xl font-black text-white"
+                    style={{
+                      background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
+                      border: '3px solid #0a0810',
+                      boxShadow: '0 4px 0 #0a0810',
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                    }}
+                  >
+                    Quitter
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

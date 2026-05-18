@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlayerLoadout } from "@/hooks/usePlayerLoadout";
+import { useInkMode } from "@/hooks/useInkMode";
 
 const TRAIL_LENGTH = 6;
 
 export const GameCursor = () => {
   const { user } = useAuth();
   const loadout = usePlayerLoadout(user?.id);
+  const { isInkMode } = useInkMode();
   const [enabled, setEnabled] = useState(false);
   const [pressed, setPressed] = useState(false);
   const [hovering, setHovering] = useState(false);
@@ -112,7 +114,7 @@ export const GameCursor = () => {
     };
   }, [loadout.effectTier, loadout.frameTier]);
 
-  if (!enabled) return null;
+  if (!enabled || isInkMode) return null;
 
   return (
     <>
