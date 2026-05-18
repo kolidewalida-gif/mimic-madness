@@ -5,14 +5,13 @@ import { QuizReveal } from './QuizReveal';
 import { QuizLeaderboard } from './QuizLeaderboard';
 import { QuizFinalResults } from './QuizFinalResults';
 import { QuizCountdown } from './QuizCountdown';
-import { QuizCategorySelector } from './QuizCategorySelector';
 import { QuizSettingsPanel, DEFAULT_QUIZ_SETTINGS, type QuizSettings } from './QuizSettingsPanel';
+import { QuizWaitingScreen } from './QuizWaitingScreen';
 import { INITIAL_JOKERS, type JokersState } from './QuizJokers';
 import { LobbyChat } from './LobbyChat';
 import { useQuizGame } from '@/hooks/useQuizGame';
 import { useInkMode } from '@/hooks/useInkMode';
-import { InkHideable, InkCard } from '@/components/InkAdaptive';
-import { Brain, Play, Loader2, Sparkles, ArrowLeft, Zap, Users, Star } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Player {
@@ -90,160 +89,19 @@ export const QuizGameScreen = ({
   if (phase === 'waiting') {
     return (
       <>
-        <div className={cn(
-          "h-screen flex items-center justify-center p-4 relative overflow-hidden",
-          isInkMode ? "bg-background" : "bg-mesh"
-        )}>
-          {/* Animated orbs - hidden in Ink mode */}
-          <InkHideable>
-            <div className="orb-container">
-              <div className="orb orb-primary" style={{ background: 'radial-gradient(circle, hsl(280 100% 60% / 0.4), transparent)' }} />
-              <div className="orb orb-accent" style={{ background: 'radial-gradient(circle, hsl(300 100% 70% / 0.3), transparent)' }} />
-              <div className="orb orb-secondary" style={{ background: 'radial-gradient(circle, hsl(260 100% 50% / 0.3), transparent)' }} />
-            </div>
-            {/* Grid overlay */}
-            <div className="fixed inset-0 bg-grid-modern pointer-events-none" />
-          </InkHideable>
-          
-          {/* Ink mode subtle glow */}
-          {isInkMode && (
-            <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-15">
-              <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary rounded-full blur-[120px]" />
-              <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-primary rounded-full blur-[100px]" />
-            </div>
-          )}
-          
-          <div className="relative z-10 max-w-2xl w-full space-y-8">
-            {/* Main Card */}
-            <div className="card-premium p-8 animate-fadeInUp">
-              {/* Decorative elements */}
-              <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 rounded-full blur-[80px] animate-pulse-slow" />
-              <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-accent/20 rounded-full blur-[80px] animate-pulse-slow" style={{ animationDelay: '1s' }} />
-              
-              {/* Header */}
-              <div className="relative flex flex-col items-center gap-6 mb-8">
-                {/* Icon with glow */}
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/40 rounded-3xl blur-xl animate-pulse" />
-                  <div className="relative p-6 rounded-3xl bg-gradient-to-br from-primary/30 via-purple-500/20 to-pink-500/30 border border-primary/40 backdrop-blur-sm">
-                    <Brain className="h-16 w-16 text-primary" />
-                  </div>
-                  {/* Floating sparkles */}
-                  <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-accent animate-bounce" />
-                  <Star className="absolute -bottom-1 -left-1 h-5 w-5 text-yellow-400 animate-float" />
-                </div>
-                
-                <div className="text-center space-y-2">
-                  <h1 className="text-4xl md:text-5xl font-display font-bold text-gradient flex items-center justify-center gap-3">
-                    <Zap className="h-8 w-8 text-accent" />
-                    Mode Quiz
-                    <Zap className="h-8 w-8 text-accent" />
-                  </h1>
-                  <p className="text-foreground-secondary text-lg">
-                    {totalRounds} questions • 30 secondes par question
-                  </p>
-                </div>
-              </div>
-
-              {/* Players Grid */}
-              <div className="relative space-y-4 mb-8">
-                <div className="flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-wider text-foreground-muted">
-                  <Users className="h-4 w-4" />
-                  Joueurs ({players.length})
-                </div>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {players.map((p, i) => (
-                    <div 
-                      key={p.id}
-                      className={cn(
-                        "relative px-5 py-3 rounded-2xl text-sm font-semibold transition-all duration-500",
-                        "backdrop-blur-md border animate-fadeIn",
-                        p.id === currentPlayer.id 
-                          ? "bg-gradient-to-r from-primary/30 via-purple-500/20 to-pink-500/30 border-primary/50 text-white shadow-lg shadow-primary/20" 
-                          : "glass-ultra text-foreground-secondary hover:border-primary/30"
-                      )}
-                      style={{ animationDelay: `${i * 100}ms` }}
-                    >
-                      {p.id === currentPlayer.id && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full animate-pulse" />
-                      )}
-                      {p.name}
-                      {p.isHost && <span className="ml-2 text-accent">👑</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Category Selector - Host only */}
-              {currentPlayer.isHost && (
-                <div className="relative mb-8">
-                  <QuizCategorySelector
-                    selectedCategory={selectedCategory}
-                    onCategoryChange={setSelectedCategory}
-                    disabled={isLoading}
-                  />
-                </div>
-              )}
-
-              {/* Host advanced settings */}
-              {currentPlayer.isHost && (
-                <div className="relative mb-8">
-                  <QuizSettingsPanel
-                    settings={hostSettings}
-                    onChange={setHostSettings}
-                    disabled={isLoading}
-                  />
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="relative space-y-4">
-                {currentPlayer.isHost ? (
-                  <Button 
-                    onClick={() => startQuiz(selectedCategory)} 
-                    disabled={isLoading}
-                    variant="hero"
-                    size="xl"
-                    className="w-full h-16 text-lg rounded-2xl"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                        <span>Chargement...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-6 w-6" fill="currentColor" />
-                        <span className="font-bold tracking-wide">Lancer le Quiz</span>
-                        <Sparkles className="h-5 w-5" />
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <div className="relative p-6 rounded-2xl glass-ultra border border-primary/30 text-center">
-                    <div className="absolute inset-0 bg-primary/5 rounded-2xl animate-pulse" />
-                    <p className="relative text-primary font-semibold flex items-center justify-center gap-3">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      En attente de l'hôte...
-                    </p>
-                  </div>
-                )}
-                
-                <Button 
-                  variant="glass" 
-                  onClick={onEndGame}
-                  className="w-full h-12 rounded-xl"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  <span>Quitter</span>
-                </Button>
-              </div>
-
-              {/* Bottom accent line */}
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-full" />
-            </div>
-          </div>
-        </div>
+        <QuizWaitingScreen
+          isHost={currentPlayer.isHost}
+          isLoading={isLoading}
+          totalRounds={totalRounds}
+          players={players}
+          currentPlayerId={currentPlayer.id}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          hostSettings={hostSettings}
+          onSettingsChange={setHostSettings}
+          onStart={() => startQuiz(selectedCategory)}
+          onLeave={onEndGame}
+        />
         <LobbyChat
           lobbyId={lobbyId}
           playerId={currentPlayer.id}

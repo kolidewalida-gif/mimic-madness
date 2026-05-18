@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
-import { GameLogo } from "@/components/GameLogo";
+import { motion } from "framer-motion";
 import { VideoUploadSimple } from "@/components/VideoUploadSimple";
-import { Button } from "@/components/ui/button";
-import { GameCard } from "@/components/GameCard";
-import { ArrowLeft, Send, Clock, ChevronDown, ChevronUp, Video as VideoIcon } from "lucide-react";
+import { ArrowLeft, Send, ChevronDown, ChevronUp, Video as VideoIcon, Sparkles, Clapperboard, ListChecks, Users } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
 import { LobbyChat } from "@/components/LobbyChat";
-import { useInkMode } from "@/hooks/useInkMode";
+import { DoodleBorder, DoodleStage } from "@/components/doodle/Doodle";
 import { cn } from "@/lib/utils";
 
 interface Player {
@@ -28,16 +26,17 @@ interface VideoSubmissionScreenProps {
   onStartActualGame: () => void;
 }
 
-export const VideoSubmissionScreen = ({ 
+const ACCENT = '#a855f7';
+
+export const VideoSubmissionScreen = ({
   currentPlayer,
   lobbyId,
   players,
   isHost,
-  onBackToLobby, 
+  onBackToLobby,
   onSubmitChallenges,
-  onStartActualGame
+  onStartActualGame,
 }: VideoSubmissionScreenProps) => {
-  const { isInkMode } = useInkMode();
   const [savedClips, setSavedClips] = useState<VideoClip[]>([]);
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,13 +48,10 @@ export const VideoSubmissionScreen = ({
     loadPlayerClips();
   }, [currentPlayer.id]);
 
-  // Auto-collapse upload card as soon as the player has at least one clip,
-  // so the selection list takes the spotlight (per user request).
   useEffect(() => {
     if (savedClips.length > 0) setUploadCollapsed(true);
   }, [savedClips.length > 0]);
 
-  // Resolve public URLs for thumbnails / inline previews
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -67,7 +63,9 @@ export const VideoSubmissionScreen = ({
       }
       if (!cancelled) setClipUrls(next);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedClips]);
 
@@ -86,9 +84,9 @@ export const VideoSubmissionScreen = ({
   };
 
   const toggleClipSelection = (clipId: string) => {
-    setSelectedClips(prev => {
+    setSelectedClips((prev) => {
       if (prev.includes(clipId)) {
-        return prev.filter(id => id !== clipId);
+        return prev.filter((id) => id !== clipId);
       } else {
         if (prev.length >= 3) {
           toast({
@@ -114,52 +112,39 @@ export const VideoSubmissionScreen = ({
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      const clipsToSubmit = savedClips.filter(clip => selectedClips.includes(clip.id));
-      
-      console.log('Submitting challenges:', clipsToSubmit);
-      
-      // Link selected clips to the current lobby so they are playable in this game.
-      // Without this, clips uploaded in a previous lobby keep their old lobby_id and
-      // the game launcher reports "Manche indisponible" because no clip matches.
+      const clipsToSubmit = savedClips.filter((clip) => selectedClips.includes(clip.id));
+
       const { error: linkError } = await supabase
-        .from('video_clips')
+        .from("video_clips")
         .update({ lobby_id: lobbyId, round_number: null })
-        .in('id', clipsToSubmit.map((c) => c.id));
+        .in("id", clipsToSubmit.map((c) => c.id));
 
-      if (linkError) {
-        console.error('Error linking clips to lobby:', linkError);
-        throw linkError;
-      }
+      if (linkError) throw linkError;
 
-      // Save submission to database
       const { error } = await supabase
-        .from('player_submissions')
-        .upsert({
-          lobby_id: lobbyId,
-          player_id: currentPlayer.id,
-          player_name: currentPlayer.name,
-          challenges_count: clipsToSubmit.length,
-        }, {
-          onConflict: 'lobby_id,player_id'
-        });
-      
-      if (error) {
-        console.error('Error saving submission:', error);
-        throw error;
-      }
-      
+        .from("player_submissions")
+        .upsert(
+          {
+            lobby_id: lobbyId,
+            player_id: currentPlayer.id,
+            player_name: currentPlayer.name,
+            challenges_count: clipsToSubmit.length,
+          },
+          { onConflict: "lobby_id,player_id" },
+        );
+
+      if (error) throw error;
+
       onSubmitChallenges(clipsToSubmit);
-      
+
       toast({
-        title: "✅ Défis soumis avec succès !",
-        description: `${selectedClips.length} défi(s) envoyé(s). Vos vidéos sont prêtes pour la partie !`,
+        title: "Défis envoyés !",
+        description: `${selectedClips.length} défi(s) prêt(s) pour la partie.`,
       });
-      
-      // Clear selection after successful submit
+
       setSelectedClips([]);
-      
     } catch (error) {
       console.error("Error submitting challenges:", error);
       toast({
@@ -173,203 +158,331 @@ export const VideoSubmissionScreen = ({
   };
 
   return (
-    <div className={cn(
-      "h-screen p-6 overflow-y-auto",
-      isInkMode ? "bg-background" : "animated-bg"
-    )}>
-      {/* Ink mode subtle glow */}
-      {isInkMode && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-15 z-0">
-          <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary rounded-full blur-[120px]" />
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-primary rounded-full blur-[100px]" />
-        </div>
-      )}
-      <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn relative z-10">
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={onBackToLobby}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour au Lobby
-          </Button>
-          <GameLogo size="md" />
-          <div className="w-24" /> {/* Spacer */}
-        </div>
+    <DoodleStage accent={ACCENT}>
+      <div className="relative z-10 min-h-screen px-5 py-6 pb-[120px]">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* HEADER */}
+          <div className="flex items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={onBackToLobby}
+              className="relative flex items-center gap-2 px-3 py-1.5 text-white/70 hover:text-white transition-colors group"
+            >
+              <DoodleBorder color="rgba(255,255,255,0.15)" />
+              <ArrowLeft className="relative w-3.5 h-3.5" />
+              <span
+                className="relative text-sm font-bold uppercase tracking-wider"
+                style={{ fontFamily: "'Caveat', cursive" }}
+              >
+                Lobby
+              </span>
+            </button>
 
-        <div className="text-center space-y-4">
-          <h2 className="text-3xl font-bold text-gradient">
-            Préparez vos Défis Vidéo
-          </h2>
-          <p className="text-foreground-secondary text-lg">
-            Importez et éditez vos vidéos, puis sélectionnez vos meilleurs défis pour la partie.
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center"
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1 mb-1 relative">
+                <DoodleBorder color={ACCENT} filled />
+                <Clapperboard className="relative w-3 h-3" style={{ color: ACCENT }} />
+                <span
+                  className="relative text-[10px] uppercase tracking-[0.2em] font-bold"
+                  style={{ color: ACCENT, fontFamily: "'Caveat', cursive" }}
+                >
+                  Préparation
+                </span>
+              </div>
+              <h1
+                className="text-3xl md:text-5xl font-black leading-none tracking-tight"
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  color: ACCENT,
+                  textShadow: `0 0 25px ${ACCENT}55, 0 4px 12px rgba(0,0,0,0.5)`,
+                  WebkitTextStroke: '1px rgba(0,0,0,0.3)',
+                }}
+              >
+                Tes défis vidéo
+              </h1>
+            </motion.div>
+
+            <div className="w-20" />
+          </div>
+
+          <p className="text-center text-sm text-white/55 max-w-xl mx-auto">
+            Importe tes vidéos puis choisis-en jusqu'à <span style={{ color: ACCENT }} className="font-black">3 défis</span> pour cette partie.
           </p>
-        </div>
 
-        <div className="grid md:grid-cols-3 gap-6 items-start">
-          {/* Column 1: Upload (collapsible once clips exist) */}
-          <div className="space-y-4 md:col-span-1">
-            {uploadCollapsed ? (
-              <GameCard>
+          {/* GRID */}
+          <div className="grid md:grid-cols-3 gap-4 items-start">
+            {/* Column 1 — Upload */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="md:col-span-1"
+            >
+              {uploadCollapsed ? (
                 <button
                   type="button"
                   onClick={() => setUploadCollapsed(false)}
-                  className="w-full flex items-center justify-between gap-2 group"
+                  className="relative w-full px-4 py-4 group"
                 >
-                  <div className="flex items-center gap-2">
-                    <VideoIcon className="h-5 w-5 text-secondary" />
-                    <h3 className="text-base font-semibold text-gradient">
-                      Ajouter une Vidéo
-                    </h3>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-foreground-secondary group-hover:text-foreground transition" />
-                </button>
-                <p className="text-xs text-foreground-secondary mt-2">
-                  Cliquez pour importer une nouvelle vidéo.
-                </p>
-              </GameCard>
-            ) : (
-              <div className="space-y-2">
-                {savedClips.length > 0 && (
-                  <div className="flex justify-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setUploadCollapsed(true)}
-                      className="gap-1 text-xs"
-                    >
-                      <ChevronUp className="h-3 w-3" />
-                      Réduire
-                    </Button>
-                  </div>
-                )}
-                <VideoUploadSimple
-                  playerId={currentPlayer.id}
-                  playerName={currentPlayer.name}
-                  maxVideos={5}
-                  onVideoSaved={handleClipSaved}
-                  lobbyId={lobbyId}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Column 2: Selection */}
-          <div className="md:col-span-1">
-            <GameCard>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-secondary" />
-                  <h3 className="text-xl font-semibold text-gradient">
-                    Sélection des Défis
-                  </h3>
-                </div>
-
-                <p className="text-foreground-secondary text-sm">
-                  Choisissez jusqu'à 3 extraits vidéo qui serviront de défis pour cette partie.
-                </p>
-
-                {savedClips.length > 0 ? (
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                    {savedClips.map((clip) => (
-                      <div
-                        key={clip.id}
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                          selectedClips.includes(clip.id)
-                            ? "border-primary bg-primary/10 glow-primary"
-                            : "border-glass-border bg-background-secondary/30 hover:border-primary/50"
-                        }`}
-                        onClick={() => toggleClipSelection(clip.id)}
+                  <DoodleBorder color="rgba(255,255,255,0.18)" rotation={1} />
+                  <div className="relative flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <VideoIcon className="w-4 h-4" style={{ color: ACCENT }} />
+                      <span
+                        className="text-base font-black"
+                        style={{ fontFamily: "'Caveat', cursive", color: 'white' }}
                       >
-                        <div className="flex items-center gap-3">
-                          {/* Thumbnail */}
-                          <div className="flex-shrink-0 w-20 h-14 rounded-md overflow-hidden bg-black border border-glass-border">
-                            {clipUrls[clip.id] ? (
-                              <video
-                                src={`${clipUrls[clip.id]}#t=${Math.max(0.1, clip.startTime || 0.1)}`}
-                                className="w-full h-full object-cover"
-                                preload="metadata"
-                                muted
-                                playsInline
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <VideoIcon className="h-5 w-5 text-foreground-secondary opacity-50" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-foreground">{clip.name}</h4>
-                            <p className="text-sm text-foreground-secondary">
-                              Durée: {Math.round(clip.duration)}s • {clip.createdAt.toLocaleDateString()}
-                            </p>
-                          </div>
-                          
-                          <div className={`w-6 h-6 rounded-full border-2 transition-all ${
-                            selectedClips.includes(clip.id)
-                              ? "border-primary bg-primary"
-                              : "border-glass-border"
-                          }`}>
-                            {selectedClips.includes(clip.id) && (
-                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-foreground-secondary">
-                    <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Aucun extrait vidéo disponible</p>
-                    <p className="text-sm">Importez d'abord des vidéos pour créer des défis</p>
-                  </div>
-                )}
-
-                {savedClips.length > 0 && (
-                  <div className="pt-4 border-t border-glass-border">
-                    <div className="flex items-center justify-between text-sm text-foreground-secondary mb-4">
-                      <span>Défis sélectionnés: {selectedClips.length}/3</span>
+                        Ajouter une vidéo
+                      </span>
                     </div>
-                    <Button
-                      variant="hero"
-                      size="lg"
+                    <ChevronDown className="w-4 h-4 text-white/40 group-hover:text-white transition-colors" />
+                  </div>
+                </button>
+              ) : (
+                <div className="relative px-4 py-4">
+                  <DoodleBorder color="rgba(255,255,255,0.18)" rotation={-1} />
+                  <div className="relative">
+                    {savedClips.length > 0 && (
+                      <div className="flex justify-end mb-2">
+                        <button
+                          type="button"
+                          onClick={() => setUploadCollapsed(true)}
+                          className="flex items-center gap-1 text-xs text-white/50 hover:text-white transition-colors"
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                          Réduire
+                        </button>
+                      </div>
+                    )}
+                    <VideoUploadSimple
+                      playerId={currentPlayer.id}
+                      playerName={currentPlayer.name}
+                      maxVideos={5}
+                      onVideoSaved={handleClipSaved}
+                      lobbyId={lobbyId}
+                    />
+                  </div>
+                </div>
+              )}
+            </motion.div>
+
+            {/* Column 2 — Selection */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="md:col-span-1"
+            >
+              <div className="relative px-4 py-4">
+                <DoodleBorder color={ACCENT} rotation={1} />
+                <div className="relative space-y-3">
+                  <div className="flex items-center gap-2">
+                    <ListChecks className="w-4 h-4" style={{ color: ACCENT }} />
+                    <span
+                      className="text-xl font-black"
+                      style={{ fontFamily: "'Caveat', cursive", color: ACCENT }}
+                    >
+                      Tes défis
+                    </span>
+                    <span className="ml-auto text-[10px] uppercase tracking-wider font-bold text-white/40">
+                      {selectedClips.length}/3
+                    </span>
+                  </div>
+
+                  {savedClips.length > 0 ? (
+                    <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1 custom-scrollbar">
+                      {savedClips.map((clip, idx) => {
+                        const isSelected = selectedClips.includes(clip.id);
+                        return (
+                          <motion.button
+                            key={clip.id}
+                            type="button"
+                            onClick={() => toggleClipSelection(clip.id)}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.04 }}
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            className={cn(
+                              'relative w-full px-3 py-2.5 text-left transition-all',
+                            )}
+                          >
+                            <DoodleBorder
+                              color={isSelected ? ACCENT : 'rgba(255,255,255,0.12)'}
+                              filled={isSelected}
+                              rotation={idx % 2 === 0 ? -0.5 : 0.5}
+                            />
+                            <div className="relative flex items-center gap-3">
+                              {/* Thumbnail */}
+                              <div className="flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden bg-black/60 border border-white/10">
+                                {clipUrls[clip.id] ? (
+                                  <video
+                                    src={`${clipUrls[clip.id]}#t=${Math.max(0.1, clip.startTime || 0.1)}`}
+                                    className="w-full h-full object-cover"
+                                    preload="metadata"
+                                    muted
+                                    playsInline
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <VideoIcon className="w-4 h-4 text-white/30" />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <h4
+                                  className="text-sm font-black truncate"
+                                  style={{
+                                    fontFamily: "'Caveat', cursive",
+                                    color: isSelected ? ACCENT : 'white',
+                                  }}
+                                >
+                                  {clip.name}
+                                </h4>
+                                <p className="text-[10px] text-white/40">
+                                  {Math.round(clip.duration)}s · {clip.createdAt.toLocaleDateString()}
+                                </p>
+                              </div>
+
+                              {/* Checkbox */}
+                              <div
+                                className={cn(
+                                  'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0',
+                                )}
+                                style={{
+                                  borderColor: isSelected ? ACCENT : 'rgba(255,255,255,0.3)',
+                                  background: isSelected ? ACCENT : 'transparent',
+                                }}
+                              >
+                                {isSelected && (
+                                  <div className="w-2 h-2 rounded-full bg-white" />
+                                )}
+                              </div>
+                            </div>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-white/40">
+                      <VideoIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                      <p
+                        className="text-base font-black mb-1"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        Aucune vidéo
+                      </p>
+                      <p className="text-xs">Importe-en pour créer tes défis</p>
+                    </div>
+                  )}
+
+                  {savedClips.length > 0 && (
+                    <motion.button
+                      type="button"
                       onClick={handleSubmitChallenges}
                       disabled={selectedClips.length === 0 || isSubmitting}
-                      className="w-full"
-                    >
-                      <Send className="h-5 w-5" />
-                      {isSubmitting 
-                        ? "Envoi en cours..." 
-                        : `Soumettre ${selectedClips.length} Défi(s)`
+                      whileHover={
+                        selectedClips.length > 0 && !isSubmitting
+                          ? { scale: 1.02, y: -2 }
+                          : undefined
                       }
-                    </Button>
-                  </div>
-                )}
+                      whileTap={
+                        selectedClips.length > 0 && !isSubmitting
+                          ? { scale: 0.98 }
+                          : undefined
+                      }
+                      className="relative w-full px-5 py-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <DoodleBorder
+                        color={selectedClips.length > 0 ? ACCENT : 'rgba(255,255,255,0.2)'}
+                        filled={selectedClips.length > 0}
+                        rotation={-1}
+                        thick={selectedClips.length > 0}
+                      />
+                      <div className="relative flex items-center justify-center gap-2">
+                        <Send
+                          className="w-4 h-4"
+                          style={{
+                            color: selectedClips.length > 0 ? ACCENT : 'rgba(255,255,255,0.4)',
+                          }}
+                        />
+                        <span
+                          className="text-base font-black"
+                          style={{
+                            fontFamily: "'Caveat', cursive",
+                            color: selectedClips.length > 0 ? ACCENT : 'rgba(255,255,255,0.5)',
+                          }}
+                        >
+                          {isSubmitting
+                            ? 'Envoi en cours…'
+                            : `Soumettre ${selectedClips.length} défi${selectedClips.length > 1 ? 's' : ''}`}
+                        </span>
+                      </div>
+                    </motion.button>
+                  )}
+                </div>
               </div>
-            </GameCard>
-          </div>
+            </motion.div>
 
-          {/* Column 3: Submission Status */}
-          <div className="space-y-4 md:col-span-1">
-            <SubmissionStatus
-              lobbyId={lobbyId}
-              players={players}
-              isHost={isHost}
-              onStartGame={onStartActualGame}
-            />
+            {/* Column 3 — Submission Status */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="md:col-span-1"
+            >
+              <div className="relative px-4 py-4">
+                <DoodleBorder color="rgba(255,255,255,0.18)" rotation={-1} />
+                <div className="relative space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-white/60" />
+                    <span
+                      className="text-xl font-black"
+                      style={{ fontFamily: "'Caveat', cursive", color: 'white' }}
+                    >
+                      Statut joueurs
+                    </span>
+                    {isHost && (
+                      <span
+                        className="ml-auto text-[10px] uppercase tracking-wider font-bold flex items-center gap-1"
+                        style={{ color: ACCENT }}
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        Hôte
+                      </span>
+                    )}
+                  </div>
+                  <SubmissionStatus
+                    lobbyId={lobbyId}
+                    players={players}
+                    isHost={isHost}
+                    onStartGame={onStartActualGame}
+                  />
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </div>
 
-      {/* Global Chat */}
+      {/* Floating chat */}
       <LobbyChat
         lobbyId={lobbyId}
         playerId={currentPlayer.id}
         playerName={currentPlayer.name}
       />
-    </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+      `}</style>
+    </DoodleStage>
   );
 };
