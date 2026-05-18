@@ -22,6 +22,10 @@ import {
   Loader2,
   Users,
   Lock,
+  Music,
+  HelpCircle,
+  Mic,
+  Headphones,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -33,6 +37,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { InkLobbyCanvas } from '@/components/InkLobbyCanvas';
 import { InkCursorParticles } from '@/components/InkCursorParticles';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
+import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { getStartStatus, GAME_MODE_META, type LobbyGameMode } from '@/lib/gameModes';
 
 interface Player {
@@ -55,81 +60,275 @@ interface InkLobbyScreenProps {
   onTransferHost?: (playerId: string) => void;
 }
 
-interface ModeTheme {
+interface ModeCard {
   id: LobbyGameMode;
   label: string;
   tagline: string;
   description: string;
-  highlights: string[];
   icon: React.ReactNode;
-  accent: string;
+  /** Big bright fill color for the card body */
+  cardColor: string;
+  /** Darker variant for shadows / borders */
+  cardColorDark: string;
+  /** Mascot emoji (rendered big behind the card) */
+  emoji: string;
 }
 
-const MODE_THEMES: ModeTheme[] = [
-  {
-    id: 'audiophone',
-    label: 'Audio Phone',
-    tagline: 'Téléphone arabe audio',
-    description: 'Une phrase est inversée, chacun tente d\'imiter ce qu\'il entend.',
-    highlights: ['Audio inversé', 'Imitation', 'Fou rire garanti'],
-    icon: <Phone className="w-5 h-5" />,
-    accent: '#f87171',
-  },
+const MODE_CARDS: ModeCard[] = [
   {
     id: 'normal',
-    label: 'Imitation',
-    tagline: 'Mode classique',
-    description: 'Un joueur lance un défi vidéo, les autres l\'imitent.',
-    highlights: ['Défis vidéo', 'Vote', 'Convivial'],
-    icon: <Copy className="w-5 h-5" />,
-    accent: '#c084fc',
+    label: 'IMITATION',
+    tagline: 'Imite le son ou le chanteur !',
+    description: 'Reproduis le défi vidéo des autres joueurs.',
+    icon: <Mic className="w-12 h-12" />,
+    cardColor: '#8b5cf6',
+    cardColorDark: '#5b21b6',
+    emoji: '🎤',
+  },
+  {
+    id: 'audiophone',
+    label: 'AUDIO PIONNER',
+    tagline: 'Téléphone arabe audio',
+    description: 'Une phrase est inversée, devine ce qu\'il dit.',
+    icon: <Music className="w-12 h-12" />,
+    cardColor: '#f59e0b',
+    cardColorDark: '#b45309',
+    emoji: '🔊',
   },
   {
     id: '2v2',
-    label: '2v2',
+    label: '2 VS 2',
     tagline: 'Combat en équipes',
-    description: 'Affrontement en équipes de 2, score collectif.',
-    highlights: ['Équipes', 'Coopération', 'Compétitif'],
-    icon: <Swords className="w-5 h-5" />,
-    accent: '#fbbf24',
+    description: 'Affrontement par équipes de 2 joueurs.',
+    icon: <Swords className="w-12 h-12" />,
+    cardColor: '#3b82f6',
+    cardColorDark: '#1e40af',
+    emoji: '⚔️',
   },
   {
     id: 'quiz',
-    label: 'Quiz',
-    tagline: 'Connaissances',
-    description: 'Questions variées, réponse la plus rapide gagne.',
-    highlights: ['Culture G', 'Vitesse', 'Précision'],
-    icon: <Brain className="w-5 h-5" />,
-    accent: '#38bdf8',
+    label: 'QUIZ',
+    tagline: 'Connaissances générales',
+    description: 'Réponds vite, gagne plus de points.',
+    icon: <HelpCircle className="w-12 h-12" />,
+    cardColor: '#84cc16',
+    cardColorDark: '#4d7c0f',
+    emoji: '❓',
   },
   {
     id: 'pixoguess',
-    label: 'BlurRush',
-    tagline: 'Devinez l\'image',
-    description: 'L\'image se dépixelise, soyez le plus rapide à deviner.',
-    highlights: ['Réflexes', 'Dépixelisation', 'Speed'],
-    icon: <Zap className="w-5 h-5" />,
-    accent: '#34d399',
+    label: 'BLIND TEST',
+    tagline: 'Devine la musique',
+    description: 'Trouve le titre, l\'artiste, le plus rapide.',
+    icon: <Headphones className="w-12 h-12" />,
+    cardColor: '#06b6d4',
+    cardColorDark: '#0e7490',
+    emoji: '🎧',
   },
   {
     id: 'monopoly',
-    label: 'Monopoly',
+    label: 'MEMORY',
     tagline: 'Plateau aventure',
-    description: 'Avancez sur le plateau, défis à chaque case.',
-    highlights: ['Plateau', 'Mini-jeux', 'Long format'],
-    icon: <HomeIcon className="w-5 h-5" />,
-    accent: '#f472b6',
+    description: 'Avance sur le plateau, défis à chaque case.',
+    icon: <HomeIcon className="w-12 h-12" />,
+    cardColor: '#ec4899',
+    cardColorDark: '#9d174d',
+    emoji: '🎲',
   },
   {
     id: 'undercover',
-    label: 'Undercover',
-    tagline: 'Trouvez l\'infiltré',
-    description: 'Donnez des indices, démasquez l\'imposteur.',
-    highlights: ['Bluff', 'Indices', 'Vote'],
-    icon: <UserX className="w-5 h-5" />,
-    accent: '#cbd5e1',
+    label: 'UNDERCOVER',
+    tagline: 'Trouve l\'infiltré',
+    description: 'Donne des indices, démasque l\'imposteur.',
+    icon: <UserX className="w-12 h-12" />,
+    cardColor: '#a855f7',
+    cardColorDark: '#6b21a8',
+    emoji: '🕵️',
   },
 ];
+
+/** Hand-drawn graffiti card border SVG. */
+const CardBorder = ({
+  color,
+  className,
+}: {
+  color: string;
+  className?: string;
+}) => (
+  <svg
+    className={cn('absolute inset-0 w-full h-full pointer-events-none', className)}
+    viewBox="0 0 100 130"
+    preserveAspectRatio="none"
+  >
+    <path
+      d="M5,8
+         Q3,4 8,3
+         L92,4
+         Q97,3 96,9
+         L97,60
+         Q98,90 96,121
+         Q97,128 90,127
+         L8,128
+         Q3,128 4,122
+         L3,70
+         Q4,40 5,8 Z"
+      fill="none"
+      stroke="white"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      vectorEffect="non-scaling-stroke"
+      opacity="0.95"
+    />
+    <path
+      d="M5,8
+         Q3,4 8,3
+         L92,4
+         Q97,3 96,9
+         L97,60
+         Q98,90 96,121
+         Q97,128 90,127
+         L8,128
+         Q3,128 4,122
+         L3,70
+         Q4,40 5,8 Z"
+      fill={color}
+      stroke="rgba(0,0,0,0.5)"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      vectorEffect="non-scaling-stroke"
+    />
+  </svg>
+);
+
+/** Splash burst behind the icon — stylized starburst with ink splatters. */
+const CardSplash = ({ color, className }: { color: string; className?: string }) => (
+  <svg
+    className={cn('absolute inset-0 w-full h-full pointer-events-none', className)}
+    viewBox="0 0 100 100"
+    preserveAspectRatio="xMidYMid meet"
+  >
+    <path
+      d="M50,5 L58,28 L82,12 L72,40 L98,32 L80,52 L98,72 L72,68 L82,92 L58,76 L50,98 L42,76 L18,92 L28,68 L2,72 L20,52 L2,32 L28,40 L18,12 L42,28 Z"
+      fill="white"
+      fillOpacity="0.18"
+    />
+    <circle cx="20" cy="20" r="2" fill="white" fillOpacity="0.5" />
+    <circle cx="80" cy="80" r="3" fill="white" fillOpacity="0.5" />
+    <circle cx="78" cy="22" r="1.5" fill="white" fillOpacity="0.4" />
+    <circle cx="22" cy="78" r="2" fill="white" fillOpacity="0.5" />
+  </svg>
+);
+
+/** Hero header pill — wraps the selected mode info at the top. */
+const HeroHeaderBorder = ({ color }: { color: string }) => (
+  <svg
+    className="absolute inset-0 w-full h-full pointer-events-none"
+    viewBox="0 0 200 60"
+    preserveAspectRatio="none"
+  >
+    <path
+      d="M3,8
+         Q1,3 6,2
+         L195,3
+         Q199,2 198,8
+         L198,52
+         Q199,58 193,58
+         L7,58
+         Q2,58 3,52 Z"
+      fill={color}
+      stroke="rgba(0,0,0,0.4)"
+      strokeWidth="3"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+      vectorEffect="non-scaling-stroke"
+    />
+    <path
+      d="M5,9
+         Q3,5 8,4
+         L193,5
+         Q197,4 196,9
+         L196,51
+         Q197,55 192,55
+         L8,55
+         Q4,55 5,51 Z"
+      fill="none"
+      stroke="rgba(255,255,255,0.4)"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+      vectorEffect="non-scaling-stroke"
+    />
+  </svg>
+);
+
+/** Big graffiti "PRÊT !" stamp button (yellow burst) */
+const ReadyStamp = ({ onClick, disabled }: { onClick: () => void; disabled: boolean }) => (
+  <motion.button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    whileHover={!disabled ? { scale: 1.06, rotate: -2 } : undefined}
+    whileTap={!disabled ? { scale: 0.94, rotate: 1 } : undefined}
+    animate={
+      !disabled
+        ? { rotate: [-3, 3, -3] }
+        : undefined
+    }
+    transition={
+      !disabled
+        ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+        : undefined
+    }
+    className={cn(
+      'relative w-44 h-32 flex-shrink-0',
+      disabled && 'opacity-40 grayscale cursor-not-allowed',
+    )}
+  >
+    {/* Yellow starburst */}
+    <svg viewBox="0 0 200 150" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
+      <path
+        d="M100,10
+           L120,40 L155,25 L150,60 L185,55 L165,85 L195,100 L165,115 L185,145 L150,140 L155,175 L120,160 L100,190 L80,160 L45,175 L50,140 L15,145 L35,115 L5,100 L35,85 L15,55 L50,60 L45,25 L80,40 Z"
+        fill="#fbbf24"
+        stroke="#0a0810"
+        strokeWidth="5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <path
+        d="M100,18
+           L118,45 L150,32 L145,62 L177,58 L160,85 L188,100 L160,115 L177,142 L145,138 L150,168 L118,155 L100,182 L82,155 L50,168 L55,138 L23,142 L40,115 L12,100 L40,85 L23,58 L55,62 L50,32 L82,45 Z"
+        fill="none"
+        stroke="rgba(255,255,255,0.4)"
+        strokeWidth="1.5"
+      />
+    </svg>
+    <span
+      className="absolute inset-0 flex items-center justify-center text-4xl md:text-5xl font-black tracking-wide"
+      style={{
+        fontFamily: "'Caveat', cursive",
+        color: 'white',
+        textShadow:
+          '3px 3px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+      }}
+    >
+      PRÊT !
+    </span>
+    {/* Peace fingers next to */}
+    <span
+      className="absolute -right-2 top-1/2 -translate-y-1/2 text-3xl"
+      style={{ filter: 'drop-shadow(2px 2px 0 #0a0810)' }}
+    >
+      ✌️
+    </span>
+  </motion.button>
+);
+
+/* ============================================================
+   Main lobby
+============================================================ */
 
 export const InkLobbyScreen = ({
   players,
@@ -152,6 +351,9 @@ export const InkLobbyScreen = ({
   const [codeCopied, setCodeCopied] = useState(false);
   const { teams, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
+
+  const playerIds = useMemo(() => players.map((p) => p.id), [players]);
+  const { getAvatar } = useMultiplePlayerAvatars(playerIds);
 
   // Sync game mode with backend
   useEffect(() => {
@@ -181,15 +383,15 @@ export const InkLobbyScreen = ({
     };
   }, [lobbyId]);
 
-  const selectedTheme = useMemo(
-    () => MODE_THEMES.find((t) => t.id === gameMode) ?? MODE_THEMES[0],
+  const selectedCard = useMemo(
+    () => MODE_CARDS.find((c) => c.id === gameMode) ?? MODE_CARDS[0],
     [gameMode],
   );
 
   const handleGameModeChange = useCallback(
     async (mode: LobbyGameMode) => {
       if (!isHost) return;
-      playInkSound('brushTap', 0.3);
+      playInkSound('cartoonPop', 0.4);
       try {
         const { error } = await supabase.from('lobbies').update({ game_mode: mode }).eq('id', lobbyId);
         if (error) throw error;
@@ -220,7 +422,7 @@ export const InkLobbyScreen = ({
       return;
     }
     setIsStarting(true);
-    playInkSound('inkSuccess', 0.6);
+    playInkSound('cartoonFanfare', 0.6);
     try {
       await onStartGame(gameMode);
     } catch (error) {
@@ -232,7 +434,7 @@ export const InkLobbyScreen = ({
   const handleCopyCode = async () => {
     await navigator.clipboard.writeText(lobbyCode);
     setCodeCopied(true);
-    playInkSound('inkSuccess', 0.3);
+    playInkSound('cartoonPop', 0.3);
     setTimeout(() => setCodeCopied(false), 1500);
   };
 
@@ -245,256 +447,124 @@ export const InkLobbyScreen = ({
   }, [openMenuFor]);
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[#0a0810] text-white relative overflow-hidden">
-      {/* Background canvas */}
+    <div className="h-screen w-full flex flex-col bg-[#1a0d2e] text-white relative overflow-hidden">
+      {/* Background canvas (collaborative drawing) */}
       <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
       <InkCursorParticles />
 
-      {/* Background tints */}
+      {/* Graffiti brick wall background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0c0813] via-[#0a0810] to-[#0c0814]" />
-        <AnimatePresence mode="sync">
-          <motion.div
-            key={selectedTheme.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.55 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="absolute inset-0"
-          >
-            <div
-              className="absolute top-0 left-1/3 w-[600px] h-[400px] rounded-full opacity-25"
-              style={{
-                background: `radial-gradient(ellipse, ${selectedTheme.accent}66 0%, transparent 70%)`,
-                filter: 'blur(90px)',
-              }}
-            />
-            <div
-              className="absolute bottom-0 right-1/4 w-[500px] h-[300px] rounded-full opacity-20"
-              style={{
-                background: `radial-gradient(ellipse, ${selectedTheme.accent}55 0%, transparent 70%)`,
-                filter: 'blur(80px)',
-              }}
-            />
-          </motion.div>
-        </AnimatePresence>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#160a26] to-[#0f0820]" />
+
+        {/* Brick texture pattern */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.04]">
+          <defs>
+            <pattern id="brick-wall" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse">
+              <rect x="0" y="0" width="80" height="40" fill="none" />
+              <line x1="0" y1="0" x2="80" y2="0" stroke="white" strokeWidth="1" />
+              <line x1="0" y1="20" x2="80" y2="20" stroke="white" strokeWidth="1" />
+              <line x1="0" y1="40" x2="80" y2="40" stroke="white" strokeWidth="1" />
+              <line x1="0" y1="0" x2="0" y2="20" stroke="white" strokeWidth="1" />
+              <line x1="40" y1="0" x2="40" y2="20" stroke="white" strokeWidth="1" />
+              <line x1="20" y1="20" x2="20" y2="40" stroke="white" strokeWidth="1" />
+              <line x1="60" y1="20" x2="60" y2="40" stroke="white" strokeWidth="1" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#brick-wall)" />
+        </svg>
+
+        {/* Soft glow around top */}
         <div
-          className="absolute inset-0 opacity-[0.018]"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[400px] rounded-full opacity-30"
           style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
+            background: 'radial-gradient(ellipse, rgba(168,85,247,0.5) 0%, transparent 70%)',
+            filter: 'blur(120px)',
           }}
         />
+
+        {/* Skull crown decoration on the floor */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 opacity-10 select-none pointer-events-none">
+          <svg viewBox="0 0 200 200" className="w-[300px] h-[300px]" fill="white">
+            <path d="M50,80 L60,60 L80,75 L100,55 L120,75 L140,60 L150,80 Z" />
+            <circle cx="100" cy="120" r="40" />
+            <rect x="80" y="135" width="10" height="20" fill="#1a0d2e" />
+            <rect x="110" y="135" width="10" height="20" fill="#1a0d2e" />
+          </svg>
+        </div>
+
+        {/* Spray cans corner decorations */}
+        <div className="absolute bottom-12 left-12 text-5xl opacity-40 select-none">🥤</div>
+        <div className="absolute bottom-12 right-32 text-5xl opacity-40 select-none">🔊</div>
       </div>
 
-      {/* HEADER — minimal left/center, big PLAY on the right */}
-      <header className="relative z-30 flex items-center justify-between gap-4 px-5 py-3 flex-shrink-0">
-        {/* Left cluster */}
-        <div className="flex items-center gap-3">
-          <motion.button
-            onClick={() => {
-              playInkSound('brushTap', 0.3);
-              setShowLeaveConfirm(true);
-            }}
-            whileHover={{ x: -2 }}
-            whileTap={{ scale: 0.96 }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.06] transition-all text-white/70 hover:text-white text-sm"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Quitter</span>
-          </motion.button>
+      {/* MAIN GRID — sidebar + main area */}
+      <div className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4 p-4 pb-[100px] min-h-0 overflow-hidden">
+        {/* SIDEBAR — Players */}
+        <aside className="flex flex-col min-h-0 overflow-hidden">
+          <div className="relative flex-1 rounded-3xl bg-black/40 backdrop-blur-md border-2 border-white/15 overflow-hidden flex flex-col min-h-0">
+            {/* Top accent line */}
+            <div
+              className="absolute inset-x-0 top-0 h-px"
+              style={{
+                background: 'linear-gradient(90deg, transparent, #a855f7, transparent)',
+              }}
+            />
 
-          {/* Lobby code */}
-          <motion.button
-            onClick={handleCopyCode}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border transition-all"
-            style={{ borderColor: `${selectedTheme.accent}50` }}
-          >
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold">Code</span>
-            <span
-              className="text-base font-black tracking-[0.2em] font-mono"
-              style={{ color: selectedTheme.accent }}
-            >
-              {lobbyCode}
-            </span>
-            {codeCopied ? (
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
-            ) : (
-              <Copy className="w-3 h-3 text-white/40" />
-            )}
-          </motion.button>
-
-          {/* Title */}
-          <div
-            className="hidden md:block text-base font-black tracking-[0.15em]"
-            style={{
-              fontFamily: "'Caveat', cursive",
-              background: `linear-gradient(180deg, white, ${selectedTheme.accent})`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            MIMIC MASTER
-          </div>
-        </div>
-
-        {/* Right cluster — PLAY is the star */}
-        <div className="flex items-center gap-2">
-          {/* Invite */}
-          <motion.button
-            onClick={() => {
-              playInkSound('brushTap', 0.3);
-              setShowInvitePanel(true);
-            }}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all"
-            style={{
-              background: `${selectedTheme.accent}15`,
-              border: `1px solid ${selectedTheme.accent}50`,
-              color: selectedTheme.accent,
-            }}
-          >
-            <Sparkles className="w-3 h-3" />
-            <span className="hidden sm:inline">Inviter</span>
-          </motion.button>
-
-          {/* Settings */}
-          <motion.button
-            onClick={() => {
-              playInkSound('inkClick', 0.3);
-              setShowSettings(true);
-            }}
-            whileHover={{ rotate: 90 }}
-            whileTap={{ scale: 0.96 }}
-            className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/10 hover:border-white/20 hover:bg-white/[0.06] flex items-center justify-center text-white/70 hover:text-white transition-all"
-            aria-label="Paramètres"
-          >
-            <Settings className="w-3.5 h-3.5" />
-          </motion.button>
-
-          {/* PLAY — star of the show */}
-          {isHost ? (
-            <motion.button
-              onClick={handleStartGame}
-              disabled={!canStart || isStarting}
-              whileHover={canStart && !isStarting ? { scale: 1.04, y: -1 } : undefined}
-              whileTap={canStart && !isStarting ? { scale: 0.97 } : undefined}
-              animate={
-                canStart && !isStarting
-                  ? {
-                      boxShadow: [
-                        `0 4px 20px ${selectedTheme.accent}66`,
-                        `0 4px 30px ${selectedTheme.accent}99`,
-                        `0 4px 20px ${selectedTheme.accent}66`,
-                      ],
-                    }
-                  : undefined
-              }
-              transition={
-                canStart && !isStarting
-                  ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
-                  : undefined
-              }
-              className={cn(
-                'relative ml-2 flex items-center gap-2 px-5 py-2 rounded-lg font-black text-base tracking-wide transition-all overflow-hidden group',
-                (!canStart || isStarting) && 'cursor-not-allowed opacity-50',
-              )}
-              style={
-                canStart && !isStarting
-                  ? {
-                      background: `linear-gradient(135deg, ${selectedTheme.accent}, ${selectedTheme.accent}dd)`,
-                      color: 'white',
-                    }
-                  : {
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'rgba(255,255,255,0.5)',
-                    }
-              }
-              title={!canStart ? reasons.join(' · ') : 'Lancer la partie'}
-            >
-              {canStart && !isStarting && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
-              )}
-              <span className="relative flex items-center gap-2">
-                {isStarting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="hidden sm:inline">Démarrage…</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4" fill="currentColor" />
-                    <span>JOUER</span>
-                  </>
-                )}
-              </span>
-            </motion.button>
-          ) : (
-            <div className="ml-2 flex items-center gap-2 px-5 py-2 rounded-lg bg-white/[0.04] border border-white/10 text-white/50 text-sm">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span className="hidden sm:inline font-bold">En attente de l'hôte</span>
+            {/* Logo C2TV */}
+            <div className="px-5 py-4 text-center border-b border-white/10">
+              <div className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-bold mb-1 flex items-center justify-center gap-2">
+                <Crown className="w-3 h-3 text-amber-400" fill="currentColor" />
+                MIMIC
+                <Crown className="w-3 h-3 text-amber-400" fill="currentColor" />
+              </div>
+              <h1
+                className="text-3xl font-black leading-none"
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  color: '#a855f7',
+                  textShadow:
+                    '2px 2px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                }}
+              >
+                MASTER
+              </h1>
             </div>
-          )}
-        </div>
-      </header>
 
-      {/* Reasons banner — only for host who can't start */}
-      <AnimatePresence>
-        {isHost && !canStart && reasons.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden relative z-20 px-5 flex-shrink-0"
-          >
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/[0.1] border border-amber-500/30 mb-2">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <span className="text-xs text-amber-200/90">{reasons.join(' · ')}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* MAIN — 2 columns */}
-      <main className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden px-5 pb-[88px]">
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-3 min-h-0">
-          {/* LEFT — Players column */}
-          <section className="rounded-2xl bg-black/35 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
-            <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between flex-shrink-0">
+            {/* Players header */}
+            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Users className="w-3.5 h-3.5 text-white/50" />
-                <h2 className="text-xs font-bold text-white/80 uppercase tracking-[0.15em]">
+                <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-white/70">
                   Joueurs
-                </h2>
-                <span
-                  className="text-xs font-black"
-                  style={{ color: selectedTheme.accent }}
-                >
-                  {players.length}
+                </span>
+                <span className="text-sm font-black" style={{ color: '#a855f7' }}>
+                  ({players.length})
                 </span>
               </div>
-              <div className="text-[10px] text-white/40 uppercase tracking-wider font-bold">
-                {connectedCount}/{Math.max(players.length, minPlayers)}
-                {' · '}
-                <span style={{ color: selectedTheme.accent }}>min {minPlayers}</span>
-              </div>
+              <motion.button
+                onClick={handleCopyCode}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/10 text-[10px] font-mono font-bold text-white/70 hover:text-white hover:border-white/30 flex items-center gap-1"
+              >
+                {lobbyCode}
+                {codeCopied ? (
+                  <Check className="w-2.5 h-2.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-2.5 h-2.5" />
+                )}
+              </motion.button>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+            {/* Players list */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0">
               <div className="space-y-2">
                 <AnimatePresence>
                   {players.map((player, idx) => {
                     const isMe = player.id === currentPlayer.id;
                     const isDisc = player.isDisconnected;
-                    const playerTeam = teams.find((t) =>
-                      t.players?.some((p) => p === player.id),
-                    );
+                    const av = getAvatar(player.id);
+                    const hasImage = av.type === 'image' && av.imageUrl;
                     return (
                       <motion.div
                         key={player.id}
@@ -503,44 +573,50 @@ export const InkLobbyScreen = ({
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ delay: idx * 0.04 }}
                         className={cn(
-                          'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all',
-                          isMe ? 'bg-white/[0.05]' : 'bg-black/40 border-white/8 hover:bg-white/[0.03]',
+                          'group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl border-2 transition-all',
+                          isMe
+                            ? 'bg-purple-500/10 border-purple-400/50'
+                            : 'bg-black/30 border-white/8 hover:bg-white/[0.03]',
                           isDisc && 'opacity-60',
                         )}
-                        style={isMe ? { borderColor: `${selectedTheme.accent}66` } : undefined}
                       >
+                        {/* Avatar with online dot */}
                         <div className="relative flex-shrink-0">
-                          <div
-                            className={cn(
-                              'w-10 h-10 rounded-xl flex items-center justify-center text-base font-black text-white',
-                              isDisc && 'saturate-50',
-                            )}
-                            style={{
-                              background: `linear-gradient(135deg, ${selectedTheme.accent}, ${selectedTheme.accent}99)`,
-                            }}
+                          <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-base font-black text-white border-2 border-white/20"
+                            style={{ background: 'linear-gradient(135deg, #a855f7, #6b21a8)' }}
                           >
-                            {player.name[0]?.toUpperCase()}
+                            {hasImage ? (
+                              <img src={av.imageUrl} alt={player.name} className="w-full h-full object-cover" />
+                            ) : (
+                              player.name[0]?.toUpperCase()
+                            )}
                           </div>
                           <div
                             className={cn(
-                              'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a0810]',
+                              'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#1a0d2e]',
                               isDisc ? 'bg-amber-400' : 'bg-emerald-400',
                             )}
+                            style={{
+                              boxShadow: isDisc
+                                ? '0 0 6px rgba(251, 191, 36, 0.6)'
+                                : '0 0 6px rgba(52, 211, 153, 0.6)',
+                            }}
                           />
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-white truncate">
+                            <span
+                              className="text-sm font-black text-white truncate"
+                              style={{ fontFamily: "'Caveat', cursive" }}
+                            >
                               {player.name}
                             </span>
                             {player.isHost && (
-                              <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" fill="currentColor" />
-                            )}
-                            {isMe && (
-                              <span className="text-[9px] uppercase tracking-wider font-bold text-white/40 flex-shrink-0">
-                                Vous
-                              </span>
+                              <Crown
+                                className="w-3 h-3 text-amber-400 flex-shrink-0"
+                                fill="currentColor"
+                              />
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-[10px] text-white/40">
@@ -548,29 +624,29 @@ export const InkLobbyScreen = ({
                               <span className="flex items-center gap-1 text-amber-400">
                                 <WifiOff className="w-2.5 h-2.5" />
                                 Reconnexion
-                                {player.disconnectedTimeLeft !== undefined && ` ${player.disconnectedTimeLeft}s`}
                               </span>
                             ) : (
-                              <span className="flex items-center gap-1">
+                              <span className="flex items-center gap-1 text-emerald-400 font-bold">
                                 <span className="w-1 h-1 rounded-full bg-emerald-400" />
-                                En ligne
+                                EN LIGNE
                               </span>
                             )}
-                            {playerTeam && gameMode === '2v2' && (
-                              <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-bold uppercase tracking-wider">
-                                {playerTeam.team_name || `Eq ${playerTeam.team_number}`}
+                            {isMe && (
+                              <span className="text-[9px] uppercase tracking-wider font-bold text-white/40">
+                                · vous
                               </span>
                             )}
                           </div>
                         </div>
 
+                        {/* Host kebab */}
                         {isHost && !isMe && (onKickPlayer || onTransferHost) && (
                           <div className="relative flex-shrink-0">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                playInkSound('inkClick', 0.3);
+                                playInkSound('cartoonPop', 0.3);
                                 setOpenMenuFor(openMenuFor === player.id ? null : player.id);
                               }}
                               className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
@@ -585,13 +661,13 @@ export const InkLobbyScreen = ({
                                   exit={{ opacity: 0, y: -5, scale: 0.95 }}
                                   transition={{ duration: 0.15 }}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="absolute right-0 top-9 z-50 w-44 rounded-xl bg-[#0a0810]/95 backdrop-blur-xl border border-white/15 shadow-2xl overflow-hidden"
+                                  className="absolute right-0 top-9 z-50 w-44 rounded-xl bg-[#1a0d2e]/95 backdrop-blur-xl border-2 border-white/15 shadow-2xl overflow-hidden"
                                 >
                                   {onTransferHost && (
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        playInkSound('inkClick', 0.3);
+                                        playInkSound('cartoonDing', 0.3);
                                         onTransferHost(player.id);
                                         setOpenMenuFor(null);
                                       }}
@@ -605,14 +681,14 @@ export const InkLobbyScreen = ({
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        playInkSound('inkClick', 0.3);
+                                        playInkSound('cartoonZap', 0.3);
                                         onKickPlayer(player.id);
                                         setOpenMenuFor(null);
                                       }}
                                       className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/80 hover:bg-red-500/10 hover:text-red-400 transition-colors text-left border-t border-white/8"
                                     >
                                       <X className="w-3.5 h-3.5" />
-                                      Exclure du lobby
+                                      Exclure
                                     </button>
                                   )}
                                 </motion.div>
@@ -625,214 +701,313 @@ export const InkLobbyScreen = ({
                   })}
                 </AnimatePresence>
 
-                {/* Empty slots */}
-                {Array.from({ length: Math.max(0, minPlayers - players.length) }).map((_, idx) => (
-                  <div
-                    key={`empty-${idx}`}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-dashed border-white/10"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-white/20 text-xs font-bold">
-                      ?
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-white/30">En attente d'un joueur…</div>
-                      <div className="text-[10px] text-white/20">Slot requis</div>
-                    </div>
+                {players.length < minPlayers && (
+                  <div className="px-3 py-3 rounded-2xl border-2 border-dashed border-white/10 text-center">
+                    <p className="text-xs text-white/40 italic mb-1">
+                      En attente d'autres joueurs…
+                    </p>
+                    <p
+                      className="text-sm font-black text-purple-300"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      Invite tes amis pour commencer !
+                    </p>
+                    <span className="text-2xl">↓</span>
                   </div>
-                ))}
+                )}
 
                 {/* Invite CTA */}
-                {players.length < 8 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playInkSound('brushTap', 0.3);
-                      setShowInvitePanel(true);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-dashed border-white/10 hover:border-white/25 hover:bg-white/[0.02] transition-all group"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-white/30 group-hover:text-white/60 transition-colors">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="text-xs font-bold text-white/40 group-hover:text-white/70 transition-colors">
-                        Inviter un ami
-                      </div>
-                      <div className="text-[10px] text-white/25">Code, lien, amis en ligne</div>
-                    </div>
-                  </button>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* RIGHT — Mode hero + grid */}
-          <section className="flex flex-col min-h-0 gap-3">
-            {/* HERO — selected mode preview, big and visible */}
-            <div
-              className="relative rounded-2xl overflow-hidden border-2 backdrop-blur-md flex-shrink-0"
-              style={{
-                borderColor: `${selectedTheme.accent}55`,
-                background: `linear-gradient(135deg, ${selectedTheme.accent}10 0%, transparent 60%), rgba(0,0,0,0.4)`,
-                boxShadow: `0 8px 32px ${selectedTheme.accent}22`,
-              }}
-            >
-              <div
-                className="absolute inset-x-0 top-0 h-px"
-                style={{
-                  background: `linear-gradient(90deg, transparent, ${selectedTheme.accent}, transparent)`,
-                }}
-              />
-
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={selectedTheme.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.3 }}
-                  className="relative px-5 py-4 flex items-center gap-4"
+                <button
+                  type="button"
+                  onClick={() => {
+                    playInkSound('cartoonPop', 0.3);
+                    setShowInvitePanel(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl border-2 border-dashed border-purple-400/40 hover:border-purple-400/70 hover:bg-purple-500/10 transition-all group"
                 >
-                  <motion.div
-                    initial={{ scale: 0, rotate: -90 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 14 }}
-                    className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                      background: `${selectedTheme.accent}25`,
-                      border: `1px solid ${selectedTheme.accent}80`,
-                      boxShadow: `0 8px 24px ${selectedTheme.accent}55`,
-                    }}
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                  <span
+                    className="text-sm font-black text-purple-400"
+                    style={{ fontFamily: "'Caveat', cursive" }}
                   >
-                    <div style={{ color: selectedTheme.accent }} className="scale-150">
-                      {selectedTheme.icon}
-                    </div>
-                  </motion.div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <h1
-                        className="text-3xl font-black tracking-tight leading-none"
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          color: selectedTheme.accent,
-                        }}
-                      >
-                        {selectedTheme.label}
-                      </h1>
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold">
-                        · {selectedTheme.tagline}
-                      </span>
-                    </div>
-                    <p className="text-xs text-white/60 mt-1 leading-snug">
-                      {selectedTheme.description}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                      {selectedTheme.highlights.map((h, i) => (
-                        <span
-                          key={i}
-                          className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
-                          style={{
-                            background: `${selectedTheme.accent}15`,
-                            border: `1px solid ${selectedTheme.accent}40`,
-                            color: selectedTheme.accent,
-                          }}
-                        >
-                          {h}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+                    Inviter
+                  </span>
+                </button>
+              </div>
             </div>
 
-            {/* MODE GRID — visual mode picker */}
-            <div className="flex-1 rounded-2xl bg-black/35 backdrop-blur-md border border-white/8 overflow-hidden flex flex-col min-h-0">
-              <div className="px-4 py-2.5 border-b border-white/8 flex items-center justify-between flex-shrink-0">
-                <h2 className="text-xs font-bold text-white/80 uppercase tracking-[0.15em]">
-                  Choisir le mode
-                </h2>
-                {!isHost && (
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-white/40 uppercase tracking-wider">
-                    <Lock className="w-3 h-3" />
-                    Hôte uniquement
-                  </span>
-                )}
+            {/* Bottom — Quitter */}
+            <div className="p-3 border-t border-white/10 flex-shrink-0">
+              <motion.button
+                onClick={() => {
+                  playInkSound('cartoonSwoosh', 0.3);
+                  setShowLeaveConfirm(true);
+                }}
+                whileHover={{ scale: 1.02, x: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl bg-red-500/10 border-2 border-red-500/30 hover:bg-red-500/20 hover:border-red-500/50 text-red-300 hover:text-red-200 transition-all"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span
+                  className="text-sm font-black uppercase tracking-wider"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  QUITTER
+                </span>
+              </motion.button>
+            </div>
+          </div>
+        </aside>
+
+        {/* MAIN CONTENT — Hero header + Mode grid + PRÊT button */}
+        <main className="flex flex-col min-h-0 overflow-hidden gap-4">
+          {/* Hero mode banner */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedCard.id}
+              initial={{ opacity: 0, y: -10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.98 }}
+              transition={{ duration: 0.3 }}
+              className="relative flex-shrink-0 px-5 py-3 flex items-center gap-4"
+            >
+              <HeroHeaderBorder color={selectedCard.cardColorDark} />
+              {/* Icon badge */}
+              <div
+                className="relative w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border-2"
+                style={{
+                  background: selectedCard.cardColor,
+                  borderColor: 'rgba(0,0,0,0.4)',
+                  boxShadow: `0 4px 12px ${selectedCard.cardColor}66`,
+                }}
+              >
+                <span className="text-3xl">{selectedCard.emoji}</span>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {MODE_THEMES.map((mode) => {
-                    const isActive = mode.id === gameMode;
-                    const meta = GAME_MODE_META[mode.id];
-                    const enoughPlayers = connectedCount >= meta.minPlayers || isAdmin;
-                    const disabled = !isHost;
-
-                    return (
-                      <motion.button
-                        key={mode.id}
-                        type="button"
-                        onClick={() => !disabled && handleGameModeChange(mode.id)}
-                        whileHover={!disabled ? { y: -2, scale: 1.02 } : undefined}
-                        whileTap={!disabled ? { scale: 0.98 } : undefined}
-                        disabled={disabled}
-                        className={cn(
-                          'relative aspect-[3/2] rounded-xl border-2 overflow-hidden flex flex-col items-center justify-center gap-1.5 p-2 text-center transition-all group',
-                          isActive ? 'bg-white/[0.06]' : 'bg-black/40 border-white/8 hover:bg-white/[0.03] hover:border-white/15',
-                          !enoughPlayers && !isActive && 'opacity-50',
-                          disabled && 'cursor-default',
-                        )}
-                        style={
-                          isActive
-                            ? {
-                                borderColor: mode.accent,
-                                boxShadow: `0 0 0 1px ${mode.accent}40, inset 0 0 30px ${mode.accent}10`,
-                              }
-                            : undefined
-                        }
-                      >
-                        {/* Active indicator */}
-                        {isActive && (
-                          <div
-                            className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                            style={{
-                              background: mode.accent,
-                              boxShadow: `0 0 8px ${mode.accent}`,
-                            }}
-                          />
-                        )}
-
-                        {/* Icon */}
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center transition-all"
-                          style={{
-                            background: isActive ? `${mode.accent}25` : 'rgba(255,255,255,0.04)',
-                            border: isActive ? `1px solid ${mode.accent}66` : '1px solid rgba(255,255,255,0.08)',
-                          }}
-                        >
-                          <div style={{ color: mode.accent }}>{mode.icon}</div>
-                        </div>
-
-                        {/* Label */}
-                        <div
-                          className="text-sm font-black leading-tight"
-                          style={{ color: isActive ? mode.accent : 'white' }}
-                        >
-                          {mode.label}
-                        </div>
-                        <div className="text-[10px] text-white/40 font-bold uppercase tracking-wider">
-                          {meta.minPlayers}+ joueurs
-                        </div>
-                      </motion.button>
-                    );
-                  })}
+              {/* Info */}
+              <div className="relative flex-1 min-w-0">
+                <h2
+                  className="text-2xl md:text-3xl font-black leading-none tracking-tight text-white"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    textShadow:
+                      '2px 2px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                  }}
+                >
+                  {selectedCard.label}
+                </h2>
+                <p className="text-xs md:text-sm text-white/80 mt-0.5">
+                  {selectedCard.tagline}
+                </p>
+                <div className="flex items-center gap-3 mt-1.5 text-[10px] uppercase tracking-wider font-bold">
+                  <span className="text-white/50">
+                    Mode : <span className="text-white">SOLO</span>
+                  </span>
+                  <span className="text-white/50">
+                    Difficulté :
+                    <span
+                      className="ml-1 inline-block px-1.5 py-0.5 rounded-md text-white"
+                      style={{ background: selectedCard.cardColor }}
+                    >
+                      NORMAL
+                    </span>
+                  </span>
                 </div>
               </div>
+
+              {/* Right cluster */}
+              <div className="relative flex items-center gap-2 flex-shrink-0">
+                <motion.button
+                  onClick={() => {
+                    playInkSound('cartoonPop', 0.3);
+                    setShowInvitePanel(true);
+                  }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 transition-all text-xs font-black text-white"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  <Users className="w-3 h-3" />
+                  INVITER
+                </motion.button>
+                <motion.button
+                  onClick={() => {
+                    playInkSound('cartoonPop', 0.3);
+                    setShowSettings(true);
+                  }}
+                  whileHover={{ rotate: 90 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                </motion.button>
+              </div>
+
+              {/* Decorative lightning bolts */}
+              <div className="absolute -bottom-2 -left-2 text-2xl select-none pointer-events-none">⚡</div>
+              <div className="absolute -top-2 -right-3 text-2xl select-none pointer-events-none">⚡</div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Reasons banner */}
+          <AnimatePresence>
+            {isHost && !canStart && reasons.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden flex-shrink-0"
+              >
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/[0.1] border-2 border-amber-500/30">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                  <span className="text-xs text-amber-200/90">{reasons.join(' · ')}</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* MODE CARD GRID */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
+              {MODE_CARDS.map((mode) => {
+                const isActive = mode.id === gameMode;
+                const meta = GAME_MODE_META[mode.id];
+                const enoughPlayers = connectedCount >= meta.minPlayers || isAdmin;
+                const disabled = !isHost;
+                const playerCountForMode = isActive ? connectedCount : 0;
+
+                return (
+                  <motion.button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => !disabled && handleGameModeChange(mode.id)}
+                    whileHover={!disabled ? { y: -6, scale: 1.03 } : undefined}
+                    whileTap={!disabled ? { scale: 0.97 } : undefined}
+                    disabled={disabled}
+                    animate={
+                      isActive
+                        ? {
+                            y: [0, -3, 0],
+                            transition: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
+                          }
+                        : undefined
+                    }
+                    className={cn(
+                      'relative aspect-[3/4] rounded-3xl overflow-hidden text-left transition-all group',
+                      !enoughPlayers && !isActive && 'opacity-60',
+                      disabled && 'cursor-default',
+                      isActive && 'ring-4 ring-white/40 ring-offset-2 ring-offset-[#1a0d2e]',
+                    )}
+                    style={{
+                      filter: isActive
+                        ? `drop-shadow(0 8px 24px ${mode.cardColor}cc) drop-shadow(0 0 20px ${mode.cardColor}88)`
+                        : 'drop-shadow(0 6px 12px rgba(0,0,0,0.4))',
+                    }}
+                  >
+                    {/* Card background */}
+                    <CardBorder color={mode.cardColor} />
+
+                    {/* Splash */}
+                    <CardSplash color="white" className="opacity-40" />
+
+                    {/* Card content */}
+                    <div className="relative h-full flex flex-col items-center justify-between p-4">
+                      {/* Icon big emoji */}
+                      <div className="flex-1 flex items-center justify-center">
+                        <motion.div
+                          animate={{ rotate: [-3, 3, -3], scale: [1, 1.05, 1] }}
+                          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                          className="text-7xl"
+                          style={{ filter: 'drop-shadow(2px 4px 0 rgba(0,0,0,0.4))' }}
+                        >
+                          {mode.emoji}
+                        </motion.div>
+                      </div>
+
+                      {/* Label */}
+                      <div className="w-full text-center mb-2">
+                        <h3
+                          className="text-xl font-black tracking-tight leading-none text-white"
+                          style={{
+                            fontFamily: "'Caveat', cursive",
+                            textShadow:
+                              '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                          }}
+                        >
+                          {mode.label}
+                        </h3>
+                      </div>
+
+                      {/* Player count pill */}
+                      <div
+                        className="w-full px-3 py-1.5 rounded-full flex items-center justify-center gap-1.5 border-2 text-[11px] font-black uppercase tracking-wider text-white"
+                        style={{
+                          background: `${mode.cardColorDark}`,
+                          borderColor: 'rgba(0,0,0,0.4)',
+                          fontFamily: "'Caveat', cursive",
+                        }}
+                      >
+                        <Users className="w-3 h-3" />
+                        {playerCountForMode} JOUEUR{playerCountForMode !== 1 ? 'S' : ''}
+                      </div>
+                    </div>
+
+                    {/* Active checkmark */}
+                    {isActive && (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        className="absolute -top-2 -right-2 w-9 h-9 rounded-full bg-amber-400 border-2 border-[#0a0810] flex items-center justify-center z-10"
+                        style={{
+                          boxShadow: '0 4px 12px rgba(251, 191, 36, 0.6)',
+                        }}
+                      >
+                        <Check className="w-5 h-5 text-[#0a0810]" strokeWidth={3} />
+                      </motion.div>
+                    )}
+
+                    {/* Lock for non-host */}
+                    {disabled && !isActive && (
+                      <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 border border-white/15 flex items-center justify-center">
+                        <Lock className="w-3 h-3 text-white/40" />
+                      </div>
+                    )}
+                  </motion.button>
+                );
+              })}
             </div>
-          </section>
-        </div>
-      </main>
+          </div>
+
+          {/* PRÊT button (host) or waiting state (guest) */}
+          <div className="flex-shrink-0 flex items-end justify-end pb-2">
+            {isHost ? (
+              isStarting ? (
+                <div className="px-6 py-4 rounded-2xl bg-white/5 border-2 border-white/10 flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  <span
+                    className="text-xl font-black text-white"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
+                    Démarrage…
+                  </span>
+                </div>
+              ) : (
+                <ReadyStamp onClick={handleStartGame} disabled={!canStart} />
+              )
+            ) : (
+              <div className="px-6 py-4 rounded-2xl bg-white/5 border-2 border-white/10 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-white/50" />
+                <span
+                  className="text-base font-black text-white/70"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  En attente de l'hôte…
+                </span>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
 
       {/* Floating chat */}
       <LobbyChat
@@ -857,17 +1032,22 @@ export const InkLobbyScreen = ({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-[#0a0810]/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-[#1a0d2e]/95 backdrop-blur-2xl border-l-2 border-white/15 shadow-2xl"
             >
               <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" style={{ color: selectedTheme.accent }} />
-                  <h2 className="text-base font-bold text-white">Inviter</h2>
+                  <Sparkles className="w-4 h-4" style={{ color: '#a855f7' }} />
+                  <h2
+                    className="text-2xl font-black text-white"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
+                    Inviter
+                  </h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowInvitePanel(false)}
-                  className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -919,19 +1099,24 @@ export const InkLobbyScreen = ({
             onClick={() => setShowLeaveConfirm(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+              initial={{ opacity: 0, scale: 0.9, y: 10, rotate: -3 }}
+              animate={{ opacity: 1, scale: 1, y: 0, rotate: -1 }}
+              exit={{ opacity: 0, scale: 0.9, y: 10, rotate: 3 }}
+              transition={{ type: 'spring', damping: 18, stiffness: 220 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-sm bg-[#0a0810]/95 backdrop-blur-2xl border border-red-500/30 rounded-2xl p-5 space-y-4"
+              className="relative w-full max-w-sm bg-[#1a0d2e]/95 backdrop-blur-2xl border-2 border-red-500/40 rounded-3xl p-5 space-y-4"
             >
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                <div className="w-10 h-10 rounded-2xl bg-red-500/20 border-2 border-red-500/40 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Quitter le lobby ?</h3>
+                  <h3
+                    className="text-2xl font-black text-white"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
+                    Quitter le lobby ?
+                  </h3>
                   <p className="text-xs text-white/55 mt-0.5">
                     {isHost
                       ? 'Le lobby sera transféré ou fermé.'
@@ -943,17 +1128,19 @@ export const InkLobbyScreen = ({
                 <button
                   type="button"
                   onClick={() => setShowLeaveConfirm(false)}
-                  className="flex-1 py-2.5 rounded-lg border border-white/10 text-white/70 hover:border-white/25 hover:text-white transition-all text-sm font-bold"
+                  className="flex-1 py-2.5 rounded-2xl border-2 border-white/15 text-white/70 hover:border-white/30 hover:text-white transition-all text-base font-black"
+                  style={{ fontFamily: "'Caveat', cursive" }}
                 >
                   Rester
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    playInkSound('inkClick', 0.4);
+                    playInkSound('cartoonZap', 0.4);
                     onLeaveGame();
                   }}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white bg-red-500/90 hover:bg-red-500 transition-all"
+                  className="flex-1 py-2.5 rounded-2xl text-base font-black text-white bg-red-500 hover:bg-red-400 border-2 border-red-700 transition-all"
+                  style={{ fontFamily: "'Caveat', cursive" }}
                 >
                   Quitter
                 </button>
@@ -964,10 +1151,10 @@ export const InkLobbyScreen = ({
       </AnimatePresence>
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.3); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168, 85, 247, 0.5); }
       `}</style>
     </div>
   );
