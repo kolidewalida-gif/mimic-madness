@@ -64,7 +64,7 @@ const InkHomeCenterPanelComponent = ({
   }, [signOut]);
 
   return (
-    <div className="h-full w-full bg-[#050505]/95 backdrop-blur-md border border-[#ff2b2b]/30 rounded-2xl overflow-hidden flex flex-col items-center justify-center relative">
+    <div className="h-full w-full bg-[#050505]/95 backdrop-blur-md border border-[#ff2b2b]/30 rounded-2xl flex flex-col items-center justify-start pt-24 relative">
       {/* Volumetric red fog background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-[#ff2b2b]/15 rounded-full blur-[120px] animate-pulse" />
@@ -77,7 +77,7 @@ const InkHomeCenterPanelComponent = ({
         initial={{ opacity: 0, y: -30, scale: 0.8 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="absolute -top-16 left-1/2 -translate-x-1/2 z-20"
+        className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
       >
         <div className="relative">
           <div className="absolute inset-0 bg-[#ff2b2b]/40 rounded-full blur-xl animate-pulse" />
@@ -104,7 +104,7 @@ const InkHomeCenterPanelComponent = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-5xl md:text-6xl font-black text-white tracking-tight text-center"
+          className="text-3xl md:text-4xl font-black text-white tracking-tight text-center"
           style={{
             textShadow: '0 0 40px rgba(255, 43, 43, 0.6), 0 0 80px rgba(255, 43, 43, 0.3)',
           }}
