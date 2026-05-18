@@ -786,7 +786,7 @@ export const InkLobbyScreen = ({
 
           {/* MODE CARD GRID — uses real images */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-4 max-w-[820px] mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pb-4 max-w-[560px] mx-0">
               {MODE_CARDS.map((card) => {
                 const isActive = card.id === gameMode;
                 const meta = GAME_MODE_META[card.id];
