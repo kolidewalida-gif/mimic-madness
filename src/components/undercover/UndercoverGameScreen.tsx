@@ -8,7 +8,6 @@ import {
   Crown,
   Eye,
   Send,
-  Shield,
   Skull,
   Timer,
   UserX,
@@ -42,12 +41,11 @@ const GRAFFITI_TEXT_SHADOW =
 const GRAFFITI_TEXT_SHADOW_SM =
   '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
 
-const ROLE_CONFIG = {
-  civilian: { label: 'Civil', icon: Shield, color: '#06b6d4' },
-  undercover: { label: 'Undercover', icon: UserX, color: '#ef4444' },
-  mr_white: { label: 'Mr White', icon: HelpCircle, color: '#fbbf24' },
-} as const;
-
+// Role/word data is intentionally NOT exposed in the UI:
+// - Civilians know their word (just a regular word)
+// - Undercover get a *different* word but are NEVER told "you are undercover"
+// - Mr White gets no word and just sees "???" without being labelled
+// The phase tinting and final word reveal are the only public signals.
 const PHASE_LABELS: Record<string, string> = {
   word_reveal: 'Découverte du mot',
   clue_giving: "Phase d'indices",
@@ -553,11 +551,9 @@ export const UndercoverGameScreen = memo(
                 Boolean(myPlayer?.is_alive) &&
                 clueInput.trim().length > 0;
               const displayClue = isLiveTyping ? clueInput.trim() : lastClue;
-              const revealedRole = isGameOver
-                ? ROLE_CONFIG[player.role as keyof typeof ROLE_CONFIG]
-                : null;
-
-              const playerColor = revealedRole?.color ?? (isMe ? '#06b6d4' : '#a855f7');
+              // Roles are NEVER revealed on the player relay — even at game over.
+              // Only the dominant words are shown in the game-over panel.
+              const playerColor = isMe ? '#06b6d4' : '#a855f7';
 
               return (
                 <div key={player.id} className="flex items-center gap-2">
@@ -779,30 +775,6 @@ export const UndercoverGameScreen = memo(
                         >
                           Vous
                         </span>
-                      )}
-                      {revealedRole && (
-                        <div
-                          className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
-                          style={{
-                            background: `linear-gradient(180deg, ${revealedRole.color}, ${revealedRole.color}cc)`,
-                            border: '2px solid #0a0810',
-                            boxShadow: '0 2px 0 #0a0810',
-                          }}
-                        >
-                          <revealedRole.icon
-                            className="w-3 h-3 text-white"
-                            strokeWidth={2.5}
-                          />
-                          <span
-                            className="text-[10px] font-black uppercase tracking-wider text-white leading-none"
-                            style={{
-                              fontFamily: "'Caveat', cursive",
-                              textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                            }}
-                          >
-                            {revealedRole.label}
-                          </span>
-                        </div>
                       )}
                     </div>
                   </div>
@@ -1336,7 +1308,7 @@ export const UndercoverGameScreen = memo(
                             className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center"
                             style={{
                               background:
-                                'linear-gradient(135deg, #fbbf24, #d97706)',
+                                'linear-gradient(135deg, #a855f7, #6b21a8)',
                               border: '3px solid #0a0810',
                               boxShadow: '0 4px 0 #0a0810',
                             }}
@@ -1356,10 +1328,10 @@ export const UndercoverGameScreen = memo(
                             ???
                           </div>
                           <p
-                            className="text-sm text-amber-300 font-bold"
+                            className="text-sm text-white/70 font-bold"
                             style={{ fontFamily: "'Caveat', cursive" }}
                           >
-                            Tu es Mr White. Improvise !
+                            Aucun mot pour toi… À toi d'improviser !
                           </p>
                         </div>
                       )}
@@ -1427,9 +1399,7 @@ const VoteResultBlock = ({
   const eliminatedName = gamePlayers.find(
     (p) => p.player_id === game.eliminated_player_id,
   )?.player_name;
-  const eliminatedRole = game.eliminated_role
-    ? ROLE_CONFIG[game.eliminated_role as keyof typeof ROLE_CONFIG]
-    : null;
+  // Eliminated role is intentionally NOT shown — keeps the suspense intact.
 
   return (
     <div className="text-center space-y-3">
@@ -1465,30 +1435,12 @@ const VoteResultBlock = ({
             >
               {eliminatedName}
             </h3>
-            {eliminatedRole && (
-              <div
-                className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full"
-                style={{
-                  background: `linear-gradient(180deg, ${eliminatedRole.color}, ${eliminatedRole.color}cc)`,
-                  border: '2px solid #0a0810',
-                  boxShadow: '0 2px 0 #0a0810',
-                }}
-              >
-                <eliminatedRole.icon
-                  className="w-3.5 h-3.5 text-white"
-                  strokeWidth={2.5}
-                />
-                <span
-                  className="text-sm font-black uppercase tracking-wider text-white leading-none"
-                  style={{
-                    fontFamily: "'Caveat', cursive",
-                    textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                  }}
-                >
-                  {eliminatedRole.label}
-                </span>
-              </div>
-            )}
+            <p
+              className="mt-2 text-sm text-white/55 italic font-bold"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              Son rôle reste secret…
+            </p>
           </div>
         </>
       ) : (
