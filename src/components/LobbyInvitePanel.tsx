@@ -205,10 +205,10 @@ const LobbyInvitePanelComponent = ({
                 animate={{ opacity: 1, scale: 1, y: 0, rotate: -1 }}
                 exit={{ opacity: 0, scale: 0.85, y: 30, rotate: 2 }}
                 transition={{ type: 'spring', damping: 22, stiffness: 260 }}
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md px-4"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col px-4"
               >
                 <div
-                  className="relative rounded-3xl overflow-hidden"
+                  className="relative rounded-3xl overflow-hidden flex flex-col min-h-0 max-h-full"
                   style={{
                     background:
                       'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -577,9 +577,9 @@ const LobbyInvitePanelComponent = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md px-4"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col px-4"
             >
-              <div className="rounded-2xl shadow-2xl overflow-hidden bg-card/95 backdrop-blur-xl border border-border/30">
+              <div className="rounded-2xl shadow-2xl overflow-hidden bg-card/95 backdrop-blur-xl border border-border/30 flex flex-col min-h-0 max-h-full">
                 <div className="px-5 py-4 border-b border-border/20 bg-gradient-to-r from-primary/10 to-accent/10">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">

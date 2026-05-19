@@ -1122,7 +1122,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               exit={{ opacity: 0, scale: 0.85, y: 20, rotate: 2 }}
               transition={{ type: 'spring', damping: 22, stiffness: 260 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-md rounded-3xl overflow-hidden"
+              className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl overflow-hidden"
               style={{
                 background:
                   'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -1135,7 +1135,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                 className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
                 style={{ border: '2px solid rgba(168,85,247,0.4)' }}
               />
-              <div className="relative p-6 space-y-4">
+              <div className="relative p-6 space-y-4 overflow-y-auto custom-scrollbar">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <motion.div
@@ -1334,7 +1334,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               animate={{ opacity: 1, scale: 1, y: 0, rotate: -0.5 }}
               exit={{ opacity: 0, scale: 0.92, y: 20, rotate: 1 }}
               transition={{ type: 'spring', damping: 22, stiffness: 240 }}
-              className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
+              className="relative w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
               style={{
                 background:
@@ -1348,7 +1348,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                 className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none z-[1]"
                 style={{ border: '2px solid rgba(168,85,247,0.4)' }}
               />
-              <div className="relative z-[2]">
+              <div className="relative z-[2] flex flex-col min-h-0 flex-1">
                 <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
               </div>
             </motion.div>

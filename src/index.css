@@ -2025,3 +2025,41 @@ body.game-cursor-effect-glow .game-cursor-nib {
 .ink-enter-anim {
   animation: ink-enter 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+
+/* ============================================================
+   Ink mode — responsive modal helpers
+   Ensures cartoon modals/drawers scale cleanly on browser zoom
+   in/out and on tiny viewports.
+============================================================ */
+
+/* Fallback for browsers without dvh support (older iOS / Safari) */
+@supports not (height: 100dvh) {
+  .max-h-\[calc\(100dvh-2rem\)\] {
+    max-height: calc(100vh - 2rem);
+  }
+}
+
+/* Cartoon scrollbar — reused across all Ink modals */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.4);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.6);
+}
+
+/* Tiny screens / heavy zoom — relax the 4px black borders so they
+   don't visually swallow the modal content. */
+@media (max-height: 600px) {
+  .max-h-\[calc\(100dvh-2rem\)\] {
+    max-height: calc(100vh - 0.5rem);
+  }
+}

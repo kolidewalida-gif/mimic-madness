@@ -54,7 +54,7 @@ const InkShortcutsModalComponent = ({ isOpen, onClose, extra = [] }: InkShortcut
             exit={{ opacity: 0, scale: 0.85, y: 20, rotate: 2 }}
             transition={{ type: 'spring', damping: 22, stiffness: 260 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md rounded-3xl overflow-hidden"
+            className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl overflow-hidden"
             style={{
               background:
                 'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -129,7 +129,7 @@ const InkShortcutsModalComponent = ({ isOpen, onClose, extra = [] }: InkShortcut
             </div>
 
             {/* LIST */}
-            <div className="relative p-5 space-y-2">
+            <div className="relative p-5 space-y-2 overflow-y-auto custom-scrollbar">
               {all.map((sc, idx) => (
                 <motion.div
                   key={`${sc.label}-${idx}`}

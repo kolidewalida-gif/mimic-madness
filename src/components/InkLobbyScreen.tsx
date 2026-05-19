@@ -1188,7 +1188,7 @@ export const InkLobbyScreen = ({
               animate={{ opacity: 1, scale: 1, y: 0, rotate: -0.5 }}
               exit={{ opacity: 0, scale: 0.92, y: 20, rotate: 1 }}
               transition={{ type: 'spring', damping: 22, stiffness: 240 }}
-              className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
+              className="relative w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
               style={{
                 background:
@@ -1212,7 +1212,7 @@ export const InkLobbyScreen = ({
                 className="absolute top-3 right-4 w-4 h-4 text-pink-400 z-10 select-none pointer-events-none"
                 style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
               />
-              <div className="relative z-[2]">
+              <div className="relative z-[2] flex flex-col min-h-0 flex-1">
                 <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
               </div>
             </motion.div>
@@ -1236,7 +1236,7 @@ export const InkLobbyScreen = ({
               exit={{ opacity: 0, scale: 0.85, y: 20, rotate: 3 }}
               transition={{ type: 'spring', damping: 20, stiffness: 240 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-sm rounded-3xl overflow-hidden"
+              className="relative w-full max-w-sm max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl overflow-hidden"
               style={{
                 background:
                   'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',

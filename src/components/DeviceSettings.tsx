@@ -80,7 +80,7 @@ export const DeviceSettings = ({
   ========================================================= */
   if (!isInkMode) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col min-h-0 h-full max-h-full">
         <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
@@ -100,7 +100,7 @@ export const DeviceSettings = ({
             </button>
           )}
         </div>
-        <div className="max-h-[70vh] overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
           <AudioSection
             audioInputs={audioInputs}
             selectedAudioId={selectedAudioId}
@@ -126,7 +126,7 @@ export const DeviceSettings = ({
      INK CARTOON RENDER — la bonne DA
   ========================================================= */
   return (
-    <div className="relative">
+    <div className="relative flex flex-col min-h-0 h-full max-h-full">
       {/* HEADER */}
       <div
         className="relative px-5 py-4 flex items-center justify-between flex-shrink-0"
@@ -256,7 +256,7 @@ export const DeviceSettings = ({
       </div>
 
       {/* SCROLL ZONE */}
-      <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-5 relative">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 relative">
         <AnimatePresence mode="wait">
           {activeTab === "audio" && (
             <motion.div

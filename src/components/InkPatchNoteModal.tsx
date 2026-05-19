@@ -126,14 +126,14 @@ export const InkPatchNoteModal = ({ onClose, forceOpen = false }: InkPatchNoteMo
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 24 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-lg"
+            className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Glow halo */}
             <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl pointer-events-none" />
 
             {/* Card */}
-            <div className="relative bg-card border border-primary/30 rounded-2xl overflow-hidden shadow-2xl shadow-primary/10">
+            <div className="relative bg-card border border-primary/30 rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 flex flex-col min-h-0">
               {/* Top accent bar */}
               <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent" />
 
@@ -167,7 +167,7 @@ export const InkPatchNoteModal = ({ onClose, forceOpen = false }: InkPatchNoteMo
               </div>
 
               {/* Changes list */}
-              <div className="px-5 pb-2 space-y-2 max-h-72 overflow-y-auto">
+              <div className="px-5 pb-2 space-y-2 flex-1 overflow-y-auto custom-scrollbar">
                 {latest.changes.map((change, i) => {
                   const cfg = typeConfig[change.type];
                   return (
