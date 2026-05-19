@@ -76,6 +76,7 @@ export const PixoguessGameScreen = ({
     startGame,
     advanceToScores,
     submitGuess,
+    skipBrokenImage,
     nextRound,
   } = usePixoguessGame(lobbyId, currentPlayer, players);
 
@@ -231,11 +232,11 @@ export const PixoguessGameScreen = ({
   useEffect(() => {
     if (!imageBroken || phase !== 'playing' || !isHost) return;
     const t = setTimeout(() => {
-      console.warn('[BlurRush] image broken, advancing to reveal');
-      advanceToScores().catch(() => {});
-    }, 4000);
+      console.warn('[BlurRush] image broken, picking a replacement');
+      skipBrokenImage().catch(() => {});
+    }, 3500);
     return () => clearTimeout(t);
-  }, [imageBroken, phase, isHost, advanceToScores]);
+  }, [imageBroken, phase, isHost, skipBrokenImage]);
 
   const timeProgress = (timeRemaining / totalTime) * 100;
   const pixelProgress = ((maxPixelLevel - pixelLevel) / maxPixelLevel) * 100;

@@ -497,6 +497,29 @@ export const usePixoguessGame = (
       .eq('phase', 'playing');
   }, [canActAsHost, roundData]);
 
+  // Skip a broken image — replace current round's image with a new one (host only)
+  const skipBrokenImage = useCallback(async () => {
+    if (!canActAsHost() || !roundData) return;
+    try {
+      const replacement = await getRandomImage();
+      // If we somehow got the same broken URL, fall back to a random one outside DB checks
+      const finalImage =
+        replacement.url === roundData.image_url
+          ? imagePool[Math.floor(Math.random() * imagePool.length)] ?? replacement
+          : replacement;
+      await supabase
+        .from('pixoguess_rounds')
+        .update({
+          image_url: finalImage.url,
+          correct_answer: finalImage.answer,
+          acceptable_answers: finalImage.acceptable,
+        })
+        .eq('id', roundData.id);
+    } catch (err) {
+      console.warn('[BlurRush] failed to swap broken image, advancing instead:', err);
+    }
+  }, [canActAsHost, roundData, getRandomImage, imagePool]);
+
   // Advance to scores (host)
   const advanceToScores = useCallback(async () => {
     if (!canActAsHost() || !roundData) return;
@@ -608,6 +631,7 @@ export const usePixoguessGame = (
     submitGuess,
     advanceToReveal,
     advanceToScores,
+    skipBrokenImage,
     nextRound
   };
 };
