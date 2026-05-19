@@ -1,6 +1,10 @@
-import { HolographicCard } from '@/components/premium';
-import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 import { CheckCircle2, Timer } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  InkCard,
+  GRAFFITI_TEXT_SHADOW_SM,
+} from '@/components/ink/InkPrimitives';
 
 export type BlurRushLiveStats = Record<
   string,
@@ -24,45 +28,102 @@ export function BlurRushLiveScoreboard({
   const rows = Object.entries(stats)
     .map(([playerId, s]) => ({ playerId, ...s }))
     .sort((a, b) => {
-      // solved first, then most attempts
       if (a.solved !== b.solved) return a.solved ? -1 : 1;
       return b.attempts - a.attempts;
     });
 
   return (
-    <HolographicCard className={cn('p-4', className)}>
+    <InkCard accent="#06b6d4" className={cn('p-4', className)}>
       <div className="flex items-center justify-between mb-3">
-        <div className="text-sm font-bold text-foreground">Live</div>
-        <div className="text-xs text-foreground-muted">Tentatives</div>
+        <span
+          className="text-base font-black text-white leading-none"
+          style={{
+            fontFamily: "'Caveat', cursive",
+            textShadow: GRAFFITI_TEXT_SHADOW_SM,
+          }}
+        >
+          Live
+        </span>
+        <span
+          className="text-xs uppercase tracking-wider font-black text-cyan-300"
+          style={{ fontFamily: "'Caveat', cursive" }}
+        >
+          Tentatives
+        </span>
       </div>
 
       <div className="space-y-2">
-        {rows.map((r) => (
-          <div
-            key={r.playerId}
-            className={cn(
-              'flex items-center justify-between p-2 rounded-lg border',
-              r.playerId === currentPlayerId
-                ? 'bg-primary/10 border-primary/20'
-                : 'bg-card/40 border-border/30'
-            )}
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="truncate text-sm font-medium text-foreground">{r.playerName}</span>
-                {r.solved && <CheckCircle2 className="h-4 w-4 text-success" />}
+        {rows.map((r, idx) => {
+          const isMe = r.playerId === currentPlayerId;
+          return (
+            <motion.div
+              key={r.playerId}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                rotate: idx % 2 === 0 ? -0.5 : 0.5,
+              }}
+              transition={{ delay: idx * 0.04 }}
+              className="flex items-center justify-between p-2.5 rounded-2xl"
+              style={{
+                background: r.solved
+                  ? 'linear-gradient(180deg, rgba(52,211,153,0.18), rgba(5,150,105,0.05))'
+                  : isMe
+                    ? 'linear-gradient(180deg, rgba(6,182,212,0.22), rgba(14,116,144,0.05))'
+                    : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+                border: '2.5px solid #0a0810',
+                boxShadow: '0 2px 0 #0a0810',
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="text-base font-black text-white truncate leading-none"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                    }}
+                  >
+                    {r.playerName}
+                  </span>
+                  {r.solved && (
+                    <CheckCircle2
+                      className="w-4 h-4 text-emerald-300 flex-shrink-0"
+                      strokeWidth={2.5}
+                    />
+                  )}
+                </div>
+                <div
+                  className="flex items-center gap-1 text-[10px] mt-0.5 font-bold text-white/50"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  <Timer className="w-3 h-3" />
+                  <span>
+                    {r.lastGuessAt
+                      ? new Date(r.lastGuessAt).toLocaleTimeString()
+                      : '—'}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-[11px] text-foreground-muted">
-                <Timer className="h-3 w-3" />
-                <span>
-                  {r.lastGuessAt ? new Date(r.lastGuessAt).toLocaleTimeString() : '—'}
-                </span>
-              </div>
-            </div>
-            <div className="text-sm font-bold text-foreground">{r.attempts}</div>
-          </div>
-        ))}
+              <span
+                className="text-base font-black flex-shrink-0 leading-none"
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  color: r.solved
+                    ? '#34d399'
+                    : isMe
+                      ? '#22d3ee'
+                      : 'white',
+                  textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                }}
+              >
+                {r.attempts}
+              </span>
+            </motion.div>
+          );
+        })}
       </div>
-    </HolographicCard>
+    </InkCard>
   );
 }
