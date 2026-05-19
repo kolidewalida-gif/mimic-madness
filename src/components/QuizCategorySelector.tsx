@@ -1,25 +1,28 @@
 import { cn } from '@/lib/utils';
-import { Sparkles, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { GRAFFITI_TEXT_SHADOW_SM } from '@/components/ink/InkPrimitives';
 
 interface Category {
   id: string;
   name: string;
   emoji: string;
+  color: string;
 }
 
 const CATEGORIES: Category[] = [
-  { id: 'mixed', name: 'Mélangé', emoji: '🎲' },
-  { id: 'general', name: 'Culture G', emoji: '🎯' },
-  { id: 'anime', name: 'Anime', emoji: '🎌' },
-  { id: 'histoire', name: 'Histoire', emoji: '📜' },
-  { id: 'sport', name: 'Sport', emoji: '⚽' },
-  { id: 'musique', name: 'Musique', emoji: '🎵' },
-  { id: 'cinema', name: 'Cinéma', emoji: '🎬' },
-  { id: 'science', name: 'Science', emoji: '🔬' },
-  { id: 'geographie', name: 'Géographie', emoji: '🌍' },
-  { id: 'jeux_video', name: 'Jeux Vidéo', emoji: '🎮' },
-  { id: 'art', name: 'Art', emoji: '🎨' }
+  { id: 'mixed', name: 'Mélangé', emoji: '🎲', color: '#a855f7' },
+  { id: 'general', name: 'Culture G', emoji: '🎯', color: '#06b6d4' },
+  { id: 'anime', name: 'Anime', emoji: '🎌', color: '#ec4899' },
+  { id: 'histoire', name: 'Histoire', emoji: '📜', color: '#f59e0b' },
+  { id: 'sport', name: 'Sport', emoji: '⚽', color: '#10b981' },
+  { id: 'musique', name: 'Musique', emoji: '🎵', color: '#a855f7' },
+  { id: 'cinema', name: 'Cinéma', emoji: '🎬', color: '#f59e0b' },
+  { id: 'science', name: 'Science', emoji: '🔬', color: '#06b6d4' },
+  { id: 'geographie', name: 'Géographie', emoji: '🌍', color: '#10b981' },
+  { id: 'jeux_video', name: 'Jeux Vidéo', emoji: '🎮', color: '#ec4899' },
+  { id: 'art', name: 'Art', emoji: '🎨', color: '#f472b6' },
 ];
 
 interface QuizCategorySelectorProps {
@@ -31,7 +34,7 @@ interface QuizCategorySelectorProps {
 export const QuizCategorySelector = ({
   selectedCategory,
   onCategoryChange,
-  disabled
+  disabled,
 }: QuizCategorySelectorProps) => {
   const handleSelect = (catId: string) => {
     if (!disabled) {
@@ -41,63 +44,72 @@ export const QuizCategorySelector = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-center gap-2 text-sm font-bold uppercase tracking-widest text-foreground-muted">
-        <Sparkles className="h-4 w-4 text-accent" />
-        Catégorie
-        <Sparkles className="h-4 w-4 text-accent" />
-      </div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-        {CATEGORIES.map((cat, index) => {
-          const isSelected = selectedCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => handleSelect(cat.id)}
-              disabled={disabled}
-              className={cn(
-                "relative p-4 rounded-2xl border-2 transition-all duration-300 text-center group",
-                "hover:scale-105 active:scale-95 gpu-accelerated",
-                "animate-fadeIn",
-                isSelected
-                  ? "border-accent bg-accent/20 shadow-lg shadow-accent/30"
-                  : "border-border/50 glass-ultra hover:border-accent/50 hover:bg-accent/10",
-                disabled && "opacity-50 cursor-not-allowed hover:scale-100"
-              )}
-              style={{ animationDelay: `${index * 50}ms` }}
+    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+      {CATEGORIES.map((cat, index) => {
+        const isSelected = selectedCategory === cat.id;
+        return (
+          <motion.button
+            key={cat.id}
+            type="button"
+            onClick={() => handleSelect(cat.id)}
+            disabled={disabled}
+            initial={{ opacity: 0, scale: 0.85, rotate: -3 }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              rotate: index % 2 === 0 ? -1 : 1,
+            }}
+            transition={{ delay: index * 0.04 }}
+            whileHover={
+              !disabled ? { y: -3, scale: 1.06, rotate: 0 } : undefined
+            }
+            whileTap={!disabled ? { scale: 0.95 } : undefined}
+            className={cn(
+              'relative p-3 rounded-2xl flex flex-col items-center gap-1',
+              disabled && 'opacity-50 cursor-not-allowed',
+            )}
+            style={{
+              background: isSelected
+                ? `linear-gradient(180deg, ${cat.color}, ${cat.color}cc)`
+                : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+              border: '3px solid #0a0810',
+              boxShadow: isSelected
+                ? `0 4px 0 #0a0810, 0 0 12px ${cat.color}66`
+                : '0 4px 0 #0a0810',
+            }}
+          >
+            <span
+              className="text-3xl block"
+              style={{ filter: 'drop-shadow(1.5px 1.5px 0 rgba(0,0,0,0.4))' }}
             >
-              {/* Selected indicator */}
-              {isSelected && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-accent rounded-full flex items-center justify-center shadow-lg animate-zoomIn">
-                  <Check className="h-4 w-4 text-accent-foreground" />
-                </div>
-              )}
-              
-              {/* Emoji with glow */}
-              <div className="relative">
-                <span className={cn(
-                  "text-3xl block mb-2 transition-transform duration-300",
-                  isSelected && "scale-110",
-                  !disabled && "group-hover:scale-110"
-                )}>
-                  {cat.emoji}
-                </span>
-                {isSelected && (
-                  <div className="absolute inset-0 bg-accent/30 blur-xl rounded-full -z-10" />
-                )}
-              </div>
-              
-              {/* Name */}
-              <p className={cn(
-                "text-xs font-bold truncate transition-colors duration-300",
-                isSelected ? "text-accent" : "text-foreground-muted group-hover:text-foreground"
-              )}>
-                {cat.name}
-              </p>
-            </button>
-          );
-        })}
-      </div>
+              {cat.emoji}
+            </span>
+            <p
+              className="text-sm font-black truncate w-full text-center text-white leading-none"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                textShadow: GRAFFITI_TEXT_SHADOW_SM,
+              }}
+            >
+              {cat.name}
+            </p>
+            {isSelected && (
+              <motion.div
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 8 }}
+                className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(180deg, #fbbf24, #d97706)',
+                  border: '2.5px solid #0a0810',
+                  boxShadow: '0 3px 0 #0a0810',
+                }}
+              >
+                <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+              </motion.div>
+            )}
+          </motion.button>
+        );
+      })}
     </div>
   );
 };
