@@ -1,53 +1,74 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface InkSplashAnimationProps {
   onComplete: () => void;
 }
 
-type Phase = 'punch' | 'splat' | 'title' | 'pop' | 'done';
-
 /**
- * Cartoon Ink Intro V6 — graffiti style, ultra dynamique.
- * Total duration ~ 2.4 seconds.
+ * Cartoon Ink Intro V7 — buttery smooth, no layout-jumps.
  *
- * Phases:
- *   punch  (0.45s) — small zoom-in dot punches into view → SPLAT! sound
- *   splat  (0.55s) — big gradient ink blob explodes outward + 8 droplets
- *   title  (0.85s) — MIMIC MASTER drops letter by letter with bounce
- *   pop    (0.4s)  — sparkle burst all around
- *   done   (0.15s) — quick fade out
+ * Design principles for fluid animation:
+ *   1. All layers are absolute & full-screen — they never resize.
+ *   2. We animate ONLY `transform` + `opacity` (GPU-accelerated, no reflow).
+ *   3. Letters live in fixed-width slots → rotation never shifts neighbours.
+ *   4. Phases use a single source of truth (a numeric "stage") so layers
+ *      cross-fade with consistent timing instead of mounting/unmounting.
+ *   5. AudioContext is resumed inside the first user-gesture path.
+ *   6. `prefers-reduced-motion` shortens the animation to a quick fade.
+ *
+ * Total runtime: ~2.6 s.
+ *   stage 0: 0.00s — punch (small dot zoom-in)
+ *   stage 1: 0.45s — splat (big blob + droplets)
+ *   stage 2: 1.00s — title drop (letter by letter)
+ *   stage 3: 1.85s — sparkle pop
+ *   stage 4: 2.30s — fade out
+ *   end:     2.60s — onComplete()
  */
 export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
-  const [phase, setPhase] = useState<Phase>('punch');
+  const [stage, setStage] = useState(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const cancelledRef = useRef(false);
 
   const palette = useMemo(
     () => ({
-      primary: '#a855f7', // purple — main accent
-      secondary: '#fbbf24', // gold — sparkles
-      accent: '#06b6d4', // cyan
-      pop: '#ef4444', // red
+      primary: '#a855f7',
+      secondary: '#fbbf24',
+      accent: '#06b6d4',
+      pop: '#ef4444',
       pink: '#f472b6',
     }),
     [],
   );
 
   /* ============================================================
-     Audio engine — cartoon SFX (boings, splats, ding sparkles)
+     Detect prefers-reduced-motion to shorten the animation.
+  ============================================================ */
+  const reducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }, []);
+
+  /* ============================================================
+     Audio engine — cartoon SFX, all routed through a master gain.
   ============================================================ */
   const playSound = useCallback(
     (type: 'punch' | 'splat' | 'boing' | 'sparkle' | 'fanfare') => {
       const ctx = audioCtxRef.current;
       if (!ctx) return;
+      try {
+        // Resume if Chrome auto-paused the context
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      } catch {
+        /* noop */
+      }
       const now = ctx.currentTime;
       const out = ctx.createGain();
-      out.gain.value = 0.6;
+      out.gain.value = 0.55;
       out.connect(ctx.destination);
 
       switch (type) {
         case 'punch': {
-          // Quick wood-block thump
           const osc = ctx.createOscillator();
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(280, now);
@@ -62,7 +83,6 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
           break;
         }
         case 'splat': {
-          // Layered noise splash + tonal pop
           const bufSize = Math.floor(ctx.sampleRate * 0.4);
           const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
           const data = buf.getChannelData(0);
@@ -83,7 +103,6 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
           noise.start(now);
           noise.stop(now + 0.42);
 
-          // Tonal pop on top
           const osc = ctx.createOscillator();
           osc.type = 'sine';
           osc.frequency.setValueAtTime(800, now);
@@ -98,7 +117,6 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
           break;
         }
         case 'boing': {
-          // 3 stacked springy boings — 1 per letter wave
           [0, 0.12, 0.22].forEach((offset, i) => {
             const osc = ctx.createOscillator();
             osc.type = 'sine';
@@ -114,10 +132,7 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
             const g = ctx.createGain();
             g.gain.setValueAtTime(0, now + offset);
             g.gain.linearRampToValueAtTime(0.32 - i * 0.05, now + offset + 0.01);
-            g.gain.exponentialRampToValueAtTime(
-              0.001,
-              now + offset + 0.18,
-            );
+            g.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.18);
             osc.connect(g).connect(out);
             osc.start(now + offset);
             osc.stop(now + offset + 0.2);
@@ -125,7 +140,6 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
           break;
         }
         case 'sparkle': {
-          // Cartoon shimmer — 3-note up arpeggio
           [880, 1175, 1568].forEach((freq, i) => {
             const start = now + i * 0.06;
             const osc = ctx.createOscillator();
@@ -142,7 +156,6 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
           break;
         }
         case 'fanfare': {
-          // Big closing chord
           [523, 659, 784, 1046].forEach((freq) => {
             const osc = ctx.createOscillator();
             osc.type = 'triangle';
@@ -163,9 +176,11 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
   );
 
   /* ============================================================
-     Phase orchestration
+     Phase orchestration — single chain, no overlapping unmounts.
   ============================================================ */
   useEffect(() => {
+    cancelledRef.current = false;
+
     try {
       audioCtxRef.current = new (window.AudioContext ||
         (window as any).webkitAudioContext)();
@@ -173,93 +188,185 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
       console.warn('[InkIntro] AudioContext unavailable:', e);
     }
 
-    let cancelled = false;
-    const run = async () => {
-      // Phase 1 — punch
-      playSound('punch');
-      await wait(450);
-      if (cancelled) return;
+    if (reducedMotion) {
+      // Quick mode: 0.6s fade then done
+      setStage(2);
+      const timer = window.setTimeout(() => {
+        if (!cancelledRef.current) onComplete();
+      }, 600);
+      return () => {
+        cancelledRef.current = true;
+        window.clearTimeout(timer);
+      };
+    }
 
-      // Phase 2 — splat
-      setPhase('splat');
-      playSound('splat');
-      await wait(550);
-      if (cancelled) return;
-
-      // Phase 3 — title
-      setPhase('title');
-      playSound('boing');
-      await wait(850);
-      if (cancelled) return;
-
-      // Phase 4 — pop
-      setPhase('pop');
-      playSound('sparkle');
-      playSound('fanfare');
-      await wait(400);
-      if (cancelled) return;
-
-      // Phase 5 — done
-      setPhase('done');
-      await wait(150);
-      if (!cancelled) onComplete();
+    let s = 0;
+    const timeouts: number[] = [];
+    const queue = (delay: number, fn: () => void) => {
+      const id = window.setTimeout(() => {
+        if (!cancelledRef.current) fn();
+      }, delay);
+      timeouts.push(id);
     };
 
-    run();
+    // Stage 0 — punch (immediate)
+    playSound('punch');
+
+    // Stage 1 — splat
+    queue(450, () => {
+      s = 1;
+      setStage(1);
+      playSound('splat');
+    });
+
+    // Stage 2 — title drop
+    queue(1000, () => {
+      s = 2;
+      setStage(2);
+      playSound('boing');
+    });
+
+    // Stage 3 — sparkle pop
+    queue(1850, () => {
+      s = 3;
+      setStage(3);
+      playSound('sparkle');
+      playSound('fanfare');
+    });
+
+    // Stage 4 — fade
+    queue(2300, () => {
+      s = 4;
+      setStage(4);
+    });
+
+    // Done
+    queue(2600, () => {
+      onComplete();
+    });
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
+      timeouts.forEach((id) => window.clearTimeout(id));
       try {
         audioCtxRef.current?.close();
-      } catch { /* noop: audio ctx already closed */ }
+      } catch {
+        /* noop: audio ctx already closed */
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 8 droplets for the splash burst
+  /* ============================================================
+     Memoised data
+  ============================================================ */
   const droplets = useMemo(
-    () => [
-      { angle: 0, dist: 220, size: 38, color: palette.primary },
-      { angle: 45, dist: 200, size: 28, color: palette.secondary },
-      { angle: 90, dist: 240, size: 42, color: palette.accent },
-      { angle: 135, dist: 180, size: 24, color: palette.pink },
-      { angle: 180, dist: 230, size: 36, color: palette.primary },
-      { angle: 225, dist: 200, size: 30, color: palette.pop },
-      { angle: 270, dist: 210, size: 32, color: palette.secondary },
-      { angle: 315, dist: 195, size: 26, color: palette.accent },
-    ],
-    [palette],
-  );
-
-  // 16 sparkles around the title for the pop phase
-  const sparkles = useMemo(
     () =>
-      Array.from({ length: 16 }, (_, i) => {
-        const angle = (i / 16) * Math.PI * 2;
-        const dist = 280 + Math.random() * 80;
+      Array.from({ length: 8 }, (_, i) => {
+        const angle = (i / 8) * Math.PI * 2;
+        const distance = 200 + (i % 2) * 30;
         return {
-          x: Math.cos(angle) * dist,
-          y: Math.sin(angle) * dist,
-          size: 12 + Math.random() * 12,
-          delay: Math.random() * 0.15,
-          color: [palette.secondary, palette.pink, palette.accent, '#ffffff'][
-            i % 4
-          ],
+          x: Math.cos(angle) * distance,
+          y: Math.sin(angle) * distance,
+          size: i % 2 === 0 ? 36 : 26,
+          color: [
+            palette.primary,
+            palette.secondary,
+            palette.accent,
+            palette.pink,
+            palette.primary,
+            palette.pop,
+            palette.secondary,
+            palette.accent,
+          ][i],
+          delay: 0.05 + i * 0.025,
         };
       }),
     [palette],
   );
 
+  const sparkles = useMemo(
+    () =>
+      Array.from({ length: 16 }, (_, i) => {
+        const angle = (i / 16) * Math.PI * 2 + Math.random() * 0.2;
+        const distance = 280 + Math.random() * 80;
+        return {
+          x: Math.cos(angle) * distance,
+          y: Math.sin(angle) * distance,
+          size: 14 + Math.floor(Math.random() * 10),
+          delay: Math.random() * 0.15,
+          color: [palette.secondary, palette.pink, palette.accent, '#ffffff'][i % 4],
+        };
+      }),
+    [palette],
+  );
+
+  const TITLE_TOP = 'MIMIC';
+  const TITLE_BOTTOM = 'MASTER';
+
+  /* Letter slot — fixed width per letter so rotations never shift neighbours */
+  const LetterSlot = ({
+    char,
+    color,
+    delay,
+    fromY,
+    rotateActive,
+  }: {
+    char: string;
+    color: string;
+    delay: number;
+    fromY: number;
+    rotateActive: number;
+  }) => (
+    <span
+      className="relative inline-block"
+      style={{
+        width: '0.7em',
+        textAlign: 'center',
+        // Reserve a stable line-box; rotation happens inside.
+      }}
+    >
+      <motion.span
+        className="inline-block"
+        initial={{ y: fromY, scale: 0.5, rotate: 0, opacity: 0 }}
+        animate={
+          stage >= 2
+            ? { y: 0, scale: 1, rotate: rotateActive, opacity: 1 }
+            : { y: fromY, scale: 0.5, rotate: 0, opacity: 0 }
+        }
+        transition={{
+          duration: 0.55,
+          delay,
+          type: 'spring',
+          stiffness: 220,
+          damping: 12,
+        }}
+        style={{
+          fontFamily: "'Caveat', cursive",
+          color,
+          textShadow: `5px 5px 0 #0a0810, -3px -3px 0 #0a0810, 3px -3px 0 #0a0810, -3px 3px 0 #0a0810, 3px 3px 0 #0a0810, 0 0 30px ${color}aa`,
+          willChange: 'transform, opacity',
+          transformOrigin: 'center center',
+        }}
+      >
+        {char}
+      </motion.span>
+    </span>
+  );
+
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden select-none"
+      className="fixed inset-0 z-[9999] overflow-hidden select-none"
       style={{
         background:
           'linear-gradient(135deg, #1a0d2e 0%, #0a0510 50%, #160a26 100%)',
       }}
     >
-      {/* Doodle pattern background */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.06]">
+      {/* Doodle pattern background — non-animated */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{ opacity: 0.06 }}
+      >
         <defs>
           <pattern
             id="splash-doodle"
@@ -281,282 +388,293 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
         <rect width="100%" height="100%" fill="url(#splash-doodle)" />
       </svg>
 
-      {/* Ambient halo */}
+      {/* Ambient halo — opacity-only animation, no reflow */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         animate={{
           opacity:
-            phase === 'punch'
-              ? 0.15
-              : phase === 'splat'
+            stage === 0
+              ? 0.18
+              : stage === 1
                 ? 0.55
-                : phase === 'title'
-                  ? 0.4
-                  : phase === 'pop'
+                : stage === 2
+                  ? 0.45
+                  : stage === 3
                     ? 0.6
                     : 0,
         }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
         style={{
           background: `radial-gradient(ellipse at center, ${palette.primary}66 0%, transparent 60%)`,
           filter: 'blur(40px)',
+          willChange: 'opacity',
         }}
       />
 
       {/* Vignette */}
-      <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/70 pointer-events-none" />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.7) 100%)',
+        }}
+      />
 
-      {/* ============== PHASE 1 — PUNCH (small dot zooms in) ============== */}
-      <AnimatePresence>
-        {phase === 'punch' && (
-          <motion.div
-            key="punch-dot"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 1.2, 0.9], opacity: [0, 1, 1] }}
-            exit={{ scale: 1.5, opacity: 0 }}
-            transition={{
-              duration: 0.45,
-              times: [0, 0.7, 1],
-              ease: [0.34, 1.56, 0.64, 1],
-            }}
-            className="relative w-20 h-20 rounded-full"
-            style={{
-              background: `linear-gradient(135deg, ${palette.primary}, ${palette.pop})`,
-              border: '5px solid #0a0810',
-              boxShadow: `0 6px 0 #0a0810, 0 0 40px ${palette.primary}cc`,
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {/* Center stage — all layers stacked, animations cross-fade */}
+      <div
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        style={{ perspective: '1000px' }}
+      >
+        {/* ==== LAYER 1: PUNCH DOT ==== */}
+        <motion.div
+          className="absolute"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={
+            stage === 0
+              ? { scale: [0, 1.2, 0.9], opacity: 1 }
+              : { scale: 1.5, opacity: 0 }
+          }
+          transition={{
+            duration: 0.45,
+            ease: [0.34, 1.56, 0.64, 1],
+            times: stage === 0 ? [0, 0.7, 1] : undefined,
+          }}
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            background: `linear-gradient(135deg, ${palette.primary}, ${palette.pop})`,
+            border: '5px solid #0a0810',
+            boxShadow: `0 6px 0 #0a0810, 0 0 40px ${palette.primary}cc`,
+            willChange: 'transform, opacity',
+          }}
+        />
 
-      {/* ============== PHASE 2 — SPLAT (gradient blob + droplets) ============== */}
-      <AnimatePresence>
-        {phase === 'splat' && (
+        {/* ==== LAYER 2: SPLAT BLOB + DROPLETS ==== */}
+        <motion.div
+          className="absolute"
+          initial={{ scale: 0, opacity: 0, rotate: -45 }}
+          animate={
+            stage === 1
+              ? { scale: [0, 1.4, 1.2], opacity: 1, rotate: [0, 25, 30] }
+              : stage > 1
+                ? { scale: 1.2, opacity: 0, rotate: 30 }
+                : { scale: 0, opacity: 0, rotate: -45 }
+          }
+          transition={{
+            duration: 0.55,
+            ease: [0.34, 1.56, 0.64, 1],
+            times: stage === 1 ? [0, 0.45, 1] : undefined,
+          }}
+          style={{
+            width: 640,
+            maxWidth: '80vw',
+            height: 640,
+            maxHeight: '80vh',
+            willChange: 'transform, opacity',
+            transformOrigin: 'center center',
+          }}
+        >
+          <svg viewBox="0 0 800 800" className="w-full h-full block">
+            <path
+              d="M400,80 Q480,40 560,120 Q680,80 720,200 Q800,280 700,360 Q780,440 660,520 Q720,640 560,640 Q480,720 400,680 Q320,720 240,640 Q80,640 140,520 Q20,440 100,360 Q0,280 80,200 Q120,80 240,120 Q320,40 400,80 Z"
+              fill={palette.primary}
+              stroke="#0a0810"
+              strokeWidth="14"
+              strokeLinejoin="round"
+            />
+            <circle
+              cx="400"
+              cy="400"
+              r="160"
+              fill={palette.secondary}
+              stroke="#0a0810"
+              strokeWidth="10"
+            />
+          </svg>
+        </motion.div>
+
+        {/* ==== LAYER 2b: DROPLETS (separated so they keep their own transforms) ==== */}
+        {droplets.map((d, i) => (
           <motion.div
-            key="splat-blob"
-            className="relative"
-            initial={{ scale: 0, rotate: -45 }}
-            animate={{ scale: [0, 1.6, 1.3], rotate: [0, 25, 30] }}
-            exit={{ scale: 1.8, opacity: 0, rotate: 60 }}
+            key={`droplet-${i}`}
+            className="absolute rounded-full"
+            initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
+            animate={
+              stage === 1
+                ? { x: d.x, y: d.y, scale: [0, 1.3, 1], opacity: 1 }
+                : stage > 1
+                  ? { x: d.x, y: d.y, scale: 0, opacity: 0 }
+                  : { x: 0, y: 0, scale: 0, opacity: 0 }
+            }
             transition={{
               duration: 0.55,
-              times: [0, 0.45, 1],
+              delay: stage === 1 ? d.delay : 0,
               ease: [0.34, 1.56, 0.64, 1],
+              times: stage === 1 ? [0, 0.7, 1] : undefined,
+            }}
+            style={{
+              width: d.size,
+              height: d.size,
+              background: d.color,
+              border: '4px solid #0a0810',
+              willChange: 'transform, opacity',
+            }}
+          />
+        ))}
+
+        {/* ==== LAYER 3: TITLE BLOCK ==== */}
+        <motion.div
+          className="absolute flex flex-col items-center"
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: stage >= 2 && stage < 4 ? 1 : 0,
+          }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          style={{ willChange: 'opacity' }}
+        >
+          {/* Sub-label badge */}
+          <motion.div
+            initial={{ y: -10, scale: 0.5, rotate: -8, opacity: 0 }}
+            animate={
+              stage >= 2
+                ? { y: 0, scale: 1, rotate: -2, opacity: 1 }
+                : { y: -10, scale: 0.5, rotate: -8, opacity: 0 }
+            }
+            transition={{
+              duration: 0.4,
+              delay: 0.05,
+              type: 'spring',
+              stiffness: 280,
+              damping: 16,
+            }}
+            className="mb-3 px-4 py-1.5 rounded-2xl"
+            style={{
+              background: `linear-gradient(180deg, ${palette.secondary}, #d97706)`,
+              border: '3px solid #0a0810',
+              boxShadow: '0 4px 0 #0a0810',
+              willChange: 'transform, opacity',
+              transformOrigin: 'center center',
             }}
           >
-            {/* Big graffiti splash */}
-            <svg
-              viewBox="0 0 800 800"
-              className="w-[640px] h-[640px] max-w-[80vw] max-h-[80vh]"
-            >
-              <path
-                d="M400,80 Q480,40 560,120 Q680,80 720,200 Q800,280 700,360 Q780,440 660,520 Q720,640 560,640 Q480,720 400,680 Q320,720 240,640 Q80,640 140,520 Q20,440 100,360 Q0,280 80,200 Q120,80 240,120 Q320,40 400,80 Z"
-                fill={palette.primary}
-                stroke="#0a0810"
-                strokeWidth="14"
-                strokeLinejoin="round"
-              />
-              <circle cx="400" cy="400" r="160" fill={palette.secondary} stroke="#0a0810" strokeWidth="10" />
-            </svg>
-
-            {/* Droplets */}
-            {droplets.map((d, i) => {
-              const rad = (d.angle * Math.PI) / 180;
-              const x = Math.cos(rad) * d.dist;
-              const y = Math.sin(rad) * d.dist;
-              return (
-                <motion.div
-                  key={i}
-                  className="absolute rounded-full"
-                  style={{
-                    width: d.size,
-                    height: d.size,
-                    background: d.color,
-                    border: '4px solid #0a0810',
-                    left: '50%',
-                    top: '50%',
-                  }}
-                  initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
-                  animate={{
-                    x: x - d.size / 2,
-                    y: y - d.size / 2,
-                    scale: [0, 1.3, 1],
-                    opacity: [0, 1, 1],
-                  }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{
-                    duration: 0.55,
-                    delay: 0.05 + i * 0.025,
-                    ease: [0.34, 1.56, 0.64, 1],
-                  }}
-                />
-              );
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ============== PHASE 3 & 4 — TITLE + SPARKLES ============== */}
-      <AnimatePresence>
-        {(phase === 'title' || phase === 'pop') && (
-          <motion.div
-            key="title-block"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.3 }}
-            className="relative flex flex-col items-center"
-          >
-            {/* Sub-label */}
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.5, rotate: -8 }}
-              animate={{ opacity: 1, y: 0, scale: 1, rotate: -2 }}
-              transition={{
-                duration: 0.4,
-                delay: 0.15,
-                type: 'spring',
-                stiffness: 280,
-                damping: 16,
-              }}
-              className="mb-3 px-4 py-1.5 rounded-2xl"
+            <span
+              className="text-base md:text-lg font-black uppercase tracking-[0.3em] text-white leading-none"
               style={{
-                background: `linear-gradient(180deg, ${palette.secondary}, #d97706)`,
-                border: '3px solid #0a0810',
-                boxShadow: '0 4px 0 #0a0810',
+                fontFamily: "'Caveat', cursive",
+                textShadow:
+                  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
               }}
             >
-              <span
-                className="text-base md:text-lg font-black uppercase tracking-[0.3em] text-white leading-none"
-                style={{
-                  fontFamily: "'Caveat', cursive",
-                  textShadow:
-                    '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-                }}
-              >
-                Ink Mode
-              </span>
-            </motion.div>
+              Ink Mode
+            </span>
+          </motion.div>
 
-            {/* MIMIC */}
-            <div className="flex items-baseline gap-2 md:gap-3">
-              {'MIMIC'.split('').map((char, i) => (
-                <motion.span
-                  key={`m-${i}`}
-                  initial={{ y: -150, opacity: 0, rotate: -45, scale: 0.5 }}
-                  animate={{
-                    y: 0,
-                    opacity: 1,
-                    rotate: i % 2 === 0 ? -3 : 3,
-                    scale: 1,
-                  }}
-                  transition={{
-                    duration: 0.55,
-                    delay: 0.2 + i * 0.06,
-                    type: 'spring',
-                    stiffness: 220,
-                    damping: 12,
-                  }}
-                  className="text-7xl md:text-9xl font-black leading-none"
-                  style={{
-                    fontFamily: "'Caveat', cursive",
-                    color: palette.primary,
-                    textShadow: `5px 5px 0 #0a0810, -3px -3px 0 #0a0810, 3px -3px 0 #0a0810, -3px 3px 0 #0a0810, 3px 3px 0 #0a0810, 0 0 30px ${palette.primary}aa`,
-                  }}
-                >
-                  {char}
-                </motion.span>
-              ))}
-            </div>
+          {/* MIMIC */}
+          <div
+            className="flex items-baseline justify-center"
+            style={{
+              fontSize: 'clamp(72px, 14vw, 144px)',
+              lineHeight: 1,
+              fontWeight: 900,
+            }}
+          >
+            {TITLE_TOP.split('').map((char, i) => (
+              <LetterSlot
+                key={`top-${i}`}
+                char={char}
+                color={palette.primary}
+                delay={0.15 + i * 0.06}
+                fromY={-150}
+                rotateActive={i % 2 === 0 ? -3 : 3}
+              />
+            ))}
+          </div>
 
-            {/* MASTER */}
-            <div className="flex items-baseline gap-2 md:gap-3 -mt-3 md:-mt-4">
-              {'MASTER'.split('').map((char, i) => (
-                <motion.span
-                  key={`mr-${i}`}
-                  initial={{ y: 150, opacity: 0, rotate: 45, scale: 0.5 }}
-                  animate={{
-                    y: 0,
-                    opacity: 1,
-                    rotate: i % 2 === 0 ? 3 : -3,
-                    scale: 1,
-                  }}
-                  transition={{
-                    duration: 0.55,
-                    delay: 0.45 + i * 0.06,
-                    type: 'spring',
-                    stiffness: 220,
-                    damping: 12,
-                  }}
-                  className="text-7xl md:text-9xl font-black leading-none"
-                  style={{
-                    fontFamily: "'Caveat', cursive",
-                    color: palette.secondary,
-                    textShadow: `5px 5px 0 #0a0810, -3px -3px 0 #0a0810, 3px -3px 0 #0a0810, -3px 3px 0 #0a0810, 3px 3px 0 #0a0810, 0 0 30px ${palette.secondary}aa`,
-                  }}
-                >
-                  {char}
-                </motion.span>
-              ))}
-            </div>
+          {/* MASTER (slight overlap with stable margin) */}
+          <div
+            className="flex items-baseline justify-center"
+            style={{
+              fontSize: 'clamp(72px, 14vw, 144px)',
+              lineHeight: 1,
+              fontWeight: 900,
+              marginTop: '-0.25em',
+            }}
+          >
+            {TITLE_BOTTOM.split('').map((char, i) => (
+              <LetterSlot
+                key={`bot-${i}`}
+                char={char}
+                color={palette.secondary}
+                delay={0.4 + i * 0.06}
+                fromY={150}
+                rotateActive={i % 2 === 0 ? 3 : -3}
+              />
+            ))}
+          </div>
+        </motion.div>
 
-            {/* Sparkles burst on phase 'pop' */}
-            {phase === 'pop' &&
-              sparkles.map((s, i) => (
-                <motion.div
-                  key={`sp-${i}`}
-                  className="absolute"
-                  initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
-                  animate={{
+        {/* ==== LAYER 4: SPARKLES ==== */}
+        {sparkles.map((s, i) => (
+          <motion.div
+            key={`sparkle-${i}`}
+            className="absolute"
+            initial={{ x: 0, y: 0, scale: 0, opacity: 0, rotate: 0 }}
+            animate={
+              stage === 3
+                ? {
                     x: s.x,
                     y: s.y,
                     scale: [0, 1.4, 1, 0],
                     opacity: [0, 1, 1, 0],
                     rotate: 180,
-                  }}
-                  transition={{
-                    duration: 0.6,
-                    delay: s.delay,
-                    ease: [0.34, 1.56, 0.64, 1],
-                  }}
-                  style={{
-                    width: s.size,
-                    height: s.size,
-                    left: '50%',
-                    top: '50%',
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" className="w-full h-full">
-                    <path
-                      d="M12,1 L14,9 L22,11 L14,13 L12,21 L10,13 L2,11 L10,9 Z"
-                      fill={s.color}
-                      stroke="#0a0810"
-                      strokeWidth="1.5"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </motion.div>
-              ))}
+                  }
+                : { x: 0, y: 0, scale: 0, opacity: 0, rotate: 0 }
+            }
+            transition={{
+              duration: 0.6,
+              delay: stage === 3 ? s.delay : 0,
+              ease: [0.34, 1.56, 0.64, 1],
+              times: stage === 3 ? [0, 0.3, 0.65, 1] : undefined,
+            }}
+            style={{
+              width: s.size,
+              height: s.size,
+              willChange: 'transform, opacity',
+              transformOrigin: 'center center',
+            }}
+          >
+            <svg viewBox="0 0 24 24" className="w-full h-full block">
+              <path
+                d="M12,1 L14,9 L22,11 L14,13 L12,21 L10,13 L2,11 L10,9 Z"
+                fill={s.color}
+                stroke="#0a0810"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+            </svg>
           </motion.div>
-        )}
-      </AnimatePresence>
+        ))}
+      </div>
 
-      {/* ============== PHASE 5 — FADE OUT ============== */}
-      <AnimatePresence>
-        {phase === 'done' && (
-          <motion.div
-            key="fadeout"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-[#0a0510]"
-          />
-        )}
-      </AnimatePresence>
+      {/* ==== LAYER 5: FADE OUT OVERLAY ==== */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: stage >= 4 ? 1 : 0 }}
+        transition={{ duration: 0.3, ease: 'easeIn' }}
+        style={{
+          background: '#0a0510',
+          willChange: 'opacity',
+        }}
+      />
 
       {/* Skip button */}
       <motion.button
         type="button"
-        onClick={onComplete}
+        onClick={() => {
+          cancelledRef.current = true;
+          onComplete();
+        }}
         whileHover={{ scale: 1.05, rotate: -2 }}
         whileTap={{ scale: 0.95 }}
         className="absolute bottom-6 right-6 px-3 py-2 rounded-2xl"
@@ -566,6 +684,7 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
           border: '2.5px solid #0a0810',
           boxShadow: '0 3px 0 #0a0810',
           color: 'white',
+          willChange: 'transform',
         }}
       >
         <span
@@ -579,13 +698,6 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
           Passer →
         </span>
       </motion.button>
-
-      <style>{`
-        .bg-gradient-radial { background: radial-gradient(circle at center, var(--tw-gradient-stops)); }
-      `}</style>
     </div>
   );
 };
-
-const wait = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
