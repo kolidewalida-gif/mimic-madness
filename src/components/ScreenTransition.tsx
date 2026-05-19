@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useInkMode } from '@/hooks/useInkMode';
+import { InkCartoonTransition } from '@/components/InkCartoonTransition';
 
 interface ScreenTransitionProps {
   children: ReactNode;
@@ -29,6 +30,21 @@ const INK_TRANSITIONS: InkTransitionStyle[] = [
 ];
 
 const ScreenTransitionComponent = ({ children, screenKey, className }: ScreenTransitionProps) => {
+  const { isInkMode } = useInkMode();
+
+  // In ink mode, delegate to the new cartoon transition (punchy + SFX layered)
+  if (isInkMode) {
+    return (
+      <InkCartoonTransition screenKey={screenKey} className={className}>
+        {children}
+      </InkCartoonTransition>
+    );
+  }
+
+  return <LegacyScreenTransition screenKey={screenKey} className={className}>{children}</LegacyScreenTransition>;
+};
+
+const LegacyScreenTransitionComponent = ({ children, screenKey, className }: ScreenTransitionProps) => {
   const { isInkMode } = useInkMode();
   const [displayedKey, setDisplayedKey] = useState(screenKey);
   const [displayedChildren, setDisplayedChildren] = useState(children);
@@ -325,3 +341,4 @@ const ScreenTransitionComponent = ({ children, screenKey, className }: ScreenTra
 };
 
 export const ScreenTransition = memo(ScreenTransitionComponent);
+const LegacyScreenTransition = memo(LegacyScreenTransitionComponent);

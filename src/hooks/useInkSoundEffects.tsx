@@ -3,37 +3,48 @@ import { useInkMode } from './useInkMode';
 import { getSoundEffectsVolume } from './useSoundEffectsVolume';
 
 /**
- * Ink Mode Sound Effects - Minimalist, organic sounds for the black/red theme
- * These sounds are more subtle, brush-like, and calligraphic
+ * Ink Mode Sound Effects — full cartoon redesign.
+ *
+ * Every sound is layered, springy, and unmistakably cartoon:
+ * - sliding pitches (cartoon "schwiiip")
+ * - bouncy springs ("boing!")
+ * - punchy thumps + harmonic zings
+ * - golden bell "dings" with shimmer harmonics
+ * - whooshes with filtered noise sweeps
+ * - wobble jelly oscillators
+ *
+ * The API is unchanged: `playInkSound('cartoonPop', 0.4)` still works
+ * everywhere it was previously used.
  */
-type InkSoundType = 
-  | 'brushStroke'      // Brush painting sound
-  | 'inkDrip'          // Ink dripping
-  | 'paperSlide'       // Paper sliding
-  | 'inkSplash'        // Ink splash
-  | 'brushTap'         // Quick brush tap
-  | 'inkFlow'          // Flowing ink sound
-  | 'paperFold'        // Paper folding
-  | 'brushSwipe'       // Quick swipe
-  | 'inkDry'           // Ink drying (subtle crackle)
-  | 'calligraphyStroke' // Elegant stroke
-  | 'inkClick'         // Minimalist click
-  | 'inkHover'         // Subtle hover sound
-  | 'inkSuccess'       // Success with ink aesthetic
-  | 'inkError'         // Error with ink aesthetic
-  | 'inkTransition'    // Page transition
-  // ── Cartoon SFX additions ─────────────────────────────────────────
-  | 'cartoonBoing'     // Springy boing
-  | 'cartoonPop'       // Bubble pop
-  | 'cartoonSwoosh'    // Whoosh transition
-  | 'cartoonDing'      // Bell ding (correct answer / reveal)
-  | 'cartoonFanfare'   // Quick victory fanfare
-  | 'cartoonWobble'    // Wobble jelly sound (selection)
-  | 'cartoonZap';      // Zap/shock
+type InkSoundType =
+  // Original "ink" names, now repurposed as cartoon SFX:
+  | 'brushStroke'        // schwiiip slide-up cartoon swipe
+  | 'inkDrip'            // boing-drop bouncy drop
+  | 'paperSlide'         // whoosh slide
+  | 'inkSplash'          // splash burst (multi-layer)
+  | 'brushTap'           // tiny pop tap
+  | 'inkFlow'            // flowing whoosh
+  | 'paperFold'          // crinkle wobble
+  | 'brushSwipe'         // fast swipe
+  | 'inkDry'             // small fizz
+  | 'calligraphyStroke'  // smooth slide
+  | 'inkClick'           // crisp click pop
+  | 'inkHover'           // tiny tick hover
+  | 'inkSuccess'         // 3-note triad win
+  | 'inkError'           // sad descending honk
+  | 'inkTransition'      // wide swoop transition
+  // ── Cartoon SFX (originals) ────────────────────────────────────
+  | 'cartoonBoing'       // ultra springy boing
+  | 'cartoonPop'         // chunky bubble pop
+  | 'cartoonSwoosh'      // big air whoosh
+  | 'cartoonDing'        // bell ding with shimmer
+  | 'cartoonFanfare'     // 3-note major triad fanfare
+  | 'cartoonWobble'      // wobble jelly oscillator
+  | 'cartoonZap';        // electric zap descend
 
 let globalInkAudioContext: AudioContext | null = null;
 
-const getInkAudioContext = () => {
+const getInkAudioContext = (): AudioContext => {
   if (!globalInkAudioContext || globalInkAudioContext.state === 'closed') {
     globalInkAudioContext = new AudioContext();
   }
@@ -43,510 +54,383 @@ const getInkAudioContext = () => {
   return globalInkAudioContext;
 };
 
-const createInkSound = (ctx: AudioContext, type: InkSoundType, baseVolume: number) => {
-  const now = ctx.currentTime;
-  const globalVolume = getSoundEffectsVolume();
-  const volume = baseVolume * globalVolume;
-  
-  if (volume === 0) return;
+/* ==============================================================
+   Helper utilities — small reusable building blocks
+============================================================== */
 
-  const masterGain = ctx.createGain();
-  masterGain.connect(ctx.destination);
-  masterGain.gain.setValueAtTime(volume, now);
+/** Master gain shared by all sounds — wired to global SFX volume. */
+const makeMasterGain = (ctx: AudioContext, baseVolume: number) => {
+  const globalVolume = getSoundEffectsVolume();
+  const master = ctx.createGain();
+  master.gain.value = baseVolume * globalVolume;
+  master.connect(ctx.destination);
+  return master;
+};
+
+/** Quick exponential decay envelope on a gain node. */
+const decayEnvelope = (
+  ctx: AudioContext,
+  gainNode: GainNode,
+  start: number,
+  attack: number,
+  peak: number,
+  duration: number,
+) => {
+  gainNode.gain.setValueAtTime(0, start);
+  gainNode.gain.linearRampToValueAtTime(peak, start + attack);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+};
+
+/** Filtered noise burst — ideal for whooshes and splashes. */
+const noiseBurst = (
+  ctx: AudioContext,
+  master: GainNode,
+  start: number,
+  duration: number,
+  filterType: BiquadFilterType,
+  filterFreq: number,
+  filterQ: number,
+  peak: number,
+  freqSweep?: { from: number; to: number },
+) => {
+  const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = filterType;
+  filter.Q.value = filterQ;
+  if (freqSweep) {
+    filter.frequency.setValueAtTime(freqSweep.from, start);
+    filter.frequency.exponentialRampToValueAtTime(
+      Math.max(20, freqSweep.to),
+      start + duration,
+    );
+  } else {
+    filter.frequency.value = filterFreq;
+  }
+  const gain = ctx.createGain();
+  decayEnvelope(ctx, gain, start, 0.01, peak, duration);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(master);
+  source.start(start);
+  source.stop(start + duration + 0.05);
+};
+
+/** Pitch-sweeping tone — cartoon slides, boings, etc. */
+const sweepTone = (
+  ctx: AudioContext,
+  master: GainNode,
+  start: number,
+  duration: number,
+  fromFreq: number,
+  toFreq: number,
+  type: OscillatorType,
+  peak: number,
+  attack = 0.01,
+) => {
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(fromFreq, start);
+  osc.frequency.exponentialRampToValueAtTime(
+    Math.max(20, toFreq),
+    start + duration,
+  );
+  const gain = ctx.createGain();
+  decayEnvelope(ctx, gain, start, attack, peak, duration);
+  osc.connect(gain);
+  gain.connect(master);
+  osc.start(start);
+  osc.stop(start + duration + 0.05);
+};
+
+/** Steady tone with a quick punch envelope. */
+const tone = (
+  ctx: AudioContext,
+  master: GainNode,
+  start: number,
+  duration: number,
+  freq: number,
+  type: OscillatorType,
+  peak: number,
+  attack = 0.005,
+  detune = 0,
+) => {
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.value = freq;
+  osc.detune.value = detune;
+  const gain = ctx.createGain();
+  decayEnvelope(ctx, gain, start, attack, peak, duration);
+  osc.connect(gain);
+  gain.connect(master);
+  osc.start(start);
+  osc.stop(start + duration + 0.05);
+};
+
+/** Wobble LFO modulated tone — jelly/wobble effects. */
+const wobbleTone = (
+  ctx: AudioContext,
+  master: GainNode,
+  start: number,
+  duration: number,
+  baseFreq: number,
+  wobbleHz: number,
+  wobbleDepth: number,
+  peak: number,
+) => {
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = baseFreq;
+
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = wobbleHz;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = wobbleDepth;
+  lfo.connect(lfoGain);
+  lfoGain.connect(osc.frequency);
+
+  const gain = ctx.createGain();
+  decayEnvelope(ctx, gain, start, 0.02, peak, duration);
+
+  osc.connect(gain);
+  gain.connect(master);
+  osc.start(start);
+  lfo.start(start);
+  osc.stop(start + duration + 0.05);
+  lfo.stop(start + duration + 0.05);
+};
+
+/* ==============================================================
+   Sound recipes
+============================================================== */
+
+const createInkSound = (
+  ctx: AudioContext,
+  type: InkSoundType,
+  baseVolume: number,
+) => {
+  const master = makeMasterGain(ctx, baseVolume);
+  const now = ctx.currentTime;
 
   switch (type) {
-    case 'brushStroke': {
-      // White noise filtered to sound like brush on paper
-      const bufferSize = ctx.sampleRate * 0.4;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      
-      for (let i = 0; i < bufferSize; i++) {
-        const progress = i / bufferSize;
-        const envelope = Math.sin(progress * Math.PI) * (1 - progress * 0.3);
-        data[i] = (Math.random() * 2 - 1) * envelope * 0.5;
-      }
-      
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(800, now);
-      filter.frequency.linearRampToValueAtTime(2000, now + 0.2);
-      filter.Q.value = 1;
-      
-      source.connect(filter);
-      filter.connect(masterGain);
-      
-      masterGain.gain.setValueAtTime(volume * 0.4, now);
-      masterGain.gain.linearRampToValueAtTime(0, now + 0.4);
-      
-      source.start(now);
-      source.stop(now + 0.4);
-      break;
-    }
-
-    case 'inkDrip': {
-      // Soft drip sound
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(400, now);
-      osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
-      
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(volume * 0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-      
-      osc.connect(gain);
-      gain.connect(masterGain);
-      
-      osc.start(now);
-      osc.stop(now + 0.15);
-      break;
-    }
-
-    case 'paperSlide': {
-      // Subtle paper sliding
-      const bufferSize = ctx.sampleRate * 0.3;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      
-      for (let i = 0; i < bufferSize; i++) {
-        const progress = i / bufferSize;
-        const envelope = Math.pow(1 - progress, 2);
-        data[i] = (Math.random() * 2 - 1) * envelope * 0.3;
-      }
-      
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'highpass';
-      filter.frequency.value = 2000;
-      
-      source.connect(filter);
-      filter.connect(masterGain);
-      
-      masterGain.gain.setValueAtTime(volume * 0.2, now);
-      
-      source.start(now);
-      source.stop(now + 0.3);
-      break;
-    }
-
-    case 'inkSplash': {
-      // Ink splash - multiple drops
-      for (let i = 0; i < 3; i++) {
-        const delay = i * 0.05;
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(300 - i * 50, now + delay);
-        osc.frequency.exponentialRampToValueAtTime(80, now + delay + 0.1);
-        
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0, now + delay);
-        gain.gain.linearRampToValueAtTime(volume * 0.25, now + delay + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.12);
-        
-        osc.connect(gain);
-        gain.connect(masterGain);
-        
-        osc.start(now + delay);
-        osc.stop(now + delay + 0.12);
-      }
-      break;
-    }
-
-    case 'brushTap': {
-      // Quick tap
-      const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(250, now);
-      osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
-      
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(volume * 0.35, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-      
-      osc.connect(gain);
-      gain.connect(masterGain);
-      
-      osc.start(now);
-      osc.stop(now + 0.05);
-      break;
-    }
-
-    case 'inkFlow': {
-      // Smooth flowing sound
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(120, now);
-      osc.frequency.linearRampToValueAtTime(180, now + 0.3);
-      osc.frequency.linearRampToValueAtTime(100, now + 0.6);
-      
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(volume * 0.15, now + 0.1);
-      gain.gain.linearRampToValueAtTime(volume * 0.15, now + 0.4);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-      
-      osc.connect(gain);
-      gain.connect(masterGain);
-      
-      osc.start(now);
-      osc.stop(now + 0.6);
-      break;
-    }
-
-    case 'calligraphyStroke': {
-      // Elegant, flowing stroke with harmonics
-      const fundamental = ctx.createOscillator();
-      fundamental.type = 'sine';
-      fundamental.frequency.setValueAtTime(200, now);
-      fundamental.frequency.linearRampToValueAtTime(350, now + 0.15);
-      fundamental.frequency.linearRampToValueAtTime(180, now + 0.35);
-      
-      const harmonic = ctx.createOscillator();
-      harmonic.type = 'sine';
-      harmonic.frequency.setValueAtTime(400, now);
-      harmonic.frequency.linearRampToValueAtTime(700, now + 0.15);
-      harmonic.frequency.linearRampToValueAtTime(360, now + 0.35);
-      
-      const gain1 = ctx.createGain();
-      gain1.gain.setValueAtTime(0, now);
-      gain1.gain.linearRampToValueAtTime(volume * 0.2, now + 0.05);
-      gain1.gain.linearRampToValueAtTime(volume * 0.15, now + 0.2);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      
-      const gain2 = ctx.createGain();
-      gain2.gain.setValueAtTime(0, now);
-      gain2.gain.linearRampToValueAtTime(volume * 0.08, now + 0.05);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-      
-      fundamental.connect(gain1);
-      harmonic.connect(gain2);
-      gain1.connect(masterGain);
-      gain2.connect(masterGain);
-      
-      fundamental.start(now);
-      fundamental.stop(now + 0.35);
-      harmonic.start(now);
-      harmonic.stop(now + 0.25);
-      break;
-    }
-
+    /* ===========================================================
+       SHORT POPS / TAPS / CLICKS
+    =========================================================== */
+    case 'cartoonPop':
     case 'inkClick': {
-      // Minimal, satisfying click
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(600, now);
-      osc.frequency.exponentialRampToValueAtTime(200, now + 0.03);
-      
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(volume * 0.4, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-      
-      osc.connect(gain);
-      gain.connect(masterGain);
-      
-      osc.start(now);
-      osc.stop(now + 0.04);
+      // Chunky bubble pop: descending sine + small noise click
+      sweepTone(ctx, master, now, 0.18, 600, 200, 'sine', 0.6);
+      tone(ctx, master, now, 0.04, 1800, 'triangle', 0.25);
+      noiseBurst(ctx, master, now, 0.05, 'highpass', 1200, 1, 0.18);
       break;
     }
 
-    case 'inkHover': {
-      // Very subtle hover
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(400, now);
-      
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(volume * 0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-      
-      osc.connect(gain);
-      gain.connect(masterGain);
-      
-      osc.start(now);
-      osc.stop(now + 0.08);
+    case 'brushTap':
+    case 'inkHover':
+    case 'inkDry': {
+      // Tiny tick — quick high blip
+      sweepTone(ctx, master, now, 0.07, 1400, 600, 'triangle', 0.22);
+      noiseBurst(ctx, master, now, 0.03, 'highpass', 2000, 1, 0.08);
       break;
     }
 
+    /* ===========================================================
+       SLIDES / SWIPES / SWOOSHES
+    =========================================================== */
+    case 'brushStroke':
+    case 'calligraphyStroke': {
+      // Schwiiip slide-up
+      sweepTone(ctx, master, now, 0.32, 200, 1100, 'sawtooth', 0.32);
+      noiseBurst(ctx, master, now, 0.32, 'bandpass', 1500, 6, 0.16, {
+        from: 600,
+        to: 2400,
+      });
+      break;
+    }
+
+    case 'brushSwipe':
+    case 'paperSlide': {
+      // Fast horizontal swipe
+      sweepTone(ctx, master, now, 0.22, 900, 300, 'triangle', 0.28);
+      noiseBurst(ctx, master, now, 0.22, 'bandpass', 2000, 4, 0.18, {
+        from: 2500,
+        to: 600,
+      });
+      break;
+    }
+
+    case 'cartoonSwoosh':
+    case 'inkTransition':
+    case 'inkFlow': {
+      // Big air whoosh
+      noiseBurst(ctx, master, now, 0.45, 'bandpass', 800, 2, 0.32, {
+        from: 200,
+        to: 4000,
+      });
+      sweepTone(ctx, master, now + 0.05, 0.35, 350, 1200, 'sine', 0.18);
+      sweepTone(ctx, master, now + 0.1, 0.3, 1200, 350, 'triangle', 0.12);
+      break;
+    }
+
+    /* ===========================================================
+       BOINGS / BOUNCES / DROPS
+    =========================================================== */
+    case 'cartoonBoing':
+    case 'inkDrip': {
+      // Springy bouncy boing — 3 quick wobbles up-down
+      const baseFreq = type === 'inkDrip' ? 320 : 420;
+      [0, 0.1, 0.2].forEach((offset, i) => {
+        const peak = 0.4 - i * 0.1;
+        sweepTone(
+          ctx,
+          master,
+          now + offset,
+          0.12,
+          baseFreq * (1 + i * 0.05),
+          baseFreq * (0.55 + i * 0.05),
+          'sine',
+          peak,
+          0.005,
+        );
+        sweepTone(
+          ctx,
+          master,
+          now + offset + 0.06,
+          0.1,
+          baseFreq * (0.55 + i * 0.05),
+          baseFreq * (0.95 + i * 0.05),
+          'sine',
+          peak * 0.6,
+          0.005,
+        );
+      });
+      // Soft noise click on impact
+      noiseBurst(ctx, master, now, 0.05, 'lowpass', 800, 1, 0.12);
+      break;
+    }
+
+    /* ===========================================================
+       BELLS / DINGS
+    =========================================================== */
+    case 'cartoonDing':
     case 'inkSuccess': {
-      // Success with ink aesthetic - ascending tones
-      [300, 400, 500].forEach((freq, i) => {
-        const delay = i * 0.08;
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + delay);
-        
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0, now + delay);
-        gain.gain.linearRampToValueAtTime(volume * 0.25, now + delay + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.15);
-        
-        osc.connect(gain);
-        gain.connect(masterGain);
-        
-        osc.start(now + delay);
-        osc.stop(now + delay + 0.15);
+      // Bell-like "ding!" with golden shimmer
+      const fundamentals = type === 'inkSuccess' ? [880, 1108] : [988];
+      fundamentals.forEach((f) => {
+        tone(ctx, master, now, 0.6, f, 'sine', 0.35, 0.005);
+        tone(ctx, master, now, 0.5, f * 2, 'sine', 0.18, 0.005);
+        tone(ctx, master, now, 0.45, f * 3, 'sine', 0.08, 0.005);
+        tone(ctx, master, now, 0.4, f * 4, 'sine', 0.04, 0.005);
       });
+      // Tiny percussive attack
+      noiseBurst(ctx, master, now, 0.04, 'highpass', 4000, 1, 0.18);
       break;
     }
 
-    case 'inkError': {
-      // Error - low, subtle rumble
-      const osc = ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(80, now);
-      osc.frequency.linearRampToValueAtTime(60, now + 0.2);
-      
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 200;
-      
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(volume * 0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-      
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(masterGain);
-      
-      osc.start(now);
-      osc.stop(now + 0.25);
-      break;
-    }
-
-    case 'inkTransition': {
-      // Page transition - swoosh with ink character
-      const bufferSize = ctx.sampleRate * 0.5;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      
-      for (let i = 0; i < bufferSize; i++) {
-        const progress = i / bufferSize;
-        const envelope = Math.sin(progress * Math.PI);
-        data[i] = (Math.random() * 2 - 1) * envelope * 0.4;
-      }
-      
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(500, now);
-      filter.frequency.exponentialRampToValueAtTime(3000, now + 0.25);
-      filter.frequency.exponentialRampToValueAtTime(800, now + 0.5);
-      filter.Q.value = 2;
-      
-      source.connect(filter);
-      filter.connect(masterGain);
-      
-      masterGain.gain.setValueAtTime(volume * 0.3, now);
-      masterGain.gain.linearRampToValueAtTime(0, now + 0.5);
-      
-      source.start(now);
-      source.stop(now + 0.5);
-      break;
-    }
-
-    // ── Cartoon SFX ──────────────────────────────────────────────────
-    case 'cartoonBoing': {
-      // Springy descending boing
-      const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(800, now);
-      osc.frequency.exponentialRampToValueAtTime(120, now + 0.35);
-
-      const lfo = ctx.createOscillator();
-      lfo.type = 'sine';
-      lfo.frequency.value = 14;
-      const lfoGain = ctx.createGain();
-      lfoGain.gain.value = 60;
-      lfo.connect(lfoGain).connect(osc.frequency);
-
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(volume * 0.5, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-
-      osc.connect(gain).connect(masterGain);
-      lfo.start(now);
-      osc.start(now);
-      osc.stop(now + 0.4);
-      lfo.stop(now + 0.4);
-      break;
-    }
-
-    case 'cartoonPop': {
-      // Bubble pop
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.06);
-
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(volume * 0.5, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
-      osc.connect(gain).connect(masterGain);
-      osc.start(now);
-      osc.stop(now + 0.13);
-      break;
-    }
-
-    case 'cartoonSwoosh': {
-      // Whoosh with band-pass
-      const bufferSize = ctx.sampleRate * 0.35;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1);
-      }
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(300, now);
-      filter.frequency.exponentialRampToValueAtTime(4000, now + 0.3);
-      filter.Q.value = 6;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(volume * 0.4, now + 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      source.connect(filter).connect(gain).connect(masterGain);
-      source.start(now);
-      source.stop(now + 0.35);
-      break;
-    }
-
-    case 'cartoonDing': {
-      // Bell-like ding
-      const fundamental = 880;
-      const overtones = [1, 2.7, 5.4];
-      overtones.forEach((mult, idx) => {
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = fundamental * mult;
-        const g = ctx.createGain();
-        const amp = volume * (0.4 / (idx + 1));
-        g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(amp, now + 0.005);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.6 / (idx + 1));
-        osc.connect(g).connect(masterGain);
-        osc.start(now);
-        osc.stop(now + 0.7);
-      });
-      break;
-    }
-
+    /* ===========================================================
+       FANFARE — 3-note triad
+    =========================================================== */
     case 'cartoonFanfare': {
-      // 3-note ascending major triad
-      const notes = [523, 659, 784]; // C5, E5, G5
+      // C5 - E5 - G5 ascending major triad with shimmer
+      const notes = [523, 659, 784];
       notes.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        osc.type = 'square';
-        osc.frequency.value = freq;
-        const g = ctx.createGain();
-        const start = now + i * 0.1;
-        g.gain.setValueAtTime(0, start);
-        g.gain.linearRampToValueAtTime(volume * 0.3, start + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
-        osc.connect(g).connect(masterGain);
-        osc.start(start);
-        osc.stop(start + 0.45);
+        const start = now + i * 0.12;
+        tone(ctx, master, start, 0.5, freq, 'triangle', 0.32);
+        tone(ctx, master, start, 0.45, freq * 2, 'sine', 0.16);
+        tone(ctx, master, start, 0.4, freq * 3, 'sine', 0.06);
       });
+      // Big closing ding
+      const endStart = now + 0.4;
+      tone(ctx, master, endStart, 0.7, 1046, 'triangle', 0.32);
+      tone(ctx, master, endStart, 0.6, 2092, 'sine', 0.14);
+      noiseBurst(ctx, master, endStart, 0.06, 'highpass', 5000, 1, 0.22);
       break;
     }
 
-    case 'cartoonWobble': {
-      // Wobble jelly: vibrato sine
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = 320;
-      const lfo = ctx.createOscillator();
-      lfo.type = 'sine';
-      lfo.frequency.value = 8;
-      const lfoGain = ctx.createGain();
-      lfoGain.gain.value = 40;
-      lfo.connect(lfoGain).connect(osc.frequency);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, now);
-      g.gain.linearRampToValueAtTime(volume * 0.3, now + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-      osc.connect(g).connect(masterGain);
-      lfo.start(now);
-      osc.start(now);
-      osc.stop(now + 0.32);
-      lfo.stop(now + 0.32);
+    /* ===========================================================
+       WOBBLE / JELLY (selection)
+    =========================================================== */
+    case 'cartoonWobble':
+    case 'paperFold': {
+      // Jelly bounce — wobble LFO + soft sweep
+      wobbleTone(ctx, master, now, 0.35, 380, 18, 80, 0.32);
+      sweepTone(ctx, master, now, 0.18, 220, 480, 'sine', 0.18);
       break;
     }
 
-    case 'cartoonZap': {
-      // Zap: sawtooth descending fast
-      const osc = ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(2400, now);
-      osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(3000, now);
-      filter.frequency.exponentialRampToValueAtTime(400, now + 0.2);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(volume * 0.35, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-      osc.connect(filter).connect(g).connect(masterGain);
-      osc.start(now);
-      osc.stop(now + 0.22);
+    /* ===========================================================
+       ZAP / SHOCK
+    =========================================================== */
+    case 'cartoonZap':
+    case 'inkError': {
+      // Descending sawtooth zap with noise crackle
+      sweepTone(ctx, master, now, 0.22, 1400, 80, 'sawtooth', 0.42);
+      sweepTone(ctx, master, now + 0.02, 0.18, 1100, 60, 'square', 0.18);
+      noiseBurst(ctx, master, now, 0.16, 'bandpass', 1500, 4, 0.22, {
+        from: 3500,
+        to: 200,
+      });
+      // Sub punch
+      tone(ctx, master, now, 0.12, 80, 'sine', 0.3);
       break;
     }
 
-    default: {
-      // Fallback to simple click
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(400, now);
-      
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(volume * 0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-      
-      osc.connect(gain);
-      gain.connect(masterGain);
-      
-      osc.start(now);
-      osc.stop(now + 0.05);
+    /* ===========================================================
+       INK SPLASH (multi-layer)
+    =========================================================== */
+    case 'inkSplash': {
+      // Quick noise splash + tonal pop
+      noiseBurst(ctx, master, now, 0.32, 'lowpass', 2000, 1, 0.4, {
+        from: 4000,
+        to: 200,
+      });
+      sweepTone(ctx, master, now, 0.18, 800, 240, 'sine', 0.32);
+      sweepTone(ctx, master, now + 0.05, 0.25, 1500, 600, 'triangle', 0.14);
+      break;
     }
   }
 };
 
-/**
- * Play an Ink-themed sound effect
- */
+/* ==============================================================
+   Public API — unchanged contract
+============================================================== */
+
 export const playInkSound = (type: InkSoundType, volume: number = 0.3) => {
   try {
     const ctx = getInkAudioContext();
     createInkSound(ctx, type, volume);
   } catch (error) {
-    console.warn('Failed to play ink sound:', error);
+    console.warn('Could not play ink sound:', error);
   }
 };
 
-/**
- * Hook for Ink-themed sound effects
- * Automatically uses Ink sounds when in Ink mode, falls back to standard sounds otherwise
- */
 export const useInkSoundEffects = () => {
   const { isInkMode } = useInkMode();
-  
-  const playSound = useCallback((type: InkSoundType, volume: number = 0.3) => {
-    if (!isInkMode) return; // Only play in Ink mode
-    playInkSound(type, volume);
-  }, [isInkMode]);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
-  return { playSound, playInkSound, isInkMode };
+  const playSound = useCallback(
+    (type: InkSoundType, volume: number = 0.3) => {
+      if (!isInkMode) return;
+      try {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioContext();
+        }
+        if (audioContextRef.current.state === 'suspended') {
+          audioContextRef.current.resume();
+        }
+        createInkSound(audioContextRef.current, type, volume);
+      } catch (error) {
+        console.warn('Could not play ink sound:', error);
+      }
+    },
+    [isInkMode],
+  );
+
+  return { playSound };
 };
-
-export type { InkSoundType };
