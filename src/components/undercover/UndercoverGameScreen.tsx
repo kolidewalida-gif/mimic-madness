@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Crown,
   Eye,
-  EyeOff,
   Send,
   Shield,
   Skull,
@@ -17,6 +16,7 @@ import {
   HelpCircle,
   X,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -34,139 +34,136 @@ interface UndercoverGameScreenProps {
   onEndGame: () => void;
 }
 
+/* ============================================================
+   CARTOON GRAFFITI PALETTE
+============================================================ */
+const GRAFFITI_TEXT_SHADOW =
+  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
+const GRAFFITI_TEXT_SHADOW_SM =
+  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
+
 const ROLE_CONFIG = {
-  civilian: { label: 'Civil', icon: Shield, color: '#0ea5e9' },
-  undercover: { label: 'Undercover', icon: UserX, color: '#ff5050' },
-  mr_white: { label: 'Mr White', icon: HelpCircle, color: '#f59e0b' },
+  civilian: { label: 'Civil', icon: Shield, color: '#06b6d4' },
+  undercover: { label: 'Undercover', icon: UserX, color: '#ef4444' },
+  mr_white: { label: 'Mr White', icon: HelpCircle, color: '#fbbf24' },
 } as const;
 
 const PHASE_LABELS: Record<string, string> = {
   word_reveal: 'Découverte du mot',
-  clue_giving: 'Phase d\'indices',
+  clue_giving: "Phase d'indices",
   discussion: 'Discussion',
   voting: 'Vote',
   vote_result: 'Résultat',
   game_over: 'Fin de partie',
 };
 
-// Cartoon palette per phase (softer, less saturated for less eye strain)
+// Phase accent — keeps the lobby/menu cartoon palette
 const PHASE_THEME: Record<string, string> = {
-  word_reveal: '#c084fc',
-  clue_giving: '#38bdf8',
-  discussion: '#34d399',
-  voting: '#f87171',
-  vote_result: '#fbbf24',
-  game_over: '#fde047',
+  word_reveal: '#a855f7', // purple
+  clue_giving: '#06b6d4', // cyan
+  discussion: '#34d399', // green
+  voting: '#ef4444', // red
+  vote_result: '#fbbf24', // yellow
+  game_over: '#fbbf24', // yellow
 };
 
-/* ---------- helpers / hand-drawn shapes ----------- */
+/* ============================================================
+   Reusable cartoon primitives
+============================================================ */
 
-// Squiggly border SVG that wraps a child — gives the doodle look from the sketch.
-const DoodleBorder = ({
-  color,
+/** Cartoon card with 3D black shadow + optional inner accent border. */
+const CartoonCard = ({
   className,
-  filled = false,
-  rotation = 0,
+  accent,
+  children,
+  rotate = 0,
+  innerAccent = true,
 }: {
-  color: string;
   className?: string;
-  filled?: boolean;
-  rotation?: number;
+  accent?: string;
+  children: React.ReactNode;
+  rotate?: number;
+  innerAccent?: boolean;
 }) => (
-  <svg
-    className={cn('absolute inset-0 w-full h-full pointer-events-none', className)}
-    viewBox="0 0 100 100"
-    preserveAspectRatio="none"
-    style={{ transform: `rotate(${rotation}deg)` }}
+  <div
+    className={cn('relative rounded-3xl overflow-hidden', className)}
+    style={{
+      background:
+        'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+      border: '4px solid #0a0810',
+      boxShadow:
+        '0 8px 0 #0a0810, 0 14px 30px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.06)',
+      transform: rotate ? `rotate(${rotate}deg)` : undefined,
+    }}
   >
-    {/* Wobbly rounded rectangle */}
-    <path
-      d="M5,12
-         Q3,8 7,5
-         Q15,3 25,4
-         Q40,2 55,5
-         Q70,3 85,5
-         Q95,4 96,12
-         Q98,30 96,50
-         Q98,70 95,88
-         Q96,95 88,96
-         Q70,98 50,96
-         Q30,98 12,96
-         Q4,97 4,90
-         Q3,70 5,50
-         Q3,30 5,12 Z"
-      fill={filled ? color : 'none'}
-      fillOpacity={filled ? 0.08 : 0}
-      stroke={color}
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      vectorEffect="non-scaling-stroke"
-    />
-  </svg>
+    {innerAccent && accent && (
+      <div
+        className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
+        style={{ border: `2px solid ${accent}66` }}
+      />
+    )}
+    {children}
+  </div>
 );
 
-// Wobbly oval (avatar)
-const DoodleOval = ({
-  color,
-  className,
-  filled = false,
+/** Cartoon button with bold 3D shadow. */
+const CartoonButton = ({
+  children,
+  onClick,
+  color = '#a855f7',
+  disabled = false,
+  variant = 'filled',
+  className = '',
+  compact = false,
 }: {
-  color: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+  color?: string;
+  disabled?: boolean;
+  variant?: 'filled' | 'outline';
   className?: string;
-  filled?: boolean;
+  compact?: boolean;
 }) => (
-  <svg
-    className={cn('absolute inset-0 w-full h-full pointer-events-none', className)}
-    viewBox="0 0 100 100"
-    preserveAspectRatio="none"
+  <motion.button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    whileHover={!disabled ? { scale: 1.04, rotate: -1.5 } : undefined}
+    whileTap={!disabled ? { scale: 0.96 } : undefined}
+    className={cn(
+      'relative inline-flex items-center justify-center gap-2 rounded-2xl transition-opacity',
+      compact ? 'px-3 py-2' : 'px-5 py-3',
+      disabled && 'opacity-50 cursor-not-allowed',
+      className,
+    )}
+    style={{
+      background:
+        variant === 'filled'
+          ? `linear-gradient(180deg, ${color}, ${color}cc)`
+          : 'transparent',
+      border:
+        variant === 'filled' ? '3px solid #0a0810' : `3px solid ${color}`,
+      boxShadow:
+        variant === 'filled'
+          ? '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)'
+          : 'none',
+      color: 'white',
+      fontFamily: "'Caveat', cursive",
+      textShadow: variant === 'filled' ? GRAFFITI_TEXT_SHADOW_SM : undefined,
+    }}
   >
-    <path
-      d="M50,8
-         Q70,7 82,18
-         Q94,32 92,52
-         Q90,72 76,86
-         Q60,96 42,92
-         Q24,90 12,76
-         Q4,60 8,40
-         Q14,20 30,12
-         Q40,8 50,8 Z"
-      fill={filled ? color : 'none'}
-      fillOpacity={filled ? 0.12 : 0}
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      vectorEffect="non-scaling-stroke"
-    />
-  </svg>
+    <span
+      className={cn(
+        'relative font-black leading-none',
+        compact ? 'text-base' : 'text-xl',
+      )}
+    >
+      {children}
+    </span>
+  </motion.button>
 );
 
-// Hand-drawn arrow between players
-const DoodleArrow = ({ color, className }: { color: string; className?: string }) => (
-  <svg
-    className={cn('w-10 h-10 flex-shrink-0', className)}
-    viewBox="0 0 40 40"
-    fill="none"
-  >
-    <path
-      d="M4,20 Q12,18 24,20 Q30,21 33,20"
-      stroke={color}
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M28,14 L34,20 L28,26"
-      stroke={color}
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-// Stamp — used for "À TOI" badge
+/** Cartoon stamp badge (for "À TOI", "Suspect", etc.). */
 const StampBadge = ({
   color,
   children,
@@ -177,20 +174,51 @@ const StampBadge = ({
   rotate?: number;
 }) => (
   <div
-    className="relative px-3 py-1 inline-flex items-center justify-center"
-    style={{ transform: `rotate(${rotate}deg)` }}
+    className="relative px-2.5 py-1 inline-flex items-center justify-center rounded-lg"
+    style={{
+      background: `linear-gradient(180deg, ${color}, ${color}cc)`,
+      border: '2.5px solid #0a0810',
+      boxShadow: '0 3px 0 #0a0810',
+      transform: `rotate(${rotate}deg)`,
+    }}
   >
-    <DoodleBorder color={color} filled rotation={2} />
     <span
-      className="relative text-[10px] font-black uppercase tracking-[0.2em]"
-      style={{ color, fontFamily: "'Caveat', cursive", letterSpacing: '0.15em' }}
+      className="text-xs font-black uppercase tracking-wider text-white leading-none"
+      style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
     >
       {children}
     </span>
   </div>
 );
 
-/* ---------- Top timer (only on discussion) ----------- */
+/** Hand-drawn arrow between players. */
+const DoodleArrow = ({ color, glow = false }: { color: string; glow?: boolean }) => (
+  <svg
+    className="w-8 h-10 flex-shrink-0"
+    viewBox="0 0 40 40"
+    fill="none"
+    style={{ filter: glow ? `drop-shadow(0 0 6px ${color})` : undefined }}
+  >
+    <path
+      d="M4,20 Q12,18 24,20 Q30,21 33,20"
+      stroke={color}
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M27,13 L34,20 L27,27"
+      stroke={color}
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+/* ============================================================
+   Discussion timer
+============================================================ */
 
 const DiscussionTimer = ({ accent }: { accent: string }) => {
   const total = 60;
@@ -202,30 +230,58 @@ const DiscussionTimer = ({ accent }: { accent: string }) => {
   }, [seconds]);
   const pct = (seconds / total) * 100;
   const urgent = seconds <= 10;
+  const color = urgent ? '#ef4444' : accent;
 
   return (
-    <div className="relative px-5 py-3">
-      <DoodleBorder color={urgent ? '#ff5050' : accent} />
+    <CartoonCard accent={color} className="px-5 py-3" innerAccent={false}>
       <div className="relative flex items-center gap-3">
-        <Timer className={cn('w-4 h-4', urgent && 'animate-pulse')} style={{ color: urgent ? '#ff5050' : accent }} />
-        <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+        <motion.div
+          animate={urgent ? { scale: [1, 1.15, 1] } : undefined}
+          transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut' }}
+          className="w-9 h-9 rounded-xl flex items-center justify-center"
+          style={{
+            background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+            border: '2.5px solid #0a0810',
+            boxShadow: '0 3px 0 #0a0810',
+          }}
+        >
+          <Timer className="w-4 h-4 text-white" strokeWidth={2.5} />
+        </motion.div>
+        <div
+          className="flex-1 h-3 rounded-full overflow-hidden"
+          style={{
+            background: 'rgba(0,0,0,0.5)',
+            border: '2px solid #0a0810',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
+          }}
+        >
           <motion.div
-            className="h-full"
-            style={{ background: urgent ? '#ff5050' : accent, width: `${pct}%` }}
+            className="h-full rounded-full"
+            animate={{ width: `${pct}%` }}
             transition={{ duration: 1, ease: 'linear' }}
+            style={{
+              background: urgent
+                ? 'linear-gradient(90deg, #fbbf24, #ef4444)'
+                : `linear-gradient(90deg, ${color}, ${color}cc)`,
+              boxShadow: `0 0 8px ${color}88`,
+            }}
           />
         </div>
         <span
-          className={cn('font-mono font-black text-base tabular-nums', urgent && 'animate-pulse')}
+          className={cn(
+            'font-black text-2xl tabular-nums leading-none',
+            urgent && 'animate-pulse',
+          )}
           style={{
-            color: urgent ? '#ff5050' : 'white',
+            color: 'white',
             fontFamily: "'Caveat', cursive",
+            textShadow: GRAFFITI_TEXT_SHADOW_SM,
           }}
         >
           {seconds}s
         </span>
       </div>
-    </div>
+    </CartoonCard>
   );
 };
 
@@ -281,7 +337,6 @@ export const UndercoverGameScreen = memo(
     }, [game?.phase]);
 
     // ⚠️ HOOKS MUST BE CALLED BEFORE ANY EARLY RETURN
-    // Order players by speaking order (computed every render, safe even if game is null)
     const orderedPlayers = useMemo(() => {
       if (!game) return [] as typeof gamePlayers;
       const byId = new Map(gamePlayers.map((p) => [p.player_id, p]));
@@ -294,8 +349,10 @@ export const UndercoverGameScreen = memo(
       return ordered;
     }, [game, gamePlayers]);
 
-    // Player avatars (image / color saved in DB) — must be called unconditionally
-    const playerIds = useMemo(() => orderedPlayers.map((p) => p.player_id), [orderedPlayers]);
+    const playerIds = useMemo(
+      () => orderedPlayers.map((p) => p.player_id),
+      [orderedPlayers],
+    );
     const { getAvatar } = useMultiplePlayerAvatars(playerIds);
 
     if (loading || !game) {
@@ -303,16 +360,25 @@ export const UndercoverGameScreen = memo(
         <div className="flex min-h-screen items-center justify-center bg-[#0a0810]">
           <div className="text-center space-y-4">
             <motion.div
-              className="mx-auto w-16 h-16 relative"
+              className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center"
               animate={{ rotate: 360 }}
-              transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: 'linear' }}
+              style={{
+                background: 'linear-gradient(135deg, #a855f7, #6b21a8)',
+                border: '4px solid #0a0810',
+                boxShadow:
+                  '0 5px 0 #0a0810, 0 10px 24px rgba(168,85,247,0.5)',
+              }}
             >
-              <DoodleOval color="#a855f7" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-purple-400" />
-              </div>
+              <Loader2 className="w-8 h-8 text-white" strokeWidth={2.5} />
             </motion.div>
-            <p className="text-white/60 text-sm" style={{ fontFamily: "'Caveat', cursive" }}>
+            <p
+              className="text-2xl font-black text-white/85"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                textShadow: GRAFFITI_TEXT_SHADOW,
+              }}
+            >
               Préparation du chaos…
             </p>
           </div>
@@ -324,68 +390,69 @@ export const UndercoverGameScreen = memo(
     const votedCount = alivePlayers.filter((p) => p.vote_target !== null).length;
 
     return (
-      <div className="min-h-screen bg-[#0a0810] text-white relative overflow-x-hidden">
-        {/* Background — phase-tinted halos */}
+      <div className="min-h-screen bg-[#0a0510] text-white relative overflow-x-hidden">
+        {/* ============= BACKGROUND ============= */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0c0813] via-[#0a0810] to-[#0c0814]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0f0820] via-[#0a0510] to-[#160a26]" />
           <AnimatePresence mode="sync">
             <motion.div
               key={game.phase}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
+              animate={{ opacity: 0.7 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.6 }}
               className="absolute inset-0"
             >
               <div
-                className="absolute top-0 left-1/3 w-[500px] h-[300px] rounded-full opacity-20"
+                className="absolute top-0 left-1/3 w-[700px] h-[400px] rounded-full opacity-25"
+                style={{
+                  background: `radial-gradient(ellipse, ${accent}66 0%, transparent 70%)`,
+                  filter: 'blur(100px)',
+                }}
+              />
+              <div
+                className="absolute bottom-1/4 right-1/4 w-[500px] h-[300px] rounded-full opacity-20"
                 style={{
                   background: `radial-gradient(ellipse, ${accent}55 0%, transparent 70%)`,
                   filter: 'blur(80px)',
                 }}
               />
-              <div
-                className="absolute bottom-0 right-1/4 w-[400px] h-[250px] rounded-full opacity-15"
-                style={{
-                  background: `radial-gradient(ellipse, ${accent}44 0%, transparent 70%)`,
-                  filter: 'blur(70px)',
-                }}
-              />
             </motion.div>
           </AnimatePresence>
-          {/* Doodle scribble pattern */}
-          <svg className="absolute inset-0 w-full h-full opacity-[0.03]">
-            <defs>
-              <pattern id="scribble" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
-                <path
-                  d="M10,30 Q30,10 50,30 T90,30 M20,80 Q40,60 60,80 T100,80"
-                  stroke="white"
-                  strokeWidth="1.5"
-                  fill="none"
-                  strokeLinecap="round"
-                />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#scribble)" />
-          </svg>
         </div>
 
-        {/* HEADER — phase + stats */}
+        {/* ============= HEADER ============= */}
         <header className="relative z-10 px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="relative w-12 h-12 flex items-center justify-center">
-              <DoodleOval color={accent} filled />
-              <UserX className="relative w-5 h-5" style={{ color: accent }} />
-            </div>
+            <motion.div
+              animate={{ rotate: [-5, 5, -5] }}
+              transition={{
+                duration: 2.2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              className="w-12 h-12 rounded-2xl flex items-center justify-center"
+              style={{
+                background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+                border: '3px solid #0a0810',
+                boxShadow:
+                  '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+              }}
+            >
+              <UserX className="w-5 h-5 text-white" strokeWidth={2.5} />
+            </motion.div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 font-bold">
+              <p
+                className="text-[10px] uppercase tracking-[0.25em] text-white/55 font-black"
+                style={{ fontFamily: "'Caveat', cursive" }}
+              >
                 Manche {game.current_round}
               </p>
               <h1
-                className="text-2xl font-black tracking-tight leading-none text-white"
+                className="text-3xl font-black tracking-tight leading-none text-white"
                 style={{
                   fontFamily: "'Caveat', cursive",
-                  textShadow: `0 0 14px ${accent}33, 0 2px 6px rgba(0,0,0,0.5)`,
+                  textShadow: GRAFFITI_TEXT_SHADOW,
                 }}
               >
                 {PHASE_LABELS[game.phase] ?? game.phase}
@@ -394,36 +461,60 @@ export const UndercoverGameScreen = memo(
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Vivants */}
-            <div className="relative px-3 py-1.5">
-              <DoodleBorder color="#10b981" />
-              <div className="relative flex items-center gap-2">
-                <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">
-                  Vivants
-                </span>
-                <span
-                  className="text-base font-black"
-                  style={{ fontFamily: "'Caveat', cursive", color: '#10b981' }}
-                >
-                  {alivePlayers.length}/{players.length}
-                </span>
-              </div>
+            {/* Vivants pill */}
+            <div
+              className="px-3 py-1.5 rounded-2xl flex items-center gap-2"
+              style={{
+                background:
+                  'linear-gradient(180deg, rgba(52,211,153,0.18), rgba(5,150,105,0.05))',
+                border: '2.5px solid #0a0810',
+                boxShadow: '0 3px 0 #0a0810',
+              }}
+            >
+              <span
+                className="text-[10px] uppercase tracking-wider text-white/60 font-black"
+                style={{ fontFamily: "'Caveat', cursive" }}
+              >
+                Vivants
+              </span>
+              <span
+                className="text-base font-black leading-none"
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  color: '#34d399',
+                  textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                }}
+              >
+                {alivePlayers.length}/{players.length}
+              </span>
             </div>
 
             {game.phase === 'voting' && (
-              <div className="relative px-3 py-1.5">
-                <DoodleBorder color="#ff5050" />
-                <div className="relative flex items-center gap-2">
-                  <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">
-                    Votes
-                  </span>
-                  <span
-                    className="text-base font-black"
-                    style={{ fontFamily: "'Caveat', cursive", color: '#ff5050' }}
-                  >
-                    {votedCount}/{alivePlayers.length}
-                  </span>
-                </div>
+              <div
+                className="px-3 py-1.5 rounded-2xl flex items-center gap-2"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(239,68,68,0.18), rgba(127,29,29,0.05))',
+                  border: '2.5px solid #0a0810',
+                  boxShadow: '0 3px 0 #0a0810',
+                }}
+              >
+                <span
+                  className="text-[10px] uppercase tracking-wider text-white/60 font-black"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  Votes
+                </span>
+                <span
+                  className="text-base font-black leading-none"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    color: '#ef4444',
+                    textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                  }}
+                >
+                  {votedCount}/{alivePlayers.length}
+                </span>
               </div>
             )}
           </div>
@@ -436,12 +527,13 @@ export const UndercoverGameScreen = memo(
           </div>
         )}
 
-        {/* PLAYERS RELAY — clue bubble + oval avatar + arrow */}
+        {/* ============= PLAYERS RELAY ============= */}
         <div className="relative z-10 mb-6 overflow-x-auto pb-4 px-5 custom-scrollbar">
-          <div className="flex min-w-max items-center justify-center gap-4 py-6">
+          <div className="flex min-w-max items-center justify-center gap-3 py-6">
             {orderedPlayers.map((player, idx) => {
               const isCurrent =
-                currentTurnPlayerId === player.player_id && game.phase === 'clue_giving';
+                currentTurnPlayerId === player.player_id &&
+                game.phase === 'clue_giving';
               const isMe = player.player_id === currentPlayer.id;
               const isEliminated = !player.is_alive;
               const canVote =
@@ -451,7 +543,8 @@ export const UndercoverGameScreen = memo(
                 player.player_id !== currentPlayer.id &&
                 player.is_alive;
               const isSelected = selectedVote === player.player_id;
-              const history = (player as { clue_history?: string[] }).clue_history ?? [];
+              const history =
+                (player as { clue_history?: string[] }).clue_history ?? [];
               const lastClue = history[history.length - 1] ?? player.current_clue;
               const isLiveTyping =
                 isMe &&
@@ -464,18 +557,27 @@ export const UndercoverGameScreen = memo(
                 ? ROLE_CONFIG[player.role as keyof typeof ROLE_CONFIG]
                 : null;
 
-              const playerColor = revealedRole?.color ?? (isMe ? '#0ea5e9' : '#a855f7');
+              const playerColor = revealedRole?.color ?? (isMe ? '#06b6d4' : '#a855f7');
 
               return (
-                <div key={player.id} className="flex items-center gap-3">
-                  <div className="flex flex-col items-center gap-3 w-32">
+                <div key={player.id} className="flex items-center gap-2">
+                  <div className="flex flex-col items-center gap-2 w-32">
                     {/* MOT bubble (above) */}
-                    <div className="relative h-16 w-full flex items-end justify-center">
+                    <div className="relative h-14 w-full flex items-end justify-center">
                       <AnimatePresence mode="wait">
                         {displayClue ? (
                           <motion.div
-                            key={isLiveTyping ? `live-${isMe}` : `final-${displayClue}`}
-                            initial={{ scale: 0.3, y: 20, opacity: 0, rotate: -8 }}
+                            key={
+                              isLiveTyping
+                                ? `live-${isMe}`
+                                : `final-${displayClue}`
+                            }
+                            initial={{
+                              scale: 0.3,
+                              y: 20,
+                              opacity: 0,
+                              rotate: -8,
+                            }}
                             animate={{
                               scale: isLiveTyping ? [1, 1.06, 1] : 1,
                               y: 0,
@@ -486,24 +588,33 @@ export const UndercoverGameScreen = memo(
                             transition={
                               isLiveTyping
                                 ? { duration: 0.18 }
-                                : { type: 'spring', stiffness: 360, damping: 14 }
+                                : {
+                                    type: 'spring',
+                                    stiffness: 360,
+                                    damping: 14,
+                                  }
                             }
-                            className="relative px-3 py-1.5 max-w-full"
+                            className="relative px-3 py-1.5 max-w-full rounded-xl"
+                            style={{
+                              background: isLiveTyping
+                                ? 'linear-gradient(180deg, #06b6d4, #0e7490)'
+                                : isCurrent
+                                  ? `linear-gradient(180deg, ${accent}, ${accent}cc)`
+                                  : 'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78))',
+                              border: '2.5px solid #0a0810',
+                              boxShadow: '0 3px 0 #0a0810',
+                            }}
                           >
-                            <DoodleBorder
-                              color={isLiveTyping ? '#0ea5e9' : isCurrent ? accent : 'white'}
-                              filled
-                              rotation={idx % 2 === 0 ? -1 : 1}
-                            />
                             <span
-                              className="relative block truncate max-w-[7rem] text-base font-black"
+                              className="block truncate max-w-[7rem] text-base font-black leading-none"
                               style={{
                                 fontFamily: "'Caveat', cursive",
-                                color: isLiveTyping
-                                  ? '#0ea5e9'
-                                  : isCurrent
-                                  ? accent
-                                  : 'white',
+                                color:
+                                  isLiveTyping || isCurrent ? 'white' : '#0a0810',
+                                textShadow:
+                                  isLiveTyping || isCurrent
+                                    ? GRAFFITI_TEXT_SHADOW_SM
+                                    : 'none',
                               }}
                             >
                               {displayClue}
@@ -511,7 +622,10 @@ export const UndercoverGameScreen = memo(
                                 <motion.span
                                   className="ml-0.5 inline-block"
                                   animate={{ opacity: [0.2, 1, 0.2] }}
-                                  transition={{ duration: 0.8, repeat: Infinity }}
+                                  transition={{
+                                    duration: 0.8,
+                                    repeat: Infinity,
+                                  }}
                                 >
                                   |
                                 </motion.span>
@@ -519,10 +633,15 @@ export const UndercoverGameScreen = memo(
                             </span>
                           </motion.div>
                         ) : (
-                          <div className="relative px-3 py-1.5">
-                            <DoodleBorder color="rgba(255,255,255,0.15)" rotation={idx % 2 === 0 ? -1 : 1} />
+                          <div
+                            className="px-3 py-1 rounded-xl"
+                            style={{
+                              background: 'rgba(255,255,255,0.04)',
+                              border: '2.5px dashed rgba(255,255,255,0.2)',
+                            }}
+                          >
                             <span
-                              className="relative text-xs font-bold text-white/30 italic"
+                              className="text-xs font-bold text-white/40 italic leading-none"
                               style={{ fontFamily: "'Caveat', cursive" }}
                             >
                               mot…
@@ -532,48 +651,53 @@ export const UndercoverGameScreen = memo(
                       </AnimatePresence>
                     </div>
 
-                    {/* Doodle oval avatar */}
+                    {/* Cartoon avatar */}
                     <motion.button
                       type="button"
                       whileHover={canVote ? { y: -3, scale: 1.05 } : undefined}
                       whileTap={canVote ? { scale: 0.97 } : undefined}
-                      onClick={canVote ? () => setSelectedVote(player.player_id) : undefined}
+                      onClick={
+                        canVote
+                          ? () => setSelectedVote(player.player_id)
+                          : undefined
+                      }
                       disabled={!canVote}
                       className={cn(
-                        'relative w-24 h-24 flex items-center justify-center transition-all',
+                        'relative w-20 h-20 rounded-full flex items-center justify-center transition-all',
                         canVote && 'cursor-pointer',
                         !canVote && 'cursor-default',
-                        isEliminated && 'opacity-40 saturate-0',
+                        isEliminated && 'opacity-40 saturate-50',
                       )}
                       animate={
-                        isCurrent
-                          ? {
-                              y: [0, -4, 0],
-                            }
-                          : undefined
+                        isCurrent ? { y: [0, -4, 0] } : undefined
                       }
                       transition={
                         isCurrent
-                          ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+                          ? {
+                              duration: 1.6,
+                              repeat: Infinity,
+                              ease: 'easeInOut',
+                            }
                           : undefined
                       }
+                      style={{
+                        background: isSelected
+                          ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
+                          : isCurrent
+                            ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
+                            : `linear-gradient(135deg, ${playerColor}, ${playerColor}cc)`,
+                        border: '4px solid #0a0810',
+                        boxShadow: isCurrent
+                          ? `0 5px 0 #0a0810, 0 0 16px ${accent}99`
+                          : isSelected
+                            ? '0 5px 0 #0a0810, 0 0 16px rgba(239,68,68,0.7)'
+                            : '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.18)',
+                      }}
                     >
-                      <DoodleOval
-                        color={
-                          isSelected
-                            ? '#ff5050'
-                            : isCurrent
-                            ? accent
-                            : isMe
-                            ? '#0ea5e9'
-                            : playerColor
-                        }
-                        filled={isCurrent || isSelected || isMe}
-                      />
                       {/* Avatar content */}
-                      <div className="relative flex flex-col items-center justify-center">
+                      <div className="relative flex items-center justify-center">
                         {isEliminated ? (
-                          <Skull className="w-10 h-10 text-white/50" />
+                          <Skull className="w-9 h-9 text-white/70" />
                         ) : (() => {
                           const av = getAvatar(player.player_id);
                           if (av.type === 'image' && av.imageUrl) {
@@ -581,25 +705,16 @@ export const UndercoverGameScreen = memo(
                               <img
                                 src={av.imageUrl}
                                 alt={player.player_name}
-                                className="w-16 h-16 rounded-full object-cover"
+                                className="w-14 h-14 rounded-full object-cover ring-2 ring-[#0a0810]"
                               />
                             );
                           }
                           return (
                             <span
-                              className="text-3xl font-black"
+                              className="text-3xl font-black leading-none text-white"
                               style={{
                                 fontFamily: "'Caveat', cursive",
-                                color: isSelected
-                                  ? '#ff5050'
-                                  : isCurrent
-                                  ? accent
-                                  : isMe
-                                  ? '#0ea5e9'
-                                  : 'white',
-                                textShadow: `0 2px 8px ${
-                                  isCurrent ? accent : 'rgba(0,0,0,0.4)'
-                                }`,
+                                textShadow: GRAFFITI_TEXT_SHADOW,
                               }}
                             >
                               {player.player_name[0]?.toUpperCase()}
@@ -613,7 +728,7 @@ export const UndercoverGameScreen = memo(
                         <motion.div
                           initial={{ scale: 0, rotate: 0 }}
                           animate={{ scale: 1, rotate: -10 }}
-                          className="absolute -top-2 -right-1 z-10"
+                          className="absolute -top-3 -right-2 z-10"
                         >
                           <StampBadge color={accent}>À toi !</StampBadge>
                         </motion.div>
@@ -624,34 +739,44 @@ export const UndercoverGameScreen = memo(
                         <motion.div
                           initial={{ scale: 0 }}
                           animate={{ scale: 1, rotate: 8 }}
-                          className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10"
+                          className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10"
                         >
-                          <StampBadge color="#ff5050" rotate={6}>
+                          <StampBadge color="#ef4444" rotate={6}>
                             Suspect
                           </StampBadge>
                         </motion.div>
                       )}
 
                       {/* Crown for the host */}
-                      {player.player_id === currentPlayer.id && currentPlayer.isHost && (
-                        <Crown
-                          className="absolute -top-3 -left-2 w-5 h-5 text-amber-400"
-                          fill="currentColor"
-                          style={{ transform: 'rotate(-15deg)' }}
-                        />
-                      )}
+                      {player.player_id === currentPlayer.id &&
+                        currentPlayer.isHost && (
+                          <Crown
+                            className="absolute -top-3 -left-2 w-5 h-5 text-amber-400"
+                            fill="currentColor"
+                            style={{
+                              transform: 'rotate(-15deg)',
+                              filter: 'drop-shadow(1.5px 1.5px 0 #0a0810)',
+                            }}
+                          />
+                        )}
                     </motion.button>
 
                     {/* Name */}
                     <div className="text-center">
                       <p
-                        className="text-sm font-black text-white truncate max-w-[8rem]"
-                        style={{ fontFamily: "'Caveat', cursive" }}
+                        className="text-base font-black text-white truncate max-w-[8rem] leading-none"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                        }}
                       >
                         {player.player_name}
                       </p>
                       {isMe && (
-                        <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-cyan-400">
+                        <span
+                          className="text-[9px] uppercase tracking-[0.2em] font-black text-cyan-300 leading-none"
+                          style={{ fontFamily: "'Caveat', cursive" }}
+                        >
                           Vous
                         </span>
                       )}
@@ -659,13 +784,24 @@ export const UndercoverGameScreen = memo(
                         <div
                           className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
                           style={{
-                            background: `${revealedRole.color}20`,
-                            border: `1px solid ${revealedRole.color}60`,
-                            color: revealedRole.color,
+                            background: `linear-gradient(180deg, ${revealedRole.color}, ${revealedRole.color}cc)`,
+                            border: '2px solid #0a0810',
+                            boxShadow: '0 2px 0 #0a0810',
                           }}
                         >
-                          <revealedRole.icon className="w-3 h-3" />
-                          <span className="text-[10px] font-bold">{revealedRole.label}</span>
+                          <revealedRole.icon
+                            className="w-3 h-3 text-white"
+                            strokeWidth={2.5}
+                          />
+                          <span
+                            className="text-[10px] font-black uppercase tracking-wider text-white leading-none"
+                            style={{
+                              fontFamily: "'Caveat', cursive",
+                              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                            }}
+                          >
+                            {revealedRole.label}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -677,9 +813,11 @@ export const UndercoverGameScreen = memo(
                       color={
                         game.phase === 'clue_giving' && lastClue
                           ? accent
-                          : 'rgba(255,255,255,0.15)'
+                          : 'rgba(255,255,255,0.18)'
                       }
-                      className="-mt-4"
+                      glow={Boolean(
+                        game.phase === 'clue_giving' && lastClue,
+                      )}
                     />
                   )}
                 </div>
@@ -688,42 +826,109 @@ export const UndercoverGameScreen = memo(
           </div>
         </div>
 
-        {/* ACTION ZONE — INDICE field / discussion / vote / etc */}
+        {/* ============= ACTION ZONE ============= */}
         <div className="relative z-10 mx-auto max-w-2xl px-5 pb-[200px]">
-          <div className="relative px-5 py-5 min-h-[120px]">
-            <DoodleBorder color={accent} filled />
-
+          <CartoonCard accent={accent} className="px-5 py-5 min-h-[140px]">
+            <Sparkles
+              className="absolute top-3 left-3 w-4 h-4 z-10"
+              style={{
+                color: accent,
+                filter: 'drop-shadow(1px 1px 0 #0a0810)',
+              }}
+            />
+            <Sparkles
+              className="absolute top-3 right-3 w-3.5 h-3.5 z-10"
+              style={{
+                color: '#fbbf24',
+                filter: 'drop-shadow(1px 1px 0 #0a0810)',
+              }}
+            />
             <div className="relative">
               {/* WORD REVEAL */}
               {game.phase === 'word_reveal' && (
                 <div className="text-center space-y-3">
                   {hasSeenWord ? (
                     <>
-                      <CheckCircle2 className="w-10 h-10 mx-auto" style={{ color: '#10b981' }} />
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 280,
+                          damping: 16,
+                        }}
+                        className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center"
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #34d399, #059669)',
+                          border: '3px solid #0a0810',
+                          boxShadow: '0 4px 0 #0a0810',
+                        }}
+                      >
+                        <CheckCircle2
+                          className="w-7 h-7 text-white"
+                          strokeWidth={2.5}
+                        />
+                      </motion.div>
                       <p
-                        className="text-lg font-black"
-                        style={{ fontFamily: "'Caveat', cursive", color: 'white' }}
+                        className="text-3xl font-black text-white leading-none"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW,
+                        }}
                       >
                         Mot vu !
                       </p>
-                      <p className="text-xs text-white/50">En attente des autres joueurs…</p>
+                      <p
+                        className="text-sm text-white/60 font-bold"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        En attente des autres joueurs…
+                      </p>
                       {currentPlayer.isHost && (
-                        <DoodleButton onClick={startCluePhase} color={accent}>
+                        <CartoonButton
+                          onClick={startCluePhase}
+                          color={accent}
+                        >
                           Lancer la phase d'indices
-                          <ArrowRight className="w-4 h-4" />
-                        </DoodleButton>
+                          <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
+                        </CartoonButton>
                       )}
                     </>
                   ) : (
                     <>
-                      <Eye className="w-10 h-10 mx-auto animate-pulse" style={{ color: accent }} />
+                      <motion.div
+                        animate={{
+                          rotate: [-5, 5, -5],
+                          scale: [1, 1.05, 1],
+                        }}
+                        transition={{
+                          duration: 1.6,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }}
+                        className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center"
+                        style={{
+                          background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+                          border: '3px solid #0a0810',
+                          boxShadow: '0 4px 0 #0a0810',
+                        }}
+                      >
+                        <Eye className="w-7 h-7 text-white" strokeWidth={2.5} />
+                      </motion.div>
                       <p
-                        className="text-2xl font-black leading-tight"
-                        style={{ fontFamily: "'Caveat', cursive", color: accent }}
+                        className="text-3xl font-black leading-none text-white"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW,
+                        }}
                       >
                         Découvre ton mot
                       </p>
-                      <p className="text-xs text-white/50">
+                      <p
+                        className="text-sm text-white/60 font-bold"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
                         Clique sur le bouton en bas pour le révéler.
                       </p>
                     </>
@@ -737,47 +942,62 @@ export const UndercoverGameScreen = memo(
                   {isMyTurn && myPlayer?.is_alive ? (
                     <div className="space-y-3">
                       <p
-                        className="text-center text-2xl font-black"
-                        style={{ fontFamily: "'Caveat', cursive", color: accent }}
+                        className="text-center text-3xl font-black leading-none text-white"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW,
+                        }}
                       >
                         À ton tour !
                       </p>
-                      <p className="text-xs text-center text-white/50">
+                      <p
+                        className="text-sm text-center text-white/60 font-bold"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
                         Donne un indice (un seul mot, sois subtil)
                       </p>
                       <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <DoodleBorder color="rgba(255,255,255,0.3)" />
-                          <Input
-                            value={clueInput}
-                            onChange={(e) => setClueInput(e.target.value)}
-                            placeholder="ex: rond, sucré…"
-                            maxLength={30}
-                            autoFocus
-                            onKeyDown={(e) => e.key === 'Enter' && handleSubmitClue()}
-                            className="relative bg-transparent border-0 text-center text-lg font-black focus:ring-0 placeholder:text-white/25"
-                            style={{ fontFamily: "'Caveat', cursive" }}
-                          />
-                        </div>
-                        <DoodleButton
+                        <Input
+                          value={clueInput}
+                          onChange={(e) => setClueInput(e.target.value)}
+                          placeholder="ex: rond, sucré…"
+                          maxLength={30}
+                          autoFocus
+                          onKeyDown={(e) =>
+                            e.key === 'Enter' && handleSubmitClue()
+                          }
+                          className="flex-1 h-12 bg-black/40 text-center text-xl font-black text-white placeholder:text-white/30 rounded-2xl"
+                          style={{
+                            fontFamily: "'Caveat', cursive",
+                            border: '3px solid #0a0810',
+                            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
+                          }}
+                        />
+                        <CartoonButton
                           onClick={handleSubmitClue}
                           color={accent}
                           disabled={!clueInput.trim()}
                           compact
                         >
-                          <Send className="w-4 h-4" />
-                        </DoodleButton>
+                          <Send className="w-4 h-4" strokeWidth={2.5} />
+                        </CartoonButton>
                       </div>
                     </div>
                   ) : (
                     <p
-                      className="text-center text-xl font-black leading-tight"
+                      className="text-center text-2xl font-black leading-tight"
                       style={{ fontFamily: "'Caveat', cursive" }}
                     >
-                      <span className="text-white/50">Au tour de</span>{' '}
-                      <span style={{ color: accent }}>
-                        {gamePlayers.find((p) => p.player_id === currentTurnPlayerId)?.player_name ??
-                          '…'}
+                      <span className="text-white/55">Au tour de</span>{' '}
+                      <span
+                        style={{
+                          color: accent,
+                          textShadow: `0 2px 8px ${accent}66`,
+                        }}
+                      >
+                        {gamePlayers.find(
+                          (p) => p.player_id === currentTurnPlayerId,
+                        )?.player_name ?? '…'}
                       </span>
                     </p>
                   )}
@@ -788,19 +1008,25 @@ export const UndercoverGameScreen = memo(
               {game.phase === 'discussion' && (
                 <div className="space-y-3 text-center">
                   <p
-                    className="text-2xl font-black"
-                    style={{ fontFamily: "'Caveat', cursive", color: accent }}
+                    className="text-3xl font-black leading-none text-white"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow: GRAFFITI_TEXT_SHADOW,
+                    }}
                   >
                     Trouvez l'imposteur !
                   </p>
-                  <p className="text-xs text-white/50">
+                  <p
+                    className="text-sm text-white/60 font-bold"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
                     Discutez ensemble et démasquez l'undercover.
                   </p>
                   {currentPlayer.isHost && (
-                    <DoodleButton onClick={startVoting} color="#ff5050">
+                    <CartoonButton onClick={startVoting} color="#ef4444">
                       Passer au vote
-                      <Vote className="w-4 h-4" />
-                    </DoodleButton>
+                      <Vote className="w-4 h-4" strokeWidth={2.5} />
+                    </CartoonButton>
                   )}
                 </div>
               )}
@@ -810,60 +1036,116 @@ export const UndercoverGameScreen = memo(
                 <>
                   {!myPlayer?.is_alive ? (
                     <div className="text-center space-y-2">
-                      <Skull className="w-10 h-10 mx-auto text-white/40" />
-                      <p
-                        className="text-lg font-black"
-                        style={{ fontFamily: "'Caveat', cursive", color: 'white' }}
+                      <motion.div
+                        animate={{ rotate: [-3, 3, -3] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center"
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #6b7280, #374151)',
+                          border: '3px solid #0a0810',
+                          boxShadow: '0 4px 0 #0a0810',
+                        }}
                       >
-                        Vous êtes éliminé
+                        <Skull
+                          className="w-7 h-7 text-white"
+                          strokeWidth={2.5}
+                        />
+                      </motion.div>
+                      <p
+                        className="text-2xl font-black text-white leading-none"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW,
+                        }}
+                      >
+                        Tu es éliminé
                       </p>
-                      <p className="text-xs text-white/50">Vous observez le vote.</p>
+                      <p
+                        className="text-sm text-white/60 font-bold"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        Tu observes le vote.
+                      </p>
                     </div>
                   ) : hasVoted ? (
                     <div className="text-center space-y-2">
-                      <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-400" />
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: 'spring', stiffness: 280, damping: 16 }}
+                        className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center"
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #34d399, #059669)',
+                          border: '3px solid #0a0810',
+                          boxShadow: '0 4px 0 #0a0810',
+                        }}
+                      >
+                        <CheckCircle2
+                          className="w-7 h-7 text-white"
+                          strokeWidth={2.5}
+                        />
+                      </motion.div>
                       <p
-                        className="text-lg font-black"
-                        style={{ fontFamily: "'Caveat', cursive", color: '#10b981' }}
+                        className="text-2xl font-black text-white leading-none"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW,
+                        }}
                       >
                         Vote enregistré !
                       </p>
-                      <p className="text-xs text-white/50">En attente des autres…</p>
+                      <p
+                        className="text-sm text-white/60 font-bold"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        En attente des autres…
+                      </p>
                     </div>
                   ) : selectedVote ? (
                     <div className="space-y-3 text-center">
                       <p
-                        className="text-lg font-black"
+                        className="text-2xl font-black leading-tight"
                         style={{ fontFamily: "'Caveat', cursive" }}
                       >
-                        Éliminer{' '}
-                        <span style={{ color: '#ff5050' }}>
-                          {gamePlayers.find((p) => p.player_id === selectedVote)?.player_name}
+                        <span className="text-white/85">Éliminer</span>{' '}
+                        <span
+                          style={{
+                            color: '#ef4444',
+                            textShadow: '0 2px 8px rgba(239,68,68,0.4)',
+                          }}
+                        >
+                          {gamePlayers.find(
+                            (p) => p.player_id === selectedVote,
+                          )?.player_name}
                         </span>{' '}
-                        ?
+                        <span className="text-white/85">?</span>
                       </p>
                       <div className="flex gap-2">
-                        <DoodleButton
+                        <CartoonButton
                           onClick={() => setSelectedVote(null)}
-                          color="rgba(255,255,255,0.4)"
-                          variant="outline"
+                          color="#6b7280"
                           className="flex-1"
                         >
                           Annuler
-                        </DoodleButton>
-                        <DoodleButton
+                        </CartoonButton>
+                        <CartoonButton
                           onClick={handleVote}
-                          color="#ff5050"
+                          color="#ef4444"
                           className="flex-1"
                         >
                           Confirmer
-                        </DoodleButton>
+                        </CartoonButton>
                       </div>
                     </div>
                   ) : (
                     <p
-                      className="text-center text-lg font-black"
-                      style={{ fontFamily: "'Caveat', cursive", color: accent }}
+                      className="text-center text-2xl font-black leading-none text-white"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        textShadow: GRAFFITI_TEXT_SHADOW,
+                      }}
                     >
                       Clique sur un joueur pour voter
                     </p>
@@ -892,44 +1174,64 @@ export const UndercoverGameScreen = memo(
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 14 }}
-                    className="mx-auto w-20 h-20 relative"
+                    transition={{
+                      type: 'spring',
+                      stiffness: 220,
+                      damping: 14,
+                    }}
+                    className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center"
+                    style={{
+                      background:
+                        'linear-gradient(135deg, #fbbf24, #d97706)',
+                      border: '4px solid #0a0810',
+                      boxShadow:
+                        '0 5px 0 #0a0810, 0 10px 24px rgba(251,191,36,0.5)',
+                    }}
                   >
-                    <DoodleOval color="#fbbf24" filled />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Crown className="w-9 h-9 text-amber-400" fill="currentColor" />
-                    </div>
+                    <Crown
+                      className="w-10 h-10 text-white"
+                      fill="currentColor"
+                      strokeWidth={2}
+                    />
                   </motion.div>
                   <h3
-                    className="text-3xl font-black leading-tight"
-                    style={{ fontFamily: "'Caveat', cursive", color: '#fbbf24' }}
+                    className="text-4xl font-black leading-none text-white"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow: GRAFFITI_TEXT_SHADOW,
+                    }}
                   >
                     {game.winner_role === 'civilian'
                       ? 'Victoire des Civils !'
                       : 'Victoire des Infiltrés !'}
                   </h3>
-                  <div className="text-xs text-white/60 space-y-0.5">
+                  <div
+                    className="space-y-1 text-base font-bold text-white/80"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
                     <p>
                       Mot civil :{' '}
-                      <span className="font-black text-white">{game.civilian_word}</span>
+                      <span className="text-white">{game.civilian_word}</span>
                     </p>
                     <p>
                       Mot undercover :{' '}
-                      <span className="font-black text-white">{game.undercover_word}</span>
+                      <span className="text-white">
+                        {game.undercover_word}
+                      </span>
                     </p>
                   </div>
-                  <DoodleButton onClick={onEndGame} color="#fbbf24">
+                  <CartoonButton onClick={onEndGame} color="#fbbf24">
                     Retour au lobby
-                  </DoodleButton>
+                  </CartoonButton>
                 </div>
               )}
             </div>
-          </div>
+          </CartoonCard>
         </div>
 
-        {/* "VOIR MON MOT" — fixed bottom button (above music bar) */}
+        {/* ============= "VOIR MON MOT" — fixed bottom button ============= */}
         {!isGameOver && (
-          <div className="fixed bottom-[88px] left-1/2 -translate-x-1/2 z-30 w-[min(92vw,500px)]">
+          <div className="fixed bottom-[88px] left-1/2 -translate-x-1/2 z-30 w-[min(92vw,500px)] px-4">
             <motion.button
               type="button"
               onClick={() => {
@@ -940,16 +1242,24 @@ export const UndercoverGameScreen = memo(
                 setShowWord((v) => !v);
                 if (!showWord) setShowWordModal(true);
               }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="relative w-full px-6 py-4"
+              whileHover={{ scale: 1.03, rotate: -1 }}
+              whileTap={{ scale: 0.97 }}
+              className="relative w-full px-6 py-4 rounded-2xl"
+              style={{
+                background: `linear-gradient(180deg, ${accent}, ${accent}cc)`,
+                border: '4px solid #0a0810',
+                boxShadow:
+                  '0 6px 0 #0a0810, 0 10px 24px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.25)',
+              }}
             >
-              <DoodleBorder color={accent} filled rotation={-1} />
               <div className="relative flex items-center justify-center gap-3">
-                <Eye className="w-5 h-5" style={{ color: accent }} />
+                <Eye className="w-6 h-6 text-white" strokeWidth={2.5} />
                 <span
-                  className="text-2xl font-black"
-                  style={{ fontFamily: "'Caveat', cursive", color: accent }}
+                  className="text-2xl font-black text-white leading-none"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    textShadow: GRAFFITI_TEXT_SHADOW,
+                  }}
                 >
                   Voir mon mot
                 </span>
@@ -958,7 +1268,7 @@ export const UndercoverGameScreen = memo(
           </div>
         )}
 
-        {/* WORD MODAL */}
+        {/* ============= WORD MODAL ============= */}
         <AnimatePresence>
           {showWordModal && (
             <motion.div
@@ -979,71 +1289,106 @@ export const UndercoverGameScreen = memo(
                 exit={{ opacity: 0, scale: 0.7, rotate: 8 }}
                 transition={{ type: 'spring', damping: 16, stiffness: 220 }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-md px-8 py-10 text-center"
+                className="relative w-full max-w-md"
               >
-                <DoodleBorder color={accent} filled rotation={-2} />
-
-                <div className="relative space-y-4">
-                  <div className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-bold">
-                    Ton mot secret
-                  </div>
-
-                  <div className="py-4">
-                    {myPlayer?.word ? (
-                      <motion.div
-                        key={showWord ? 'shown' : 'hidden'}
-                        initial={{ scale: 0.8, opacity: 0, rotate: -5 }}
-                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                        className="text-5xl md:text-6xl font-black tracking-wide"
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          color: accent,
-                          textShadow: `0 4px 20px ${accent}88`,
-                        }}
-                      >
-                        {myPlayer.word.toUpperCase()}
-                      </motion.div>
-                    ) : (
-                      <div className="space-y-2">
-                        <HelpCircle className="w-12 h-12 mx-auto text-amber-400" />
-                        <div
-                          className="text-3xl font-black"
-                          style={{ fontFamily: "'Caveat', cursive", color: '#f59e0b' }}
-                        >
-                          ???
-                        </div>
-                        <p className="text-xs text-white/50">
-                          Tu es Mr White. Improvise !
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowWordModal(false);
-                        if (game.phase === 'word_reveal' && !hasSeenWord) {
-                          confirmWordSeen();
-                        }
-                      }}
-                      className="relative px-6 py-3"
+                <CartoonCard accent={accent} className="px-8 py-10 text-center">
+                  <Sparkles
+                    className="absolute top-3 left-4 w-4 h-4 z-10"
+                    style={{
+                      color: '#fbbf24',
+                      filter: 'drop-shadow(1px 1px 0 #0a0810)',
+                    }}
+                  />
+                  <Sparkles
+                    className="absolute top-3 right-4 w-4 h-4 z-10"
+                    style={{
+                      color: '#f472b6',
+                      filter: 'drop-shadow(1px 1px 0 #0a0810)',
+                    }}
+                  />
+                  <div className="relative space-y-4">
+                    <div
+                      className="text-[10px] uppercase tracking-[0.3em] text-white/55 font-black"
+                      style={{ fontFamily: "'Caveat', cursive" }}
                     >
-                      <DoodleBorder color="white" />
-                      <span
-                        className="relative text-base font-black"
-                        style={{ fontFamily: "'Caveat', cursive", color: 'white' }}
-                      >
-                        {game.phase === 'word_reveal' && !hasSeenWord ? "J'ai vu, c'est bon !" : 'Cacher'}
-                      </span>
-                    </button>
-                  </div>
+                      Ton mot secret
+                    </div>
 
-                  <p className="text-[10px] text-white/30 italic">
-                    Personne d'autre ne le voit. Garde-le secret.
-                  </p>
-                </div>
+                    <div className="py-4">
+                      {myPlayer?.word ? (
+                        <motion.div
+                          key={showWord ? 'shown' : 'hidden'}
+                          initial={{ scale: 0.8, opacity: 0, rotate: -5 }}
+                          animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                          className="text-6xl md:text-7xl font-black tracking-wide leading-none text-white"
+                          style={{
+                            fontFamily: "'Caveat', cursive",
+                            textShadow: `${GRAFFITI_TEXT_SHADOW}, 0 4px 20px ${accent}88`,
+                          }}
+                        >
+                          {myPlayer.word.toUpperCase()}
+                        </motion.div>
+                      ) : (
+                        <div className="space-y-2">
+                          <motion.div
+                            animate={{ rotate: [-5, 5, -5] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center"
+                            style={{
+                              background:
+                                'linear-gradient(135deg, #fbbf24, #d97706)',
+                              border: '3px solid #0a0810',
+                              boxShadow: '0 4px 0 #0a0810',
+                            }}
+                          >
+                            <HelpCircle
+                              className="w-7 h-7 text-white"
+                              strokeWidth={2.5}
+                            />
+                          </motion.div>
+                          <div
+                            className="text-4xl font-black leading-none text-white"
+                            style={{
+                              fontFamily: "'Caveat', cursive",
+                              textShadow: GRAFFITI_TEXT_SHADOW,
+                            }}
+                          >
+                            ???
+                          </div>
+                          <p
+                            className="text-sm text-amber-300 font-bold"
+                            style={{ fontFamily: "'Caveat', cursive" }}
+                          >
+                            Tu es Mr White. Improvise !
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2">
+                      <CartoonButton
+                        onClick={() => {
+                          setShowWordModal(false);
+                          if (game.phase === 'word_reveal' && !hasSeenWord) {
+                            confirmWordSeen();
+                          }
+                        }}
+                        color={accent}
+                      >
+                        {game.phase === 'word_reveal' && !hasSeenWord
+                          ? "J'ai vu, c'est bon !"
+                          : 'Cacher'}
+                      </CartoonButton>
+                    </div>
+
+                    <p
+                      className="text-xs text-white/40 italic font-bold"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      Personne d'autre ne le voit. Garde-le secret.
+                    </p>
+                  </div>
+                </CartoonCard>
               </motion.div>
             </motion.div>
           )}
@@ -1052,8 +1397,8 @@ export const UndercoverGameScreen = memo(
         <style>{`
           .custom-scrollbar::-webkit-scrollbar { height: 6px; }
           .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-          .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-          .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.4); border-radius: 3px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.6); }
         `}</style>
       </div>
     );
@@ -1062,52 +1407,9 @@ export const UndercoverGameScreen = memo(
 
 UndercoverGameScreen.displayName = 'UndercoverGameScreen';
 
-/* ---------- DoodleButton helper ---------- */
-
-const DoodleButton = ({
-  children,
-  onClick,
-  color,
-  disabled = false,
-  variant = 'filled',
-  className = '',
-  compact = false,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  color: string;
-  disabled?: boolean;
-  variant?: 'filled' | 'outline';
-  className?: string;
-  compact?: boolean;
-}) => (
-  <motion.button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    whileHover={!disabled ? { scale: 1.02, y: -1 } : undefined}
-    whileTap={!disabled ? { scale: 0.98 } : undefined}
-    className={cn(
-      'relative px-5 py-3 inline-flex items-center justify-center gap-2 transition-opacity',
-      compact && 'px-3 py-2',
-      disabled && 'opacity-40 cursor-not-allowed',
-      className,
-    )}
-  >
-    <DoodleBorder color={color} filled={variant === 'filled'} rotation={-1} />
-    <span
-      className="relative text-base font-black"
-      style={{
-        fontFamily: "'Caveat', cursive",
-        color: variant === 'filled' ? color : color,
-      }}
-    >
-      {children}
-    </span>
-  </motion.button>
-);
-
-/* ---------- VoteResultBlock ---------- */
+/* ============================================================
+   VoteResultBlock
+============================================================ */
 
 const VoteResultBlock = ({
   game,
@@ -1137,18 +1439,29 @@ const VoteResultBlock = ({
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 220, damping: 14 }}
-            className="mx-auto w-16 h-16 relative"
+            className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+              border: '4px solid #0a0810',
+              boxShadow:
+                '0 5px 0 #0a0810, 0 10px 24px rgba(239,68,68,0.5)',
+            }}
           >
-            <DoodleOval color="#ff5050" filled />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Skull className="w-7 h-7 text-rose-400" />
-            </div>
+            <Skull className="w-8 h-8 text-white" strokeWidth={2.5} />
           </motion.div>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/40 font-bold">Éliminé</p>
+            <p
+              className="text-[11px] uppercase tracking-[0.2em] text-white/55 font-black"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              Éliminé
+            </p>
             <h3
-              className="text-2xl font-black leading-tight"
-              style={{ fontFamily: "'Caveat', cursive", color: 'white' }}
+              className="text-3xl font-black leading-none text-white"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                textShadow: GRAFFITI_TEXT_SHADOW,
+              }}
             >
               {eliminatedName}
             </h3>
@@ -1156,38 +1469,58 @@ const VoteResultBlock = ({
               <div
                 className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full"
                 style={{
-                  background: `${eliminatedRole.color}20`,
-                  border: `1px solid ${eliminatedRole.color}60`,
-                  color: eliminatedRole.color,
+                  background: `linear-gradient(180deg, ${eliminatedRole.color}, ${eliminatedRole.color}cc)`,
+                  border: '2px solid #0a0810',
+                  boxShadow: '0 2px 0 #0a0810',
                 }}
               >
-                <eliminatedRole.icon className="w-3.5 h-3.5" />
-                <span className="text-xs font-bold">{eliminatedRole.label}</span>
+                <eliminatedRole.icon
+                  className="w-3.5 h-3.5 text-white"
+                  strokeWidth={2.5}
+                />
+                <span
+                  className="text-sm font-black uppercase tracking-wider text-white leading-none"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                  }}
+                >
+                  {eliminatedRole.label}
+                </span>
               </div>
             )}
           </div>
         </>
       ) : (
         <>
-          <div className="mx-auto w-16 h-16 relative">
-            <DoodleOval color="rgba(255,255,255,0.3)" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <X className="w-7 h-7 text-white/50" />
-            </div>
-          </div>
+          <motion.div
+            animate={{ rotate: [-5, 5, -5] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #6b7280, #374151)',
+              border: '3px solid #0a0810',
+              boxShadow: '0 4px 0 #0a0810',
+            }}
+          >
+            <X className="w-8 h-8 text-white" strokeWidth={3} />
+          </motion.div>
           <h3
-            className="text-xl font-black"
-            style={{ fontFamily: "'Caveat', cursive" }}
+            className="text-2xl font-black leading-none text-white"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              textShadow: GRAFFITI_TEXT_SHADOW,
+            }}
           >
             Égalité — personne éliminé
           </h3>
         </>
       )}
       {isHost && (
-        <DoodleButton onClick={onNext} color={accent}>
+        <CartoonButton onClick={onNext} color={accent}>
           Manche suivante
-          <ArrowRight className="w-4 h-4" />
-        </DoodleButton>
+          <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
+        </CartoonButton>
       )}
     </div>
   );
