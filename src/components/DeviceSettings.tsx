@@ -1,37 +1,57 @@
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Mic, Video, Settings, RefreshCw, User, Volume2, VolumeX, Music, X } from "lucide-react";
-import { useMediaDevices, MediaDeviceInfo } from "@/hooks/useMediaDevices";
+import {
+  Mic,
+  Settings as SettingsIcon,
+  RefreshCw,
+  User,
+  Volume2,
+  VolumeX,
+  Music,
+  X,
+  Sparkles,
+  Sliders,
+} from "lucide-react";
+import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSoundEffectsVolume } from "@/hooks/useSoundEffectsVolume";
-import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useInkMode } from "@/hooks/useInkMode";
 import { AvatarSettings } from "@/components/AvatarSettings";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+
 interface DeviceSettingsProps {
   onClose?: () => void;
+  /** Kept for backward compatibility, no longer used (camera section removed) */
   showPreview?: boolean;
   playerId?: string;
   playerName?: string;
   lobbyId?: string;
 }
 
-export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerName, lobbyId }: DeviceSettingsProps) => {
+const GRAFFITI_TEXT_SHADOW =
+  "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810";
+const GRAFFITI_TEXT_SHADOW_SM =
+  "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810";
+
+type Tab = "audio" | "volume" | "avatar";
+
+export const DeviceSettings = ({
+  onClose,
+  playerId,
+  playerName,
+}: DeviceSettingsProps) => {
+  const { isInkMode } = useInkMode();
   const {
     audioInputs,
-    videoInputs,
     selectedAudioId,
-    selectedVideoId,
     isLoading,
     error,
-    stream,
     getMediaStream,
     stopStream,
     changeAudioInput,
-    changeVideoInput,
     reloadDevices,
   } = useMediaDevices();
 
@@ -44,101 +64,215 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
     toggleNoiseSuppression,
   } = useMicrophoneTest({ selectedAudioId });
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPreviewActive, setIsPreviewActive] = useState(false);
+  const showAvatarTab = !!(playerId && playerName);
+  const [activeTab, setActiveTab] = useState<Tab>("audio");
 
-  // Start preview
-  const startPreview = async () => {
-    const mediaStream = await getMediaStream();
-    if (mediaStream && videoRef.current) {
-      videoRef.current.srcObject = mediaStream;
-      setIsPreviewActive(true);
-    }
-  };
+  const tabs: { id: Tab; label: string; icon: any; color: string }[] = [
+    { id: "audio", label: "Audio", icon: Mic, color: "#a855f7" },
+    { id: "volume", label: "Volume", icon: Sliders, color: "#fbbf24" },
+    ...(showAvatarTab
+      ? [{ id: "avatar" as Tab, label: "Avatar", icon: User, color: "#06b6d4" }]
+      : []),
+  ];
 
-  // Stop preview
-  const handleStopPreview = () => {
-    stopStream();
-    setIsPreviewActive(false);
-  };
-
-  // Update video preview when stream changes
-  useEffect(() => {
-    if (stream && videoRef.current && isPreviewActive) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream, isPreviewActive]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopStream();
-    };
-  }, []);
-
-  const showAvatarTab = playerId && playerName;
-
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl">
-      {/* Decorative top accent */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
-      <div className="pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
-
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
-            <Settings className="h-5 w-5" />
+  /* =========================================================
+     LEGACY (NON-INK) RENDER — minimal kept for fallback
+  ========================================================= */
+  if (!isInkMode) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
+              <SettingsIcon className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold leading-tight">Paramètres</h3>
+              <p className="text-xs text-muted-foreground">Audio · Volume</p>
+            </div>
           </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <div className="max-h-[70vh] overflow-y-auto p-5 space-y-4">
+          <AudioSection
+            audioInputs={audioInputs}
+            selectedAudioId={selectedAudioId}
+            isLoading={isLoading}
+            error={error}
+            onGetMediaStream={getMediaStream}
+            onStopStream={stopStream}
+            onChangeAudioInput={changeAudioInput}
+            isMicTesting={isMicTesting}
+            audioLevel={audioLevel}
+            noiseSuppressionEnabled={noiseSuppressionEnabled}
+            onStartMicTest={startMicTest}
+            onStopMicTest={stopMicTest}
+            onToggleNoiseSuppression={toggleNoiseSuppression}
+          />
+          <VolumeSection />
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================================================
+     INK CARTOON RENDER — la bonne DA
+  ========================================================= */
+  return (
+    <div className="relative">
+      {/* HEADER */}
+      <div
+        className="relative px-5 py-4 flex items-center justify-between flex-shrink-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))",
+          borderBottom: "3px solid #0a0810",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <motion.div
+            animate={{ rotate: [-5, 5, -5] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="w-12 h-12 rounded-2xl flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)",
+              border: "3px solid #0a0810",
+              boxShadow:
+                "0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)",
+            }}
+          >
+            <SettingsIcon className="h-5 w-5 text-white" strokeWidth={2.5} />
+          </motion.div>
           <div>
-            <h3 className="text-lg font-bold leading-tight">Paramètres</h3>
-            <p className="text-xs text-muted-foreground">Audio · Vidéo · Avatar</p>
+            <h3
+              className="text-3xl font-black text-white leading-none"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                textShadow: GRAFFITI_TEXT_SHADOW,
+              }}
+            >
+              Paramètres
+            </h3>
+            <p
+              className="text-sm text-purple-200/80 font-bold mt-0.5"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              Audio · Volume{showAvatarTab ? " · Avatar" : ""}
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={reloadDevices} disabled={isLoading} title="Recharger les appareils">
-            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-          </Button>
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={reloadDevices}
+            disabled={isLoading}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+            style={{
+              background: "rgba(168,85,247,0.18)",
+              border: "2.5px solid #0a0810",
+              boxShadow: "0 3px 0 #0a0810",
+            }}
+            title="Recharger les appareils"
+          >
+            <RefreshCw
+              className={cn("h-4 w-4", isLoading && "animate-spin")}
+              strokeWidth={2.5}
+            />
+          </motion.button>
           {onClose && (
-            <Button variant="ghost" size="icon" onClick={onClose} title="Fermer">
-              <X className="h-4 w-4" />
-            </Button>
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onClose}
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+              style={{
+                background: "rgba(239,68,68,0.25)",
+                border: "2.5px solid #0a0810",
+                boxShadow: "0 3px 0 #0a0810",
+              }}
+              title="Fermer (Esc)"
+            >
+              <X className="w-5 h-5" strokeWidth={3} />
+            </motion.button>
           )}
         </div>
       </div>
 
-      <div className="max-h-[75vh] overflow-y-auto px-6 py-5 space-y-5">
-        {showAvatarTab ? (
-          <Tabs defaultValue="devices" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-background/60 p-1">
-              <TabsTrigger value="devices" className="gap-2">
-                <Settings className="h-4 w-4" />
-                Audio/Vidéo
-              </TabsTrigger>
-              <TabsTrigger value="avatar" className="gap-2">
-                <User className="h-4 w-4" />
-                Avatar
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="devices" className="mt-4 space-y-6">
-              <DeviceSettingsContent
+      {/* TABS — graffiti pills */}
+      <div
+        className="relative flex gap-1.5 px-3 py-2.5 flex-shrink-0"
+        style={{ borderBottom: "3px solid #0a0810" }}
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <motion.button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              whileHover={{ scale: isActive ? 1 : 1.04, y: isActive ? 0 : -2 }}
+              whileTap={{ scale: 0.96 }}
+              animate={isActive ? { rotate: -2 } : { rotate: 0 }}
+              className="relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-2xl"
+              style={{
+                background: isActive
+                  ? `linear-gradient(180deg, ${tab.color}, ${tab.color}cc)`
+                  : "rgba(255,255,255,0.04)",
+                border: "2.5px solid #0a0810",
+                boxShadow: isActive ? "0 4px 0 #0a0810" : "0 2px 0 #0a0810",
+              }}
+            >
+              <Icon
+                className={cn(
+                  "h-4 w-4",
+                  isActive ? "text-white" : "text-white/60",
+                )}
+                strokeWidth={2.5}
+              />
+              <span
+                className={cn(
+                  "text-base font-black leading-none",
+                  isActive ? "text-white" : "text-white/60",
+                )}
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  textShadow: isActive ? GRAFFITI_TEXT_SHADOW_SM : "none",
+                }}
+              >
+                {tab.label}
+              </span>
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {/* SCROLL ZONE */}
+      <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-5 relative">
+        <AnimatePresence mode="wait">
+          {activeTab === "audio" && (
+            <motion.div
+              key="audio"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <AudioSection
                 audioInputs={audioInputs}
-                videoInputs={videoInputs}
                 selectedAudioId={selectedAudioId}
-                selectedVideoId={selectedVideoId}
                 isLoading={isLoading}
                 error={error}
-                showPreview={showPreview}
-                isPreviewActive={isPreviewActive}
-                videoRef={videoRef}
-                onReloadDevices={reloadDevices}
                 onGetMediaStream={getMediaStream}
                 onStopStream={stopStream}
                 onChangeAudioInput={changeAudioInput}
-                onChangeVideoInput={changeVideoInput}
-                onStartPreview={startPreview}
-                onStopPreview={handleStopPreview}
                 isMicTesting={isMicTesting}
                 audioLevel={audioLevel}
                 noiseSuppressionEnabled={noiseSuppressionEnabled}
@@ -146,68 +280,77 @@ export const DeviceSettings = ({ onClose, showPreview = true, playerId, playerNa
                 onStopMicTest={stopMicTest}
                 onToggleNoiseSuppression={toggleNoiseSuppression}
               />
-            </TabsContent>
-            
-            <TabsContent value="avatar" className="mt-4">
+            </motion.div>
+          )}
+          {activeTab === "volume" && (
+            <motion.div
+              key="volume"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <VolumeSection />
+            </motion.div>
+          )}
+          {activeTab === "avatar" && showAvatarTab && (
+            <motion.div
+              key="avatar"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="rounded-2xl p-4"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
+                border: "3px solid #0a0810",
+                boxShadow: "0 3px 0 #0a0810",
+              }}
+            >
               <AvatarSettings playerId={playerId} playerName={playerName} />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <DeviceSettingsContent
-              audioInputs={audioInputs}
-              videoInputs={videoInputs}
-              selectedAudioId={selectedAudioId}
-              selectedVideoId={selectedVideoId}
-              isLoading={isLoading}
-              error={error}
-              showPreview={showPreview}
-              isPreviewActive={isPreviewActive}
-              videoRef={videoRef}
-              onReloadDevices={reloadDevices}
-              onGetMediaStream={getMediaStream}
-              onStopStream={stopStream}
-              onChangeAudioInput={changeAudioInput}
-              onChangeVideoInput={changeVideoInput}
-              onStartPreview={startPreview}
-              onStopPreview={handleStopPreview}
-              isMicTesting={isMicTesting}
-              audioLevel={audioLevel}
-              noiseSuppressionEnabled={noiseSuppressionEnabled}
-              onStartMicTest={startMicTest}
-              onStopMicTest={stopMicTest}
-              onToggleNoiseSuppression={toggleNoiseSuppression}
-          />
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
+      {/* FOOTER — close button */}
       {onClose && (
-        <div className="border-t border-border/60 px-6 py-3">
-          <Button onClick={onClose} variant="hero" className="w-full">
+        <div className="px-5 py-3" style={{ borderTop: "3px solid #0a0810" }}>
+          <motion.button
+            whileHover={{ scale: 1.02, rotate: -1 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onClose}
+            className="w-full py-3 rounded-2xl text-2xl font-black text-white"
+            style={{
+              background:
+                "linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)",
+              border: "3px solid #0a0810",
+              boxShadow:
+                "0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)",
+              fontFamily: "'Caveat', cursive",
+              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+            }}
+          >
             Fermer
-          </Button>
+          </motion.button>
         </div>
       )}
     </div>
   );
 };
 
-interface DeviceSettingsContentProps {
-  audioInputs: MediaDeviceInfo[];
-  videoInputs: MediaDeviceInfo[];
+/* ============================================================
+   AUDIO SECTION
+============================================================ */
+interface AudioSectionProps {
+  audioInputs: { deviceId: string; label: string }[];
   selectedAudioId: string;
-  selectedVideoId: string;
   isLoading: boolean;
   error: string | null;
-  showPreview: boolean;
-  isPreviewActive: boolean;
-  videoRef: React.RefObject<HTMLVideoElement>;
-  onReloadDevices: () => void;
-  onGetMediaStream: (constraints?: MediaStreamConstraints) => Promise<MediaStream | null>;
+  onGetMediaStream: (
+    constraints?: MediaStreamConstraints,
+  ) => Promise<MediaStream | null>;
   onStopStream: () => void;
   onChangeAudioInput: (deviceId: string) => void;
-  onChangeVideoInput: (deviceId: string) => void;
-  onStartPreview: () => void;
-  onStopPreview: () => void;
   isMicTesting: boolean;
   audioLevel: number;
   noiseSuppressionEnabled: boolean;
@@ -216,272 +359,454 @@ interface DeviceSettingsContentProps {
   onToggleNoiseSuppression: () => void;
 }
 
-const DeviceSettingsContent = ({
+const AudioSection = ({
   audioInputs,
-  videoInputs,
   selectedAudioId,
-  selectedVideoId,
   isLoading,
   error,
-  showPreview,
-  isPreviewActive,
-  videoRef,
-  onReloadDevices,
   onGetMediaStream,
   onStopStream,
   onChangeAudioInput,
-  onChangeVideoInput,
-  onStartPreview,
-  onStopPreview,
   isMicTesting,
   audioLevel,
   noiseSuppressionEnabled,
   onStartMicTest,
   onStopMicTest,
   onToggleNoiseSuppression,
-}: DeviceSettingsContentProps) => {
-  return (
-    <div className="space-y-5">
-      {error && (
-        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-          {error}
-        </div>
-      )}
+}: AudioSectionProps) => (
+  <div className="space-y-4">
+    {error && (
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="rounded-2xl p-3"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(239,68,68,0.18), rgba(127,29,29,0.05))",
+          border: "3px solid #0a0810",
+          boxShadow: "0 3px 0 #0a0810",
+        }}
+      >
+        <p
+          className="text-sm font-black text-red-300"
+          style={{
+            fontFamily: "'Caveat', cursive",
+            textShadow: GRAFFITI_TEXT_SHADOW_SM,
+          }}
+        >
+          ⚠️ {error}
+        </p>
+      </motion.div>
+    )}
 
-      {/* Audio Input Selection */}
-      <section className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
-        <header className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          <Mic className="h-3.5 w-3.5 text-primary" /> Microphone
-        </header>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Choisissez votre entrée audio</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              await onGetMediaStream({ audio: true, video: false });
-              onStopStream();
-            }}
-            disabled={isLoading}
-          >
-            Autoriser
-          </Button>
-        </div>
+    {/* MICROPHONE SECTION */}
+    <CartoonSection
+      icon={Mic}
+      title="Microphone"
+      accent="#a855f7"
+      glow="rgba(168,85,247,0.5)"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span
+          className="text-base font-bold text-white/80"
+          style={{ fontFamily: "'Caveat', cursive" }}
+        >
+          Choisis ton entrée audio
+        </span>
+        <motion.button
+          whileHover={{ scale: 1.05, rotate: -2 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={async () => {
+            await onGetMediaStream({ audio: true, video: false });
+            onStopStream();
+          }}
+          disabled={isLoading}
+          className="px-3 py-1.5 rounded-xl text-base font-black text-white disabled:opacity-50"
+          style={{
+            background: "linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)",
+            border: "2.5px solid #0a0810",
+            boxShadow: "0 3px 0 #0a0810",
+            fontFamily: "'Caveat', cursive",
+            textShadow: GRAFFITI_TEXT_SHADOW_SM,
+          }}
+        >
+          Autoriser
+        </motion.button>
+      </div>
+
+      <div
+        className="rounded-xl"
+        style={{
+          background: "rgba(0,0,0,0.4)",
+          border: "3px solid #0a0810",
+          boxShadow: "inset 0 2px 4px rgba(0,0,0,0.4)",
+        }}
+      >
         <Select
           value={selectedAudioId}
           onValueChange={onChangeAudioInput}
           disabled={isLoading || audioInputs.length === 0}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez un microphone" />
+          <SelectTrigger className="border-0 bg-transparent text-white font-bold h-11">
+            <SelectValue placeholder="Sélectionne un microphone" />
           </SelectTrigger>
           <SelectContent>
             {audioInputs.map((device) => (
               <SelectItem key={device.deviceId} value={device.deviceId}>
-                {device.label}
+                {device.label || "Microphone"}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-
-        {/* Noise Suppression Toggle */}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-card/60 border border-border/60">
-          <div className="flex items-center gap-2">
-            {noiseSuppressionEnabled ? (
-              <VolumeX className="h-4 w-4 text-success" />
-            ) : (
-              <Volume2 className="h-4 w-4 text-foreground-secondary" />
-            )}
-            <span className="text-sm">Suppression de bruit</span>
-          </div>
-          <Switch
-            checked={noiseSuppressionEnabled}
-            onCheckedChange={onToggleNoiseSuppression}
-          />
-        </div>
-
-        {/* Microphone Test */}
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            {!isMicTesting ? (
-              <Button
-                onClick={onStartMicTest}
-                disabled={isLoading || !selectedAudioId}
-                className="flex-1"
-                variant="outline"
-              >
-                <Mic className="h-4 w-4 mr-2" />
-                Tester le Micro
-              </Button>
-            ) : (
-              <Button
-                onClick={onStopMicTest}
-                className="flex-1"
-                variant="destructive"
-              >
-                <VolumeX className="h-4 w-4 mr-2" />
-                Arrêter le Test
-              </Button>
-            )}
-          </div>
-
-          {/* Audio Level Meter */}
-          {isMicTesting && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs text-foreground-secondary">
-                <Volume2 className="h-3 w-3" />
-                <span>Niveau audio</span>
-              </div>
-              <div className="relative h-4 bg-background-secondary rounded-full overflow-hidden border border-glass-border">
-                <div
-                  className={cn(
-                    "h-full transition-all duration-75 rounded-full",
-                    audioLevel > 70 ? "bg-destructive" : audioLevel > 40 ? "bg-warning" : "bg-success"
-                  )}
-                  style={{ width: `${audioLevel}%` }}
-                />
-                {/* Level markers */}
-                <div className="absolute inset-0 flex">
-                  <div className="flex-1 border-r border-background/30" />
-                  <div className="flex-1 border-r border-background/30" />
-                  <div className="flex-1 border-r border-background/30" />
-                  <div className="flex-1" />
-                </div>
-              </div>
-              <p className="text-xs text-center text-foreground-muted">
-                🎧 Parlez dans le micro - vous devriez entendre votre voix
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Video Input Selection */}
-      <section className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-3">
-        <header className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          <Video className="h-3.5 w-3.5 text-primary" /> Caméra
-        </header>
-        <Select
-          value={selectedVideoId}
-          onValueChange={onChangeVideoInput}
-          disabled={isLoading || videoInputs.length === 0}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez une caméra" />
-          </SelectTrigger>
-          <SelectContent>
-            {videoInputs.map((device) => (
-              <SelectItem key={device.deviceId} value={device.deviceId}>
-                {device.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {showPreview && (
-          <div className="space-y-3">
-            <div className="relative bg-black rounded-lg overflow-hidden aspect-video border border-border/60">
-            {isPreviewActive ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-foreground-secondary">
-                <div className="text-center space-y-2">
-                  <Video className="h-12 w-12 mx-auto opacity-50" />
-                  <p>Aperçu de la caméra</p>
-                </div>
-              </div>
-            )}
-            </div>
-
-            <div className="flex gap-3">
-            {!isPreviewActive ? (
-              <Button
-                onClick={onStartPreview}
-                disabled={isLoading || !selectedAudioId || !selectedVideoId}
-                className="flex-1"
-                variant="primary"
-              >
-                <Video className="h-4 w-4" />
-                Tester la Caméra
-              </Button>
-            ) : (
-              <Button
-                onClick={onStopPreview}
-                className="flex-1"
-                variant="outline"
-              >
-                Arrêter l'Aperçu
-              </Button>
-            )}
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Volume Controls */}
-      <VolumeSettings />
-
-      {/* Device Info */}
-      <div className="rounded-xl border border-border/60 bg-background/30 p-3 text-xs text-muted-foreground space-y-1">
-        <p>• {audioInputs.length} microphone(s) détecté(s)</p>
-        <p>• {videoInputs.length} caméra(s) détectée(s)</p>
       </div>
-    </div>
-  );
-};
 
-// Volume Settings Component
-const VolumeSettings = () => {
-  const { volume: musicVolume, setVolume: setMusicVolume } = useBackgroundMusic();
+      {/* Noise suppression — cartoon toggle */}
+      <button
+        type="button"
+        onClick={onToggleNoiseSuppression}
+        className="w-full flex items-center justify-between p-3 rounded-2xl"
+        style={{
+          background: noiseSuppressionEnabled
+            ? "linear-gradient(180deg, rgba(52,211,153,0.18), rgba(5,150,105,0.05))"
+            : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
+          border: "2.5px solid #0a0810",
+          boxShadow: "0 3px 0 #0a0810",
+        }}
+      >
+        <div className="flex items-center gap-2">
+          {noiseSuppressionEnabled ? (
+            <VolumeX className="h-4 w-4 text-emerald-300" />
+          ) : (
+            <Volume2 className="h-4 w-4 text-white/60" />
+          )}
+          <span
+            className="text-base font-black text-white"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+            }}
+          >
+            Suppression de bruit
+          </span>
+        </div>
+        <CartoonSwitch enabled={noiseSuppressionEnabled} />
+      </button>
+
+      {/* Mic test */}
+      <motion.button
+        whileHover={{ scale: 1.02, rotate: -0.5 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={isMicTesting ? onStopMicTest : onStartMicTest}
+        disabled={!isMicTesting && (isLoading || !selectedAudioId)}
+        className="w-full py-3 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white disabled:opacity-50"
+        style={{
+          background: isMicTesting
+            ? "linear-gradient(180deg, #ef4444, #b91c1c)"
+            : "linear-gradient(180deg, #fbbf24, #d97706)",
+          border: "3px solid #0a0810",
+          boxShadow: "0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)",
+          fontFamily: "'Caveat', cursive",
+          textShadow: GRAFFITI_TEXT_SHADOW_SM,
+        }}
+      >
+        {isMicTesting ? (
+          <>
+            <VolumeX className="h-5 w-5" strokeWidth={2.5} /> Arrêter le test
+          </>
+        ) : (
+          <>
+            <Mic className="h-5 w-5" strokeWidth={2.5} /> Tester le micro
+          </>
+        )}
+      </motion.button>
+
+      {/* Audio level meter */}
+      {isMicTesting && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <div
+            className="flex items-center gap-2 text-sm uppercase tracking-wider font-black"
+            style={{
+              color: "#a855f7",
+              fontFamily: "'Caveat', cursive",
+              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+            }}
+          >
+            <Volume2 className="h-3.5 w-3.5" />
+            <span>Niveau audio</span>
+          </div>
+          <div
+            className="relative h-5 rounded-full overflow-hidden"
+            style={{
+              background: "rgba(0,0,0,0.5)",
+              border: "2.5px solid #0a0810",
+              boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div
+              className="h-full transition-all duration-75 rounded-full"
+              style={{
+                width: `${audioLevel}%`,
+                background:
+                  audioLevel > 70
+                    ? "linear-gradient(90deg, #fbbf24, #ef4444)"
+                    : audioLevel > 40
+                      ? "linear-gradient(90deg, #34d399, #fbbf24)"
+                      : "linear-gradient(90deg, #06b6d4, #34d399)",
+                boxShadow: audioLevel > 0 ? "0 0 8px currentColor" : "none",
+              }}
+            />
+          </div>
+          <p
+            className="text-center text-sm font-bold text-white/70"
+            style={{ fontFamily: "'Caveat', cursive" }}
+          >
+            🎤 Parle dans le micro pour voir le niveau
+          </p>
+        </motion.div>
+      )}
+    </CartoonSection>
+
+    {/* DEVICE INFO */}
+    <div
+      className="rounded-2xl p-3 text-base font-bold text-white/55"
+      style={{
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
+        border: "2.5px solid #0a0810",
+        boxShadow: "0 2px 0 #0a0810",
+        fontFamily: "'Caveat', cursive",
+      }}
+    >
+      🎙️ {audioInputs.length} microphone{audioInputs.length > 1 ? "s" : ""}{" "}
+      détecté{audioInputs.length > 1 ? "s" : ""}
+    </div>
+  </div>
+);
+
+/* ============================================================
+   VOLUME SECTION
+============================================================ */
+const VolumeSection = () => {
+  const { volume: musicVolume, setVolume: setMusicVolume } =
+    useBackgroundMusic();
   const { volume: sfxVolume, setVolume: setSfxVolume } = useSoundEffectsVolume();
 
   return (
-    <section className="rounded-xl border border-border/60 bg-background/40 p-4 space-y-4">
-      <header className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-        <Volume2 className="h-3.5 w-3.5 text-primary" /> Volume
-      </header>
-
-      {/* Music Volume */}
+    <CartoonSection
+      icon={Sliders}
+      title="Volumes"
+      accent="#fbbf24"
+      glow="rgba(251,191,36,0.5)"
+    >
+      {/* Music */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm flex items-center gap-2">
-            <Music className="h-4 w-4 text-primary" />
+          <label
+            className="text-lg font-black flex items-center gap-2 text-white"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+            }}
+          >
+            <Music className="h-4 w-4 text-amber-300" />
             Musique
           </label>
-          <span className="text-xs text-foreground-muted">{Math.round(musicVolume * 100)}%</span>
+          <span className="text-sm font-mono font-bold text-amber-200">
+            {Math.round(musicVolume * 100)}%
+          </span>
         </div>
         <Slider
           value={[musicVolume * 100]}
-          onValueChange={(value) => setMusicVolume(value[0] / 100)}
+          onValueChange={(v) => setMusicVolume(v[0] / 100)}
           max={100}
           step={1}
           className="w-full"
         />
       </div>
 
-      {/* SFX Volume */}
+      {/* SFX */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm flex items-center gap-2">
-            <Volume2 className="h-4 w-4 text-accent" />
+          <label
+            className="text-lg font-black flex items-center gap-2 text-white"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+            }}
+          >
+            <Volume2 className="h-4 w-4 text-cyan-300" />
             Effets sonores
           </label>
-          <span className="text-xs text-foreground-muted">{Math.round(sfxVolume * 100)}%</span>
+          <span className="text-sm font-mono font-bold text-cyan-200">
+            {Math.round(sfxVolume * 100)}%
+          </span>
         </div>
         <Slider
           value={[sfxVolume * 100]}
-          onValueChange={(value) => setSfxVolume(value[0] / 100)}
+          onValueChange={(v) => setSfxVolume(v[0] / 100)}
           max={100}
           step={1}
           className="w-full"
         />
       </div>
-    </section>
+
+      {/* Quick presets */}
+      <div className="flex gap-2">
+        <CartoonPresetButton
+          label="Mute"
+          color="#6b7280"
+          onClick={() => {
+            setMusicVolume(0);
+            setSfxVolume(0);
+          }}
+        />
+        <CartoonPresetButton
+          label="Bas"
+          color="#a855f7"
+          onClick={() => {
+            setMusicVolume(0.15);
+            setSfxVolume(0.25);
+          }}
+        />
+        <CartoonPresetButton
+          label="Moyen"
+          color="#06b6d4"
+          onClick={() => {
+            setMusicVolume(0.4);
+            setSfxVolume(0.5);
+          }}
+        />
+        <CartoonPresetButton
+          label="Fort"
+          color="#ef4444"
+          onClick={() => {
+            setMusicVolume(0.8);
+            setSfxVolume(0.8);
+          }}
+        />
+      </div>
+    </CartoonSection>
   );
 };
+
+const CartoonPresetButton = ({
+  label,
+  color,
+  onClick,
+}: {
+  label: string;
+  color: string;
+  onClick: () => void;
+}) => (
+  <motion.button
+    whileHover={{ scale: 1.06, y: -2, rotate: -1 }}
+    whileTap={{ scale: 0.94 }}
+    onClick={onClick}
+    className="flex-1 py-2 rounded-xl text-base font-black text-white"
+    style={{
+      background: `linear-gradient(180deg, ${color}, ${color}cc)`,
+      border: "2.5px solid #0a0810",
+      boxShadow: "0 3px 0 #0a0810",
+      fontFamily: "'Caveat', cursive",
+      textShadow: GRAFFITI_TEXT_SHADOW_SM,
+    }}
+  >
+    {label}
+  </motion.button>
+);
+
+/* ============================================================
+   Cartoon section wrapper
+============================================================ */
+const CartoonSection = ({
+  icon: Icon,
+  title,
+  accent,
+  glow,
+  children,
+}: {
+  icon: any;
+  title: string;
+  accent: string;
+  glow: string;
+  children: React.ReactNode;
+}) => (
+  <motion.section
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="relative rounded-2xl p-4 space-y-3"
+    style={{
+      background:
+        "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
+      border: "3px solid #0a0810",
+      boxShadow: `0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.06)`,
+    }}
+  >
+    {/* Glow halo */}
+    <div
+      className="absolute inset-0 pointer-events-none opacity-40 rounded-2xl"
+      style={{
+        background: `radial-gradient(circle at top, ${glow}, transparent 65%)`,
+      }}
+    />
+    <Sparkles
+      className="absolute -top-2 -right-2 w-4 h-4"
+      style={{
+        color: accent,
+        filter: "drop-shadow(1px 1px 0 #0a0810)",
+      }}
+    />
+    <header className="relative flex items-center gap-2">
+      <motion.div
+        animate={{ rotate: [-3, 3, -3] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        className="w-8 h-8 rounded-xl flex items-center justify-center"
+        style={{
+          background: `linear-gradient(135deg, ${accent}, ${accent}aa)`,
+          border: "2.5px solid #0a0810",
+          boxShadow: "0 2px 0 #0a0810",
+        }}
+      >
+        <Icon className="h-4 w-4 text-white" strokeWidth={2.5} />
+      </motion.div>
+      <span
+        className="text-2xl font-black uppercase tracking-wider text-white leading-none"
+        style={{
+          fontFamily: "'Caveat', cursive",
+          textShadow: GRAFFITI_TEXT_SHADOW_SM,
+        }}
+      >
+        {title}
+      </span>
+    </header>
+    <div className="relative space-y-3">{children}</div>
+  </motion.section>
+);
+
+/* ============================================================
+   Cartoon switch (visual only — controlled by parent button)
+============================================================ */
+const CartoonSwitch = ({ enabled }: { enabled: boolean }) => (
+  <span
+    className="relative inline-flex items-center w-12 h-7 rounded-full transition-colors"
+    style={{
+      background: enabled
+        ? "linear-gradient(180deg, #34d399, #059669)"
+        : "rgba(0,0,0,0.5)",
+      border: "2.5px solid #0a0810",
+      boxShadow: "0 2px 0 #0a0810",
+    }}
+  >
+    <span
+      className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
+      style={{
+        left: enabled ? "calc(100% - 22px)" : "2px",
+        boxShadow: "0 1.5px 0 #0a0810",
+      }}
+    />
+  </span>
+);
