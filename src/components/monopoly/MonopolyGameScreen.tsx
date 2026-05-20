@@ -1,15 +1,43 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Dice1, Home, DollarSign, Building, Landmark, Handshake, CreditCard, AlertTriangle } from 'lucide-react';
-import { GameLogo } from '@/components/GameLogo';
+import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowLeft,
+  Dice5,
+  Home,
+  DollarSign,
+  Building,
+  Landmark,
+  CreditCard,
+  AlertTriangle,
+  Sparkles,
+  Trophy,
+  KeyRound,
+  Scale,
+  Zap,
+  Crown,
+} from 'lucide-react';
 import { MonopolyBoard3DCanvas } from './MonopolyBoard3D';
 import { MonopolyPlayerPanel } from './MonopolyPlayerPanel';
 import { MonopolyPropertyPanel } from './MonopolyPropertyPanel';
 import { MonopolyCardModal } from './MonopolyCardModal';
 import { useMonopolyGame } from '@/hooks/useMonopolyGame';
-import { BOARD_SPACES } from '@/lib/monopolyBoard';
+import { BOARD_SPACES, TOKEN_COLORS, type TokenType } from '@/lib/monopolyBoard';
+import {
+  InkGameStage,
+  InkCard,
+  InkButton,
+  InkPhasePill,
+  InkTitle,
+  InkIconBadge,
+  InkPill,
+  GRAFFITI_TEXT_SHADOW,
+  GRAFFITI_TEXT_SHADOW_SM,
+} from '@/components/ink/InkPrimitives';
+import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+
+const ACCENT = '#ec4899';
+const ACCENT_2 = '#a855f7';
 
 interface Player {
   id: string;
@@ -17,15 +45,102 @@ interface Player {
   isHost: boolean;
 }
 
-interface MonopolyGameScreenProps {
+interface Props {
   currentPlayer: Player;
   players: Player[];
   lobbyId: string;
   onEndGame: () => void;
 }
 
-export const MonopolyGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: MonopolyGameScreenProps) => {
+/* ============================================================
+   Animated Dice — cartoon 3D rolling face
+============================================================ */
+const CartoonDice = ({ value, rolling }: { value: number; rolling: boolean }) => {
+  return (
+    <motion.div
+      animate={
+        rolling
+          ? { rotate: [0, 360, 720, 1080], scale: [1, 1.15, 0.95, 1] }
+          : { rotate: 0, scale: 1 }
+      }
+      transition={{ duration: rolling ? 0.9 : 0.4, ease: 'easeOut' }}
+      className="relative w-14 h-14 rounded-2xl flex items-center justify-center select-none"
+      style={{
+        background: 'linear-gradient(180deg, #fff 0%, #e2e8f0 100%)',
+        border: '3px solid #0a0810',
+        boxShadow:
+          '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(0,0,0,0.1)',
+      }}
+    >
+      <span
+        className="text-3xl font-black leading-none"
+        style={{
+          fontFamily: "'Caveat', cursive",
+          color: '#0a0810',
+          textShadow: '0 2px 0 rgba(0,0,0,0.15)',
+        }}
+      >
+        {value}
+      </span>
+    </motion.div>
+  );
+};
+
+/* ============================================================
+   Money chip — animated cartoon counter
+============================================================ */
+const MoneyChip = ({
+  amount,
+  color = '#fbbf24',
+  size = 'md',
+}: {
+  amount: number;
+  color?: string;
+  size?: 'sm' | 'md' | 'lg';
+}) => {
+  const sizeClass =
+    size === 'lg'
+      ? 'text-2xl px-4 py-2'
+      : size === 'sm'
+        ? 'text-base px-2.5 py-1'
+        : 'text-xl px-3.5 py-1.5';
+  return (
+    <motion.div
+      key={amount}
+      initial={{ scale: 1.1, y: -2 }}
+      animate={{ scale: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-2xl font-black leading-none',
+        sizeClass,
+      )}
+      style={{
+        background: `linear-gradient(180deg, ${color}, ${color}cc)`,
+        border: '2.5px solid #0a0810',
+        boxShadow: '0 3px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.4)',
+        color: 'white',
+        fontFamily: "'Caveat', cursive",
+        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+      }}
+    >
+      <DollarSign className="w-4 h-4" strokeWidth={3} />
+      {amount}
+    </motion.div>
+  );
+};
+
+/* ============================================================
+   MAIN SCREEN
+============================================================ */
+export const MonopolyGameScreen = ({
+  currentPlayer,
+  players,
+  lobbyId,
+  onEndGame,
+}: Props) => {
   const [showProperties, setShowProperties] = useState(false);
+  const [diceRolling, setDiceRolling] = useState(false);
+
   const {
     game,
     mPlayers,
@@ -47,210 +162,536 @@ export const MonopolyGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     declareBankruptcy,
   } = useMonopolyGame(lobbyId, currentPlayer, players);
 
+  /* ----- Synchronized SFX on phase + dice changes ----- */
+  useEffect(() => {
+    if (!game) return;
+    if (game.phase === 'rolling' && isMyTurn) playInkSound('cartoonWobble', 0.35);
+    else if (game.phase === 'buying') playInkSound('cartoonDing', 0.4);
+    else if (game.phase === 'card') playInkSound('cartoonSwoosh', 0.4);
+    else if (game.phase === 'bankrupt') playInkSound('cartoonZap', 0.5);
+    else if (game.phase === 'finished') playInkSound('cartoonFanfare', 0.55);
+  }, [game?.phase, isMyTurn, game]);
+
+  useEffect(() => {
+    if (game?.last_dice_1 && game?.last_dice_2) {
+      setDiceRolling(true);
+      playInkSound('cartoonBoing', 0.4);
+      const t = setTimeout(() => setDiceRolling(false), 900);
+      return () => clearTimeout(t);
+    }
+  }, [game?.last_dice_1, game?.last_dice_2]);
+
+  const turnPlayerColor = useMemo(() => {
+    if (!currentTurnPlayer) return ACCENT;
+    return TOKEN_COLORS[currentTurnPlayer.token_type as TokenType] || ACCENT;
+  }, [currentTurnPlayer]);
+
+  const handleRoll = () => {
+    playInkSound('cartoonBoing', 0.5);
+    rollDice();
+  };
+
+  const handleBuy = () => {
+    playInkSound('cartoonDing', 0.5);
+    buyProperty();
+  };
+
+  const handleSkip = () => {
+    playInkSound('inkClick', 0.3);
+    skipBuy();
+  };
+
+  const handleCard = () => {
+    playInkSound('cartoonSwoosh', 0.4);
+    executeCard();
+  };
+
+  const handleBankrupt = () => {
+    playInkSound('cartoonZap', 0.55);
+    declareBankruptcy();
+  };
+
+  const handleJailCard = () => {
+    playInkSound('cartoonDing', 0.4);
+    useJailCard();
+  };
+
+  const handlePayJail = () => {
+    playInkSound('cartoonPop', 0.4);
+    payJailFine();
+  };
+
+  /* ============================================================
+     LOADING
+  ============================================================ */
   if (!game || mPlayers.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-emerald-950 to-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <GameLogo size="lg" />
-          <div className="w-12 h-12 mx-auto rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <p className="text-muted-foreground">Préparation du plateau...</p>
+      <InkGameStage accent={ACCENT}>
+        <div className="min-h-screen flex items-center justify-center px-6">
+          <InkCard accent={ACCENT} className="p-8 text-center max-w-md w-full" highlighted>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+              className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+              style={{
+                background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT_2})`,
+                border: '3px solid #0a0810',
+                boxShadow: '0 4px 0 #0a0810',
+              }}
+            >
+              <Landmark className="w-8 h-8 text-white" strokeWidth={2.5} />
+            </motion.div>
+            <InkTitle size="lg">PRÉPARATION</InkTitle>
+            <p
+              className="text-base text-white/70 mt-2 font-bold"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              Le plateau se met en place...
+            </p>
+          </InkCard>
         </div>
-      </div>
+      </InkGameStage>
     );
   }
 
+  /* ============================================================
+     END SCREEN
+  ============================================================ */
   if (game.is_finished) {
+    const ranked = [...mPlayers].sort((a, b) => b.money - a.money);
     return (
-      <div className="min-h-screen bg-gradient-to-b from-emerald-950 to-background flex items-center justify-center p-6">
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-center space-y-6 max-w-md"
-        >
-          <h1 className="text-4xl font-bold text-primary">🏆 Partie Terminée !</h1>
-          <div className="p-6 rounded-2xl bg-card border border-border">
-            <p className="text-xl mb-2">Le gagnant est</p>
-            <p className="text-3xl font-bold text-primary">{game.winner_name}</p>
-          </div>
-          <div className="space-y-2">
-            {mPlayers.sort((a, b) => b.money - a.money).map((p, i) => (
-              <div key={p.player_id} className="flex items-center justify-between p-3 rounded-xl bg-card/50 border border-border/30">
-                <span className="font-medium">#{i + 1} {p.player_name}</span>
-                <span className="text-primary font-bold">{p.money}$</span>
+      <InkGameStage accent="#fbbf24">
+        <div className="min-h-screen flex items-center justify-center px-6 py-12">
+          <motion.div
+            initial={{ scale: 0.6, rotate: -10, opacity: 0 }}
+            animate={{ scale: 1, rotate: 0, opacity: 1 }}
+            transition={{ type: 'spring', damping: 16, stiffness: 220 }}
+            className="w-full max-w-md"
+          >
+            <InkCard accent="#fbbf24" highlighted className="p-7 text-center space-y-5">
+              <motion.div
+                animate={{ rotate: [-6, 6, -6], scale: [1, 1.06, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                  border: '4px solid #0a0810',
+                  boxShadow: '0 8px 0 #0a0810, 0 14px 30px rgba(251,191,36,0.6)',
+                }}
+              >
+                <Trophy className="w-12 h-12 text-white" strokeWidth={2.5} />
+              </motion.div>
+
+              <InkTitle size="xl">VICTOIRE !</InkTitle>
+
+              <p
+                className="text-3xl font-black"
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  color: '#fbbf24',
+                  textShadow: GRAFFITI_TEXT_SHADOW,
+                }}
+              >
+                {game.winner_name}
+              </p>
+
+              <div className="space-y-2 pt-2">
+                {ranked.map((p, i) => (
+                  <motion.div
+                    key={p.player_id}
+                    initial={{ x: -30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.15 + i * 0.08 }}
+                    className="flex items-center gap-3 p-3 rounded-2xl"
+                    style={{
+                      background:
+                        'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+                      border: '2.5px solid #0a0810',
+                      boxShadow: '0 3px 0 #0a0810',
+                    }}
+                  >
+                    <span
+                      className="text-2xl font-black"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        color: i === 0 ? '#fbbf24' : '#fff',
+                        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                      }}
+                    >
+                      #{i + 1}
+                    </span>
+                    {i === 0 && <Crown className="w-5 h-5 text-amber-400" fill="currentColor" />}
+                    <span
+                      className="flex-1 font-black text-lg text-white text-left truncate"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      {p.player_name}
+                    </span>
+                    <MoneyChip amount={p.money} size="sm" />
+                  </motion.div>
+                ))}
               </div>
-            ))}
-          </div>
-          <Button onClick={onEndGame} size="lg" className="w-full">
-            Retour au lobby
-          </Button>
-        </motion.div>
-      </div>
+
+              <InkButton onClick={onEndGame} color="#fbbf24" size="lg" className="w-full">
+                <ArrowLeft className="w-5 h-5" />
+                RETOUR LOBBY
+              </InkButton>
+            </InkCard>
+          </motion.div>
+        </div>
+      </InkGameStage>
     );
   }
 
   const currentSpace = myPlayer ? BOARD_SPACES[myPlayer.position] : null;
-  const currentProp = myPlayer ? properties.find(p => p.property_index === myPlayer.position) : null;
 
+  /* ============================================================
+     PHASE PILL CONFIG
+  ============================================================ */
+  const phaseInfo = (() => {
+    if (game.phase === 'rolling') return { icon: Dice5, label: 'À LANCER', color: '#a855f7' };
+    if (game.phase === 'buying') return { icon: Home, label: 'À ACHETER', color: '#22c55e' };
+    if (game.phase === 'card') return { icon: CreditCard, label: 'CARTE', color: '#06b6d4' };
+    if (game.phase === 'bankrupt') return { icon: AlertTriangle, label: 'FAILLITE', color: '#ef4444' };
+    if (myPlayer?.in_jail) return { icon: KeyRound, label: 'PRISON', color: '#f59e0b' };
+    return { icon: Sparkles, label: 'EN JEU', color: ACCENT };
+  })();
+
+  /* ============================================================
+     RENDER
+  ============================================================ */
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-950 via-emerald-900/50 to-background">
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b border-border/20">
-        <Button variant="ghost" onClick={onEndGame} className="gap-2 text-foreground/70">
-          <ArrowLeft className="h-4 w-4" />
-          Quitter
-        </Button>
-        <div className="flex items-center gap-2">
-          <Landmark className="h-5 w-5 text-primary" />
-          <span className="font-bold text-primary text-lg">MONOPOLY</span>
+    <InkGameStage accent={turnPlayerColor}>
+      {/* ============== HEADER ============== */}
+      <header className="relative z-30 flex items-center justify-between px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
+        <InkButton onClick={onEndGame} color="#475569" variant="outline" size="sm">
+          <ArrowLeft className="w-4 h-4" />
+          QUITTER
+        </InkButton>
+
+        <div className="flex flex-col items-center gap-1.5 pointer-events-none">
+          <InkPhasePill
+            icon={phaseInfo.icon}
+            label={phaseInfo.label}
+            accent={phaseInfo.color}
+          />
+          <h1
+            className="text-3xl md:text-4xl font-black leading-none"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              color: '#fff',
+              textShadow: GRAFFITI_TEXT_SHADOW,
+            }}
+          >
+            MIMIC<span style={{ color: '#fbbf24' }}>POLY</span>
+          </h1>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowProperties(!showProperties)}>
-          <Building className="h-4 w-4 mr-1" />
-          Propriétés
-        </Button>
+
+        <InkButton
+          onClick={() => {
+            playInkSound('inkClick', 0.3);
+            setShowProperties((s) => !s);
+          }}
+          color={ACCENT_2}
+          size="sm"
+        >
+          <Building className="w-4 h-4" />
+          <span className="hidden sm:inline">PROP.</span>
+        </InkButton>
       </header>
 
-      <div className="flex flex-col lg:flex-row gap-4 p-4 max-w-[1800px] mx-auto">
-        {/* Left: Players */}
-        <div className="lg:w-72 space-y-3">
+      {/* ============== MAIN ============== */}
+      <main className="relative z-10 flex-1 flex flex-col lg:flex-row gap-4 px-4 md:px-6 pb-6 max-w-[1800px] mx-auto w-full">
+        {/* LEFT — PLAYERS */}
+        <aside className="lg:w-72 flex-shrink-0">
           <MonopolyPlayerPanel
             players={mPlayers}
             currentTurnPlayerId={game.player_order[game.current_player_index]}
             currentPlayerId={currentPlayer.id}
             properties={properties}
           />
-        </div>
+        </aside>
 
-        {/* Center: 3D Board */}
-        <div className="flex-1 space-y-4">
-          <MonopolyBoard3DCanvas
-            players={mPlayers}
-            properties={properties}
-            lastDice1={game.last_dice_1}
-            lastDice2={game.last_dice_2}
-            animatingTo={animatingTo}
-            currentPlayerId={game.player_order[game.current_player_index]}
-          />
-
-          {/* Message & Actions */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={message + game.phase}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="p-4 rounded-2xl bg-card border border-border/50 space-y-3"
-            >
-              {/* Turn indicator */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={cn(
-                    "w-3 h-3 rounded-full",
-                    isMyTurn ? "bg-green-500 animate-pulse" : "bg-muted"
-                  )} />
-                  <span className="font-medium text-sm">
-                    {isMyTurn ? 'Votre tour !' : `Tour de ${currentTurnPlayer?.player_name}`}
+        {/* CENTER — BOARD + ACTIONS */}
+        <section className="flex-1 flex flex-col gap-4 min-w-0">
+          <div className="relative">
+            <MonopolyBoard3DCanvas
+              players={mPlayers}
+              properties={properties}
+              lastDice1={game.last_dice_1}
+              lastDice2={game.last_dice_2}
+              animatingTo={animatingTo}
+              currentPlayerId={game.player_order[game.current_player_index]}
+            />
+            {/* Money pot floating badge */}
+            {game.free_parking_pot > 0 && (
+              <motion.div
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: 1, rotate: -8 }}
+                className="absolute top-3 left-3 z-20"
+              >
+                <div
+                  className="px-3 py-1.5 rounded-2xl"
+                  style={{
+                    background: 'linear-gradient(180deg, #fbbf24, #d97706)',
+                    border: '3px solid #0a0810',
+                    boxShadow: '0 4px 0 #0a0810',
+                    transform: 'rotate(-4deg)',
+                  }}
+                >
+                  <span
+                    className="text-sm font-black text-white uppercase tracking-wider"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                    }}
+                  >
+                    🅿️ POT: {game.free_parking_pot}$
                   </span>
                 </div>
-                {myPlayer && (
-                  <div className="flex items-center gap-1 text-primary font-bold">
-                    <DollarSign className="h-4 w-4" />
-                    {myPlayer.money}
-                  </div>
-                )}
-              </div>
+              </motion.div>
+            )}
+          </div>
 
-              {/* Message */}
-              {message && (
-                <p className="text-center text-foreground/80 text-sm">{message}</p>
-              )}
+          {/* ACTION CARD */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${message}-${game.phase}-${game.current_player_index}`}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 18, stiffness: 280 }}
+            >
+              <InkCard accent={turnPlayerColor} highlighted={isMyTurn} className="p-4 md:p-5">
+                <div className="flex flex-col gap-4">
+                  {/* TURN HEADER */}
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <motion.div
+                        animate={isMyTurn ? { scale: [1, 1.12, 1] } : undefined}
+                        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <InkIconBadge
+                          icon={isMyTurn ? Zap : Sparkles}
+                          color={turnPlayerColor}
+                          size="md"
+                          wobble={isMyTurn}
+                        />
+                      </motion.div>
+                      <div>
+                        <p
+                          className="text-[10px] font-black uppercase tracking-widest text-white/60 leading-none"
+                          style={{ fontFamily: "'Caveat', cursive" }}
+                        >
+                          {isMyTurn ? 'TON TOUR' : 'TOUR DE'}
+                        </p>
+                        <p
+                          className="text-2xl md:text-3xl font-black leading-none mt-1 truncate max-w-[260px]"
+                          style={{
+                            fontFamily: "'Caveat', cursive",
+                            color: turnPlayerColor,
+                            textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                          }}
+                        >
+                          {isMyTurn ? 'À TOI DE JOUER !' : currentTurnPlayer?.player_name}
+                        </p>
+                      </div>
+                    </div>
 
-              {/* Dice display */}
-              {game.last_dice_1 && game.last_dice_2 && (
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-white border-2 border-border flex items-center justify-center text-2xl font-bold text-foreground">
-                    {game.last_dice_1}
+                    {myPlayer && (
+                      <div className="flex items-center gap-2">
+                        <MoneyChip amount={myPlayer.money} color="#22c55e" size="md" />
+                        {myPlayer.has_get_out_of_jail_card > 0 && (
+                          <InkPill label="🎫" value={`x${myPlayer.has_get_out_of_jail_card}`} color="#06b6d4" />
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-white border-2 border-border flex items-center justify-center text-2xl font-bold text-foreground">
-                    {game.last_dice_2}
-                  </div>
-                  {game.last_dice_1 === game.last_dice_2 && (
-                    <span className="text-xs text-primary font-bold px-2 py-1 bg-primary/10 rounded-full">DOUBLE!</span>
+
+                  {/* MESSAGE */}
+                  {message && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="px-4 py-3 rounded-2xl text-center"
+                      style={{
+                        background: 'rgba(0,0,0,0.4)',
+                        border: '2.5px solid #0a0810',
+                      }}
+                    >
+                      <p
+                        className="text-lg md:text-xl font-black text-white leading-tight"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                        }}
+                      >
+                        {message}
+                      </p>
+                    </motion.div>
                   )}
-                </div>
-              )}
 
-              {/* Action buttons */}
-              {isMyTurn && (
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {/* Rolling phase */}
-                  {game.phase === 'rolling' && !myPlayer?.in_jail && (
-                    <Button onClick={rollDice} className="gap-2 bg-primary hover:bg-primary/90">
-                      <Dice1 className="h-5 w-5" />
-                      Lancer les dés
-                    </Button>
-                  )}
-
-                  {/* Jail phase */}
-                  {game.phase === 'rolling' && myPlayer?.in_jail && (
-                    <>
-                      <Button onClick={rollDice} variant="outline" className="gap-2">
-                        <Dice1 className="h-4 w-4" />
-                        Tenter un double
-                      </Button>
-                      <Button onClick={payJailFine} variant="outline" className="gap-2">
-                        <DollarSign className="h-4 w-4" />
-                        Payer 50$
-                      </Button>
-                      {myPlayer.has_get_out_of_jail_card > 0 && (
-                        <Button onClick={useJailCard} variant="outline" className="gap-2">
-                          <CreditCard className="h-4 w-4" />
-                          Carte Sortie
-                        </Button>
+                  {/* DICE DISPLAY */}
+                  {game.last_dice_1 != null && game.last_dice_2 != null && (
+                    <div className="flex items-center justify-center gap-3 flex-wrap">
+                      <CartoonDice value={game.last_dice_1} rolling={diceRolling} />
+                      <span
+                        className="text-2xl font-black text-white/40"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        +
+                      </span>
+                      <CartoonDice value={game.last_dice_2} rolling={diceRolling} />
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="text-2xl font-black ml-2"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          color: '#fbbf24',
+                          textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                        }}
+                      >
+                        = {game.last_dice_1 + game.last_dice_2}
+                      </motion.span>
+                      {game.last_dice_1 === game.last_dice_2 && (
+                        <motion.div
+                          initial={{ scale: 0, rotate: -10 }}
+                          animate={{ scale: 1, rotate: -6 }}
+                          transition={{ type: 'spring', stiffness: 350 }}
+                          className="px-3 py-1 rounded-2xl ml-1"
+                          style={{
+                            background: 'linear-gradient(180deg, #fbbf24, #d97706)',
+                            border: '2.5px solid #0a0810',
+                            boxShadow: '0 3px 0 #0a0810',
+                          }}
+                        >
+                          <span
+                            className="text-base font-black text-white uppercase tracking-wider"
+                            style={{
+                              fontFamily: "'Caveat', cursive",
+                              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                            }}
+                          >
+                            DOUBLE !
+                          </span>
+                        </motion.div>
                       )}
-                    </>
+                    </div>
                   )}
 
-                  {/* Buying phase */}
-                  {game.phase === 'buying' && currentSpace && (
-                    <>
-                      <Button onClick={buyProperty} className="gap-2 bg-green-600 hover:bg-green-700">
-                        <Home className="h-4 w-4" />
-                        Acheter ({currentSpace.price}$)
-                      </Button>
-                      <Button onClick={skipBuy} variant="outline">
-                        Passer
-                      </Button>
-                    </>
+                  {/* ACTIONS */}
+                  {isMyTurn && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex flex-wrap gap-2 justify-center"
+                    >
+                      {/* Rolling phase (free) */}
+                      {game.phase === 'rolling' && !myPlayer?.in_jail && (
+                        <InkButton onClick={handleRoll} color="#a855f7" size="lg">
+                          <Dice5 className="w-5 h-5" />
+                          LANCER LES DÉS
+                        </InkButton>
+                      )}
+
+                      {/* Jail phase */}
+                      {game.phase === 'rolling' && myPlayer?.in_jail && (
+                        <>
+                          <InkButton onClick={handleRoll} color="#f59e0b" size="md">
+                            <Dice5 className="w-4 h-4" />
+                            TENTER DOUBLE
+                          </InkButton>
+                          {myPlayer.money >= 50 && (
+                            <InkButton onClick={handlePayJail} color="#22c55e" size="md">
+                              <DollarSign className="w-4 h-4" />
+                              PAYER 50$
+                            </InkButton>
+                          )}
+                          {myPlayer.has_get_out_of_jail_card > 0 && (
+                            <InkButton onClick={handleJailCard} color="#06b6d4" size="md">
+                              <KeyRound className="w-4 h-4" />
+                              CARTE SORTIE
+                            </InkButton>
+                          )}
+                        </>
+                      )}
+
+                      {/* Buying phase */}
+                      {game.phase === 'buying' && currentSpace && (
+                        <>
+                          <InkButton onClick={handleBuy} color="#22c55e" size="lg">
+                            <Home className="w-5 h-5" />
+                            ACHETER {currentSpace.price}$
+                          </InkButton>
+                          <InkButton onClick={handleSkip} color="#475569" variant="outline" size="md">
+                            PASSER
+                          </InkButton>
+                        </>
+                      )}
+
+                      {/* Card phase */}
+                      {game.phase === 'card' && (
+                        <InkButton onClick={handleCard} color="#06b6d4" size="lg">
+                          <Sparkles className="w-5 h-5" />
+                          CONTINUER
+                        </InkButton>
+                      )}
+
+                      {/* Bankrupt */}
+                      {(game.phase === 'bankrupt' || (myPlayer && myPlayer.money < 0)) && (
+                        <InkButton onClick={handleBankrupt} color="#ef4444" size="lg">
+                          <AlertTriangle className="w-5 h-5" />
+                          DÉCLARER FAILLITE
+                        </InkButton>
+                      )}
+                    </motion.div>
                   )}
 
-                  {/* Card phase */}
-                  {game.phase === 'card' && (
-                    <Button onClick={executeCard} className="gap-2">
-                      OK
-                    </Button>
-                  )}
-
-                  {/* Bankrupt phase */}
-                  {(game.phase === 'bankrupt' || (myPlayer && myPlayer.money < 0)) && (
-                    <Button onClick={declareBankruptcy} variant="destructive" className="gap-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      Déclarer faillite
-                    </Button>
+                  {/* Waiting indicator (not my turn) */}
+                  {!isMyTurn && (
+                    <div className="flex items-center justify-center gap-2 text-white/50">
+                      <motion.div
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: turnPlayerColor }}
+                      />
+                      <motion.div
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: turnPlayerColor }}
+                      />
+                      <motion.div
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: turnPlayerColor }}
+                      />
+                      <span
+                        className="text-base font-bold ml-2"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        En attente du joueur...
+                      </span>
+                    </div>
                   )}
                 </div>
-              )}
+              </InkCard>
             </motion.div>
           </AnimatePresence>
-        </div>
+        </section>
 
-        {/* Right: Properties panel */}
+        {/* RIGHT — PROPERTIES */}
         <AnimatePresence>
           {showProperties && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="lg:w-80"
+            <motion.aside
+              initial={{ opacity: 0, x: 50, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 50, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+              className="lg:w-80 flex-shrink-0"
             >
               <MonopolyPropertyPanel
                 properties={properties}
@@ -260,15 +701,15 @@ export const MonopolyGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 onMortgage={mortgageProperty}
                 isMyTurn={isMyTurn}
               />
-            </motion.div>
+            </motion.aside>
           )}
         </AnimatePresence>
-      </div>
+      </main>
 
-      {/* Card Modal */}
-      {currentCard && game?.phase === 'card' && (
-        <MonopolyCardModal card={currentCard} onClose={executeCard} isMyTurn={isMyTurn} />
+      {/* CARD MODAL */}
+      {currentCard && game.phase === 'card' && (
+        <MonopolyCardModal card={currentCard} onClose={handleCard} isMyTurn={isMyTurn} />
       )}
-    </div>
+    </InkGameStage>
   );
 };

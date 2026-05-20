@@ -1,4 +1,4 @@
-import { useState, memo, useCallback, useEffect, useMemo } from 'react';
+import { useState, memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -208,6 +208,10 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
   const [modeIndex, setModeIndex] = useState(1); // start on AUDIO PHONE like mockup
+  // Direction of last mode change: +1 = went right, -1 = went left.
+  // Used to drive the hero banner horizontal swipe animation.
+  const [modeDir, setModeDir] = useState<1 | -1>(1);
+  const prevModeIndexRef = useRef(1);
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
   const isMuted = volume === 0;
@@ -218,6 +222,26 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   } = useRecentLobbies();
 
   const selectedMode = GAME_MODES[modeIndex];
+
+  /**
+   * Switch to a mode index using shortest-path direction with wrap-around.
+   * Drives the hero banner horizontal swipe direction:
+   *   +1 = swipe right (new card slides in from right)
+   *   -1 = swipe left  (new card slides in from left)
+   */
+  const goToMode = useCallback((next: number) => {
+    setModeIndex((curr) => {
+      if (next === curr) return curr;
+      const len = GAME_MODES.length;
+      const normalized = ((next % len) + len) % len;
+      const forward = (normalized - curr + len) % len; // steps going right
+      const backward = (curr - normalized + len) % len; // steps going left
+      const dir: 1 | -1 = forward <= backward ? 1 : -1;
+      prevModeIndexRef.current = curr;
+      setModeDir(dir);
+      return normalized;
+    });
+  }, []);
 
   const toggleMute = useCallback(() => {
     if (volume === 0) setVolume(0.5);
@@ -326,7 +350,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       enabled: !anyModalOpen,
       handler: () => {
         playInkSound('brushTap', 0.25);
-        setModeIndex((i) => (i - 1 + GAME_MODES.length) % GAME_MODES.length);
+        goToMode((modeIndex - 1 + GAME_MODES.length) % GAME_MODES.length);
       },
       label: 'Mode précédent',
     },
@@ -335,7 +359,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       enabled: !anyModalOpen,
       handler: () => {
         playInkSound('brushTap', 0.25);
-        setModeIndex((i) => (i + 1) % GAME_MODES.length);
+        goToMode((modeIndex + 1) % GAME_MODES.length);
       },
       label: 'Mode suivant',
     },
@@ -561,19 +585,41 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       {/* ============== MAIN CONTENT ============== */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar gap-4">
         {/* HERO MODE BANNER */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={modeDir}>
           <motion.div
             key={selectedMode.id}
-            initial={{ opacity: 0, y: -10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
+            custom={modeDir}
+            variants={{
+              enter: (dir: number) => ({
+                opacity: 0,
+                x: 320 * dir,
+                scale: 0.94,
+                rotate: dir * 1.5,
+              }),
+              center: {
+                opacity: 1,
+                x: 0,
+                scale: 1,
+                rotate: 0,
+              },
+              exit: (dir: number) => ({
+                opacity: 0,
+                x: -320 * dir,
+                scale: 0.94,
+                rotate: -dir * 1.5,
+              }),
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             style={{
+              willChange: 'transform, opacity',
               border: '4px solid #0a0810',
               boxShadow:
                 '0 12px 0 #0a0810, 0 18px 40px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.08)',
             }}
+            className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
           >
             {/* Custom banner image — falls back to gradient + icon if missing */}
             <ImageWithFallback
@@ -781,7 +827,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   key={mode.id}
                   onClick={() => {
                     playInkSound('brushTap', 0.3);
-                    setModeIndex(idx);
+                    goToMode(idx);
                   }}
                   whileHover={{ y: -4, scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
