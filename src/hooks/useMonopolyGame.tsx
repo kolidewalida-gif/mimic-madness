@@ -74,7 +74,6 @@ export function useMonopolyGame(
   const [animatingTo, setAnimatingTo] = useState<number | null>(null);
   const { toast } = useToast();
   const gameIdRef = useRef<string | null>(null);
-  const initialisedRef = useRef(false);
 
   const isMyTurn = game
     ? game.player_order[game.current_player_index] === currentPlayer.id
@@ -88,116 +87,256 @@ export function useMonopolyGame(
 
   /* ============================================================
      INIT — host creates game, both fetch initial rows
+     Re-runs when the player list changes (bot arrival after transition).
   ============================================================ */
+  const initInFlightRef = useRef(false);
+  const playersIdsKey = players.map((p) => p.id).sort().join('|');
+
   useEffect(() => {
-    if (initialisedRef.current) return;
-    initialisedRef.current = true;
+    if (!lobbyId) return;
+    if (players.length === 0) return; // wait for lobby players
+    if (initInFlightRef.current) return;
+
+    initInFlightRef.current = true;
 
     const init = async () => {
-      // Try to find an existing game for this lobby
-      const { data: existing } = await supabase
+      try {
+        console.log('[Monopoly] init start', {
+          lobbyId,
+          isHost: currentPlayer.isHost,
+          playerCount: players.length,
+        });
+
+        const currentIds = new Set(players.map((p) => p.id));
+
+        // 1) Look for existing game row for this lobby
+        const { data: existing, error: gErr } = await supabase
+          .from('monopoly_games')
+          .select('*')
+          .eq('lobby_id', lobbyId)
+          .maybeSingle();
+
+        if (gErr) console.error('[Monopoly] game fetch error:', gErr);
+
+        if (existing) {
+          const orderSet = new Set(existing.player_order || []);
+          const orderEmpty = orderSet.size === 0;
+          const allPresent =
+            !orderEmpty && [...currentIds].every((id) => orderSet.has(id));
+
+          const { data: pls } = await supabase
+            .from('monopoly_players')
+            .select('*')
+            .eq('game_id', existing.id);
+          const { data: props } = await supabase
+            .from('monopoly_properties')
+            .select('*')
+            .eq('game_id', existing.id);
+
+          const playersOk =
+            (pls?.length || 0) >= (existing.player_order?.length || 0) &&
+            (pls?.length || 0) > 0;
+
+          if (allPresent && playersOk) {
+            console.log('[Monopoly] reusing existing game', existing.id);
+            gameIdRef.current = existing.id;
+            setGame(existing as MonopolyGame);
+            setMPlayers((pls || []) as MonopolyPlayer[]);
+            setProperties((props || []) as MonopolyProperty[]);
+            return;
+          }
+
+          if (!currentPlayer.isHost) {
+            console.warn('[Monopoly] stale game — non-host waits for host');
+            gameIdRef.current = existing.id;
+            setGame(existing as MonopolyGame);
+            setMPlayers((pls || []) as MonopolyPlayer[]);
+            setProperties((props || []) as MonopolyProperty[]);
+            return;
+          }
+
+          console.warn('[Monopoly] stale game detected, wiping & recreating');
+          await supabase
+            .from('monopoly_properties')
+            .delete()
+            .eq('game_id', existing.id);
+          await supabase
+            .from('monopoly_players')
+            .delete()
+            .eq('game_id', existing.id);
+          await supabase.from('monopoly_games').delete().eq('id', existing.id);
+        }
+
+        // 2) Only host creates from scratch
+        if (!currentPlayer.isHost) {
+          console.log('[Monopoly] non-host waiting for host to create');
+          return;
+        }
+
+        // 3) Create the game row
+        const tokens: TokenType[] = [
+          'car',
+          'hat',
+          'shoe',
+          'dog',
+          'ship',
+          'thimble',
+          'iron',
+          'cannon',
+        ];
+        const playerOrder = players
+          .map((p) => p.id)
+          .sort(() => Math.random() - 0.5);
+
+        const { data: newGame, error: insErr } = await supabase
+          .from('monopoly_games')
+          .insert({
+            lobby_id: lobbyId,
+            player_order: playerOrder,
+            current_player_index: 0,
+            phase: 'rolling',
+          })
+          .select()
+          .single();
+
+        if (insErr || !newGame) {
+          console.error('[Monopoly] failed to create game:', insErr);
+          return;
+        }
+
+        gameIdRef.current = newGame.id;
+
+        // 4) Player rows
+        const playerInserts = playerOrder.map((pid, i) => ({
+          game_id: newGame.id,
+          player_id: pid,
+          player_name: players.find((p) => p.id === pid)?.name || 'Joueur',
+          token_type: tokens[i % tokens.length],
+          position: 0,
+          money: 1500,
+          player_order: i,
+          is_bankrupt: false,
+          in_jail: false,
+          jail_turns: 0,
+          has_get_out_of_jail_card: 0,
+        }));
+        const { data: insertedPlayers, error: pErr } = await supabase
+          .from('monopoly_players')
+          .insert(playerInserts)
+          .select();
+
+        if (pErr) console.error('[Monopoly] player insert error:', pErr);
+
+        // 5) Property rows
+        const propInserts = BOARD_SPACES.filter(
+          (s) =>
+            s.type === 'property' ||
+            s.type === 'railroad' ||
+            s.type === 'utility',
+        ).map((s) => ({
+          game_id: newGame.id,
+          property_index: s.index,
+          owner_id: null,
+          houses: 0,
+          is_mortgaged: false,
+        }));
+        const { data: insertedProps, error: prErr } = await supabase
+          .from('monopoly_properties')
+          .insert(propInserts)
+          .select();
+
+        if (prErr) console.error('[Monopoly] property insert error:', prErr);
+
+        // 6) Re-read to be safe
+        const { data: confirmedPlayers } = await supabase
+          .from('monopoly_players')
+          .select('*')
+          .eq('game_id', newGame.id);
+        const { data: confirmedProps } = await supabase
+          .from('monopoly_properties')
+          .select('*')
+          .eq('game_id', newGame.id);
+
+        setGame(newGame as MonopolyGame);
+        setMPlayers(
+          (confirmedPlayers || insertedPlayers || []) as MonopolyPlayer[],
+        );
+        setProperties(
+          (confirmedProps || insertedProps || []) as MonopolyProperty[],
+        );
+
+        console.log('[Monopoly] init complete', {
+          gameId: newGame.id,
+          players: confirmedPlayers?.length,
+          props: confirmedProps?.length,
+        });
+      } catch (e) {
+        console.error('[Monopoly] init exception:', e);
+      } finally {
+        initInFlightRef.current = false;
+      }
+    };
+
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lobbyId, currentPlayer.isHost, playersIdsKey]);
+
+  /* ============================================================
+     NON-HOST POLL — when waiting for host, retry every 1.5s
+  ============================================================ */
+  useEffect(() => {
+    if (currentPlayer.isHost) return;
+    if (game) return;
+    if (!lobbyId) return;
+    const id = setInterval(async () => {
+      const { data } = await supabase
         .from('monopoly_games')
         .select('*')
         .eq('lobby_id', lobbyId)
         .maybeSingle();
-
-      if (existing) {
-        setGame(existing as MonopolyGame);
-        gameIdRef.current = existing.id;
-
+      if (data) {
+        gameIdRef.current = data.id;
+        setGame(data as MonopolyGame);
         const { data: pls } = await supabase
           .from('monopoly_players')
           .select('*')
-          .eq('game_id', existing.id);
+          .eq('game_id', data.id);
         if (pls) setMPlayers(pls as MonopolyPlayer[]);
-
         const { data: props } = await supabase
           .from('monopoly_properties')
           .select('*')
-          .eq('game_id', existing.id);
+          .eq('game_id', data.id);
         if (props) setProperties(props as MonopolyProperty[]);
-        return;
       }
+    }, 1500);
+    return () => clearInterval(id);
+  }, [game, lobbyId, currentPlayer.isHost]);
 
-      // Only host creates the game
-      if (!currentPlayer.isHost) return;
-
-      const tokens: TokenType[] = [
-        'car',
-        'hat',
-        'shoe',
-        'dog',
-        'ship',
-        'thimble',
-        'iron',
-        'cannon',
-      ];
-      const playerOrder = players.map((p) => p.id).sort(() => Math.random() - 0.5);
-
-      const { data: newGame, error } = await supabase
-        .from('monopoly_games')
-        .insert({
-          lobby_id: lobbyId,
-          player_order: playerOrder,
-          current_player_index: 0,
-          phase: 'rolling',
-        })
-        .select()
-        .single();
-
-      if (error || !newGame) {
-        console.error('Failed to create monopoly game:', error);
-        initialisedRef.current = false; // allow retry
-        return;
-      }
-
-      gameIdRef.current = newGame.id;
-
-      // Player rows
-      const playerInserts = playerOrder.map((pid, i) => ({
-        game_id: newGame.id,
-        player_id: pid,
-        player_name: players.find((p) => p.id === pid)?.name || 'Joueur',
-        token_type: tokens[i % tokens.length],
-        position: 0,
-        money: 1500,
-        player_order: i,
-        is_bankrupt: false,
-        in_jail: false,
-        jail_turns: 0,
-        has_get_out_of_jail_card: 0,
-      }));
-      const { data: insertedPlayers } = await supabase
-        .from('monopoly_players')
-        .insert(playerInserts)
-        .select();
-
-      // Property rows
-      const propInserts = BOARD_SPACES.filter(
-        (s) =>
-          s.type === 'property' ||
-          s.type === 'railroad' ||
-          s.type === 'utility',
-      ).map((s) => ({
-        game_id: newGame.id,
-        property_index: s.index,
-        owner_id: null,
-        houses: 0,
-        is_mortgaged: false,
-      }));
-      const { data: insertedProps } = await supabase
+  /* ============================================================
+     PUBLIC: force restart (host only) - wipes and re-inits
+  ============================================================ */
+  const forceRestart = useCallback(async () => {
+    if (!currentPlayer.isHost) return;
+    console.log('[Monopoly] force restart requested');
+    if (gameIdRef.current) {
+      await supabase
         .from('monopoly_properties')
-        .insert(propInserts)
-        .select();
-
-      // Set local state immediately so the UI renders without waiting for realtime
-      setGame(newGame as MonopolyGame);
-      if (insertedPlayers) setMPlayers(insertedPlayers as MonopolyPlayer[]);
-      if (insertedProps) setProperties(insertedProps as MonopolyProperty[]);
-    };
-
-    init();
-  }, [lobbyId, currentPlayer.isHost, players]);
+        .delete()
+        .eq('game_id', gameIdRef.current);
+      await supabase
+        .from('monopoly_players')
+        .delete()
+        .eq('game_id', gameIdRef.current);
+      await supabase.from('monopoly_games').delete().eq('id', gameIdRef.current);
+    } else {
+      await supabase.from('monopoly_games').delete().eq('lobby_id', lobbyId);
+    }
+    gameIdRef.current = null;
+    setGame(null);
+    setMPlayers([]);
+    setProperties([]);
+    initInFlightRef.current = false;
+  }, [currentPlayer.isHost, lobbyId]);
 
   /* ============================================================
      REALTIME — game row
@@ -1048,5 +1187,6 @@ export function useMonopolyGame(
     payJailFine,
     declareBankruptcy,
     endTurn,
+    forceRestart,
   };
 }

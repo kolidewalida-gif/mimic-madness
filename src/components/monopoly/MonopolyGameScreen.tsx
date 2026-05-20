@@ -140,6 +140,7 @@ export const MonopolyGameScreen = ({
 }: Props) => {
   const [showProperties, setShowProperties] = useState(false);
   const [diceRolling, setDiceRolling] = useState(false);
+  const [stuckLoading, setStuckLoading] = useState(false);
 
   const {
     game,
@@ -160,6 +161,7 @@ export const MonopolyGameScreen = ({
     useJailCard,
     payJailFine,
     declareBankruptcy,
+    forceRestart,
   } = useMonopolyGame(lobbyId, currentPlayer, players);
 
   /* ----- Synchronized SFX on phase + dice changes ----- */
@@ -221,6 +223,16 @@ export const MonopolyGameScreen = ({
     payJailFine();
   };
 
+  /* ----- Stuck-loading detection: show recovery button after 4s ----- */
+  useEffect(() => {
+    if (game && mPlayers.length > 0) {
+      setStuckLoading(false);
+      return;
+    }
+    const t = setTimeout(() => setStuckLoading(true), 4000);
+    return () => clearTimeout(t);
+  }, [game, mPlayers.length]);
+
   /* ============================================================
      LOADING
   ============================================================ */
@@ -248,6 +260,40 @@ export const MonopolyGameScreen = ({
             >
               Le plateau se met en place...
             </p>
+
+            {stuckLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-5 space-y-3"
+              >
+                <p
+                  className="text-sm text-amber-300 font-bold"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  ⚠️ Ça prend trop longtemps...
+                </p>
+                <div className="flex gap-2 justify-center">
+                  {currentPlayer.isHost && (
+                    <InkButton
+                      onClick={() => {
+                        setStuckLoading(false);
+                        forceRestart();
+                      }}
+                      color="#fbbf24"
+                      size="sm"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      RELANCER
+                    </InkButton>
+                  )}
+                  <InkButton onClick={onEndGame} color="#475569" variant="outline" size="sm">
+                    <ArrowLeft className="w-4 h-4" />
+                    QUITTER
+                  </InkButton>
+                </div>
+              </motion.div>
+            )}
           </InkCard>
         </div>
       </InkGameStage>
