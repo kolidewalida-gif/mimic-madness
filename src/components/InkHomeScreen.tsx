@@ -21,6 +21,7 @@ import {
   Crown,
   Play,
   Check,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
