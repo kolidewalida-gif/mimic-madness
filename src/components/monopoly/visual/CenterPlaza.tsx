@@ -54,7 +54,7 @@ import { useMonopolyVisualSettings } from './MonopolyVisualSettings';
 // ---------------------------------------------------------------------------
 
 /** Default outer radius of the energy ribbon ring (in board units). */
-const DEFAULT_RIBBON_RADIUS = 3.0;
+const DEFAULT_RIBBON_RADIUS = 2.4;
 
 /** Inner radius offset relative to the outer radius for the ribbon ring. */
 const RIBBON_THICKNESS = 0.2;
@@ -62,8 +62,8 @@ const RIBBON_THICKNESS = 0.2;
 /** Ring tessellation; matches the existing BoardCenter inner glow. */
 const RIBBON_SEGMENTS = 64;
 
-/** Plaza platform footprint and corner radius — preserves the BoardCenter look. */
-const PLATFORM_SIZE: readonly [number, number, number] = [8.5, 0.12, 8.5];
+/** Plaza platform footprint and corner radius — trimmed so tiles read clearer. */
+const PLATFORM_SIZE: readonly [number, number, number] = [6.5, 0.12, 6.5];
 const PLATFORM_RADIUS = 0.15;
 const PLATFORM_SMOOTHNESS = 4;
 
@@ -367,11 +367,11 @@ export function CenterPlaza(props: CenterPlazaProps = {}): React.ReactElement {
       >
         <Text
           position={[0, 0.6, 0]}
-          fontSize={1.1}
+          fontSize={0.85}
           color="#fbbf24"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.07}
+          outlineWidth={0.05}
           outlineColor="#0a0810"
           fontWeight="bold"
           rotation={[-Math.PI / 2, 0, 0]}

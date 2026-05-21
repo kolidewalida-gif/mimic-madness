@@ -225,9 +225,9 @@ export function Tile(props: TileProps): React.ReactElement {
             metalness={0.05}
             roughness={0.85}
             emissive={
-              new THREE.Color(isLanded ? palette.accent : '#000000')
+              new THREE.Color(isLanded ? palette.accent : palette.base)
             }
-            emissiveIntensity={isLanded ? 0.25 : 0}
+            emissiveIntensity={isLanded ? 0.42 : 0.12}
           />
         </RoundedBox>
 
@@ -246,7 +246,7 @@ export function Tile(props: TileProps): React.ReactElement {
               metalness={0.35}
               roughness={0.4}
               emissive={new THREE.Color(stripeColor)}
-              emissiveIntensity={0.18}
+              emissiveIntensity={0.35}
             />
           </RoundedBox>
         )}
