@@ -24,7 +24,15 @@ interface Props {
   onBuyHouse: (index: number) => void;
   onMortgage: (index: number) => void;
   isMyTurn: boolean;
+  /**
+   * Map of `property_index` → timestamp of the last pulse trigger. When
+   * the value changes, the matching property card glows for 1.5s. Driven
+   * by the animation queue's PURCHASE / BUILDING_GROW / MORTGAGE events.
+   */
+  pulsedTiles?: Record<number, number | undefined>;
 }
+
+const PULSE_DURATION_MS = 1500;
 
 export function MonopolyPropertyPanel({
   properties,
@@ -33,6 +41,7 @@ export function MonopolyPropertyPanel({
   onBuyHouse,
   onMortgage,
   isMyTurn,
+  pulsedTiles,
 }: Props) {
   const myProps = properties.filter((p) => p.owner_id === myPlayerId);
 
@@ -120,8 +129,28 @@ export function MonopolyPropertyPanel({
                 className="space-y-2"
               >
                 {/* GROUP HEADER */}
-                <div
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-xl"
+                <motion.div
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-xl relative"
+                  animate={
+                    ownsAll
+                      ? {
+                          boxShadow: [
+                            `0 0 0 ${color}44`,
+                            `0 0 18px ${color}99`,
+                            `0 0 0 ${color}44`,
+                          ],
+                        }
+                      : { boxShadow: 'none' }
+                  }
+                  transition={
+                    ownsAll
+                      ? {
+                          duration: 1.6,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }
+                      : { duration: 0.2 }
+                  }
                   style={{
                     background: `linear-gradient(180deg, ${color}33, ${color}11)`,
                     border: '2px solid #0a0810',
@@ -162,7 +191,7 @@ export function MonopolyPropertyPanel({
                       </span>
                     </motion.div>
                   )}
-                </div>
+                </motion.div>
 
                 {props.map((prop) => {
                   const space = BOARD_SPACES[prop.property_index];
@@ -172,18 +201,41 @@ export function MonopolyPropertyPanel({
                     prop.houses < 5 &&
                     !prop.is_mortgaged;
 
+                  // Pulse trigger from the animation queue. We diff the
+                  // incoming timestamp against the local one so a re-render
+                  // forwarding the same map doesn't re-fire the pulse.
+                  const pulseTs = pulsedTiles?.[prop.property_index];
+                  const showPulse =
+                    pulseTs !== undefined &&
+                    Date.now() - pulseTs < PULSE_DURATION_MS;
+
                   return (
                     <motion.div
                       key={prop.property_index}
                       whileHover={{ y: -1 }}
+                      animate={
+                        showPulse
+                          ? {
+                              boxShadow: [
+                                `0 3px 0 #0a0810, 0 0 0 ${color}00`,
+                                `0 3px 0 #0a0810, 0 0 24px ${color}cc`,
+                                `0 3px 0 #0a0810, 0 0 0 ${color}00`,
+                              ],
+                            }
+                          : { boxShadow: '0 3px 0 #0a0810' }
+                      }
+                      transition={
+                        showPulse
+                          ? { duration: PULSE_DURATION_MS / 1000 }
+                          : { duration: 0.2 }
+                      }
                       className={cn(
-                        'rounded-xl overflow-hidden',
+                        'rounded-xl overflow-hidden relative',
                         prop.is_mortgaged && 'opacity-60',
                       )}
                       style={{
                         background: 'rgba(0,0,0,0.4)',
                         border: '2.5px solid #0a0810',
-                        boxShadow: '0 3px 0 #0a0810',
                       }}
                     >
                       {/* color stripe + name */}

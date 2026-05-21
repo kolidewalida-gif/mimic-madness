@@ -21,7 +21,10 @@ import { MonopolyPlayerPanel } from './MonopolyPlayerPanel';
 import { MonopolyPropertyPanel } from './MonopolyPropertyPanel';
 import { MonopolyCardModal } from './MonopolyCardModal';
 import { useMonopolyGame } from '@/hooks/useMonopolyGame';
+import { useMonopolyAnimationQueue } from '@/hooks/useMonopolyAnimationQueue';
 import { BOARD_SPACES, TOKEN_COLORS, type TokenType } from '@/lib/monopolyBoard';
+import { playAudioForEvent } from '@/lib/monopolyAudioMap';
+import type { PlayerTokenHopEvent } from './visual/PlayerToken';
 import {
   InkGameStage,
   InkCard,
@@ -165,19 +168,22 @@ export const MonopolyGameScreen = ({
   } = useMonopolyGame(lobbyId, currentPlayer, players);
 
   /* ----- Synchronized SFX on phase + dice changes ----- */
+  // Phase-based UX cues: these are *not* diff-driven (no Supabase column
+  // changes), they reflect local state-machine transitions the player
+  // already sees in the UI. Diff-driven event audio (DICE_ROLL, PURCHASE,
+  // PASS_GO, RENT_FLOW, etc.) is forwarded from `useMonopolyAnimationQueue`
+  // via `playAudioForEvent` below.
   useEffect(() => {
     if (!game) return;
     if (game.phase === 'rolling' && isMyTurn) playInkSound('cartoonWobble', 0.35);
-    else if (game.phase === 'buying') playInkSound('cartoonDing', 0.4);
-    else if (game.phase === 'card') playInkSound('cartoonSwoosh', 0.4);
     else if (game.phase === 'bankrupt') playInkSound('cartoonZap', 0.5);
-    else if (game.phase === 'finished') playInkSound('cartoonFanfare', 0.55);
   }, [game?.phase, isMyTurn, game]);
 
   useEffect(() => {
     if (game?.last_dice_1 && game?.last_dice_2) {
+      // Visual rolling window — sound is played via the diff-driven queue
+      // when the snapshot changes (see queue forwarder below).
       setDiceRolling(true);
-      playInkSound('cartoonBoing', 0.4);
       const t = setTimeout(() => setDiceRolling(false), 900);
       return () => clearTimeout(t);
     }
@@ -187,6 +193,89 @@ export const MonopolyGameScreen = ({
     if (!currentTurnPlayer) return ACCENT;
     return TOKEN_COLORS[currentTurnPlayer.token_type as TokenType] || ACCENT;
   }, [currentTurnPlayer]);
+
+  /* ============================================================
+     ANIMATION QUEUE — diff-driven audio, FX, hop events
+     The queue derives RenderEvent[] from prev/next snapshots and
+     drives:
+       - audio cues via `playAudioForEvent` (single source of truth)
+       - per-player hop events forwarded to <PlayerToken>
+       - whip-pan camera trigger on dice doubles
+     The queue NEVER writes Supabase. `useMonopolyGame` stays the
+     only writer (Req 13.4 / 14.1).
+  ============================================================ */
+  const queue = useMonopolyAnimationQueue(game ?? null, mPlayers, properties);
+
+  // Per-player latest TOKEN_HOP — keyed by player_id so re-renders that
+  // forward the same map reference are idempotent (the FSM dedupes by ts).
+  const [hopEvents, setHopEvents] = useState<
+    Record<string, PlayerTokenHopEvent | undefined>
+  >({});
+
+  // Per-tile pulse trigger — keyed by `property_index`, value is the
+  // timestamp of the latest event. The property panel reads this map to
+  // pulse its card glow on PURCHASE / BUILDING_GROW / MORTGAGE.
+  const [pulsedTiles, setPulsedTiles] = useState<
+    Record<number, number | undefined>
+  >({});
+
+  // Whip-pan trigger — bumped on every dice doubles event.
+  const [whipPanTrigger, setWhipPanTrigger] = useState<{ ts: number } | null>(
+    null,
+  );
+
+  // Drain the queue on every event batch: play audio, forward hop events,
+  // bump whip-pan on doubles. We `consume(() => true)` so a single batch
+  // is processed exactly once.
+  useEffect(() => {
+    if (queue.events.length === 0) return;
+    const drained = queue.consume(() => true);
+    if (drained.length === 0) return;
+
+    const nextHops: Record<string, PlayerTokenHopEvent | undefined> = {};
+    const nextPulses: Record<number, number> = {};
+    let nextWhipPan: { ts: number } | null = null;
+    const ts = Date.now();
+
+    for (const ev of drained) {
+      // 1) Audio — single canonical lookup.
+      playAudioForEvent(ev);
+
+      // 2) Token hops → forward to <PlayerToken>.
+      if (ev.kind === 'TOKEN_HOP') {
+        nextHops[ev.playerId] = {
+          from: ev.from,
+          to: ev.to,
+          passedGo: ev.passedGo,
+          ts,
+        };
+      }
+
+      // 3) Per-tile pulse for property events.
+      if (
+        ev.kind === 'PURCHASE' ||
+        ev.kind === 'BUILDING_GROW' ||
+        ev.kind === 'MORTGAGE'
+      ) {
+        nextPulses[ev.tile] = ts;
+      }
+
+      // 4) Dice doubles → whip-pan.
+      if (ev.kind === 'DICE_ROLL' && ev.doubles) {
+        nextWhipPan = { ts };
+      }
+    }
+
+    if (Object.keys(nextHops).length > 0) {
+      setHopEvents((prev) => ({ ...prev, ...nextHops }));
+    }
+    if (Object.keys(nextPulses).length > 0) {
+      setPulsedTiles((prev) => ({ ...prev, ...nextPulses }));
+    }
+    if (nextWhipPan !== null) {
+      setWhipPanTrigger(nextWhipPan);
+    }
+  }, [queue]);
 
   const handleRoll = () => {
     playInkSound('cartoonBoing', 0.5);
@@ -468,6 +557,8 @@ export const MonopolyGameScreen = ({
               lastDice2={game.last_dice_2}
               animatingTo={animatingTo}
               currentPlayerId={game.player_order[game.current_player_index]}
+              hopEvents={hopEvents}
+              whipPanTrigger={whipPanTrigger}
             />
             {/* Money pot floating badge */}
             {game.free_parking_pot > 0 && (
@@ -746,6 +837,7 @@ export const MonopolyGameScreen = ({
                 onBuyHouse={buyHouse}
                 onMortgage={mortgageProperty}
                 isMyTurn={isMyTurn}
+                pulsedTiles={pulsedTiles}
               />
             </motion.aside>
           )}
