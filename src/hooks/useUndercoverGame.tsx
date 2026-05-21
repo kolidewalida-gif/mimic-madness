@@ -3,6 +3,37 @@ import { supabase } from '@/integrations/supabase/client';
 import { getRandomWordPair } from '@/lib/undercoverWords';
 import { undercoverClueSchema, safeParse } from '@/lib/validation';
 
+/**
+ * Generate a plausible clue for a bot based on its word and role.
+ * - Civilians: pick a generic adjective/association related to the word
+ * - Undercover: similar but slightly off (they have a different word)
+ * - Mr White: completely random generic word (they have no word)
+ */
+const BOT_GENERIC_CLUES = [
+  'rond', 'grand', 'petit', 'rouge', 'bleu', 'chaud', 'froid', 'doux',
+  'dur', 'rapide', 'lent', 'lourd', 'léger', 'brillant', 'sombre',
+  'sucré', 'salé', 'amer', 'fort', 'faible', 'vieux', 'neuf', 'long',
+  'court', 'large', 'étroit', 'haut', 'bas', 'plein', 'vide',
+  'naturel', 'artificiel', 'commun', 'rare', 'simple', 'complexe',
+  'populaire', 'classique', 'moderne', 'ancien', 'vivant', 'mort',
+  'humide', 'sec', 'propre', 'sale', 'bruyant', 'silencieux',
+  'visible', 'invisible', 'utile', 'inutile', 'agréable', 'désagréable',
+  'familier', 'étranger', 'proche', 'lointain', 'intérieur', 'extérieur',
+];
+
+function generateBotClue(word: string | null, role: string): string {
+  if (!word || role === 'mr_white') {
+    // Mr White or no word: pick a completely random generic clue
+    return BOT_GENERIC_CLUES[Math.floor(Math.random() * BOT_GENERIC_CLUES.length)];
+  }
+
+  // For civilians and undercover: pick a random clue
+  // (In a real game they'd think about their word, but bots just pick randomly)
+  // This is intentionally vague to not give away too much info
+  const pool = BOT_GENERIC_CLUES;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 interface UndercoverPlayer {
   id: string;
   game_id: string;
@@ -451,6 +482,94 @@ export const useUndercoverGame = (
     voteResolutionLockRef.current = lockKey;
     void resolveVotingRound();
   }, [game, gamePlayers, currentPlayer.isHost, resolveVotingRound]);
+
+  /* ==============================================================
+     BOT AUTO-PLAY — when admin plays solo with bots
+     Bots auto: confirmWordSeen, submitClue, submitVote
+  ============================================================== */
+  const isBotId = (id: string) => id.startsWith('bot-');
+  const botTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!game || !currentPlayer.isHost) return;
+    if (botTimerRef.current) {
+      clearTimeout(botTimerRef.current);
+      botTimerRef.current = null;
+    }
+
+    const phase = game.phase as GamePhase;
+
+    // --- WORD REVEAL: auto-confirm for all bots after 1.5s ---
+    if (phase === 'word_reveal') {
+      botTimerRef.current = setTimeout(async () => {
+        // Host auto-starts clue phase (which also confirms word seen for everyone)
+        if (game) {
+          await supabase
+            .from('undercover_games')
+            .update({ phase: 'clue_giving', current_player_index: 0 })
+            .eq('id', game.id);
+        }
+      }, 2500);
+      return;
+    }
+
+    // --- CLUE GIVING: if it's a bot's turn, auto-submit a clue ---
+    if (phase === 'clue_giving') {
+      const aliveOrder = game.player_order.filter((id) =>
+        gamePlayers.some((p) => p.player_id === id && p.is_alive),
+      );
+      const currentTurnId = aliveOrder[game.current_player_index];
+      if (!currentTurnId || !isBotId(currentTurnId)) return;
+
+      const botPlayer = gamePlayers.find((p) => p.player_id === currentTurnId);
+      if (!botPlayer || botPlayer.current_clue) return;
+
+      // Generate a random clue based on the bot's word
+      botTimerRef.current = setTimeout(async () => {
+        const clue = generateBotClue(botPlayer.word, botPlayer.role);
+        await supabase
+          .from('undercover_players')
+          .update({ current_clue: clue })
+          .eq('id', botPlayer.id);
+      }, 1200 + Math.random() * 1500); // 1.2-2.7s delay for realism
+      return;
+    }
+
+    // --- VOTING: bots auto-vote after a short delay ---
+    if (phase === 'voting') {
+      const aliveBots = gamePlayers.filter(
+        (p) => p.is_alive && isBotId(p.player_id) && !p.vote_target,
+      );
+      if (aliveBots.length === 0) return;
+
+      botTimerRef.current = setTimeout(async () => {
+        const alivePlayerIds = gamePlayers
+          .filter((p) => p.is_alive)
+          .map((p) => p.player_id);
+
+        for (const bot of aliveBots) {
+          // Bot votes for a random alive player (not itself)
+          const candidates = alivePlayerIds.filter((id) => id !== bot.player_id);
+          if (candidates.length === 0) continue;
+          const target = candidates[Math.floor(Math.random() * candidates.length)];
+          await supabase
+            .from('undercover_players')
+            .update({ vote_target: target })
+            .eq('id', bot.id);
+          // Stagger votes slightly
+          await new Promise((r) => setTimeout(r, 400 + Math.random() * 600));
+        }
+      }, 1500 + Math.random() * 1000);
+      return;
+    }
+
+    return () => {
+      if (botTimerRef.current) {
+        clearTimeout(botTimerRef.current);
+        botTimerRef.current = null;
+      }
+    };
+  }, [game?.phase, game?.current_player_index, game?.id, gamePlayers, currentPlayer.isHost]);
 
   // Realtime subscriptions
   useEffect(() => {
