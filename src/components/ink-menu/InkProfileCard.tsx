@@ -176,7 +176,7 @@ const InkProfileCardComponent = () => {
               exit={{ opacity: 0, scale: 0.8 }}
               className="px-2.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-medium"
             >
-              {equippedTitle.label}
+              {equippedTitle.name}
             </motion.div>
           )}
         </AnimatePresence>
