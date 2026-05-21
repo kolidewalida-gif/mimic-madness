@@ -1243,11 +1243,15 @@ export type Database = {
           current_round: number
           eliminated_player_id: string | null
           eliminated_role: string | null
+          enable_mr_white: boolean
           id: string
           is_finished: boolean
           lobby_id: string
+          num_undercover: number
           phase: string
           player_order: string[]
+          settings_locked: boolean
+          total_rounds: number
           undercover_word: string
           updated_at: string
           winner_role: string | null
@@ -1259,11 +1263,15 @@ export type Database = {
           current_round?: number
           eliminated_player_id?: string | null
           eliminated_role?: string | null
+          enable_mr_white?: boolean
           id?: string
           is_finished?: boolean
           lobby_id: string
+          num_undercover?: number
           phase?: string
           player_order?: string[]
+          settings_locked?: boolean
+          total_rounds?: number
           undercover_word: string
           updated_at?: string
           winner_role?: string | null
@@ -1275,11 +1283,15 @@ export type Database = {
           current_round?: number
           eliminated_player_id?: string | null
           eliminated_role?: string | null
+          enable_mr_white?: boolean
           id?: string
           is_finished?: boolean
           lobby_id?: string
+          num_undercover?: number
           phase?: string
           player_order?: string[]
+          settings_locked?: boolean
+          total_rounds?: number
           undercover_word?: string
           updated_at?: string
           winner_role?: string | null

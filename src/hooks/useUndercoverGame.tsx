@@ -52,6 +52,10 @@ interface UndercoverGame {
   civilian_word: string;
   undercover_word: string;
   current_round: number;
+  total_rounds: number;
+  num_undercover: number;
+  enable_mr_white: boolean;
+  settings_locked: boolean;
   phase: string;
   current_player_index: number;
   player_order: string[];
@@ -61,7 +65,14 @@ interface UndercoverGame {
   winner_role: string | null;
 }
 
-type GamePhase = 'word_reveal' | 'clue_giving' | 'discussion' | 'voting' | 'vote_result' | 'game_over';
+type GamePhase =
+  | 'settings'
+  | 'word_reveal'
+  | 'clue_giving'
+  | 'discussion'
+  | 'voting'
+  | 'vote_result'
+  | 'game_over';
 
 interface Player {
   id: string;
@@ -111,7 +122,8 @@ export const useUndercoverGame = (
     setLoading(false);
   }, [lobbyId, currentPlayer.id]);
 
-  // Initialize game (host only)
+  // Initialize game (host only) — creates a 'settings' phase row.
+  // Roles & words are assigned later when the host locks settings.
   const initializeGame = useCallback(async () => {
     if (initRef.current) return;
     initRef.current = true;
@@ -129,32 +141,6 @@ export const useUndercoverGame = (
 
     const wordPair = getRandomWordPair();
     const playerOrder = players.map(p => p.id).sort(() => Math.random() - 0.5);
-    
-    // Determine roles: 1 undercover for 3-6 players, 2 for 7+, add Mr White for 8+
-    const numUndercover = players.length >= 7 ? 2 : 1;
-    const hasMrWhite = players.length >= 8;
-    
-    // Shuffle and assign roles
-    const shuffled = [...playerOrder];
-    const roles: Record<string, 'civilian' | 'undercover' | 'mr_white'> = {};
-    const words: Record<string, string | null> = {};
-    
-    for (let i = 0; i < numUndercover; i++) {
-      roles[shuffled[i]] = 'undercover';
-      words[shuffled[i]] = wordPair.undercover;
-    }
-    
-    let startIdx = numUndercover;
-    if (hasMrWhite) {
-      roles[shuffled[startIdx]] = 'mr_white';
-      words[shuffled[startIdx]] = null;
-      startIdx++;
-    }
-    
-    for (let i = startIdx; i < shuffled.length; i++) {
-      roles[shuffled[i]] = 'civilian';
-      words[shuffled[i]] = wordPair.civilian;
-    }
 
     // Re-check just before insert to mitigate 2-host race
     const { data: existing2 } = await supabase
@@ -174,9 +160,13 @@ export const useUndercoverGame = (
         civilian_word: wordPair.civilian,
         undercover_word: wordPair.undercover,
         player_order: playerOrder,
-        phase: 'word_reveal',
+        phase: 'settings',
         current_round: 1,
         current_player_index: 0,
+        total_rounds: 1,
+        num_undercover: players.length >= 7 ? 2 : 1,
+        enable_mr_white: false,
+        settings_locked: false,
       })
       .select()
       .single();
@@ -187,18 +177,84 @@ export const useUndercoverGame = (
       return;
     }
 
+    // Pre-create player rows with no role/word — assigned on lockSettings.
     const playerInserts = players.map(p => ({
       game_id: newGame.id,
       player_id: p.id,
       player_name: p.name,
-      role: roles[p.id] || 'civilian',
-      word: words[p.id] ?? null,
+      role: 'civilian' as const,
+      word: null,
       is_alive: true,
     }));
 
     await supabase.from('undercover_players').insert(playerInserts);
     await fetchGame();
   }, [lobbyId, players, fetchGame]);
+
+  // Lock settings (host only) — assigns roles/words and moves to word_reveal.
+  const lockSettings = useCallback(
+    async (settings: {
+      numUndercover: number;
+      totalRounds: number;
+      enableMrWhite: boolean;
+    }) => {
+      if (!game || !currentPlayer.isHost) return;
+      if (game.settings_locked) return;
+
+      const { numUndercover, totalRounds, enableMrWhite } = settings;
+      const safeUndercover = Math.max(
+        1,
+        Math.min(3, numUndercover, players.length - (enableMrWhite ? 3 : 2)),
+      );
+      const safeRounds = Math.max(1, Math.min(99, totalRounds));
+
+      // Build role/word maps
+      const shuffled = [...game.player_order].sort(() => Math.random() - 0.5);
+      const roles: Record<string, 'civilian' | 'undercover' | 'mr_white'> = {};
+      const words: Record<string, string | null> = {};
+
+      let idx = 0;
+      for (let i = 0; i < safeUndercover && idx < shuffled.length; i++, idx++) {
+        roles[shuffled[idx]] = 'undercover';
+        words[shuffled[idx]] = game.undercover_word;
+      }
+      if (enableMrWhite && players.length >= 4 && idx < shuffled.length) {
+        roles[shuffled[idx]] = 'mr_white';
+        words[shuffled[idx]] = null;
+        idx++;
+      }
+      for (; idx < shuffled.length; idx++) {
+        roles[shuffled[idx]] = 'civilian';
+        words[shuffled[idx]] = game.civilian_word;
+      }
+
+      // Update each player's role/word
+      await Promise.all(
+        Object.keys(roles).map((pid) =>
+          supabase
+            .from('undercover_players')
+            .update({ role: roles[pid], word: words[pid] })
+            .eq('game_id', game.id)
+            .eq('player_id', pid),
+        ),
+      );
+
+      // Lock settings on the game and move to word_reveal
+      await supabase
+        .from('undercover_games')
+        .update({
+          phase: 'word_reveal',
+          num_undercover: safeUndercover,
+          total_rounds: safeRounds,
+          enable_mr_white: enableMrWhite && players.length >= 4,
+          settings_locked: true,
+        })
+        .eq('id', game.id);
+
+      await fetchGame();
+    },
+    [game, currentPlayer.isHost, players.length, fetchGame],
+  );
 
   // Submit clue
   const submitClue = useCallback(async (clue: string) => {
@@ -301,8 +357,10 @@ export const useUndercoverGame = (
     const remainingCivilians = remainingAlive.filter((player) => player.role === 'civilian');
 
     const allBadGuysEliminated = remainingUndercover.length === 0 && remainingMrWhite.length === 0;
-    const undercoverWins = remainingUndercover.length + remainingMrWhite.length >= remainingCivilians.length;
+    const undercoverOutnumbersCivilians =
+      remainingUndercover.length + remainingMrWhite.length >= remainingCivilians.length;
 
+    // Civilians win immediately when all bad guys are out
     if (allBadGuysEliminated) {
       await supabase
         .from('undercover_games')
@@ -317,7 +375,8 @@ export const useUndercoverGame = (
       return;
     }
 
-    if (undercoverWins) {
+    // Undercover wins immediately when they reach numerical parity/majority
+    if (undercoverOutnumbersCivilians) {
       await supabase
         .from('undercover_games')
         .update({
@@ -331,6 +390,7 @@ export const useUndercoverGame = (
       return;
     }
 
+    // Round resolved without ending the game — show result, host advances
     await supabase
       .from('undercover_games')
       .update({
@@ -345,7 +405,32 @@ export const useUndercoverGame = (
   const nextRound = useCallback(async () => {
     if (!game || !currentPlayer.isHost) return;
 
-    // Clear clues and votes
+    // Round cap reached -> if undercovers still alive, they win
+    if (game.current_round >= game.total_rounds) {
+      const { data: latestPlayers } = await supabase
+        .from('undercover_players')
+        .select('*')
+        .eq('game_id', game.id);
+
+      const remaining = ((latestPlayers as unknown as UndercoverPlayer[]) || []).filter(
+        (p) => p.is_alive,
+      );
+      const stillBad = remaining.some(
+        (p) => p.role === 'undercover' || p.role === 'mr_white',
+      );
+
+      await supabase
+        .from('undercover_games')
+        .update({
+          phase: 'game_over',
+          is_finished: true,
+          winner_role: stillBad ? 'undercover' : 'civilian',
+        })
+        .eq('id', game.id);
+      return;
+    }
+
+    // Clear clues and votes for the new round
     await supabase
       .from('undercover_players')
       .update({ current_clue: null, vote_target: null })
@@ -617,5 +702,6 @@ export const useUndercoverGame = (
     nextRound,
     confirmWordSeen,
     startCluePhase,
+    lockSettings,
   };
 };
