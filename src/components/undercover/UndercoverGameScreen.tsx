@@ -2,6 +2,7 @@ import { useState, memo, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUndercoverGame } from '@/hooks/useUndercoverGame';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
+import { useUndercoverSfx } from '@/hooks/useUndercoverSfx';
 import {
   ArrowRight,
   CheckCircle2,
@@ -352,6 +353,14 @@ export const UndercoverGameScreen = memo(
       [orderedPlayers],
     );
     const { getAvatar } = useMultiplePlayerAvatars(playerIds);
+
+    // Undercover SFX — auto-plays music at key moments
+    useUndercoverSfx({
+      phase: game?.phase ?? '',
+      round: game?.current_round ?? 1,
+      eliminatedRole: game?.eliminated_role ?? null,
+      isVoteResult: game?.phase === 'vote_result' && !!game?.eliminated_player_id,
+    });
 
     if (loading || !game) {
       return (
