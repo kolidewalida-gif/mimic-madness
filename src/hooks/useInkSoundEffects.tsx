@@ -16,7 +16,7 @@ import { getSoundEffectsVolume } from './useSoundEffectsVolume';
  * The API is unchanged: `playInkSound('cartoonPop', 0.4)` still works
  * everywhere it was previously used.
  */
-type InkSoundType =
+export type InkSoundType =
   // Original "ink" names, now repurposed as cartoon SFX:
   | 'brushStroke'        // schwiiip slide-up cartoon swipe
   | 'inkDrip'            // boing-drop bouncy drop
@@ -58,12 +58,21 @@ const getInkAudioContext = (): AudioContext => {
    Helper utilities — small reusable building blocks
 ============================================================== */
 
-/** Master gain shared by all sounds — wired to global SFX volume. */
+/** Master gain shared by all sounds — wired to global SFX volume + soft limiter. */
 const makeMasterGain = (ctx: AudioContext, baseVolume: number) => {
   const globalVolume = getSoundEffectsVolume();
+  // Compressor acts as a soft limiter to prevent clipping on layered sounds
+  const compressor = ctx.createDynamicsCompressor();
+  compressor.threshold.value = -12;
+  compressor.knee.value = 6;
+  compressor.ratio.value = 4;
+  compressor.attack.value = 0.003;
+  compressor.release.value = 0.15;
+  compressor.connect(ctx.destination);
+
   const master = ctx.createGain();
   master.gain.value = baseVolume * globalVolume;
-  master.connect(ctx.destination);
+  master.connect(compressor);
   return master;
 };
 
@@ -224,10 +233,16 @@ const createInkSound = (
     =========================================================== */
     case 'cartoonPop':
     case 'inkClick': {
-      // Chunky bubble pop: descending sine + small noise click
-      sweepTone(ctx, master, now, 0.18, 600, 200, 'sine', 0.6);
-      tone(ctx, master, now, 0.04, 1800, 'triangle', 0.25);
-      noiseBurst(ctx, master, now, 0.05, 'highpass', 1200, 1, 0.18);
+      // Chunky bubble pop: descending sine + sub thump + noise click + stereo width
+      sweepTone(ctx, master, now, 0.16, 680, 180, 'sine', 0.55);
+      // Sub thump for weight
+      tone(ctx, master, now, 0.08, 90, 'sine', 0.35, 0.003);
+      // High click transient
+      tone(ctx, master, now, 0.03, 2200, 'triangle', 0.28, 0.002);
+      // Noise texture
+      noiseBurst(ctx, master, now, 0.06, 'highpass', 1400, 2, 0.2);
+      // Subtle harmonic tail
+      tone(ctx, master, now + 0.04, 0.12, 440, 'sine', 0.08, 0.01);
       break;
     }
 
@@ -268,13 +283,27 @@ const createInkSound = (
     case 'cartoonSwoosh':
     case 'inkTransition':
     case 'inkFlow': {
-      // Big air whoosh
-      noiseBurst(ctx, master, now, 0.45, 'bandpass', 800, 2, 0.32, {
-        from: 200,
-        to: 4000,
+      // Big cinematic air whoosh — wider, deeper, more layered
+      // Low rumble sweep
+      noiseBurst(ctx, master, now, 0.5, 'bandpass', 400, 1.5, 0.28, {
+        from: 150,
+        to: 3000,
       });
-      sweepTone(ctx, master, now + 0.05, 0.35, 350, 1200, 'sine', 0.18);
-      sweepTone(ctx, master, now + 0.1, 0.3, 1200, 350, 'triangle', 0.12);
+      // Mid-range body
+      noiseBurst(ctx, master, now + 0.03, 0.42, 'bandpass', 1200, 3, 0.22, {
+        from: 400,
+        to: 5000,
+      });
+      // High air texture
+      noiseBurst(ctx, master, now + 0.06, 0.35, 'highpass', 3000, 1, 0.12, {
+        from: 2000,
+        to: 8000,
+      });
+      // Tonal sweep for pitch movement
+      sweepTone(ctx, master, now + 0.04, 0.38, 280, 1400, 'sine', 0.15);
+      sweepTone(ctx, master, now + 0.08, 0.32, 1400, 280, 'triangle', 0.1);
+      // Sub thump at start
+      tone(ctx, master, now, 0.08, 60, 'sine', 0.2, 0.003);
       break;
     }
 
@@ -283,35 +312,32 @@ const createInkSound = (
     =========================================================== */
     case 'cartoonBoing':
     case 'inkDrip': {
-      // Springy bouncy boing — 3 quick wobbles up-down
-      const baseFreq = type === 'inkDrip' ? 320 : 420;
-      [0, 0.1, 0.2].forEach((offset, i) => {
-        const peak = 0.4 - i * 0.1;
+      // Ultra springy boing — 4 bounces with decreasing amplitude + sub impact
+      const baseFreq = type === 'inkDrip' ? 300 : 440;
+      // Sub impact on first bounce
+      tone(ctx, master, now, 0.1, 65, 'sine', 0.35, 0.003);
+      noiseBurst(ctx, master, now, 0.04, 'lowpass', 600, 1, 0.15);
+      // 4 bounces (down-up-down-up) with decreasing energy
+      [0, 0.08, 0.16, 0.24].forEach((offset, i) => {
+        const energy = 0.45 - i * 0.1;
+        const freqMult = 1 - i * 0.03;
+        // Down sweep
         sweepTone(
-          ctx,
-          master,
-          now + offset,
-          0.12,
-          baseFreq * (1 + i * 0.05),
-          baseFreq * (0.55 + i * 0.05),
-          'sine',
-          peak,
-          0.005,
+          ctx, master, now + offset, 0.09,
+          baseFreq * freqMult * 1.1,
+          baseFreq * freqMult * 0.5,
+          'sine', energy, 0.003,
         );
+        // Up sweep (bounce back)
         sweepTone(
-          ctx,
-          master,
-          now + offset + 0.06,
-          0.1,
-          baseFreq * (0.55 + i * 0.05),
-          baseFreq * (0.95 + i * 0.05),
-          'sine',
-          peak * 0.6,
-          0.005,
+          ctx, master, now + offset + 0.045, 0.08,
+          baseFreq * freqMult * 0.5,
+          baseFreq * freqMult * 1.05,
+          'sine', energy * 0.55, 0.003,
         );
       });
-      // Soft noise click on impact
-      noiseBurst(ctx, master, now, 0.05, 'lowpass', 800, 1, 0.12);
+      // Harmonic shimmer on top
+      sweepTone(ctx, master, now, 0.3, baseFreq * 2, baseFreq * 1.5, 'triangle', 0.08);
       break;
     }
 
@@ -320,16 +346,24 @@ const createInkSound = (
     =========================================================== */
     case 'cartoonDing':
     case 'inkSuccess': {
-      // Bell-like "ding!" with golden shimmer
-      const fundamentals = type === 'inkSuccess' ? [880, 1108] : [988];
-      fundamentals.forEach((f) => {
-        tone(ctx, master, now, 0.6, f, 'sine', 0.35, 0.005);
-        tone(ctx, master, now, 0.5, f * 2, 'sine', 0.18, 0.005);
-        tone(ctx, master, now, 0.45, f * 3, 'sine', 0.08, 0.005);
-        tone(ctx, master, now, 0.4, f * 4, 'sine', 0.04, 0.005);
+      // Rich bell "ding!" with golden shimmer + reverb tail
+      const fundamentals = type === 'inkSuccess' ? [880, 1108, 1320] : [988];
+      fundamentals.forEach((f, fi) => {
+        const startOffset = fi * 0.08;
+        // Fundamental + 5 harmonics for rich bell timbre
+        tone(ctx, master, now + startOffset, 0.7, f, 'sine', 0.32, 0.003);
+        tone(ctx, master, now + startOffset, 0.6, f * 2, 'sine', 0.2, 0.003);
+        tone(ctx, master, now + startOffset, 0.5, f * 3, 'sine', 0.1, 0.003);
+        tone(ctx, master, now + startOffset, 0.45, f * 4, 'sine', 0.05, 0.003);
+        tone(ctx, master, now + startOffset, 0.4, f * 5, 'sine', 0.025, 0.003);
+        // Detuned copy for chorus/shimmer effect
+        tone(ctx, master, now + startOffset, 0.55, f * 1.002, 'sine', 0.12, 0.005, 8);
+        tone(ctx, master, now + startOffset, 0.5, f * 2.003, 'sine', 0.06, 0.005, -6);
       });
-      // Tiny percussive attack
-      noiseBurst(ctx, master, now, 0.04, 'highpass', 4000, 1, 0.18);
+      // Percussive attack transient
+      noiseBurst(ctx, master, now, 0.035, 'highpass', 5000, 2, 0.22);
+      // Sub warmth
+      tone(ctx, master, now, 0.15, 220, 'sine', 0.12, 0.005);
       break;
     }
 
@@ -337,19 +371,28 @@ const createInkSound = (
        FANFARE — 3-note triad
     =========================================================== */
     case 'cartoonFanfare': {
-      // C5 - E5 - G5 ascending major triad with shimmer
-      const notes = [523, 659, 784];
+      // Epic 4-note ascending major triad fanfare with big finish
+      const notes = [523, 659, 784, 1046]; // C5 - E5 - G5 - C6
       notes.forEach((freq, i) => {
-        const start = now + i * 0.12;
-        tone(ctx, master, start, 0.5, freq, 'triangle', 0.32);
-        tone(ctx, master, start, 0.45, freq * 2, 'sine', 0.16);
-        tone(ctx, master, start, 0.4, freq * 3, 'sine', 0.06);
+        const start = now + i * 0.1;
+        const isLast = i === notes.length - 1;
+        const dur = isLast ? 0.8 : 0.4;
+        const vol = isLast ? 0.38 : 0.28;
+        // Main tone + octave + fifth harmonic
+        tone(ctx, master, start, dur, freq, 'triangle', vol, 0.003);
+        tone(ctx, master, start, dur * 0.9, freq * 2, 'sine', vol * 0.5, 0.005);
+        tone(ctx, master, start, dur * 0.8, freq * 1.5, 'sine', vol * 0.2, 0.005);
+        // Detuned shimmer
+        tone(ctx, master, start, dur * 0.85, freq * 1.003, 'sine', vol * 0.15, 0.005, 5);
       });
-      // Big closing ding
-      const endStart = now + 0.4;
-      tone(ctx, master, endStart, 0.7, 1046, 'triangle', 0.32);
-      tone(ctx, master, endStart, 0.6, 2092, 'sine', 0.14);
-      noiseBurst(ctx, master, endStart, 0.06, 'highpass', 5000, 1, 0.22);
+      // Big percussive hit on the final note
+      const finalStart = now + 0.3;
+      noiseBurst(ctx, master, finalStart, 0.08, 'highpass', 4500, 2, 0.28);
+      tone(ctx, master, finalStart, 0.12, 110, 'sine', 0.25, 0.003); // sub punch
+      // Sparkle tail
+      [2093, 2637, 3136].forEach((f, i) => {
+        tone(ctx, master, now + 0.35 + i * 0.04, 0.35, f, 'sine', 0.06, 0.01);
+      });
       break;
     }
 
@@ -358,9 +401,12 @@ const createInkSound = (
     =========================================================== */
     case 'cartoonWobble':
     case 'paperFold': {
-      // Jelly bounce — wobble LFO + soft sweep
-      wobbleTone(ctx, master, now, 0.35, 380, 18, 80, 0.32);
-      sweepTone(ctx, master, now, 0.18, 220, 480, 'sine', 0.18);
+      // Rich jelly wobble — dual LFO + harmonic body
+      wobbleTone(ctx, master, now, 0.4, 360, 20, 90, 0.3);
+      wobbleTone(ctx, master, now + 0.02, 0.35, 720, 16, 50, 0.12); // octave shimmer
+      sweepTone(ctx, master, now, 0.2, 200, 520, 'sine', 0.2);
+      // Soft noise texture
+      noiseBurst(ctx, master, now, 0.08, 'bandpass', 800, 3, 0.06);
       break;
     }
 
@@ -369,15 +415,23 @@ const createInkSound = (
     =========================================================== */
     case 'cartoonZap':
     case 'inkError': {
-      // Descending sawtooth zap with noise crackle
-      sweepTone(ctx, master, now, 0.22, 1400, 80, 'sawtooth', 0.42);
-      sweepTone(ctx, master, now + 0.02, 0.18, 1100, 60, 'square', 0.18);
-      noiseBurst(ctx, master, now, 0.16, 'bandpass', 1500, 4, 0.22, {
-        from: 3500,
-        to: 200,
+      // Electric zap descend — more aggressive, multi-layer
+      // Main zap: fast descending sawtooth
+      sweepTone(ctx, master, now, 0.2, 1600, 60, 'sawtooth', 0.4);
+      // Secondary buzz
+      sweepTone(ctx, master, now + 0.015, 0.16, 1200, 50, 'square', 0.2);
+      // Crackle noise
+      noiseBurst(ctx, master, now, 0.18, 'bandpass', 2000, 5, 0.25, {
+        from: 4000,
+        to: 150,
       });
-      // Sub punch
-      tone(ctx, master, now, 0.12, 80, 'sine', 0.3);
+      // Sub punch for impact
+      tone(ctx, master, now, 0.1, 70, 'sine', 0.35, 0.003);
+      // Sad descending tail for error variant
+      if (type === 'inkError') {
+        sweepTone(ctx, master, now + 0.15, 0.25, 400, 120, 'triangle', 0.15);
+        sweepTone(ctx, master, now + 0.2, 0.2, 300, 80, 'sine', 0.1);
+      }
       break;
     }
 
@@ -385,13 +439,25 @@ const createInkSound = (
        INK SPLASH (multi-layer)
     =========================================================== */
     case 'inkSplash': {
-      // Quick noise splash + tonal pop
-      noiseBurst(ctx, master, now, 0.32, 'lowpass', 2000, 1, 0.4, {
-        from: 4000,
-        to: 200,
+      // Rich multi-layer splash burst — like paint hitting a wall
+      // Low body splash
+      noiseBurst(ctx, master, now, 0.35, 'lowpass', 1500, 1, 0.38, {
+        from: 4500,
+        to: 150,
       });
-      sweepTone(ctx, master, now, 0.18, 800, 240, 'sine', 0.32);
-      sweepTone(ctx, master, now + 0.05, 0.25, 1500, 600, 'triangle', 0.14);
+      // Mid splatter texture
+      noiseBurst(ctx, master, now + 0.02, 0.28, 'bandpass', 2500, 3, 0.2, {
+        from: 3000,
+        to: 800,
+      });
+      // Tonal pop
+      sweepTone(ctx, master, now, 0.15, 900, 200, 'sine', 0.3);
+      // Secondary tonal ring
+      sweepTone(ctx, master, now + 0.04, 0.22, 1600, 500, 'triangle', 0.14);
+      // Sub impact
+      tone(ctx, master, now, 0.08, 80, 'sine', 0.28, 0.003);
+      // High sparkle
+      tone(ctx, master, now + 0.06, 0.15, 2400, 'sine', 0.06, 0.01);
       break;
     }
   }
