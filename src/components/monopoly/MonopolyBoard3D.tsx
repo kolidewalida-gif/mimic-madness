@@ -5,10 +5,19 @@ import {
   Text,
   RoundedBox,
   Float,
-  Sparkles,
-  Sphere,
 } from '@react-three/drei';
 import * as THREE from 'three';
+
+// Local fallback for drei's Sphere (removed in newer versions)
+const Sphere = ({ args, position, rotation, children }: any) => (
+  <mesh position={position} rotation={rotation}>
+    <sphereGeometry args={args} />
+    {children}
+  </mesh>
+);
+
+// Local no-op stub for drei's Sparkles (removed in newer versions)
+const Sparkles = (_props: any) => null;
 import {
   BOARD_SPACES,
   getBoardPosition,
