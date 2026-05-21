@@ -354,12 +354,26 @@ export const UndercoverGameScreen = memo(
     );
     const { getAvatar } = useMultiplePlayerAvatars(playerIds);
 
+    // Flashlight reveal animation state
+    const [revealAnimDone, setRevealAnimDone] = useState(false);
+
+    // Reset reveal animation when entering vote_result
+    useEffect(() => {
+      if (game?.phase === 'vote_result') {
+        setRevealAnimDone(false);
+        // Animation lasts 3.5s then reveals the result
+        const timer = setTimeout(() => setRevealAnimDone(true), 3500);
+        return () => clearTimeout(timer);
+      }
+    }, [game?.phase, game?.eliminated_player_id]);
+
     // Undercover SFX — auto-plays music at key moments
     useUndercoverSfx({
       phase: game?.phase ?? '',
       round: game?.current_round ?? 1,
       eliminatedRole: game?.eliminated_role ?? null,
       isVoteResult: game?.phase === 'vote_result' && !!game?.eliminated_player_id,
+      isRevealAnimationDone: revealAnimDone,
     });
 
     if (loading || !game) {
@@ -1134,19 +1148,26 @@ export const UndercoverGameScreen = memo(
                 </>
               )}
 
-              {/* VOTE RESULT */}
+              {/* VOTE RESULT — flashlight animation then reveal */}
               {game.phase === 'vote_result' && (
-                <VoteResultBlock
-                  game={game}
-                  gamePlayers={gamePlayers}
-                  isHost={currentPlayer.isHost}
-                  accent={accent}
-                  onNext={() => {
-                    nextRound();
-                    setHasVoted(false);
-                    setSelectedVote(null);
-                  }}
-                />
+                <>
+                  {!revealAnimDone ? (
+                    <FlashlightRevealAnimation />
+                  ) : (
+                    <VoteResultBlock
+                      game={game}
+                      gamePlayers={gamePlayers}
+                      isHost={currentPlayer.isHost}
+                      accent={accent}
+                      getAvatar={getAvatar}
+                      onNext={() => {
+                        nextRound();
+                        setHasVoted(false);
+                        setSelectedVote(null);
+                      }}
+                    />
+                  )}
+                </>
               )}
 
               {/* GAME OVER */}
@@ -1397,12 +1418,14 @@ const VoteResultBlock = ({
   gamePlayers,
   isHost,
   accent,
+  getAvatar,
   onNext,
 }: {
   game: any;
   gamePlayers: any[];
   isHost: boolean;
   accent: string;
+  getAvatar: (id: string) => { type: string; imageUrl?: string };
   onNext: () => void;
 }) => {
   const eliminatedName = gamePlayers.find(
@@ -1486,3 +1509,100 @@ const VoteResultBlock = ({
     </div>
   );
 };
+
+/* ============================================================
+   Flashlight Reveal Animation — suspense before showing who was eliminated
+   A "police flashlight" sweeps across the screen searching for the suspect.
+============================================================ */
+const FlashlightRevealAnimation = () => (
+  <div className="text-center space-y-4 py-6">
+    {/* Flashlight beam sweeping */}
+    <motion.div
+      className="relative w-full h-40 overflow-hidden rounded-2xl"
+      style={{
+        background: 'rgba(0,0,0,0.8)',
+        border: '3px solid #0a0810',
+        boxShadow: '0 4px 0 #0a0810',
+      }}
+    >
+      {/* Sweeping cone of light */}
+      <motion.div
+        className="absolute top-0 h-full"
+        style={{
+          width: '120px',
+          background:
+            'radial-gradient(ellipse at center, rgba(251,191,36,0.6) 0%, rgba(251,191,36,0.2) 40%, transparent 70%)',
+          filter: 'blur(8px)',
+        }}
+        animate={{
+          left: ['-120px', 'calc(100% + 120px)', '-120px', 'calc(100% + 120px)'],
+        }}
+        transition={{
+          duration: 3,
+          ease: 'easeInOut',
+          times: [0, 0.4, 0.6, 1],
+        }}
+      />
+      {/* Silhouette figures */}
+      <div className="absolute inset-0 flex items-center justify-center gap-8 opacity-30">
+        {'🕵️ 👤 👤 👤 🕵️'.split(' ').map((emoji, i) => (
+          <motion.span
+            key={i}
+            className="text-4xl"
+            animate={{ opacity: [0.2, 0.5, 0.2] }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              delay: i * 0.3,
+            }}
+          >
+            {emoji}
+          </motion.span>
+        ))}
+      </div>
+      {/* Center text */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <motion.p
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-3xl font-black text-amber-300 leading-none"
+          style={{
+            fontFamily: "'Caveat', cursive",
+            textShadow:
+              '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 0 0 20px rgba(251,191,36,0.6)',
+          }}
+        >
+          Recherche en cours…
+        </motion.p>
+      </div>
+    </motion.div>
+
+    {/* Suspense dots */}
+    <div className="flex items-center justify-center gap-2">
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="w-3 h-3 rounded-full bg-amber-400"
+          animate={{ scale: [0.5, 1.2, 0.5], opacity: [0.3, 1, 0.3] }}
+          transition={{
+            duration: 1,
+            repeat: Infinity,
+            delay: i * 0.3,
+          }}
+          style={{ boxShadow: '0 0 8px rgba(251,191,36,0.6)' }}
+        />
+      ))}
+    </div>
+
+    <p
+      className="text-lg font-black text-white/70 leading-none"
+      style={{
+        fontFamily: "'Caveat', cursive",
+        textShadow:
+          '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+      }}
+    >
+      Qui sera éliminé ?
+    </p>
+  </div>
+);

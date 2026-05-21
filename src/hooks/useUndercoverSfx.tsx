@@ -85,38 +85,56 @@ export const useUndercoverSfx = ({
   round,
   eliminatedRole,
   isVoteResult,
+  isRevealAnimationDone,
 }: {
   phase: string;
   round: number;
   eliminatedRole: string | null;
   isVoteResult: boolean;
+  /** True once the "flashlight reveal" animation has finished playing */
+  isRevealAnimationDone: boolean;
 }) => {
   const suspenseRef = useRef<HTMLAudioElement | null>(null);
   const tensionRef = useRef<HTMLAudioElement | null>(null);
   const lastPhaseRef = useRef<string>('');
   const lastRoundRef = useRef<number>(0);
+  const revealSfxPlayedRef = useRef(false);
 
-  // Vote suspense — plays when entering voting phase
+  // Vote suspense — plays DURING the reveal animation (not when voting starts)
+  // The suspense music plays when we enter vote_result phase (animation is playing)
   useEffect(() => {
-    if (phase === 'voting' && lastPhaseRef.current !== 'voting') {
-      // Play suspense music during the vote
+    if (phase === 'vote_result' && lastPhaseRef.current !== 'vote_result') {
+      // Start suspense during the flashlight animation
       suspenseRef.current = playUndercoverSfx('voteSuspense', 0.6);
+      revealSfxPlayedRef.current = false;
     }
-    if (phase !== 'voting' && suspenseRef.current) {
+    if (phase !== 'vote_result' && suspenseRef.current) {
       stopUndercoverSfx(suspenseRef.current);
       suspenseRef.current = null;
     }
     lastPhaseRef.current = phase;
   }, [phase]);
 
-  // Vote result — civil eliminated (bad vote) SFX
+  // Vote result — civil eliminated (bad vote) SFX — plays AFTER reveal animation
   useEffect(() => {
-    if (isVoteResult && eliminatedRole && eliminatedRole !== 'undercover' && eliminatedRole !== 'mr_white') {
-      // A civilian was eliminated — play the "oops" music
-      const variant = Math.random() > 0.5 ? 'voteCivilEliminated' : 'voteCivilEliminated2';
-      playUndercoverSfx(variant, 0.7);
+    if (
+      isRevealAnimationDone &&
+      isVoteResult &&
+      !revealSfxPlayedRef.current
+    ) {
+      revealSfxPlayedRef.current = true;
+      // Stop suspense
+      if (suspenseRef.current) {
+        stopUndercoverSfx(suspenseRef.current);
+        suspenseRef.current = null;
+      }
+      // Play the appropriate result SFX
+      if (eliminatedRole && eliminatedRole !== 'undercover' && eliminatedRole !== 'mr_white') {
+        const variant = Math.random() > 0.5 ? 'voteCivilEliminated' : 'voteCivilEliminated2';
+        playUndercoverSfx(variant, 0.7);
+      }
     }
-  }, [isVoteResult, eliminatedRole]);
+  }, [isRevealAnimationDone, isVoteResult, eliminatedRole]);
 
   // Tension music — when game drags on (round 4+)
   useEffect(() => {
