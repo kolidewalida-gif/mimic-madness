@@ -365,22 +365,22 @@ function TokenMesh({ tokenType, color }: { tokenType: string; color: string }): 
   if (tokenType === 'dog') {
     return (
       <group>
-        <Sphere args={[0.13, 18, 18]}>
+        <mesh><sphereGeometry args={[0.13, 18, 18]} />
           <meshStandardMaterial color={color} metalness={0.4} roughness={0.4} />
-        </Sphere>
-        <Sphere args={[0.1, 18, 18]} position={[0.16, 0.05, 0]}>
+        </mesh>
+        <mesh position={[0.16, 0.05, 0]}><sphereGeometry args={[0.1, 18, 18]} />
           <meshStandardMaterial color={color} metalness={0.4} roughness={0.4} />
-        </Sphere>
+        </mesh>
         <mesh position={[-0.13, 0.08, 0]} rotation={[0, 0, Math.PI / 4]}>
           <cylinderGeometry args={[0.025, 0.025, 0.18, 8]} />
           <meshStandardMaterial color={color} />
         </mesh>
-        <Sphere args={[0.04, 12, 12]} position={[0.18, 0.16, 0.07]}>
+        <mesh position={[0.18, 0.16, 0.07]}><sphereGeometry args={[0.04, 12, 12]} />
           <meshStandardMaterial color="#0a0810" />
-        </Sphere>
-        <Sphere args={[0.04, 12, 12]} position={[0.18, 0.16, -0.07]}>
+        </mesh>
+        <mesh position={[0.18, 0.16, -0.07]}><sphereGeometry args={[0.04, 12, 12]} />
           <meshStandardMaterial color="#0a0810" />
-        </Sphere>
+        </mesh>
       </group>
     );
   }
@@ -444,7 +444,7 @@ function TokenMesh({ tokenType, color }: { tokenType: string; color: string }): 
   }
   // Unknown — fall back to a sphere using the resolved color.
   return (
-    <Sphere args={[0.16, 18, 18]}>
+    <mesh><sphereGeometry args={[0.16, 18, 18]} />
       <meshStandardMaterial
         color={color}
         metalness={0.6}
@@ -452,7 +452,7 @@ function TokenMesh({ tokenType, color }: { tokenType: string; color: string }): 
         emissive={new THREE.Color(color)}
         emissiveIntensity={0.2}
       />
-    </Sphere>
+    </mesh>
   );
 }
 
