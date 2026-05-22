@@ -409,6 +409,8 @@ export const useUndercoverGame = (
     },
     [game, currentPlayer.isHost],
   );
+
+  const submitClue = useCallback(async (clue: string) => {
     if (!game || !myPlayer) return;
 
     const cleanClue = safeParse(undercoverClueSchema, clue);
