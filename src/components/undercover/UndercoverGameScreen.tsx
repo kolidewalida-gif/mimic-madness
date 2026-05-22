@@ -479,7 +479,79 @@ export const UndercoverGameScreen = memo(
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Manche pill — only shows if Bo > 1 */}
+            {game.total_rounds > 1 && (
+              <div
+                className="px-3 py-1.5 rounded-2xl flex items-center gap-2"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(251,191,36,0.18), rgba(217,119,6,0.05))',
+                  border: '2.5px solid #0a0810',
+                  boxShadow: '0 3px 0 #0a0810',
+                }}
+              >
+                <span
+                  className="text-[10px] uppercase tracking-wider text-white/60 font-black"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  Manche
+                </span>
+                <span
+                  className="text-base font-black leading-none"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    color: '#fbbf24',
+                    textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                  }}
+                >
+                  {game.current_round}/{game.total_rounds}
+                </span>
+              </div>
+            )}
+
+            {/* Score pill — civils vs undercover wins, shown when Bo>1 and any score recorded */}
+            {game.total_rounds > 1 &&
+              ((game.civilian_wins ?? 0) > 0 ||
+                (game.undercover_wins ?? 0) > 0) && (
+                <div
+                  className="px-3 py-1.5 rounded-2xl flex items-center gap-2"
+                  style={{
+                    background:
+                      'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(126,34,206,0.05))',
+                    border: '2.5px solid #0a0810',
+                    boxShadow: '0 3px 0 #0a0810',
+                  }}
+                >
+                  <span
+                    className="text-base font-black leading-none"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      color: '#34d399',
+                      textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                    }}
+                  >
+                    {game.civilian_wins ?? 0}
+                  </span>
+                  <span
+                    className="text-xs font-black text-white/40"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
+                    vs
+                  </span>
+                  <span
+                    className="text-base font-black leading-none"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      color: '#ef4444',
+                      textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                    }}
+                  >
+                    {game.undercover_wins ?? 0}
+                  </span>
+                </div>
+              )}
+
             {/* Vivants pill */}
             <div
               className="px-3 py-1.5 rounded-2xl flex items-center gap-2"
@@ -1199,16 +1271,81 @@ export const UndercoverGameScreen = memo(
                       ? 'Victoire des Civils !'
                       : 'Victoire des Infiltrés !'}
                   </h3>
+
+                  {/* Final score badge — only when Bo>1 */}
+                  {game.total_rounds > 1 && (
+                    <div className="flex items-center justify-center gap-3 pt-1">
+                      <div
+                        className="px-3 py-1.5 rounded-2xl flex items-center gap-2"
+                        style={{
+                          background:
+                            'linear-gradient(180deg, rgba(52,211,153,0.22), rgba(5,150,105,0.06))',
+                          border: '2.5px solid #0a0810',
+                          boxShadow: '0 3px 0 #0a0810',
+                        }}
+                      >
+                        <span
+                          className="text-xs uppercase tracking-wider text-white/70 font-black"
+                          style={{ fontFamily: "'Caveat', cursive" }}
+                        >
+                          Civils
+                        </span>
+                        <span
+                          className="text-xl font-black leading-none"
+                          style={{
+                            fontFamily: "'Caveat', cursive",
+                            color: '#34d399',
+                            textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                          }}
+                        >
+                          {game.civilian_wins ?? 0}
+                        </span>
+                      </div>
+                      <span
+                        className="text-base font-black text-white/40"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        ─
+                      </span>
+                      <div
+                        className="px-3 py-1.5 rounded-2xl flex items-center gap-2"
+                        style={{
+                          background:
+                            'linear-gradient(180deg, rgba(239,68,68,0.22), rgba(127,29,29,0.06))',
+                          border: '2.5px solid #0a0810',
+                          boxShadow: '0 3px 0 #0a0810',
+                        }}
+                      >
+                        <span
+                          className="text-xl font-black leading-none"
+                          style={{
+                            fontFamily: "'Caveat', cursive",
+                            color: '#ef4444',
+                            textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                          }}
+                        >
+                          {game.undercover_wins ?? 0}
+                        </span>
+                        <span
+                          className="text-xs uppercase tracking-wider text-white/70 font-black"
+                          style={{ fontFamily: "'Caveat', cursive" }}
+                        >
+                          Infiltrés
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <div
                     className="space-y-1 text-base font-bold text-white/80"
                     style={{ fontFamily: "'Caveat', cursive" }}
                   >
                     <p>
-                      Mot civil :{' '}
+                      Dernier mot civil :{' '}
                       <span className="text-white">{game.civilian_word}</span>
                     </p>
                     <p>
-                      Mot undercover :{' '}
+                      Dernier mot undercover :{' '}
                       <span className="text-white">
                         {game.undercover_word}
                       </span>
@@ -1283,9 +1420,9 @@ export const UndercoverGameScreen = memo(
                 exit={{ opacity: 0, scale: 0.7, rotate: 8 }}
                 transition={{ type: 'spring', damping: 16, stiffness: 220 }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-md"
+                className="relative w-full max-w-lg"
               >
-                <CartoonCard accent={accent} className="px-8 py-10 text-center">
+                <CartoonCard accent={accent} className="px-6 sm:px-8 py-10 text-center">
                   <Sparkles
                     className="absolute top-3 left-4 w-4 h-4 z-10"
                     style={{
@@ -1308,20 +1445,43 @@ export const UndercoverGameScreen = memo(
                       Ton mot secret
                     </div>
 
-                    <div className="py-4">
+                    <div className="py-4 px-1">
                       {myPlayer?.word ? (
-                        <motion.div
-                          key={showWord ? 'shown' : 'hidden'}
-                          initial={{ scale: 0.8, opacity: 0, rotate: -5 }}
-                          animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                          className="text-6xl md:text-7xl font-black tracking-wide leading-none text-white"
-                          style={{
-                            fontFamily: "'Caveat', cursive",
-                            textShadow: `${GRAFFITI_TEXT_SHADOW}, 0 4px 20px ${accent}88`,
-                          }}
-                        >
-                          {myPlayer.word.toUpperCase()}
-                        </motion.div>
+                        (() => {
+                          const w = myPlayer.word;
+                          // Dynamic sizing based on length so long words
+                          // ("Baguette magique", "Kamehameha", etc.) stay
+                          // inside the modal even on small screens.
+                          const len = w.length;
+                          const sizeClass =
+                            len <= 8
+                              ? 'text-5xl sm:text-6xl md:text-7xl'
+                              : len <= 14
+                                ? 'text-4xl sm:text-5xl md:text-6xl'
+                                : len <= 20
+                                  ? 'text-3xl sm:text-4xl md:text-5xl'
+                                  : 'text-2xl sm:text-3xl md:text-4xl';
+                          return (
+                            <motion.div
+                              key={showWord ? 'shown' : 'hidden'}
+                              initial={{ scale: 0.8, opacity: 0, rotate: -5 }}
+                              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                              className={cn(
+                                'font-black leading-tight text-white break-words text-center',
+                                sizeClass,
+                              )}
+                              style={{
+                                fontFamily: "'Caveat', cursive",
+                                textShadow: `${GRAFFITI_TEXT_SHADOW}, 0 4px 20px ${accent}88`,
+                                wordBreak: 'break-word',
+                                hyphens: 'auto',
+                                letterSpacing: len > 14 ? '0.01em' : '0.03em',
+                              }}
+                            >
+                              {w.toUpperCase()}
+                            </motion.div>
+                          );
+                        })()
                       ) : (
                         <div className="space-y-2">
                           <motion.div
@@ -1423,10 +1583,72 @@ const VoteResultBlock = ({
   const eliminatedName = gamePlayers.find(
     (p) => p.player_id === game.eliminated_player_id,
   )?.player_name;
-  // Eliminated role is intentionally NOT shown — keeps the suspense intact.
+
+  // Compute round outcome from the alive set so the button label reflects
+  // what `nextRound()` will actually do (continue current round / fresh
+  // round / conclude match).
+  const alive = gamePlayers.filter((p) => p.is_alive);
+  const remainingUndercover = alive.filter((p) => p.role === 'undercover');
+  const remainingMrWhite = alive.filter((p) => p.role === 'mr_white');
+  const remainingCivilians = alive.filter((p) => p.role === 'civilian');
+  const allBadOut =
+    remainingUndercover.length === 0 && remainingMrWhite.length === 0;
+  const undercoverParity =
+    remainingUndercover.length + remainingMrWhite.length >=
+    remainingCivilians.length;
+  const roundWinner: 'civilian' | 'undercover' | null = allBadOut
+    ? 'civilian'
+    : undercoverParity
+      ? 'undercover'
+      : null;
+
+  const isLastRound = game.current_round >= game.total_rounds;
+
+  // Button text adapts to the next host action.
+  const buttonLabel: string =
+    roundWinner !== null
+      ? isLastRound
+        ? 'Voir le résultat final'
+        : 'Manche suivante'
+      : 'Continuer la manche';
+
+  // Top-line message above the eliminated card.
+  const outcomeLine: string | null =
+    roundWinner === 'civilian'
+      ? 'Les civils gagnent la manche !'
+      : roundWinner === 'undercover'
+        ? "Les infiltrés gagnent la manche !"
+        : null;
 
   return (
     <div className="text-center space-y-3">
+      {outcomeLine !== null && (
+        <motion.div
+          initial={{ scale: 0.6, opacity: 0, y: -10 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 16 }}
+          className="px-3 py-1.5 inline-block rounded-2xl"
+          style={{
+            background:
+              roundWinner === 'civilian'
+                ? 'linear-gradient(180deg, #34d399, #059669)'
+                : 'linear-gradient(180deg, #ef4444, #b91c1c)',
+            border: '3px solid #0a0810',
+            boxShadow: '0 4px 0 #0a0810',
+          }}
+        >
+          <span
+            className="text-base font-black uppercase text-white tracking-wider"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+            }}
+          >
+            {outcomeLine}
+          </span>
+        </motion.div>
+      )}
+
       {game.eliminated_player_id ? (
         <>
           <motion.div
@@ -1459,12 +1681,14 @@ const VoteResultBlock = ({
             >
               {eliminatedName}
             </h3>
-            <p
-              className="mt-2 text-sm text-white/55 italic font-bold"
-              style={{ fontFamily: "'Caveat', cursive" }}
-            >
-              Son rôle reste secret…
-            </p>
+            {roundWinner === null && (
+              <p
+                className="mt-2 text-sm text-white/55 italic font-bold"
+                style={{ fontFamily: "'Caveat', cursive" }}
+              >
+                La partie continue…
+              </p>
+            )}
           </div>
         </>
       ) : (
@@ -1494,7 +1718,7 @@ const VoteResultBlock = ({
       )}
       {isHost && (
         <CartoonButton onClick={onNext} color={accent}>
-          Manche suivante
+          {buttonLabel}
           <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
         </CartoonButton>
       )}

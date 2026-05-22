@@ -63,6 +63,8 @@ interface UndercoverGame {
   eliminated_role: string | null;
   is_finished: boolean;
   winner_role: string | null;
+  civilian_wins?: number;
+  undercover_wins?: number;
 }
 
 type GamePhase =
@@ -256,8 +258,157 @@ export const useUndercoverGame = (
     [game, currentPlayer.isHost, players.length, fetchGame],
   );
 
-  // Submit clue
-  const submitClue = useCallback(async (clue: string) => {
+  /**
+   * Start a fresh round inside the SAME game (host only).
+   *
+   * Multi-round semantics: when one side wins by elimination/parity but
+   * `current_round < total_rounds`, we don't end the game. Instead:
+   *
+   *   1) Increment the matching side's score (`civilian_wins` /
+   *      `undercover_wins` if those columns are deployed).
+   *   2) Pick a new word pair.
+   *   3) Re-shuffle role/word assignments using the locked
+   *      `num_undercover` / `enable_mr_white` settings.
+   *   4) Bring everyone back alive, clear clues/votes, reset the player
+   *      order and turn cursor.
+   *   5) Move the game back to `word_reveal` with `current_round + 1`.
+   *
+   * Returns the updated game row or null on failure.
+   */
+  const startNextRoundFresh = useCallback(
+    async (
+      winnerRole: 'civilian' | 'undercover' | null,
+    ): Promise<void> => {
+      if (!game || !currentPlayer.isHost) return;
+
+      const newPair = getRandomWordPair();
+      const newOrder = [...game.player_order].sort(() => Math.random() - 0.5);
+      const safeUndercover = Math.max(1, game.num_undercover || 1);
+      const enableMrWhite = Boolean(game.enable_mr_white);
+
+      // Re-distribute roles. Apply same algorithm as `lockSettings`.
+      const roles: Record<string, 'civilian' | 'undercover' | 'mr_white'> = {};
+      const words: Record<string, string | null> = {};
+      let idx = 0;
+      for (let i = 0; i < safeUndercover && idx < newOrder.length; i++, idx++) {
+        roles[newOrder[idx]] = 'undercover';
+        words[newOrder[idx]] = newPair.undercover;
+      }
+      if (enableMrWhite && newOrder.length >= 4 && idx < newOrder.length) {
+        roles[newOrder[idx]] = 'mr_white';
+        words[newOrder[idx]] = null;
+        idx++;
+      }
+      for (; idx < newOrder.length; idx++) {
+        roles[newOrder[idx]] = 'civilian';
+        words[newOrder[idx]] = newPair.civilian;
+      }
+
+      // Reset every player row in one batch update per player.
+      await Promise.all(
+        Object.keys(roles).map((pid) =>
+          supabase
+            .from('undercover_players')
+            .update({
+              role: roles[pid],
+              word: words[pid],
+              is_alive: true,
+              vote_target: null,
+              current_clue: null,
+            })
+            .eq('game_id', game.id)
+            .eq('player_id', pid),
+        ),
+      );
+
+      // Increment the score columns optimistically; if they don't exist
+      // yet (migration not applied), the update silently no-ops on those
+      // fields and the rest of the patch still applies.
+      const patch: Record<string, unknown> = {
+        phase: 'word_reveal',
+        current_round: game.current_round + 1,
+        current_player_index: 0,
+        player_order: newOrder,
+        civilian_word: newPair.civilian,
+        undercover_word: newPair.undercover,
+        eliminated_player_id: null,
+        eliminated_role: null,
+      };
+      if (winnerRole === 'civilian') {
+        patch.civilian_wins = (game.civilian_wins ?? 0) + 1;
+      } else if (winnerRole === 'undercover') {
+        patch.undercover_wins = (game.undercover_wins ?? 0) + 1;
+      }
+
+      const { error } = await supabase
+        .from('undercover_games')
+        .update(patch)
+        .eq('id', game.id);
+
+      if (error) {
+        // Score columns may not exist yet — retry without them.
+        delete patch.civilian_wins;
+        delete patch.undercover_wins;
+        await supabase
+          .from('undercover_games')
+          .update(patch)
+          .eq('id', game.id);
+      }
+
+      await fetchGame();
+    },
+    [game, currentPlayer.isHost, fetchGame],
+  );
+
+  /**
+   * Conclude the entire match (host only). Picks the side with the most
+   * round wins as the global winner and flips the game to `game_over`.
+   */
+  const concludeMatch = useCallback(
+    async (lastRoundWinner: 'civilian' | 'undercover' | null): Promise<void> => {
+      if (!game || !currentPlayer.isHost) return;
+
+      const civilianWins =
+        (game.civilian_wins ?? 0) +
+        (lastRoundWinner === 'civilian' ? 1 : 0);
+      const undercoverWins =
+        (game.undercover_wins ?? 0) +
+        (lastRoundWinner === 'undercover' ? 1 : 0);
+
+      const winner: 'civilian' | 'undercover' =
+        civilianWins > undercoverWins
+          ? 'civilian'
+          : undercoverWins > civilianWins
+            ? 'undercover'
+            : (lastRoundWinner ?? 'civilian');
+
+      const patch: Record<string, unknown> = {
+        phase: 'game_over',
+        is_finished: true,
+        winner_role: winner,
+      };
+      if (lastRoundWinner === 'civilian') {
+        patch.civilian_wins = civilianWins;
+      } else if (lastRoundWinner === 'undercover') {
+        patch.undercover_wins = undercoverWins;
+      }
+
+      const { error } = await supabase
+        .from('undercover_games')
+        .update(patch)
+        .eq('id', game.id);
+
+      if (error) {
+        delete patch.civilian_wins;
+        delete patch.undercover_wins;
+        await supabase
+          .from('undercover_games')
+          .update(patch)
+          .eq('id', game.id);
+      }
+    },
+    [game, currentPlayer.isHost],
+  );
     if (!game || !myPlayer) return;
 
     const cleanClue = safeParse(undercoverClueSchema, clue);
@@ -360,37 +511,16 @@ export const useUndercoverGame = (
     const undercoverOutnumbersCivilians =
       remainingUndercover.length + remainingMrWhite.length >= remainingCivilians.length;
 
-    // Civilians win immediately when all bad guys are out
-    if (allBadGuysEliminated) {
-      await supabase
-        .from('undercover_games')
-        .update({
-          phase: 'game_over',
-          is_finished: true,
-          winner_role: 'civilian',
-          eliminated_player_id: eliminatedId,
-          eliminated_role: eliminatedPlayer?.role || null,
-        })
-        .eq('id', game.id);
-      return;
-    }
+    // Determine the round outcome (or null when nobody won this round yet).
+    const roundWinner: 'civilian' | 'undercover' | null = allBadGuysEliminated
+      ? 'civilian'
+      : undercoverOutnumbersCivilians
+        ? 'undercover'
+        : null;
 
-    // Undercover wins immediately when they reach numerical parity/majority
-    if (undercoverOutnumbersCivilians) {
-      await supabase
-        .from('undercover_games')
-        .update({
-          phase: 'game_over',
-          is_finished: true,
-          winner_role: 'undercover',
-          eliminated_player_id: eliminatedId,
-          eliminated_role: eliminatedPlayer?.role || null,
-        })
-        .eq('id', game.id);
-      return;
-    }
-
-    // Round resolved without ending the game — show result, host advances
+    // Always show the vote_result first so players see who got eliminated;
+    // the host advances to the next round (or the match conclusion) via
+    // `nextRound`.
     await supabase
       .from('undercover_games')
       .update({
@@ -399,38 +529,67 @@ export const useUndercoverGame = (
         eliminated_role: eliminatedPlayer?.role || null,
       })
       .eq('id', game.id);
+
+    // Stash the round winner inside the eliminated_role payload? No — we
+    // recompute it in `nextRound` from the alive set so we don't need to
+    // serialise it. The host's "Suite" button drives the transition.
   }, [game, currentPlayer.isHost]);
 
-  // Next round (host)
+  /**
+   * Host advance — called from the `vote_result` phase.
+   *
+   * Behaviour:
+   *   - If a side won the just-ended round (all bad guys out, or
+   *     undercover≥civilians) AND we still have rounds to play → start a
+   *     fresh round inside the same game (new word pair, redistributed
+   *     roles, all alive, back to `word_reveal`). Score gets bumped on
+   *     the winning side.
+   *   - If a side won AND we hit the round cap → conclude the match.
+   *   - Otherwise (tie / nobody won yet) → keep playing. Just clear
+   *     clues/votes and return to `clue_giving` for another round of
+   *     elimination.
+   */
   const nextRound = useCallback(async () => {
     if (!game || !currentPlayer.isHost) return;
 
-    // Round cap reached -> if undercovers still alive, they win
-    if (game.current_round >= game.total_rounds) {
-      const { data: latestPlayers } = await supabase
-        .from('undercover_players')
-        .select('*')
-        .eq('game_id', game.id);
+    // Re-check the alive set so we don't re-derive from a stale snapshot.
+    const { data: latest } = await supabase
+      .from('undercover_players')
+      .select('*')
+      .eq('game_id', game.id);
+    const players = ((latest as unknown as UndercoverPlayer[]) || []).filter(
+      (p) => p.is_alive,
+    );
+    const remainingUndercover = players.filter((p) => p.role === 'undercover');
+    const remainingMrWhite = players.filter((p) => p.role === 'mr_white');
+    const remainingCivilians = players.filter((p) => p.role === 'civilian');
 
-      const remaining = ((latestPlayers as unknown as UndercoverPlayer[]) || []).filter(
-        (p) => p.is_alive,
-      );
-      const stillBad = remaining.some(
-        (p) => p.role === 'undercover' || p.role === 'mr_white',
-      );
+    const allBadGuysEliminated =
+      remainingUndercover.length === 0 && remainingMrWhite.length === 0;
+    const undercoverOutnumbersCivilians =
+      remainingUndercover.length + remainingMrWhite.length >=
+      remainingCivilians.length;
 
-      await supabase
-        .from('undercover_games')
-        .update({
-          phase: 'game_over',
-          is_finished: true,
-          winner_role: stillBad ? 'undercover' : 'civilian',
-        })
-        .eq('id', game.id);
+    const roundWinner: 'civilian' | 'undercover' | null = allBadGuysEliminated
+      ? 'civilian'
+      : undercoverOutnumbersCivilians
+        ? 'undercover'
+        : null;
+
+    // Case A — a side won the round
+    if (roundWinner !== null) {
+      // Match over (round cap reached) → conclude
+      if (game.current_round >= game.total_rounds) {
+        await concludeMatch(roundWinner);
+        return;
+      }
+      // Still rounds to play → fresh round inside the same game
+      await startNextRoundFresh(roundWinner);
       return;
     }
 
-    // Clear clues and votes for the new round
+    // Case B — nobody won this round (tie / partial elimination).
+    // Clear clues/votes, keep alive set, and start another clue cycle.
     await supabase
       .from('undercover_players')
       .update({ current_clue: null, vote_target: null })
@@ -440,13 +599,12 @@ export const useUndercoverGame = (
       .from('undercover_games')
       .update({
         phase: 'clue_giving',
-        current_round: game.current_round + 1,
         current_player_index: 0,
         eliminated_player_id: null,
         eliminated_role: null,
       })
       .eq('id', game.id);
-  }, [game, currentPlayer.isHost]);
+  }, [game, currentPlayer.isHost, startNextRoundFresh, concludeMatch]);
 
   // Confirm word seen
   const confirmWordSeen = useCallback(async () => {
@@ -645,6 +803,29 @@ export const useUndercoverGame = (
           await new Promise((r) => setTimeout(r, 400 + Math.random() * 600));
         }
       }, 1500 + Math.random() * 1000);
+      return;
+    }
+
+    // --- DISCUSSION: in admin solo (only 1 human + bots) skip the
+    //     timer and advance to voting after 3s. Real multiplayer
+    //     keeps the manual "Passer au vote" button.
+    if (phase === 'discussion') {
+      const humans = gamePlayers.filter(
+        (p) => p.is_alive && !isBotId(p.player_id),
+      );
+      if (humans.length > 1) return; // multiplayer — wait for manual click
+
+      botTimerRef.current = setTimeout(async () => {
+        // Reset votes then move to voting
+        await supabase
+          .from('undercover_players')
+          .update({ vote_target: null })
+          .eq('game_id', game.id);
+        await supabase
+          .from('undercover_games')
+          .update({ phase: 'voting' })
+          .eq('id', game.id);
+      }, 3000);
       return;
     }
 
