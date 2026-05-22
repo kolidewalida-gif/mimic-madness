@@ -1237,8 +1237,8 @@ export type Database = {
       }
       undercover_games: {
         Row: {
-          civilian_word: string
           civilian_wins: number
+          civilian_word: string
           created_at: string
           current_player_index: number
           current_round: number
@@ -1253,14 +1253,14 @@ export type Database = {
           player_order: string[]
           settings_locked: boolean
           total_rounds: number
-          undercover_word: string
           undercover_wins: number
+          undercover_word: string
           updated_at: string
           winner_role: string | null
         }
         Insert: {
-          civilian_word: string
           civilian_wins?: number
+          civilian_word: string
           created_at?: string
           current_player_index?: number
           current_round?: number
@@ -1275,14 +1275,14 @@ export type Database = {
           player_order?: string[]
           settings_locked?: boolean
           total_rounds?: number
-          undercover_word: string
           undercover_wins?: number
+          undercover_word: string
           updated_at?: string
           winner_role?: string | null
         }
         Update: {
-          civilian_word?: string
           civilian_wins?: number
+          civilian_word?: string
           created_at?: string
           current_player_index?: number
           current_round?: number
@@ -1297,8 +1297,8 @@ export type Database = {
           player_order?: string[]
           settings_locked?: boolean
           total_rounds?: number
-          undercover_word?: string
           undercover_wins?: number
+          undercover_word?: string
           updated_at?: string
           winner_role?: string | null
         }
