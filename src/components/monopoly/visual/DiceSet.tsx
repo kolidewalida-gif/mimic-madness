@@ -43,7 +43,10 @@
 import * as React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { RoundedBox, Sparkles, Text } from '@react-three/drei';
+import { RoundedBox, Text } from '@react-three/drei';
+
+/* stub — drei removed Sparkles in v10 */
+function Sparkles(_props: Record<string, unknown>) { return null; }
 import * as THREE from 'three';
 
 import { durationFor } from './durations';

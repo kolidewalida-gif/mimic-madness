@@ -61,7 +61,10 @@
 import * as React from 'react';
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Float, RoundedBox, Sparkles, Text } from '@react-three/drei';
+import { Float, RoundedBox, Text } from '@react-three/drei';
+
+/* stub — drei removed Sparkles in v10 */
+function Sparkles(_props: Record<string, unknown>) { return null; }
 import * as THREE from 'three';
 
 import { BOARD_SPACES, getBoardPosition } from '@/lib/monopolyBoard';

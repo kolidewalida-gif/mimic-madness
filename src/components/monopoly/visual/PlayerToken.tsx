@@ -154,7 +154,7 @@ export function tokenTrailColor(player: TokenTrailColorInput): string {
 
 import * as React from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, RoundedBox, Sphere } from '@react-three/drei';
+import { Text, RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { BOARD_SPACES, getBoardPosition } from '@/lib/monopolyBoard';
 import { computeHopPath } from '@/lib/monopolyHopPath';
