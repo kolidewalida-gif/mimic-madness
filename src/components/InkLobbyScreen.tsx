@@ -113,15 +113,6 @@ const MODE_CARDS: ModeCard[] = [
     glowColor: '#22d3ee',
   },
   {
-    id: 'monopoly',
-    label: 'MEMORY',
-    tagline: 'Plateau aventure',
-    imageCandidates: ['/lobby/cards/memory.png', '/lobby/cards/memory.jpg'],
-    fallbackEmoji: '🔐',
-    fallbackColor: '#ec4899',
-    glowColor: '#f472b6',
-  },
-  {
     id: 'undercover',
     label: 'UNDERCOVER',
     tagline: 'Trouve l\'infiltré',
@@ -968,7 +959,7 @@ export const InkLobbyScreen = ({
 
           {/* MODE CARD GRID — uses real images */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
-            <div className="grid grid-cols-4 gap-3 pb-4 w-full auto-rows-[minmax(0,1fr)]" style={{ maxHeight: '100%' }}>
+            <div className="grid grid-cols-3 gap-3 pb-4 w-full auto-rows-[minmax(0,1fr)]" style={{ maxHeight: '100%' }}>
               {MODE_CARDS.map((card) => {
                 const isActive = card.id === gameMode;
                 const meta = GAME_MODE_META[card.id];
