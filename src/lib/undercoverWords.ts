@@ -1,244 +1,350 @@
 // Word pairs for the Undercover game
 // Each pair has a civilian word and an undercover word (similar but different)
+// ALL words must be simple, universally understood, everyday vocabulary.
+// No anime references, no obscure pop culture, no English slang.
+
 export interface WordPair {
   civilian: string;
   undercover: string;
-  category?: string;
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard';
 }
 
+export type WordCategory =
+  | 'nourriture'
+  | 'boissons'
+  | 'animaux'
+  | 'transport'
+  | 'sport'
+  | 'nature'
+  | 'objets'
+  | 'lieux'
+  | 'metiers'
+  | 'vetements'
+  | 'corps'
+  | 'maison'
+  | 'ecole'
+  | 'musique'
+  | 'fetes';
+
+export const CATEGORY_LABELS: Record<WordCategory, string> = {
+  nourriture: '🍕 Nourriture',
+  boissons: '☕ Boissons',
+  animaux: '🐾 Animaux',
+  transport: '🚗 Transport',
+  sport: '⚽ Sport',
+  nature: '🌿 Nature',
+  objets: '🔑 Objets',
+  lieux: '📍 Lieux',
+  metiers: '👷 Métiers',
+  vetements: '👕 Vêtements',
+  corps: '🫀 Corps',
+  maison: '🏠 Maison',
+  ecole: '📚 École',
+  musique: '🎵 Musique',
+  fetes: '🎉 Fêtes',
+};
+
 export const WORD_PAIRS: WordPair[] = [
-  // Animaux
-  { civilian: "Chat", undercover: "Chien", category: "animaux" },
-  { civilian: "Tigre", undercover: "Lion", category: "animaux" },
-  { civilian: "Requin", undercover: "Dauphin", category: "animaux" },
-  { civilian: "Serpent", undercover: "Lézard", category: "animaux" },
-  { civilian: "Aigle", undercover: "Faucon", category: "animaux" },
-  { civilian: "Cheval", undercover: "Âne", category: "animaux" },
-  { civilian: "Lapin", undercover: "Hamster", category: "animaux" },
-  { civilian: "Loup", undercover: "Renard", category: "animaux" },
-  { civilian: "Papillon", undercover: "Libellule", category: "animaux" },
-  { civilian: "Crocodile", undercover: "Alligator", category: "animaux" },
+  // ═══════════════════════════════════════════════════════════
+  // 🍕 NOURRITURE — Mots du quotidien, compréhensibles par tous
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Pizza", undercover: "Burger", category: "nourriture", difficulty: "easy" },
+  { civilian: "Frites", undercover: "Chips", category: "nourriture", difficulty: "easy" },
+  { civilian: "Croissant", undercover: "Pain au chocolat", category: "nourriture", difficulty: "easy" },
+  { civilian: "Gâteau", undercover: "Tarte", category: "nourriture", difficulty: "easy" },
+  { civilian: "Glace", undercover: "Sorbet", category: "nourriture", difficulty: "medium" },
+  { civilian: "Crêpe", undercover: "Gaufre", category: "nourriture", difficulty: "easy" },
+  { civilian: "Bonbon", undercover: "Chewing-gum", category: "nourriture", difficulty: "easy" },
+  { civilian: "Soupe", undercover: "Bouillon", category: "nourriture", difficulty: "medium" },
+  { civilian: "Beurre", undercover: "Margarine", category: "nourriture", difficulty: "hard" },
+  { civilian: "Pain", undercover: "Biscotte", category: "nourriture", difficulty: "medium" },
+  { civilian: "Yaourt", undercover: "Fromage blanc", category: "nourriture", difficulty: "hard" },
+  { civilian: "Confiture", undercover: "Miel", category: "nourriture", difficulty: "medium" },
+  { civilian: "Pâtes", undercover: "Riz", category: "nourriture", difficulty: "easy" },
+  { civilian: "Salade", undercover: "Crudités", category: "nourriture", difficulty: "hard" },
+  { civilian: "Sandwich", undercover: "Wrap", category: "nourriture", difficulty: "medium" },
+  { civilian: "Chocolat", undercover: "Caramel", category: "nourriture", difficulty: "medium" },
+  { civilian: "Ketchup", undercover: "Mayonnaise", category: "nourriture", difficulty: "easy" },
+  { civilian: "Pomme", undercover: "Poire", category: "nourriture", difficulty: "hard" },
+  { civilian: "Fraise", undercover: "Framboise", category: "nourriture", difficulty: "hard" },
+  { civilian: "Orange", undercover: "Mandarine", category: "nourriture", difficulty: "hard" },
+  { civilian: "Steak", undercover: "Poulet", category: "nourriture", difficulty: "easy" },
+  { civilian: "Sushi", undercover: "Kebab", category: "nourriture", difficulty: "easy" },
+  { civilian: "Omelette", undercover: "Œuf dur", category: "nourriture", difficulty: "medium" },
+  { civilian: "Pop-corn", undercover: "Cacahuètes", category: "nourriture", difficulty: "medium" },
 
-  // Nourriture
-  { civilian: "Pizza", undercover: "Burger", category: "nourriture" },
-  { civilian: "Pomme", undercover: "Poire", category: "nourriture" },
-  { civilian: "Chocolat", undercover: "Caramel", category: "nourriture" },
-  { civilian: "Croissant", undercover: "Pain au chocolat", category: "nourriture" },
-  { civilian: "Hamburger", undercover: "Hot-dog", category: "nourriture" },
-  { civilian: "Chips", undercover: "Pop-corn", category: "nourriture" },
-  { civilian: "Sushi", undercover: "Maki", category: "nourriture" },
-  { civilian: "Glace", undercover: "Sorbet", category: "nourriture" },
-  { civilian: "Crêpe", undercover: "Gaufre", category: "nourriture" },
-  { civilian: "Frites", undercover: "Potatoes", category: "nourriture" },
-  { civilian: "Steak", undercover: "Entrecôte", category: "nourriture" },
-  { civilian: "Bonbon", undercover: "Sucette", category: "nourriture" },
-  { civilian: "Ketchup", undercover: "Mayonnaise", category: "nourriture" },
-  { civilian: "Baguette", undercover: "Pain de mie", category: "nourriture" },
+  // ═══════════════════════════════════════════════════════════
+  // ☕ BOISSONS
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Café", undercover: "Thé", category: "boissons", difficulty: "easy" },
+  { civilian: "Coca", undercover: "Pepsi", category: "boissons", difficulty: "hard" },
+  { civilian: "Jus d'orange", undercover: "Limonade", category: "boissons", difficulty: "medium" },
+  { civilian: "Lait", undercover: "Chocolat chaud", category: "boissons", difficulty: "medium" },
+  { civilian: "Eau plate", undercover: "Eau gazeuse", category: "boissons", difficulty: "hard" },
+  { civilian: "Bière", undercover: "Vin", category: "boissons", difficulty: "easy" },
+  { civilian: "Smoothie", undercover: "Milkshake", category: "boissons", difficulty: "medium" },
+  { civilian: "Sirop", undercover: "Soda", category: "boissons", difficulty: "medium" },
+  { civilian: "Champagne", undercover: "Cidre", category: "boissons", difficulty: "medium" },
+  { civilian: "Tisane", undercover: "Infusion", category: "boissons", difficulty: "hard" },
 
-  // Boissons
-  { civilian: "Café", undercover: "Thé", category: "boissons" },
-  { civilian: "Whisky", undercover: "Rhum", category: "boissons" },
-  { civilian: "Bière", undercover: "Vin", category: "boissons" },
-  { civilian: "Coca-Cola", undercover: "Pepsi", category: "boissons" },
-  { civilian: "Jus d'orange", undercover: "Limonade", category: "boissons" },
-  { civilian: "Champagne", undercover: "Prosecco", category: "boissons" },
+  // ═══════════════════════════════════════════════════════════
+  // 🐾 ANIMAUX
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Chat", undercover: "Chien", category: "animaux", difficulty: "easy" },
+  { civilian: "Lion", undercover: "Tigre", category: "animaux", difficulty: "hard" },
+  { civilian: "Cheval", undercover: "Âne", category: "animaux", difficulty: "medium" },
+  { civilian: "Poule", undercover: "Canard", category: "animaux", difficulty: "medium" },
+  { civilian: "Mouton", undercover: "Chèvre", category: "animaux", difficulty: "medium" },
+  { civilian: "Lapin", undercover: "Hamster", category: "animaux", difficulty: "medium" },
+  { civilian: "Aigle", undercover: "Pigeon", category: "animaux", difficulty: "easy" },
+  { civilian: "Requin", undercover: "Dauphin", category: "animaux", difficulty: "easy" },
+  { civilian: "Serpent", undercover: "Lézard", category: "animaux", difficulty: "medium" },
+  { civilian: "Abeille", undercover: "Guêpe", category: "animaux", difficulty: "hard" },
+  { civilian: "Papillon", undercover: "Coccinelle", category: "animaux", difficulty: "medium" },
+  { civilian: "Loup", undercover: "Renard", category: "animaux", difficulty: "medium" },
+  { civilian: "Tortue", undercover: "Escargot", category: "animaux", difficulty: "medium" },
+  { civilian: "Vache", undercover: "Taureau", category: "animaux", difficulty: "hard" },
+  { civilian: "Grenouille", undercover: "Crapaud", category: "animaux", difficulty: "hard" },
+  { civilian: "Perroquet", undercover: "Perruche", category: "animaux", difficulty: "hard" },
 
-  // Sport
-  { civilian: "Football", undercover: "Rugby", category: "sport" },
-  { civilian: "Ski", undercover: "Snowboard", category: "sport" },
-  { civilian: "Basket", undercover: "Handball", category: "sport" },
-  { civilian: "Tennis", undercover: "Badminton", category: "sport" },
-  { civilian: "Boxe", undercover: "MMA", category: "sport" },
-  { civilian: "Surf", undercover: "Bodyboard", category: "sport" },
-  { civilian: "Natation", undercover: "Plongée", category: "sport" },
-  { civilian: "Marathon", undercover: "Sprint", category: "sport" },
+  // ═══════════════════════════════════════════════════════════
+  // 🚗 TRANSPORT
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Train", undercover: "Métro", category: "transport", difficulty: "hard" },
+  { civilian: "Voiture", undercover: "Moto", category: "transport", difficulty: "easy" },
+  { civilian: "Vélo", undercover: "Trottinette", category: "transport", difficulty: "easy" },
+  { civilian: "Avion", undercover: "Hélicoptère", category: "transport", difficulty: "medium" },
+  { civilian: "Bus", undercover: "Tramway", category: "transport", difficulty: "hard" },
+  { civilian: "Bateau", undercover: "Canoë", category: "transport", difficulty: "medium" },
+  { civilian: "Taxi", undercover: "Uber", category: "transport", difficulty: "hard" },
+  { civilian: "Camion", undercover: "Fourgon", category: "transport", difficulty: "hard" },
+  { civilian: "Fusée", undercover: "Satellite", category: "transport", difficulty: "medium" },
+  { civilian: "Skateboard", undercover: "Roller", category: "transport", difficulty: "medium" },
 
-  // Technologie / Marques
-  { civilian: "iPhone", undercover: "Samsung", category: "tech" },
-  { civilian: "Netflix", undercover: "YouTube", category: "tech" },
-  { civilian: "TikTok", undercover: "Instagram", category: "tech" },
-  { civilian: "Nike", undercover: "Adidas", category: "tech" },
-  { civilian: "McDonald's", undercover: "Burger King", category: "tech" },
-  { civilian: "PlayStation", undercover: "Xbox", category: "tech" },
-  { civilian: "Google", undercover: "Bing", category: "tech" },
-  { civilian: "Spotify", undercover: "Deezer", category: "tech" },
-  { civilian: "Tesla", undercover: "BMW", category: "tech" },
-  { civilian: "Amazon", undercover: "AliExpress", category: "tech" },
+  // ═══════════════════════════════════════════════════════════
+  // ⚽ SPORT
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Football", undercover: "Rugby", category: "sport", difficulty: "easy" },
+  { civilian: "Tennis", undercover: "Badminton", category: "sport", difficulty: "medium" },
+  { civilian: "Basket", undercover: "Handball", category: "sport", difficulty: "medium" },
+  { civilian: "Natation", undercover: "Plongée", category: "sport", difficulty: "medium" },
+  { civilian: "Ski", undercover: "Snowboard", category: "sport", difficulty: "easy" },
+  { civilian: "Boxe", undercover: "Judo", category: "sport", difficulty: "easy" },
+  { civilian: "Danse", undercover: "Gymnastique", category: "sport", difficulty: "medium" },
+  { civilian: "Course", undercover: "Marche", category: "sport", difficulty: "medium" },
+  { civilian: "Surf", undercover: "Planche à voile", category: "sport", difficulty: "medium" },
+  { civilian: "Escalade", undercover: "Randonnée", category: "sport", difficulty: "medium" },
+  { civilian: "Ping-pong", undercover: "Billard", category: "sport", difficulty: "easy" },
+  { civilian: "Pétanque", undercover: "Bowling", category: "sport", difficulty: "easy" },
 
-  // Pop Culture
-  { civilian: "Superman", undercover: "Batman", category: "popculture" },
-  { civilian: "Spider-Man", undercover: "Iron Man", category: "popculture" },
-  { civilian: "Mario", undercover: "Sonic", category: "popculture" },
-  { civilian: "Dragon Ball", undercover: "Naruto", category: "popculture" },
-  { civilian: "Fortnite", undercover: "Minecraft", category: "popculture" },
-  { civilian: "Manga", undercover: "Comics", category: "popculture" },
-  { civilian: "Harry Potter", undercover: "Seigneur des Anneaux", category: "popculture" },
-  { civilian: "Star Wars", undercover: "Star Trek", category: "popculture" },
-  { civilian: "Disney", undercover: "Pixar", category: "popculture" },
-  { civilian: "One Piece", undercover: "Bleach", category: "popculture" },
-  { civilian: "Pokémon", undercover: "Digimon", category: "popculture" },
-  { civilian: "GTA", undercover: "Red Dead Redemption", category: "popculture" },
-  { civilian: "Joker", undercover: "Harley Quinn", category: "popculture" },
+  // ═══════════════════════════════════════════════════════════
+  // 🌿 NATURE
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Soleil", undercover: "Lune", category: "nature", difficulty: "easy" },
+  { civilian: "Pluie", undercover: "Neige", category: "nature", difficulty: "easy" },
+  { civilian: "Montagne", undercover: "Colline", category: "nature", difficulty: "hard" },
+  { civilian: "Océan", undercover: "Lac", category: "nature", difficulty: "medium" },
+  { civilian: "Forêt", undercover: "Jardin", category: "nature", difficulty: "medium" },
+  { civilian: "Rivière", undercover: "Ruisseau", category: "nature", difficulty: "hard" },
+  { civilian: "Désert", undercover: "Plage", category: "nature", difficulty: "easy" },
+  { civilian: "Volcan", undercover: "Tremblement de terre", category: "nature", difficulty: "medium" },
+  { civilian: "Arc-en-ciel", undercover: "Aurore boréale", category: "nature", difficulty: "medium" },
+  { civilian: "Étoile", undercover: "Planète", category: "nature", difficulty: "medium" },
+  { civilian: "Orage", undercover: "Tempête", category: "nature", difficulty: "hard" },
+  { civilian: "Fleur", undercover: "Arbre", category: "nature", difficulty: "easy" },
+  { civilian: "Île", undercover: "Continent", category: "nature", difficulty: "easy" },
+  { civilian: "Grotte", undercover: "Tunnel", category: "nature", difficulty: "medium" },
 
-  // Musique
-  { civilian: "Rap", undercover: "R&B", category: "musique" },
-  { civilian: "Guitare", undercover: "Ukulélé", category: "musique" },
-  { civilian: "Piano", undercover: "Violon", category: "musique" },
-  { civilian: "Rock", undercover: "Metal", category: "musique" },
-  { civilian: "DJ", undercover: "Beatmaker", category: "musique" },
-  { civilian: "Concert", undercover: "Festival", category: "musique" },
+  // ═══════════════════════════════════════════════════════════
+  // 🔑 OBJETS DU QUOTIDIEN
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Stylo", undercover: "Crayon", category: "objets", difficulty: "hard" },
+  { civilian: "Lunettes", undercover: "Lentilles", category: "objets", difficulty: "medium" },
+  { civilian: "Montre", undercover: "Réveil", category: "objets", difficulty: "medium" },
+  { civilian: "Parapluie", undercover: "Imperméable", category: "objets", difficulty: "medium" },
+  { civilian: "Bougie", undercover: "Lampe", category: "objets", difficulty: "easy" },
+  { civilian: "Miroir", undercover: "Vitre", category: "objets", difficulty: "hard" },
+  { civilian: "Couteau", undercover: "Ciseaux", category: "objets", difficulty: "medium" },
+  { civilian: "Clé", undercover: "Cadenas", category: "objets", difficulty: "medium" },
+  { civilian: "Valise", undercover: "Sac à dos", category: "objets", difficulty: "easy" },
+  { civilian: "Oreiller", undercover: "Coussin", category: "objets", difficulty: "hard" },
+  { civilian: "Téléphone", undercover: "Tablette", category: "objets", difficulty: "medium" },
+  { civilian: "Portefeuille", undercover: "Sac à main", category: "objets", difficulty: "medium" },
+  { civilian: "Brosse à dents", undercover: "Peigne", category: "objets", difficulty: "easy" },
+  { civilian: "Assiette", undercover: "Bol", category: "objets", difficulty: "hard" },
 
-  // Nature / Géographie
-  { civilian: "Océan", undercover: "Mer", category: "nature" },
-  { civilian: "Soleil", undercover: "Lune", category: "nature" },
-  { civilian: "Paris", undercover: "Londres", category: "nature" },
-  { civilian: "Montagne", undercover: "Colline", category: "nature" },
-  { civilian: "Pluie", undercover: "Neige", category: "nature" },
-  { civilian: "Volcan", undercover: "Geyser", category: "nature" },
-  { civilian: "Forêt", undercover: "Jungle", category: "nature" },
-  { civilian: "Désert", undercover: "Savane", category: "nature" },
-  { civilian: "Lac", undercover: "Étang", category: "nature" },
-  { civilian: "Île", undercover: "Presqu'île", category: "nature" },
-  { civilian: "Tornade", undercover: "Ouragan", category: "nature" },
+  // ═══════════════════════════════════════════════════════════
+  // 📍 LIEUX
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Restaurant", undercover: "Cantine", category: "lieux", difficulty: "medium" },
+  { civilian: "Cinéma", undercover: "Théâtre", category: "lieux", difficulty: "medium" },
+  { civilian: "Hôpital", undercover: "Pharmacie", category: "lieux", difficulty: "medium" },
+  { civilian: "Bibliothèque", undercover: "Librairie", category: "lieux", difficulty: "hard" },
+  { civilian: "Hôtel", undercover: "Appartement", category: "lieux", difficulty: "medium" },
+  { civilian: "Piscine", undercover: "Plage", category: "lieux", difficulty: "easy" },
+  { civilian: "Supermarché", undercover: "Marché", category: "lieux", difficulty: "hard" },
+  { civilian: "Parc", undercover: "Forêt", category: "lieux", difficulty: "medium" },
+  { civilian: "Aéroport", undercover: "Gare", category: "lieux", difficulty: "medium" },
+  { civilian: "Stade", undercover: "Gymnase", category: "lieux", difficulty: "medium" },
+  { civilian: "Zoo", undercover: "Aquarium", category: "lieux", difficulty: "easy" },
+  { civilian: "Musée", undercover: "Galerie", category: "lieux", difficulty: "hard" },
+  { civilian: "Prison", undercover: "Caserne", category: "lieux", difficulty: "medium" },
+  { civilian: "Église", undercover: "Mosquée", category: "lieux", difficulty: "medium" },
 
-  // Objets du quotidien
-  { civilian: "Couteau", undercover: "Fourchette", category: "objets" },
-  { civilian: "Lunettes", undercover: "Lentilles", category: "objets" },
-  { civilian: "Bague", undercover: "Bracelet", category: "objets" },
-  { civilian: "Chaussettes", undercover: "Chaussures", category: "objets" },
-  { civilian: "Rose", undercover: "Tulipe", category: "objets" },
-  { civilian: "Canapé", undercover: "Fauteuil", category: "objets" },
-  { civilian: "Stylo", undercover: "Crayon", category: "objets" },
-  { civilian: "Miroir", undercover: "Vitre", category: "objets" },
-  { civilian: "Parapluie", undercover: "Imperméable", category: "objets" },
-  { civilian: "Bougie", undercover: "Lampe", category: "objets" },
-  { civilian: "Oreiller", undercover: "Coussin", category: "objets" },
-  { civilian: "Valise", undercover: "Sac à dos", category: "objets" },
+  // ═══════════════════════════════════════════════════════════
+  // 👷 MÉTIERS
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Médecin", undercover: "Dentiste", category: "metiers", difficulty: "medium" },
+  { civilian: "Pompier", undercover: "Policier", category: "metiers", difficulty: "easy" },
+  { civilian: "Professeur", undercover: "Directeur", category: "metiers", difficulty: "medium" },
+  { civilian: "Boulanger", undercover: "Pâtissier", category: "metiers", difficulty: "hard" },
+  { civilian: "Coiffeur", undercover: "Maquilleur", category: "metiers", difficulty: "medium" },
+  { civilian: "Plombier", undercover: "Électricien", category: "metiers", difficulty: "medium" },
+  { civilian: "Pilote", undercover: "Chauffeur", category: "metiers", difficulty: "medium" },
+  { civilian: "Cuisinier", undercover: "Serveur", category: "metiers", difficulty: "easy" },
+  { civilian: "Facteur", undercover: "Livreur", category: "metiers", difficulty: "hard" },
+  { civilian: "Architecte", undercover: "Maçon", category: "metiers", difficulty: "medium" },
+  { civilian: "Chanteur", undercover: "Musicien", category: "metiers", difficulty: "hard" },
+  { civilian: "Acteur", undercover: "Comédien", category: "metiers", difficulty: "hard" },
 
-  // Transport
-  { civilian: "Train", undercover: "Métro", category: "transport" },
-  { civilian: "Vélo", undercover: "Trottinette", category: "transport" },
-  { civilian: "Voiture", undercover: "Moto", category: "transport" },
-  { civilian: "Avion", undercover: "Hélicoptère", category: "transport" },
-  { civilian: "Bus", undercover: "Tramway", category: "transport" },
-  { civilian: "Bateau", undercover: "Yacht", category: "transport" },
-  { civilian: "Taxi", undercover: "Uber", category: "transport" },
+  // ═══════════════════════════════════════════════════════════
+  // 👕 VÊTEMENTS
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Chaussures", undercover: "Baskets", category: "vetements", difficulty: "hard" },
+  { civilian: "Pantalon", undercover: "Jean", category: "vetements", difficulty: "hard" },
+  { civilian: "Pull", undercover: "Gilet", category: "vetements", difficulty: "medium" },
+  { civilian: "Casquette", undercover: "Bonnet", category: "vetements", difficulty: "easy" },
+  { civilian: "Écharpe", undercover: "Cravate", category: "vetements", difficulty: "easy" },
+  { civilian: "Manteau", undercover: "Veste", category: "vetements", difficulty: "hard" },
+  { civilian: "Pyjama", undercover: "Robe de chambre", category: "vetements", difficulty: "medium" },
+  { civilian: "Maillot de bain", undercover: "Short", category: "vetements", difficulty: "medium" },
+  { civilian: "Gants", undercover: "Moufles", category: "vetements", difficulty: "hard" },
+  { civilian: "Lunettes de soleil", undercover: "Chapeau", category: "vetements", difficulty: "easy" },
 
-  // Métiers / Lieux
-  { civilian: "Dentiste", undercover: "Médecin", category: "metiers" },
-  { civilian: "Cinéma", undercover: "Théâtre", category: "metiers" },
-  { civilian: "Piscine", undercover: "Lac", category: "metiers" },
-  { civilian: "Dictionnaire", undercover: "Encyclopédie", category: "metiers" },
-  { civilian: "Clown", undercover: "Magicien", category: "metiers" },
-  { civilian: "Fantôme", undercover: "Zombie", category: "metiers" },
-  { civilian: "Pompier", undercover: "Policier", category: "metiers" },
-  { civilian: "Professeur", undercover: "Directeur", category: "metiers" },
-  { civilian: "Hôpital", undercover: "Clinique", category: "metiers" },
-  { civilian: "Bibliothèque", undercover: "Librairie", category: "metiers" },
-  { civilian: "Restaurant", undercover: "Brasserie", category: "metiers" },
-  { civilian: "Prison", undercover: "Caserne", category: "metiers" },
+  // ═══════════════════════════════════════════════════════════
+  // 🫀 CORPS HUMAIN
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Main", undercover: "Pied", category: "corps", difficulty: "easy" },
+  { civilian: "Œil", undercover: "Oreille", category: "corps", difficulty: "easy" },
+  { civilian: "Cheveux", undercover: "Barbe", category: "corps", difficulty: "medium" },
+  { civilian: "Doigt", undercover: "Orteil", category: "corps", difficulty: "hard" },
+  { civilian: "Bouche", undercover: "Nez", category: "corps", difficulty: "easy" },
+  { civilian: "Bras", undercover: "Jambe", category: "corps", difficulty: "easy" },
+  { civilian: "Cœur", undercover: "Cerveau", category: "corps", difficulty: "medium" },
+  { civilian: "Dent", undercover: "Ongle", category: "corps", difficulty: "medium" },
 
-  // Concepts abstraits / fun
-  { civilian: "Rêve", undercover: "Cauchemar", category: "concepts" },
-  { civilian: "Amour", undercover: "Amitié", category: "concepts" },
-  { civilian: "Courage", undercover: "Témérité", category: "concepts" },
-  { civilian: "Vacances", undercover: "Week-end", category: "concepts" },
-  { civilian: "Anniversaire", undercover: "Mariage", category: "concepts" },
-  { civilian: "Noël", undercover: "Nouvel An", category: "concepts" },
-  { civilian: "Examen", undercover: "Contrôle", category: "concepts" },
-  { civilian: "Blague", undercover: "Devinette", category: "concepts" },
+  // ═══════════════════════════════════════════════════════════
+  // 🏠 MAISON
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Cuisine", undercover: "Salle de bain", category: "maison", difficulty: "easy" },
+  { civilian: "Lit", undercover: "Canapé", category: "maison", difficulty: "medium" },
+  { civilian: "Fenêtre", undercover: "Porte", category: "maison", difficulty: "medium" },
+  { civilian: "Escalier", undercover: "Ascenseur", category: "maison", difficulty: "medium" },
+  { civilian: "Garage", undercover: "Cave", category: "maison", difficulty: "medium" },
+  { civilian: "Balcon", undercover: "Terrasse", category: "maison", difficulty: "hard" },
+  { civilian: "Douche", undercover: "Baignoire", category: "maison", difficulty: "hard" },
+  { civilian: "Cheminée", undercover: "Radiateur", category: "maison", difficulty: "medium" },
+  { civilian: "Tapis", undercover: "Moquette", category: "maison", difficulty: "hard" },
+  { civilian: "Rideau", undercover: "Store", category: "maison", difficulty: "hard" },
 
-  // Anime / Manga — paires subtiles (même concept, univers différent)
-  { civilian: "Kamehameha", undercover: "Rasengan", category: "anime" },
-  { civilian: "Sharingan", undercover: "Byakugan", category: "anime" },
-  { civilian: "Bankai", undercover: "Gear 5", category: "anime" },
-  { civilian: "Titan", undercover: "Kaiju", category: "anime" },
-  { civilian: "Hokage", undercover: "Roi des Pirates", category: "anime" },
-  { civilian: "Akatsuki", undercover: "Espada", category: "anime" },
-  { civilian: "Quirk", undercover: "Nen", category: "anime" },
-  { civilian: "Gomu Gomu", undercover: "Mera Mera", category: "anime" },
-  { civilian: "Senzu", undercover: "Potion", category: "anime" },
-  { civilian: "Zanpakuto", undercover: "Katana", category: "anime" },
-  { civilian: "Capsule Corp", undercover: "Stark Industries", category: "anime" },
-  { civilian: "Konoha", undercover: "Gotham", category: "anime" },
-  { civilian: "Saiyan", undercover: "Kryptonien", category: "anime" },
-  { civilian: "Death Note", undercover: "Grimoire", category: "anime" },
-  { civilian: "Examen Chunin", undercover: "Tournoi", category: "anime" },
-  { civilian: "Invocation", undercover: "Fusion", category: "anime" },
-  { civilian: "Genjutsu", undercover: "Hypnose", category: "anime" },
-  { civilian: "Mangekyou", undercover: "Rinnegan", category: "anime" },
-  { civilian: "Hollow", undercover: "Akuma", category: "anime" },
-  { civilian: "Chakra", undercover: "Ki", category: "anime" },
+  // ═══════════════════════════════════════════════════════════
+  // 📚 ÉCOLE
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Cahier", undercover: "Classeur", category: "ecole", difficulty: "hard" },
+  { civilian: "Récréation", undercover: "Pause", category: "ecole", difficulty: "hard" },
+  { civilian: "Tableau", undercover: "Écran", category: "ecole", difficulty: "medium" },
+  { civilian: "Cartable", undercover: "Trousse", category: "ecole", difficulty: "easy" },
+  { civilian: "Examen", undercover: "Contrôle", category: "ecole", difficulty: "hard" },
+  { civilian: "Devoirs", undercover: "Exercices", category: "ecole", difficulty: "hard" },
+  { civilian: "Cantine", undercover: "Cafétéria", category: "ecole", difficulty: "hard" },
+  { civilian: "Gymnase", undercover: "Cour de récré", category: "ecole", difficulty: "medium" },
 
-  // Films / Séries — paires subtiles (même type d'objet/concept)
-  { civilian: "Lightsaber", undercover: "Baguette magique", category: "films" },
-  { civilian: "Infinity Stones", undercover: "Horcruxes", category: "films" },
-  { civilian: "Batmobile", undercover: "DeLorean", category: "films" },
-  { civilian: "Mjolnir", undercover: "Excalibur", category: "films" },
-  { civilian: "Anneau unique", undercover: "Vif d'or", category: "films" },
-  { civilian: "Étoile de la Mort", undercover: "Helicarrier", category: "films" },
-  { civilian: "Poudlard", undercover: "Xavier School", category: "films" },
-  { civilian: "Wakanda", undercover: "Asgard", category: "films" },
-  { civilian: "Multivers", undercover: "Matrice", category: "films" },
-  { civilian: "Portail", undercover: "Téléportation", category: "films" },
-  { civilian: "Masque de fer", undercover: "Masque de V", category: "films" },
-  { civilian: "Trône de fer", undercover: "Table ronde", category: "films" },
-  { civilian: "Upside Down", undercover: "Monde des morts", category: "films" },
-  { civilian: "Capsule temporelle", undercover: "Machine à voyager", category: "films" },
-  { civilian: "Sérum", undercover: "Mutation", category: "films" },
-  { civilian: "Kryptonite", undercover: "Vibranium", category: "films" },
-  { civilian: "Bat-Signal", undercover: "Patronus", category: "films" },
-  { civilian: "Costume", undercover: "Armure", category: "films" },
-  { civilian: "Sidekick", undercover: "Mentor", category: "films" },
-  { civilian: "Némésis", undercover: "Rival", category: "films" },
+  // ═══════════════════════════════════════════════════════════
+  // 🎵 MUSIQUE
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Guitare", undercover: "Piano", category: "musique", difficulty: "easy" },
+  { civilian: "Batterie", undercover: "Tambour", category: "musique", difficulty: "hard" },
+  { civilian: "Concert", undercover: "Festival", category: "musique", difficulty: "hard" },
+  { civilian: "Chanson", undercover: "Musique", category: "musique", difficulty: "hard" },
+  { civilian: "Radio", undercover: "Podcast", category: "musique", difficulty: "medium" },
+  { civilian: "Casque", undercover: "Écouteurs", category: "musique", difficulty: "hard" },
+  { civilian: "Micro", undercover: "Enceinte", category: "musique", difficulty: "medium" },
+  { civilian: "Violon", undercover: "Flûte", category: "musique", difficulty: "easy" },
 
-  // Jeux vidéo — paires subtiles (même mécanique/concept)
-  { civilian: "Respawn", undercover: "Résurrection", category: "jeux" },
-  { civilian: "Loot box", undercover: "Coffre au trésor", category: "jeux" },
-  { civilian: "Battle Royale", undercover: "Deathmatch", category: "jeux" },
-  { civilian: "Speedrun", undercover: "Time trial", category: "jeux" },
-  { civilian: "Boss final", undercover: "Mini-boss", category: "jeux" },
-  { civilian: "Easter egg", undercover: "Secret", category: "jeux" },
-  { civilian: "Skin", undercover: "Costume", category: "jeux" },
-  { civilian: "Headshot", undercover: "Critical hit", category: "jeux" },
-  { civilian: "Rage quit", undercover: "AFK", category: "jeux" },
-  { civilian: "Noob", undercover: "Tryhard", category: "jeux" },
-  { civilian: "Clutch", undercover: "Ace", category: "jeux" },
-  { civilian: "Nerf", undercover: "Buff", category: "jeux" },
-  { civilian: "Lag", undercover: "Bug", category: "jeux" },
-  { civilian: "Craft", undercover: "Forge", category: "jeux" },
-  { civilian: "Open world", undercover: "Sandbox", category: "jeux" },
-
-  // Célébrités / Culture — paires subtiles (même domaine, pas le même)
-  { civilian: "Ballon d'Or", undercover: "Grammy", category: "celebs" },
-  { civilian: "Champions League", undercover: "Super Bowl", category: "celebs" },
-  { civilian: "Freestyle", undercover: "Improvisation", category: "celebs" },
-  { civilian: "Feat", undercover: "Collab", category: "celebs" },
-  { civilian: "Clip", undercover: "Court-métrage", category: "celebs" },
-  { civilian: "Album", undercover: "Mixtape", category: "celebs" },
-  { civilian: "Platine", undercover: "Or", category: "celebs" },
-  { civilian: "Flow", undercover: "Groove", category: "celebs" },
-  { civilian: "Beef", undercover: "Clash", category: "celebs" },
-  { civilian: "Ghostwriter", undercover: "Featuring", category: "celebs" },
-  { civilian: "Streaming", undercover: "Podcast", category: "celebs" },
-  { civilian: "Viral", undercover: "Trending", category: "celebs" },
-  { civilian: "Cancel", undercover: "Boycott", category: "celebs" },
-  { civilian: "Stan", undercover: "Fan", category: "celebs" },
-  { civilian: "Hype", undercover: "Buzz", category: "celebs" },
-
-  // Memes / Internet — paires subtiles
-  { civilian: "Ratio", undercover: "Flop", category: "memes" },
-  { civilian: "Sigma", undercover: "Lone wolf", category: "memes" },
-  { civilian: "NPC", undercover: "Figurant", category: "memes" },
-  { civilian: "Ghosting", undercover: "Ignorer", category: "memes" },
-  { civilian: "Flex", undercover: "Show off", category: "memes" },
-  { civilian: "Cringe", undercover: "Malaise", category: "memes" },
-  { civilian: "Based", undercover: "Woke", category: "memes" },
-  { civilian: "Salty", undercover: "Tilté", category: "memes" },
-  { civilian: "Carry", undercover: "Boost", category: "memes" },
-  { civilian: "Troll", undercover: "Provocateur", category: "memes" },
+  // ═══════════════════════════════════════════════════════════
+  // 🎉 FÊTES & ÉVÉNEMENTS
+  // ═══════════════════════════════════════════════════════════
+  { civilian: "Noël", undercover: "Nouvel An", category: "fetes", difficulty: "medium" },
+  { civilian: "Anniversaire", undercover: "Mariage", category: "fetes", difficulty: "easy" },
+  { civilian: "Halloween", undercover: "Carnaval", category: "fetes", difficulty: "medium" },
+  { civilian: "Vacances", undercover: "Week-end", category: "fetes", difficulty: "medium" },
+  { civilian: "Pique-nique", undercover: "Barbecue", category: "fetes", difficulty: "easy" },
+  { civilian: "Feu d'artifice", undercover: "Pétard", category: "fetes", difficulty: "hard" },
+  { civilian: "Cadeau", undercover: "Surprise", category: "fetes", difficulty: "medium" },
+  { civilian: "Déguisement", undercover: "Costume", category: "fetes", difficulty: "hard" },
+  { civilian: "Gâteau d'anniversaire", undercover: "Bûche de Noël", category: "fetes", difficulty: "medium" },
+  { civilian: "Fête foraine", undercover: "Parc d'attractions", category: "fetes", difficulty: "hard" },
 ];
 
+// ═══════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+/** Get a random word pair from all available pairs */
 export function getRandomWordPair(): WordPair {
   return WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)];
+}
+
+/** Get a random word pair filtered by difficulty */
+export function getRandomWordPairByDifficulty(difficulty: 'easy' | 'medium' | 'hard'): WordPair {
+  const filtered = WORD_PAIRS.filter(p => p.difficulty === difficulty);
+  if (filtered.length === 0) return getRandomWordPair();
+  return filtered[Math.floor(Math.random() * filtered.length)];
+}
+
+/** Get a random word pair filtered by category */
+export function getRandomWordPairByCategory(category: string): WordPair {
+  const filtered = WORD_PAIRS.filter(p => p.category === category);
+  if (filtered.length === 0) return getRandomWordPair();
+  return filtered[Math.floor(Math.random() * filtered.length)];
+}
+
+/** Get a random word pair filtered by both difficulty and category */
+export function getRandomWordPairFiltered(options: {
+  difficulty?: 'easy' | 'medium' | 'hard';
+  category?: string;
+}): WordPair {
+  let filtered = [...WORD_PAIRS];
+  if (options.difficulty) {
+    filtered = filtered.filter(p => p.difficulty === options.difficulty);
+  }
+  if (options.category) {
+    filtered = filtered.filter(p => p.category === options.category);
+  }
+  if (filtered.length === 0) return getRandomWordPair();
+  return filtered[Math.floor(Math.random() * filtered.length)];
+}
+
+/** Get all available categories */
+export function getCategories(): string[] {
+  return [...new Set(WORD_PAIRS.map(p => p.category))];
+}
+
+/** Get word count per category */
+export function getCategoryCounts(): Record<string, number> {
+  const counts: Record<string, number> = {};
+  WORD_PAIRS.forEach(p => {
+    counts[p.category] = (counts[p.category] || 0) + 1;
+  });
+  return counts;
+}
+
+/** Get word count per difficulty */
+export function getDifficultyCounts(): Record<string, number> {
+  const counts: Record<string, number> = {};
+  WORD_PAIRS.forEach(p => {
+    counts[p.difficulty] = (counts[p.difficulty] || 0) + 1;
+  });
+  return counts;
 }

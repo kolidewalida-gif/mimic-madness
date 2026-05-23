@@ -410,6 +410,7 @@ export const useUndercoverGame = (
     [game, currentPlayer.isHost],
   );
 
+  // Submit a clue
   const submitClue = useCallback(async (clue: string) => {
     if (!game || !myPlayer) return;
 
