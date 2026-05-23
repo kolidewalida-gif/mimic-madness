@@ -2,6 +2,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getRandomWordPair } from '@/lib/undercoverWords';
 import { undercoverClueSchema, safeParse } from '@/lib/validation';
+import {
+  clampUndercover,
+  distributeRoles,
+  computeRoundWinner,
+  resolveVotes,
+  canVote,
+  canSubmitClue,
+  computeMatchWinner,
+} from '@/lib/undercoverLogic';
 
 /**
  * Generate a plausible clue for a bot based on its word and role.
@@ -204,31 +213,19 @@ export const useUndercoverGame = (
       if (game.settings_locked) return;
 
       const { numUndercover, totalRounds, enableMrWhite } = settings;
-      const safeUndercover = Math.max(
-        1,
-        Math.min(3, numUndercover, players.length - (enableMrWhite ? 3 : 2)),
-      );
+      // Bug fix: use clamp from pure logic
+      const safeUndercover = clampUndercover(numUndercover, players.length, enableMrWhite);
       const safeRounds = Math.max(1, Math.min(99, totalRounds));
 
-      // Build role/word maps
+      // Build role/word maps via pure logic
       const shuffled = [...game.player_order].sort(() => Math.random() - 0.5);
-      const roles: Record<string, 'civilian' | 'undercover' | 'mr_white'> = {};
-      const words: Record<string, string | null> = {};
-
-      let idx = 0;
-      for (let i = 0; i < safeUndercover && idx < shuffled.length; i++, idx++) {
-        roles[shuffled[idx]] = 'undercover';
-        words[shuffled[idx]] = game.undercover_word;
-      }
-      if (enableMrWhite && players.length >= 4 && idx < shuffled.length) {
-        roles[shuffled[idx]] = 'mr_white';
-        words[shuffled[idx]] = null;
-        idx++;
-      }
-      for (; idx < shuffled.length; idx++) {
-        roles[shuffled[idx]] = 'civilian';
-        words[shuffled[idx]] = game.civilian_word;
-      }
+      const { roles, words } = distributeRoles(
+        shuffled,
+        safeUndercover,
+        enableMrWhite && players.length >= 4,
+        game.civilian_word,
+        game.undercover_word
+      );
 
       // Update each player's role/word
       await Promise.all(
@@ -286,23 +283,14 @@ export const useUndercoverGame = (
       const safeUndercover = Math.max(1, game.num_undercover || 1);
       const enableMrWhite = Boolean(game.enable_mr_white);
 
-      // Re-distribute roles. Apply same algorithm as `lockSettings`.
-      const roles: Record<string, 'civilian' | 'undercover' | 'mr_white'> = {};
-      const words: Record<string, string | null> = {};
-      let idx = 0;
-      for (let i = 0; i < safeUndercover && idx < newOrder.length; i++, idx++) {
-        roles[newOrder[idx]] = 'undercover';
-        words[newOrder[idx]] = newPair.undercover;
-      }
-      if (enableMrWhite && newOrder.length >= 4 && idx < newOrder.length) {
-        roles[newOrder[idx]] = 'mr_white';
-        words[newOrder[idx]] = null;
-        idx++;
-      }
-      for (; idx < newOrder.length; idx++) {
-        roles[newOrder[idx]] = 'civilian';
-        words[newOrder[idx]] = newPair.civilian;
-      }
+      // Re-distribute roles via pure logic
+      const { roles, words } = distributeRoles(
+        newOrder,
+        safeUndercover,
+        enableMrWhite && newOrder.length >= 4,
+        newPair.civilian,
+        newPair.undercover
+      );
 
       // Reset every player row in one batch update per player.
       await Promise.all(
@@ -375,12 +363,7 @@ export const useUndercoverGame = (
         (game.undercover_wins ?? 0) +
         (lastRoundWinner === 'undercover' ? 1 : 0);
 
-      const winner: 'civilian' | 'undercover' =
-        civilianWins > undercoverWins
-          ? 'civilian'
-          : undercoverWins > civilianWins
-            ? 'undercover'
-            : (lastRoundWinner ?? 'civilian');
+      const winner = computeMatchWinner(civilianWins, undercoverWins, lastRoundWinner);
 
       const patch: Record<string, unknown> = {
         phase: 'game_over',
@@ -410,9 +393,26 @@ export const useUndercoverGame = (
     [game, currentPlayer.isHost],
   );
 
-  // Submit a clue
+  // Submit a clue — Bug fix #3: validate turn + phase + alive
   const submitClue = useCallback(async (clue: string) => {
     if (!game || !myPlayer) return;
+
+    // Compute current turn ID
+    const alivePlayers = gamePlayers.filter((p) => p.is_alive);
+    const aliveOrder = game.player_order.filter((id) =>
+      alivePlayers.some((p) => p.player_id === id)
+    );
+    const currentTurnId = aliveOrder[game.current_player_index] ?? null;
+
+    if (!canSubmitClue({
+      playerId: currentPlayer.id,
+      playerIsAlive: myPlayer.is_alive,
+      currentTurnPlayerId: currentTurnId,
+      phase: game.phase,
+      hasExistingClue: Boolean(myPlayer.current_clue),
+    })) {
+      return;
+    }
 
     const cleanClue = safeParse(undercoverClueSchema, clue);
     if (!cleanClue) return;
@@ -421,7 +421,7 @@ export const useUndercoverGame = (
       .from('undercover_players')
       .update({ current_clue: cleanClue })
       .eq('id', myPlayer.id);
-  }, [game, myPlayer]);
+  }, [game, myPlayer, gamePlayers, currentPlayer.id]);
 
   // Start voting (host)
   const startVoting = useCallback(async () => {
@@ -439,15 +439,26 @@ export const useUndercoverGame = (
       .eq('id', game.id);
   }, [game, currentPlayer.isHost]);
 
-  // Submit vote
+  // Submit vote — Bug fix #2: validate voter + target are alive
   const submitVote = useCallback(async (targetPlayerId: string) => {
     if (!game || !myPlayer) return;
+
+    const target = gamePlayers.find((p) => p.player_id === targetPlayerId);
+    if (!canVote({
+      voterId: currentPlayer.id,
+      voterIsAlive: myPlayer.is_alive,
+      targetId: targetPlayerId,
+      targetIsAlive: Boolean(target?.is_alive),
+      phase: game.phase,
+    })) {
+      return;
+    }
 
     await supabase
       .from('undercover_players')
       .update({ vote_target: targetPlayerId })
       .eq('id', myPlayer.id);
-  }, [game, myPlayer]);
+  }, [game, myPlayer, gamePlayers, currentPlayer.id]);
 
   const resolveVotingRound = useCallback(async () => {
     if (!game || !currentPlayer.isHost) return;
@@ -464,26 +475,13 @@ export const useUndercoverGame = (
       return;
     }
 
-    const voteCounts: Record<string, number> = {};
-    alivePlayers.forEach((player) => {
-      if (player.vote_target) {
-        voteCounts[player.vote_target] = (voteCounts[player.vote_target] || 0) + 1;
-      }
-    });
-
-    let maxVotes = 0;
-    let eliminatedId = '';
-    let isTie = false;
-
-    Object.entries(voteCounts).forEach(([playerId, count]) => {
-      if (count > maxVotes) {
-        maxVotes = count;
-        eliminatedId = playerId;
-        isTie = false;
-      } else if (count === maxVotes) {
-        isTie = true;
-      }
-    });
+    // Bug fix #7: use proper tie detection (3+ way ties were broken)
+    const { eliminatedId, isTie } = resolveVotes(
+      alivePlayers.map((p) => ({
+        player_id: p.player_id,
+        vote_target: p.vote_target,
+      }))
+    );
 
     if (isTie || !eliminatedId) {
       await supabase
@@ -505,22 +503,6 @@ export const useUndercoverGame = (
       .eq('game_id', game.id)
       .eq('player_id', eliminatedId);
 
-    const remainingAlive = alivePlayers.filter((player) => player.player_id !== eliminatedId);
-    const remainingUndercover = remainingAlive.filter((player) => player.role === 'undercover');
-    const remainingMrWhite = remainingAlive.filter((player) => player.role === 'mr_white');
-    const remainingCivilians = remainingAlive.filter((player) => player.role === 'civilian');
-
-    const allBadGuysEliminated = remainingUndercover.length === 0 && remainingMrWhite.length === 0;
-    const undercoverOutnumbersCivilians =
-      remainingUndercover.length + remainingMrWhite.length >= remainingCivilians.length;
-
-    // Determine the round outcome (or null when nobody won this round yet).
-    const roundWinner: 'civilian' | 'undercover' | null = allBadGuysEliminated
-      ? 'civilian'
-      : undercoverOutnumbersCivilians
-        ? 'undercover'
-        : null;
-
     // Always show the vote_result first so players see who got eliminated;
     // the host advances to the next round (or the match conclusion) via
     // `nextRound`.
@@ -532,10 +514,6 @@ export const useUndercoverGame = (
         eliminated_role: eliminatedPlayer?.role || null,
       })
       .eq('id', game.id);
-
-    // Stash the round winner inside the eliminated_role payload? No — we
-    // recompute it in `nextRound` from the alive set so we don't need to
-    // serialise it. The host's "Suite" button drives the transition.
   }, [game, currentPlayer.isHost]);
 
   /**
@@ -560,24 +538,12 @@ export const useUndercoverGame = (
       .from('undercover_players')
       .select('*')
       .eq('game_id', game.id);
-    const players = ((latest as unknown as UndercoverPlayer[]) || []).filter(
+    const alive = ((latest as unknown as UndercoverPlayer[]) || []).filter(
       (p) => p.is_alive,
     );
-    const remainingUndercover = players.filter((p) => p.role === 'undercover');
-    const remainingMrWhite = players.filter((p) => p.role === 'mr_white');
-    const remainingCivilians = players.filter((p) => p.role === 'civilian');
 
-    const allBadGuysEliminated =
-      remainingUndercover.length === 0 && remainingMrWhite.length === 0;
-    const undercoverOutnumbersCivilians =
-      remainingUndercover.length + remainingMrWhite.length >=
-      remainingCivilians.length;
-
-    const roundWinner: 'civilian' | 'undercover' | null = allBadGuysEliminated
-      ? 'civilian'
-      : undercoverOutnumbersCivilians
-        ? 'undercover'
-        : null;
+    // Use pure logic to determine round winner
+    const roundWinner = computeRoundWinner(alive);
 
     // Case A — a side won the round
     if (roundWinner !== null) {
