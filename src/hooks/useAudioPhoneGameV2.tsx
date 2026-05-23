@@ -6,6 +6,19 @@ import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { emitXpGain } from '@/components/XpGainPopup';
 import { emitLevelUpNotification } from '@/components/RewardNotification';
 import { usePlayerLevel, XP_REWARDS } from '@/hooks/usePlayerLevel';
+import {
+  canSubmitOriginalPhrase,
+  canSubmitImitation,
+  computePlayerOrderIndex,
+  allOriginalPhrasesSubmitted as allOriginalPhrasesSubmittedFn,
+  getPendingOriginalPlayers as getPendingOriginalPlayersFn,
+  getPlayersToImitate,
+  shouldImitate,
+  allImitationsForPhraseDone,
+  computePhraseProgress,
+  computeNextPhraseIndex,
+  sortRecordingsByOrder,
+} from '@/lib/audioPhoneLogic';
 
 interface Player {
   id: string;
@@ -154,19 +167,26 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     currentRoundIdRef.current = currentRound?.id ?? null;
   }, [currentRound?.id]);
 
-  // Realtime subscriptions
+  // Realtime subscriptions — Bug fix #7 + #8: filter by lobby's current round
+  // (cannot filter by round_id directly because it changes; we filter client-side)
+  // Bug fix: stable session ID to disambiguate channels on remount
+  const sessionIdRef = useRef<string>(
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random()}`
+  );
+
   useEffect(() => {
     if (!lobbyId) return;
 
-    console.log('[AudioPhoneV2] Setting up realtime subscription');
+    const channelName = `audio-phone-v2:${lobbyId}:${sessionIdRef.current}`;
 
     const channel = supabase
-      .channel(`audio-phone-v2:${lobbyId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'audio_phone_rounds', filter: `lobby_id=eq.${lobbyId}` },
         (payload) => {
-          console.log('[AudioPhoneV2] Round update:', payload);
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const newRound = payload.new as any;
             setCurrentRound({
@@ -185,10 +205,12 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         { event: 'INSERT', schema: 'public', table: 'audio_phone_recordings' },
         (payload) => {
           const newRec = payload.new as unknown as OriginalRecording;
+          // Bug fix #7: client-side filter by current round (Supabase realtime
+          // filters don't support changing values via foreign key)
           if (currentRoundIdRef.current && newRec.round_id === currentRoundIdRef.current) {
             setOriginalRecordings(prev => {
               if (prev.some(r => r.id === newRec.id)) return prev;
-              return [...prev, newRec].sort((a, b) => a.player_order_index - b.player_order_index);
+              return sortRecordingsByOrder([...prev, newRec]);
             });
           }
         }
@@ -198,6 +220,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         { event: 'INSERT', schema: 'public', table: 'audio_phone_imitations' },
         (payload) => {
           const newIm = payload.new as unknown as Imitation;
+          // Bug fix #8: client-side filter by current round
           if (currentRoundIdRef.current && newIm.round_id === currentRoundIdRef.current) {
             setImitations(prev => {
               if (prev.some(i => i.id === newIm.id)) return prev;
@@ -215,11 +238,19 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     };
   }, [lobbyId]);
 
+  // Lock to prevent double startGame calls
+  const startGameLockRef = useRef(false);
+  const moveToNextPhraseLockRef = useRef(false);
+
   // Start a new game.
   // When `skipInstructions` is true (default for V2 launch), the round is
   // created directly in 'recording_all' phase so the host doesn't have to
   // click "C'est parti" twice.
   const startGame = useCallback(async (skipInstructions = true) => {
+    // Bug fix #10: idempotency lock
+    if (startGameLockRef.current) return;
+    startGameLockRef.current = true;
+
     try {
       setIsLoading(true);
 
@@ -264,6 +295,8 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
       });
     } finally {
       setIsLoading(false);
+      // Release lock after a delay so duplicate clicks within 2s don't fire twice
+      setTimeout(() => { startGameLockRef.current = false; }, 2000);
     }
   }, [lobbyId, players, currentRound?.round_number, toast]);
 
@@ -279,9 +312,19 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     if (error) console.error('Error starting recording phase:', error);
   }, [currentRound]);
 
-  // Submit original phrase recording
+  // Submit original phrase recording — Bug fix #1, #2, #6
   const submitOriginalPhrase = useCallback(async (audioBlob: Blob): Promise<boolean> => {
     if (!currentRound) return false;
+
+    // Bug fix #1 + #2: validate phase + no duplicate submission
+    if (!canSubmitOriginalPhrase({
+      phase: currentRound.phase,
+      playerId: currentPlayer.id,
+      recordings: originalRecordings,
+    })) {
+      console.warn('[AudioPhoneV2] Original phrase submission blocked');
+      return false;
+    }
 
     try {
       setIsSubmitting(true);
@@ -308,8 +351,13 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         throw uploadErr2;
       }
 
-      // Find the player's order index
-      const playerIndex = currentRound.player_order.indexOf(currentPlayer.id);
+      // Bug fix #6: handle missing player gracefully (don't silently fall to 0)
+      const playerIndex = computePlayerOrderIndex(currentRound.player_order, currentPlayer.id);
+      if (playerIndex < 0) {
+        console.error('[AudioPhoneV2] Player not in round order — aborting submission');
+        await supabase.storage.from('audio-phone').remove([originalPath, reversedPath]);
+        return false;
+      }
 
       // Save to DB
       const { error: insertError } = await supabase
@@ -318,7 +366,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
           round_id: currentRound.id,
           player_id: currentPlayer.id,
           player_name: currentPlayer.name,
-          player_order_index: playerIndex >= 0 ? playerIndex : 0,
+          player_order_index: playerIndex,
           storage_path: originalPath,
           reversed_storage_path: reversedPath,
           duration_seconds: durationSeconds,
@@ -353,7 +401,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentRound, currentPlayer, lobbyId, toast, addXp]);
+  }, [currentRound, currentPlayer, lobbyId, toast, addXp, originalRecordings]);
 
   // Check if current player has submitted their original phrase
   const hasSubmittedOriginalPhrase = useCallback(() => {
@@ -362,7 +410,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
 
   // Check if all players have submitted their original phrases
   const allPhrasesSubmitted = useCallback(() => {
-    return players.every(p => originalRecordings.some(r => r.player_id === p.id));
+    return allOriginalPhrasesSubmittedFn(players, originalRecordings);
   }, [players, originalRecordings]);
 
   const getSubmittedOriginalPlayerIds = useCallback(() => {
@@ -370,9 +418,8 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
   }, [originalRecordings]);
 
   const getPendingOriginalPlayers = useCallback(() => {
-    const submittedIds = new Set(getSubmittedOriginalPlayerIds());
-    return players.filter((player) => !submittedIds.has(player.id));
-  }, [players, getSubmittedOriginalPlayerIds]);
+    return getPendingOriginalPlayersFn(players, originalRecordings);
+  }, [players, originalRecordings]);
 
   // Start imitation phase (host only)
   const startImitationPhase = useCallback(async () => {
@@ -401,25 +448,41 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
   const getPlayersToImitateCurrentPhrase = useCallback(() => {
     const currentPhrase = getCurrentPhraseToImitate();
     if (!currentPhrase) return [];
-    return players.filter(p => p.id !== currentPhrase.player_id);
+    return getPlayersToImitate(players, currentPhrase.player_id);
   }, [getCurrentPhraseToImitate, players]);
 
   // Check if current player needs to imitate the current phrase
   const shouldImitateCurrentPhrase = useCallback(() => {
     const currentPhrase = getCurrentPhraseToImitate();
     if (!currentPhrase) return false;
-    // Player should not imitate their own phrase
-    if (currentPhrase.player_id === currentPlayer.id) return false;
-    // Check if already imitated
-    const alreadyImitated = imitations.some(
-      im => im.original_recording_id === currentPhrase.id && im.imitator_player_id === currentPlayer.id
-    );
-    return !alreadyImitated;
+    return shouldImitate({
+      playerId: currentPlayer.id,
+      originalAuthorId: currentPhrase.player_id,
+      originalRecordingId: currentPhrase.id,
+      imitations,
+    });
   }, [getCurrentPhraseToImitate, currentPlayer.id, imitations]);
 
-  // Submit an imitation
+  // Submit an imitation — Bug fix #3, #4, #5
   const submitImitation = useCallback(async (audioBlob: Blob, originalRecordingId: string): Promise<boolean> => {
     if (!currentRound) return false;
+
+    // Bug fix #3, #4, #5: validate phase + not author + no duplicate
+    const original = originalRecordings.find((r) => r.id === originalRecordingId);
+    if (!original) {
+      console.warn('[AudioPhoneV2] Imitation rejected: original not found');
+      return false;
+    }
+    if (!canSubmitImitation({
+      phase: currentRound.phase,
+      playerId: currentPlayer.id,
+      originalRecordingId,
+      originalAuthorId: original.player_id,
+      imitations,
+    })) {
+      console.warn('[AudioPhoneV2] Imitation submission blocked');
+      return false;
+    }
 
     try {
       setIsSubmitting(true);
@@ -484,62 +547,64 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentRound, currentPlayer, lobbyId, toast, addXp]);
+  }, [currentRound, currentPlayer, lobbyId, toast, addXp, originalRecordings, imitations]);
 
   // Check if all imitations for current phrase are done
   const allImitationsForCurrentPhraseDone = useCallback(() => {
     const currentPhrase = getCurrentPhraseToImitate();
     if (!currentPhrase) return false;
-    
-    const playersToImitate = getPlayersToImitateCurrentPhrase();
-    const imitationsForPhrase = imitations.filter(im => im.original_recording_id === currentPhrase.id);
-    
-    return playersToImitate.every(p => 
-      imitationsForPhrase.some(im => im.imitator_player_id === p.id)
-    );
-  }, [getCurrentPhraseToImitate, getPlayersToImitateCurrentPhrase, imitations]);
+    return allImitationsForPhraseDone({
+      players,
+      originalAuthorId: currentPhrase.player_id,
+      originalRecordingId: currentPhrase.id,
+      imitations,
+    });
+  }, [getCurrentPhraseToImitate, players, imitations]);
 
   const getCurrentPhraseProgress = useCallback(() => {
     const currentPhrase = getCurrentPhraseToImitate();
-    if (!currentPhrase) {
-      return {
-        requiredCount: 0,
-        completedCount: 0,
-        pendingPlayers: [] as Player[],
-      };
-    }
-
-    const playersToImitate = getPlayersToImitateCurrentPhrase();
-    const imitationsForPhrase = imitations.filter((imitation) => imitation.original_recording_id === currentPhrase.id);
-    const completedIds = new Set(imitationsForPhrase.map((imitation) => imitation.imitator_player_id));
-
+    const progress = computePhraseProgress({
+      players,
+      originalAuthorId: currentPhrase?.player_id ?? null,
+      originalRecordingId: currentPhrase?.id ?? null,
+      imitations,
+    });
     return {
-      requiredCount: playersToImitate.length,
-      completedCount: playersToImitate.filter((player) => completedIds.has(player.id)).length,
-      pendingPlayers: playersToImitate.filter((player) => !completedIds.has(player.id)),
+      requiredCount: progress.requiredCount,
+      completedCount: progress.completedCount,
+      pendingPlayers: players.filter((p) => progress.pendingPlayerIds.includes(p.id)),
     };
-  }, [getCurrentPhraseToImitate, getPlayersToImitateCurrentPhrase, imitations]);
+  }, [getCurrentPhraseToImitate, players, imitations]);
 
-  // Move to next phrase (host only)
+  // Move to next phrase (host only) — Bug fix #9: lock
   const moveToNextPhrase = useCallback(async () => {
     if (!currentRound) return;
+    if (moveToNextPhraseLockRef.current) return;
+    moveToNextPhraseLockRef.current = true;
 
-    const nextPhraseIndex = (currentRound.current_phrase_index ?? 0) + 1;
+    try {
+      const next = computeNextPhraseIndex(
+        currentRound.current_phrase_index ?? 0,
+        originalRecordings.length
+      );
 
-    if (nextPhraseIndex >= originalRecordings.length) {
-      // All phrases done, go to waiting_reveal
-      const { error } = await supabase
-        .from('audio_phone_rounds')
-        .update({ phase: 'waiting_reveal' })
-        .eq('id', currentRound.id);
-      if (error) console.error('Error moving to waiting_reveal:', error);
-    } else {
-      // Move to next phrase
-      const { error } = await supabase
-        .from('audio_phone_rounds')
-        .update({ current_phrase_index: nextPhraseIndex })
-        .eq('id', currentRound.id);
-      if (error) console.error('Error moving to next phrase:', error);
+      if (next === -1) {
+        // All phrases done, go to waiting_reveal
+        const { error } = await supabase
+          .from('audio_phone_rounds')
+          .update({ phase: 'waiting_reveal' })
+          .eq('id', currentRound.id);
+        if (error) console.error('Error moving to waiting_reveal:', error);
+      } else {
+        // Move to next phrase
+        const { error } = await supabase
+          .from('audio_phone_rounds')
+          .update({ current_phrase_index: next })
+          .eq('id', currentRound.id);
+        if (error) console.error('Error moving to next phrase:', error);
+      }
+    } finally {
+      setTimeout(() => { moveToNextPhraseLockRef.current = false; }, 500);
     }
   }, [currentRound, originalRecordings.length]);
 
