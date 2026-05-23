@@ -968,7 +968,7 @@ export const InkLobbyScreen = ({
 
           {/* MODE CARD GRID — uses real images */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 pb-4 w-full">
+            <div className="grid grid-cols-4 gap-3 pb-4 w-full auto-rows-[minmax(0,1fr)]" style={{ maxHeight: '100%' }}>
               {MODE_CARDS.map((card) => {
                 const isActive = card.id === gameMode;
                 const meta = GAME_MODE_META[card.id];
@@ -981,7 +981,7 @@ export const InkLobbyScreen = ({
                     key={card.id}
                     type="button"
                     onClick={() => !disabled && handleGameModeChange(card.id)}
-                    whileHover={!disabled ? { y: -3, scale: 1.02 } : undefined}
+                    whileHover={!disabled ? { y: -3, scale: 1.03 } : undefined}
                     whileTap={!disabled ? { scale: 0.97 } : undefined}
                     disabled={disabled}
                     animate={
@@ -993,14 +993,14 @@ export const InkLobbyScreen = ({
                         : undefined
                     }
                     className={cn(
-                      'relative aspect-[3/4] max-h-[200px] rounded-2xl overflow-hidden text-left transition-all group',
+                      'relative aspect-[3/4] rounded-2xl overflow-hidden text-left transition-all group',
                       !enoughPlayers && !isActive && 'opacity-60',
                       disabled && 'cursor-default',
                     )}
                     style={{
                       filter: isActive
-                        ? `drop-shadow(0 0 12px ${card.glowColor}bb) drop-shadow(0 6px 16px ${card.glowColor}66)`
-                        : 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))',
+                        ? `drop-shadow(0 0 14px ${card.glowColor}cc) drop-shadow(0 6px 18px ${card.glowColor}77)`
+                        : 'drop-shadow(0 4px 10px rgba(0,0,0,0.4))',
                     }}
                   >
                     {/* Active outer glow ring */}
