@@ -958,8 +958,8 @@ export const InkLobbyScreen = ({
           </AnimatePresence>
 
           {/* MODE CARD GRID — uses real images */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
-            <div className="grid grid-cols-3 gap-3 pb-4 w-full auto-rows-[minmax(0,1fr)]" style={{ maxHeight: '100%' }}>
+          <div className="flex-1 min-h-0 flex items-center justify-center py-2">
+            <div className="grid grid-cols-3 grid-rows-2 gap-3 w-full h-full">
               {MODE_CARDS.map((card) => {
                 const isActive = card.id === gameMode;
                 const meta = GAME_MODE_META[card.id];
@@ -984,7 +984,7 @@ export const InkLobbyScreen = ({
                         : undefined
                     }
                     className={cn(
-                      'relative aspect-[3/4] rounded-2xl overflow-hidden text-left transition-all group',
+                      'relative rounded-2xl overflow-hidden text-left transition-all group min-h-0',
                       !enoughPlayers && !isActive && 'opacity-60',
                       disabled && 'cursor-default',
                     )}
