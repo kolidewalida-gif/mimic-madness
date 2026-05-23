@@ -968,7 +968,7 @@ export const InkLobbyScreen = ({
 
           {/* MODE CARD GRID — uses real images */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-4 w-full">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 pb-4 w-full">
               {MODE_CARDS.map((card) => {
                 const isActive = card.id === gameMode;
                 const meta = GAME_MODE_META[card.id];
@@ -981,26 +981,26 @@ export const InkLobbyScreen = ({
                     key={card.id}
                     type="button"
                     onClick={() => !disabled && handleGameModeChange(card.id)}
-                    whileHover={!disabled ? { y: -4, scale: 1.02 } : undefined}
+                    whileHover={!disabled ? { y: -3, scale: 1.02 } : undefined}
                     whileTap={!disabled ? { scale: 0.97 } : undefined}
                     disabled={disabled}
                     animate={
                       isActive
                         ? {
-                            y: [0, -3, 0],
+                            y: [0, -2, 0],
                             transition: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
                           }
                         : undefined
                     }
                     className={cn(
-                      'relative aspect-[3/4] rounded-2xl overflow-hidden text-left transition-all group',
+                      'relative aspect-[3/4] max-h-[200px] rounded-2xl overflow-hidden text-left transition-all group',
                       !enoughPlayers && !isActive && 'opacity-60',
                       disabled && 'cursor-default',
                     )}
                     style={{
                       filter: isActive
-                        ? `drop-shadow(0 0 16px ${card.glowColor}cc) drop-shadow(0 8px 24px ${card.glowColor}88)`
-                        : 'drop-shadow(0 6px 12px rgba(0,0,0,0.4))',
+                        ? `drop-shadow(0 0 12px ${card.glowColor}bb) drop-shadow(0 6px 16px ${card.glowColor}66)`
+                        : 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))',
                     }}
                   >
                     {/* Active outer glow ring */}
@@ -1020,15 +1020,15 @@ export const InkLobbyScreen = ({
 
                     {/* Player count pill — overlay at bottom */}
                     <div
-                      className="absolute bottom-2 left-2 right-2 px-3 py-1.5 rounded-full flex items-center justify-center gap-1.5 border-2 text-[11px] font-black uppercase tracking-wider text-white"
+                      className="absolute bottom-1.5 left-1.5 right-1.5 px-2 py-1 rounded-full flex items-center justify-center gap-1 border text-[10px] font-black uppercase tracking-wider text-white"
                       style={{
-                        background: 'rgba(0,0,0,0.55)',
+                        background: 'rgba(0,0,0,0.6)',
                         borderColor: 'rgba(255,255,255,0.15)',
                         backdropFilter: 'blur(4px)',
                         fontFamily: "'Caveat', cursive",
                       }}
                     >
-                      <Users className="w-3 h-3" />
+                      <Users className="w-2.5 h-2.5" />
                       {count} JOUEUR{count !== 1 ? 'S' : ''}
                     </div>
 
@@ -1037,12 +1037,12 @@ export const InkLobbyScreen = ({
                       <motion.div
                         initial={{ scale: 0, rotate: -45 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        className="absolute -top-2 -right-2 w-9 h-9 rounded-full bg-amber-400 border-4 border-[#1a0d2e] flex items-center justify-center z-10"
+                        className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-amber-400 border-3 border-[#1a0d2e] flex items-center justify-center z-10"
                         style={{
-                          boxShadow: '0 4px 14px rgba(251, 191, 36, 0.6)',
+                          boxShadow: '0 3px 10px rgba(251, 191, 36, 0.6)',
                         }}
                       >
-                        <Check className="w-5 h-5 text-[#0a0810]" strokeWidth={3} />
+                        <Check className="w-4 h-4 text-[#0a0810]" strokeWidth={3} />
                       </motion.div>
                     )}
 
