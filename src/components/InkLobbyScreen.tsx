@@ -810,11 +810,17 @@ export const InkLobbyScreen = ({
             }}
             whileHover={{ scale: 1.02, x: -2 }}
             whileTap={{ scale: 0.98 }}
-            className="flex-shrink-0 w-full flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-red-500/15 border-2 border-red-500/40 hover:bg-red-500/25 hover:border-red-500/60 text-red-300 hover:text-red-200 transition-all"
+            className="flex-shrink-0 w-full flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-red-500/15 border-2 border-red-500/40 hover:bg-red-500/25 hover:border-red-500/60 text-red-300 hover:text-red-200 transition-all overflow-hidden relative"
           >
-            <LogOut className="w-4 h-4" />
+            <ImageWithFallback
+              src="/lobby/leave.png"
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none opacity-90"
+              fallback={<></>}
+            />
+            <LogOut className="w-4 h-4 relative z-10" />
             <span
-              className="text-base font-black uppercase tracking-wider"
+              className="text-base font-black uppercase tracking-wider relative z-10"
               style={{ fontFamily: "'Caveat', cursive" }}
             >
               QUITTER
