@@ -231,6 +231,7 @@ const ImageWithFallback = ({
 
   const [idx, setIdx] = useState(0);
   const [allFailed, setAllFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   if (allFailed) return <>{fallback}</>;
   return (
@@ -238,11 +239,14 @@ const ImageWithFallback = ({
       key={candidates[idx]}
       src={candidates[idx]}
       alt={alt}
-      className={className}
+      className={cn(className, loaded ? 'opacity-100' : 'opacity-0')}
+      onLoad={() => setLoaded(true)}
       onError={() => {
+        setLoaded(false);
         if (idx + 1 < candidates.length) setIdx(idx + 1);
         else setAllFailed(true);
       }}
+      loading="eager"
     />
   );
 };
@@ -467,15 +471,13 @@ export const InkLobbyScreen = ({
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <ImageWithFallback
           src={[
+            '/lobby/backgroundlobby.png',
+            '/lobby/bakcgroundlobby.png',
             '/lobby/background.png',
             '/lobby/background.jpg',
-            '/lobby/background.jpeg',
-            '/lobby/bakcgroundlobby.jpeg',
-            '/lobby/bakcgroundlobby.jpg',
-            '/lobby/bakcgroundlobby.png',
           ]}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
           fallback={
             <>
               <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#160a26] to-[#0f0820]" />
@@ -549,6 +551,7 @@ export const InkLobbyScreen = ({
             {/* Custom column background image — drop /public/lobby/players-column.png to override */}
             <ImageWithFallback
               src={[
+                '/lobby/lobbycolumn.png',
                 '/lobby/players-column.png',
                 '/lobby/players-column.jpg',
                 '/lobby/players-column.jpeg',
@@ -829,11 +832,19 @@ export const InkLobbyScreen = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.98 }}
               transition={{ duration: 0.3 }}
-              className="relative flex-shrink-0 px-4 py-3 flex items-center gap-3 rounded-2xl border-2 border-purple-400/30 bg-purple-950/30 backdrop-blur-md"
+              className="relative flex-shrink-0 px-4 py-3 flex items-center gap-3 rounded-2xl border-2 border-purple-400/30 overflow-hidden"
               style={{
                 boxShadow: `inset 0 1px 0 rgba(255,255,255,0.05), 0 6px 18px rgba(0,0,0,0.3)`,
               }}
             >
+              {/* Topbar background image */}
+              <ImageWithFallback
+                src="/lobby/topbar.png"
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                fallback={<div className="absolute inset-0 bg-purple-950/30 backdrop-blur-md" />}
+              />
+              <div className="absolute inset-0 bg-black/20 pointer-events-none" />
               {/* Icon badge — uses the card image as thumbnail */}
               <div
                 className="relative w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border-2 overflow-hidden"
