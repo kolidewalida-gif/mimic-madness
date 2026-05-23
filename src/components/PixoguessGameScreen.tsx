@@ -109,44 +109,69 @@ export const PixoguessGameScreen = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-
-    img.onload = () => {
-      imageRef.current = img;
-      const targetSize = 560;
-      const ratio = targetSize / Math.max(img.width, img.height);
-      canvas.width = Math.round(img.width * ratio);
-      canvas.height = Math.round(img.height * ratio);
-      drawPixelated(ctx, img, canvas.width, canvas.height, pixelLevel);
-      setImageBroken(false);
-    };
-
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const candidates = getProxyImageCandidates(roundData.image_url);
     let i = 0;
+    const PER_CANDIDATE_TIMEOUT_MS = 3500;
+
     const tryNext = () => {
+      if (cancelled) return;
       const next = candidates[i];
       if (!next) {
-        console.error(
-          'Failed to load image (all candidates):',
-          roundData.image_url,
-        );
+        console.error('[BlurRush] all image candidates failed:', roundData.image_url);
         setImageBroken(true);
         return;
       }
-      img.src = next;
-    };
 
-    img.onerror = () => {
-      i += 1;
-      tryNext();
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        img.onload = null;
+        img.onerror = null;
+      };
+
+      img.onload = () => {
+        if (cancelled) return;
+        cleanup();
+        imageRef.current = img;
+        const targetSize = 560;
+        const ratio = targetSize / Math.max(img.width, img.height);
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        drawPixelated(ctx, img, canvas.width, canvas.height, pixelLevel);
+        setImageBroken(false);
+      };
+
+      img.onerror = () => {
+        if (cancelled) return;
+        cleanup();
+        i += 1;
+        tryNext();
+      };
+
+      // Hard timeout per candidate so a slow proxy doesn't block forever
+      timeoutId = setTimeout(() => {
+        if (cancelled) return;
+        cleanup();
+        console.warn(`[BlurRush] candidate ${i} timed out after ${PER_CANDIDATE_TIMEOUT_MS}ms`);
+        i += 1;
+        tryNext();
+      }, PER_CANDIDATE_TIMEOUT_MS);
+
+      img.src = next;
     };
 
     tryNext();
 
     return () => {
-      img.onload = null;
-      img.onerror = null;
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundData?.image_url]);

@@ -26,7 +26,20 @@ export function getProxyImageCandidates(url: string): string[] {
 
   const candidates: string[] = [];
 
-  // 1) Backend proxy (preferred — controlled CORS)
+  // 1) images.weserv.nl — public CORS-friendly proxy (fast, follows redirects).
+  // weserv expects the URL WITHOUT the protocol; it follows redirects so
+  // Wikipedia's `Special:FilePath` works out of the box.
+  const cleaned = url.replace(/^https?:\/\//, '');
+  candidates.push(
+    `https://images.weserv.nl/?url=${encodeURIComponent(cleaned)}&output=jpg&w=900&h=900&fit=inside`,
+  );
+
+  // 2) wsrv.nl — alternative weserv mirror (sometimes faster from EU)
+  candidates.push(
+    `https://wsrv.nl/?url=${encodeURIComponent(cleaned)}&output=jpg&w=900&h=900&fit=inside`,
+  );
+
+  // 3) Backend proxy (slower cold-start but always works for any URL)
   const base = (import.meta as any)?.env?.VITE_SUPABASE_URL as
     | string
     | undefined;
@@ -36,19 +49,6 @@ export function getProxyImageCandidates(url: string): string[] {
       `${base.replace(/\/$/, '')}/functions/v1/image-proxy?${qp.toString()}`,
     );
   }
-
-  // 2) images.weserv.nl — public CORS-friendly proxy.
-  // weserv expects the URL WITHOUT the protocol; it follows redirects so
-  // Wikipedia's `Special:FilePath` works out of the box.
-  const cleaned = url.replace(/^https?:\/\//, '');
-  candidates.push(
-    `https://images.weserv.nl/?url=${encodeURIComponent(cleaned)}&output=jpg&w=900&h=900&fit=inside`,
-  );
-
-  // 3) wsrv.nl — alternative weserv mirror (sometimes faster from EU)
-  candidates.push(
-    `https://wsrv.nl/?url=${encodeURIComponent(cleaned)}&output=jpg&w=900&h=900&fit=inside`,
-  );
 
   // 4) Direct (works for upload.wikimedia.org, fails for most others due to CORS)
   candidates.push(url);
