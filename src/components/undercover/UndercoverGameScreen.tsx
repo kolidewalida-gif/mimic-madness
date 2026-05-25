@@ -160,7 +160,7 @@ export const UndercoverGameScreen = memo(
                     animate={isCurrent ? { y: [0, -4, 0] } : undefined}
                     transition={isCurrent ? { duration: 1.2, repeat: Infinity } : undefined}
                     className={cn(
-                      'relative w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center flex-shrink-0',
+                      'relative w-24 h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center flex-shrink-0',
                       canVotePlayer && 'cursor-pointer',
                       isEliminated && 'opacity-40 grayscale',
                     )}
@@ -173,9 +173,9 @@ export const UndercoverGameScreen = memo(
                       boxShadow: isCurrent ? `0 5px 0 #0a0810, 0 0 20px ${accent}66` : '0 4px 0 #0a0810',
                     }}
                   >
-                    {isEliminated ? <Skull className="w-8 h-8 text-white/70" /> :
-                      av.type === 'image' && av.imageUrl ? <img src={av.imageUrl} alt="" className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover" /> :
-                      <span className="text-3xl md:text-4xl font-black text-white" style={{ fontFamily: FONT }}>{player.player_name[0]?.toUpperCase()}</span>}
+                    {isEliminated ? <Skull className="w-10 h-10 text-white/70" /> :
+                      av.type === 'image' && av.imageUrl ? <img src={av.imageUrl} alt="" className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover" /> :
+                      <span className="text-4xl md:text-5xl font-black text-white" style={{ fontFamily: FONT }}>{player.player_name[0]?.toUpperCase()}</span>}
                     {isCurrent && (
                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                         className="absolute -top-2 -right-1 px-1 py-0.5 rounded text-[8px] font-black text-white"
