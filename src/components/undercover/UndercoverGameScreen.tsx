@@ -130,6 +130,13 @@ export const UndercoverGameScreen = memo(
           </div>
         </header>
 
+        {/* Timer in header area — visible during discussion */}
+        {game.phase === 'discussion' && (
+          <div className="relative z-10 mx-auto max-w-xl px-5 pb-2">
+            <TimerBar accent={accent} />
+          </div>
+        )}
+
         {/* ═══ MAIN AREA — Players grid with clue history ═══ */}
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 min-h-0 overflow-hidden">
           {/* Players columns — each player is a column with avatar on top and clues below */}
@@ -367,9 +374,6 @@ export const UndercoverGameScreen = memo(
               )}
             </AnimatePresence>
           </div>
-
-          {/* Timer bar — always visible during discussion */}
-          {game.phase === 'discussion' && <TimerBar accent={accent} />}
 
           {/* "Voir mon mot" button */}
           {!isGameOver && (
