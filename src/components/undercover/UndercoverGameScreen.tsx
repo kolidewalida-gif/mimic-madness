@@ -102,7 +102,7 @@ export const UndercoverGameScreen = memo(
         {/* ═══ BACKGROUND IMAGE — graffiti wall ═══ */}
         <div className="absolute inset-0">
           <img
-            src="/undercover%20menu/backgroundundercover.png"
+            src="/undercovermenu/backgroundundercover.png"
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -232,7 +232,7 @@ export const UndercoverGameScreen = memo(
         </div>
 
         {/* ═══ BOTTOM ZONE — Action area + Timer ═══ */}
-        <div className="relative z-10 px-4 pb-4 space-y-3">
+        <div className="relative z-10 px-4 pb-20 space-y-3">
           {/* Action zone — contextual per phase */}
           <div className="max-w-xl mx-auto">
             <AnimatePresence mode="wait">
