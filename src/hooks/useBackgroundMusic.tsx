@@ -106,6 +106,7 @@ const musicTracks: MusicTrack[] = [
   { id: 106, name: "📞 Audio Phone", src: aAudiophone, moods: ["playful"] },
   { id: 107, name: "🧠 Quiz Show", src: aQuiz, moods: ["playful", "energetic"] },
   { id: 108, name: "🎪 Lobby Theme II", src: aLobby2, moods: ["chill", "playful"] },
+  { id: 109, name: "🎪 Lobby Theme III", src: '/music/lobbytheme3.mp3', moods: ["chill", "playful"] },
   // User-provided gameplay tracks (id 200+) — preferred for the "playing" situation
   ...USER_GAMEPLAY_TRACKS.map((t) => ({
     ...t,
@@ -115,9 +116,9 @@ const musicTracks: MusicTrack[] = [
 
 /** Direct mapping from situation -> preferred adaptive track id(s). Arrays are randomized. */
 const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number | number[]>> = {
-  home: [100, 108],
-  lobby: [100, 108],
-  preparation: [100, 108],
+  home: 109,
+  lobby: 109,
+  preparation: 109,
   playing: [200, 201, 101], // 🎮 user gameplay tracks first, original 101 as fallback
   voting: 102,
   victory: 103,
