@@ -599,7 +599,7 @@ export const LobbyChat = ({ lobbyId, playerId, playerName }: LobbyChatProps) => 
   };
 
   return (
-    <div className="fixed bottom-24 left-4 z-40">
+    <div className="fixed bottom-28 left-4 z-40 max-h-[60vh]">
       {/* Collapsed State with premium animation */}
       {!isExpanded && (
         <Button

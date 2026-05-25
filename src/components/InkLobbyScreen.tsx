@@ -353,6 +353,7 @@ export const InkLobbyScreen = ({
     await navigator.clipboard.writeText(lobbyCode);
     setCodeCopied(true);
     playInkSound('cartoonPop', 0.3);
+    toast({ title: '📋 Code copié !', description: lobbyCode });
     setTimeout(() => setCodeCopied(false), 1500);
   };
 

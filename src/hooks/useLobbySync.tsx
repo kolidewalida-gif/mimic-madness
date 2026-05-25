@@ -35,9 +35,9 @@ interface UseLobbyResult {
   resetState: () => void;
 }
 
-const RECONNECTION_TIMEOUT = 30000; // 30 seconds before disconnected players are removed
+const RECONNECTION_TIMEOUT = 60000; // 60 seconds before disconnected players are removed (mobile-friendly)
 const HEARTBEAT_INTERVAL = 3000; // 3 seconds heartbeat tick
-const HOST_MIGRATION_GRACE = 8000; // wait 8s before promoting a new host
+const HOST_MIGRATION_GRACE = 10000; // wait 10s before promoting a new host
 
 export const useLobbySync = (): UseLobbyResult => {
   const [lobby, setLobby] = useState<Lobby | null>(null);
@@ -257,7 +257,7 @@ export const useLobbySync = (): UseLobbyResult => {
       console.error('Error creating lobby:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de créer le lobby",
+        description: "Impossible de créer le lobby. Vérifie ta connexion et réessaie.",
         variant: "destructive",
       });
       return null;
@@ -389,7 +389,7 @@ export const useLobbySync = (): UseLobbyResult => {
       console.error('Error joining lobby:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de rejoindre le lobby",
+        description: "Impossible de rejoindre le lobby. Vérifie le code et réessaie.",
         variant: "destructive",
       });
       return null;
