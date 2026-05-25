@@ -102,7 +102,7 @@ export const UndercoverGameScreen = memo(
         {/* ═══ BACKGROUND IMAGE — graffiti wall ═══ */}
         <div className="absolute inset-0">
           <img
-            src="/undercover menu/backgroundundercover.png"
+            src="/undercover%20menu/backgroundundercover.png"
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
