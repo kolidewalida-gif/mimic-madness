@@ -10,10 +10,16 @@ const ALLOWED_HOSTS = new Set([
   "image.tmdb.org",
   "cdn.cloudflare.steamstatic.com",
   "upload.wikimedia.org",
+  "commons.wikimedia.org",
+  "en.wikipedia.org",
+  "fr.wikipedia.org",
   "picsum.photos",
+  "i.imgur.com",
+  "static.wikia.nocookie.net",
 ]);
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8MB safety cap
+const TIMEOUT_MS = 8000; // 8s max fetch time
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -55,12 +61,19 @@ serve(async (req) => {
       });
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
     const upstream = await fetch(parsed.toString(), {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; BlurRushImageProxy/1.0)",
         Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
       },
+      redirect: "follow",
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!upstream.ok) {
       return new Response(
@@ -94,8 +107,9 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": contentType,
-        // cache in browser/CDN for 1 day
-        "Cache-Control": "public, max-age=86400, s-maxage=86400",
+        // Cache aggressively — images don't change
+        "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
+        "CDN-Cache-Control": "public, max-age=604800",
       },
     });
   } catch (error) {

@@ -12,7 +12,16 @@ serve(async (req) => {
   }
 
   try {
-    const { category, difficulty, previousQuestions = [] } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { category, difficulty, previousQuestions = [] } = body;
+    
+    // Input validation
+    if (previousQuestions.length > 200) {
+      return new Response(JSON.stringify({ error: 'Too many previous questions' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     // Select category
     const categoryKeys = Object.keys(QUESTIONS_BANK);
@@ -28,11 +37,12 @@ serve(async (req) => {
       : questions;
     
     // Remove already asked questions
-    filteredQuestions = filteredQuestions.filter(q => !previousQuestions.includes(q.question));
+    const prevSet = new Set(previousQuestions);
+    filteredQuestions = filteredQuestions.filter(q => !prevSet.has(q.question));
     
     // Fallback to all questions if none left
     if (filteredQuestions.length === 0) {
-      filteredQuestions = questions.filter(q => !previousQuestions.includes(q.question));
+      filteredQuestions = questions.filter(q => !prevSet.has(q.question));
     }
     if (filteredQuestions.length === 0) {
       filteredQuestions = questions;
@@ -40,6 +50,13 @@ serve(async (req) => {
     
     // Pick random question
     const question = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
+    
+    if (!question) {
+      return new Response(JSON.stringify({ error: 'No questions available' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     // Shuffle options
     const shuffledOptions = [...question.options].sort(() => Math.random() - 0.5);
@@ -55,10 +72,13 @@ serve(async (req) => {
       difficulty: question.difficulty
     };
 
-    console.log('Generated question:', result.question);
-
     return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        // Cache for 0s — each request should be unique
+        'Cache-Control': 'no-store',
+      },
     });
 
   } catch (error) {
