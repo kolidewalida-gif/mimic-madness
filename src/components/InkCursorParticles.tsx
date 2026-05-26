@@ -29,6 +29,8 @@ const InkCursorParticlesComponent = () => {
   const trailIdRef = useRef(0);
   const lastSpawnRef = useRef(0);
   const lastPosRef = useRef({ x: 0, y: 0 });
+  const pendingPosRef = useRef<{ x: number; y: number } | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isInkMode) return;
@@ -36,7 +38,17 @@ const InkCursorParticlesComponent = () => {
     const handleMove = (e: MouseEvent) => {
       const x = e.clientX;
       const y = e.clientY;
-      setPos({ x, y });
+      // rAF-throttle the React state update so we don't re-render on every mousemove
+      pendingPosRef.current = { x, y };
+      if (rafRef.current === null) {
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = null;
+          if (pendingPosRef.current) {
+            setPos(pendingPosRef.current);
+            pendingPosRef.current = null;
+          }
+        });
+      }
 
       // Compute velocity to spawn trails
       const dx = x - lastPosRef.current.x;
@@ -93,12 +105,19 @@ const InkCursorParticlesComponent = () => {
       window.removeEventListener('mousedown', handleDown);
       window.removeEventListener('mouseup', handleUp);
       window.removeEventListener('mouseleave', handleLeave);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     };
   }, [isInkMode]);
 
   // Decay trails
   useEffect(() => {
     if (!isInkMode) return;
+    // Skip the interval entirely when there's nothing to decay — avoids
+    // a constant 30fps re-render of the whole component when idle.
+    if (trails.length === 0) return;
     const interval = setInterval(() => {
       setTrails((prev) => {
         const next: Trail[] = [];
@@ -111,7 +130,7 @@ const InkCursorParticlesComponent = () => {
       });
     }, 32);
     return () => clearInterval(interval);
-  }, [isInkMode]);
+  }, [isInkMode, trails.length === 0]);
 
   // Hide native cursor while custom is active
   useEffect(() => {
