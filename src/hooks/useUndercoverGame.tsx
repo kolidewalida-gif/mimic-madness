@@ -330,7 +330,7 @@ export const useUndercoverGame = (
 
       const { error } = await supabase
         .from('undercover_games')
-        .update(patch)
+        .update(patch as any)
         .eq('id', game.id);
 
       if (error) {
@@ -339,7 +339,7 @@ export const useUndercoverGame = (
         delete patch.undercover_wins;
         await supabase
           .from('undercover_games')
-          .update(patch)
+          .update(patch as any)
           .eq('id', game.id);
       }
 
@@ -378,7 +378,7 @@ export const useUndercoverGame = (
 
       const { error } = await supabase
         .from('undercover_games')
-        .update(patch)
+        .update(patch as any)
         .eq('id', game.id);
 
       if (error) {
@@ -386,7 +386,7 @@ export const useUndercoverGame = (
         delete patch.undercover_wins;
         await supabase
           .from('undercover_games')
-          .update(patch)
+          .update(patch as any)
           .eq('id', game.id);
       }
     },
