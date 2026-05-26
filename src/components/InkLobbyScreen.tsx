@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
-import { LobbyChat } from '@/components/LobbyChat';
+import { TwitchStyleLobbyChat } from '@/components/TwitchStyleLobbyChat';
 import { DeviceSettings } from '@/components/DeviceSettings';
 import { useGameTeams } from '@/hooks/useGameTeams';
 import { useToast } from '@/hooks/use-toast';
@@ -505,7 +505,7 @@ export const InkLobbyScreen = ({
       </div>
 
       {/* MAIN GRID — sidebar + main area */}
-      <div className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 p-4 pb-[100px] min-h-0 overflow-hidden">
+      <div className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 p-4 pb-[100px] min-h-0 overflow-hidden">
 
         {/* SIDEBAR — Logo + Players + Mascot + QUITTER */}
         <aside className="flex flex-col gap-3 min-h-0 overflow-hidden">
@@ -583,7 +583,7 @@ export const InkLobbyScreen = ({
             </div>
 
             {/* Player list */}
-            <div className="relative overflow-y-auto custom-scrollbar p-3 max-h-[280px]">
+            <div className="relative overflow-y-auto custom-scrollbar p-3 max-h-[180px] flex-shrink-0">
               <div className="space-y-2">
                 <AnimatePresence>
                   {players.map((player, idx) => {
@@ -719,78 +719,44 @@ export const InkLobbyScreen = ({
               </div>
             </div>
 
-            {/* Waiting message + INVITER button + mascot */}
-            <div className="relative flex-1 px-3 pb-2 flex flex-col items-center justify-end min-h-0 overflow-hidden">
-              <p className="text-xs text-white/50 italic text-center mb-1">
-                En attente d'autres joueurs…
-              </p>
-              {players.length < minPlayers && (
-                <p
-                  className="text-sm font-black text-white/85 text-center mt-1"
-                  style={{ fontFamily: "'Caveat', cursive" }}
-                >
-                  Invite tes amis pour commencer !
-                </p>
-              )}
-
-              {/* INVITER — big graffiti button in the players column */}
+            {/* Twitch-style chat + INVITER button (Mascot replaced by chat for QoL) */}
+            <div className="relative flex-1 px-3 pb-2 flex flex-col gap-2 min-h-0 overflow-hidden">
+              {/* Compact INVITER button */}
               <motion.button
                 onClick={() => {
                   playInkSound('cartoonPop', 0.3);
                   setShowInvitePanel(true);
                 }}
-                whileHover={{ scale: 1.06, rotate: -2 }}
-                whileTap={{ scale: 0.94, rotate: 1 }}
-                animate={{ rotate: [-2, 2, -2] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                className="relative mt-2 w-full max-w-[200px] py-3 px-4 rounded-2xl flex items-center justify-center gap-2 select-none"
+                whileHover={{ scale: 1.03, rotate: -1 }}
+                whileTap={{ scale: 0.97 }}
+                className="relative w-full py-2 px-3 rounded-2xl flex items-center justify-center gap-2 select-none flex-shrink-0"
                 style={{
-                  background:
-                    'linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
+                  background: 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
                   border: '3px solid #0a0810',
-                  boxShadow:
-                    '0 6px 0 #0a0810, 0 10px 18px rgba(251,191,36,0.4), inset 0 2px 0 rgba(255,255,255,0.4)',
+                  boxShadow: '0 4px 0 #0a0810, 0 8px 16px rgba(251,191,36,0.3), inset 0 2px 0 rgba(255,255,255,0.4)',
                 }}
               >
-                <UserPlus className="w-5 h-5 text-[#0a0810]" strokeWidth={3} />
+                <UserPlus className="w-4 h-4 text-[#0a0810]" strokeWidth={3} />
                 <span
-                  className="text-xl font-black tracking-wider text-white leading-none"
+                  className="text-base font-black tracking-wider text-white leading-none"
                   style={{
                     fontFamily: "'Caveat', cursive",
-                    textShadow:
-                      '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+                    textShadow: '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
                   }}
                 >
                   INVITER
                 </span>
-                {/* Decorative stars */}
-                <span
-                  className="absolute -top-1.5 -right-1.5 text-amber-300 select-none pointer-events-none"
-                  style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
-                >
-                  ✦
-                </span>
-                <span
-                  className="absolute -bottom-1.5 -left-1.5 text-amber-300 select-none pointer-events-none"
-                  style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
-                >
-                  ✦
-                </span>
               </motion.button>
 
-              {/* Mascot */}
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                className="mt-2 mb-1"
-              >
-                <ImageWithFallback
-                  src="/lobby/mascot.png"
-                  alt="mascot"
-                  className="w-24 h-auto select-none pointer-events-none"
-                  fallback={<div className="text-5xl select-none">🎤</div>}
+              {/* Twitch-style chat — fills remaining space */}
+              <div className="flex-1 min-h-0">
+                <TwitchStyleLobbyChat
+                  lobbyId={lobbyId}
+                  playerId={currentPlayer.id}
+                  playerName={currentPlayer.name}
+                  className="h-full"
                 />
-              </motion.div>
+              </div>
             </div>
           </div>
 
@@ -1081,12 +1047,7 @@ export const InkLobbyScreen = ({
         </main>
       </div>
 
-      {/* Floating chat */}
-      <LobbyChat
-        lobbyId={lobbyId}
-        playerId={currentPlayer.id}
-        playerName={currentPlayer.name}
-      />
+      {/* Floating chat removed — replaced by integrated TwitchStyleLobbyChat in players sidebar */}
 
       {/* INVITE DRAWER */}
       <AnimatePresence>
