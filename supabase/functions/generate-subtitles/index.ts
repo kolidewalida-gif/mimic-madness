@@ -12,7 +12,16 @@ serve(async (req) => {
 
   try {
     const { videoDescription, duration } = await req.json();
-    
+
+    // Validate and sanitize inputs to prevent prompt injection / abuse
+    const safeDuration = Math.max(1, Math.min(600, Number(duration) || 10));
+    const rawDesc = typeof videoDescription === "string" ? videoDescription : "";
+    const safeDesc = rawDesc
+      .slice(0, 200)
+      .replace(/[\r\n]+/g, " ")
+      .replace(/[\[\]{}`]/g, "")
+      .trim();
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -28,8 +37,8 @@ Les sous-titres doivent être:
 
 Retourne UNIQUEMENT un tableau JSON valide, sans texte autour.`;
 
-    const userPrompt = `Génère des sous-titres pour une vidéo de ${duration} secondes.
-Description/contexte: ${videoDescription || "Vidéo de défi d'imitation amusant"}
+    const userPrompt = `Génère des sous-titres pour une vidéo de ${safeDuration} secondes.
+Description/contexte: ${safeDesc || "Vidéo de défi d'imitation amusant"}
 
 Génère 3 à 6 sous-titres répartis sur la durée de la vidéo.
 Format attendu:
