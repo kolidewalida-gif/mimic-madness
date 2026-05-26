@@ -8,14 +8,14 @@ export interface ChatMessage {
   playerId: string;
   playerName: string;
   content: string;
-  messageType: 'text' | 'image' | 'gif' | 'voice';
+  messageType: 'text' | 'image' | 'gif' | 'voice' | 'soundboard';
   createdAt: string;
 }
 
 interface UseLobbyChat {
   messages: ChatMessage[];
   isLoading: boolean;
-  sendMessage: (content: string, messageType?: 'text' | 'image' | 'gif' | 'voice') => Promise<void>;
+  sendMessage: (content: string, messageType?: 'text' | 'image' | 'gif' | 'voice' | 'soundboard') => Promise<void>;
   isSending: boolean;
 }
 
@@ -58,7 +58,7 @@ export const useLobbyChat = (
           playerId: msg.player_id,
           playerName: msg.player_name,
           content: msg.content,
-          messageType: msg.message_type as 'text' | 'image' | 'gif' | 'voice',
+          messageType: msg.message_type as 'text' | 'image' | 'gif' | 'voice' | 'soundboard',
           createdAt: msg.created_at,
         }));
 
@@ -100,7 +100,7 @@ export const useLobbyChat = (
             playerId: newMsg.player_id,
             playerName: newMsg.player_name,
             content: newMsg.content,
-            messageType: newMsg.message_type as 'text' | 'image' | 'gif' | 'voice',
+            messageType: newMsg.message_type as 'text' | 'image' | 'gif' | 'voice' | 'soundboard',
             createdAt: newMsg.created_at,
           };
 
@@ -126,7 +126,7 @@ export const useLobbyChat = (
   }, [lobbyId]);
 
   const sendMessage = useCallback(
-    async (content: string, messageType: 'text' | 'image' | 'gif' | 'voice' = 'text') => {
+    async (content: string, messageType: 'text' | 'image' | 'gif' | 'voice' | 'soundboard' = 'text') => {
       if (!lobbyId) return;
       // For text messages we apply strict sanitization + length limits.
       // For gif/image/voice the content is a URL or storage path and is
