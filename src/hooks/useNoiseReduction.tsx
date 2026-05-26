@@ -5,88 +5,143 @@ import { Rnnoise, type DenoiseState } from '@shiguredo/rnnoise-wasm';
  * Real-time microphone noise reduction using RNNoise (WebAssembly).
  *
  * RNNoise is a free, open-source noise suppression library by Xiph.org.
- * It uses a small recurrent neural network to remove background noise
- * (keyboard typing, fans, traffic, etc.) while preserving speech.
+ * Removes keyboard typing, fans, traffic, AC hum, etc. while preserving speech.
  *
  * Usage:
  *   const { processStream, isReady, isEnabled, toggle } = useNoiseReduction();
- *   const cleanStream = await processStream(rawMicStream);
+ *   const result = await processStream(rawMicStream);
+ *   const cleanStream = result.stream;
+ *   // ... use cleanStream in MediaRecorder ...
+ *   // when done:
+ *   result.cleanup();
  *
  * Notes:
  * - RNNoise expects 48kHz audio. We force AudioContext sampleRate to 48000.
  * - One frame = 480 samples = 10ms at 48kHz.
  * - Processing latency: ~10ms (one frame).
- * - The wasm file is ~85KB gzipped, lazy-loaded on first use.
- *
- * VAD (voice activity detection) is also exposed: each frame returns a
- * 0..1 confidence score for whether speech is present.
+ * - Wasm is ~85KB gzipped, lazy-loaded on first use.
  */
 
-const RNNOISE_SCALE = 32768; // 16-bit PCM range — RNNoise expects this scaling
+const RNNOISE_SCALE = 32768; // 16-bit PCM range
 const STORAGE_KEY = 'mimic-master:noise-reduction-enabled';
 
 let rnnoisePromise: Promise<Rnnoise> | null = null;
 
-/** Lazy-load the wasm module (singleton) */
 const getRnnoise = (): Promise<Rnnoise> => {
   if (!rnnoisePromise) {
     rnnoisePromise = Rnnoise.load().catch((err) => {
-      rnnoisePromise = null; // allow retry on failure
+      rnnoisePromise = null;
       throw err;
     });
   }
   return rnnoisePromise;
 };
 
-interface ProcessStreamOptions {
-  /** If false, return the original stream unchanged. Default: true */
-  enabled?: boolean;
+/** Read the user preference synchronously (used outside React too) */
+export const isNoiseReductionEnabled = (): boolean => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === null ? true : stored === 'true';
+  } catch {
+    return true;
+  }
+};
+
+interface ProcessStreamResult {
+  /** The processed (denoised) MediaStream */
+  stream: MediaStream;
+  /** Call this when done to release resources */
+  cleanup: () => void;
 }
 
 interface UseNoiseReductionResult {
-  /** True once RNNoise wasm is loaded and ready to process audio */
   isReady: boolean;
-  /** True if noise reduction is currently active (user-controlled) */
   isEnabled: boolean;
-  /** Last error encountered (e.g. wasm load failure) */
   error: Error | null;
-  /** Voice activity detection: 0..1 confidence for the latest frame */
-  vad: number;
-  /** Toggle noise reduction on/off */
   toggle: () => void;
-  /** Set noise reduction state explicitly */
   setEnabled: (enabled: boolean) => void;
   /**
    * Process a MediaStream through RNNoise.
-   * Returns a new MediaStream with the cleaned audio track.
-   * The original stream is left untouched.
+   * Returns a new stream + cleanup function.
+   * If noise reduction is disabled or fails, returns the original stream
+   * with a no-op cleanup.
    */
-  processStream: (
-    stream: MediaStream,
-    options?: ProcessStreamOptions
-  ) => Promise<MediaStream>;
+  processStream: (stream: MediaStream) => Promise<ProcessStreamResult>;
 }
+
+/**
+ * Standalone (non-hook) version — works outside React.
+ * Use this in places where you can't easily call a hook.
+ */
+export const processStreamWithNoiseReduction = async (
+  stream: MediaStream,
+  options: { force?: boolean } = {}
+): Promise<ProcessStreamResult> => {
+  // Respect user preference unless forced
+  if (!options.force && !isNoiseReductionEnabled()) {
+    return { stream, cleanup: () => {} };
+  }
+
+  try {
+    const rnnoise = await getRnnoise();
+    const denoiseState = rnnoise.createDenoiseState();
+
+    // Force 48kHz for RNNoise compatibility
+    const ctx = new AudioContext({ sampleRate: 48000 });
+    await ctx.audioWorklet.addModule('/rnnoise-worklet.js');
+
+    const source = ctx.createMediaStreamSource(stream);
+    const workletNode = new AudioWorkletNode(ctx, 'rnnoise-processor');
+
+    workletNode.port.onmessage = (event) => {
+      if (event.data.type !== 'frame') return;
+      const frame: Float32Array = event.data.data;
+
+      // Convert Float32 [-1, 1] to 16-bit PCM range
+      const scaled = new Float32Array(frame.length);
+      for (let i = 0; i < frame.length; i++) {
+        scaled[i] = frame[i] * RNNOISE_SCALE;
+      }
+
+      try {
+        denoiseState.processFrame(scaled);
+      } catch (err) {
+        console.warn('[NoiseReduction] processFrame failed:', err);
+      }
+
+      // Convert back to Float32
+      const output = new Float32Array(frame.length);
+      for (let i = 0; i < frame.length; i++) {
+        output[i] = scaled[i] / RNNOISE_SCALE;
+      }
+
+      workletNode.port.postMessage({ type: 'frame', data: output });
+    };
+
+    const destination = ctx.createMediaStreamDestination();
+    source.connect(workletNode);
+    workletNode.connect(destination);
+
+    const cleanup = () => {
+      try { workletNode.disconnect(); } catch {}
+      try { source.disconnect(); } catch {}
+      try { destination.disconnect(); } catch {}
+      try { denoiseState.destroy(); } catch {}
+      try { ctx.close().catch(() => {}); } catch {}
+    };
+
+    return { stream: destination.stream, cleanup };
+  } catch (err) {
+    console.warn('[NoiseReduction] Setup failed, using original stream:', err);
+    return { stream, cleanup: () => {} };
+  }
+};
 
 export const useNoiseReduction = (): UseNoiseReductionResult => {
   const [isReady, setIsReady] = useState(false);
-  const [isEnabled, setIsEnabledState] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored === null ? true : stored === 'true';
-    } catch {
-      return true;
-    }
-  });
+  const [isEnabled, setIsEnabledState] = useState<boolean>(isNoiseReductionEnabled);
   const [error, setError] = useState<Error | null>(null);
-  const [vad, setVad] = useState(0);
 
-  const denoiseStateRef = useRef<DenoiseState | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
-  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-
-  // Persist enabled state
   const setEnabled = useCallback((enabled: boolean) => {
     setIsEnabledState(enabled);
     try {
@@ -94,17 +149,13 @@ export const useNoiseReduction = (): UseNoiseReductionResult => {
     } catch {
       /* ignore */
     }
-    // Send bypass message to worklet if active
-    if (workletNodeRef.current) {
-      workletNodeRef.current.port.postMessage({ type: 'bypass', data: !enabled });
-    }
   }, []);
 
   const toggle = useCallback(() => {
     setEnabled(!isEnabled);
   }, [isEnabled, setEnabled]);
 
-  // Pre-load wasm on mount (non-blocking)
+  // Pre-load wasm on mount
   useEffect(() => {
     let cancelled = false;
     getRnnoise()
@@ -122,107 +173,10 @@ export const useNoiseReduction = (): UseNoiseReductionResult => {
     };
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (denoiseStateRef.current) {
-        try {
-          denoiseStateRef.current.destroy();
-        } catch {
-          /* ignore */
-        }
-        denoiseStateRef.current = null;
-      }
-      if (workletNodeRef.current) {
-        workletNodeRef.current.disconnect();
-        workletNodeRef.current = null;
-      }
-      if (sourceNodeRef.current) {
-        sourceNodeRef.current.disconnect();
-        sourceNodeRef.current = null;
-      }
-      if (destinationRef.current) {
-        destinationRef.current.disconnect();
-        destinationRef.current = null;
-      }
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close().catch(() => {});
-        audioCtxRef.current = null;
-      }
-    };
-  }, []);
-
   const processStream = useCallback(
-    async (
-      stream: MediaStream,
-      options: ProcessStreamOptions = {}
-    ): Promise<MediaStream> => {
-      const enabled = options.enabled ?? isEnabled;
-
-      // If user disabled, return original stream
-      if (!enabled) return stream;
-
-      try {
-        const rnnoise = await getRnnoise();
-        const denoiseState = rnnoise.createDenoiseState();
-        denoiseStateRef.current = denoiseState;
-
-        // Force 48kHz sample rate for RNNoise compatibility
-        const ctx = new AudioContext({ sampleRate: 48000 });
-        audioCtxRef.current = ctx;
-
-        // Load worklet
-        await ctx.audioWorklet.addModule('/rnnoise-worklet.js');
-
-        const source = ctx.createMediaStreamSource(stream);
-        sourceNodeRef.current = source;
-
-        const workletNode = new AudioWorkletNode(ctx, 'rnnoise-processor');
-        workletNodeRef.current = workletNode;
-
-        // Frame processing: receive raw frame from worklet, denoise, send back
-        workletNode.port.onmessage = (event) => {
-          if (event.data.type !== 'frame') return;
-          const frame: Float32Array = event.data.data;
-
-          // Convert Float32 [-1, 1] to 16-bit PCM range expected by RNNoise
-          const scaled = new Float32Array(frame.length);
-          for (let i = 0; i < frame.length; i++) {
-            scaled[i] = frame[i] * RNNOISE_SCALE;
-          }
-
-          let voiceProb = 0;
-          try {
-            voiceProb = denoiseState.processFrame(scaled);
-          } catch (err) {
-            console.warn('[NoiseReduction] processFrame failed:', err);
-          }
-
-          // Convert back to Float32 [-1, 1]
-          const output = new Float32Array(frame.length);
-          for (let i = 0; i < frame.length; i++) {
-            output[i] = scaled[i] / RNNOISE_SCALE;
-          }
-
-          workletNode.port.postMessage({ type: 'frame', data: output });
-          setVad(voiceProb);
-        };
-
-        const destination = ctx.createMediaStreamDestination();
-        destinationRef.current = destination;
-
-        source.connect(workletNode);
-        workletNode.connect(destination);
-
-        // Send initial bypass state (in case user disabled before stream attached)
-        workletNode.port.postMessage({ type: 'bypass', data: !enabled });
-
-        return destination.stream;
-      } catch (err) {
-        console.warn('[NoiseReduction] Failed to set up stream, falling back to original:', err);
-        setError(err instanceof Error ? err : new Error(String(err)));
-        return stream;
-      }
+    async (stream: MediaStream): Promise<ProcessStreamResult> => {
+      if (!isEnabled) return { stream, cleanup: () => {} };
+      return processStreamWithNoiseReduction(stream, { force: true });
     },
     [isEnabled],
   );
@@ -231,7 +185,6 @@ export const useNoiseReduction = (): UseNoiseReductionResult => {
     isReady,
     isEnabled,
     error,
-    vad,
     toggle,
     setEnabled,
     processStream,

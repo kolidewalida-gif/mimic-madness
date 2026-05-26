@@ -4,6 +4,7 @@ import { Mic, MicOff, Check, Play, Pause, Volume2, Loader2, ChevronRight, Users 
 import { cn } from '@/lib/utils';
 import { DoodleBorder, DoodleStage } from '@/components/doodle/Doodle';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { processStreamWithNoiseReduction } from '@/hooks/useNoiseReduction';
 
 interface AudioPhoneImitationPhaseProps {
   currentPhraseIndex: number;
@@ -56,6 +57,8 @@ export const AudioPhoneImitationPhase = ({
   const timerRafRef = useRef<number | null>(null);
   const startedAtRef = useRef<number>(0);
   const animationRef = useRef<number | null>(null);
+  const noiseReductionCleanupRef = useRef<(() => void) | null>(null);
+  const rawStreamRef = useRef<MediaStream | null>(null);
 
   const playReversedAudio = () => {
     if (!audioRef.current) return;
@@ -89,7 +92,13 @@ export const AudioPhoneImitationPhase = ({
     try {
       setRecordedBlob(null);
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rawStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      rawStreamRef.current = rawStream;
+
+      // Apply noise reduction (RNNoise) — falls back to raw stream if disabled or fails
+      const { stream, cleanup } = await processStreamWithNoiseReduction(rawStream);
+      noiseReductionCleanupRef.current = cleanup;
+
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       analyserRef.current = audioContextRef.current.createAnalyser();
@@ -117,7 +126,15 @@ export const AudioPhoneImitationPhase = ({
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: selectedMimeType || 'audio/webm' });
         setRecordedBlob(blob);
+        // Stop both raw and processed streams
+        rawStream.getTracks().forEach((track) => track.stop());
         stream.getTracks().forEach((track) => track.stop());
+        // Release RNNoise resources
+        if (noiseReductionCleanupRef.current) {
+          noiseReductionCleanupRef.current();
+          noiseReductionCleanupRef.current = null;
+        }
+        rawStreamRef.current = null;
       };
 
       mediaRecorderRef.current.start(100);
