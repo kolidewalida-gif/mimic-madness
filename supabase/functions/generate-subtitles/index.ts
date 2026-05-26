@@ -97,9 +97,9 @@ Format attendu:
       console.error("Failed to parse subtitles:", parseError, content);
       // Return default subtitles if parsing fails
       subtitles = [
-        { start: 0, end: duration * 0.3, text: "🎬 Action !" },
-        { start: duration * 0.3, end: duration * 0.7, text: "C'est parti !" },
-        { start: duration * 0.7, end: duration, text: "🔥 Incroyable !" },
+        { start: 0, end: safeDuration * 0.3, text: "🎬 Action !" },
+        { start: safeDuration * 0.3, end: safeDuration * 0.7, text: "C'est parti !" },
+        { start: safeDuration * 0.7, end: safeDuration, text: "🔥 Incroyable !" },
       ];
     }
 
