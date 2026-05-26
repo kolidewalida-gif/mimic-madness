@@ -43,6 +43,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@react-three/drei": "^9.122",
     "@react-three/fiber": "^8.17",
+    "@shiguredo/rnnoise-wasm": "^2025.1.5",
     "@supabase/supabase-js": "^2.75.0",
     "@tanstack/react-query": "^5.83.0",
     "@types/three": "^0.170.0",

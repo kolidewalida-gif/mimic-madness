@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
+import { NoiseReductionToggle } from "@/components/NoiseReductionToggle";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSoundEffectsVolume } from "@/hooks/useSoundEffectsVolume";
 import { motion, AnimatePresence } from "framer-motion";
@@ -568,6 +569,24 @@ const AudioSection = ({
           </p>
         </motion.div>
       )}
+
+      {/* Noise reduction toggle */}
+      <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl p-3"
+        style={{
+          background: 'linear-gradient(180deg, rgba(52,211,153,0.06), rgba(52,211,153,0.02))',
+          border: '2.5px solid #0a0810',
+          boxShadow: '0 2px 0 #0a0810',
+        }}>
+        <div className="flex-1 min-w-0">
+          <p className="text-base font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: '1.5px 1.5px 0 #0a0810' }}>
+            🔇 Suppression de bruit
+          </p>
+          <p className="text-xs text-white/55 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>
+            Enlève le bruit ambiant en temps réel (RNNoise)
+          </p>
+        </div>
+        <NoiseReductionToggle showLabel={false} compact />
+      </div>
     </CartoonSection>
 
     {/* DEVICE INFO */}
