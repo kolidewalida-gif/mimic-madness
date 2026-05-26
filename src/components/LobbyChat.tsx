@@ -14,7 +14,7 @@ import { useLobbyChat, type ChatMessage } from '@/hooks/useLobbyChat';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, X, Image as ImageIcon, Search, Sparkles,
-  Volume2, MessageCircle, ChevronDown,
+  Volume2, MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
@@ -225,8 +225,16 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showSoundboard, setShowSoundboard] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [gifSearch, setGifSearch] = useState('');
+  const [gifCategory, setGifCategory] = useState<GifCategory | 'all'>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastCountRef = useRef(0);
+
+  const visibleGifs = useMemo(() => {
+    if (gifSearch.trim()) return searchGifs(gifSearch);
+    if (gifCategory === 'all') return CHAT_GIFS;
+    return CHAT_GIFS.filter((g) => g.category === gifCategory);
+  }, [gifSearch, gifCategory]);
 
   // Track unread messages
   useEffect(() => {
@@ -380,12 +388,105 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
             </motion.button>
           )}
 
-          {/* Overlays */}
+          {/* Overlays — inside the chat, above messages */}
           <AnimatePresence>
-            {showGifPicker && <GifPicker onSelect={handleSendGif} onClose={() => setShowGifPicker(false)} />}
+            {showGifPicker && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+                className="absolute inset-x-0 bottom-[56px] top-[44px] z-20 rounded-xl overflow-hidden flex flex-col"
+                style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810' }}
+              >
+                {/* GIF Header */}
+                <div className="flex items-center gap-2 px-3 py-2 flex-shrink-0" style={{ borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>GIFs</span>
+                  <span className="text-xs text-white/40 font-mono">({CHAT_GIFS.length})</span>
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                    <input
+                      value={gifSearch}
+                      onChange={(e) => setGifSearch(e.target.value)}
+                      placeholder="Rechercher…"
+                      className="w-full pl-7 pr-2 py-1.5 rounded-lg text-sm font-bold text-white placeholder:text-white/30 outline-none"
+                      style={{ background: 'rgba(0,0,0,0.4)', border: '2px solid rgba(255,255,255,0.1)', fontFamily: FONT }}
+                    />
+                  </div>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowGifPicker(false)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(239,68,68,0.2)', border: '2px solid #0a0810', boxShadow: '0 2px 0 #0a0810' }}>
+                    <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                  </motion.button>
+                </div>
+                {/* Categories */}
+                <div className="flex gap-1.5 px-2 py-1.5 overflow-x-auto flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  {[['all', { emoji: '✨', label: 'Tout', color: '#a855f7' }] as const, ...Object.entries(CATEGORY_LABELS) as [GifCategory, typeof CATEGORY_LABELS[GifCategory]][]]
+                    .map(([key, info]) => (
+                      <button key={key} onClick={() => setGifCategory(key as GifCategory | 'all')}
+                        className={cn('flex-shrink-0 px-2 py-1 rounded-lg text-xs font-black whitespace-nowrap transition-all', gifCategory === key ? 'scale-105' : 'opacity-60 hover:opacity-100')}
+                        style={{
+                          background: gifCategory === key ? `linear-gradient(180deg, ${info.color}, ${info.color}cc)` : 'rgba(255,255,255,0.06)',
+                          border: '2px solid #0a0810', boxShadow: gifCategory === key ? '0 2px 0 #0a0810' : 'none',
+                          color: 'white', fontFamily: FONT, textShadow: gifCategory === key ? SHADOW_SM : 'none',
+                        }}>
+                        {info.emoji} {info.label}
+                      </button>
+                    ))}
+                </div>
+                {/* Grid */}
+                <div className="flex-1 overflow-y-auto p-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    {visibleGifs.map((gif, i) => (
+                      <motion.button key={`${gif.url}-${i}`} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: Math.min(i * 0.01, 0.15) }} whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.95 }}
+                        onClick={() => { playSoundEffect('pop', 0.3); handleSendGif(gif.url); }}
+                        className="relative aspect-square rounded-lg overflow-hidden"
+                        style={{ border: '2px solid #0a0810', boxShadow: '0 2px 0 #0a0810' }}>
+                        <img src={gif.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
+
           <AnimatePresence>
-            {showSoundboard && <SoundboardPanel onClose={() => setShowSoundboard(false)} />}
+            {showSoundboard && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+                className="absolute inset-x-0 bottom-[56px] z-20 rounded-xl overflow-hidden"
+                style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810' }}
+              >
+                <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center gap-2">
+                    <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Soundboard</span>
+                  </div>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShowSoundboard(false)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    style={{ background: 'rgba(239,68,68,0.2)', border: '2px solid #0a0810', boxShadow: '0 2px 0 #0a0810' }}>
+                    <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                  </motion.button>
+                </div>
+                <div className="grid grid-cols-4 gap-2 p-3">
+                  {SOUNDBOARD.map((item) => (
+                    <motion.button key={item.label} whileHover={{ scale: 1.08, y: -2 }} whileTap={{ scale: 0.92 }}
+                      onClick={() => { playSoundEffect(item.sound, 0.6); }}
+                      className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '2.5px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}>
+                      <span className="text-2xl">{item.emoji}</span>
+                      <span className="text-[10px] font-black text-white/70 leading-none" style={{ fontFamily: FONT }}>{item.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {/* Input bar */}
