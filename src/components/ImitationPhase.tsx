@@ -73,7 +73,7 @@ export const ImitationPhase = ({
   const [includeOriginalAudio, setIncludeOriginalAudio] = useState(false);
   const [originalAudioVolume, setOriginalAudioVolume] = useState(50);
   const { toast } = useToast();
-  const { pause } = useBackgroundMusic();
+  const { setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
   const questTracker = useQuestTracker();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -98,9 +98,18 @@ export const ImitationPhase = ({
   }, [currentChallenge.id]);
 
   useEffect(() => {
-    pause();
+    // Switch to the "round" situation track during the imitation phase.
+    // When auto-mode is OFF the user is in charge — we don't fight their
+    // choice. The previous behaviour was to brute-force `pause()` which
+    // killed any music the user had selected manually.
+    if (autoMode) {
+      setSituation("round", { priority: 2, source: "imitation-phase" });
+    }
+    return () => {
+      if (autoMode) clearSituationOverride("imitation-phase");
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [autoMode]);
 
   useEffect(() => {
     let isMounted = true;

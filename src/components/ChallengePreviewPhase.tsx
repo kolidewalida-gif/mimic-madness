@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { playInkSound } from "@/hooks/useInkSoundEffects";
 import { cn } from "@/lib/utils";
 import { useMultiplePlayerAvatars } from "@/hooks/useGlobalPlayerAvatar";
+import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 
 interface Player { id: string; name: string; isHost: boolean; }
 interface Challenge { id: string; playerId: string; playerName: string; }
@@ -26,6 +27,20 @@ export const ChallengePreviewPhase = ({
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
   const playerIds = useMemo(() => players.map((p) => p.id), [players]);
   const { getAvatar } = useMultiplePlayerAvatars(playerIds);
+  const { setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
+
+  // Music: switch to a calmer "preview" track for the build-up before the
+  // round starts. Cleared on unmount so the next phase (imitation) can pick
+  // up its own track.
+  useEffect(() => {
+    if (autoMode) {
+      setSituation("preview", { priority: 2, source: "preview-phase" });
+    }
+    return () => {
+      if (autoMode) clearSituationOverride("preview-phase");
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMode]);
 
   useEffect(() => {
     let isMounted = true;

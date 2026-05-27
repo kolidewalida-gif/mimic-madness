@@ -59,6 +59,8 @@ export type MusicSituation =
   | "home"
   | "lobby"
   | "preparation"
+  | "preview"
+  | "round"
   | "playing"
   | "voting"
   | "victory"
@@ -119,6 +121,10 @@ const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number | number[]
   home: 109,
   lobby: 109,
   preparation: 109,
+  // Calmer build-up before the round starts — reuse the playful lobby track
+  preview: [108, 100],
+  // Active gameplay during a round (imitation phase): energetic gameplay tracks
+  round: [200, 201, 101],
   playing: [200, 201, 101], // 🎮 user gameplay tracks first, original 101 as fallback
   voting: 102,
   victory: 103,
@@ -135,6 +141,8 @@ const SITUATION_TO_MOODS: Record<MusicSituation, MusicMood[]> = {
   home: ["chill", "playful"],
   lobby: ["chill", "playful"],
   preparation: ["playful", "energetic"],
+  preview: ["playful", "chill"],
+  round: ["energetic", "epic"],
   playing: ["energetic", "epic"],
   voting: ["tense", "mysterious"],
   victory: ["epic", "energetic"],
@@ -353,25 +361,87 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     };
   }, [handleEnded, handleTimeUpdate, handleLoadedMetadata]);
 
+  // Cross-fade controller — guarded so rapid situation switches don't stack
+  // overlapping fade animations on the same <audio> element.
+  const fadeAbortRef = useRef<{ aborted: boolean } | null>(null);
+
+  const fadeAndLoad = useCallback(
+    (nextSrc: string, targetVolume: number, fadeMs = 400) => {
+      const el = audioRef.current;
+      if (!el) return;
+
+      // Same src? Nothing to do — preserves continuity across re-renders.
+      if (el.src && el.src.endsWith(nextSrc)) {
+        if (Math.abs(el.volume - targetVolume) > 0.01) el.volume = targetVolume;
+        return;
+      }
+
+      // Cancel any in-flight fade before starting a new one.
+      if (fadeAbortRef.current) fadeAbortRef.current.aborted = true;
+      const token = { aborted: false };
+      fadeAbortRef.current = token;
+
+      const startVolume = el.volume;
+      const startTime = performance.now();
+
+      const animate = (now: number) => {
+        if (token.aborted) return;
+        if (!audioRef.current) return;
+        const elapsed = now - startTime;
+        const t = Math.min(1, elapsed / fadeMs);
+        const v = startVolume * (1 - t);
+        audioRef.current.volume = Math.max(0, v);
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          // Swap and fade in
+          if (token.aborted || !audioRef.current) return;
+          audioRef.current.src = nextSrc;
+          audioRef.current.preload = 'auto';
+          audioRef.current.volume = 0;
+          audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+          const inStart = performance.now();
+          const animateIn = (now2: number) => {
+            if (token.aborted) return;
+            if (!audioRef.current) return;
+            const e2 = now2 - inStart;
+            const t2 = Math.min(1, e2 / fadeMs);
+            audioRef.current.volume = targetVolume * t2;
+            if (t2 < 1) requestAnimationFrame(animateIn);
+          };
+          requestAnimationFrame(animateIn);
+        }
+      };
+      requestAnimationFrame(animate);
+    },
+    [],
+  );
+
   // Load track when index changes
   useEffect(() => {
     if (audioRef.current && musicTracks[currentTrackIndex]) {
-      // Avoid reloading the same source (prevents stalls during rapid situation switches)
       const nextSrc = musicTracks[currentTrackIndex].src;
       const currentSrc = audioRef.current.src;
+      // Avoid reloading the same source (prevents stalls during rapid situation switches)
       if (currentSrc && currentSrc.endsWith(nextSrc)) {
         return;
       }
-      audioRef.current.src = musicTracks[currentTrackIndex].src;
-      audioRef.current.preload = 'auto';
       localStorage.setItem('backgroundMusicTrack', currentTrackIndex.toString());
-      // Try to autoplay — if blocked by browser policy, a global gesture
-      // listener (installed below) will retry on the first user gesture.
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {});
+      // Cross-fade to the new track instead of cutting abruptly. If the user
+      // hasn't interacted yet (autoplay blocked), this simply loads the src
+      // silently and waits for the gesture handler below to start playback.
+      if (audioRef.current.paused && !hasUserInteracted.current) {
+        audioRef.current.src = nextSrc;
+        audioRef.current.preload = 'auto';
+        audioRef.current
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(() => {});
+      } else {
+        fadeAndLoad(nextSrc, volume);
+      }
     }
-  }, [currentTrackIndex]);
+  }, [currentTrackIndex, fadeAndLoad, volume]);
 
   // Auto-start music on mount + auto-resume on first user gesture if blocked
   useEffect(() => {
