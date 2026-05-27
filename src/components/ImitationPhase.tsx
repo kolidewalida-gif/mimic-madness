@@ -309,10 +309,9 @@ export const ImitationPhase = ({
         <Sparkles className="absolute top-[15%] left-[5%] w-5 h-5 text-amber-400/30" />
         <Zap className="absolute bottom-[30%] right-[4%] w-4 h-4 text-pink-400/25" />
       </div>
-
-      <div className="relative z-10 min-h-screen px-4 py-4 pb-[140px]">
+      <div className="relative z-10 min-h-screen px-4 py-4 pb-[120px]">
         {/* Header */}
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 mb-4">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4 mb-4">
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
             <div className="px-4 py-2 rounded-full flex items-center gap-2"
               style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
@@ -334,26 +333,18 @@ export const ImitationPhase = ({
             </div>
           </motion.div>
 
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-              style={{ background: "rgba(255,255,255,0.05)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
-              <Users className="w-3.5 h-3.5 text-white/60" />
-              <span className="text-sm font-black text-white/70" style={{ fontFamily: FONT }}>{readyPlayers.length}/{players.length} prêts</span>
-            </div>
-            <motion.button type="button" onClick={() => setShowSettings(!showSettings)}
-              whileHover={{ scale: 1.05, rotate: showSettings ? -90 : 90 }} whileTap={{ scale: 0.95 }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: showSettings ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "rgba(255,255,255,0.08)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
-              <Settings className="w-4 h-4 text-white" strokeWidth={2.5} />
-            </motion.button>
-          </div>
+          <motion.button type="button" onClick={() => setShowSettings(!showSettings)}
+            whileHover={{ scale: 1.05, rotate: showSettings ? -90 : 90 }} whileTap={{ scale: 0.95 }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: showSettings ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "rgba(255,255,255,0.08)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+            <Settings className="w-4 h-4 text-white" strokeWidth={2.5} />
+          </motion.button>
         </div>
 
-        {/* Settings panel */}
         <AnimatePresence>
           {showSettings && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-              className="max-w-5xl mx-auto mb-4 overflow-hidden rounded-2xl"
+              className="max-w-[1600px] mx-auto mb-4 overflow-hidden rounded-2xl"
               style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
               <div className="p-4">
                 <DeviceSettings onClose={() => setShowSettings(false)} showPreview={false} />
@@ -362,14 +353,14 @@ export const ImitationPhase = ({
           )}
         </AnimatePresence>
 
-        {/* Main content */}
+        {/* MAIN 2-COLUMN LAYOUT — video LEFT (big), imitation panel RIGHT */}
         <motion.div initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4 }} className="max-w-5xl mx-auto">
+          transition={{ duration: 0.4 }}
+          className="max-w-[1600px] mx-auto grid lg:grid-cols-[1.55fr_1fr] gap-4 items-start">
+          {/* LEFT — Video to imitate (big) */}
           <div className="relative rounded-3xl overflow-hidden"
             style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: `0 8px 0 #0a0810, 0 0 30px ${ACCENT}22` }}>
             <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />
-
-            {/* "VIDÉO À IMITER" stamp */}
             <div className="absolute -top-3 left-6 z-20">
               <motion.div initial={{ scale: 0, rotate: -8 }} animate={{ scale: 1, rotate: -4 }}
                 transition={{ type: "spring", stiffness: 200, damping: 14 }}
@@ -378,8 +369,6 @@ export const ImitationPhase = ({
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>🎬 Vidéo à imiter</span>
               </motion.div>
             </div>
-
-            {/* REC indicator */}
             <AnimatePresence>
               {isRecording && (
                 <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, rotate: 6, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
@@ -393,40 +382,48 @@ export const ImitationPhase = ({
                 </motion.div>
               )}
             </AnimatePresence>
-
-            <div className="relative p-5 pt-7">
-              {/* Video */}
-              <div className="rounded-2xl overflow-hidden mb-4" style={{ border: "3px solid #0a0810", boxShadow: `0 4px 0 #0a0810${isRecording ? ", 0 0 0 3px #ef4444" : ""}` }}>
+            <div className="relative p-4 pt-6">
+              <div className="rounded-2xl overflow-hidden"
+                style={{ border: "3px solid #0a0810", boxShadow: `0 4px 0 #0a0810${isRecording ? ", 0 0 0 3px #ef4444" : ""}` }}>
                 <VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" videoRef={challengeVideoRef} />
               </div>
+            </div>
+          </div>
 
-              {/* Recording / Preview */}
+          {/* RIGHT — Imitation panel */}
+          <div className="relative rounded-3xl overflow-hidden"
+            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: `0 8px 0 #0a0810, 0 0 30px ${ACCENT}22` }}>
+            <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />
+            <div className="absolute -top-3 left-6 z-20">
+              <motion.div initial={{ scale: 0, rotate: 8 }} animate={{ scale: 1, rotate: 4 }}
+                transition={{ type: "spring", stiffness: 200, damping: 14 }}
+                className="px-3 py-1 rounded-full flex items-center gap-1.5"
+                style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                <Mic className="w-3 h-3 text-white" strokeWidth={2.5} />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Imitation</span>
+              </motion.div>
+            </div>
+            <div className="relative p-4 pt-6 space-y-3">
               {!hasRecorded ? (
-                <div className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Mic className="w-5 h-5" style={{ color: ACCENT }} />
-                    <h3 className="text-xl font-black" style={{ fontFamily: FONT, color: ACCENT, textShadow: SHADOW_SM }}>Ton imitation</h3>
-                  </div>
-                  <AudioRecorder key={uploadKey} playerId={currentPlayer.id} playerName={currentPlayer.name}
-                    onAudioSaved={handleVideoSaved} lobbyId={lobbyId}
-                    onRecordingStart={handleRecordingStart} onRecordingStop={handleRecordingStop}
-                    showVoiceFilters />
-                </div>
+                <AudioRecorder key={uploadKey} playerId={currentPlayer.id} playerName={currentPlayer.name}
+                  onAudioSaved={handleVideoSaved} lobbyId={lobbyId}
+                  onRecordingStart={handleRecordingStart} onRecordingStop={handleRecordingStop}
+                  showVoiceFilters />
               ) : (
-                <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-4">
-                  {/* Preview */}
-                  <div className="rounded-2xl p-4 space-y-3" style={{ background: "rgba(52,211,153,0.08)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+                <>
+                  <div className="rounded-2xl p-3 space-y-2"
+                    style={{ background: "rgba(52,211,153,0.08)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-emerald-400" />
-                        <h3 className="text-lg font-black" style={{ fontFamily: FONT, color: "#34d399", textShadow: SHADOW_SM }}>Imitation enregistrée !</h3>
+                        <h3 className="text-base font-black" style={{ fontFamily: FONT, color: "#34d399", textShadow: SHADOW_SM }}>Imitation enregistrée !</h3>
                       </div>
                       <motion.button type="button" onClick={handleRetry} disabled={hasSubmitted}
                         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl disabled:opacity-40"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-xl disabled:opacity-40"
                         style={{ background: "rgba(255,255,255,0.06)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
                         <RotateCcw className="w-3 h-3 text-white/70" />
-                        <span className="text-xs font-black text-white/70" style={{ fontFamily: FONT }}>Recommencer</span>
+                        <span className="text-xs font-black text-white/70" style={{ fontFamily: FONT }}>Rejouer</span>
                       </motion.button>
                     </div>
                     {recordedClipId && (
@@ -436,96 +433,96 @@ export const ImitationPhase = ({
                       </div>
                     )}
                   </div>
-
-                  {/* Options + Submit */}
-                  <div className="space-y-3">
-                    <div className="rounded-2xl p-4 space-y-3" style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          {includeOriginalAudio ? <Volume2 className="w-4 h-4" style={{ color: ACCENT }} /> : <VolumeX className="w-4 h-4 text-white/40" />}
-                          <div>
-                            <Label htmlFor="include-audio" className="text-base font-black text-white cursor-pointer" style={{ fontFamily: FONT }}>Audio original</Label>
-                            <p className="text-[10px] text-white/40">{includeOriginalAudio ? "Joué avec ton imitation" : "Seule ton imitation"}</p>
-                          </div>
+                  <div className="rounded-2xl p-3 space-y-2"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        {includeOriginalAudio ? <Volume2 className="w-4 h-4" style={{ color: ACCENT }} /> : <VolumeX className="w-4 h-4 text-white/40" />}
+                        <div>
+                          <Label htmlFor="include-audio" className="text-base font-black text-white cursor-pointer" style={{ fontFamily: FONT }}>Audio original</Label>
+                          <p className="text-[10px] text-white/40">{includeOriginalAudio ? "Joué avec ton imitation" : "Seule ton imitation"}</p>
                         </div>
-                        <Switch id="include-audio" checked={includeOriginalAudio} onCheckedChange={setIncludeOriginalAudio} disabled={hasSubmitted} />
                       </div>
-                      {includeOriginalAudio && <VolumeSlider value={originalAudioVolume} onChange={setOriginalAudioVolume} disabled={hasSubmitted} label="Volume" />}
+                      <Switch id="include-audio" checked={includeOriginalAudio} onCheckedChange={setIncludeOriginalAudio} disabled={hasSubmitted} />
                     </div>
-
-                    <motion.button type="button" onClick={handleSubmit} disabled={hasSubmitted}
-                      whileHover={!hasSubmitted ? { scale: 1.03, rotate: -1 } : undefined}
-                      whileTap={!hasSubmitted ? { scale: 0.97 } : undefined}
-                      className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 disabled:opacity-70"
-                      style={{
-                        background: hasSubmitted ? "linear-gradient(180deg, #34d399, #059669)" : `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
-                        border: "4px solid #0a0810", boxShadow: "0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)",
-                      }}>
-                      <Check className="w-5 h-5 text-white" strokeWidth={3} />
-                      <span className="text-2xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
-                        {hasSubmitted ? "Soumis !" : "Soumettre mon imitation"}
-                      </span>
-                    </motion.button>
-
-                    {hasSubmitted && (
-                      <div className="flex items-center justify-center gap-2 text-white/55">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span className="text-xs font-black" style={{ fontFamily: FONT }}>{readyPlayers.length}/{players.length} joueurs prêts</span>
-                      </div>
-                    )}
+                    {includeOriginalAudio && <VolumeSlider value={originalAudioVolume} onChange={setOriginalAudioVolume} disabled={hasSubmitted} label="Volume" />}
                   </div>
-                </div>
+                  <motion.button type="button" onClick={handleSubmit} disabled={hasSubmitted}
+                    whileHover={!hasSubmitted ? { scale: 1.03, rotate: -1 } : undefined}
+                    whileTap={!hasSubmitted ? { scale: 0.97 } : undefined}
+                    className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70"
+                    style={{
+                      background: hasSubmitted ? "linear-gradient(180deg, #34d399, #059669)" : `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
+                      border: "4px solid #0a0810", boxShadow: "0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)",
+                    }}>
+                    <Check className="w-5 h-5 text-white" strokeWidth={3} />
+                    <span className="text-xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
+                      {hasSubmitted ? "Soumis !" : "Soumettre"}
+                    </span>
+                  </motion.button>
+                  {hasSubmitted && (
+                    <div className="flex items-center justify-center gap-2 text-white/55">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span className="text-xs font-black" style={{ fontFamily: FONT }}>En attente des autres joueurs...</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
         </motion.div>
 
-        {/* 2v2 Teammate */}
         {gameMode === '2v2' && teammate && (
-          <div className="max-w-5xl mx-auto mt-4">
+          <div className="max-w-[1600px] mx-auto mt-4">
             <TeammateStatusPanel currentPlayerId={currentPlayer.id} currentPlayerName={currentPlayer.name}
               teammate={teammate} lobbyId={lobbyId} roundNumber={roundNumber} isReady={hasSubmitted} teammateReady={teammateReady} />
           </div>
         )}
+      </div>
 
-        {/* Players progress */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="max-w-5xl mx-auto mt-4 rounded-2xl p-4"
-          style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Users className="w-3.5 h-3.5 text-white/60" />
-              <h3 className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: FONT }}>Progression</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black" style={{ fontFamily: FONT, color: "#34d399" }}>{readyPlayers.length}/{players.length}</span>
-              {currentPlayer.isHost && readyPlayers.length < players.length && readyPlayers.length > 0 && (
-                <motion.button type="button" onClick={handleForceAdvance}
-                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                  className="px-2.5 py-1 rounded-lg flex items-center gap-1"
-                  style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}
-                  title="Ignorer les joueurs bloqués et passer au vote">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>⏭ Skip bloqués</span>
-                </motion.button>
-              )}
-            </div>
+      {/* BOTTOM BAR — Joueurs qui ont soumis (sticky, full width) */}
+      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-3 pt-2"
+        style={{ background: "linear-gradient(180deg, transparent, rgba(10,5,16,0.85) 30%, rgba(10,5,16,0.95))", backdropFilter: "blur(8px)" }}>
+        <div className="max-w-[1600px] mx-auto rounded-2xl px-4 py-2.5 flex items-center gap-3 overflow-hidden"
+          style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <Users className="w-3.5 h-3.5 text-white/60" />
+            <span className="text-sm font-black uppercase tracking-wider text-white whitespace-nowrap" style={{ fontFamily: FONT }}>Soumis</span>
+            <span className="text-sm font-black whitespace-nowrap" style={{ fontFamily: FONT, color: "#34d399" }}>{readyPlayers.length}/{players.length}</span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto custom-scrollbar min-w-0">
             {players.map((player, idx) => {
               const ready = readyPlayers.includes(player.id);
+              const isMe = player.id === currentPlayer.id;
               return (
                 <motion.div key={player.id} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.04 }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-                  style={{ background: ready ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.04)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-xl flex-shrink-0"
+                  style={{
+                    background: ready ? "rgba(52,211,153,0.18)" : isMe ? `${ACCENT}22` : "rgba(255,255,255,0.04)",
+                    border: ready ? "2px solid #34d399" : "2px solid #0a0810",
+                    boxShadow: "0 2px 0 #0a0810",
+                  }}>
                   <PlayerAvatar playerId={player.id} playerName={player.name} size="sm" isHost={player.isHost} />
-                  <span className="text-sm font-bold text-white" style={{ fontFamily: FONT }}>{player.name}</span>
-                  {ready ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Loader2 className="w-3 h-3 text-white/30 animate-spin" />}
+                  <span className="text-sm font-bold text-white whitespace-nowrap max-w-[120px] truncate" style={{ fontFamily: FONT }}>
+                    {isMe ? "Toi" : player.name}
+                  </span>
+                  {ready ? <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" /> : <Loader2 className="w-3 h-3 text-white/30 animate-spin flex-shrink-0" />}
                 </motion.div>
               );
             })}
           </div>
-        </motion.div>
-      </div>
+          {currentPlayer.isHost && readyPlayers.length < players.length && readyPlayers.length > 0 && (
+            <motion.button type="button" onClick={handleForceAdvance}
+              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              className="px-2.5 py-1 rounded-lg flex items-center gap-1 flex-shrink-0"
+              style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}
+              title="Ignorer les joueurs bloqués et passer au vote">
+              <span className="text-[10px] font-black uppercase tracking-wider text-white whitespace-nowrap" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>⏭ Skip</span>
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 };
