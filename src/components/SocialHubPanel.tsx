@@ -1011,20 +1011,27 @@ const SocialHubPanelComponent = ({
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {showSocialModal && (
-            <>
+            <div
+              className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+            >
+              {/* Backdrop */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/85 backdrop-blur-md z-[70]"
+                className="absolute inset-0 bg-black/85 backdrop-blur-md"
                 onClick={() => setShowSocialModal(false)}
               />
+              {/* Card — relative so it sits above the backdrop without needing
+                  position: fixed (which conflicted with transformed ancestors).
+                  flex/items-center/justify-center on the parent guarantees it
+                  is exactly in the viewport center, on every browser. */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.92, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.92, y: 20 }}
                 transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] w-[min(95vw,1100px)] h-[min(90vh,820px)] flex flex-col rounded-3xl overflow-hidden"
+                className="relative w-[min(95vw,1100px)] h-[min(90vh,820px)] flex flex-col rounded-3xl overflow-hidden"
                 style={{
                   background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
                   border: '4px solid #0a0810',
@@ -1092,7 +1099,7 @@ const SocialHubPanelComponent = ({
                   <InkSocialFeed inlineMode />
                 </div>
               </motion.div>
-            </>
+            </div>
           )}
         </AnimatePresence>,
         document.body,
