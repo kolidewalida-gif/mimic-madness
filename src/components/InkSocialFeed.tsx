@@ -186,10 +186,114 @@ PostCard.displayName = 'PostCard';
 /* ============================================================
    MAIN COMPONENT
 ============================================================ */
-const InkSocialFeedComponent = () => {
+interface InkSocialFeedProps {
+  /**
+   * When true, render the feed without its outer card / header. Used when
+   * the component is mounted inside another container that already provides
+   * the modal frame (e.g. the SocialHubPanel drawer). Avoids the nested
+   * modal-in-modal look.
+   */
+  inlineMode?: boolean;
+}
+
+const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
   const { user } = useAuth();
   const [tab, setTab] = useState<SocialFeedTab>('top_week');
   const { posts, loading, toggleLike, remove } = useSocialFeed(tab);
+
+  const tabsBar = (
+    <div className={cn('flex gap-2 flex-shrink-0', !inlineMode && 'px-4 py-2.5 border-b border-white/10')}>
+      {(['top_week', 'recent', 'mine'] as SocialFeedTab[]).map((t) => {
+        const meta = TAB_META[t];
+        const Icon = meta.icon;
+        const active = tab === t;
+        return (
+          <motion.button
+            key={t}
+            onClick={() => {
+              playInkSound('cartoonPop', 0.3);
+              setTab(t);
+            }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            className="px-3 py-1.5 rounded-2xl flex items-center gap-1.5"
+            style={{
+              background: active
+                ? `linear-gradient(180deg, ${meta.color}, ${meta.color}cc)`
+                : 'rgba(255,255,255,0.04)',
+              border: '2.5px solid #0a0810',
+              boxShadow: active ? '0 3px 0 #0a0810' : 'none',
+            }}
+          >
+            <Icon className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+            <span
+              className="text-sm font-black text-white"
+              style={{ fontFamily: FONT, textShadow: active ? SHADOW_SM : 'none' }}
+            >
+              {meta.label}
+            </span>
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+
+  const feedBody = (
+    <div className={cn('flex-1 overflow-y-auto custom-scrollbar', !inlineMode && 'p-3')}>
+      {loading ? (
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="text-center py-10 space-y-2">
+          <motion.div
+            animate={{ rotate: [-5, 5, -5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-6xl inline-block"
+          >
+            {tab === 'mine' ? '📭' : '✨'}
+          </motion.div>
+          <p
+            className="text-lg font-black text-white/70"
+            style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
+          >
+            {tab === 'mine'
+              ? 'Tu n\'as pas encore partagé d\'imitation'
+              : 'Pas encore de post — sois le premier !'}
+          </p>
+          <p className="text-xs text-white/45" style={{ fontFamily: FONT }}>
+            À la fin d'une partie d'imitation, partage tes meilleurs moments.
+          </p>
+        </div>
+      ) : (
+        <div className={cn('grid gap-3', inlineMode ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2')}>
+          <AnimatePresence mode="popLayout">
+            {posts.map((post, idx) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                rank={tab === 'top_week' ? idx + 1 : undefined}
+                onLike={toggleLike}
+                onDelete={remove}
+                isOwner={user?.id === post.owner_id}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
+
+  // Inline mode: no outer card, no header — caller already provides them.
+  // Used by SocialHubPanel which has its own drawer chrome.
+  if (inlineMode) {
+    return (
+      <div className="flex flex-col gap-3 h-full">
+        {tabsBar}
+        {feedBody}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -235,86 +339,8 @@ const InkSocialFeedComponent = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="px-4 py-2.5 flex gap-2 border-b border-white/10 flex-shrink-0">
-        {(['top_week', 'recent', 'mine'] as SocialFeedTab[]).map((t) => {
-          const meta = TAB_META[t];
-          const Icon = meta.icon;
-          const active = tab === t;
-          return (
-            <motion.button
-              key={t}
-              onClick={() => {
-                playInkSound('cartoonPop', 0.3);
-                setTab(t);
-              }}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              className="px-3 py-1.5 rounded-2xl flex items-center gap-1.5"
-              style={{
-                background: active
-                  ? `linear-gradient(180deg, ${meta.color}, ${meta.color}cc)`
-                  : 'rgba(255,255,255,0.04)',
-                border: '2.5px solid #0a0810',
-                boxShadow: active ? '0 3px 0 #0a0810' : 'none',
-              }}
-            >
-              <Icon className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
-              <span
-                className="text-sm font-black text-white"
-                style={{ fontFamily: FONT, textShadow: active ? SHADOW_SM : 'none' }}
-              >
-                {meta.label}
-              </span>
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Feed */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
-        {loading ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-10 space-y-2">
-            <motion.div
-              animate={{ rotate: [-5, 5, -5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-6xl inline-block"
-            >
-              {tab === 'mine' ? '📭' : '✨'}
-            </motion.div>
-            <p
-              className="text-lg font-black text-white/70"
-              style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
-            >
-              {tab === 'mine'
-                ? 'Tu n\'as pas encore partagé d\'imitation'
-                : 'Pas encore de post — sois le premier !'}
-            </p>
-            <p className="text-xs text-white/45" style={{ fontFamily: FONT }}>
-              À la fin d'une partie d'imitation, partage tes meilleurs moments.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <AnimatePresence mode="popLayout">
-              {posts.map((post, idx) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  rank={tab === 'top_week' ? idx + 1 : undefined}
-                  onLike={toggleLike}
-                  onDelete={remove}
-                  isOwner={user?.id === post.owner_id}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-      </div>
+      {tabsBar}
+      {feedBody}
     </div>
   );
 };

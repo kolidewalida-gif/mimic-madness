@@ -984,7 +984,7 @@ const SocialHubPanelComponent = ({
                         exit={{ opacity: 0, x: -20 }}
                         className="h-full"
                       >
-                        <InkSocialFeed />
+                        <InkSocialFeed inlineMode />
                       </motion.div>
                     )}
                   </AnimatePresence>
