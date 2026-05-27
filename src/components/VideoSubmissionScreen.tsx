@@ -4,7 +4,6 @@ import { VideoUploadSimple } from "@/components/VideoUploadSimple";
 import {
   ArrowLeft,
   Send,
-  ChevronDown,
   ChevronUp,
   Video as VideoIcon,
   Sparkles,
@@ -283,76 +282,48 @@ export const VideoSubmissionScreen = ({
             pour cette partie.
           </p>
 
-          {/* GRID */}
-          <div className="grid md:grid-cols-3 gap-4 items-start">
-            {/* Column 1 — Upload */}
+          {/* GRID — adapts: empty state shows a big CTA + status; filled state
+              shows a 3-col thumbnail grid + status. */}
+          <div className="grid md:grid-cols-[1fr_320px] gap-4 items-start">
+            {/* LEFT — Upload CTA when empty, thumbnail grid otherwise */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="md:col-span-1"
             >
-              {uploadCollapsed ? (
-                <motion.button
-                  type="button"
-                  onClick={() => setUploadCollapsed(false)}
-                  whileHover={{ scale: 1.02, rotate: -0.5 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="relative w-full p-4 rounded-2xl"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-                    border: "3px solid #0a0810",
-                    boxShadow: "0 4px 0 #0a0810",
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-3">
+              {savedClips.length === 0 ? (
+                /* EMPTY STATE — single big "Ajouter une vidéo" card */
+                <CartoonCard accent={ACCENT} highlighted>
+                  <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      <motion.div
+                        animate={{ rotate: [-3, 3, -3] }}
+                        transition={{ duration: 2.4, repeat: Infinity }}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center"
                         style={{
                           background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
                           border: "2.5px solid #0a0810",
-                          boxShadow: "0 2px 0 #0a0810",
+                          boxShadow: "0 3px 0 #0a0810",
                         }}
                       >
-                        <VideoIcon
-                          className="w-4 h-4 text-white"
-                          strokeWidth={2.5}
-                        />
-                      </div>
+                        <VideoIcon className="w-5 h-5 text-white" strokeWidth={2.5} />
+                      </motion.div>
                       <span
-                        className="text-xl font-black text-white leading-none"
+                        className="text-2xl font-black text-white leading-none"
                         style={{
                           fontFamily: "'Caveat', cursive",
-                          textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                          textShadow: GRAFFITI_TEXT_SHADOW,
                         }}
                       >
-                        Ajouter une vidéo
+                        Ajouter des vidéos
                       </span>
                     </div>
-                    <ChevronDown
-                      className="w-4 h-4 text-white/50"
-                      strokeWidth={2.5}
-                    />
-                  </div>
-                </motion.button>
-              ) : (
-                <CartoonCard accent={ACCENT}>
-                  <div className="space-y-3">
-                    {savedClips.length > 0 && (
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => setUploadCollapsed(true)}
-                          className="flex items-center gap-1 text-xs text-white/55 hover:text-white transition-colors font-black"
-                          style={{ fontFamily: "'Caveat', cursive" }}
-                        >
-                          <ChevronUp className="w-3 h-3" />
-                          Réduire
-                        </button>
-                      </div>
-                    )}
+                    <p
+                      className="text-sm text-white/65 font-bold"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      Importe ou lie un fichier local pour créer tes défis.
+                    </p>
                     <VideoUploadSimple
                       playerId={currentPlayer.id}
                       playerName={currentPlayer.name}
@@ -362,197 +333,234 @@ export const VideoSubmissionScreen = ({
                     />
                   </div>
                 </CartoonCard>
-              )}
-            </motion.div>
+              ) : (
+                /* FILLED STATE — thumbnail grid + add/submit controls */
+                <CartoonCard accent={ACCENT} highlighted>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ rotate: [-3, 3, -3] }}
+                        transition={{ duration: 2.4, repeat: Infinity }}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center"
+                        style={{
+                          background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
+                          border: "2.5px solid #0a0810",
+                          boxShadow: "0 3px 0 #0a0810",
+                        }}
+                      >
+                        <ListChecks className="w-4 h-4 text-white" strokeWidth={2.5} />
+                      </motion.div>
+                      <span
+                        className="text-2xl font-black text-white leading-none"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW,
+                        }}
+                      >
+                        Tes vidéos
+                      </span>
+                      <span
+                        className="ml-auto px-2 py-0.5 rounded-full text-sm font-black"
+                        style={{
+                          background: "linear-gradient(180deg, #fbbf24, #d97706)",
+                          border: "2px solid #0a0810",
+                          boxShadow: "0 2px 0 #0a0810",
+                          color: "white",
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                        }}
+                      >
+                        {selectedClips.length}/3
+                      </span>
+                    </div>
 
-            {/* Column 2 — Selection */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="md:col-span-1"
-            >
-              <CartoonCard accent={ACCENT} highlighted>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <motion.div
-                      animate={{ rotate: [-3, 3, -3] }}
-                      transition={{
-                        duration: 2.4,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                      className="w-9 h-9 rounded-xl flex items-center justify-center"
-                      style={{
-                        background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
-                        border: "2.5px solid #0a0810",
-                        boxShadow: "0 3px 0 #0a0810",
-                      }}
-                    >
-                      <ListChecks
-                        className="w-4 h-4 text-white"
-                        strokeWidth={2.5}
-                      />
-                    </motion.div>
-                    <span
-                      className="text-2xl font-black text-white leading-none"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        textShadow: GRAFFITI_TEXT_SHADOW,
-                      }}
-                    >
-                      Tes défis
-                    </span>
-                    <span
-                      className="ml-auto px-2 py-0.5 rounded-full text-sm font-black"
-                      style={{
-                        background:
-                          "linear-gradient(180deg, #fbbf24, #d97706)",
-                        border: "2px solid #0a0810",
-                        boxShadow: "0 2px 0 #0a0810",
-                        color: "white",
-                        fontFamily: "'Caveat', cursive",
-                        textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                      }}
-                    >
-                      {selectedClips.length}/3
-                    </span>
-                  </div>
-
-                  {savedClips.length > 0 ? (
-                    <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1 custom-scrollbar">
-                      {savedClips.map((clip, idx) => {
+                    {/* THUMBNAIL GRID — 2 cols on mobile, 3 on tablet+, max 5+1 add tile */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {savedClips.slice(0, 5).map((clip, idx) => {
                         const isSelected = selectedClips.includes(clip.id);
+                        const slotIdx = isSelected
+                          ? selectedClips.indexOf(clip.id) + 1
+                          : null;
                         return (
                           <motion.button
                             key={clip.id}
                             type="button"
                             onClick={() => toggleClipSelection(clip.id)}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: idx * 0.04 }}
-                            whileHover={{ scale: 1.02, rotate: -0.5 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="relative w-full p-3 rounded-2xl text-left"
+                            whileHover={{ scale: 1.04, rotate: -1 }}
+                            whileTap={{ scale: 0.96 }}
+                            className="relative aspect-video rounded-2xl overflow-hidden group"
                             style={{
-                              background: isSelected
-                                ? `linear-gradient(180deg, ${ACCENT}33, ${ACCENT}10)`
-                                : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
+                              background: "rgba(0,0,0,0.6)",
                               border: isSelected
                                 ? "3px solid #fbbf24"
                                 : "3px solid #0a0810",
                               boxShadow: isSelected
-                                ? "0 3px 0 #0a0810, 0 0 12px rgba(251,191,36,0.4)"
-                                : "0 3px 0 #0a0810",
+                                ? "0 4px 0 #0a0810, 0 0 14px rgba(251,191,36,0.5)"
+                                : "0 4px 0 #0a0810",
                             }}
+                            title={clip.name}
                           >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="flex-shrink-0 w-16 h-12 rounded-xl overflow-hidden bg-black/60"
+                            {clipUrls[clip.id] ? (
+                              <video
+                                src={`${clipUrls[clip.id]}#t=${Math.max(
+                                  0.1,
+                                  clip.startTime || 0.1,
+                                )}`}
+                                className="w-full h-full object-cover"
+                                preload="metadata"
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <VideoIcon className="w-6 h-6 text-white/30" />
+                              </div>
+                            )}
+
+                            {/* Bottom gradient + name */}
+                            <div
+                              className="absolute inset-x-0 bottom-0 h-10 flex items-end px-2 pb-1.5"
+                              style={{
+                                background:
+                                  "linear-gradient(180deg, transparent, rgba(0,0,0,0.85))",
+                              }}
+                            >
+                              <span
+                                className="text-xs font-black text-white truncate w-full"
                                 style={{
+                                  fontFamily: "'Caveat', cursive",
+                                  textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                                }}
+                              >
+                                {clip.name}
+                              </span>
+                            </div>
+
+                            {/* Selection badge — top-right slot number */}
+                            {isSelected && slotIdx != null && (
+                              <motion.div
+                                initial={{ scale: 0, rotate: -10 }}
+                                animate={{ scale: 1, rotate: 0 }}
+                                transition={{ type: "spring", damping: 12 }}
+                                className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center"
+                                style={{
+                                  background:
+                                    "linear-gradient(180deg, #fbbf24, #d97706)",
                                   border: "2.5px solid #0a0810",
                                   boxShadow: "0 2px 0 #0a0810",
                                 }}
                               >
-                                {clipUrls[clip.id] ? (
-                                  <video
-                                    src={`${clipUrls[clip.id]}#t=${Math.max(
-                                      0.1,
-                                      clip.startTime || 0.1,
-                                    )}`}
-                                    className="w-full h-full object-cover"
-                                    preload="metadata"
-                                    muted
-                                    playsInline
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <VideoIcon className="w-4 h-4 text-white/30" />
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex-1 min-w-0">
-                                <h4
-                                  className="text-base font-black truncate text-white leading-none"
+                                <span
+                                  className="text-base font-black text-white leading-none"
                                   style={{
                                     fontFamily: "'Caveat', cursive",
                                     textShadow: GRAFFITI_TEXT_SHADOW_SM,
                                   }}
                                 >
-                                  {clip.name}
-                                </h4>
-                                <p
-                                  className="text-[11px] text-white/50 font-bold mt-0.5"
-                                  style={{ fontFamily: "'Caveat', cursive" }}
-                                >
-                                  {Math.round(clip.duration)}s ·{" "}
-                                  {clip.createdAt.toLocaleDateString()}
-                                </p>
-                              </div>
-
-                              <div
-                                className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
-                                style={{
-                                  background: isSelected
-                                    ? "linear-gradient(180deg, #fbbf24, #d97706)"
-                                    : "rgba(0,0,0,0.5)",
-                                  border: "2.5px solid #0a0810",
-                                  boxShadow: "0 2px 0 #0a0810",
-                                }}
-                              >
-                                {isSelected && (
-                                  <Send
-                                    className="w-3.5 h-3.5 text-white"
-                                    strokeWidth={3}
-                                  />
-                                )}
-                              </div>
-                            </div>
+                                  {slotIdx}
+                                </span>
+                              </motion.div>
+                            )}
                           </motion.button>
                         );
                       })}
+
+                      {/* Add tile — only shows when there's room and uploader collapsed */}
+                      {savedClips.length < 5 && uploadCollapsed && (
+                        <motion.button
+                          type="button"
+                          onClick={() => setUploadCollapsed(false)}
+                          whileHover={{ scale: 1.04, rotate: -1 }}
+                          whileTap={{ scale: 0.96 }}
+                          className="relative aspect-video rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-1"
+                          style={{
+                            background:
+                              "linear-gradient(135deg, rgba(168,85,247,0.18), rgba(168,85,247,0.04))",
+                            border: "3px dashed rgba(168,85,247,0.5)",
+                          }}
+                        >
+                          <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center"
+                            style={{
+                              background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
+                              border: "2.5px solid #0a0810",
+                              boxShadow: "0 2px 0 #0a0810",
+                            }}
+                          >
+                            <VideoIcon className="w-4 h-4 text-white" strokeWidth={2.5} />
+                          </div>
+                          <span
+                            className="text-base font-black text-purple-200"
+                            style={{
+                              fontFamily: "'Caveat', cursive",
+                              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                            }}
+                          >
+                            + Ajouter
+                          </span>
+                        </motion.button>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
+
+                    {/* Inline uploader expands when user clicks "+ Ajouter" */}
+                    {!uploadCollapsed && (
                       <motion.div
-                        animate={{ rotate: [-3, 3, -3] }}
-                        transition={{ duration: 2.4, repeat: Infinity }}
-                        className="text-5xl mb-2 inline-block"
-                      >
-                        🎬
-                      </motion.div>
-                      <p
-                        className="text-xl font-black text-white/80 mb-1 leading-none"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="rounded-2xl overflow-hidden"
                         style={{
-                          fontFamily: "'Caveat', cursive",
-                          textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                          background: "rgba(0,0,0,0.4)",
+                          border: "2.5px solid #0a0810",
                         }}
                       >
-                        Aucune vidéo
-                      </p>
-                      <p
-                        className="text-sm text-white/55 font-bold"
-                        style={{ fontFamily: "'Caveat', cursive" }}
-                      >
-                        Importe-en pour créer tes défis
-                      </p>
-                    </div>
-                  )}
+                        <div className="p-3 flex items-center justify-between">
+                          <span
+                            className="text-base font-black text-white"
+                            style={{
+                              fontFamily: "'Caveat', cursive",
+                              textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                            }}
+                          >
+                            Ajouter une vidéo
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setUploadCollapsed(true)}
+                            className="flex items-center gap-1 text-xs text-white/60 hover:text-white transition-colors font-black"
+                            style={{ fontFamily: "'Caveat', cursive" }}
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                            Réduire
+                          </button>
+                        </div>
+                        <div className="px-3 pb-3">
+                          <VideoUploadSimple
+                            playerId={currentPlayer.id}
+                            playerName={currentPlayer.name}
+                            maxVideos={5}
+                            onVideoSaved={handleClipSaved}
+                            lobbyId={lobbyId}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
 
-                  {savedClips.length > 0 && (
+                    {/* Submit button */}
                     <motion.button
                       type="button"
                       onClick={handleSubmitChallenges}
                       disabled={selectedClips.length === 0 || isSubmitting}
                       whileHover={
                         selectedClips.length > 0 && !isSubmitting
-                          ? { scale: 1.04, rotate: -1.5 }
+                          ? { scale: 1.02, rotate: -0.5 }
                           : undefined
                       }
                       whileTap={
                         selectedClips.length > 0 && !isSubmitting
-                          ? { scale: 0.96 }
+                          ? { scale: 0.98 }
                           : undefined
                       }
                       className={cn(
@@ -569,10 +577,7 @@ export const VideoSubmissionScreen = ({
                         boxShadow: "0 4px 0 #0a0810",
                       }}
                     >
-                      <Send
-                        className="w-5 h-5 text-white"
-                        strokeWidth={2.5}
-                      />
+                      <Send className="w-5 h-5 text-white" strokeWidth={2.5} />
                       <span
                         className="text-xl font-black text-white leading-none"
                         style={{
@@ -587,17 +592,16 @@ export const VideoSubmissionScreen = ({
                             }`}
                       </span>
                     </motion.button>
-                  )}
-                </div>
-              </CartoonCard>
+                  </div>
+                </CartoonCard>
+              )}
             </motion.div>
 
-            {/* Column 3 — Submission Status */}
+            {/* RIGHT — Submission Status (always present) */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="md:col-span-1"
+              transition={{ delay: 0.2 }}
             >
               <CartoonCard accent="#06b6d4">
                 <div className="space-y-3">
@@ -631,8 +635,7 @@ export const VideoSubmissionScreen = ({
                       <span
                         className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black"
                         style={{
-                          background:
-                            "linear-gradient(180deg, #fbbf24, #d97706)",
+                          background: "linear-gradient(180deg, #fbbf24, #d97706)",
                           border: "2px solid #0a0810",
                           boxShadow: "0 2px 0 #0a0810",
                           color: "white",
