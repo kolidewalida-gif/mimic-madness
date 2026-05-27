@@ -365,11 +365,50 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
       audioRef.current.src = musicTracks[currentTrackIndex].src;
       audioRef.current.preload = 'auto';
       localStorage.setItem('backgroundMusicTrack', currentTrackIndex.toString());
-      if (hasUserInteracted.current) {
-        audioRef.current.play().catch(() => {});
-      }
+      // Try to autoplay — if blocked by browser policy, a global gesture
+      // listener (installed below) will retry on the first user gesture.
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {});
     }
   }, [currentTrackIndex]);
+
+  // Auto-start music on mount + auto-resume on first user gesture if blocked
+  useEffect(() => {
+    const tryPlay = () => {
+      if (!audioRef.current) return;
+      if (!audioRef.current.src) {
+        audioRef.current.src = musicTracks[currentTrackIndex].src;
+        audioRef.current.preload = 'auto';
+      }
+      audioRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {});
+    };
+
+    // Initial attempt (works if browser allows it, e.g. PWA / returning user)
+    tryPlay();
+
+    // Fallback: resume on the very first user gesture (one-shot)
+    const onGesture = () => {
+      hasUserInteracted.current = true;
+      tryPlay();
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('keydown', onGesture);
+      window.removeEventListener('touchstart', onGesture);
+    };
+    window.addEventListener('pointerdown', onGesture, { once: false });
+    window.addEventListener('keydown', onGesture, { once: false });
+    window.addEventListener('touchstart', onGesture, { once: false });
+
+    return () => {
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('keydown', onGesture);
+      window.removeEventListener('touchstart', onGesture);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update volume
   const setVolume = useCallback((newVolume: number) => {
