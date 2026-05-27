@@ -93,18 +93,17 @@ export const useSocialFeed = (tab: SocialFeedTab = 'top_week') => {
     fetchFeed();
   }, [fetchFeed]);
 
-  // Realtime: refresh on insert/delete + counter updates
+  // Realtime: refresh on insert/delete + counter updates.
+  // We only listen to `social_posts` directly — `social_post_likes` is
+  // implicit because the trigger on the like table updates `likes_count`
+  // on `social_posts`, which fires the row UPDATE we listen for. This
+  // avoids double-fetching on every like.
   useEffect(() => {
     const channel = supabase
       .channel(`social-feed:${tab}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'social_posts' },
-        () => fetchFeed(),
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'social_post_likes' },
         () => fetchFeed(),
       )
       .subscribe();
@@ -120,25 +119,31 @@ export const useSocialFeed = (tab: SocialFeedTab = 'top_week') => {
       challengeClipId?: string | null,
     ): Promise<SocialPost | null> => {
       if (!user) return null;
-      const { data, error: insertErr } = await supabase
-        .from('social_posts')
-        .insert({
-          clip_id: clipId,
-          challenge_clip_id: challengeClipId ?? null,
-          owner_id: user.id,
-          owner_name: (user as any).user_metadata?.full_name || user.email?.split('@')[0] || 'Joueur',
-          caption: caption ?? null,
-          week_key: weekKey,
-        })
-        .select()
-        .single();
-      if (insertErr) {
-        console.error('[social] publish error', insertErr);
+      // Server-side RPC: validates clip ownership against video_clips,
+      // enforces 3-posts-per-day quota, trims caption, sets owner_name from
+      // profile. Replaces the open `.insert()` that allowed publishing
+      // arbitrary clips.
+      const { data: postId, error: rpcErr } = await supabase.rpc(
+        'publish_social_post',
+        {
+          p_clip_id: clipId,
+          p_challenge_clip_id: challengeClipId ?? null,
+          p_caption: caption ?? null,
+        },
+      );
+      if (rpcErr || !postId) {
+        console.error('[social] publish error', rpcErr);
         return null;
       }
-      return data as SocialPost;
+      // Hydrate the new row so the caller can show feedback / id.
+      const { data: row } = await supabase
+        .from('social_posts')
+        .select('*')
+        .eq('id', postId)
+        .maybeSingle();
+      return (row as SocialPost) ?? null;
     },
-    [user, weekKey],
+    [user],
   );
 
   const toggleLike = useCallback(
@@ -160,17 +165,9 @@ export const useSocialFeed = (tab: SocialFeedTab = 'top_week') => {
         ),
       );
 
-      if (post.liked_by_me) {
-        await supabase
-          .from('social_post_likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', user.id);
-      } else {
-        await supabase
-          .from('social_post_likes')
-          .insert({ post_id: postId, user_id: user.id });
-      }
+      // Server RPC: idempotent toggle. Avoids race where two clicks insert
+      // duplicate likes (rare but possible) and centralizes the auth check.
+      await supabase.rpc('toggle_social_like', { p_post_id: postId });
     },
     [user, posts],
   );

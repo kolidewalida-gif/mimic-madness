@@ -37,32 +37,16 @@ export const useQuestTracker = () => {
         inflight.current.add(key);
 
         try {
-          // Read current progress to compute next safely (cap at target)
-          const { data } = await supabase
-            .from('quest_progress')
-            .select('progress, is_claimed')
-            .eq('user_id', user.id)
-            .eq('quest_id', q.id)
-            .eq('period_key', period)
-            .maybeSingle();
-
-          const current = data?.progress ?? 0;
-          if ((data?.is_claimed ?? false) === false && current < q.target) {
-            const next = Math.min(q.target, current + increment);
-            await supabase.from('quest_progress').upsert(
-              {
-                user_id: user.id,
-                quest_id: q.id,
-                quest_kind: q.kind,
-                progress: next,
-                target: q.target,
-                is_claimed: false,
-                period_key: period,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: 'user_id,quest_id,period_key' },
-            );
-          }
+          // Server-side RPC: validates kind, target, period_key format,
+          // refuses if claimed, caps progress at target. Replaces the old
+          // client upsert that a malicious client could exploit.
+          await supabase.rpc('bump_quest_progress', {
+            p_quest_id: q.id,
+            p_quest_kind: q.kind,
+            p_target: q.target,
+            p_period_key: period,
+            p_increment: increment,
+          });
         } catch (err) {
           console.error('[questTracker] failed to track', event, err);
         } finally {

@@ -116,7 +116,9 @@ export const useQuests = () => {
 
   /**
    * Increment progress on every active quest listening to the given event.
-   * Idempotent at the row level (we always upsert from the current value).
+   * Uses the `bump_quest_progress` server RPC: the server validates inputs,
+   * caps progress at target, and refuses already-claimed rows. The client
+   * cannot self-complete a quest by sending arbitrary values.
    */
   const trackEvent = useCallback(
     async (event: QuestEvent, increment = 1) => {
@@ -126,36 +128,23 @@ export const useQuests = () => {
 
       for (const q of matches) {
         const period = q.kind === 'daily' ? dailyKey : weeklyKey;
-        const existing = rows.find((r) => r.quest_id === q.id && r.period_key === period);
-        const currentProgress = existing?.progress ?? 0;
-        // Cap progress at target to avoid bloated counters
-        const nextProgress = Math.min(q.target, currentProgress + increment);
-        if (nextProgress === currentProgress && existing) continue;
-
-        await supabase
-          .from('quest_progress')
-          .upsert(
-            {
-              user_id: user.id,
-              quest_id: q.id,
-              quest_kind: q.kind,
-              progress: nextProgress,
-              target: q.target,
-              is_claimed: existing?.is_claimed ?? false,
-              period_key: period,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'user_id,quest_id,period_key' },
-          );
+        await supabase.rpc('bump_quest_progress', {
+          p_quest_id: q.id,
+          p_quest_kind: q.kind,
+          p_target: q.target,
+          p_period_key: period,
+          p_increment: increment,
+        });
       }
     },
-    [user, rows, dailyKey, weeklyKey],
+    [user, dailyKey, weeklyKey],
   );
 
   /**
-   * Claim a finished quest. Returns the XP reward to grant on success,
-   * or null if claim failed (already claimed, not complete, etc.).
-   * The caller is responsible for routing the XP through addXp.
+   * Claim a finished quest. The server RPC marks the row as claimed AND
+   * grants the XP atomically, so the client cannot game it by claiming
+   * without the XP grant or vice-versa. Returns the XP actually granted
+   * by the server, or null if the claim was rejected.
    */
   const claim = useCallback(
     async (questId: string): Promise<number | null> => {
@@ -167,10 +156,12 @@ export const useQuests = () => {
       const { data, error } = await supabase.rpc('claim_quest_reward', {
         p_quest_id: questId,
         p_period_key: quest.periodKey,
+        p_xp_reward: quest.xpReward,
       });
 
-      if (error || !data) return null;
-      return quest.xpReward;
+      if (error) return null;
+      const granted = typeof data === 'number' ? data : 0;
+      return granted > 0 ? granted : null;
     },
     [user, dailyQuests, weeklyQuests],
   );

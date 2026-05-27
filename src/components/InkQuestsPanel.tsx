@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { useQuests, QuestWithProgress } from '@/hooks/useQuests';
 import { useLoginStreak } from '@/hooks/useLoginStreak';
-import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -157,7 +156,6 @@ QuestRow.displayName = 'QuestRow';
 const InkQuestsPanelComponent = () => {
   const { dailyQuests, weeklyQuests, claim, loading } = useQuests();
   const { current: streakDays, best: bestStreak } = useLoginStreak();
-  const { addXp } = usePlayerLevel();
   const { toast } = useToast();
   const [tab, setTab] = useState<'daily' | 'weekly'>('daily');
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -166,12 +164,10 @@ const InkQuestsPanelComponent = () => {
     setClaimingId(id);
     playInkSound('cartoonDing', 0.5);
     const xp = await claim(id);
-    if (xp != null) {
-      // Route XP through player level (uses gameParticipation as the closest action; we
-      // log the actual amount via a custom toast since addXp uses a fixed table).
-      try {
-        await addXp('achievementUnlocked');
-      } catch { /* tolerate addXp routing differences */ }
+    if (xp != null && xp > 0) {
+      // XP is granted server-side atomically by claim_quest_reward.
+      // We just surface the feedback to the player; usePlayerLevel
+      // realtime will pick up the new total_xp from player_stats.
       toast({
         title: '🎁 Quête validée !',
         description: `+${xp} XP`,
