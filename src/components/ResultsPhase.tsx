@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VictoryAnimation } from "@/components/VictoryAnimation";
-import { Trophy, ThumbsUp, ThumbsDown, ArrowRight, Medal, Sparkles, Swords, Download, Loader2 } from "lucide-react";
+import { Trophy, ThumbsUp, ThumbsDown, ArrowRight, Medal, Sparkles, Swords, Download, Loader2, Share2, Check } from "lucide-react";
 import { juice } from "@/lib/juice";
 import { supabase } from "@/integrations/supabase/client";
 import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
+import { useSocialFeed } from "@/hooks/useSocialFeed";
 import { DoodleBorder, DoodleStage } from "@/components/doodle/Doodle";
 
 interface Player {
@@ -65,6 +66,9 @@ export const ResultsPhase = ({
   const [teamResults, setTeamResults] = useState<TeamResult[]>([]);
   const [showVictoryAnimation, setShowVictoryAnimation] = useState(true);
   const [downloadingPlayer, setDownloadingPlayer] = useState<string | null>(null);
+  const [sharedClipIds, setSharedClipIds] = useState<Set<string>>(new Set());
+  const [sharingPlayer, setSharingPlayer] = useState<string | null>(null);
+  const { publish: publishSocial } = useSocialFeed('mine');
   const { playSound } = useSoundEffects();
   const { toast } = useToast();
   const { setSituation, clearSituationOverride, play, autoMode } = useBackgroundMusic();
@@ -136,6 +140,61 @@ export const ResultsPhase = ({
       });
     } finally {
       setDownloadingPlayer(null);
+    }
+  };
+
+  // Publish own imitation to the public Social feed. Only allowed for the
+  // currentPlayer's own clip; others can only download.
+  const handleShareImitation = async (playerId: string, playerName: string) => {
+    if (playerId !== currentPlayer.id) return;
+    setSharingPlayer(playerId);
+    try {
+      const clip = await videoStorage.getClipByPlayerAndRound(playerId, lobbyId, roundNumber);
+      if (!clip) {
+        toast({
+          title: "Aucune imitation",
+          description: "Pas de clip à partager pour cette manche.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Resolve the matching challenge clip so the social card can replay
+      // the original video alongside the imitation audio.
+      const { data: round } = await supabase
+        .from('game_rounds')
+        .select('current_challenge_id')
+        .eq('lobby_id', lobbyId)
+        .eq('round_number', roundNumber)
+        .maybeSingle();
+
+      const post = await publishSocial(
+        clip.id,
+        `Imitation par ${playerName}`,
+        round?.current_challenge_id ?? null,
+      );
+
+      if (post) {
+        setSharedClipIds((prev) => new Set(prev).add(clip.id));
+        toast({
+          title: "🎉 Partagé sur Social !",
+          description: "Ton imitation est en ligne pour toute la communauté.",
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de partager (connecte-toi avec un compte).",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error('[ResultsPhase] share error', err);
+      toast({
+        title: "Erreur",
+        description: "Échec du partage.",
+        variant: "destructive",
+      });
+    } finally {
+      setSharingPlayer(null);
     }
   };
 
@@ -394,6 +453,22 @@ export const ResultsPhase = ({
                             <Download className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" />
                           )}
                         </button>
+                        {result.playerId === currentPlayer.id && (
+                          <button
+                            onClick={() => handleShareImitation(result.playerId, result.playerName)}
+                            disabled={sharingPlayer === result.playerId}
+                            className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/40 transition-all disabled:opacity-50 group"
+                            title="Partager sur Social"
+                          >
+                            {sharingPlayer === result.playerId ? (
+                              <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />
+                            ) : sharedClipIds.size > 0 ? (
+                              <Check className="h-3.5 w-3.5 text-emerald-400" />
+                            ) : (
+                              <Share2 className="h-3.5 w-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                            )}
+                          </button>
+                        )}
                       </div>
                       <p className="text-sm text-foreground-muted font-display">
                         Score: <span className={result.score > 0 ? "text-success" : result.score < 0 ? "text-destructive" : ""}>

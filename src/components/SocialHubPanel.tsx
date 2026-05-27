@@ -14,6 +14,7 @@ import {
   Sparkles,
   Hash,
   Bell,
+  Share2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -23,6 +24,7 @@ import { useOnlinePresence } from '@/hooks/useOnlinePresence';
 import { useGameInvitations } from '@/hooks/useGameInvitations';
 import { useUnreadCounts } from '@/hooks/useDirectMessages';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { InkSocialFeed } from '@/components/InkSocialFeed';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DirectMessageDialog } from '@/components/DirectMessageDialog';
@@ -35,7 +37,7 @@ interface SocialHubPanelProps {
   onJoinFriend?: (lobbyCode: string) => void;
 }
 
-type Tab = 'friends' | 'messages' | 'requests' | 'invitations';
+type Tab = 'friends' | 'messages' | 'requests' | 'invitations' | 'social';
 
 const GRAFFITI_TEXT_SHADOW =
   '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
@@ -47,6 +49,7 @@ const TAB_COLORS: Record<Tab, { bg: string; accent: string; glow: string }> = {
   messages: { bg: '#a855f7', accent: '#c084fc', glow: 'rgba(168,85,247,0.5)' },
   requests: { bg: '#fbbf24', accent: '#fde047', glow: 'rgba(251,191,36,0.5)' },
   invitations: { bg: '#34d399', accent: '#6ee7b7', glow: 'rgba(52,211,153,0.5)' },
+  social: { bg: '#ef4444', accent: '#fb7185', glow: 'rgba(239,68,68,0.5)' },
 };
 
 const SocialHubPanelComponent = ({
@@ -112,6 +115,7 @@ const SocialHubPanelComponent = ({
       icon: Mail,
       badge: pendingInvitations.length || undefined,
     },
+    { id: 'social', label: 'Social', icon: Share2 },
   ];
 
   const handleSendRequest = async () => {
@@ -969,6 +973,18 @@ const SocialHubPanelComponent = ({
                             ))}
                           </div>
                         )}
+                      </motion.div>
+                    )}
+
+                    {activeTab === 'social' && (
+                      <motion.div
+                        key="social"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="h-full"
+                      >
+                        <InkSocialFeed />
                       </motion.div>
                     )}
                   </AnimatePresence>
