@@ -1,4 +1,5 @@
 import { useState, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -1003,93 +1004,99 @@ const SocialHubPanelComponent = ({
 
       {/* SOCIAL MODAL — centered, full-feature feed dialog. Opened from the
           drawer's Social tab; the drawer itself is closed when this opens
-          so the user gets full screen focus on the social feed. */}
-      <AnimatePresence>
-        {showSocialModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/85 backdrop-blur-md z-[70]"
-              onClick={() => setShowSocialModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] w-[min(95vw,1100px)] h-[min(90vh,820px)] flex flex-col rounded-3xl overflow-hidden"
-              style={{
-                background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-                border: '4px solid #0a0810',
-                boxShadow:
-                  '0 12px 0 #0a0810, 0 18px 50px rgba(239,68,68,0.4), inset 0 2px 0 rgba(255,255,255,0.08)',
-              }}
-            >
-              {/* Header */}
-              <div
-                className="relative px-5 py-4 flex items-center justify-between flex-shrink-0"
+          so the user gets full screen focus on the social feed.
+          Portaled to <body> because any ancestor with a CSS transform
+          (the drawer or FAB animations) breaks `position: fixed` and would
+          otherwise pin the modal to the drawer instead of the viewport. */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showSocialModal && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/85 backdrop-blur-md z-[70]"
+                onClick={() => setShowSocialModal(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 20 }}
+                transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] w-[min(95vw,1100px)] h-[min(90vh,820px)] flex flex-col rounded-3xl overflow-hidden"
                 style={{
-                  background: 'linear-gradient(180deg, rgba(239,68,68,0.18), rgba(239,68,68,0.05))',
-                  borderBottom: '3px solid #0a0810',
+                  background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                  border: '4px solid #0a0810',
+                  boxShadow:
+                    '0 12px 0 #0a0810, 0 18px 50px rgba(239,68,68,0.4), inset 0 2px 0 rgba(255,255,255,0.08)',
                 }}
               >
-                <div className="flex items-center gap-3">
-                  <motion.div
-                    animate={{ rotate: [-5, 5, -5] }}
-                    transition={{ duration: 2.4, repeat: Infinity }}
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                    style={{
-                      background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                      border: '3px solid #0a0810',
-                      boxShadow: '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
-                    }}
-                  >
-                    <Share2 className="h-6 w-6 text-white" strokeWidth={2.5} />
-                  </motion.div>
-                  <div>
-                    <h2
-                      className="text-3xl font-black text-white leading-none"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        textShadow: GRAFFITI_TEXT_SHADOW,
-                      }}
-                    >
-                      Social
-                    </h2>
-                    <p
-                      className="text-sm text-pink-200/80 font-bold mt-0.5"
-                      style={{ fontFamily: "'Caveat', cursive" }}
-                    >
-                      Top imitations · Récents · Tes posts
-                    </p>
-                  </div>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setShowSocialModal(false)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                {/* Header */}
+                <div
+                  className="relative px-5 py-4 flex items-center justify-between flex-shrink-0"
                   style={{
-                    background: 'rgba(239,68,68,0.2)',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 3px 0 #0a0810',
+                    background: 'linear-gradient(180deg, rgba(239,68,68,0.18), rgba(239,68,68,0.05))',
+                    borderBottom: '3px solid #0a0810',
                   }}
                 >
-                  <X className="h-5 w-5" strokeWidth={3} />
-                </motion.button>
-              </div>
+                  <div className="flex items-center gap-3">
+                    <motion.div
+                      animate={{ rotate: [-5, 5, -5] }}
+                      transition={{ duration: 2.4, repeat: Infinity }}
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                      style={{
+                        background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                        border: '3px solid #0a0810',
+                        boxShadow: '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                      }}
+                    >
+                      <Share2 className="h-6 w-6 text-white" strokeWidth={2.5} />
+                    </motion.div>
+                    <div>
+                      <h2
+                        className="text-3xl font-black text-white leading-none"
+                        style={{
+                          fontFamily: "'Caveat', cursive",
+                          textShadow: GRAFFITI_TEXT_SHADOW,
+                        }}
+                      >
+                        Social
+                      </h2>
+                      <p
+                        className="text-sm text-pink-200/80 font-bold mt-0.5"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        Top imitations · Récents · Tes posts
+                      </p>
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowSocialModal(false)}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                    style={{
+                      background: 'rgba(239,68,68,0.2)',
+                      border: '2.5px solid #0a0810',
+                      boxShadow: '0 3px 0 #0a0810',
+                    }}
+                  >
+                    <X className="h-5 w-5" strokeWidth={3} />
+                  </motion.button>
+                </div>
 
-              {/* Feed body — inline mode so the InkSocialFeed doesn't render
-                  its own card, since this modal already provides one. */}
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <InkSocialFeed inlineMode />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                {/* Feed body — inline mode so the InkSocialFeed doesn't render
+                    its own card, since this modal already provides one. */}
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <InkSocialFeed inlineMode />
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </>
   );
 };
