@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
 import { useGameInvitations, setOnNewInvitationCallback } from "@/hooks/useGameInvitations";
+import { saveResumeSession, clearResumeSession, useResumeSession } from "@/hooks/useResumeSession";
 import { supabase } from "@/integrations/supabase/client";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
 import { juice } from "@/lib/juice";
@@ -351,6 +352,12 @@ const Index = () => {
     const result = await createLobby(playerId, playerName);
     
     if (result) {
+      saveResumeSession({
+        lobbyCode: result.code,
+        lobbyId: result.lobby.id,
+        playerId,
+        playerName,
+      });
       setGameState("lobby");
     } else {
       playSoundEffect('error', 0.4);
@@ -523,34 +530,37 @@ const Index = () => {
 
   const handleEndGame = useCallback(async () => {
     playSoundEffect('leave', 0.4);
-    
+
+    // "Terminer la partie" — the host (or any player) wants to send everyone
+    // BACK to the lobby. We must NOT call leaveLobby here, otherwise the host
+    // is removed from lobby_players and host migration kicks in: everyone else
+    // stays, a new host is elected, and the original host ends up on the home
+    // screen alone. That was the "host gets kicked, others stay" bug.
     if (lobby && currentPlayer?.isHost) {
       try {
         await supabase
           .from('lobbies')
-          .update({ 
+          .update({
             status: 'waiting',
-            game_phase: 'lobby'
+            game_phase: 'lobby',
           })
           .eq('id', lobby.id);
       } catch (error) {
         console.error('Error resetting lobby:', error);
       }
     }
-    
-    if (currentPlayer) {
-      await leaveLobby(currentPlayer.id);
-    }
-    
-    setGameState("home");
-    setCurrentPlayer(null);
+
+    // Local transition: every client receives the lobby phase change via
+    // realtime and routes itself back to the lobby; we still set the local
+    // state so the host (the one who clicked) doesn't wait a roundtrip.
     setSubmittedChallenges([]);
-    
+    setGameState('lobby');
+
     toast({
-      title: "Partie terminée",
-      description: "Merci d'avoir joué !",
+      title: 'Partie terminée',
+      description: 'Retour au lobby !',
     });
-  }, [lobby, currentPlayer, leaveLobby, toast]);
+  }, [lobby, currentPlayer?.isHost, toast]);
 
   const renderContent = useMemo(() => {
     // For ink mode, we need user to be logged in (even before the ink intro animation)
