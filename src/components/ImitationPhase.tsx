@@ -11,16 +11,8 @@ import {
   useBroadcastRecordingStatus,
 } from "@/components/TeammateStatusPanel";
 import {
-  Play,
-  Check,
-  Users,
-  Settings,
-  Mic,
-  Volume2,
-  VolumeX,
-  Swords,
-  Loader2,
-  RotateCcw,
+  Check, Users, Settings, Mic, Volume2, VolumeX,
+  Swords, Loader2, RotateCcw, Sparkles, Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +20,6 @@ import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { DoodleBorder, DoodleStage } from "@/components/doodle/Doodle";
 import { playInkSound } from "@/hooks/useInkSoundEffects";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +47,9 @@ interface ImitationPhaseProps {
 }
 
 const ACCENT = '#f87171';
+const SHADOW = "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810";
+const SHADOW_SM = "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810";
+const FONT = "'Caveat', cursive";
 
 export const ImitationPhase = ({
   lobbyId,
@@ -261,44 +255,30 @@ export const ImitationPhase = ({
   const teammateReady = teammate ? readyPlayers.includes(teammate.id) : false;
 
   return (
-    <DoodleStage accent={ACCENT}>
-      <div className="relative z-10 min-h-screen px-4 sm:px-6 py-4 pb-[140px]">
-        {/* COMPACT HEADER STRIP */}
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4 mb-3">
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3 min-w-0"
-          >
-            <div className="relative px-3 py-1.5 flex-shrink-0">
-              <DoodleBorder color={ACCENT} filled />
-              <div className="relative flex items-center gap-1.5">
-                <Mic
-                  className={cn(
-                    'w-3.5 h-3.5',
-                    isRecording && 'animate-pulse',
-                  )}
-                  style={{ color: ACCENT }}
-                />
-                <span
-                  className="text-[10px] uppercase tracking-[0.25em] font-bold"
-                  style={{ color: ACCENT, fontFamily: "'Caveat', cursive" }}
-                >
-                  Imitation {gameMode === '2v2' && '· 2v2'}
-                </span>
-              </div>
-            </div>
+    <div className="min-h-screen text-white relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
+      {/* Animated background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <motion.div animate={{ x: [0, -20, 0], y: [0, 20, 0] }} transition={{ duration: 10, repeat: Infinity }}
+          className="absolute top-[-5%] right-[10%] w-[400px] h-[400px] rounded-full opacity-20"
+          style={{ background: `radial-gradient(circle, ${ACCENT}55, transparent 70%)`, filter: "blur(80px)" }} />
+        <Sparkles className="absolute top-[15%] left-[5%] w-5 h-5 text-amber-400/30" />
+        <Zap className="absolute bottom-[30%] right-[4%] w-4 h-4 text-pink-400/25" />
+      </div>
 
-            <div className="min-w-0">
-              <h2
-                className="text-2xl sm:text-3xl font-black leading-none text-white truncate"
-                style={{
-                  fontFamily: "'Caveat', cursive",
-                  textShadow: `0 0 14px ${ACCENT}33, 0 2px 6px rgba(0,0,0,0.5)`,
-                }}
-              >
-                Imite{' '}
-                <span style={{ color: ACCENT }}>{currentChallenge.playerName}</span>
+      <div className="relative z-10 min-h-screen px-4 py-4 pb-[140px]">
+        {/* Header */}
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 mb-4">
+          <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
+            <div className="px-4 py-2 rounded-full flex items-center gap-2"
+              style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+              <Mic className={cn("w-4 h-4 text-white", isRecording && "animate-pulse")} strokeWidth={2.5} />
+              <span className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+                🎤 Imitation {gameMode === '2v2' && '· 2v2'} · Manche {roundNumber}
+              </span>
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
+                Imite <span style={{ color: ACCENT }}>{currentChallenge.playerName}</span>
                 {gameMode === '2v2' && teammate && (
                   <span className="text-base text-white/60 font-bold ml-2">
                     <Swords className="w-3 h-3 inline mx-1 -mt-0.5" />
@@ -309,436 +289,186 @@ export const ImitationPhase = ({
             </div>
           </motion.div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="hidden sm:flex items-center gap-1.5 text-white/55 text-xs font-bold">
-              <Users className="w-3.5 h-3.5" />
-              <span>
-                {readyPlayers.length}/{players.length} prêts
-              </span>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+              style={{ background: "rgba(255,255,255,0.05)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+              <Users className="w-3.5 h-3.5 text-white/60" />
+              <span className="text-sm font-black text-white/70" style={{ fontFamily: FONT }}>{readyPlayers.length}/{players.length} prêts</span>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowSettings(!showSettings)}
-              className="relative px-3 py-1.5 group"
-            >
-              <DoodleBorder color="rgba(255,255,255,0.15)" />
-              <div className="relative flex items-center gap-1.5 text-white/60 group-hover:text-white transition-colors">
-                <Settings className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">
-                  Audio
-                </span>
-              </div>
-            </button>
+            <motion.button type="button" onClick={() => setShowSettings(!showSettings)}
+              whileHover={{ scale: 1.05, rotate: showSettings ? -90 : 90 }} whileTap={{ scale: 0.95 }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: showSettings ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "rgba(255,255,255,0.08)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+              <Settings className="w-4 h-4 text-white" strokeWidth={2.5} />
+            </motion.button>
           </div>
         </div>
 
+        {/* Settings panel */}
         <AnimatePresence>
           {showSettings && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="max-w-[1600px] mx-auto mb-3 overflow-hidden"
-            >
-              <div className="relative px-4 py-3">
-                <DoodleBorder color="rgba(255,255,255,0.18)" />
-                <div className="relative">
-                  <DeviceSettings
-                    onClose={() => setShowSettings(false)}
-                    showPreview={false}
-                  />
-                </div>
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+              className="max-w-5xl mx-auto mb-4 overflow-hidden rounded-2xl"
+              style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+              <div className="p-4">
+                <DeviceSettings onClose={() => setShowSettings(false)} showPreview={false} />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* HERO VIDEO — la star de cette phase */}
-        <motion.div
-          initial={{ opacity: 0, y: 12, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-          className="max-w-[1280px] mx-auto"
-        >
-          <div className="relative">
-            {/* Sketchy frame around the video — thicker, more present */}
-            <div className="relative p-3 sm:p-4">
-              <DoodleBorder color={ACCENT} thick rotation={-0.5} />
+        {/* Main content */}
+        <motion.div initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4 }} className="max-w-5xl mx-auto">
+          <div className="relative rounded-3xl overflow-hidden"
+            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: `0 8px 0 #0a0810, 0 0 30px ${ACCENT}22` }}>
+            <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />
 
-              {/* "VIDÉO À IMITER" stamp ribbon */}
-              <div className="absolute -top-3 left-6 z-20">
-                <motion.div
-                  initial={{ scale: 0, rotate: -8 }}
-                  animate={{ scale: 1, rotate: -4 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 14 }}
-                  className="relative px-3 py-1"
-                >
-                  <DoodleBorder color={ACCENT} filled />
-                  <div className="relative flex items-center gap-1.5">
-                    <Play className="w-3 h-3" style={{ color: ACCENT }} />
-                    <span
-                      className="text-[10px] font-black uppercase tracking-[0.2em]"
-                      style={{ color: ACCENT, fontFamily: "'Caveat', cursive" }}
-                    >
-                      Vidéo à imiter
-                    </span>
-                  </div>
+            {/* "VIDÉO À IMITER" stamp */}
+            <div className="absolute -top-3 left-6 z-20">
+              <motion.div initial={{ scale: 0, rotate: -8 }} animate={{ scale: 1, rotate: -4 }}
+                transition={{ type: "spring", stiffness: 200, damping: 14 }}
+                className="px-3 py-1 rounded-full flex items-center gap-1.5"
+                style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>🎬 Vidéo à imiter</span>
+              </motion.div>
+            </div>
+
+            {/* REC indicator */}
+            <AnimatePresence>
+              {isRecording && (
+                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, rotate: 6, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
+                  className="absolute -top-3 right-6 z-20 px-3 py-1 rounded-full flex items-center gap-1.5"
+                  style={{ background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75 animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT }}>REC</span>
                 </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="relative p-5 pt-7">
+              {/* Video */}
+              <div className="rounded-2xl overflow-hidden mb-4" style={{ border: "3px solid #0a0810", boxShadow: `0 4px 0 #0a0810${isRecording ? ", 0 0 0 3px #ef4444" : ""}` }}>
+                <VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" videoRef={challengeVideoRef} />
               </div>
 
-              {/* RECORDING indicator overlay */}
-              <AnimatePresence>
-                {isRecording && (
-                  <motion.div
-                    initial={{ scale: 0, rotate: 0, opacity: 0 }}
-                    animate={{ scale: 1, rotate: 6, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    className="absolute -top-3 right-6 z-20"
-                  >
-                    <div className="relative px-3 py-1">
-                      <DoodleBorder color="#ff5050" filled />
-                      <div className="relative flex items-center gap-1.5">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-                        </span>
-                        <span
-                          className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400"
-                          style={{ fontFamily: "'Caveat', cursive" }}
-                        >
-                          REC
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div
-                className={cn(
-                  'relative rounded-xl overflow-hidden border border-white/10 bg-black',
-                  'shadow-[0_20px_80px_-20px_rgba(248,113,113,0.45)]',
-                  isRecording && 'ring-2 ring-red-500/60',
-                )}
-              >
-                <VideoPreview
-                  clipId={currentChallenge.id}
-                  className="w-full aspect-video"
-                  videoRef={challengeVideoRef}
-                />
-              </div>
-
-              <p
-                className="relative text-center mt-3 text-xs sm:text-sm text-white/50 italic"
-                style={{ fontFamily: "'Caveat', cursive" }}
-              >
-                {hasRecorded
-                  ? '↓ Écoute le résultat ou recommence ↓'
-                  : '↓ Lance l\'enregistrement quand tu es prêt ↓'}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* RECORDING / PREVIEW PANEL — sous la vidéo */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
-          className="max-w-[1280px] mx-auto mt-5"
-        >
-          {!hasRecorded ? (
-            // BEFORE recording — single big mic
-            <div className="relative px-5 py-4">
-              <DoodleBorder color={ACCENT} rotation={1} />
-              <div className="relative flex flex-col sm:flex-row items-center gap-4">
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Mic className="w-5 h-5" style={{ color: ACCENT }} />
-                  <h3
-                    className="text-xl font-black"
-                    style={{ fontFamily: "'Caveat', cursive", color: ACCENT }}
-                  >
-                    Ton imitation
-                  </h3>
+              {/* Recording / Preview */}
+              {!hasRecorded ? (
+                <div className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Mic className="w-5 h-5" style={{ color: ACCENT }} />
+                    <h3 className="text-xl font-black" style={{ fontFamily: FONT, color: ACCENT, textShadow: SHADOW_SM }}>Ton imitation</h3>
+                  </div>
+                  <AudioRecorder key={uploadKey} playerId={currentPlayer.id} playerName={currentPlayer.name}
+                    onAudioSaved={handleVideoSaved} lobbyId={lobbyId}
+                    onRecordingStart={handleRecordingStart} onRecordingStop={handleRecordingStop} />
                 </div>
-                <div className="flex-1 w-full">
-                  <AudioRecorder
-                    key={uploadKey}
-                    playerId={currentPlayer.id}
-                    playerName={currentPlayer.name}
-                    onAudioSaved={handleVideoSaved}
-                    lobbyId={lobbyId}
-                    onRecordingStart={handleRecordingStart}
-                    onRecordingStop={handleRecordingStop}
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            // AFTER recording — preview + actions
-            <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-4">
-              {/* Preview side */}
-              <div className="relative px-4 py-4">
-                <DoodleBorder color="#34d399" rotation={-1} />
-                <div className="relative space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-400" />
-                      <h3
-                        className="text-lg font-black"
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          color: '#34d399',
-                        }}
-                      >
-                        Ton imitation enregistrée
-                      </h3>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleRetry}
-                      disabled={hasSubmitted}
-                      className="relative px-2.5 py-1 group disabled:opacity-40"
-                    >
-                      <DoodleBorder color="rgba(255,255,255,0.25)" />
-                      <div className="relative flex items-center gap-1 text-white/70 group-hover:text-white transition-colors">
-                        <RotateCcw className="w-3 h-3" />
-                        <span
-                          className="text-[11px] font-bold uppercase tracking-wider"
-                          style={{ fontFamily: "'Caveat', cursive" }}
-                        >
-                          Recommencer
-                        </span>
+              ) : (
+                <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-4">
+                  {/* Preview */}
+                  <div className="rounded-2xl p-4 space-y-3" style={{ background: "rgba(52,211,153,0.08)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        <h3 className="text-lg font-black" style={{ fontFamily: FONT, color: "#34d399", textShadow: SHADOW_SM }}>Imitation enregistrée !</h3>
                       </div>
-                    </button>
+                      <motion.button type="button" onClick={handleRetry} disabled={hasSubmitted}
+                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl disabled:opacity-40"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                        <RotateCcw className="w-3 h-3 text-white/70" />
+                        <span className="text-xs font-black text-white/70" style={{ fontFamily: FONT }}>Recommencer</span>
+                      </motion.button>
+                    </div>
+                    {recordedClipId && (
+                      <div className="rounded-xl overflow-hidden" style={{ border: "2px solid #0a0810" }}>
+                        <VideoWithAudioOverlay videoClipId={currentChallenge.id} audioClipId={recordedClipId}
+                          includeOriginalAudio={includeOriginalAudio} originalAudioVolume={originalAudioVolume} />
+                      </div>
+                    )}
                   </div>
 
-                  {recordedClipId && (
-                    <div className="rounded-xl overflow-hidden border border-white/10">
-                      <VideoWithAudioOverlay
-                        videoClipId={currentChallenge.id}
-                        audioClipId={recordedClipId}
-                        includeOriginalAudio={includeOriginalAudio}
-                        originalAudioVolume={originalAudioVolume}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Audio overlay options + submit */}
-              <div className="space-y-3">
-                <div className="relative px-4 py-3.5">
-                  <DoodleBorder color="rgba(255,255,255,0.18)" rotation={1} />
-                  <div className="relative space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {includeOriginalAudio ? (
-                          <Volume2
-                            className="w-4 h-4 flex-shrink-0"
-                            style={{ color: ACCENT }}
-                          />
-                        ) : (
-                          <VolumeX className="w-4 h-4 flex-shrink-0 text-white/40" />
-                        )}
-                        <div className="min-w-0">
-                          <Label
-                            htmlFor="include-audio"
-                            className="text-base font-bold text-white cursor-pointer"
-                            style={{ fontFamily: "'Caveat', cursive" }}
-                          >
-                            Audio original
-                          </Label>
-                          <p className="text-[10px] text-white/40 truncate">
-                            {includeOriginalAudio
-                              ? 'Joué avec ton imitation'
-                              : 'Seule ton imitation est entendue'}
-                          </p>
+                  {/* Options + Submit */}
+                  <div className="space-y-3">
+                    <div className="rounded-2xl p-4 space-y-3" style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          {includeOriginalAudio ? <Volume2 className="w-4 h-4" style={{ color: ACCENT }} /> : <VolumeX className="w-4 h-4 text-white/40" />}
+                          <div>
+                            <Label htmlFor="include-audio" className="text-base font-black text-white cursor-pointer" style={{ fontFamily: FONT }}>Audio original</Label>
+                            <p className="text-[10px] text-white/40">{includeOriginalAudio ? "Joué avec ton imitation" : "Seule ton imitation"}</p>
+                          </div>
                         </div>
+                        <Switch id="include-audio" checked={includeOriginalAudio} onCheckedChange={setIncludeOriginalAudio} disabled={hasSubmitted} />
                       </div>
-                      <Switch
-                        id="include-audio"
-                        checked={includeOriginalAudio}
-                        onCheckedChange={setIncludeOriginalAudio}
-                        disabled={hasSubmitted}
-                      />
+                      {includeOriginalAudio && <VolumeSlider value={originalAudioVolume} onChange={setOriginalAudioVolume} disabled={hasSubmitted} label="Volume" />}
                     </div>
 
-                    {includeOriginalAudio && (
-                      <VolumeSlider
-                        value={originalAudioVolume}
-                        onChange={setOriginalAudioVolume}
-                        disabled={hasSubmitted}
-                        label="Volume audio original"
-                      />
+                    <motion.button type="button" onClick={handleSubmit} disabled={hasSubmitted}
+                      whileHover={!hasSubmitted ? { scale: 1.03, rotate: -1 } : undefined}
+                      whileTap={!hasSubmitted ? { scale: 0.97 } : undefined}
+                      className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 disabled:opacity-70"
+                      style={{
+                        background: hasSubmitted ? "linear-gradient(180deg, #34d399, #059669)" : `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
+                        border: "4px solid #0a0810", boxShadow: "0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)",
+                      }}>
+                      <Check className="w-5 h-5 text-white" strokeWidth={3} />
+                      <span className="text-2xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
+                        {hasSubmitted ? "Soumis !" : "Soumettre mon imitation"}
+                      </span>
+                    </motion.button>
+
+                    {hasSubmitted && (
+                      <div className="flex items-center justify-center gap-2 text-white/55">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span className="text-xs font-black" style={{ fontFamily: FONT }}>{readyPlayers.length}/{players.length} joueurs prêts</span>
+                      </div>
                     )}
                   </div>
                 </div>
-
-                <motion.button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={hasSubmitted}
-                  whileHover={!hasSubmitted ? { scale: 1.02, y: -2 } : undefined}
-                  whileTap={!hasSubmitted ? { scale: 0.98 } : undefined}
-                  className={cn(
-                    'relative w-full px-6 py-4 disabled:opacity-50',
-                  )}
-                >
-                  <DoodleBorder
-                    color={hasSubmitted ? '#34d399' : ACCENT}
-                    filled
-                    rotation={-1}
-                    thick
-                  />
-                  <div className="relative flex items-center justify-center gap-2">
-                    <Check
-                      className="w-5 h-5"
-                      style={{ color: hasSubmitted ? '#34d399' : ACCENT }}
-                    />
-                    <span
-                      className="text-2xl font-black"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        color: hasSubmitted ? '#34d399' : ACCENT,
-                      }}
-                    >
-                      {hasSubmitted ? 'Soumis !' : 'Soumettre mon imitation'}
-                    </span>
-                  </div>
-                </motion.button>
-
-                {hasSubmitted && (
-                  <div className="flex items-center justify-center gap-2 text-white/55">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span
-                      className="text-xs font-bold"
-                      style={{ fontFamily: "'Caveat', cursive" }}
-                    >
-                      {readyPlayers.length}/{players.length} joueurs prêts
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </motion.div>
 
         {/* 2v2 Teammate */}
         {gameMode === '2v2' && teammate && (
-          <div className="max-w-[1280px] mx-auto mt-5">
-            <TeammateStatusPanel
-              currentPlayerId={currentPlayer.id}
-              currentPlayerName={currentPlayer.name}
-              teammate={teammate}
-              lobbyId={lobbyId}
-              roundNumber={roundNumber}
-              isReady={hasSubmitted}
-              teammateReady={teammateReady}
-            />
+          <div className="max-w-5xl mx-auto mt-4">
+            <TeammateStatusPanel currentPlayerId={currentPlayer.id} currentPlayerName={currentPlayer.name}
+              teammate={teammate} lobbyId={lobbyId} roundNumber={roundNumber} isReady={hasSubmitted} teammateReady={teammateReady} />
           </div>
         )}
 
-        {/* PLAYERS PROGRESS — compact bottom strip */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-          className="max-w-[1280px] mx-auto mt-5"
-        >
-          <div className="relative px-4 py-3">
-            <DoodleBorder color="rgba(255,255,255,0.18)" rotation={1} />
-            <div className="relative space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-white/60" />
-                  <h3
-                    className="text-sm font-black uppercase tracking-wider"
-                    style={{
-                      fontFamily: "'Caveat', cursive",
-                      color: 'white',
-                      letterSpacing: '0.15em',
-                    }}
-                  >
-                    Progression {gameMode === '2v2' && '(équipes)'}
-                  </h3>
-                </div>
-                <span
-                  className="text-xs font-bold"
-                  style={{
-                    fontFamily: "'Caveat', cursive",
-                    color: '#34d399',
-                  }}
-                >
-                  {readyPlayers.length}/{players.length}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {players.map((player, idx) => {
-                  const ready = readyPlayers.includes(player.id);
-                  const isTeammate = teammate?.id === player.id;
-                  const isCurrentPlayer = player.id === currentPlayer.id;
-
-                  return (
-                    <motion.div
-                      key={player.id}
-                      initial={{ opacity: 0, scale: 0.85 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: idx * 0.04 }}
-                      className="relative px-2.5 py-1.5 flex items-center gap-2"
-                    >
-                      <DoodleBorder
-                        color={
-                          ready
-                            ? '#34d399'
-                            : isTeammate || isCurrentPlayer
-                              ? ACCENT
-                              : 'rgba(255,255,255,0.12)'
-                        }
-                        filled={ready}
-                        rotation={idx % 2 === 0 ? -1 : 1}
-                      />
-                      <div className="relative flex items-center gap-2">
-                        <PlayerAvatar
-                          playerId={player.id}
-                          playerName={player.name}
-                          size="sm"
-                          isHost={player.isHost}
-                        />
-                        <span
-                          className="text-sm font-bold text-white truncate max-w-[8rem]"
-                          style={{ fontFamily: "'Caveat', cursive" }}
-                        >
-                          {player.name}
-                          {isTeammate && (
-                            <span className="ml-1" style={{ color: ACCENT }}>
-                              🤝
-                            </span>
-                          )}
-                          {isCurrentPlayer && (
-                            <span className="ml-1 text-[10px] uppercase tracking-wider opacity-60">
-                              (toi)
-                            </span>
-                          )}
-                        </span>
-                        {ready ? (
-                          <Check
-                            className="w-3.5 h-3.5 flex-shrink-0"
-                            style={{ color: '#34d399' }}
-                          />
-                        ) : (
-                          <Loader2 className="w-3 h-3 flex-shrink-0 text-white/30 animate-spin" />
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
+        {/* Players progress */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="max-w-5xl mx-auto mt-4 rounded-2xl p-4"
+          style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Users className="w-3.5 h-3.5 text-white/60" />
+              <h3 className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: FONT }}>Progression</h3>
             </div>
+            <span className="text-xs font-black" style={{ fontFamily: FONT, color: "#34d399" }}>{readyPlayers.length}/{players.length}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {players.map((player, idx) => {
+              const ready = readyPlayers.includes(player.id);
+              return (
+                <motion.div key={player.id} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.04 }}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
+                  style={{ background: ready ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.04)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                  <PlayerAvatar playerId={player.id} playerName={player.name} size="sm" isHost={player.isHost} />
+                  <span className="text-sm font-bold text-white" style={{ fontFamily: FONT }}>{player.name}</span>
+                  {ready ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Loader2 className="w-3 h-3 text-white/30 animate-spin" />}
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
       </div>
-    </DoodleStage>
+    </div>
   );
 };

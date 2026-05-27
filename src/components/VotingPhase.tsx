@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { GameCard } from "@/components/GameCard";
-import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { motion, AnimatePresence } from "framer-motion";
 import { VideoWithAudioOverlay, VideoWithAudioOverlayRef } from "@/components/VideoWithAudioOverlay";
 import { TeamVideoOverlay, TeamVideoOverlayRef } from "@/components/TeamVideoOverlay";
 import { CountdownOverlay } from "@/components/CountdownOverlay";
-import { ThumbsUp, ThumbsDown, Trophy, Play, Pause, Vote, ChevronRight, Swords } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Trophy, Play, Pause, ChevronRight, Swords, Sparkles, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -15,7 +13,6 @@ import { emitXpGain } from "@/components/XpGainPopup";
 import { emitLevelUpNotification } from "@/components/RewardNotification";
 import { usePlayerLevel, XP_REWARDS } from "@/hooks/usePlayerLevel";
 import { juice, centerOf } from "@/lib/juice";
-import { DoodleBorder, DoodleStage } from "@/components/doodle/Doodle";
 import { playInkSound } from "@/hooks/useInkSoundEffects";
 interface Player {
   id: string;
@@ -639,257 +636,176 @@ export const VotingPhase = ({
     : currentImitation?.playerId === currentPlayer.id;
 
   return (
-    <DoodleStage accent="#f87171">
-      {/* Countdown overlay for synchronized video start */}
-      <CountdownOverlay 
-        isActive={showCountdown}
-        onComplete={handleCountdownComplete}
-        duration={3}
-        title="La vidéo commence dans..."
-        startAt={countdownStartAt ?? undefined}
-      />
-
-      <div className="max-w-5xl mx-auto space-y-6 px-5 py-5 pb-[120px]">
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 relative">
-          <DoodleBorder color="#f87171" filled />
-          <Vote className="relative h-3.5 w-3.5" style={{ color: '#f87171' }} />
-          <span
-            className="relative text-xs font-bold uppercase tracking-[0.25em]"
-            style={{ color: '#f87171', fontFamily: "'Caveat', cursive" }}
-          >
-            Phase de vote {gameMode === '2v2' && '· 2v2'}
-          </span>
-        </div>
-
-        <h2
-          className="text-3xl md:text-5xl font-black leading-none text-white"
-          style={{
-            fontFamily: "'Caveat', cursive",
-            textShadow: '0 0 18px rgba(248,113,113,0.4), 0 2px 8px rgba(0,0,0,0.5)',
-          }}
-        >
-          Votez {gameMode === '2v2' && 'pour les équipes'} !
-        </h2>
-
-        <p className="text-sm text-white/60">
-          {gameMode === '2v2' ? 'Équipe' : 'Imitation'}{' '}
-          <span className="font-bold" style={{ color: '#f87171' }}>
-            {currentIndex + 1}
-          </span>
-          /{displayLength}
-        </p>
-
-        <p className="text-xs text-white/40 italic">
-          {currentPlayer.isHost ? 'Contrôlez la lecture pour tous' : "L'hôte contrôle la lecture"}
-        </p>
+    <div className="min-h-screen text-white relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
+      {/* Animated background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <motion.div animate={{ x: [0, 20, 0], y: [0, -15, 0] }} transition={{ duration: 9, repeat: Infinity }}
+          className="absolute top-[-5%] left-[15%] w-[450px] h-[450px] rounded-full opacity-20"
+          style={{ background: "radial-gradient(circle, #f8717155, transparent 70%)", filter: "blur(80px)" }} />
+        <Sparkles className="absolute top-[12%] right-[6%] w-5 h-5 text-amber-400/30" />
+        <Zap className="absolute bottom-[25%] left-[4%] w-4 h-4 text-pink-400/25" />
       </div>
 
-      {/* Video Card */}
-      <GameCard variant="highlight">
-        <div className="space-y-6">
-          {/* Header - Different for team vs individual */}
-          {gameMode === '2v2' && currentTeamImitation ? (
-            <div className="text-center space-y-4">
-              <div className="flex justify-center items-center gap-4">
-                {currentTeamImitation.players.map((player, idx) => (
-                  <div key={player.id} className="flex flex-col items-center gap-1">
-                    <PlayerAvatar
-                      playerId={player.id}
-                      playerName={player.name}
-                      size="lg"
-                    />
-                    <span className="text-sm font-medium">{player.name}</span>
-                    {idx === 0 && currentTeamImitation.players.length > 1 && (
-                      <span className="text-secondary font-bold">+</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-center gap-2">
-                <Swords className="h-5 w-5 text-secondary" />
-                <h3 className="text-2xl font-display font-bold text-secondary">
-                  {isOwnVideo ? "Votre équipe" : `Équipe ${currentTeamImitation.teamNumber}`}
-                </h3>
-              </div>
-              {isOwnVideo && (
-                <p className="text-sm text-foreground-muted font-body">
-                  Vous ne pouvez pas voter pour votre équipe
-                </p>
-              )}
-            </div>
-          ) : currentImitation ? (
-            <div className="text-center flex flex-col items-center gap-3">
-              <PlayerAvatar
-                playerId={currentImitation.playerId}
-                playerName={currentImitation.playerName}
-                size="lg"
-              />
-              <h3 className="text-2xl font-display font-bold">
-                {isOwnVideo ? (
-                  <span className="text-secondary">Votre imitation</span>
-                ) : (
-                  currentImitation.playerName
-                )}
-              </h3>
-              {isOwnVideo && (
-                <p className="text-sm text-foreground-muted font-body">
-                  Vous ne pouvez pas voter pour vous-même
-                </p>
-              )}
-            </div>
-          ) : null}
+      {/* Countdown overlay */}
+      <CountdownOverlay isActive={showCountdown} onComplete={handleCountdownComplete} duration={3}
+        title="La vidéo commence dans..." startAt={countdownStartAt ?? undefined} />
 
-          {/* Video player - Team or Individual */}
-          {gameMode === '2v2' && currentTeamImitation ? (
-            currentTeamImitation.clipIds[0] ? (
-              <div className="rounded-xl overflow-hidden border border-glass-border">
-                <TeamVideoOverlay
-                  ref={teamVideoRef}
-                  videoClipId={challengeVideoClipId}
-                  audioClipId1={currentTeamImitation.clipIds[0]}
-                  audioClipId2={currentTeamImitation.clipIds[1] || null}
-                  className="w-full"
-                  externalControl={true}
-                  isPlayingExternal={isPlayingSynced}
-                  includeOriginalAudio={currentTeamImitation.includeOriginalAudio}
-                  originalAudioVolume={currentTeamImitation.originalAudioVolume}
-                />
-              </div>
-            ) : (
-              <div className="aspect-video bg-background-secondary/30 rounded-xl flex items-center justify-center border border-glass-border">
-                <p className="text-foreground-muted font-body">Aucun audio d'équipe disponible</p>
-              </div>
-            )
-          ) : currentImitation?.clipId ? (
-            <div className="rounded-xl overflow-hidden border border-glass-border">
-              <VideoWithAudioOverlay
-                ref={videoRef}
-                videoClipId={challengeVideoClipId}
-                audioClipId={currentImitation.clipId}
-                className="w-full"
-                externalControl={true}
-                isPlayingExternal={isPlayingSynced}
-                includeOriginalAudio={currentImitation?.includeOriginalAudio ?? false}
-                originalAudioVolume={currentImitation?.originalAudioVolume ?? 50}
-              />
-            </div>
-          ) : (
-            <div className="aspect-video bg-background-secondary/30 rounded-xl flex items-center justify-center border border-glass-border">
-              <p className="text-foreground-muted font-body">Aucun audio disponible</p>
-            </div>
-          )}
-
-          {/* Host playback controls */}
-          {currentPlayer.isHost && (
-            <div className="flex justify-center">
-              <Button
-                onClick={handleTogglePlay}
-                variant="outline"
-                size="lg"
-                disabled={!votingSessionId || pendingPlay || showCountdown}
-                className="gap-2"
-              >
-                {isPlayingSynced ? (
-                  <>
-                    <Pause className="h-5 w-5" />
-                    Pause
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-5 w-5" />
-                    Lancer pour tous
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {/* Voting buttons */}
-          <div className="flex flex-col gap-4 items-center">
-            {!isOwnVideo && !hasVotedCurrent && (
-              <div className="flex gap-4 justify-center w-full max-w-md">
-                 <Button
-                   onClick={(e) => handleVote('dislike', e)}
-                  variant="outline"
-                  size="lg"
-                  className="flex-1 border-destructive/50 text-destructive hover:bg-destructive/10 hover:border-destructive"
-                  disabled={!votingSessionId}
-                >
-                  <ThumbsDown className="h-6 w-6" />
-                  Dislike
-                </Button>
-                 <Button
-                   onClick={(e) => handleVote('like', e)}
-                  variant="secondary"
-                  size="lg"
-                  className="flex-1"
-                  disabled={!votingSessionId}
-                >
-                  <ThumbsUp className="h-6 w-6" />
-                  Like
-                </Button>
-              </div>
-            )}
-
-            {(hasVotedCurrent || isOwnVideo) && !currentPlayer.isHost && (
-              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-success/10 border border-success/30">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                <span className="text-success font-body text-sm">
-                  {isOwnVideo ? "Votre imitation" : "Vote enregistré"} — En attente de l'hôte
-                </span>
-              </div>
-            )}
-
-            {currentPlayer.isHost && (
-              <Button
-                onClick={handleNext}
-                variant="hero"
-                size="lg"
-                disabled={!votingSessionId}
-                className="gap-2"
-              >
-                Suivant
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            )}
-
-            {currentPlayer.isHost && (() => {
-              const current = gameMode === '2v2' ? currentTeamImitation : currentImitation;
-              if (!current) return null;
-              const votesCast = (current.likes || 0) + (current.dislikes || 0);
-              // Eligible voters = everyone except the imitator(s)
-              const excludedIds = gameMode === '2v2'
-                ? new Set((currentTeamImitation?.players || []).map(p => p.id))
-                : new Set([currentImitation!.playerId]);
-              const eligible = players.filter(p => !excludedIds.has(p.id)).length;
-              return (
-                <p className="text-xs text-foreground-muted font-body">
-                  {votesCast}/{eligible} vote{eligible > 1 ? 's' : ''} reçu{votesCast > 1 ? 's' : ''}
-                </p>
-              );
-            })()}
-          </div>
+      <div className="max-w-4xl mx-auto px-4 py-5 pb-[120px] relative z-10 space-y-5">
+        {/* Header */}
+        <div className="text-center space-y-3">
+          <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: -2 }}
+            transition={{ type: "spring", stiffness: 280, damping: 16 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+            style={{ background: "linear-gradient(180deg, #f87171, #ef4444)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+            <span className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>
+              ⚡ Phase de vote {gameMode === '2v2' && '· 2v2'}
+            </span>
+          </motion.div>
+          <h2 className="text-5xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810" }}>
+            Votez {gameMode === '2v2' && 'pour les équipes'} !
+          </h2>
+          <p className="text-sm text-white/60" style={{ fontFamily: "'Caveat', cursive" }}>
+            {gameMode === '2v2' ? 'Équipe' : 'Imitation'}{' '}
+            <span className="font-black text-red-400">{currentIndex + 1}</span>/{displayLength}
+          </p>
         </div>
-      </GameCard>
 
-      {/* Progress indicator */}
-      <div className="flex gap-2 justify-center">
-        {imitations.map((_, index) => (
-          <div
-            key={index}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              index < currentIndex
-                ? "w-8 bg-success"
-                : index === currentIndex
-                ? "w-12 bg-primary animate-pulse shadow-neon"
-                : "w-8 bg-background-secondary"
-            }`}
-          />
-        ))}
+        {/* Video card */}
+        <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", damping: 22 }}
+          className="relative rounded-3xl overflow-hidden"
+          style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: "0 8px 0 #0a0810, 0 0 30px rgba(248,113,113,0.2)" }}>
+          <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: "2px solid rgba(248,113,113,0.3)" }} />
+          <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "drop-shadow(1px 1px 0 #0a0810)" }} />
+
+          <div className="relative p-5 space-y-4">
+            {/* Player/team name */}
+            <div className="text-center">
+              {gameMode === '2v2' && currentTeamImitation ? (
+                <div className="space-y-2">
+                  <div className="flex justify-center items-center gap-3">
+                    {currentTeamImitation.players.map((p) => (
+                      <div key={p.id} className="flex flex-col items-center gap-1">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center"
+                          style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)", border: "3px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                          <span className="text-xl font-black text-white" style={{ fontFamily: "'Caveat', cursive" }}>{p.name[0]?.toUpperCase()}</span>
+                        </div>
+                        <span className="text-sm font-black text-white" style={{ fontFamily: "'Caveat', cursive" }}>{p.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <Swords className="w-4 h-4 text-red-400" />
+                    <h3 className="text-2xl font-black text-red-400" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>
+                      {isOwnVideo ? "Votre équipe" : `Équipe ${currentTeamImitation.teamNumber}`}
+                    </h3>
+                  </div>
+                </div>
+              ) : currentImitation ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center"
+                    style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+                    <span className="text-2xl font-black text-white" style={{ fontFamily: "'Caveat', cursive" }}>{currentImitation.playerName[0]?.toUpperCase()}</span>
+                  </div>
+                  <h3 className="text-2xl font-black" style={{ fontFamily: "'Caveat', cursive", color: isOwnVideo ? "#34d399" : "white", textShadow: "1.5px 1.5px 0 #0a0810" }}>
+                    {isOwnVideo ? "Votre imitation" : currentImitation.playerName}
+                  </h3>
+                  {isOwnVideo && <p className="text-sm text-white/50" style={{ fontFamily: "'Caveat', cursive" }}>Vous ne pouvez pas voter pour vous-même</p>}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Video */}
+            <div className="rounded-2xl overflow-hidden" style={{ border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+              {gameMode === '2v2' && currentTeamImitation?.clipIds[0] ? (
+                <TeamVideoOverlay ref={teamVideoRef} videoClipId={challengeVideoClipId}
+                  audioClipId1={currentTeamImitation.clipIds[0]} audioClipId2={currentTeamImitation.clipIds[1] || null}
+                  className="w-full" externalControl isPlayingExternal={isPlayingSynced}
+                  includeOriginalAudio={currentTeamImitation.includeOriginalAudio} originalAudioVolume={currentTeamImitation.originalAudioVolume} />
+              ) : currentImitation?.clipId ? (
+                <VideoWithAudioOverlay ref={videoRef} videoClipId={challengeVideoClipId} audioClipId={currentImitation.clipId}
+                  className="w-full" externalControl isPlayingExternal={isPlayingSynced}
+                  includeOriginalAudio={currentImitation?.includeOriginalAudio ?? false} originalAudioVolume={currentImitation?.originalAudioVolume ?? 50} />
+              ) : (
+                <div className="aspect-video flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
+                  <p className="text-white/50 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Aucun audio disponible</p>
+                </div>
+              )}
+            </div>
+
+            {/* Host play control */}
+            {currentPlayer.isHost && (
+              <div className="flex justify-center">
+                <motion.button onClick={handleTogglePlay} disabled={!votingSessionId || pendingPlay || showCountdown}
+                  whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl disabled:opacity-50"
+                  style={{ background: isPlayingSynced ? "linear-gradient(180deg, #6b7280, #4b5563)" : "linear-gradient(180deg, #a855f7, #7c3aed)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)" }}>
+                  {isPlayingSynced ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white" />}
+                  <span className="text-lg font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>
+                    {isPlayingSynced ? "Pause" : "Lancer pour tous 🎬"}
+                  </span>
+                </motion.button>
+              </div>
+            )}
+
+            {/* Vote buttons */}
+            <div className="flex flex-col gap-3 items-center">
+              {!isOwnVideo && !hasVotedCurrent && (
+                <div className="flex gap-4 w-full max-w-sm">
+                  <motion.button onClick={(e) => handleVote('dislike', e)} disabled={!votingSessionId}
+                    whileHover={{ scale: 1.05, rotate: 2 }} whileTap={{ scale: 0.95 }}
+                    className="flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+                    style={{ background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: "3px solid #0a0810", boxShadow: "0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)" }}>
+                    <ThumbsDown className="w-6 h-6 text-white" />
+                    <span className="text-xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>Bof</span>
+                  </motion.button>
+                  <motion.button onClick={(e) => handleVote('like', e)} disabled={!votingSessionId}
+                    whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
+                    className="flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+                    style={{ background: "linear-gradient(180deg, #34d399, #059669)", border: "3px solid #0a0810", boxShadow: "0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)" }}>
+                    <ThumbsUp className="w-6 h-6 text-white" />
+                    <span className="text-xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>Top !</span>
+                  </motion.button>
+                </div>
+              )}
+
+              {(hasVotedCurrent || isOwnVideo) && !currentPlayer.isHost && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-2xl"
+                  style={{ background: "rgba(52,211,153,0.12)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-sm font-black text-emerald-300" style={{ fontFamily: "'Caveat', cursive" }}>
+                    {isOwnVideo ? "Votre imitation" : "Vote enregistré"} — En attente de l'hôte
+                  </span>
+                </div>
+              )}
+
+              {currentPlayer.isHost && (
+                <motion.button onClick={handleNext} disabled={!votingSessionId}
+                  whileHover={{ scale: 1.05, rotate: -1 }} whileTap={{ scale: 0.97 }}
+                  className="flex items-center gap-2 px-6 py-3 rounded-2xl disabled:opacity-50"
+                  style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)" }}>
+                  <span className="text-xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>Suivant</span>
+                  <ChevronRight className="w-5 h-5 text-white" />
+                </motion.button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Progress dots */}
+        <div className="flex gap-2 justify-center">
+          {Array.from({ length: displayLength }).map((_, i) => (
+            <motion.div key={i} animate={{ scale: i === currentIndex ? 1.3 : 1 }}
+              className="h-2.5 rounded-full transition-all duration-300"
+              style={{
+                width: i === currentIndex ? 32 : 20,
+                background: i < currentIndex ? "#34d399" : i === currentIndex ? "#f87171" : "rgba(255,255,255,0.15)",
+                border: "1.5px solid #0a0810",
+                boxShadow: i === currentIndex ? "0 0 8px rgba(248,113,113,0.6)" : "none",
+              }} />
+          ))}
+        </div>
       </div>
     </div>
-    </DoodleStage>
   );
 };

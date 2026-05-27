@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 interface CountdownOverlayProps {
@@ -7,199 +7,148 @@ interface CountdownOverlayProps {
   onComplete: () => void;
   duration?: number;
   title?: string;
-  /** Optional wall-clock timestamp (ms, Date.now()) at which the first tick should appear.
-   *  Used to synchronize the countdown across multiple clients. If omitted or in the past,
-   *  starts immediately. */
   startAt?: number;
 }
+
+const SHADOW = '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810';
+const FONT = "'Caveat', cursive";
+
+const COLORS = ['#ef4444', '#f59e0b', '#34d399'];
+const EMOJIS = ['3️⃣', '2️⃣', '1️⃣'];
 
 export const CountdownOverlay = ({
   isActive,
   onComplete,
   duration = 3,
-  title = "La vidéo commence dans...",
+  title = 'La vidéo commence dans…',
   startAt,
 }: CountdownOverlayProps) => {
   const [count, setCount] = useState(duration);
   const [isVisible, setIsVisible] = useState(false);
-  const [tick, setTick] = useState(0);
   const [started, setStarted] = useState(false);
+  const [tick, setTick] = useState(0);
   const onCompleteRef = useRef(onComplete);
-
-  useEffect(() => {
-    onCompleteRef.current = onComplete;
-  }, [onComplete]);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => {
     if (isActive) {
       setIsVisible(true);
       setCount(duration);
       setStarted(false);
-      // If startAt is in the past or missing, start immediately (no wasted ms).
       const delay = Math.max(0, Math.min((startAt ?? 0) - Date.now(), 400));
-      const t = setTimeout(() => {
-        setStarted(true);
-        setTick((x) => x + 1);
-      }, delay);
+      const t = setTimeout(() => { setStarted(true); setTick((x) => x + 1); }, delay);
       return () => clearTimeout(t);
     }
   }, [isActive, duration, startAt]);
 
   useEffect(() => {
     if (!isVisible || !started || count <= 0) return;
-
-    playSoundEffect('countdown', 0.45);
-    setTick((t) => t + 1);
-
+    playSoundEffect('countdown', 0.5);
     const timer = setTimeout(() => {
       if (count === 1) {
-        playSoundEffect('start', 0.55);
-        // Snappy hand-off — keep the start chime audible but don't stall the video.
-        setTimeout(() => {
-          setIsVisible(false);
-          onCompleteRef.current();
-        }, 220);
+        playSoundEffect('start', 0.6);
+        setTimeout(() => { setIsVisible(false); onCompleteRef.current(); }, 200);
       } else {
         setCount(count - 1);
+        setTick((t) => t + 1);
       }
     }, 1000);
-
     return () => clearTimeout(timer);
   }, [count, isVisible, started]);
 
   if (!isVisible) return null;
 
-  // SVG progress ring geometry
-  const size = 220;
-  const stroke = 1.5;
-  const radius = (size - stroke * 2) / 2;
-  const circumference = 2 * Math.PI * radius;
+  const colorIdx = duration - count;
+  const color = COLORS[Math.min(colorIdx, COLORS.length - 1)];
+  const emoji = EMOJIS[Math.min(colorIdx, EMOJIS.length - 1)];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-2xl animate-fade-in">
-      {/* Faint ink corner marks */}
-      <div className="pointer-events-none absolute inset-10 border border-primary/10" />
-      <div className="pointer-events-none absolute top-8 left-8 w-6 h-px bg-primary/40" />
-      <div className="pointer-events-none absolute top-8 left-8 h-6 w-px bg-primary/40" />
-      <div className="pointer-events-none absolute top-8 right-8 w-6 h-px bg-primary/40" />
-      <div className="pointer-events-none absolute top-8 right-8 h-6 w-px bg-primary/40" />
-      <div className="pointer-events-none absolute bottom-8 left-8 w-6 h-px bg-primary/40" />
-      <div className="pointer-events-none absolute bottom-8 left-8 h-6 w-px bg-primary/40" />
-      <div className="pointer-events-none absolute bottom-8 right-8 w-6 h-px bg-primary/40" />
-      <div className="pointer-events-none absolute bottom-8 right-8 h-6 w-px bg-primary/40" />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden"
+      style={{ background: 'rgba(10,5,16,0.92)', backdropFilter: 'blur(12px)' }}>
 
-      <div className="relative flex flex-col items-center">
+      {/* Animated background blobs */}
+      <motion.div className="absolute inset-0 pointer-events-none"
+        animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 0.8, repeat: Infinity }}>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
+          style={{ background: `radial-gradient(circle, ${color}33, transparent 70%)`, filter: 'blur(80px)' }} />
+      </motion.div>
+
+      {/* Graffiti corner marks */}
+      {['top-6 left-6', 'top-6 right-6', 'bottom-6 left-6', 'bottom-6 right-6'].map((pos, i) => (
+        <div key={i} className={`absolute ${pos} w-8 h-8 pointer-events-none`}
+          style={{ borderTop: i < 2 ? `3px solid ${color}66` : 'none', borderBottom: i >= 2 ? `3px solid ${color}66` : 'none', borderLeft: i % 2 === 0 ? `3px solid ${color}66` : 'none', borderRight: i % 2 === 1 ? `3px solid ${color}66` : 'none' }} />
+      ))}
+
+      <div className="relative flex flex-col items-center gap-6">
         {/* Title */}
-        <p className="mb-12 text-[11px] font-display uppercase tracking-[0.5em] text-foreground/60">
-          {title.replace('...', '')}
-        </p>
+        <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+          className="px-5 py-2 rounded-2xl"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '2.5px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}>
+          <p className="text-lg font-black text-white/80 uppercase tracking-widest"
+            style={{ fontFamily: FONT, textShadow: SHADOW }}>
+            {title}
+          </p>
+        </motion.div>
 
-        {/* Timer */}
-        <div
-          className="relative flex items-center justify-center"
-          style={{ width: size, height: size }}
-        >
-          {/* Expanding ink ripples on each tick (only after timer started) */}
-          {started && [0, 1, 2].map((i) => (
-            <span
-              key={`${tick}-${i}`}
-              className="absolute rounded-full border border-primary/30"
-              style={{
-                width: size,
-                height: size,
-                animation: `countdown-ripple 1s cubic-bezier(0.16, 1, 0.3, 1) forwards`,
-                animationDelay: `${i * 0.12}s`,
-                opacity: 0,
-              }}
-            />
-          ))}
-
-          {/* Static thin ring */}
-          <svg
-            className="absolute inset-0 -rotate-90"
-            width={size}
-            height={size}
-            viewBox={`0 0 ${size} ${size}`}
-          >
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke="hsl(var(--primary) / 0.15)"
-              strokeWidth={stroke}
-            />
-            {started && <circle
-              key={`s-${tick}`}
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke="hsl(var(--primary))"
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={0}
-              style={{
-                animation: 'countdown-sweep 1s linear forwards',
-                filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.6))',
-              }}
-            />}
-          </svg>
-
-          {/* Number — only after started, so we never show an empty ring */}
+        {/* Big number */}
+        <AnimatePresence mode="wait">
           {started && (
-          <span
-            key={`n-${tick}-${count}`}
-            className="font-display text-[7rem] leading-none font-light text-foreground tabular-nums"
-            style={{
-              animation: 'countdown-number 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards',
-              textShadow:
-                '0 0 24px hsl(var(--primary) / 0.55), 0 0 60px hsl(var(--primary) / 0.25)',
-            }}
-          >
-            {count}
-          </span>
-          )}
-        </div>
+            <motion.div key={`${tick}-${count}`}
+              initial={{ scale: 2, opacity: 0, rotate: -15 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              exit={{ scale: 0.5, opacity: 0, rotate: 15 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+              className="relative flex items-center justify-center"
+              style={{ width: 200, height: 200 }}>
 
-        {/* Tick marks */}
-        <div className="mt-10 flex items-center gap-4">
+              {/* Outer ring */}
+              <motion.div className="absolute inset-0 rounded-full"
+                style={{ border: `6px solid ${color}`, boxShadow: `0 0 30px ${color}66, inset 0 0 30px ${color}22` }}
+                animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 0.5, repeat: Infinity }} />
+
+              {/* Inner circle */}
+              <div className="absolute inset-4 rounded-full"
+                style={{ background: `linear-gradient(135deg, ${color}33, ${color}11)`, border: `4px solid #0a0810` }} />
+
+              {/* Number */}
+              <span className="relative text-[120px] font-black leading-none"
+                style={{ fontFamily: FONT, color, textShadow: `${SHADOW}, 0 0 40px ${color}` }}>
+                {count}
+              </span>
+
+              {/* Emoji badge */}
+              <motion.div className="absolute -top-3 -right-3 text-4xl"
+                animate={{ rotate: [-10, 10, -10] }} transition={{ duration: 0.6, repeat: Infinity }}>
+                {emoji}
+              </motion.div>
+
+              {/* Burst particles */}
+              {[...Array(8)].map((_, i) => (
+                <motion.div key={`${tick}-p-${i}`}
+                  className="absolute w-3 h-3 rounded-full"
+                  style={{ background: color, top: '50%', left: '50%' }}
+                  initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+                  animate={{ x: Math.cos((i / 8) * Math.PI * 2) * 120, y: Math.sin((i / 8) * Math.PI * 2) * 120, scale: 0, opacity: 0 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }} />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Tick dots */}
+        <div className="flex items-center gap-3">
           {[...Array(duration)].map((_, i) => {
-            const active = i < duration - count + 1;
+            const active = started && i < duration - count + 1;
             return (
-              <span
-                key={i}
-                className={cn(
-                  'h-px transition-all duration-500 ease-out',
-                  active ? 'w-10 bg-primary' : 'w-6 bg-foreground/20',
-                )}
-                style={
-                  active
-                    ? { boxShadow: '0 0 8px hsl(var(--primary) / 0.7)' }
-                    : undefined
-                }
-              />
+              <motion.div key={i}
+                animate={active ? { scale: [1, 1.3, 1] } : {}}
+                transition={{ duration: 0.3 }}
+                className="rounded-full"
+                style={{ width: active ? 16 : 10, height: active ? 16 : 10, background: active ? color : 'rgba(255,255,255,0.2)', boxShadow: active ? `0 0 10px ${color}` : 'none', transition: 'all 0.3s' }} />
             );
           })}
         </div>
       </div>
-
-      <style>{`
-        @keyframes countdown-ripple {
-          0% { transform: scale(0.6); opacity: 0.55; }
-          100% { transform: scale(1.35); opacity: 0; }
-        }
-        @keyframes countdown-sweep {
-          from { stroke-dashoffset: ${circumference}; }
-          to { stroke-dashoffset: 0; }
-        }
-        @keyframes countdown-number {
-          0% { opacity: 0; transform: scale(0.7); letter-spacing: -0.05em; }
-          25% { opacity: 1; transform: scale(1.08); }
-          100% { opacity: 1; transform: scale(1); letter-spacing: 0; }
-        }
-      `}</style>
     </div>
   );
 };
