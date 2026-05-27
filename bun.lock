@@ -35,6 +35,7 @@
         "@radix-ui/react-tooltip": "^1.2.7",
         "@react-three/drei": "^9.122",
         "@react-three/fiber": "^8.17",
+        "@shiguredo/rnnoise-wasm": "^2025.1.5",
         "@supabase/supabase-js": "^2.75.0",
         "@tanstack/react-query": "^5.83.0",
         "@types/three": "^0.170.0",
@@ -390,6 +391,8 @@
     "@rollup/rollup-win32-ia32-msvc": ["@rollup/rollup-win32-ia32-msvc@4.24.0", "", { "os": "win32", "cpu": "ia32" }, "sha512-xrNcGDU0OxVcPTH/8n/ShH4UevZxKIO6HJFK0e15XItZP2UcaiLFd5kiX7hJnqCbSztUF8Qot+JWBC/QXRPYWQ=="],
 
     "@rollup/rollup-win32-x64-msvc": ["@rollup/rollup-win32-x64-msvc@4.24.0", "", { "os": "win32", "cpu": "x64" }, "sha512-fbMkAF7fufku0N2dE5TBXcNlg0pt0cJue4xBRE2Qc5Vqikxr4VCgKj/ht6SMdFcOacVA9rqF70APJ8RN/4vMJw=="],
+
+    "@shiguredo/rnnoise-wasm": ["@shiguredo/rnnoise-wasm@2025.1.5", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@shiguredo/rnnoise-wasm/-/rnnoise-wasm-2025.1.5.tgz", {}, "sha512-9YJxzzHftlW936E5z9aEKK2CrPfUgc3HgZ2keyQ5e2Pb5bx+6tykYQ2Gyudvxd7Sxmlnar7SemDMFfx0OuVuGA=="],
 
     "@supabase/auth-js": ["@supabase/auth-js@2.75.0", "", { "dependencies": { "@supabase/node-fetch": "2.6.15" } }, "sha512-J8TkeqCOMCV4KwGKVoxmEBuDdHRwoInML2vJilthOo7awVCro2SM+tOcpljORwuBQ1vHUtV62Leit+5wlxrNtw=="],
 
