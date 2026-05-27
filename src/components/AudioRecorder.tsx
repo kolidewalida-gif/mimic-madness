@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, StopCircle, Save, Trash2, Play, RotateCcw } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
-import { applyVoiceFilter, VoiceFilterId } from "@/lib/voiceFilters";
+import { applyVoiceFilter, postProcessRecordedBlob, requiresPostProcessing, VoiceFilterId } from "@/lib/voiceFilters";
 import { InkVoiceFilterPicker } from "@/components/InkVoiceFilterPicker";
 
 interface AudioRecorderProps {
@@ -168,18 +168,9 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setRecordedBlob(blob);
+        const rawBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
 
-        // Create preview URL
-        const url = URL.createObjectURL(blob);
-        setPreviewUrl(url);
-
-        // Auto-generate a name (no user input required)
-        const autoName = `Imitation ${new Date().toLocaleTimeString()}`;
-        setAudioName(autoName);
-
-        // Stop the stream and visualizer
+        // Stop the stream and visualizer immediately so the mic LED turns off
         stopStream();
         if (filterDisposeRef.current) {
           filterDisposeRef.current();
@@ -191,8 +182,33 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
 
         onRecordingStop?.();
 
-        // Auto-save immediately so the parent gets the clip without an extra click
-        void autoSaveClip(blob, autoName);
+        // For post-process filters (helium / deep) we render the blob through
+        // OfflineAudioContext to actually pitch-shift the audio. Otherwise we
+        // use the raw blob as-is. The await is wrapped in an IIFE because
+        // onstop itself can't be async (MediaRecorder API).
+        const finalize = async () => {
+          let blob = rawBlob;
+          if (requiresPostProcessing(voiceFilter)) {
+            setIsLoading(true);
+            try {
+              blob = await postProcessRecordedBlob(rawBlob, voiceFilter);
+            } catch (err) {
+              console.warn('[recorder] post-process failed, using raw blob', err);
+            } finally {
+              setIsLoading(false);
+            }
+          }
+
+          setRecordedBlob(blob);
+          const url = URL.createObjectURL(blob);
+          setPreviewUrl(url);
+
+          const autoName = `Imitation ${new Date().toLocaleTimeString()}`;
+          setAudioName(autoName);
+
+          void autoSaveClip(blob, autoName);
+        };
+        void finalize();
       };
 
       mediaRecorderRef.current.start();
@@ -246,7 +262,12 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
   const autoSaveClip = async (blob: Blob, name: string) => {
     setIsLoading(true);
     try {
-      const file = new File([blob], `${name}.webm`, { type: 'audio/webm' });
+      // Use the blob's actual MIME type — post-processed clips come back as
+      // audio/wav from the OfflineAudioContext renderer, while live-FX clips
+      // remain audio/webm. Hardcoding webm broke playback for helium / deep.
+      const mimeType = blob.type || 'audio/webm';
+      const ext = mimeType.includes('wav') ? 'wav' : 'webm';
+      const file = new File([blob], `${name}.${ext}`, { type: mimeType });
       const clipData = {
         id: `${playerId}-${Date.now()}`,
         name,

@@ -1,10 +1,20 @@
 /**
- * Voice filters — audio FX presets applied to a MediaStreamTrack.
+ * Voice filters — audio FX for the imitation phase.
  *
- * Each preset takes the original audio source (a MediaStream from getUserMedia)
- * and returns a *new* MediaStream where the audio is processed through Web
- * Audio nodes. The MediaRecorder consumes the processed stream so the saved
- * file contains the FX baked in.
+ * Two ways an FX is applied:
+ *
+ *  1. **Live FX** — Web Audio chain plugged between the mic stream and the
+ *     MediaRecorder. The user hears the effect in real time and the saved
+ *     file already contains it. Used for `robot`, `echo`, `underwater`,
+ *     `megaphone` — pure filtering / distortion FX that work on a stream.
+ *
+ *  2. **Post-process FX** — applied to the recorded blob after the user
+ *     stops recording, via OfflineAudioContext. Used for `helium` and `deep`
+ *     because realistic chipmunk / deep-voice effects require shifting both
+ *     pitch AND tempo (playbackRate change), which is NOT possible on a live
+ *     MediaStream in Web Audio. The user hears a passthrough during
+ *     recording; once they stop, we render the blob through a pitch shifter
+ *     and replace the blob before saving.
  *
  * No external dependency — pure Web Audio API.
  */
@@ -24,34 +34,32 @@ export interface VoiceFilterDef {
   emoji: string;
   description: string;
   color: string;
+  /** True when the effect requires offline post-processing of the blob. */
+  postProcess?: boolean;
 }
 
 export const VOICE_FILTERS: VoiceFilterDef[] = [
   { id: 'none', label: 'Naturel', emoji: '🎤', description: 'Aucun effet', color: '#9ca3af' },
-  { id: 'robot', label: 'Robot', emoji: '🤖', description: 'Voix robotique', color: '#06b6d4' },
-  { id: 'helium', label: 'Hélium', emoji: '🐿️', description: 'Voix aiguë', color: '#fbbf24' },
-  { id: 'deep', label: 'Grave', emoji: '🦁', description: 'Voix profonde', color: '#a855f7' },
-  { id: 'echo', label: 'Écho', emoji: '🌀', description: 'Réverbération', color: '#f472b6' },
-  { id: 'underwater', label: 'Sous-marin', emoji: '🌊', description: 'Étouffé liquide', color: '#3b82f6' },
-  { id: 'megaphone', label: 'Mégaphone', emoji: '📢', description: 'Distordu', color: '#ef4444' },
+  { id: 'robot', label: 'Robot', emoji: '🤖', description: 'Voix robotique métallique', color: '#06b6d4' },
+  { id: 'helium', label: 'Hélium', emoji: '🐿️', description: 'Voix aiguë (chipmunk)', color: '#fbbf24', postProcess: true },
+  { id: 'deep', label: 'Grave', emoji: '🦁', description: 'Voix profonde de mafieux', color: '#a855f7', postProcess: true },
+  { id: 'echo', label: 'Écho', emoji: '🌀', description: 'Réverbération cathédrale', color: '#f472b6' },
+  { id: 'underwater', label: 'Sous-marin', emoji: '🌊', description: 'Voix étouffée liquide', color: '#3b82f6' },
+  { id: 'megaphone', label: 'Mégaphone', emoji: '📢', description: 'Distordu mégaphone', color: '#ef4444' },
 ];
 
-interface FilterChain {
-  context: AudioContext;
-  destination: MediaStreamAudioDestinationNode;
-  cleanup: () => void;
-}
+/* ============================================================
+   LIVE FX — applied to the MediaStream during recording
+============================================================ */
 
-/**
- * Apply a voice filter to a MediaStream and return a new processed
- * MediaStream. Caller MUST call the returned `dispose()` when done so the
- * AudioContext is released.
- */
 export const applyVoiceFilter = (
   inputStream: MediaStream,
   filter: VoiceFilterId,
 ): { stream: MediaStream; dispose: () => void } => {
-  if (filter === 'none') {
+  // Filters that are post-processed don't apply a live chain — the user
+  // hears their natural voice while recording (we can't change pitch live
+  // without complex granular synthesis), and the FX is baked in after stop.
+  if (filter === 'none' || filter === 'helium' || filter === 'deep') {
     return { stream: inputStream, dispose: () => {} };
   }
 
@@ -59,14 +67,14 @@ export const applyVoiceFilter = (
   const source = context.createMediaStreamSource(inputStream);
   const destination = context.createMediaStreamDestination();
 
-  const cleanup = buildFilterChain(context, source, destination, filter);
+  const cleanup = buildLiveChain(context, source, destination, filter);
 
   return {
     stream: destination.stream,
     dispose: () => {
       cleanup();
-      source.disconnect();
-      destination.disconnect();
+      try { source.disconnect(); } catch { /* noop */ }
+      try { destination.disconnect(); } catch { /* noop */ }
       if (context.state !== 'closed') {
         context.close().catch(() => {});
       }
@@ -74,7 +82,7 @@ export const applyVoiceFilter = (
   };
 };
 
-const buildFilterChain = (
+const buildLiveChain = (
   ctx: AudioContext,
   source: AudioNode,
   output: AudioNode,
@@ -82,121 +90,327 @@ const buildFilterChain = (
 ): (() => void) => {
   switch (filter) {
     case 'robot': {
-      // Ring modulation around 50 Hz creates the classic robot tone
-      const osc = ctx.createOscillator();
-      osc.frequency.value = 50;
-      const gain = ctx.createGain();
-      const ring = ctx.createGain();
-      ring.gain.value = 0;
-      osc.connect(ring.gain);
-      source.connect(ring);
-      ring.connect(gain);
-      gain.connect(output);
-      osc.start();
-      return () => {
-        try { osc.stop(); } catch { /* noop */ }
-      };
-    }
-    case 'helium': {
-      // High-pass + slight pitch boost via shelf
-      const highshelf = ctx.createBiquadFilter();
-      highshelf.type = 'highshelf';
-      highshelf.frequency.value = 1500;
-      highshelf.gain.value = 12;
-      const peaking = ctx.createBiquadFilter();
-      peaking.type = 'peaking';
-      peaking.frequency.value = 3000;
-      peaking.Q.value = 1;
-      peaking.gain.value = 8;
-      source.connect(highshelf);
-      highshelf.connect(peaking);
-      peaking.connect(output);
-      return () => {};
-    }
-    case 'deep': {
-      const lowshelf = ctx.createBiquadFilter();
-      lowshelf.type = 'lowshelf';
-      lowshelf.frequency.value = 200;
-      lowshelf.gain.value = 12;
-      const peaking = ctx.createBiquadFilter();
-      peaking.type = 'peaking';
-      peaking.frequency.value = 80;
-      peaking.Q.value = 1;
-      peaking.gain.value = 8;
-      const lowpass = ctx.createBiquadFilter();
-      lowpass.type = 'lowpass';
-      lowpass.frequency.value = 2200;
-      source.connect(lowshelf);
-      lowshelf.connect(peaking);
-      peaking.connect(lowpass);
-      lowpass.connect(output);
-      return () => {};
-    }
-    case 'echo': {
-      const delay = ctx.createDelay(1.0);
-      delay.delayTime.value = 0.28;
-      const feedback = ctx.createGain();
-      feedback.gain.value = 0.45;
-      const wet = ctx.createGain();
-      wet.gain.value = 0.6;
-      const dry = ctx.createGain();
-      dry.gain.value = 0.85;
-      source.connect(dry);
-      dry.connect(output);
-      source.connect(delay);
-      delay.connect(feedback);
-      feedback.connect(delay);
-      delay.connect(wet);
-      wet.connect(output);
-      return () => {};
-    }
-    case 'underwater': {
-      const lowpass = ctx.createBiquadFilter();
-      lowpass.type = 'lowpass';
-      lowpass.frequency.value = 600;
-      const wobble = ctx.createOscillator();
-      wobble.frequency.value = 2;
-      const wobbleGain = ctx.createGain();
-      wobbleGain.gain.value = 60;
-      wobble.connect(wobbleGain);
-      wobbleGain.connect(lowpass.frequency);
-      source.connect(lowpass);
-      lowpass.connect(output);
-      wobble.start();
-      return () => {
-        try { wobble.stop(); } catch { /* noop */ }
-      };
-    }
-    case 'megaphone': {
+      // Proper ring modulation: multiply the source by a 130 Hz sine carrier.
+      // We pre-emphasise the signal with a peaking filter at 1.2 kHz to keep
+      // intelligibility, then bandpass the result to the classic "telephone
+      // robot" range (300-3500 Hz), and add a touch of chorus by mixing the
+      // ring-modded signal with a slightly delayed dry copy.
+      const preEmph = ctx.createBiquadFilter();
+      preEmph.type = 'peaking';
+      preEmph.frequency.value = 1200;
+      preEmph.Q.value = 1.5;
+      preEmph.gain.value = 6;
+
       const bandpass = ctx.createBiquadFilter();
       bandpass.type = 'bandpass';
       bandpass.frequency.value = 1500;
-      bandpass.Q.value = 4;
-      const distortion = ctx.createWaveShaper();
-      distortion.curve = makeDistortionCurve(40);
-      distortion.oversample = '4x';
-      const gain = ctx.createGain();
-      gain.gain.value = 1.5;
-      source.connect(bandpass);
-      bandpass.connect(distortion);
-      distortion.connect(gain);
-      gain.connect(output);
+      bandpass.Q.value = 0.7;
+
+      // The ring modulation: multiplier = source * carrier
+      // Web Audio's GainNode multiplies its input by gain.value, so if we
+      // drive gain.value with a -1..+1 oscillator we get ring modulation.
+      const ring = ctx.createGain();
+      ring.gain.value = 0;
+      const carrier = ctx.createOscillator();
+      carrier.type = 'sine';
+      carrier.frequency.value = 130;
+      carrier.connect(ring.gain);
+
+      // Chorus copy: dry signal delayed 18 ms, mixed at 35%
+      const chorusDelay = ctx.createDelay(0.05);
+      chorusDelay.delayTime.value = 0.018;
+      const chorusGain = ctx.createGain();
+      chorusGain.gain.value = 0.35;
+
+      const wetGain = ctx.createGain();
+      wetGain.gain.value = 0.85;
+
+      // Routing
+      source.connect(preEmph);
+      preEmph.connect(ring);
+      ring.connect(bandpass);
+      bandpass.connect(wetGain);
+      wetGain.connect(output);
+
+      preEmph.connect(chorusDelay);
+      chorusDelay.connect(chorusGain);
+      chorusGain.connect(output);
+
+      carrier.start();
+      return () => {
+        try { carrier.stop(); } catch { /* noop */ }
+      };
+    }
+
+    case 'echo': {
+      // 3 delay taps for a thick cathedral reverb without an external IR.
+      // Tap 1: 180 ms, gain 0.55 — primary reflection
+      // Tap 2: 360 ms, gain 0.35 — secondary, fed back into tap 1
+      // Tap 3: 540 ms, gain 0.20 — tail
+      const dry = ctx.createGain();
+      dry.gain.value = 0.7;
+
+      const mkTap = (delayMs: number, fbGain: number, wetGain: number) => {
+        const d = ctx.createDelay(2);
+        d.delayTime.value = delayMs / 1000;
+        const fb = ctx.createGain();
+        fb.gain.value = fbGain;
+        const w = ctx.createGain();
+        w.gain.value = wetGain;
+        // Slight high-cut on the feedback so the tail darkens like a real room
+        const tone = ctx.createBiquadFilter();
+        tone.type = 'lowpass';
+        tone.frequency.value = 4500;
+        d.connect(tone);
+        tone.connect(fb);
+        fb.connect(d);
+        tone.connect(w);
+        return { input: d, output: w };
+      };
+
+      const tap1 = mkTap(180, 0.30, 0.55);
+      const tap2 = mkTap(360, 0.35, 0.35);
+      const tap3 = mkTap(540, 0.25, 0.20);
+
+      source.connect(dry);
+      dry.connect(output);
+
+      source.connect(tap1.input);
+      source.connect(tap2.input);
+      source.connect(tap3.input);
+      tap1.output.connect(output);
+      tap2.output.connect(output);
+      tap3.output.connect(output);
+
       return () => {};
     }
+
+    case 'underwater': {
+      // Aggressive lowpass + LFO sweep for the gurgling effect, plus a short
+      // delay to give the impression of muffled bouncing.
+      const lowpass = ctx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = 700;
+      lowpass.Q.value = 4;
+
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 2.5;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 250;
+      lfo.connect(lfoGain);
+      lfoGain.connect(lowpass.frequency);
+
+      const slap = ctx.createDelay(0.2);
+      slap.delayTime.value = 0.07;
+      const slapGain = ctx.createGain();
+      slapGain.gain.value = 0.35;
+
+      const wet = ctx.createGain();
+      wet.gain.value = 0.95;
+
+      source.connect(lowpass);
+      lowpass.connect(wet);
+      wet.connect(output);
+
+      lowpass.connect(slap);
+      slap.connect(slapGain);
+      slapGain.connect(output);
+
+      lfo.start();
+      return () => {
+        try { lfo.stop(); } catch { /* noop */ }
+      };
+    }
+
+    case 'megaphone': {
+      // Tight bandpass (300-3500 Hz) + waveshaper distortion + slight delay
+      // for the "outdoor announcement" feel. The distortion curve is a soft
+      // tanh-style clipper rather than the previous steep curve, which
+      // sounded harsh and hissy.
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 350;
+      hp.Q.value = 0.8;
+
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 3500;
+      lp.Q.value = 0.8;
+
+      const presence = ctx.createBiquadFilter();
+      presence.type = 'peaking';
+      presence.frequency.value = 1800;
+      presence.Q.value = 1.2;
+      presence.gain.value = 8;
+
+      const distortion = ctx.createWaveShaper();
+      distortion.curve = makeSoftClipCurve(8);
+      distortion.oversample = '4x';
+
+      const slap = ctx.createDelay(0.1);
+      slap.delayTime.value = 0.04;
+      const slapGain = ctx.createGain();
+      slapGain.gain.value = 0.3;
+
+      const out = ctx.createGain();
+      out.gain.value = 0.85;
+
+      source.connect(hp);
+      hp.connect(lp);
+      lp.connect(presence);
+      presence.connect(distortion);
+      distortion.connect(out);
+      out.connect(output);
+
+      distortion.connect(slap);
+      slap.connect(slapGain);
+      slapGain.connect(output);
+
+      return () => {};
+    }
+
     default:
-      source.connect(output);
+      try { source.connect(output); } catch { /* noop */ }
       return () => {};
   }
 };
 
-const makeDistortionCurve = (amount: number): Float32Array => {
-  const k = amount;
-  const samples = 44100;
+/* ============================================================
+   POST-PROCESS FX — applied to the recorded blob after stop
+============================================================ */
+
+/**
+ * Returns true if the given filter requires post-processing the blob after
+ * MediaRecorder finishes. Live FX filters return false.
+ */
+export const requiresPostProcessing = (filter: VoiceFilterId): boolean => {
+  const def = VOICE_FILTERS.find((f) => f.id === filter);
+  return Boolean(def?.postProcess);
+};
+
+/**
+ * Decode the recorded blob, render it through OfflineAudioContext with the
+ * playbackRate of an AudioBufferSourceNode set to a pitch shift ratio, and
+ * encode the result back to a WAV blob.
+ *
+ *  - helium: 1.45×  (≈ +6.5 semitones, classic chipmunk)
+ *  - deep:   0.7×   (≈ -6 semitones, mafioso)
+ *
+ * Note: changing playbackRate also speeds up / slows down the audio. For a
+ * party-game imitation clip (a few seconds long) this is exactly the
+ * intended cartoon effect.
+ */
+export const postProcessRecordedBlob = async (
+  blob: Blob,
+  filter: VoiceFilterId,
+): Promise<Blob> => {
+  if (!requiresPostProcessing(filter)) return blob;
+
+  const rate = filter === 'helium' ? 1.45 : filter === 'deep' ? 0.7 : 1.0;
+  if (rate === 1.0) return blob;
+
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    // Decode using a regular AudioContext so we can hand the buffer off
+    // to OfflineAudioContext for rendering.
+    const decodeCtx = new AudioContext();
+    const sourceBuffer = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
+    decodeCtx.close().catch(() => {});
+
+    // After playbackRate change the duration scales by 1/rate.
+    const newDuration = sourceBuffer.duration / rate;
+    const newLength = Math.ceil(newDuration * sourceBuffer.sampleRate);
+
+    const offlineCtx = new OfflineAudioContext(
+      sourceBuffer.numberOfChannels,
+      newLength,
+      sourceBuffer.sampleRate,
+    );
+
+    const src = offlineCtx.createBufferSource();
+    src.buffer = sourceBuffer;
+    src.playbackRate.value = rate;
+    src.connect(offlineCtx.destination);
+    src.start(0);
+
+    const rendered = await offlineCtx.startRendering();
+    const wavBlob = audioBufferToWav(rendered);
+    return wavBlob;
+  } catch (err) {
+    console.error('[voiceFilters] post-process failed, falling back to original blob', err);
+    return blob;
+  }
+};
+
+/* ============================================================
+   Helpers
+============================================================ */
+
+/** tanh-style soft clipper — much smoother than the previous f(x) = x/(1+|x|) */
+const makeSoftClipCurve = (drive: number): Float32Array => {
+  const samples = 8192;
   const curve = new Float32Array(samples);
-  const deg = Math.PI / 180;
   for (let i = 0; i < samples; i++) {
-    const x = (i * 2) / samples - 1;
-    curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    const x = (i / (samples - 1)) * 2 - 1;
+    curve[i] = Math.tanh(drive * x) / Math.tanh(drive);
   }
   return curve;
+};
+
+/**
+ * Encode an AudioBuffer to a WAV file Blob (16-bit PCM, little-endian).
+ * Pure JS, no dependency.
+ */
+const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const length = buffer.length;
+  const bytesPerSample = 2;
+  const blockAlign = numChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = length * blockAlign;
+  const headerSize = 44;
+  const totalSize = headerSize + dataSize;
+
+  const ab = new ArrayBuffer(totalSize);
+  const view = new DataView(ab);
+
+  // RIFF header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, totalSize - 8, true);
+  writeString(view, 8, 'WAVE');
+  // fmt chunk
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true); // PCM chunk size
+  view.setUint16(20, 1, true); // PCM format
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bytesPerSample * 8, true);
+  // data chunk
+  writeString(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  // Interleave + convert float32 [-1, 1] to int16
+  const channels: Float32Array[] = [];
+  for (let c = 0; c < numChannels; c++) channels.push(buffer.getChannelData(c));
+
+  let offset = headerSize;
+  for (let i = 0; i < length; i++) {
+    for (let c = 0; c < numChannels; c++) {
+      const sample = Math.max(-1, Math.min(1, channels[c][i]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([ab], { type: 'audio/wav' });
+};
+
+const writeString = (view: DataView, offset: number, str: string) => {
+  for (let i = 0; i < str.length; i++) {
+    view.setUint8(offset + i, str.charCodeAt(i));
+  }
 };

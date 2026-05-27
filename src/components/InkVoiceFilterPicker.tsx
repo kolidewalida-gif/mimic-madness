@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import { VOICE_FILTERS, VoiceFilterId } from '@/lib/voiceFilters';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
@@ -81,6 +81,35 @@ const InkVoiceFilterPickerComponent = ({
           );
         })}
       </div>
+
+      {/* Active filter description */}
+      {(() => {
+        const sel = VOICE_FILTERS.find((f) => f.id === value);
+        if (!sel || sel.id === 'none') return null;
+        const isPost = sel.postProcess;
+        return (
+          <div
+            className="px-3 py-2 rounded-xl flex items-start gap-2"
+            style={{
+              background: `linear-gradient(180deg, ${sel.color}1f, ${sel.color}10)`,
+              border: `2px solid ${sel.color}55`,
+            }}
+          >
+            <Sparkles className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: sel.color }} />
+            <div className="text-xs text-white/80 leading-tight" style={{ fontFamily: FONT }}>
+              <span className="font-black" style={{ color: sel.color }}>
+                {sel.label}
+              </span>{' '}
+              — {sel.description}
+              {isPost && (
+                <span className="block text-[10px] text-white/55 mt-0.5">
+                  ⚡ Effet appliqué après l'enregistrement
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
