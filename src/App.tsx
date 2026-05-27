@@ -14,6 +14,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { GameCursor } from "@/components/GameCursor";
 import { InkCursorParticles } from "@/components/InkCursorParticles";
 import { JuiceFxHost } from "@/components/JuiceFxHost";
+import { PerfHud } from "@/components/PerfHud";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
                 <InkCursorParticles />
                 <JuiceFxHost />
                 <AdminPanel />
+                <PerfHud />
                 <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                   <Routes>
                     <Route path="/" element={<Index />} />
