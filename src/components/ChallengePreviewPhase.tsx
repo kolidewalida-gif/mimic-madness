@@ -72,7 +72,7 @@ export const ChallengePreviewPhase = ({
   };
 
   return (
-    <div className="min-h-screen text-white relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
+    <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
       {/* Animated background blobs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div animate={{ x: [0, 30, 0], y: [0, -20, 0] }} transition={{ duration: 8, repeat: Infinity }}
@@ -83,8 +83,8 @@ export const ChallengePreviewPhase = ({
         <Zap className="absolute top-[40%] right-[3%] w-4 h-4 text-cyan-400/20" />
       </div>
 
-      <div className="relative z-10 min-h-screen px-4 py-6 pb-[200px]">
-        <div className="max-w-3xl mx-auto space-y-5">
+      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-5 pb-[140px]">
+        <div className="max-w-3xl mx-auto space-y-4">
 
           {/* Phase badge */}
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-3">

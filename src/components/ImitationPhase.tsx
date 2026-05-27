@@ -300,7 +300,7 @@ export const ImitationPhase = ({
   const teammateReady = teammate ? readyPlayers.includes(teammate.id) : false;
 
   return (
-    <div className="min-h-screen text-white relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
+    <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
       {/* Animated background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div animate={{ x: [0, -20, 0], y: [0, 20, 0] }} transition={{ duration: 10, repeat: Infinity }}
@@ -309,7 +309,7 @@ export const ImitationPhase = ({
         <Sparkles className="absolute top-[15%] left-[5%] w-5 h-5 text-amber-400/30" />
         <Zap className="absolute bottom-[30%] right-[4%] w-4 h-4 text-pink-400/25" />
       </div>
-      <div className="relative z-10 min-h-screen px-4 py-4 pb-[120px]">
+      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-4 pb-[120px]">
         {/* Header */}
         <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4 mb-4">
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
@@ -321,7 +321,7 @@ export const ImitationPhase = ({
               </span>
             </div>
             <div>
-              <h2 className="text-3xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
+              <h2 className="font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW, fontSize: "clamp(1.5rem, 2.4vw, 2rem)" }}>
                 Imite <span style={{ color: ACCENT }}>{currentChallenge.playerName}</span>
                 {gameMode === '2v2' && teammate && (
                   <span className="text-base text-white/60 font-bold ml-2">

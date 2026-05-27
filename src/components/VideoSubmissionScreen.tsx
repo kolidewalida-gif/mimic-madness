@@ -178,7 +178,7 @@ export const VideoSubmissionScreen = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0510] text-white relative overflow-hidden">
+    <div className="h-[100dvh] bg-[#0a0510] text-white relative overflow-hidden flex flex-col">
       {/* BACKGROUND */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#0a0510] to-[#160a26]" />
@@ -198,8 +198,10 @@ export const VideoSubmissionScreen = ({
         />
       </div>
 
-      <div className="relative z-10 min-h-screen px-5 py-6 pb-[200px]">
-        <div className="max-w-7xl mx-auto space-y-5">
+      {/* SCROLLABLE CONTENT — internal scroll so zoom / small viewports never
+          clip the lobby button or the action area at the bottom. */}
+      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-5 py-4 pb-[140px]">
+        <div className="max-w-7xl mx-auto space-y-4">
           {/* HEADER */}
           <div className="flex items-center justify-between gap-4">
             <motion.button
@@ -255,10 +257,11 @@ export const VideoSubmissionScreen = ({
                 </span>
               </motion.div>
               <h1
-                className="text-4xl md:text-5xl font-black leading-none tracking-tight text-white"
+                className="font-black leading-none tracking-tight text-white"
                 style={{
                   fontFamily: "'Caveat', cursive",
                   textShadow: GRAFFITI_TEXT_SHADOW,
+                  fontSize: "clamp(1.75rem, 3vw, 3rem)",
                 }}
               >
                 Tes défis vidéo

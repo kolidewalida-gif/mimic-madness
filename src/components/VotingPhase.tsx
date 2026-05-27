@@ -665,7 +665,7 @@ export const VotingPhase = ({
     : currentImitation?.playerId === currentPlayer.id;
 
   return (
-    <div className="min-h-screen text-white relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
+    <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
       {/* Animated background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div animate={{ x: [0, 20, 0], y: [0, -15, 0] }} transition={{ duration: 9, repeat: Infinity }}
@@ -679,7 +679,7 @@ export const VotingPhase = ({
       <CountdownOverlay isActive={showCountdown} onComplete={handleCountdownComplete} duration={3}
         title="La vidéo commence dans..." startAt={countdownStartAt ?? undefined} />
 
-      <div className="max-w-4xl mx-auto px-4 py-5 pb-[120px] relative z-10 space-y-5">
+      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar max-w-4xl mx-auto w-full px-4 py-5 pb-[120px] space-y-5">
         {/* Header */}
         <div className="text-center space-y-3">
           <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: -2 }}
