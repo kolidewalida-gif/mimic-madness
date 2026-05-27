@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSocialFeed } from "@/hooks/useSocialFeed";
+import { useAuth } from "@/hooks/useAuth";
 import { DoodleBorder, DoodleStage } from "@/components/doodle/Doodle";
 
 interface Player {
@@ -69,6 +70,7 @@ export const ResultsPhase = ({
   const [sharedClipIds, setSharedClipIds] = useState<Set<string>>(new Set());
   const [sharingPlayer, setSharingPlayer] = useState<string | null>(null);
   const { publish: publishSocial } = useSocialFeed('mine');
+  const { user: authUser } = useAuth();
   const { playSound } = useSoundEffects();
   const { toast } = useToast();
   const { setSituation, clearSituationOverride, play, autoMode } = useBackgroundMusic();
@@ -308,8 +310,19 @@ export const ResultsPhase = ({
   };
 
   return (
-    <DoodleStage accent="#fbbf24">
-      <div className="max-w-4xl mx-auto space-y-6 px-5 py-5 pb-[120px]">
+    <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
+      {/* Animated background halo */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <motion.div
+          animate={{ x: [0, 20, 0], y: [0, -15, 0] }}
+          transition={{ duration: 9, repeat: Infinity }}
+          className="absolute top-[-5%] left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full opacity-20"
+          style={{ background: "radial-gradient(ellipse, #fbbf2433, transparent 70%)", filter: "blur(80px)" }}
+        />
+      </div>
+
+      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar">
+        <div className="max-w-4xl mx-auto space-y-6 px-5 py-5 pb-[140px]">
       {/* Victory Animation Overlay */}
       {showVictoryAnimation && (gameMode === '2v2' ? winnerTeam : winner) && (
         <VictoryAnimation
@@ -453,7 +466,7 @@ export const ResultsPhase = ({
                             <Download className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" />
                           )}
                         </button>
-                        {result.playerId === currentPlayer.id && (
+                        {result.playerId === currentPlayer.id && authUser && (
                           <button
                             onClick={() => handleShareImitation(result.playerId, result.playerName)}
                             disabled={sharingPlayer === result.playerId}
@@ -545,6 +558,7 @@ export const ResultsPhase = ({
         </div>
       )}
       </div>
-    </DoodleStage>
+      </div>
+    </div>
   );
 };

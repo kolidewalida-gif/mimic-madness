@@ -309,7 +309,7 @@ export const ImitationPhase = ({
         <Sparkles className="absolute top-[15%] left-[5%] w-5 h-5 text-amber-400/30" />
         <Zap className="absolute bottom-[30%] right-[4%] w-4 h-4 text-pink-400/25" />
       </div>
-      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-4 pb-[120px]">
+      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-[100px]">
         {/* Header */}
         <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4 mb-4">
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
@@ -356,9 +356,9 @@ export const ImitationPhase = ({
         {/* MAIN 2-COLUMN LAYOUT — video LEFT (big), imitation panel RIGHT */}
         <motion.div initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="max-w-[1600px] mx-auto grid lg:grid-cols-[1.55fr_1fr] gap-4 items-start">
+          className="max-w-[1600px] mx-auto grid lg:grid-cols-[1.55fr_1fr] gap-4 items-start pt-4">
           {/* LEFT — Video to imitate (big) */}
-          <div className="relative rounded-3xl overflow-hidden"
+          <div className="relative rounded-3xl"
             style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: `0 8px 0 #0a0810, 0 0 30px ${ACCENT}22` }}>
             <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />
             <div className="absolute -top-3 left-6 z-20">
@@ -391,7 +391,7 @@ export const ImitationPhase = ({
           </div>
 
           {/* RIGHT — Imitation panel */}
-          <div className="relative rounded-3xl overflow-hidden"
+          <div className="relative rounded-3xl"
             style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: `0 8px 0 #0a0810, 0 0 30px ${ACCENT}22` }}>
             <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />
             <div className="absolute -top-3 left-6 z-20">
@@ -480,49 +480,89 @@ export const ImitationPhase = ({
         )}
       </div>
 
-      {/* BOTTOM BAR — Joueurs qui ont soumis (sticky, full width) */}
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-        className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-3 pt-2"
-        style={{ background: "linear-gradient(180deg, transparent, rgba(10,5,16,0.85) 30%, rgba(10,5,16,0.95))", backdropFilter: "blur(8px)" }}>
-        <div className="max-w-[1600px] mx-auto rounded-2xl px-4 py-2.5 flex items-center gap-3 overflow-hidden"
-          style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+      {/* PLAYERS PROGRESS BAR — sticky bottom-left/right, but leaves a centered gap
+          for the floating MusicPlayerBar (which is centered ~560px wide at bottom-4).
+          Two pills (left/right) instead of one full-width bar avoids overlap. */}
+      <div className="fixed bottom-3 left-3 right-3 z-30 pointer-events-none flex justify-between gap-3">
+        {/* LEFT pill — count + avatars (scrollable) */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          className="pointer-events-auto rounded-2xl px-3 py-2 flex items-center gap-2 max-w-[calc(50%-300px)] min-w-[200px]"
+          style={{
+            background: "linear-gradient(180deg, rgba(26,13,46,0.95), rgba(15,8,32,0.95))",
+            border: "3px solid #0a0810",
+            boxShadow: "0 4px 0 #0a0810",
+            backdropFilter: "blur(8px)",
+          }}
+        >
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <Users className="w-3.5 h-3.5 text-white/60" />
-            <span className="text-sm font-black uppercase tracking-wider text-white whitespace-nowrap" style={{ fontFamily: FONT }}>Soumis</span>
-            <span className="text-sm font-black whitespace-nowrap" style={{ fontFamily: FONT, color: "#34d399" }}>{readyPlayers.length}/{players.length}</span>
+            <span className="text-sm font-black uppercase tracking-wider text-white whitespace-nowrap" style={{ fontFamily: FONT }}>
+              Soumis
+            </span>
+            <span className="text-sm font-black whitespace-nowrap" style={{ fontFamily: FONT, color: "#34d399" }}>
+              {readyPlayers.length}/{players.length}
+            </span>
           </div>
-          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto custom-scrollbar min-w-0">
+          <div className="flex-1 flex items-center gap-1 overflow-x-auto custom-scrollbar min-w-0">
             {players.map((player, idx) => {
               const ready = readyPlayers.includes(player.id);
               const isMe = player.id === currentPlayer.id;
               return (
-                <motion.div key={player.id} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.04 }}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-xl flex-shrink-0"
+                <motion.div
+                  key={player.id}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.04 }}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg flex-shrink-0"
                   style={{
                     background: ready ? "rgba(52,211,153,0.18)" : isMe ? `${ACCENT}22` : "rgba(255,255,255,0.04)",
-                    border: ready ? "2px solid #34d399" : "2px solid #0a0810",
-                    boxShadow: "0 2px 0 #0a0810",
-                  }}>
+                    border: ready ? "1.5px solid #34d399" : "1.5px solid #0a0810",
+                  }}
+                  title={player.name}
+                >
                   <PlayerAvatar playerId={player.id} playerName={player.name} size="sm" isHost={player.isHost} />
-                  <span className="text-sm font-bold text-white whitespace-nowrap max-w-[120px] truncate" style={{ fontFamily: FONT }}>
-                    {isMe ? "Toi" : player.name}
-                  </span>
-                  {ready ? <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" /> : <Loader2 className="w-3 h-3 text-white/30 animate-spin flex-shrink-0" />}
+                  {ready ? (
+                    <Check className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                  ) : (
+                    <Loader2 className="w-3 h-3 text-white/30 animate-spin flex-shrink-0" />
+                  )}
                 </motion.div>
               );
             })}
           </div>
-          {currentPlayer.isHost && readyPlayers.length < players.length && readyPlayers.length > 0 && (
-            <motion.button type="button" onClick={handleForceAdvance}
-              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-              className="px-2.5 py-1 rounded-lg flex items-center gap-1 flex-shrink-0"
-              style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}
-              title="Ignorer les joueurs bloqués et passer au vote">
-              <span className="text-[10px] font-black uppercase tracking-wider text-white whitespace-nowrap" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>⏭ Skip</span>
-            </motion.button>
-          )}
-        </div>
-      </motion.div>
+        </motion.div>
+
+        {/* RIGHT pill — host skip button (only when relevant) */}
+        {currentPlayer.isHost && readyPlayers.length < players.length && readyPlayers.length > 0 && (
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            type="button"
+            onClick={handleForceAdvance}
+            whileHover={{ scale: 1.05, rotate: -1 }}
+            whileTap={{ scale: 0.95 }}
+            className="pointer-events-auto px-3 py-2 rounded-2xl flex items-center gap-1.5 flex-shrink-0"
+            style={{
+              background: "linear-gradient(180deg, #fbbf24, #d97706)",
+              border: "3px solid #0a0810",
+              boxShadow: "0 4px 0 #0a0810",
+              backdropFilter: "blur(8px)",
+            }}
+            title="Ignorer les joueurs bloqués et passer au vote"
+          >
+            <span
+              className="text-xs font-black uppercase tracking-wider text-white whitespace-nowrap"
+              style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
+            >
+              ⏭ Skip
+            </span>
+          </motion.button>
+        )}
+      </div>
     </div>
   );
 };
