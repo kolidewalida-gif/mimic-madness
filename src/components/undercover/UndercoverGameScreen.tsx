@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useUndercoverGame } from '@/hooks/useUndercoverGame';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { UndercoverPreGameSettings } from './UndercoverPreGameSettings';
+import { computeRoundWinner } from '@/lib/undercoverLogic';
 import {
   ArrowRight, CheckCircle2, Crown, Eye, EyeOff, Send, Skull,
   Timer, UserX, Vote, X, Sparkles, Loader2, Zap,
@@ -45,6 +46,9 @@ export const UndercoverGameScreen = memo(
     const [selectedVote, setSelectedVote] = useState<string | null>(null);
     const [hasVoted, setHasVoted] = useState(false);
     const [showWordModal, setShowWordModal] = useState(false);
+    // Elimination dramatic overlay — shown briefly when a player gets eliminated.
+    // Auto-dismisses after a short timeout so the recap (or next round) appears below.
+    const [showEliminationFx, setShowEliminationFx] = useState(false);
 
     const accent = game ? PHASE_COLORS[game.phase] ?? '#a855f7' : '#a855f7';
 
@@ -63,6 +67,34 @@ export const UndercoverGameScreen = memo(
 
     useEffect(() => { if (game?.phase === 'voting') { setHasVoted(false); setSelectedVote(null); } }, [game?.phase]);
     useEffect(() => { if (game?.phase === 'word_reveal' && !hasSeenWord) setShowWordModal(true); }, [game?.phase, hasSeenWord]);
+
+    // Trigger dramatic elimination FX when entering vote_result with a real
+    // elimination. Auto-hide after 2.6s so the recap card behind takes over.
+    useEffect(() => {
+      if (game?.phase === 'vote_result' && game.eliminated_player_id) {
+        setShowEliminationFx(true);
+        const t = setTimeout(() => setShowEliminationFx(false), 2600);
+        return () => clearTimeout(t);
+      }
+      setShowEliminationFx(false);
+    }, [game?.phase, game?.eliminated_player_id]);
+
+    // Compute round outcome client-side: who is still alive after the
+    // elimination, and whether a side has won this round. Used by the
+    // vote_result recap and the game_over reveal so we can show both words
+    // and the role of each player.
+    const eliminatedPlayer = useMemo(
+      () => gamePlayers.find((p) => p.player_id === game?.eliminated_player_id) ?? null,
+      [gamePlayers, game?.eliminated_player_id],
+    );
+    const aliveAfterElim = useMemo(
+      () => gamePlayers.filter((p) => p.is_alive),
+      [gamePlayers],
+    );
+    const roundWinner = useMemo(
+      () => computeRoundWinner(aliveAfterElim.map((p) => ({ role: p.role }))),
+      [aliveAfterElim],
+    );
 
     const orderedPlayers = useMemo(() => {
       if (!game) return [] as typeof gamePlayers;
@@ -337,13 +369,38 @@ export const UndercoverGameScreen = memo(
               {/* VOTE RESULT */}
               {game.phase === 'vote_result' && (
                 <motion.div key="vr" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                  className="text-center space-y-2">
-                  {game.eliminated_player_id ? (
-                    <p className="text-xl font-black" style={{ fontFamily: FONT, textShadow: SHADOW }}>
-                      💀 {gamePlayers.find((p) => p.player_id === game.eliminated_player_id)?.player_name} éliminé !
-                    </p>
+                  className="text-center space-y-3">
+                  {game.eliminated_player_id && eliminatedPlayer ? (
+                    <>
+                      <p className="text-2xl font-black" style={{ fontFamily: FONT, textShadow: SHADOW }}>
+                        💀 <span style={{ color: '#ef4444' }}>{eliminatedPlayer.player_name}</span> éliminé !
+                      </p>
+                      <p className="text-base font-black text-white/80" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+                        C'était{' '}
+                        <span style={{
+                          color: eliminatedPlayer.role === 'undercover' ? '#ef4444'
+                            : eliminatedPlayer.role === 'mr_white' ? '#fbbf24' : '#34d399',
+                        }}>
+                          {eliminatedPlayer.role === 'undercover' ? 'un Infiltré 😈'
+                            : eliminatedPlayer.role === 'mr_white' ? 'Mr White 🃏'
+                            : 'un Civil 😇'}
+                        </span>
+                      </p>
+
+                      {/* If the round just ended, reveal both words side-by-side */}
+                      {roundWinner && (
+                        <RoundEndRecap
+                          winner={roundWinner}
+                          civilianWord={game.civilian_word}
+                          undercoverWord={game.undercover_word}
+                          accent={accent}
+                        />
+                      )}
+                    </>
                   ) : (
-                    <p className="text-xl font-black" style={{ fontFamily: FONT, textShadow: SHADOW }}>🤷 Égalité !</p>
+                    <p className="text-xl font-black" style={{ fontFamily: FONT, textShadow: SHADOW }}>
+                      🤷 Égalité ! Personne n'est éliminé.
+                    </p>
                   )}
                   {currentPlayer.isHost && (
                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -358,13 +415,32 @@ export const UndercoverGameScreen = memo(
 
               {/* GAME OVER */}
               {isGameOver && (
-                <motion.div key="go" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center space-y-3">
-                  <p className="text-2xl font-black" style={{ fontFamily: FONT, textShadow: SHADOW }}>
-                    {game.winner_role === 'civilian' ? '🎉 Civils gagnent !' : '😈 Infiltrés gagnent !'}
-                  </p>
-                  <p className="text-sm text-white/60" style={{ fontFamily: FONT }}>
-                    Mots : {game.civilian_word} / {game.undercover_word}
-                  </p>
+                <motion.div key="go" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', damping: 14 }}
+                  className="text-center space-y-3">
+                  <motion.p
+                    initial={{ scale: 0.6, rotate: -8 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', damping: 10, delay: 0.1 }}
+                    className="text-3xl md:text-4xl font-black"
+                    style={{
+                      fontFamily: FONT,
+                      textShadow: SHADOW,
+                      color: game.winner_role === 'civilian' ? '#34d399' : '#ef4444',
+                    }}>
+                    {game.winner_role === 'civilian' ? '🎉 Les Civils gagnent !' : '😈 Les Infiltrés gagnent !'}
+                  </motion.p>
+
+                  <RoundEndRecap
+                    winner={(game.winner_role === 'civilian' || game.winner_role === 'undercover')
+                      ? game.winner_role
+                      : 'civilian'}
+                    civilianWord={game.civilian_word}
+                    undercoverWord={game.undercover_word}
+                    accent={accent}
+                    revealRoles={gamePlayers}
+                  />
+
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={onEndGame}
                     className="px-5 py-2.5 rounded-2xl font-black text-white"
                     style={{ background: 'linear-gradient(180deg, #fbbf24, #d97706)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: FONT, textShadow: SHADOW_SM }}>
@@ -387,6 +463,18 @@ export const UndercoverGameScreen = memo(
             </div>
           )}
         </div>
+
+        {/* ═══ ELIMINATION FX OVERLAY ═══ */}
+        <AnimatePresence>
+          {showEliminationFx && eliminatedPlayer && (
+            <EliminationOverlay
+              playerName={eliminatedPlayer.player_name}
+              role={eliminatedPlayer.role}
+              avatar={getAvatar(eliminatedPlayer.player_id)}
+              onDismiss={() => setShowEliminationFx(false)}
+            />
+          )}
+        </AnimatePresence>
 
         {/* ═══ WORD MODAL ═══ */}
         <AnimatePresence>
@@ -425,6 +513,267 @@ export const UndercoverGameScreen = memo(
 );
 
 UndercoverGameScreen.displayName = 'UndercoverGameScreen';
+
+/* ═══════════════════════════════════════════════════════════
+   Elimination Overlay — dramatic full-screen reveal that the
+   voted player has been eliminated. Skull burst, big avatar,
+   role reveal, then auto-dismiss.
+═══════════════════════════════════════════════════════════ */
+type EliminationRole = 'civilian' | 'undercover' | 'mr_white';
+
+const EliminationOverlay = ({
+  playerName,
+  role,
+  avatar,
+  onDismiss,
+}: {
+  playerName: string;
+  role: EliminationRole;
+  avatar: { type: 'image'; imageUrl: string } | { type: 'initials' } | { type: string; imageUrl?: string };
+  onDismiss: () => void;
+}) => {
+  const tint = role === 'undercover' ? '#ef4444' : role === 'mr_white' ? '#fbbf24' : '#34d399';
+  const label =
+    role === 'undercover' ? "C'était un Infiltré 😈"
+    : role === 'mr_white' ? "C'était Mr White 🃏"
+    : "C'était un Civil 😇";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      onClick={onDismiss}
+      className="fixed inset-0 z-[60] flex items-center justify-center cursor-pointer"
+      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
+    >
+      {/* Radial flash */}
+      <motion.div
+        initial={{ scale: 0, opacity: 0.7 }}
+        animate={{ scale: 4, opacity: 0 }}
+        transition={{ duration: 0.9, ease: 'easeOut' }}
+        className="absolute w-64 h-64 rounded-full pointer-events-none"
+        style={{ background: `radial-gradient(circle, ${tint}66, transparent 70%)`, filter: 'blur(40px)' }}
+      />
+
+      {/* Burst particles */}
+      {Array.from({ length: 14 }).map((_, i) => {
+        const angle = (i / 14) * Math.PI * 2;
+        return (
+          <motion.div
+            key={i}
+            initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+            animate={{
+              x: Math.cos(angle) * 280,
+              y: Math.sin(angle) * 280,
+              scale: 0,
+              opacity: 0,
+            }}
+            transition={{ duration: 1.2, ease: 'easeOut', delay: 0.05 }}
+            className="absolute w-3 h-3 rounded-full"
+            style={{ background: tint, boxShadow: `0 0 12px ${tint}` }}
+          />
+        );
+      })}
+
+      <motion.div
+        initial={{ scale: 0.4, rotate: -10, opacity: 0 }}
+        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        exit={{ scale: 0.6, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 240, damping: 14, delay: 0.05 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative flex flex-col items-center gap-4 px-8 py-7 rounded-3xl"
+        style={{
+          background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
+          border: '4px solid #0a0810',
+          boxShadow: `0 8px 0 #0a0810, 0 0 50px ${tint}66`,
+        }}
+      >
+        {/* Skull stamp on top */}
+        <motion.div
+          initial={{ scale: 0, rotate: -25 }}
+          animate={{ scale: 1, rotate: -8 }}
+          transition={{ type: 'spring', damping: 8, delay: 0.15 }}
+          className="absolute -top-4 -right-4 w-14 h-14 rounded-full flex items-center justify-center"
+          style={{
+            background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
+            border: '3px solid #0a0810',
+            boxShadow: '0 4px 0 #0a0810',
+          }}
+        >
+          <Skull className="w-7 h-7 text-white" strokeWidth={2.5} />
+        </motion.div>
+
+        {/* Big avatar with shake */}
+        <motion.div
+          animate={{ rotate: [-2, 2, -2] }}
+          transition={{ duration: 0.4, repeat: 4 }}
+          className="w-32 h-32 rounded-full flex items-center justify-center grayscale"
+          style={{
+            background: `linear-gradient(135deg, ${tint}, ${tint}88)`,
+            border: '5px solid #0a0810',
+            boxShadow: `0 6px 0 #0a0810, 0 0 30px ${tint}66`,
+          }}
+        >
+          {avatar?.type === 'image' && avatar.imageUrl ? (
+            <img src={avatar.imageUrl} alt="" className="w-28 h-28 rounded-full object-cover opacity-70" />
+          ) : (
+            <span className="text-5xl font-black text-white/80" style={{ fontFamily: FONT }}>
+              {playerName[0]?.toUpperCase()}
+            </span>
+          )}
+        </motion.div>
+
+        <motion.p
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-3xl font-black text-white text-center"
+          style={{ fontFamily: FONT, textShadow: SHADOW }}
+        >
+          {playerName} éliminé !
+        </motion.p>
+
+        <motion.p
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.45 }}
+          className="text-xl font-black text-center px-4 py-1.5 rounded-2xl"
+          style={{
+            fontFamily: FONT,
+            color: tint,
+            textShadow: SHADOW_SM,
+            background: `${tint}22`,
+            border: `2.5px solid ${tint}55`,
+          }}
+        >
+          {label}
+        </motion.p>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
+   Round End Recap — reveals both words side-by-side and (when
+   the match is over) lists every player's role. Used inline in
+   vote_result and game_over.
+═══════════════════════════════════════════════════════════ */
+const RoundEndRecap = ({
+  winner,
+  civilianWord,
+  undercoverWord,
+  accent,
+  revealRoles,
+}: {
+  winner: 'civilian' | 'undercover';
+  civilianWord: string | null;
+  undercoverWord: string | null;
+  accent: string;
+  revealRoles?: Array<{ player_id: string; player_name: string; role: EliminationRole }>;
+}) => {
+  // Civilian card pops first if civilians won; otherwise undercover pops first.
+  const civilianFirst = winner === 'civilian';
+
+  const Card = ({
+    label, word, color, emoji, delay, isWinner,
+  }: { label: string; word: string | null; color: string; emoji: string; delay: number; isWinner: boolean }) => (
+    <motion.div
+      initial={{ scale: 0.6, rotate: -4, opacity: 0 }}
+      animate={{ scale: 1, rotate: 0, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 220, damping: 14, delay }}
+      className="flex-1 px-3 py-3 rounded-2xl text-center"
+      style={{
+        background: `linear-gradient(180deg, ${color}33, ${color}11)`,
+        border: `3px solid ${isWinner ? color : '#0a0810'}`,
+        boxShadow: isWinner
+          ? `0 4px 0 #0a0810, 0 0 24px ${color}66`
+          : '0 4px 0 #0a0810',
+      }}
+    >
+      <p className="text-[10px] uppercase tracking-widest font-black"
+        style={{ fontFamily: FONT, color, textShadow: SHADOW_SM }}>
+        {emoji} {label}
+      </p>
+      <p className="text-2xl font-black text-white truncate" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+        {word ?? '???'}
+      </p>
+      {isWinner && (
+        <span className="inline-block mt-1 text-[10px] font-black uppercase tracking-widest text-amber-300"
+          style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+          🏆 Vainqueur
+        </span>
+      )}
+    </motion.div>
+  );
+
+  return (
+    <motion.div
+      initial={{ y: 12, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: 0.25 }}
+      className="mx-auto max-w-md space-y-3"
+    >
+      <p className="text-xs uppercase tracking-widest font-black text-white/70 text-center"
+        style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+        🤐 Les mots révélés
+      </p>
+      <div className="flex gap-2.5">
+        <Card
+          label="Civils"
+          word={civilianWord}
+          color="#34d399"
+          emoji="😇"
+          delay={civilianFirst ? 0.3 : 0.55}
+          isWinner={winner === 'civilian'}
+        />
+        <Card
+          label="Infiltrés"
+          word={undercoverWord}
+          color="#ef4444"
+          emoji="😈"
+          delay={civilianFirst ? 0.55 : 0.3}
+          isWinner={winner === 'undercover'}
+        />
+      </div>
+
+      {/* Optional full role list, used for the final game over screen */}
+      {revealRoles && revealRoles.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="rounded-2xl p-3 space-y-1.5"
+          style={{ background: 'rgba(0,0,0,0.5)', border: '2.5px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}
+        >
+          <p className="text-[10px] uppercase tracking-widest font-black text-white/60 text-center"
+            style={{ fontFamily: FONT }}>
+            Récap des rôles
+          </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {revealRoles.map((p) => {
+              const rTint = p.role === 'undercover' ? '#ef4444' : p.role === 'mr_white' ? '#fbbf24' : '#34d399';
+              const rLabel = p.role === 'undercover' ? 'Infiltré' : p.role === 'mr_white' ? 'Mr White' : 'Civil';
+              return (
+                <div key={p.player_id}
+                  className="flex items-center justify-between px-2 py-1 rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1.5px solid ${rTint}55` }}>
+                  <span className="text-sm font-black text-white truncate" style={{ fontFamily: FONT }}>
+                    {p.player_name}
+                  </span>
+                  <span className="text-xs font-black" style={{ fontFamily: FONT, color: rTint, textShadow: SHADOW_SM }}>
+                    {rLabel}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+    </motion.div>
+  );
+};
 
 /* ═══════════════════════════════════════════════════════════
    Timer Bar — bottom countdown
