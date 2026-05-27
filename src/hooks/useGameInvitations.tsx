@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -21,73 +21,132 @@ interface GameInvitation {
   expires_at: string;
 }
 
+// ---------------------------------------------------------------------------
+// SINGLETON STORE
+// Multiple components subscribe to invitations; we keep a single Realtime
+// channel per user and broadcast state via useSyncExternalStore so every
+// consumer stays in sync without duplicate channels (which previously caused
+// missed invitations and conflicts on the same channel name).
+// ---------------------------------------------------------------------------
+type Listener = () => void;
+let storeUserId: string | null = null;
+let storeInvitations: GameInvitation[] = [];
+let storeChannel: ReturnType<typeof supabase.channel> | null = null;
+let storeRefCount = 0;
+const storeListeners = new Set<Listener>();
+let storePollTimer: ReturnType<typeof setInterval> | null = null;
+
+const emit = () => {
+  storeListeners.forEach((l) => l());
+};
+
+const setInvitations = (next: GameInvitation[]) => {
+  storeInvitations = next;
+  emit();
+};
+
+const fetchInvitationsFor = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('game_invitations')
+    .select('*')
+    .eq('receiver_id', userId)
+    .eq('status', 'pending')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false });
+  if (!error && data && storeUserId === userId) {
+    setInvitations(data as GameInvitation[]);
+  }
+};
+
+const startStore = (userId: string) => {
+  if (storeUserId === userId && storeChannel) return;
+  stopStore();
+  storeUserId = userId;
+  fetchInvitationsFor(userId);
+
+  const channelName = `game-invitations-realtime-${userId}`;
+  storeChannel = supabase
+    .channel(channelName)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'game_invitations',
+        filter: `receiver_id=eq.${userId}`,
+      },
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const inv = payload.new as GameInvitation;
+          if (inv.status === 'pending') {
+            // Avoid duplicates if already fetched
+            if (!storeInvitations.some((i) => i.id === inv.id)) {
+              setInvitations([inv, ...storeInvitations]);
+            }
+            if (onNewInvitationCallback) onNewInvitationCallback(inv);
+          }
+        } else {
+          fetchInvitationsFor(userId);
+        }
+      },
+    )
+    .subscribe();
+
+  // Safety poll every 30s to recover from any missed realtime event
+  storePollTimer = setInterval(() => {
+    if (storeUserId) fetchInvitationsFor(storeUserId);
+  }, 30000);
+};
+
+const stopStore = () => {
+  if (storeChannel) {
+    supabase.removeChannel(storeChannel);
+    storeChannel = null;
+  }
+  if (storePollTimer) {
+    clearInterval(storePollTimer);
+    storePollTimer = null;
+  }
+  storeUserId = null;
+  storeInvitations = [];
+  emit();
+};
+
+const subscribe = (listener: Listener) => {
+  storeListeners.add(listener);
+  storeRefCount++;
+  return () => {
+    storeListeners.delete(listener);
+    storeRefCount--;
+    if (storeRefCount <= 0) {
+      // Delay tear-down briefly in case of remount churn
+      setTimeout(() => {
+        if (storeRefCount <= 0) stopStore();
+      }, 1000);
+    }
+  };
+};
+
+const getSnapshot = () => storeInvitations;
+
 export const useGameInvitations = () => {
   const { user } = useAuth();
-  const [pendingInvitations, setPendingInvitations] = useState<GameInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch pending invitations
-  const fetchInvitations = useCallback(async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('game_invitations')
-      .select('*')
-      .eq('receiver_id', user.id)
-      .eq('status', 'pending')
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setPendingInvitations(data);
-    }
-  }, [user]);
-
-  // Subscribe to real-time invitation changes
+  // Start/stop singleton based on user
   useEffect(() => {
-    if (!user) return;
-
-    fetchInvitations();
-
-    const channelName = `game-invitations-realtime-${user.id}`;
-    
-    // Remove any existing channel with this name first
-    const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
-    if (existingChannel) {
-      supabase.removeChannel(existingChannel);
+    if (!user) {
+      stopStore();
+      return;
     }
-    
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'game_invitations',
-          filter: `receiver_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newInvitation = payload.new as GameInvitation;
-            if (newInvitation.status === 'pending') {
-              setPendingInvitations(prev => [newInvitation, ...prev]);
-              // Trigger premium notification callback
-              if (onNewInvitationCallback) {
-                onNewInvitationCallback(newInvitation);
-              }
-            }
-          } else if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
-            fetchInvitations();
-          }
-        }
-      )
-      .subscribe();
+    startStore(user.id);
+  }, [user?.id]);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, fetchInvitations]);
+  const pendingInvitations = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  const fetchInvitations = useCallback(async () => {
+    if (user) await fetchInvitationsFor(user.id);
+  }, [user?.id]);
 
   // Send invitation to a friend
   const sendInvitation = useCallback(async (receiverId: string, lobbyCode: string, senderName: string) => {
@@ -138,7 +197,7 @@ export const useGameInvitations = () => {
       return null;
     }
 
-    setPendingInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+    setInvitations(storeInvitations.filter((inv) => inv.id !== invitationId));
     return data?.lobby_code || null;
   }, []);
 
@@ -154,7 +213,7 @@ export const useGameInvitations = () => {
       return;
     }
 
-    setPendingInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+    setInvitations(storeInvitations.filter((inv) => inv.id !== invitationId));
   }, []);
 
   return {
