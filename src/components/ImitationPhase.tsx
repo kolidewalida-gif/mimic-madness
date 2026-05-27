@@ -252,6 +252,38 @@ export const ImitationPhase = ({
     }
   };
 
+  // Host-only escape hatch: when a player is stuck (mic permission, browser
+  // bug, network issue), the host can force-skip not-ready players and move
+  // the round forward. This avoids dead rounds when one user can't record.
+  const handleForceAdvance = async () => {
+    if (!currentPlayer.isHost) return;
+    const notReady = players.filter((p) => !readyPlayers.includes(p.id));
+    if (notReady.length === 0) return;
+    try {
+      // Mark every missing player as ready (with no clip) so the round can
+      // close. The voting phase already tolerates players without a clip.
+      const rows = notReady.map((p) => ({
+        lobby_id: lobbyId,
+        round_number: roundNumber,
+        player_id: p.id,
+        player_name: p.name,
+        is_ready: true,
+        include_original_audio: false,
+        original_audio_volume: 50,
+      }));
+      await supabase
+        .from('player_imitations')
+        .upsert(rows, { onConflict: 'lobby_id,round_number,player_id' });
+      toast({
+        title: 'Manche débloquée',
+        description: `${notReady.length} joueur${notReady.length > 1 ? 's' : ''} ignoré${notReady.length > 1 ? 's' : ''}.`,
+      });
+    } catch (err) {
+      console.error('Error force-advancing:', err);
+      toast({ title: 'Erreur', description: 'Impossible de débloquer la manche.', variant: 'destructive' });
+    }
+  };
+
   const teammateReady = teammate ? readyPlayers.includes(teammate.id) : false;
 
   return (
@@ -451,7 +483,18 @@ export const ImitationPhase = ({
               <Users className="w-3.5 h-3.5 text-white/60" />
               <h3 className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: FONT }}>Progression</h3>
             </div>
-            <span className="text-xs font-black" style={{ fontFamily: FONT, color: "#34d399" }}>{readyPlayers.length}/{players.length}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black" style={{ fontFamily: FONT, color: "#34d399" }}>{readyPlayers.length}/{players.length}</span>
+              {currentPlayer.isHost && readyPlayers.length < players.length && readyPlayers.length > 0 && (
+                <motion.button type="button" onClick={handleForceAdvance}
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  className="px-2.5 py-1 rounded-lg flex items-center gap-1"
+                  style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}
+                  title="Ignorer les joueurs bloqués et passer au vote">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>⏭ Skip bloqués</span>
+                </motion.button>
+              )}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {players.map((player, idx) => {

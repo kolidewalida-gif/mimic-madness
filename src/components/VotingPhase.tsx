@@ -493,13 +493,12 @@ export const VotingPhase = ({
 
     if (!isPlayingSynced) {
       // Starting playback - show countdown for all, synchronized via wall-clock startAt.
-      // 120 ms buffer is enough for the persistent channel; visually snappier.
-      const startAt = Date.now() + 120;
-      setPendingPlay(true);
-      setCountdownStartAt(startAt);
-      setShowCountdown(true);
+      // Generous 800ms buffer covers typical broadcast latency (50-300ms) + jitter so
+      // every client receives the event before startAt and aligns its countdown.
+      // The host listens to its OWN broadcast (self:true) instead of starting the
+      // countdown locally, guaranteeing all clients start from the same wall-clock moment.
+      const startAt = Date.now() + 800;
 
-      // Persistent channel is already subscribed — send is instant.
       const ch = countdownChannelRef.current;
       if (ch && countdownReadyRef.current) {
         ch.send({
@@ -507,12 +506,26 @@ export const VotingPhase = ({
           event: 'countdown_start',
           payload: { startAt },
         });
+      } else {
+        // Fallback: channel not ready, just start locally
+        setPendingPlay(true);
+        setCountdownStartAt(startAt);
+        setShowCountdown(true);
       }
     } else {
-      // Pausing - no countdown needed
+      // Pausing - broadcast immediately so all clients pause in sync, then persist.
+      const ch = countdownChannelRef.current;
+      if (ch && countdownReadyRef.current) {
+        ch.send({
+          type: 'broadcast',
+          event: 'force_pause',
+          payload: { at: Date.now() },
+        });
+      }
+      setIsPlayingSynced(false);
       const { error } = await supabase
         .from('voting_session')
-        .update({ 
+        .update({
           is_playing: false,
           updated_at: new Date().toISOString()
         })
@@ -524,16 +537,20 @@ export const VotingPhase = ({
     }
   };
 
-  // Handle countdown completion
+  // Handle countdown completion - every client (host included) drives its own
+  // playback start locally, instead of waiting for a postgres roundtrip. The host
+  // also persists is_playing=true for late joiners and resync.
   const handleCountdownComplete = async () => {
     setShowCountdown(false);
     setPendingPlay(false);
     setCountdownStartAt(null);
-    
+    // Each client triggers play locally — no DB latency.
+    setIsPlayingSynced(true);
+
     if (currentPlayer.isHost && votingSessionId) {
       const { error } = await supabase
         .from('voting_session')
-        .update({ 
+        .update({
           is_playing: true,
           updated_at: new Date().toISOString()
         })
@@ -547,19 +564,28 @@ export const VotingPhase = ({
 
   // Persistent countdown broadcast channel — created once per round and pre-subscribed
   // so that .send() / receive happens instantly (no per-click handshake latency).
+  // self:true so the HOST also receives its own broadcast and starts the countdown
+  // at the same wall-clock moment as guests (eliminates host-vs-guest desync).
   useEffect(() => {
     if (!lobbyId) return;
 
     countdownReadyRef.current = false;
     const channel = supabase
       .channel(`countdown:${lobbyId}:${roundNumber}`, {
-        config: { broadcast: { self: false, ack: false } },
+        config: { broadcast: { self: true, ack: false } },
       })
       .on('broadcast', { event: 'countdown_start' }, (msg) => {
         const startAt: number | undefined = msg?.payload?.startAt;
         setCountdownStartAt(startAt ?? Date.now());
         setShowCountdown(true);
         setPendingPlay(true);
+      })
+      .on('broadcast', { event: 'force_pause' }, () => {
+        // All clients pause locally on broadcast — no DB roundtrip latency.
+        setIsPlayingSynced(false);
+        setShowCountdown(false);
+        setPendingPlay(false);
+        setCountdownStartAt(null);
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {

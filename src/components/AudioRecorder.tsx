@@ -80,15 +80,26 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
   };
 
   const startRecording = async () => {
+    // Guard against double-clicks / stuck state
+    if (isRecording || mediaRecorderRef.current?.state === 'recording') {
+      return;
+    }
+
     try {
-      // Request audio only
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
+      // Add a 10s safety timeout for getUserMedia — some browsers (notably
+      // certain mobile Chrome builds) hang the permission dialog silently.
+      const mediaStream = await Promise.race([
+        navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        }),
+        new Promise<MediaStream>((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT_GETUSERMEDIA')), 10000)
+        ),
+      ]);
 
       setStream(mediaStream);
 
@@ -108,6 +119,10 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
       if (!MediaRecorder.isTypeSupported(options.mimeType)) {
         options = { mimeType: 'audio/ogg;codecs=opus' };
       }
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        // Last resort: let the browser pick.
+        options = {};
+      }
 
       mediaRecorderRef.current = new MediaRecorder(mediaStream, options);
       chunksRef.current = [];
@@ -116,6 +131,22 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
         if (event.data && event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
+      };
+
+      mediaRecorderRef.current.onerror = (event: Event) => {
+        console.error('MediaRecorder error:', event);
+        toast({
+          title: 'Erreur d\'enregistrement',
+          description: 'Le microphone a rencontré un problème. Réessayez.',
+          variant: 'destructive',
+        });
+        // Cleanup and reset so the user can retry
+        try { mediaRecorderRef.current?.stop(); } catch { /* noop */ }
+        stopStream();
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        setIsRecording(false);
+        setAudioLevel(0);
+        onRecordingStop?.();
       };
 
       mediaRecorderRef.current.onstop = () => {
@@ -148,27 +179,37 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
       onRecordingStart?.();
 
       toast({
-        title: "🎤 Enregistrement audio démarré",
-        description: "Imitez maintenant !",
+        title: '🎤 Enregistrement audio démarré',
+        description: 'Imitez maintenant !',
       });
 
     } catch (error: any) {
-      console.error("Error accessing microphone:", error);
-      
-      let errorMessage = "Impossible d'accéder au microphone.";
-      
-      if (error.name === "NotAllowedError") {
-        errorMessage = "Vous devez autoriser l'accès au microphone.";
-      } else if (error.name === "NotFoundError") {
-        errorMessage = "Aucun microphone détecté.";
-      } else if (error.name === "NotReadableError") {
-        errorMessage = "Le microphone est utilisé par une autre application.";
+      console.error('Error accessing microphone:', error);
+
+      // Cleanup any half-initialized resources so the user can retry
+      try { stopStream(); } catch { /* noop */ }
+      try { if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close(); } catch { /* noop */ }
+      setIsRecording(false);
+      setAudioLevel(0);
+
+      let errorMessage = 'Impossible d\'accéder au microphone.';
+
+      if (error?.message === 'TIMEOUT_GETUSERMEDIA') {
+        errorMessage = 'Le micro met trop de temps à répondre. Vérifiez les permissions.';
+      } else if (error?.name === 'NotAllowedError') {
+        errorMessage = 'Vous devez autoriser l\'accès au microphone.';
+      } else if (error?.name === 'NotFoundError') {
+        errorMessage = 'Aucun microphone détecté.';
+      } else if (error?.name === 'NotReadableError') {
+        errorMessage = 'Le microphone est utilisé par une autre application. Fermez-la et réessayez.';
+      } else if (error?.name === 'AbortError') {
+        errorMessage = 'L\'accès au microphone a été interrompu. Réessayez.';
       }
-      
+
       toast({
-        title: "Erreur",
+        title: 'Erreur',
         description: errorMessage,
-        variant: "destructive",
+        variant: 'destructive',
       });
     }
   };

@@ -35,7 +35,11 @@ export const CountdownOverlay = ({
       setIsVisible(true);
       setCount(duration);
       setStarted(false);
-      const delay = Math.max(0, Math.min((startAt ?? 0) - Date.now(), 400));
+      // Wait until the wall-clock startAt before starting the countdown so
+      // every client (host included) ticks in lock-step. Cap at 1500ms in
+      // case the broadcast was queued late. If startAt is in the past, start
+      // immediately — better to start a bit late than to drift further.
+      const delay = Math.max(0, Math.min((startAt ?? 0) - Date.now(), 1500));
       const t = setTimeout(() => { setStarted(true); setTick((x) => x + 1); }, delay);
       return () => clearTimeout(t);
     }
