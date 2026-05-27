@@ -141,29 +141,57 @@ const Index = () => {
   const handleAcceptInvitation = useCallback(async (invitationId: string) => {
     const lobbyCode = await acceptInvitation(invitationId);
     setActiveInvitation(null);
-    
-    if (lobbyCode && gameState === 'home') {
-      // Generate a player name and join the game
-      const storedName = localStorage.getItem('playerName') || `Joueur${Math.floor(Math.random() * 1000)}`;
-      const playerId = crypto.randomUUID();
-      const newPlayer: Player = {
-        id: playerId,
-        name: storedName,
-        isHost: false,
-      };
-      
-      setCurrentPlayer(newPlayer);
-      const result = await joinLobby(lobbyCode, playerId, storedName);
-      
-      if (result) {
-        playSoundEffect('join', 0.4);
-        setGameState("lobby");
-      } else {
-        playSoundEffect('error', 0.4);
-        setCurrentPlayer(null);
+
+    if (!lobbyCode) return;
+
+    // Resolve a stable display name for the receiver across every game state
+    const storedName =
+      localStorage.getItem('playerName') ||
+      profile?.display_name ||
+      `Joueur${Math.floor(Math.random() * 1000)}`;
+
+    // Bug fix: previously this only worked when the receiver was on the home
+    // page. If they were already in a lobby or in a game, accepting the
+    // invitation did nothing and silently dropped the user. We now leave the
+    // current lobby first (if any), reset transient state, and join the new
+    // lobby regardless of where the receiver currently is.
+    try {
+      if (gameState !== 'home' && lobby) {
+        await leaveLobby();
       }
+    } catch (err) {
+      console.error('[invitation] failed to leave current lobby:', err);
     }
-  }, [acceptInvitation, gameState, joinLobby]);
+
+    // If the user was mid-game, fully reset transient state so the new lobby
+    // doesn't render under stale game/preparation state.
+    setSubmittedChallenges([]);
+    setGameMode('normal');
+    setGameState('home');
+
+    const playerId = crypto.randomUUID();
+    const newPlayer: Player = {
+      id: playerId,
+      name: storedName,
+      isHost: false,
+    };
+
+    setCurrentPlayer(newPlayer);
+    const result = await joinLobby(lobbyCode, playerId, storedName);
+
+    if (result) {
+      playSoundEffect('join', 0.4);
+      setGameState('lobby');
+    } else {
+      playSoundEffect('error', 0.4);
+      setCurrentPlayer(null);
+      toast({
+        title: 'Lobby introuvable',
+        description: "L'invitation ne pointe plus vers un lobby actif.",
+        variant: 'destructive',
+      });
+    }
+  }, [acceptInvitation, gameState, lobby, leaveLobby, joinLobby, profile?.display_name, toast]);
 
   const handleDeclineInvitation = useCallback(async (invitationId: string) => {
     await declineInvitation(invitationId);

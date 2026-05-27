@@ -1136,6 +1136,7 @@ export const InkLobbyScreen = ({
                   lobbyId={lobbyId}
                   players={players}
                   isHost={isHost}
+                  inlineMode
                 />
               </div>
             </motion.div>

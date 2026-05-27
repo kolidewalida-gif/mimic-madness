@@ -27,6 +27,13 @@ interface LobbyInvitePanelProps {
   players: Player[];
   maxPlayers?: number;
   isHost: boolean;
+  /**
+   * When true, render the friends list directly without the slots grid +
+   * second modal. Useful when the panel is already inside its own modal/drawer
+   * (e.g. the InkLobbyScreen invite drawer) so we don't stack a second modal
+   * on top.
+   */
+  inlineMode?: boolean;
 }
 
 /* ============================================================
@@ -41,6 +48,7 @@ const LobbyInvitePanelComponent = ({
   players,
   maxPlayers = 8,
   isHost,
+  inlineMode = false,
 }: LobbyInvitePanelProps) => {
   const { isInkMode } = useInkMode();
   const { user, profile } = useAuth();
@@ -89,6 +97,205 @@ const LobbyInvitePanelComponent = ({
      GRAFFITI / CARTOON RENDER (when in ink mode)
   ========================================================= */
   if (isInkMode) {
+    /* When the panel is rendered inline (e.g. inside the InkLobbyScreen
+       invite drawer), skip the slots grid + extra modal and just show the
+       search bar + friends list. The drawer is already a modal — stacking a
+       second modal on top was confusing and broke clicks. */
+    if (inlineMode) {
+      return (
+        <div className="flex flex-col gap-3">
+          <p
+            className="text-sm text-purple-200/80 font-bold"
+            style={{ fontFamily: "'Caveat', cursive" }}
+          >
+            {emptySlots} place{emptySlots > 1 ? 's' : ''} dispo
+            {emptySlots > 1 ? 's' : ''} dans le lobby !
+          </p>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-300 z-[1] pointer-events-none" />
+            <Input
+              placeholder="Cherche un ami…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-black/40 text-white placeholder:text-purple-200/40 font-bold rounded-xl h-11"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                border: '3px solid #0a0810',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
+              }}
+            />
+          </div>
+
+          <div className="space-y-2">
+            {friendsLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-purple-300" />
+              </div>
+            ) : availableFriends.length === 0 ? (
+              <div className="text-center py-10">
+                <motion.div
+                  animate={{ y: [0, -6, 0], rotate: [-3, 3, -3] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                  className="text-6xl mb-3 inline-block"
+                >
+                  🥺
+                </motion.div>
+                <p
+                  className="text-lg font-black text-white/80"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    textShadow: GRAFFITI_TEXT_SHADOW,
+                  }}
+                >
+                  {searchQuery ? 'Aucun résultat…' : 'Aucun ami dispo !'}
+                </p>
+                {!searchQuery && (
+                  <p
+                    className="text-sm text-white/50 mt-1"
+                    style={{ fontFamily: "'Caveat', cursive" }}
+                  >
+                    Ajoute-en depuis le panneau Amis 👋
+                  </p>
+                )}
+              </div>
+            ) : (
+              availableFriends.map((friend, idx) => {
+                const status = getUserStatus(friend.user_id);
+                const isOnline = status.online;
+                const isInvited = invitedFriends.has(friend.user_id);
+                const isInGame = !!status.lobbyCode;
+
+                return (
+                  <motion.div
+                    key={friend.id}
+                    initial={{ opacity: 0, x: -20, rotate: -3 }}
+                    animate={{
+                      opacity: 1,
+                      x: 0,
+                      rotate: idx % 2 === 0 ? -0.6 : 0.6,
+                    }}
+                    transition={{ delay: idx * 0.04 }}
+                    className="flex items-center gap-3 p-3 rounded-2xl"
+                    style={{
+                      background:
+                        'linear-gradient(180deg, rgba(168,85,247,0.12), rgba(168,85,247,0.04))',
+                      border: '2.5px solid #0a0810',
+                      boxShadow:
+                        '0 3px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    <div className="relative flex-shrink-0">
+                      <Avatar className="h-11 w-11 ring-2 ring-[#0a0810]">
+                        <AvatarImage src={friend.avatar_url || undefined} />
+                        <AvatarFallback
+                          className="font-black text-white text-base"
+                          style={{
+                            background:
+                              'linear-gradient(135deg, #a855f7, #6b21a8)',
+                          }}
+                        >
+                          {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div
+                        className={cn(
+                          'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0a0810]',
+                          isInGame
+                            ? 'bg-amber-400'
+                            : isOnline
+                              ? 'bg-emerald-400'
+                              : 'bg-zinc-500',
+                        )}
+                        style={{
+                          boxShadow:
+                            isOnline && !isInGame
+                              ? '0 0 8px rgba(52,211,153,0.7)'
+                              : 'none',
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="font-black text-lg text-white truncate leading-none"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        {friend.display_name || 'Joueur'}
+                      </div>
+                      <div
+                        className={cn(
+                          'text-xs font-bold mt-0.5 flex items-center gap-1',
+                          isInGame
+                            ? 'text-amber-300'
+                            : isOnline
+                              ? 'text-emerald-300'
+                              : 'text-white/40',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'w-1.5 h-1.5 rounded-full',
+                            isInGame
+                              ? 'bg-amber-400'
+                              : isOnline
+                                ? 'bg-emerald-400'
+                                : 'bg-zinc-500',
+                          )}
+                        />
+                        {isInGame
+                          ? 'EN PARTIE'
+                          : isOnline
+                            ? 'EN LIGNE'
+                            : 'HORS LIGNE'}
+                      </div>
+                    </div>
+
+                    <motion.button
+                      whileHover={!isInvited ? { scale: 1.05, rotate: -2 } : undefined}
+                      whileTap={!isInvited ? { scale: 0.95 } : undefined}
+                      disabled={isInvited || invitationLoading}
+                      onClick={() =>
+                        handleInvite(friend.user_id, friend.display_name || 'Joueur')
+                      }
+                      className={cn(
+                        'h-10 min-w-[90px] px-3 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 transition-opacity',
+                        isInvited && 'opacity-60',
+                      )}
+                      style={{
+                        background: isInvited
+                          ? 'linear-gradient(180deg, #34d399, #059669)'
+                          : 'linear-gradient(180deg, #fbbf24, #d97706)',
+                        border: '2.5px solid #0a0810',
+                        boxShadow: '0 3px 0 #0a0810',
+                        color: 'white',
+                        fontFamily: "'Caveat', cursive",
+                        textShadow:
+                          '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                      }}
+                    >
+                      {isInvited ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" strokeWidth={3} />
+                          <span className="text-base">Envoyé</span>
+                        </>
+                      ) : invitationLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" strokeWidth={2.5} />
+                          <span className="text-base">Inviter</span>
+                        </>
+                      )}
+                    </motion.button>
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         {/* SLOTS GRID — graffiti style */}
@@ -441,16 +648,14 @@ const LobbyInvitePanelComponent = ({
 
                               <motion.button
                                 whileHover={
-                                  !isInvited && isOnline
+                                  !isInvited
                                     ? { scale: 1.05, rotate: -2 }
                                     : undefined
                                 }
                                 whileTap={
-                                  !isInvited && isOnline ? { scale: 0.95 } : undefined
+                                  !isInvited ? { scale: 0.95 } : undefined
                                 }
-                                disabled={
-                                  isInvited || invitationLoading || !isOnline
-                                }
+                                disabled={isInvited || invitationLoading}
                                 onClick={() =>
                                   handleInvite(
                                     friend.user_id,
@@ -459,14 +664,12 @@ const LobbyInvitePanelComponent = ({
                                 }
                                 className={cn(
                                   'h-10 min-w-[90px] px-3 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 transition-opacity',
-                                  (isInvited || !isOnline) && 'opacity-60',
+                                  isInvited && 'opacity-60',
                                 )}
                                 style={{
                                   background: isInvited
                                     ? 'linear-gradient(180deg, #34d399, #059669)'
-                                    : !isOnline
-                                      ? 'linear-gradient(180deg, #6b7280, #4b5563)'
-                                      : 'linear-gradient(180deg, #fbbf24, #d97706)',
+                                    : 'linear-gradient(180deg, #fbbf24, #d97706)',
                                   border: '2.5px solid #0a0810',
                                   boxShadow: '0 3px 0 #0a0810',
                                   color: 'white',

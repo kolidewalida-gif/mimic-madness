@@ -835,7 +835,7 @@ const InkFriendsSidebarComponent = ({
                               <Play className="h-3.5 w-3.5" strokeWidth={2.5} fill="white" />
                             </motion.button>
                           )}
-                          {currentLobbyCode && isOnline && !lobbyCode && (
+                          {currentLobbyCode && !lobbyCode && (
                             <motion.button
                               whileHover={{ scale: 1.1, rotate: -5 }}
                               whileTap={{ scale: 0.9 }}
@@ -846,8 +846,9 @@ const InkFriendsSidebarComponent = ({
                                   'linear-gradient(180deg, #fbbf24, #d97706)',
                                 border: '2.5px solid #0a0810',
                                 boxShadow: '0 2px 0 #0a0810',
+                                opacity: isOnline ? 1 : 0.7,
                               }}
-                              title="Inviter"
+                              title={isOnline ? 'Inviter' : 'Inviter (statut hors-ligne, mais l\'invitation sera envoyée)'}
                             >
                               <Send className="h-3.5 w-3.5" strokeWidth={2.5} />
                             </motion.button>
