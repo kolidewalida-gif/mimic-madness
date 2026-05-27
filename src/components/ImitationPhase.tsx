@@ -21,6 +21,7 @@ import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { playInkSound } from "@/hooks/useInkSoundEffects";
+import { useQuestTracker } from "@/hooks/useQuestTracker";
 import { cn } from "@/lib/utils";
 
 interface Player {
@@ -73,6 +74,7 @@ export const ImitationPhase = ({
   const [originalAudioVolume, setOriginalAudioVolume] = useState(50);
   const { toast } = useToast();
   const { pause } = useBackgroundMusic();
+  const questTracker = useQuestTracker();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
 
   const teammate = gameMode === '2v2' && getTeammate ? getTeammate(currentPlayer.id) : null;
@@ -176,6 +178,8 @@ export const ImitationPhase = ({
       if (error) throw error;
 
       setHasSubmitted(true);
+      void questTracker.track('submit_imitation');
+      void questTracker.track('play_imitation');
       toast({
         title: 'Imitation soumise !',
         description: 'En attente des autres joueurs...',
@@ -396,7 +400,8 @@ export const ImitationPhase = ({
                   </div>
                   <AudioRecorder key={uploadKey} playerId={currentPlayer.id} playerName={currentPlayer.name}
                     onAudioSaved={handleVideoSaved} lobbyId={lobbyId}
-                    onRecordingStart={handleRecordingStart} onRecordingStop={handleRecordingStop} />
+                    onRecordingStart={handleRecordingStart} onRecordingStop={handleRecordingStop}
+                    showVoiceFilters />
                 </div>
               ) : (
                 <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-4">

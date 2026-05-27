@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, StopCircle, Save, Trash2, Play, RotateCcw } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
+import { applyVoiceFilter, VoiceFilterId } from "@/lib/voiceFilters";
+import { InkVoiceFilterPicker } from "@/components/InkVoiceFilterPicker";
 
 interface AudioRecorderProps {
   playerId: string;
@@ -13,6 +15,8 @@ interface AudioRecorderProps {
   lobbyId?: string;
   onRecordingStart?: () => void;
   onRecordingStop?: () => void;
+  /** Show the voice-filter picker above the mic button (Ink mode) */
+  showVoiceFilters?: boolean;
 }
 
 export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
@@ -21,13 +25,16 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
   onAudioSaved,
   lobbyId,
   onRecordingStart,
-  onRecordingStop
+  onRecordingStop,
+  showVoiceFilters = false,
 }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [audioName, setAudioName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [voiceFilter, setVoiceFilter] = useState<VoiceFilterId>('none');
+  const filterDisposeRef = useRef<(() => void) | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [stream, setStream] = useState<MediaStream | null>(null);
   
@@ -53,6 +60,10 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
   useEffect(() => {
     return () => {
       stopStream();
+      if (filterDisposeRef.current) {
+        filterDisposeRef.current();
+        filterDisposeRef.current = null;
+      }
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close();
@@ -110,6 +121,13 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
       source.connect(analyserRef.current);
       analyserRef.current.fftSize = 256;
 
+      // Apply voice filter (if any) — produces a processed MediaStream that
+      // we feed to MediaRecorder. The original mediaStream still feeds the
+      // analyser so the level meter reacts to the user's actual mic.
+      const filtered = applyVoiceFilter(mediaStream, voiceFilter);
+      filterDisposeRef.current = filtered.dispose;
+      const recordingStream = filtered.stream;
+
       // Setup MediaRecorder for audio
       let options: MediaRecorderOptions = { mimeType: 'audio/webm;codecs=opus' };
       
@@ -124,7 +142,7 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
         options = {};
       }
 
-      mediaRecorderRef.current = new MediaRecorder(mediaStream, options);
+      mediaRecorderRef.current = new MediaRecorder(recordingStream, options);
       chunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
@@ -163,6 +181,10 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
 
         // Stop the stream and visualizer
         stopStream();
+        if (filterDisposeRef.current) {
+          filterDisposeRef.current();
+          filterDisposeRef.current = null;
+        }
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close();
         setAudioLevel(0);
@@ -321,6 +343,12 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
 
         {!isRecording && !recordedBlob && (
           <div className="space-y-4">
+            {showVoiceFilters && (
+              <InkVoiceFilterPicker
+                value={voiceFilter}
+                onChange={setVoiceFilter}
+              />
+            )}
             <p className="text-sm text-foreground-secondary text-center">
               Cliquez pour commencer à enregistrer votre voix
             </p>

@@ -12,6 +12,7 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { emitXpGain } from "@/components/XpGainPopup";
 import { emitLevelUpNotification } from "@/components/RewardNotification";
 import { usePlayerLevel, XP_REWARDS } from "@/hooks/usePlayerLevel";
+import { useQuestTracker } from "@/hooks/useQuestTracker";
 import { juice, centerOf } from "@/lib/juice";
 import { playInkSound } from "@/hooks/useInkSoundEffects";
 interface Player {
@@ -86,6 +87,7 @@ export const VotingPhase = ({
   const teamVideoRef = useRef<TeamVideoOverlayRef>(null);
   const { playSound } = useSoundEffects();
   const { addXp } = usePlayerLevel();
+  const questTracker = useQuestTracker();
 
   // Determine what to show based on game mode
   const displayItems = gameMode === '2v2' ? teamImitations : imitations;
@@ -402,6 +404,7 @@ export const VotingPhase = ({
     if (xpResult?.leveledUp) {
       emitLevelUpNotification(xpResult.newLevel);
     }
+    void questTracker.track('vote_imitation');
 
     if (gameMode === '2v2') {
       // Vote for team

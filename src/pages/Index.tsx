@@ -10,6 +10,9 @@ import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
 import { useGameInvitations, setOnNewInvitationCallback } from "@/hooks/useGameInvitations";
 import { saveResumeSession, clearResumeSession, useResumeSession } from "@/hooks/useResumeSession";
+import { useLoginStreak } from "@/hooks/useLoginStreak";
+import { useQuestTracker } from "@/hooks/useQuestTracker";
+import type { QuestEvent } from "@/lib/questDefinitions";
 import { supabase } from "@/integrations/supabase/client";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
 import { juice } from "@/lib/juice";
@@ -64,6 +67,18 @@ interface GameInvitation {
 
 const Index = () => {
   const { user, profile, signInWithGoogle, isLoading: authLoading } = useAuth();
+  // Bumps daily login streak once per UTC day. Surfaces a toast on bump.
+  const { current: streakDays, justBumped: streakJustBumped } = useLoginStreak();
+  const questTracker = useQuestTracker();
+  useEffect(() => {
+    if (streakJustBumped && streakDays > 0) {
+      toast({
+        title: `🔥 Streak ${streakDays} jour${streakDays > 1 ? 's' : ''} !`,
+        description: streakDays >= 3 ? 'Tu enchaînes, continue !' : 'À demain pour +1',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streakJustBumped]);
   const { theme, inkModeEnabled } = useTheme();
   const { isAdmin } = useAdmin();
   const [gameState, setGameState] = useState<GameState>("home");
@@ -358,11 +373,12 @@ const Index = () => {
         playerId,
         playerName,
       });
+      void questTracker.track('host_lobby');
       setGameState("lobby");
     } else {
       playSoundEffect('error', 0.4);
     }
-  }, [createLobby, user?.id]);
+  }, [createLobby, user?.id, questTracker]);
 
   const handleJoinGame = useCallback(async (playerName: string, code: string) => {
     // Use persistent player ID (auth user ID when logged in)
@@ -389,6 +405,21 @@ const Index = () => {
     console.log('[Index] handleStartGame called with mode:', mode);
     playSoundEffect('start', 0.5);
     setGameMode(mode);
+
+    // Fire the matching play_* quest event for the player who launches.
+    // (For other clients, the realtime phase change triggers the same on
+    // their side via a separate effect.)
+    const playEventByMode: Record<string, QuestEvent | null> = {
+      undercover: 'play_undercover',
+      quiz: 'play_quiz',
+      pixoguess: 'play_blurrush',
+      audiophone: 'play_audiophone',
+      monopoly: 'play_monopoly',
+      normal: 'play_imitation',
+      '2v2': 'play_imitation',
+    };
+    const playEvent = playEventByMode[mode];
+    if (playEvent) void questTracker.track(playEvent);
     
     if (lobby && currentPlayer?.isHost) {
       try {
@@ -462,7 +493,7 @@ const Index = () => {
         throw error;
       }
     }
-  }, [lobby, currentPlayer?.isHost, toast]);
+  }, [lobby, currentPlayer?.isHost, toast, players, isAdmin, questTracker]);
 
   const handleKickPlayer = useCallback(async (playerId: string) => {
     await kickPlayer(playerId);

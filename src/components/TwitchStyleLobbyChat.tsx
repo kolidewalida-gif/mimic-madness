@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { useLobbyChat, type ChatMessage } from '@/hooks/useLobbyChat';
+import { useChatColor } from '@/hooks/useChatColor';
+import { useQuestTracker } from '@/hooks/useQuestTracker';
 import { Send, Smile, Sparkles, Search, X, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,8 +41,14 @@ const formatTime = (date: string | Date): string => {
 /* ============================================================
    Single chat line — graffiti style
 ============================================================ */
-const ChatLine = memo(({ msg, isOwn }: { msg: ChatMessage; isOwn: boolean }) => {
-  const color = colorFor(msg.playerId || msg.playerName);
+const ChatLine = memo(({ msg, isOwn, ownColor }: { msg: ChatMessage; isOwn: boolean; ownColor?: string }) => {
+  const hashColor = colorFor(msg.playerId || msg.playerName);
+  // For own messages, apply the picked color (override). Rainbow uses a
+  // gradient text instead of a flat hex.
+  const isRainbow = isOwn && ownColor === 'rainbow';
+  const color = isOwn && ownColor && ownColor !== '' && ownColor !== 'rainbow'
+    ? ownColor
+    : hashColor;
   const isMedia = msg.messageType === 'gif' || msg.messageType === 'image';
 
   return (
@@ -279,6 +287,10 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
   className,
 }: TwitchStyleLobbyChatProps) {
   const { messages, isLoading, sendMessage, isSending } = useLobbyChat(lobbyId, playerId, playerName);
+  const { colorId: ownColorId, currentHex: ownColorHex } = useChatColor();
+  const { track } = useQuestTracker();
+  // Translate "default" / empty -> undefined (let hash color win for own too)
+  const ownColor = ownColorId === 'default' ? undefined : (ownColorHex || ownColorId);
   const [input, setInput] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
   const [showGifPicker, setShowGifPicker] = useState(false);
@@ -302,17 +314,20 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
     if (!trimmed || isSending) return;
     playInkSound('cartoonPop', 0.25);
     sendMessage(trimmed, 'text');
+    void track('send_chat_message');
     setInput('');
     setAutoScroll(true);
-  }, [input, isSending, sendMessage]);
+  }, [input, isSending, sendMessage, track]);
 
   const handleSendGif = useCallback(
     (url: string) => {
       sendMessage(url, 'gif');
+      void track('send_gif');
+      void track('send_chat_message');
       setShowGifPicker(false);
       setAutoScroll(true);
     },
-    [sendMessage],
+    [sendMessage, track],
   );
 
   return (
@@ -413,7 +428,12 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
           <div className="flex flex-col gap-0.5">
             <AnimatePresence initial={false}>
               {messages.map((msg) => (
-                <ChatLine key={msg.id} msg={msg} isOwn={msg.playerId === playerId} />
+                <ChatLine
+                  key={msg.id}
+                  msg={msg}
+                  isOwn={msg.playerId === playerId}
+                  ownColor={msg.playerId === playerId ? ownColor : undefined}
+                />
               ))}
             </AnimatePresence>
           </div>
