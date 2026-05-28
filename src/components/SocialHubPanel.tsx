@@ -1012,68 +1012,87 @@ const SocialHubPanelComponent = ({
         <AnimatePresence>
           {showSocialModal && (
             <div
-              className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100vw',
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '16px',
+                zIndex: 9999,
+              }}
             >
               {/* Backdrop */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/85 backdrop-blur-md"
                 onClick={() => setShowSocialModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(0,0,0,0.85)',
+                  backdropFilter: 'blur(12px)',
+                }}
               />
-              {/* Card — relative so it sits above the backdrop without needing
-                  position: fixed (which conflicted with transformed ancestors).
-                  flex/items-center/justify-center on the parent guarantees it
-                  is exactly in the viewport center, on every browser. */}
+              {/* Modal card */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.92, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.92, y: 20 }}
                 transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-                className="relative w-[min(95vw,1100px)] h-[min(90vh,820px)] flex flex-col rounded-3xl overflow-hidden"
                 style={{
+                  position: 'relative',
+                  width: 'min(95vw, 1100px)',
+                  height: 'min(90vh, 820px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: '24px',
+                  overflow: 'hidden',
                   background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
                   border: '4px solid #0a0810',
-                  boxShadow:
-                    '0 12px 0 #0a0810, 0 18px 50px rgba(239,68,68,0.4), inset 0 2px 0 rgba(255,255,255,0.08)',
+                  boxShadow: '0 12px 0 #0a0810, 0 18px 50px rgba(239,68,68,0.4), inset 0 2px 0 rgba(255,255,255,0.08)',
                 }}
               >
                 {/* Header */}
                 <div
-                  className="relative px-5 py-4 flex items-center justify-between flex-shrink-0"
                   style={{
+                    flexShrink: 0,
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                     background: 'linear-gradient(180deg, rgba(239,68,68,0.18), rgba(239,68,68,0.05))',
                     borderBottom: '3px solid #0a0810',
                   }}
                 >
-                  <div className="flex items-center gap-3">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <motion.div
                       animate={{ rotate: [-5, 5, -5] }}
                       transition={{ duration: 2.4, repeat: Infinity }}
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center"
                       style={{
+                        width: 48, height: 48, borderRadius: 16,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
                         background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
                         border: '3px solid #0a0810',
-                        boxShadow: '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                        boxShadow: '0 4px 0 #0a0810',
                       }}
                     >
-                      <Share2 className="h-6 w-6 text-white" strokeWidth={2.5} />
+                      <Share2 style={{ width: 24, height: 24, color: 'white' }} strokeWidth={2.5} />
                     </motion.div>
                     <div>
-                      <h2
-                        className="text-3xl font-black text-white leading-none"
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          textShadow: GRAFFITI_TEXT_SHADOW,
-                        }}
-                      >
+                      <h2 style={{ fontFamily: "'Caveat', cursive", fontSize: 28, fontWeight: 900, color: 'white', margin: 0, lineHeight: 1, textShadow: GRAFFITI_TEXT_SHADOW }}>
                         Social
                       </h2>
-                      <p
-                        className="text-sm text-pink-200/80 font-bold mt-0.5"
-                        style={{ fontFamily: "'Caveat', cursive" }}
-                      >
+                      <p style={{ fontFamily: "'Caveat', cursive", fontSize: 13, color: 'rgba(251,182,206,0.8)', margin: '2px 0 0', fontWeight: 700 }}>
                         Top imitations · Récents · Tes posts
                       </p>
                     </div>
@@ -1082,20 +1101,21 @@ const SocialHubPanelComponent = ({
                     whileHover={{ scale: 1.1, rotate: 90 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setShowSocialModal(false)}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
                     style={{
+                      width: 40, height: 40, borderRadius: 12,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: 'rgba(239,68,68,0.2)',
                       border: '2.5px solid #0a0810',
                       boxShadow: '0 3px 0 #0a0810',
+                      cursor: 'pointer',
                     }}
                   >
-                    <X className="h-5 w-5" strokeWidth={3} />
+                    <X style={{ width: 20, height: 20, color: 'white' }} strokeWidth={3} />
                   </motion.button>
                 </div>
 
-                {/* Feed body — inline mode so the InkSocialFeed doesn't render
-                    its own card, since this modal already provides one. */}
-                <div className="flex-1 min-h-0 overflow-hidden">
+                {/* Feed */}
+                <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
                   <InkSocialFeed inlineMode />
                 </div>
               </motion.div>
