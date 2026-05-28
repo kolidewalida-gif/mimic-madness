@@ -134,8 +134,8 @@ export const UndercoverGameScreen = memo(
         {/* ═══ BACKGROUND IMAGE — graffiti wall ═══ */}
         <div className="absolute inset-0">
           <BackgroundWithFallback />
-          {/* Dark overlay for readability */}
-          <div className="absolute inset-0 bg-[#1a0530]/60" />
+          {/* Dark overlay for readability — lighter so the new background shows */}
+          <div className="absolute inset-0 bg-[#1a0530]/40" />
         </div>
 
         {/* ═══ TOP BAR — Phase info + Round counter ═══ */}
@@ -784,16 +784,22 @@ const BACKGROUND_CANDIDATES = [
   '/undercovermenu/backgroundundercover.webp',
 ];
 
+// Cache-buster: append a version param so the browser re-fetches after
+// a 404 was previously cached. We use the build timestamp as the version.
+const BG_VERSION = Date.now();
+
 const BackgroundWithFallback = () => {
   const [idx, setIdx] = useState(0);
   const [failed, setFailed] = useState(false);
 
   if (failed) return null;
 
+  const src = `${BACKGROUND_CANDIDATES[idx]}?v=${BG_VERSION}`;
+
   return (
     <img
-      key={BACKGROUND_CANDIDATES[idx]}
-      src={BACKGROUND_CANDIDATES[idx]}
+      key={src}
+      src={src}
       alt=""
       className="absolute inset-0 w-full h-full object-cover"
       onError={() => {
