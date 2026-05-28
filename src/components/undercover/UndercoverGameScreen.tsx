@@ -133,12 +133,7 @@ export const UndercoverGameScreen = memo(
       <div className="h-screen w-full flex flex-col text-white relative overflow-hidden">
         {/* ═══ BACKGROUND IMAGE — graffiti wall ═══ */}
         <div className="absolute inset-0">
-          <img
-            src="/undercovermenu/background.png"
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
+          <BackgroundWithFallback />
           {/* Dark overlay for readability */}
           <div className="absolute inset-0 bg-[#1a0530]/60" />
         </div>
@@ -772,6 +767,43 @@ const RoundEndRecap = ({
         </motion.div>
       )}
     </motion.div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
+   Background with automatic fallback — tries multiple candidate
+   filenames so the image works whether the user named it
+   background.png or backgroundundercover.png.
+═══════════════════════════════════════════════════════════ */
+const BACKGROUND_CANDIDATES = [
+  '/undercovermenu/background.png',
+  '/undercovermenu/background.jpg',
+  '/undercovermenu/background.webp',
+  '/undercovermenu/backgroundundercover.png',
+  '/undercovermenu/backgroundundercover.jpg',
+  '/undercovermenu/backgroundundercover.webp',
+];
+
+const BackgroundWithFallback = () => {
+  const [idx, setIdx] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  if (failed) return null;
+
+  return (
+    <img
+      key={BACKGROUND_CANDIDATES[idx]}
+      src={BACKGROUND_CANDIDATES[idx]}
+      alt=""
+      className="absolute inset-0 w-full h-full object-cover"
+      onError={() => {
+        if (idx + 1 < BACKGROUND_CANDIDATES.length) {
+          setIdx(idx + 1);
+        } else {
+          setFailed(true);
+        }
+      }}
+    />
   );
 };
 
