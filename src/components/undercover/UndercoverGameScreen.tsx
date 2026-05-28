@@ -167,6 +167,14 @@ export const UndercoverGameScreen = memo(
         {/* ═══ MAIN AREA — Players grid with clue history ═══ */}
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 min-h-0 overflow-hidden">
           {/* Players columns — each player is a column with avatar on top and clues below */}
+          {/* Clues are hidden until at least 2 players have submitted one — this
+              prevents the first speaker from being immediately identified by their
+              clue before others have had a chance to give theirs. */}
+          {(() => {
+            const cluesSubmittedCount = orderedPlayers.filter(p => p.current_clue).length;
+            const cluesVisible = cluesSubmittedCount >= 2;
+
+            return (
           <div className="w-full max-w-4xl flex justify-center gap-3 md:gap-5">
             {orderedPlayers.map((player) => {
               const isCurrent = currentTurnPlayerId === player.player_id && game.phase === 'clue_giving';
@@ -181,6 +189,10 @@ export const UndercoverGameScreen = memo(
               if (player.current_clue && !allClues.includes(player.current_clue)) {
                 allClues.push(player.current_clue);
               }
+              // Only show clues once the threshold is reached
+              const visibleClues = cluesVisible ? allClues : [];
+              // Show a "waiting" placeholder for own clue if already submitted but hidden
+              const myClueHidden = !cluesVisible && isMe && player.current_clue;
 
               return (
                 <div key={player.id} className="flex flex-col items-center gap-2.5 min-w-0" style={{ flex: '1 1 0', maxWidth: '220px' }}>
@@ -222,6 +234,16 @@ export const UndercoverGameScreen = memo(
                         <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                       </div>
                     )}
+                    {/* Submitted indicator (shown before clues are revealed) */}
+                    {!cluesVisible && player.current_clue && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-black text-white"
+                        style={{ background: 'linear-gradient(180deg, #34d399, #059669)', border: '1.5px solid #0a0810', boxShadow: '0 2px 0 #0a0810' }}>
+                        ✓
+                      </motion.div>
+                    )}
                   </motion.button>
 
                   {/* Player name */}
@@ -233,7 +255,7 @@ export const UndercoverGameScreen = memo(
 
                   {/* Clue history — stacked cards below avatar */}
                   <div className="flex flex-col gap-2 w-full">
-                    {allClues.map((clue, i) => (
+                    {visibleClues.map((clue, i) => (
                       <motion.div
                         key={`${player.player_id}-${i}`}
                         initial={{ scale: 0.7, opacity: 0, y: -5 }}
@@ -251,8 +273,17 @@ export const UndercoverGameScreen = memo(
                         </span>
                       </motion.div>
                     ))}
-                    {/* Empty placeholder slots */}
-                    {allClues.length === 0 && (
+                    {/* Hidden placeholder — own clue submitted but not yet revealed */}
+                    {myClueHidden && (
+                      <div className="w-full px-3 py-2 rounded-xl text-center"
+                        style={{ background: 'rgba(52,211,153,0.08)', border: '2px solid rgba(52,211,153,0.3)' }}>
+                        <span className="text-sm text-emerald-300/70 italic" style={{ fontFamily: FONT }}>
+                          Indice soumis — révélé après 2 indices
+                        </span>
+                      </div>
+                    )}
+                    {/* Empty placeholder */}
+                    {visibleClues.length === 0 && !myClueHidden && (
                       <div className="w-full px-3 py-2 rounded-xl text-center"
                         style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(255,255,255,0.1)' }}>
                         <span className="text-sm text-white/30 italic" style={{ fontFamily: FONT }}>…</span>
@@ -263,6 +294,8 @@ export const UndercoverGameScreen = memo(
               );
             })}
           </div>
+            );
+          })()}
         </div>
 
         {/* ═══ BOTTOM ZONE — Action area + Timer ═══ */}
@@ -295,7 +328,8 @@ export const UndercoverGameScreen = memo(
 
               {/* CLUE GIVING */}
               {game.phase === 'clue_giving' && (
-                <motion.div key="cg" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }}>
+                <motion.div key="cg" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }}
+                  className="space-y-2">
                   {isMyTurn && myPlayer?.is_alive ? (
                     <div className="flex gap-2 max-w-md mx-auto">
                       <Input value={clueInput} onChange={(e) => setClueInput(e.target.value)} placeholder="Ton indice…"
@@ -314,6 +348,17 @@ export const UndercoverGameScreen = memo(
                       Au tour de <span style={{ color: accent }}>{currentTurnName}</span> 💭
                     </p>
                   )}
+                  {/* Clue reveal threshold indicator */}
+                  {(() => {
+                    const submitted = orderedPlayers.filter(p => p.current_clue).length;
+                    const total = orderedPlayers.filter(p => p.is_alive).length;
+                    if (submitted >= 2) return null;
+                    return (
+                      <p className="text-center text-xs font-black text-white/50" style={{ fontFamily: FONT }}>
+                        🔒 Indices cachés jusqu'à 2 soumis ({submitted}/{Math.min(2, total)})
+                      </p>
+                    );
+                  })()}
                 </motion.div>
               )}
 
