@@ -8,6 +8,91 @@ import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { applyVoiceFilter, postProcessRecordedBlob, requiresPostProcessing, VoiceFilterId } from "@/lib/voiceFilters";
 import { InkVoiceFilterPicker } from "@/components/InkVoiceFilterPicker";
 
+/**
+ * Trim leading silence from an audio blob. Decodes to PCM, finds the first
+ * sample above a threshold (0.01 amplitude ≈ -40 dB), then re-encodes from
+ * that point as WAV. If the blob is already "loud" from the start, returns
+ * it unchanged. Falls back gracefully on decode errors.
+ */
+const trimLeadingSilence = async (blob: Blob): Promise<Blob> => {
+  const THRESHOLD = 0.01; // amplitude threshold for "not silence"
+  const MAX_TRIM_MS = 800; // never trim more than 800ms (safety)
+
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const ctx = new AudioContext();
+    const buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    ctx.close().catch(() => {});
+
+    // Find first non-silent sample across all channels
+    const sampleRate = buffer.sampleRate;
+    const maxTrimSamples = Math.floor((MAX_TRIM_MS / 1000) * sampleRate);
+    let firstLoudSample = 0;
+
+    outer:
+    for (let s = 0; s < Math.min(buffer.length, maxTrimSamples); s++) {
+      for (let c = 0; c < buffer.numberOfChannels; c++) {
+        if (Math.abs(buffer.getChannelData(c)[s]) > THRESHOLD) {
+          firstLoudSample = s;
+          break outer;
+        }
+      }
+    }
+
+    // If silence is < 50ms, not worth trimming (avoids re-encoding overhead)
+    const silenceMs = (firstLoudSample / sampleRate) * 1000;
+    if (silenceMs < 50) return blob;
+
+    // Re-encode from firstLoudSample onwards as WAV
+    const trimmedLength = buffer.length - firstLoudSample;
+    const numChannels = buffer.numberOfChannels;
+    const bytesPerSample = 2;
+    const blockAlign = numChannels * bytesPerSample;
+    const byteRate = sampleRate * blockAlign;
+    const dataSize = trimmedLength * blockAlign;
+    const headerSize = 44;
+    const totalSize = headerSize + dataSize;
+
+    const ab = new ArrayBuffer(totalSize);
+    const view = new DataView(ab);
+
+    // WAV header
+    const writeStr = (offset: number, str: string) => {
+      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    };
+    writeStr(0, 'RIFF');
+    view.setUint32(4, totalSize - 8, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeStr(36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    // PCM data (skip the silent prefix)
+    const channels: Float32Array[] = [];
+    for (let c = 0; c < numChannels; c++) channels.push(buffer.getChannelData(c));
+
+    let offset = headerSize;
+    for (let i = firstLoudSample; i < buffer.length; i++) {
+      for (let c = 0; c < numChannels; c++) {
+        const sample = Math.max(-1, Math.min(1, channels[c][i]));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        offset += 2;
+      }
+    }
+
+    return new Blob([ab], { type: 'audio/wav' });
+  } catch {
+    return blob;
+  }
+};
+
 interface AudioRecorderProps {
   playerId: string;
   playerName: string;
@@ -199,6 +284,16 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
             }
           }
 
+          // Trim leading silence: decode the blob, find the first sample
+          // above a noise threshold, and re-encode from that point. This
+          // removes the ~200-500ms of dead air that MediaRecorder's internal
+          // encoder adds at the start (varies by browser/codec).
+          try {
+            blob = await trimLeadingSilence(blob);
+          } catch (err) {
+            console.warn('[recorder] silence trim failed, using as-is', err);
+          }
+
           setRecordedBlob(blob);
           const url = URL.createObjectURL(blob);
           setPreviewUrl(url);
@@ -211,10 +306,19 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
         void finalize();
       };
 
-      mediaRecorderRef.current.start();
+      mediaRecorderRef.current.start(100); // 100ms timeslice for responsive capture
       setIsRecording(true);
       updateAudioLevel();
-      onRecordingStart?.();
+
+      // Notify parent AFTER a short warm-up delay. MediaRecorder needs
+      // ~150-250ms to initialize its internal encoder; if the challenge
+      // video starts playing immediately, the first fraction of the user's
+      // imitation is lost (appears as silence at the start of playback).
+      // This delay ensures the recorder is actively capturing before the
+      // video begins, so the audio and video stay aligned.
+      setTimeout(() => {
+        onRecordingStart?.();
+      }, 200);
 
       toast({
         title: '🎤 Enregistrement audio démarré',
