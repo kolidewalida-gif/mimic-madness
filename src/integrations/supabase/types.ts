@@ -1239,6 +1239,7 @@ export type Database = {
         Row: {
           civilian_wins: number
           civilian_word: string
+          clue_pass: number
           created_at: string
           current_player_index: number
           current_round: number
@@ -1261,6 +1262,7 @@ export type Database = {
         Insert: {
           civilian_wins?: number
           civilian_word: string
+          clue_pass?: number
           created_at?: string
           current_player_index?: number
           current_round?: number
@@ -1283,6 +1285,7 @@ export type Database = {
         Update: {
           civilian_wins?: number
           civilian_word?: string
+          clue_pass?: number
           created_at?: string
           current_player_index?: number
           current_round?: number

@@ -1,0 +1,2 @@
+ALTER TABLE public.undercover_games
+  ADD COLUMN IF NOT EXISTS clue_pass INTEGER NOT NULL DEFAULT 0;
