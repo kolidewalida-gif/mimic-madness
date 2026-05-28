@@ -1,4 +1,7 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback, useMemo } from 'react';
+import {
+  createContext, useContext, useEffect, useRef, useState,
+  ReactNode, useCallback, useMemo,
+} from 'react';
 
 // Import music files
 import music1 from '@/assets/background-music-1.mp3';
@@ -15,7 +18,6 @@ import music11 from '@/assets/background-music-11.mp3';
 import music12 from '@/assets/background-music-12.mp3';
 import music13 from '@/assets/background-music-13.mp3';
 
-// Adaptive original tracks (composed for each situation)
 import aLobby from '@/assets/adaptive/lobby.mp3';
 import aLobby2 from '@/assets/adaptive/lobby2.mp3';
 import aGameplay from '@/assets/adaptive/gameplay.mp3';
@@ -26,10 +28,6 @@ import aUndercover from '@/assets/adaptive/undercover.mp3';
 import aAudiophone from '@/assets/adaptive/audio-phone.mp3';
 import aQuiz from '@/assets/adaptive/quiz.mp3';
 
-/**
- * User-provided gameplay tracks dropped in /public/music/.
- * Referenced by URL so they're served as static assets (no bundling).
- */
 const USER_GAMEPLAY_TRACKS: { id: number; name: string; src: string }[] = [
   { id: 200, name: '🎲 Cubic Confetti', src: '/music/cubic-confetti.mp3' },
   { id: 201, name: '⛏️ Mineclap Mayhem', src: '/music/mineclap-mayhem.mp3' },
@@ -39,37 +37,15 @@ export interface MusicTrack {
   id: number;
   name: string;
   src: string;
-  /** Mood tags used by the adaptive auto-selector */
   moods?: MusicMood[];
 }
 
-/**
- * Moods used to map a game situation to a track.
- * - `chill`        : menu/lobby vibe
- * - `energetic`    : in-game general
- * - `tense`        : voting / countdown / undercover
- * - `epic`         : victory / big moment
- * - `mysterious`   : undercover / detective
- * - `playful`      : audio-phone / quiz
- */
-export type MusicMood = "chill" | "energetic" | "tense" | "epic" | "mysterious" | "playful";
+export type MusicMood = 'chill' | 'energetic' | 'tense' | 'epic' | 'mysterious' | 'playful';
 
-/** Game situation broadcast by the app — drives auto track selection. */
 export type MusicSituation =
-  | "home"
-  | "lobby"
-  | "preparation"
-  | "preview"
-  | "round"
-  | "playing"
-  | "voting"
-  | "victory"
-  | "defeat"
-  | "undercover"
-  | "audiophone"
-  | "quiz"
-  | "monopoly"
-  | "pixoguess";
+  | 'home' | 'lobby' | 'preparation' | 'preview' | 'round'
+  | 'playing' | 'voting' | 'victory' | 'defeat'
+  | 'undercover' | 'audiophone' | 'quiz' | 'monopoly' | 'pixoguess';
 
 interface SituationOverride {
   situation: MusicSituation;
@@ -85,103 +61,83 @@ interface SetSituationOptions {
 }
 
 const musicTracks: MusicTrack[] = [
-  { id: 1, name: "Neon Dreams", src: music1, moods: ["chill"] },
-  { id: 2, name: "Cyber Wave", src: music2, moods: ["chill", "playful"] },
-  { id: 3, name: "Digital Pulse", src: music3, moods: ["energetic"] },
-  { id: 4, name: "Synth Horizon", src: music4, moods: ["chill", "epic"] },
-  { id: 5, name: "Electric Night", src: music5, moods: ["tense", "mysterious"] },
-  { id: 6, name: "Midnight Glow", src: music6, moods: ["mysterious", "tense"] },
-  { id: 7, name: "Retro Vibes", src: music7, moods: ["playful", "chill"] },
-  { id: 8, name: "Future Bass", src: music8, moods: ["energetic", "epic"] },
-  { id: 9, name: "Pixel Party", src: music9, moods: ["playful", "energetic"] },
-  { id: 10, name: "Neon Rush", src: music10, moods: ["energetic", "tense"] },
-  { id: 11, name: "Cosmic Flow", src: music11, moods: ["chill", "mysterious"] },
-  { id: 12, name: "Stellar Beat", src: music12, moods: ["epic", "energetic"] },
-  { id: 13, name: "Original Mafieux", src: music13, moods: ["mysterious", "tense"] },
-  // Adaptive originals (id 100+) — preferred per situation
-  { id: 100, name: "🎪 Lobby Theme", src: aLobby, moods: ["chill", "playful"] },
-  { id: 101, name: "⚡ Game On", src: aGameplay, moods: ["energetic"] },
-  { id: 102, name: "🕯️ The Vote", src: aVote, moods: ["tense", "mysterious"] },
-  { id: 103, name: "🏆 Victory Fanfare", src: aVictory, moods: ["epic"] },
-  { id: 104, name: "💀 Sad Trombone", src: aDefeat, moods: ["chill"] },
-  { id: 105, name: "🕵️ Undercover Noir", src: aUndercover, moods: ["mysterious", "tense"] },
-  { id: 106, name: "📞 Audio Phone", src: aAudiophone, moods: ["playful"] },
-  { id: 107, name: "🧠 Quiz Show", src: aQuiz, moods: ["playful", "energetic"] },
-  { id: 108, name: "🎪 Lobby Theme II", src: aLobby2, moods: ["chill", "playful"] },
-  { id: 109, name: "🎪 Lobby Theme III", src: '/music/lobbytheme3.mp3', moods: ["chill", "playful"] },
-  // User-provided gameplay tracks (id 200+) — preferred for the "playing" situation
-  ...USER_GAMEPLAY_TRACKS.map((t) => ({
-    ...t,
-    moods: ["energetic", "epic"] as MusicMood[],
-  })),
+  { id: 1,   name: 'Neon Dreams',        src: music1,  moods: ['chill'] },
+  { id: 2,   name: 'Cyber Wave',         src: music2,  moods: ['chill', 'playful'] },
+  { id: 3,   name: 'Digital Pulse',      src: music3,  moods: ['energetic'] },
+  { id: 4,   name: 'Synth Horizon',      src: music4,  moods: ['chill', 'epic'] },
+  { id: 5,   name: 'Electric Night',     src: music5,  moods: ['tense', 'mysterious'] },
+  { id: 6,   name: 'Midnight Glow',      src: music6,  moods: ['mysterious', 'tense'] },
+  { id: 7,   name: 'Retro Vibes',        src: music7,  moods: ['playful', 'chill'] },
+  { id: 8,   name: 'Future Bass',        src: music8,  moods: ['energetic', 'epic'] },
+  { id: 9,   name: 'Pixel Party',        src: music9,  moods: ['playful', 'energetic'] },
+  { id: 10,  name: 'Neon Rush',          src: music10, moods: ['energetic', 'tense'] },
+  { id: 11,  name: 'Cosmic Flow',        src: music11, moods: ['chill', 'mysterious'] },
+  { id: 12,  name: 'Stellar Beat',       src: music12, moods: ['epic', 'energetic'] },
+  { id: 13,  name: 'Original Mafieux',   src: music13, moods: ['mysterious', 'tense'] },
+  { id: 100, name: '🎪 Lobby Theme',     src: aLobby,     moods: ['chill', 'playful'] },
+  { id: 101, name: '⚡ Game On',         src: aGameplay,  moods: ['energetic'] },
+  { id: 102, name: '🕯️ The Vote',        src: aVote,      moods: ['tense', 'mysterious'] },
+  { id: 103, name: '🏆 Victory Fanfare', src: aVictory,   moods: ['epic'] },
+  { id: 104, name: '💀 Sad Trombone',    src: aDefeat,    moods: ['chill'] },
+  { id: 105, name: '🕵️ Undercover Noir', src: aUndercover, moods: ['mysterious', 'tense'] },
+  { id: 106, name: '📞 Audio Phone',     src: aAudiophone, moods: ['playful'] },
+  { id: 107, name: '🧠 Quiz Show',       src: aQuiz,      moods: ['playful', 'energetic'] },
+  { id: 108, name: '🎪 Lobby Theme II',  src: aLobby2,    moods: ['chill', 'playful'] },
+  { id: 109, name: '🎪 Lobby Theme III', src: '/music/lobbytheme3.mp3', moods: ['chill', 'playful'] },
+  ...USER_GAMEPLAY_TRACKS.map((t) => ({ ...t, moods: ['energetic', 'epic'] as MusicMood[] })),
 ];
 
-/** Direct mapping from situation -> preferred adaptive track id(s). Arrays are randomized. */
 const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number | number[]>> = {
-  home: 109,
-  lobby: 109,
-  preparation: 109,
-  // Calmer build-up before the round starts — reuse the playful lobby track
+  home: 109, lobby: 109, preparation: 109,
   preview: [108, 100],
-  // Active gameplay during a round (imitation phase): energetic gameplay tracks
   round: [200, 201, 101],
-  playing: [200, 201, 101], // 🎮 user gameplay tracks first, original 101 as fallback
-  voting: 102,
-  victory: 103,
-  defeat: 104,
-  undercover: 105,
-  audiophone: 106,
-  quiz: 107,
-  monopoly: [200, 201, 101],
-  pixoguess: [200, 201, 101],
+  playing: [200, 201, 101],
+  voting: 102, victory: 103, defeat: 104,
+  undercover: 105, audiophone: 106, quiz: 107,
+  monopoly: [200, 201, 101], pixoguess: [200, 201, 101],
 };
 
-/** Map each game situation to a list of preferred moods (in priority order). */
 const SITUATION_TO_MOODS: Record<MusicSituation, MusicMood[]> = {
-  home: ["chill", "playful"],
-  lobby: ["chill", "playful"],
-  preparation: ["playful", "energetic"],
-  preview: ["playful", "chill"],
-  round: ["energetic", "epic"],
-  playing: ["energetic", "epic"],
-  voting: ["tense", "mysterious"],
-  victory: ["epic", "energetic"],
-  defeat: ["mysterious", "chill"],
-  undercover: ["mysterious", "tense"],
-  audiophone: ["playful", "chill"],
-  quiz: ["playful", "energetic"],
-  monopoly: ["epic", "energetic"],
-  pixoguess: ["playful", "energetic"],
+  home: ['chill', 'playful'], lobby: ['chill', 'playful'],
+  preparation: ['playful', 'energetic'], preview: ['playful', 'chill'],
+  round: ['energetic', 'epic'], playing: ['energetic', 'epic'],
+  voting: ['tense', 'mysterious'], victory: ['epic', 'energetic'],
+  defeat: ['mysterious', 'chill'], undercover: ['mysterious', 'tense'],
+  audiophone: ['playful', 'chill'], quiz: ['playful', 'energetic'],
+  monopoly: ['epic', 'energetic'], pixoguess: ['playful', 'energetic'],
 };
 
-function pickTrackForSituation(
-  situation: MusicSituation,
-  excludeId?: number,
-): MusicTrack {
-  // Prefer the dedicated adaptive original if available
+function pickTrackForSituation(situation: MusicSituation, excludeId?: number): MusicTrack {
   const adaptive = SITUATION_TO_ADAPTIVE_ID[situation];
   if (adaptive !== undefined) {
     const ids = Array.isArray(adaptive) ? adaptive : [adaptive];
     const pool = ids.filter((id) => id !== excludeId);
-    const pickId = (pool.length > 0 ? pool : ids)[Math.floor(Math.random() * (pool.length > 0 ? pool.length : ids.length))];
+    const chosen = pool.length > 0 ? pool : ids;
+    const pickId = chosen[Math.floor(Math.random() * chosen.length)];
     const track = musicTracks.find((t) => t.id === pickId);
     if (track) return track;
   }
-  const moods = SITUATION_TO_MOODS[situation] ?? ["energetic"];
+  const moods = SITUATION_TO_MOODS[situation] ?? ['energetic'];
   for (const mood of moods) {
-    const candidates = musicTracks.filter(
-      (t) => t.moods?.includes(mood) && t.id !== excludeId,
-    );
-    if (candidates.length > 0) {
-      return candidates[Math.floor(Math.random() * candidates.length)];
-    }
+    const candidates = musicTracks.filter((t) => t.moods?.includes(mood) && t.id !== excludeId);
+    if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
   }
   return musicTracks[Math.floor(Math.random() * musicTracks.length)];
 }
 
+/** Normalise a src to a comparable key (strip origin for absolute URLs). */
+const normSrc = (src: string): string => {
+  try {
+    const u = new URL(src, window.location.href);
+    return u.pathname + u.search;
+  } catch {
+    return src;
+  }
+};
+
 interface BackgroundMusicContextType {
   volume: number;
-  setVolume: (volume: number) => void;
+  setVolume: (v: number) => void;
   isPlaying: boolean;
   pause: () => void;
   play: () => void;
@@ -189,14 +145,12 @@ interface BackgroundMusicContextType {
   tracks: MusicTrack[];
   nextTrack: () => void;
   previousTrack: () => void;
-  selectTrack: (trackId: number) => void;
+  selectTrack: (id: number) => void;
   progress: number;
   duration: number;
   seek: (time: number) => void;
-  /** Auto adaptive mode: when true, music auto-switches with the current situation. */
   autoMode: boolean;
   setAutoMode: (v: boolean) => void;
-  /** Current situation (set by the app) used by the auto-selector. */
   situation: MusicSituation;
   setSituation: (s: MusicSituation, options?: SetSituationOptions) => void;
   clearSituationOverride: (source?: string) => void;
@@ -206,26 +160,45 @@ const BackgroundMusicContext = createContext<BackgroundMusicContextType | undefi
 
 export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) => {
   const [volume, setVolumeState] = useState(() => {
-    const saved = localStorage.getItem('backgroundMusicVolume');
-    return saved ? parseFloat(saved) : 0.3;
+    const s = localStorage.getItem('backgroundMusicVolume');
+    return s ? parseFloat(s) : 0.3;
   });
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(() => {
-    const saved = localStorage.getItem('backgroundMusicTrack');
-    return saved ? parseInt(saved) : Math.floor(Math.random() * musicTracks.length);
+    const s = localStorage.getItem('backgroundMusicTrack');
+    const idx = s ? parseInt(s, 10) : -1;
+    return idx >= 0 && idx < musicTracks.length ? idx : 0;
   });
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const hasUserInteracted = useRef(false);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasInteracted = useRef(false);
+  const fadeAbortRef = useRef<{ aborted: boolean } | null>(null);
+  const progressTimerRef = useRef<number>(0);
+
+  // Keep refs in sync so callbacks always see the latest values without
+  // being recreated (avoids the audio element teardown/recreate loop).
+  const volumeRef = useRef(volume);
+  const isPlayingRef = useRef(isPlaying);
+  const situationRef = useRef<MusicSituation>('home');
+  const autoModeRef = useRef(true);
+  const currentTrackIndexRef = useRef(currentTrackIndex);
+
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { currentTrackIndexRef.current = currentTrackIndex; }, [currentTrackIndex]);
+
+  // ── Situation state ──────────────────────────────────────────────────────
   const [autoMode, setAutoModeState] = useState<boolean>(() => {
-    const saved = localStorage.getItem('backgroundMusicAuto');
-    return saved === null ? true : saved === 'true';
+    const s = localStorage.getItem('backgroundMusicAuto');
+    return s === null ? true : s === 'true';
   });
-  const [baseSituation, setBaseSituation] = useState<MusicSituation>("home");
+  const [baseSituation, setBaseSituation] = useState<MusicSituation>('home');
   const [overrideSituation, setOverrideSituation] = useState<SituationOverride | null>(null);
   const lastAutoSituation = useRef<MusicSituation | null>(null);
+
+  useEffect(() => { autoModeRef.current = autoMode; }, [autoMode]);
 
   const setAutoMode = useCallback((v: boolean) => {
     setAutoModeState(v);
@@ -233,9 +206,9 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   }, []);
 
   const clearSituationOverride = useCallback((source?: string) => {
-    setOverrideSituation((current) => {
-      if (!current) return null;
-      if (source && current.source !== source) return current;
+    setOverrideSituation((cur) => {
+      if (!cur) return null;
+      if (source && cur.source !== source) return cur;
       return null;
     });
   }, []);
@@ -243,235 +216,203 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   const setSituation = useCallback((s: MusicSituation, options?: SetSituationOptions) => {
     const priority = options?.priority ?? 0;
     if (priority > 0) {
-      const nextOverride: SituationOverride = {
-        situation: s,
-        priority,
-        source: options?.source ?? "unknown",
+      const next: SituationOverride = {
+        situation: s, priority,
+        source: options?.source ?? 'unknown',
         expiresAt: options?.holdMs ? Date.now() + options.holdMs : null,
       };
-
-      setOverrideSituation((current) => {
-        if (!current) return nextOverride;
-        const currentExpired = current.expiresAt !== null && current.expiresAt <= Date.now();
-        if (currentExpired) return nextOverride;
-        if (current.source === nextOverride.source) return nextOverride;
-        if (nextOverride.priority >= current.priority) return nextOverride;
-        return current;
+      setOverrideSituation((cur) => {
+        if (!cur) return next;
+        if (cur.expiresAt !== null && cur.expiresAt <= Date.now()) return next;
+        if (cur.source === next.source) return next;
+        if (next.priority >= cur.priority) return next;
+        return cur;
       });
       return;
     }
-
     setBaseSituation(s);
   }, []);
 
+  // Auto-expire overrides
   useEffect(() => {
     if (!overrideSituation?.expiresAt) return;
-
     const delay = Math.max(overrideSituation.expiresAt - Date.now(), 0);
-    const timer = window.setTimeout(() => {
-      setOverrideSituation((current) => {
-        if (!current) return null;
-        if (current.expiresAt !== overrideSituation.expiresAt) return current;
-        if (current.expiresAt !== null && current.expiresAt <= Date.now()) {
-          return null;
-        }
-        return current;
+    const t = window.setTimeout(() => {
+      setOverrideSituation((cur) => {
+        if (!cur || cur.expiresAt !== overrideSituation.expiresAt) return cur;
+        return cur.expiresAt <= Date.now() ? null : cur;
       });
     }, delay + 20);
-
-    return () => window.clearTimeout(timer);
+    return () => window.clearTimeout(t);
   }, [overrideSituation]);
 
-  const situation = useMemo(() => {
+  const situation = useMemo<MusicSituation>(() => {
     if (!overrideSituation) return baseSituation;
-    if (overrideSituation.expiresAt !== null && overrideSituation.expiresAt <= Date.now()) {
-      return baseSituation;
-    }
+    if (overrideSituation.expiresAt !== null && overrideSituation.expiresAt <= Date.now()) return baseSituation;
     return overrideSituation.situation;
   }, [baseSituation, overrideSituation]);
 
-  const currentTrack = useMemo(() => 
-    musicTracks[currentTrackIndex] || null
-  , [currentTrackIndex]);
+  useEffect(() => { situationRef.current = situation; }, [situation]);
 
-  // Auto-switch track when situation changes (only if autoMode is on)
-  useEffect(() => {
-    if (!autoMode) return;
-    if (lastAutoSituation.current === situation) return;
-    lastAutoSituation.current = situation;
-    const currentId = musicTracks[currentTrackIndex]?.id;
-    const next = pickTrackForSituation(situation, currentId);
-    const nextIdx = musicTracks.findIndex((t) => t.id === next.id);
-    if (nextIdx !== -1 && nextIdx !== currentTrackIndex) {
-      setCurrentTrackIndex(nextIdx);
-    }
-  }, [autoMode, situation, currentTrackIndex]);
+  const currentTrack = useMemo(() => musicTracks[currentTrackIndex] ?? null, [currentTrackIndex]);
 
-  // Throttled progress update
-  const progressUpdateRef = useRef<number>(0);
-  const handleTimeUpdate = useCallback(() => {
-    const now = Date.now();
-    if (now - progressUpdateRef.current > 250 && audioRef.current) {
-      progressUpdateRef.current = now;
-      setProgress(audioRef.current.currentTime);
-    }
-  }, []);
+  // ── Cross-fade helper ────────────────────────────────────────────────────
+  const fadeAndLoad = useCallback((nextSrc: string, targetVol: number, wasPlaying: boolean, fadeMs = 400) => {
+    const el = audioRef.current;
+    if (!el) return;
 
-  const handleEnded = useCallback(() => {
-    setCurrentTrackIndex((prev) => {
-      if (autoMode) {
-        const currentId = musicTracks[prev]?.id;
-        const next = pickTrackForSituation(situation, currentId);
-        const nextIdx = musicTracks.findIndex((track) => track.id === next.id);
-        if (nextIdx !== -1) {
-          return nextIdx;
-        }
-      }
-      return (prev + 1) % musicTracks.length;
-    });
-  }, [autoMode, situation]);
-
-  const handleLoadedMetadata = useCallback(() => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-    }
-  }, []);
-
-  // Initialize audio element once
-  useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.preload = 'none';
-      audioRef.current.loop = false;
-      audioRef.current.volume = volume;
-      
-      audioRef.current.addEventListener('ended', handleEnded);
-      audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
-      audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
+    // Same track? Just ensure volume is right.
+    if (normSrc(el.src) === normSrc(nextSrc)) {
+      el.volume = targetVol;
+      return;
     }
 
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.removeEventListener('ended', handleEnded);
-        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-        audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, [handleEnded, handleTimeUpdate, handleLoadedMetadata]);
+    if (fadeAbortRef.current) fadeAbortRef.current.aborted = true;
+    const token = { aborted: false };
+    fadeAbortRef.current = token;
 
-  // Cross-fade controller — guarded so rapid situation switches don't stack
-  // overlapping fade animations on the same <audio> element.
-  const fadeAbortRef = useRef<{ aborted: boolean } | null>(null);
+    const startVol = el.volume;
+    const t0 = performance.now();
 
-  const fadeAndLoad = useCallback(
-    (nextSrc: string, targetVolume: number, fadeMs = 400) => {
-      const el = audioRef.current;
-      if (!el) return;
+    const fadeOut = (now: number) => {
+      if (token.aborted || !audioRef.current) return;
+      const t = Math.min(1, (now - t0) / fadeMs);
+      audioRef.current.volume = Math.max(0, startVol * (1 - t));
+      if (t < 1) { requestAnimationFrame(fadeOut); return; }
 
-      // Same src? Nothing to do — preserves continuity across re-renders.
-      if (el.src && el.src.endsWith(nextSrc)) {
-        if (Math.abs(el.volume - targetVolume) > 0.01) el.volume = targetVolume;
+      // Swap src
+      if (token.aborted || !audioRef.current) return;
+      audioRef.current.src = nextSrc;
+      audioRef.current.preload = 'auto';
+      audioRef.current.volume = 0;
+
+      if (!wasPlaying) {
+        // User had paused — load but don't play
+        audioRef.current.load();
         return;
       }
 
-      // Cancel any in-flight fade before starting a new one.
-      if (fadeAbortRef.current) fadeAbortRef.current.aborted = true;
-      const token = { aborted: false };
-      fadeAbortRef.current = token;
-
-      const startVolume = el.volume;
-      const startTime = performance.now();
-
-      const animate = (now: number) => {
-        if (token.aborted) return;
-        if (!audioRef.current) return;
-        const elapsed = now - startTime;
-        const t = Math.min(1, elapsed / fadeMs);
-        const v = startVolume * (1 - t);
-        audioRef.current.volume = Math.max(0, v);
-        if (t < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          // Swap and fade in
-          if (token.aborted || !audioRef.current) return;
-          audioRef.current.src = nextSrc;
-          audioRef.current.preload = 'auto';
-          audioRef.current.volume = 0;
-          audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-          const inStart = performance.now();
-          const animateIn = (now2: number) => {
-            if (token.aborted) return;
-            if (!audioRef.current) return;
-            const e2 = now2 - inStart;
-            const t2 = Math.min(1, e2 / fadeMs);
-            audioRef.current.volume = targetVolume * t2;
-            if (t2 < 1) requestAnimationFrame(animateIn);
+      audioRef.current.play()
+        .then(() => {
+          if (token.aborted) return;
+          setIsPlaying(true);
+          const t1 = performance.now();
+          const fadeIn = (now2: number) => {
+            if (token.aborted || !audioRef.current) return;
+            const t2 = Math.min(1, (now2 - t1) / fadeMs);
+            audioRef.current.volume = targetVol * t2;
+            if (t2 < 1) requestAnimationFrame(fadeIn);
           };
-          requestAnimationFrame(animateIn);
-        }
-      };
-      requestAnimationFrame(animate);
-    },
-    [],
-  );
-
-  // Load track when index changes
-  useEffect(() => {
-    if (audioRef.current && musicTracks[currentTrackIndex]) {
-      const nextSrc = musicTracks[currentTrackIndex].src;
-      const currentSrc = audioRef.current.src;
-      // Avoid reloading the same source (prevents stalls during rapid situation switches)
-      if (currentSrc && currentSrc.endsWith(nextSrc)) {
-        return;
-      }
-      localStorage.setItem('backgroundMusicTrack', currentTrackIndex.toString());
-      // Cross-fade to the new track instead of cutting abruptly. If the user
-      // hasn't interacted yet (autoplay blocked), this simply loads the src
-      // silently and waits for the gesture handler below to start playback.
-      if (audioRef.current.paused && !hasUserInteracted.current) {
-        audioRef.current.src = nextSrc;
-        audioRef.current.preload = 'auto';
-        audioRef.current
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => {});
-      } else {
-        fadeAndLoad(nextSrc, volume);
-      }
-    }
-  }, [currentTrackIndex, fadeAndLoad, volume]);
-
-  // Auto-start music on mount + auto-resume on first user gesture if blocked
-  useEffect(() => {
-    const tryPlay = () => {
-      if (!audioRef.current) return;
-      if (!audioRef.current.src) {
-        audioRef.current.src = musicTracks[currentTrackIndex].src;
-        audioRef.current.preload = 'auto';
-      }
-      audioRef.current
-        .play()
-        .then(() => setIsPlaying(true))
+          requestAnimationFrame(fadeIn);
+        })
         .catch(() => {});
     };
 
-    // Initial attempt (works if browser allows it, e.g. PWA / returning user)
+    // If currently silent (paused or vol=0), skip the fade-out
+    if (el.paused || el.volume < 0.01) {
+      el.src = nextSrc;
+      el.preload = 'auto';
+      el.volume = wasPlaying ? 0 : targetVol;
+      if (wasPlaying) {
+        el.play()
+          .then(() => {
+            if (token.aborted) return;
+            setIsPlaying(true);
+            const t1 = performance.now();
+            const fadeIn = (now2: number) => {
+              if (token.aborted || !audioRef.current) return;
+              const t2 = Math.min(1, (now2 - t1) / fadeMs);
+              audioRef.current.volume = targetVol * t2;
+              if (t2 < 1) requestAnimationFrame(fadeIn);
+            };
+            requestAnimationFrame(fadeIn);
+          })
+          .catch(() => {});
+      }
+    } else {
+      requestAnimationFrame(fadeOut);
+    }
+  }, []);
+
+  // ── Audio element — created once, never torn down ────────────────────────
+  useEffect(() => {
+    const el = new Audio();
+    el.preload = 'none';
+    el.loop = false;
+    el.volume = volumeRef.current;
+    audioRef.current = el;
+
+    const onEnded = () => {
+      // Pick next track for the current situation (read from ref, always fresh)
+      const curId = musicTracks[currentTrackIndexRef.current]?.id;
+      const next = autoModeRef.current
+        ? pickTrackForSituation(situationRef.current, curId)
+        : musicTracks[(currentTrackIndexRef.current + 1) % musicTracks.length];
+      const nextIdx = musicTracks.findIndex((t) => t.id === next.id);
+      setCurrentTrackIndex(nextIdx >= 0 ? nextIdx : 0);
+    };
+
+    const onTimeUpdate = () => {
+      const now = Date.now();
+      if (now - progressTimerRef.current > 250) {
+        progressTimerRef.current = now;
+        setProgress(el.currentTime);
+      }
+    };
+
+    const onMeta = () => setDuration(el.duration);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+
+    el.addEventListener('ended', onEnded);
+    el.addEventListener('timeupdate', onTimeUpdate);
+    el.addEventListener('loadedmetadata', onMeta);
+    el.addEventListener('play', onPlay);
+    el.addEventListener('pause', onPause);
+
+    return () => {
+      el.removeEventListener('ended', onEnded);
+      el.removeEventListener('timeupdate', onTimeUpdate);
+      el.removeEventListener('loadedmetadata', onMeta);
+      el.removeEventListener('play', onPlay);
+      el.removeEventListener('pause', onPause);
+      el.pause();
+      audioRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ← empty deps: audio element lives for the entire session
+
+  // ── Load track when index changes ────────────────────────────────────────
+  useEffect(() => {
+    const el = audioRef.current;
+    const track = musicTracks[currentTrackIndex];
+    if (!el || !track) return;
+    localStorage.setItem('backgroundMusicTrack', String(currentTrackIndex));
+    fadeAndLoad(track.src, volumeRef.current, isPlayingRef.current);
+  }, [currentTrackIndex, fadeAndLoad]);
+
+  // ── Auto-start on first user gesture ────────────────────────────────────
+  useEffect(() => {
+    // Try immediately (works for returning users / PWA)
+    const tryPlay = () => {
+      const el = audioRef.current;
+      if (!el) return;
+      if (!el.src) {
+        el.src = musicTracks[currentTrackIndexRef.current]?.src ?? '';
+        el.preload = 'auto';
+      }
+      el.play().then(() => setIsPlaying(true)).catch(() => {});
+    };
     tryPlay();
 
-    // Fallback: resume on the very first user gesture (one-shot)
     const onGesture = () => {
-      hasUserInteracted.current = true;
+      if (hasInteracted.current) return;
+      hasInteracted.current = true;
       tryPlay();
-      window.removeEventListener('pointerdown', onGesture);
-      window.removeEventListener('keydown', onGesture);
-      window.removeEventListener('touchstart', onGesture);
     };
-    window.addEventListener('pointerdown', onGesture, { once: false });
-    window.addEventListener('keydown', onGesture, { once: false });
-    window.addEventListener('touchstart', onGesture, { once: false });
-
+    window.addEventListener('pointerdown', onGesture);
+    window.addEventListener('keydown', onGesture);
+    window.addEventListener('touchstart', onGesture);
     return () => {
       window.removeEventListener('pointerdown', onGesture);
       window.removeEventListener('keydown', onGesture);
@@ -480,47 +421,54 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update volume
-  const setVolume = useCallback((newVolume: number) => {
-    setVolumeState(newVolume);
-    if (audioRef.current) {
-      audioRef.current.volume = newVolume;
+  // ── Auto-switch track when situation changes ─────────────────────────────
+  useEffect(() => {
+    if (!autoMode) return;
+    if (lastAutoSituation.current === situation) return;
+    lastAutoSituation.current = situation;
+    const curId = musicTracks[currentTrackIndex]?.id;
+    const next = pickTrackForSituation(situation, curId);
+    const nextIdx = musicTracks.findIndex((t) => t.id === next.id);
+    if (nextIdx !== -1 && nextIdx !== currentTrackIndex) {
+      setCurrentTrackIndex(nextIdx);
     }
-    localStorage.setItem('backgroundMusicVolume', newVolume.toString());
+  }, [autoMode, situation, currentTrackIndex]);
+
+  // ── Controls ─────────────────────────────────────────────────────────────
+  const setVolume = useCallback((v: number) => {
+    setVolumeState(v);
+    volumeRef.current = v;
+    if (audioRef.current) audioRef.current.volume = v;
+    localStorage.setItem('backgroundMusicVolume', String(v));
   }, []);
 
   const pause = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
+    audioRef.current?.pause();
+    setIsPlaying(false);
   }, []);
 
   const play = useCallback(() => {
-    hasUserInteracted.current = true;
-    if (audioRef.current) {
-      if (!audioRef.current.src || audioRef.current.src === '') {
-        audioRef.current.src = musicTracks[currentTrackIndex].src;
-        audioRef.current.preload = 'auto';
-      }
-      audioRef.current.play().catch(console.error);
-      setIsPlaying(true);
+    hasInteracted.current = true;
+    const el = audioRef.current;
+    if (!el) return;
+    if (!el.src) {
+      el.src = musicTracks[currentTrackIndexRef.current]?.src ?? '';
+      el.preload = 'auto';
     }
-  }, [currentTrackIndex]);
+    el.play().then(() => setIsPlaying(true)).catch(console.error);
+  }, []);
 
   const nextTrack = useCallback(() => {
-    setCurrentTrackIndex(prev => (prev + 1) % musicTracks.length);
+    setCurrentTrackIndex((p) => (p + 1) % musicTracks.length);
   }, []);
 
   const previousTrack = useCallback(() => {
-    setCurrentTrackIndex(prev => (prev - 1 + musicTracks.length) % musicTracks.length);
+    setCurrentTrackIndex((p) => (p - 1 + musicTracks.length) % musicTracks.length);
   }, []);
 
-  const selectTrack = useCallback((trackId: number) => {
-    const index = musicTracks.findIndex(t => t.id === trackId);
-    if (index !== -1) {
-      setCurrentTrackIndex(index);
-    }
+  const selectTrack = useCallback((id: number) => {
+    const idx = musicTracks.findIndex((t) => t.id === id);
+    if (idx !== -1) setCurrentTrackIndex(idx);
   }, []);
 
   const seek = useCallback((time: number) => {
@@ -530,38 +478,30 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     }
   }, []);
 
-  const contextValue = useMemo(() => ({ 
-    volume, 
-    setVolume, 
-    isPlaying, 
-    pause, 
-    play,
-    currentTrack,
-    tracks: musicTracks,
-    nextTrack,
-    previousTrack,
-    selectTrack,
-    progress,
-    duration,
-    seek,
-    autoMode,
-    setAutoMode,
-    situation,
-    setSituation,
-    clearSituationOverride,
-  }), [volume, setVolume, isPlaying, pause, play, currentTrack, nextTrack, previousTrack, selectTrack, progress, duration, seek, autoMode, setAutoMode, situation, setSituation, clearSituationOverride]);
+  const ctx = useMemo<BackgroundMusicContextType>(() => ({
+    volume, setVolume, isPlaying, pause, play,
+    currentTrack, tracks: musicTracks,
+    nextTrack, previousTrack, selectTrack,
+    progress, duration, seek,
+    autoMode, setAutoMode,
+    situation, setSituation, clearSituationOverride,
+  }), [
+    volume, setVolume, isPlaying, pause, play,
+    currentTrack, nextTrack, previousTrack, selectTrack,
+    progress, duration, seek,
+    autoMode, setAutoMode,
+    situation, setSituation, clearSituationOverride,
+  ]);
 
   return (
-    <BackgroundMusicContext.Provider value={contextValue}>
+    <BackgroundMusicContext.Provider value={ctx}>
       {children}
     </BackgroundMusicContext.Provider>
   );
 };
 
 export const useBackgroundMusic = () => {
-  const context = useContext(BackgroundMusicContext);
-  if (!context) {
-    throw new Error('useBackgroundMusic must be used within BackgroundMusicProvider');
-  }
-  return context;
+  const ctx = useContext(BackgroundMusicContext);
+  if (!ctx) throw new Error('useBackgroundMusic must be used within BackgroundMusicProvider');
+  return ctx;
 };
