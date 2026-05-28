@@ -74,6 +74,8 @@ interface UndercoverGame {
   winner_role: string | null;
   civilian_wins?: number;
   undercover_wins?: number;
+  /** 0 = first clue pass, 1 = second clue pass. After pass 1 → discussion. */
+  clue_pass?: number;
 }
 
 type GamePhase =
@@ -316,6 +318,7 @@ export const useUndercoverGame = (
         phase: 'word_reveal',
         current_round: game.current_round + 1,
         current_player_index: 0,
+        clue_pass: 0,
         player_order: newOrder,
         civilian_word: newPair.civilian,
         undercover_word: newPair.undercover,
@@ -569,6 +572,7 @@ export const useUndercoverGame = (
       .update({
         phase: 'clue_giving',
         current_player_index: 0,
+        clue_pass: 0,
         eliminated_player_id: null,
         eliminated_role: null,
       })
@@ -586,7 +590,7 @@ export const useUndercoverGame = (
         if (game) {
           await supabase
             .from('undercover_games')
-            .update({ phase: 'clue_giving' })
+            .update({ phase: 'clue_giving', clue_pass: 0 })
             .eq('id', game.id);
         }
       }, 2000);
@@ -598,7 +602,7 @@ export const useUndercoverGame = (
     if (!game || !currentPlayer.isHost) return;
     await supabase
       .from('undercover_games')
-      .update({ phase: 'clue_giving', current_player_index: 0 })
+      .update({ phase: 'clue_giving', current_player_index: 0, clue_pass: 0 })
       .eq('id', game.id);
   }, [game, currentPlayer.isHost]);
 
@@ -649,6 +653,25 @@ export const useUndercoverGame = (
 
     void (async () => {
       if (game.current_player_index + 1 >= aliveOrder.length) {
+        // All alive players have given their clue for this pass.
+        const currentPass = (game as any).clue_pass ?? 0;
+
+        if (currentPass < 1) {
+          // First pass done → start second pass: reset index, clear clues,
+          // bump clue_pass so everyone gives a 2nd clue.
+          await supabase
+            .from('undercover_players')
+            .update({ current_clue: null })
+            .eq('game_id', game.id);
+
+          await supabase
+            .from('undercover_games')
+            .update({ current_player_index: 0, clue_pass: currentPass + 1 })
+            .eq('id', game.id);
+          return;
+        }
+
+        // Second pass done → move to discussion
         await supabase
           .from('undercover_games')
           .update({ phase: 'discussion', current_player_index: 0 })
@@ -718,7 +741,7 @@ export const useUndercoverGame = (
         if (game) {
           await supabase
             .from('undercover_games')
-            .update({ phase: 'clue_giving', current_player_index: 0 })
+            .update({ phase: 'clue_giving', current_player_index: 0, clue_pass: 0 })
             .eq('id', game.id);
         }
       }, 2500);
@@ -804,7 +827,7 @@ export const useUndercoverGame = (
         botTimerRef.current = null;
       }
     };
-  }, [game?.phase, game?.current_player_index, game?.id, gamePlayers, currentPlayer.isHost]);
+  }, [game?.phase, game?.current_player_index, (game as any)?.clue_pass, game?.id, gamePlayers, currentPlayer.isHost]);
 
   // Realtime subscriptions
   useEffect(() => {

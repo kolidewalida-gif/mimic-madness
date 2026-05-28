@@ -146,6 +146,11 @@ export const UndercoverGameScreen = memo(
             style={{ background: 'rgba(0,0,0,0.5)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810' }}>
             <span className="text-xl font-black" style={{ fontFamily: FONT, color: accent, textShadow: SHADOW_SM }}>
               {PHASE_LABELS[game.phase] ?? game.phase}
+              {game.phase === 'clue_giving' && (
+                <span className="text-sm ml-2 text-white/60">
+                  ({((game as any).clue_pass ?? 0) + 1}/2)
+                </span>
+              )}
             </span>
           </motion.div>
 
@@ -167,14 +172,6 @@ export const UndercoverGameScreen = memo(
         {/* ═══ MAIN AREA — Players grid with clue history ═══ */}
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 min-h-0 overflow-hidden">
           {/* Players columns — each player is a column with avatar on top and clues below */}
-          {/* Clues are hidden until at least 2 players have submitted one — this
-              prevents the first speaker from being immediately identified by their
-              clue before others have had a chance to give theirs. */}
-          {(() => {
-            const cluesSubmittedCount = orderedPlayers.filter(p => p.current_clue).length;
-            const cluesVisible = cluesSubmittedCount >= 2;
-
-            return (
           <div className="w-full max-w-4xl flex justify-center gap-3 md:gap-5">
             {orderedPlayers.map((player) => {
               const isCurrent = currentTurnPlayerId === player.player_id && game.phase === 'clue_giving';
@@ -189,10 +186,6 @@ export const UndercoverGameScreen = memo(
               if (player.current_clue && !allClues.includes(player.current_clue)) {
                 allClues.push(player.current_clue);
               }
-              // Only show clues once the threshold is reached
-              const visibleClues = cluesVisible ? allClues : [];
-              // Show a "waiting" placeholder for own clue if already submitted but hidden
-              const myClueHidden = !cluesVisible && isMe && player.current_clue;
 
               return (
                 <div key={player.id} className="flex flex-col items-center gap-2.5 min-w-0" style={{ flex: '1 1 0', maxWidth: '220px' }}>
@@ -234,16 +227,6 @@ export const UndercoverGameScreen = memo(
                         <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                       </div>
                     )}
-                    {/* Submitted indicator (shown before clues are revealed) */}
-                    {!cluesVisible && player.current_clue && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-black text-white"
-                        style={{ background: 'linear-gradient(180deg, #34d399, #059669)', border: '1.5px solid #0a0810', boxShadow: '0 2px 0 #0a0810' }}>
-                        ✓
-                      </motion.div>
-                    )}
                   </motion.button>
 
                   {/* Player name */}
@@ -255,7 +238,7 @@ export const UndercoverGameScreen = memo(
 
                   {/* Clue history — stacked cards below avatar */}
                   <div className="flex flex-col gap-2 w-full">
-                    {visibleClues.map((clue, i) => (
+                    {allClues.map((clue, i) => (
                       <motion.div
                         key={`${player.player_id}-${i}`}
                         initial={{ scale: 0.7, opacity: 0, y: -5 }}
@@ -273,17 +256,8 @@ export const UndercoverGameScreen = memo(
                         </span>
                       </motion.div>
                     ))}
-                    {/* Hidden placeholder — own clue submitted but not yet revealed */}
-                    {myClueHidden && (
-                      <div className="w-full px-3 py-2 rounded-xl text-center"
-                        style={{ background: 'rgba(52,211,153,0.08)', border: '2px solid rgba(52,211,153,0.3)' }}>
-                        <span className="text-sm text-emerald-300/70 italic" style={{ fontFamily: FONT }}>
-                          Indice soumis — révélé après 2 indices
-                        </span>
-                      </div>
-                    )}
                     {/* Empty placeholder */}
-                    {visibleClues.length === 0 && !myClueHidden && (
+                    {allClues.length === 0 && (
                       <div className="w-full px-3 py-2 rounded-xl text-center"
                         style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(255,255,255,0.1)' }}>
                         <span className="text-sm text-white/30 italic" style={{ fontFamily: FONT }}>…</span>
@@ -294,8 +268,6 @@ export const UndercoverGameScreen = memo(
               );
             })}
           </div>
-            );
-          })()}
         </div>
 
         {/* ═══ BOTTOM ZONE — Action area + Timer ═══ */}
