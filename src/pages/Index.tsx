@@ -173,7 +173,7 @@ const Index = () => {
     // lobby regardless of where the receiver currently is.
     try {
       if (gameState !== 'home' && lobby) {
-        await leaveLobby();
+        await leaveLobby(currentPlayer?.id ?? '');
       }
     } catch (err) {
       console.error('[invitation] failed to leave current lobby:', err);

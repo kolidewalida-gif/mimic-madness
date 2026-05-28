@@ -245,7 +245,7 @@ const buildLiveChain = (
       presence.gain.value = 8;
 
       const distortion = ctx.createWaveShaper();
-      distortion.curve = makeSoftClipCurve(8);
+      distortion.curve = makeSoftClipCurve(8) as Float32Array<ArrayBuffer>;
       distortion.oversample = '4x';
 
       const slap = ctx.createDelay(0.1);
