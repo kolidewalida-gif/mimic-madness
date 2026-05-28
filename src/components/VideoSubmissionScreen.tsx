@@ -332,7 +332,6 @@ export const VideoSubmissionScreen = ({
                       playerName={currentPlayer.name}
                       maxVideos={5}
                       onVideoSaved={handleClipSaved}
-                      lobbyId={lobbyId}
                     />
                   </div>
                 </CartoonCard>
@@ -545,7 +544,6 @@ export const VideoSubmissionScreen = ({
                             playerName={currentPlayer.name}
                             maxVideos={5}
                             onVideoSaved={handleClipSaved}
-                            lobbyId={lobbyId}
                           />
                         </div>
                       </motion.div>
