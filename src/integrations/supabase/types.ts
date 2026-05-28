@@ -957,15 +957,20 @@ export type Database = {
       player_stats: {
         Row: {
           audio_phone_games: number | null
+          best_login_streak_days: number
           best_streak: number | null
+          chat_color: string | null
           created_at: string
           current_streak: number | null
           current_xp: number | null
+          equipped_voice_filter: string | null
           games_hosted: number | null
           games_played: number | null
           games_won: number | null
           id: string
+          last_login_date: string | null
           level: number | null
+          login_streak_days: number
           messages_sent: number | null
           quiz_games: number | null
           recordings_made: number | null
@@ -977,15 +982,20 @@ export type Database = {
         }
         Insert: {
           audio_phone_games?: number | null
+          best_login_streak_days?: number
           best_streak?: number | null
+          chat_color?: string | null
           created_at?: string
           current_streak?: number | null
           current_xp?: number | null
+          equipped_voice_filter?: string | null
           games_hosted?: number | null
           games_played?: number | null
           games_won?: number | null
           id?: string
+          last_login_date?: string | null
           level?: number | null
+          login_streak_days?: number
           messages_sent?: number | null
           quiz_games?: number | null
           recordings_made?: number | null
@@ -997,15 +1007,20 @@ export type Database = {
         }
         Update: {
           audio_phone_games?: number | null
+          best_login_streak_days?: number
           best_streak?: number | null
+          chat_color?: string | null
           created_at?: string
           current_streak?: number | null
           current_xp?: number | null
+          equipped_voice_filter?: string | null
           games_hosted?: number | null
           games_played?: number | null
           games_won?: number | null
           id?: string
+          last_login_date?: string | null
           level?: number | null
+          login_streak_days?: number
           messages_sent?: number | null
           quiz_games?: number | null
           recordings_made?: number | null
@@ -1074,6 +1089,45 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quest_progress: {
+        Row: {
+          created_at: string
+          id: string
+          is_claimed: boolean
+          period_key: string
+          progress: number
+          quest_id: string
+          quest_kind: string
+          target: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_claimed?: boolean
+          period_key: string
+          progress?: number
+          quest_id: string
+          quest_kind: string
+          target?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_claimed?: boolean
+          period_key?: string
+          progress?: number
+          quest_id?: string
+          quest_kind?: string
+          target?: number
           updated_at?: string
           user_id?: string
         }
@@ -1234,6 +1288,80 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      social_post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_posts: {
+        Row: {
+          caption: string | null
+          challenge_clip_id: string | null
+          clip_id: string
+          created_at: string
+          id: string
+          is_featured: boolean
+          is_hidden: boolean
+          likes_count: number
+          owner_id: string
+          owner_name: string
+          views_count: number
+          week_key: string
+        }
+        Insert: {
+          caption?: string | null
+          challenge_clip_id?: string | null
+          clip_id: string
+          created_at?: string
+          id?: string
+          is_featured?: boolean
+          is_hidden?: boolean
+          likes_count?: number
+          owner_id: string
+          owner_name: string
+          views_count?: number
+          week_key: string
+        }
+        Update: {
+          caption?: string | null
+          challenge_clip_id?: string | null
+          clip_id?: string
+          created_at?: string
+          id?: string
+          is_featured?: boolean
+          is_hidden?: boolean
+          likes_count?: number
+          owner_id?: string
+          owner_name?: string
+          views_count?: number
+          week_key?: string
+        }
+        Relationships: []
       }
       undercover_games: {
         Row: {
@@ -1476,6 +1604,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_quest_progress: {
+        Args: {
+          p_increment?: number
+          p_period_key: string
+          p_quest_id: string
+          p_quest_kind: string
+          p_target: number
+        }
+        Returns: number
+      }
+      claim_quest_reward: {
+        Args: { p_period_key: string; p_quest_id: string; p_xp_reward: number }
+        Returns: number
+      }
       cleanup_old_lobbies: { Args: never; Returns: undefined }
       generate_friend_code: { Args: never; Returns: string }
       has_role: {
@@ -1485,6 +1627,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      publish_social_post: {
+        Args: {
+          p_caption: string
+          p_challenge_clip_id: string
+          p_clip_id: string
+        }
+        Returns: string
+      }
+      toggle_social_like: { Args: { p_post_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
