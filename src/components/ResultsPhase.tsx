@@ -353,31 +353,248 @@ export const ResultsPhase = ({
   const SHADOW_SM = "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810";
   const FONT = "'Caveat', cursive";
 
-  const medalColor = (i: number) =>
-    i === 0 ? "#fbbf24" : i === 1 ? "#d1d5db" : i === 2 ? "#f97316" : "rgba(255,255,255,0.3)";
+  // Podium order: 2nd (left), 1st (center), 3rd (right)
+  const podium = [results[1] ?? null, results[0] ?? null, results[2] ?? null];
+  const podiumOrder = [1, 0, 2]; // index in results[]
+  const rest = results.slice(3);
+
+  // Podium card heights (center taller)
+  const podiumHeight = [220, 280, 200];
+  const podiumScale = [0.88, 1, 0.82];
+  const podiumLabel = ["🥈", "🥇", "🥉"];
+  const podiumColor = ["#d1d5db", "#fbbf24", "#f97316"];
+  const podiumRank = [2, 1, 3];
+
+  // PodiumCard — video + avatar + score
+  const PodiumCard = ({
+    result, rank, color, height, isCenter,
+  }: {
+    result: PlayerResult | null;
+    rank: number;
+    color: string;
+    height: number;
+    isCenter: boolean;
+  }) => {
+    if (!result) return (
+      <div className="flex-1 flex flex-col items-center justify-end" style={{ minHeight: height }}>
+        <div className="w-full rounded-3xl opacity-20"
+          style={{ height: height * 0.6, background: "rgba(255,255,255,0.05)", border: "3px dashed rgba(255,255,255,0.15)" }} />
+      </div>
+    );
+
+    const isExpanded = expandedPlayers.has(result.playerId);
+    const clip = playerClips[result.playerId];
+    const clipLoading = result.playerId in playerClips && clip === null;
+    const isMe = result.playerId === currentPlayer.id;
+
+    return (
+      <div className="flex-1 flex flex-col items-center gap-0" style={{ zIndex: isCenter ? 10 : 5 }}>
+        {/* Avatar bubble above card */}
+        <motion.div
+          initial={{ scale: 0, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 14, delay: isCenter ? 0.1 : 0.25 }}
+          className="relative mb-[-20px] z-10"
+        >
+          <div
+            className="rounded-full flex items-center justify-center"
+            style={{
+              width: isCenter ? 80 : 64,
+              height: isCenter ? 80 : 64,
+              background: `linear-gradient(135deg, ${color}, ${color}88)`,
+              border: `4px solid #0a0810`,
+              boxShadow: `0 5px 0 #0a0810, 0 0 20px ${color}66`,
+            }}
+          >
+            <PlayerAvatar playerId={result.playerId} playerName={result.playerName}
+              size={isCenter ? "lg" : "md"} />
+          </div>
+          {/* Rank badge */}
+          <div
+            className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center"
+            style={{ background: `linear-gradient(135deg, ${color}, ${color}cc)`, border: "2.5px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}
+          >
+            <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+              {rank}
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", damping: 18, delay: isCenter ? 0.05 : 0.2 }}
+          className="w-full rounded-3xl overflow-hidden flex flex-col"
+          style={{
+            background: isCenter
+              ? "linear-gradient(180deg, #2a1a0e, #1a0d2e)"
+              : "linear-gradient(180deg, #1a0d2e, #0f0820)",
+            border: `4px solid ${isCenter ? color : "#0a0810"}`,
+            boxShadow: isCenter
+              ? `0 8px 0 #0a0810, 0 0 30px ${color}55`
+              : "0 6px 0 #0a0810",
+            minHeight: height,
+          }}
+        >
+          {/* Video area */}
+          <div className="relative" style={{ paddingTop: "56.25%" /* 16:9 */ }}>
+            <div className="absolute inset-0">
+              {isExpanded && clip && challengeClipId ? (
+                <VideoWithAudioOverlay
+                  videoClipId={challengeClipId}
+                  audioClipId={clip.id}
+                  className="w-full h-full"
+                />
+              ) : (
+                <div
+                  className="w-full h-full flex flex-col items-center justify-center gap-2 cursor-pointer group"
+                  onClick={() => toggleExpand(result.playerId)}
+                  style={{ background: "rgba(0,0,0,0.5)" }}
+                >
+                  {clipLoading ? (
+                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                  ) : (
+                    <>
+                      <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        className="w-14 h-14 rounded-full flex items-center justify-center"
+                        style={{
+                          background: `linear-gradient(135deg, ${color}, ${color}88)`,
+                          border: "3px solid #0a0810",
+                          boxShadow: `0 4px 0 #0a0810, 0 0 16px ${color}66`,
+                        }}
+                      >
+                        <Play className="w-6 h-6 text-white" strokeWidth={2.5} />
+                      </motion.div>
+                      <span className="text-sm font-black text-white/80" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+                        Voir l'imitation
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-3 space-y-2">
+            {/* Name */}
+            <div className="text-center">
+              <h3
+                className="font-black text-white truncate"
+                style={{ fontFamily: FONT, textShadow: SHADOW_SM, fontSize: isCenter ? 22 : 18 }}
+              >
+                {isMe ? "Toi 🎤" : result.playerName}
+              </h3>
+            </div>
+
+            {/* Likes / score */}
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center gap-1">
+                <ThumbsUp className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-sm font-black text-emerald-400" style={{ fontFamily: FONT }}>{result.likes}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <ThumbsDown className="w-3.5 h-3.5 text-red-400" />
+                <span className="text-sm font-black text-red-400" style={{ fontFamily: FONT }}>{result.dislikes}</span>
+              </div>
+              <span
+                className="text-sm font-black"
+                style={{
+                  fontFamily: FONT,
+                  color: result.score > 0 ? "#34d399" : result.score < 0 ? "#ef4444" : "rgba(255,255,255,0.5)",
+                  textShadow: SHADOW_SM,
+                }}
+              >
+                {result.score > 0 ? "+" : ""}{result.score} pts
+              </span>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-1.5">
+              {isExpanded ? (
+                <motion.button type="button" onClick={() => toggleExpand(result.playerId)}
+                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                  className="flex-1 py-1.5 rounded-xl flex items-center justify-center gap-1"
+                  style={{ background: "rgba(168,85,247,0.2)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                  <ChevronUp className="w-3.5 h-3.5 text-purple-300" strokeWidth={2.5} />
+                  <span className="text-xs font-black text-purple-300" style={{ fontFamily: FONT }}>Cacher</span>
+                </motion.button>
+              ) : (
+                <motion.button type="button" onClick={() => toggleExpand(result.playerId)}
+                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                  className="flex-1 py-1.5 rounded-xl flex items-center justify-center gap-1"
+                  style={{ background: `${color}22`, border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                  <Play className="w-3 h-3" style={{ color }} strokeWidth={2.5} />
+                  <span className="text-xs font-black" style={{ fontFamily: FONT, color }}>Rejouer</span>
+                </motion.button>
+              )}
+              <motion.button type="button"
+                onClick={() => handleDownloadImitation(result.playerId, result.playerName)}
+                disabled={downloadingPlayer === result.playerId}
+                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                className="w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-50"
+                style={{ background: "rgba(255,255,255,0.06)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                {downloadingPlayer === result.playerId
+                  ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                  : <Download className="w-3.5 h-3.5 text-white/70" strokeWidth={2.5} />}
+              </motion.button>
+              {result.playerId === currentPlayer.id && authUser && (
+                <motion.button type="button"
+                  onClick={() => handleShareImitation(result.playerId, result.playerName)}
+                  disabled={sharingPlayer === result.playerId}
+                  whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-50"
+                  style={{ background: "rgba(251,191,36,0.15)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                  {sharingPlayer === result.playerId
+                    ? <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                    : sharedClipIds.size > 0
+                      ? <Check className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2.5} />
+                      : <Share2 className="w-3.5 h-3.5 text-amber-400" strokeWidth={2.5} />}
+                </motion.button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Podium base */}
+        <div
+          className="w-full rounded-b-2xl flex items-center justify-center"
+          style={{
+            height: isCenter ? 48 : rank === 2 ? 36 : 28,
+            background: `linear-gradient(180deg, ${color}33, ${color}11)`,
+            border: `3px solid #0a0810`,
+            borderTop: "none",
+            boxShadow: "0 4px 0 #0a0810",
+          }}
+        >
+          <span className="text-2xl font-black" style={{ fontFamily: FONT, color, textShadow: SHADOW_SM }}>
+            {podiumLabel[podiumOrder.indexOf(rank - 1)]}
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col"
       style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
-      {/* Background halo */}
+      {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div animate={{ x: [0, 20, 0], y: [0, -15, 0] }} transition={{ duration: 9, repeat: Infinity }}
           className="absolute top-[-5%] left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full opacity-20"
           style={{ background: "radial-gradient(ellipse, #fbbf2433, transparent 70%)", filter: "blur(80px)" }} />
-        <Sparkles className="absolute top-[10%] right-[6%] w-5 h-5 text-amber-400/30" />
+        <Sparkles className="absolute top-[8%] right-[6%] w-5 h-5 text-amber-400/30" />
       </div>
 
       {/* Victory overlay */}
-      {showVictoryAnimation && (gameMode === '2v2' ? winnerTeam : winner) && (
-        <VictoryAnimation
-          winnerName={gameMode === '2v2' ? winnerTeam?.playerNames.join(' & ') || '' : winner?.playerName || ''}
-          isTeam={gameMode === '2v2'}
-          teamPlayers={gameMode === '2v2' ? winnerTeam?.playerNames : undefined}
-        />
+      {showVictoryAnimation && winner && (
+        <VictoryAnimation winnerName={winner.playerName} isTeam={false} />
       )}
 
-      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-5 pb-[140px]">
-        <div className="max-w-5xl mx-auto space-y-5">
+      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-4 pb-[140px]">
+        <div className="max-w-4xl mx-auto space-y-5">
 
           {/* Header */}
           <div className="text-center space-y-2">
@@ -388,227 +605,63 @@ export const ResultsPhase = ({
               <Trophy className="w-4 h-4 text-white" strokeWidth={2.5} />
               <span className="text-sm font-black uppercase tracking-wider text-white"
                 style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
-                🏆 Résultats {gameMode === '2v2' && '· 2v2'} · Manche {roundNumber}
+                🏆 Résultats · Manche {roundNumber}
               </span>
             </motion.div>
-            <h2 className="text-5xl font-black text-white"
-              style={{ fontFamily: FONT, textShadow: SHADOW }}>
-              {gameMode === '2v2' && winnerTeam
-                ? winnerTeam.playerNames.join(' & ')
-                : winner?.playerName || ''}
+            <h2 className="text-5xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
+              {winner?.playerName || ''}
             </h2>
             <p className="text-base text-white/60 font-bold" style={{ fontFamily: FONT }}>
-              remporte{gameMode === '2v2' ? 'nt' : ''} cette manche !
+              remporte cette manche !
             </p>
           </div>
 
-          {/* Player cards grid — each card has avatar + score + expandable video */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {results.map((result, index) => {
-              const isWinner = index === 0;
-              const isExpanded = expandedPlayers.has(result.playerId);
-              const clip = playerClips[result.playerId];
-              const clipLoading = result.playerId in playerClips && clip === null;
-              const isMe = result.playerId === currentPlayer.id;
-              const mc = medalColor(index);
+          {/* PODIUM — 2nd left, 1st center, 3rd right */}
+          {results.length > 0 && (
+            <div className="flex items-end gap-3 px-2">
+              <PodiumCard result={podium[0]} rank={2} color={podiumColor[0]} height={podiumHeight[0]} isCenter={false} />
+              <PodiumCard result={podium[1]} rank={1} color={podiumColor[1]} height={podiumHeight[1]} isCenter={true} />
+              <PodiumCard result={podium[2]} rank={3} color={podiumColor[2]} height={podiumHeight[2]} isCenter={false} />
+            </div>
+          )}
 
-              return (
-                <motion.div
-                  key={result.playerId}
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ delay: index * 0.07, type: "spring", damping: 20 }}
-                  className="relative rounded-3xl overflow-hidden flex flex-col"
-                  style={{
-                    background: isWinner
-                      ? "linear-gradient(180deg, #2a1a0e, #1a0d2e)"
-                      : "linear-gradient(180deg, #1a0d2e, #0f0820)",
-                    border: `4px solid ${isWinner ? "#fbbf24" : "#0a0810"}`,
-                    boxShadow: isWinner
-                      ? `0 8px 0 #0a0810, 0 0 30px rgba(251,191,36,0.4)`
-                      : "0 6px 0 #0a0810",
-                  }}
-                >
-                  {/* Rank badge */}
-                  <div className="absolute -top-2 -left-2 z-10">
-                    <motion.div
-                      initial={{ scale: 0, rotate: -15 }}
-                      animate={{ scale: 1, rotate: index === 0 ? -8 : -4 }}
-                      transition={{ type: "spring", damping: 10, delay: index * 0.07 + 0.2 }}
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{
-                        background: `linear-gradient(135deg, ${mc}, ${mc}cc)`,
-                        border: "3px solid #0a0810",
-                        boxShadow: "0 3px 0 #0a0810",
-                      }}
-                    >
-                      {index === 0 ? (
-                        <Trophy className="w-5 h-5 text-white" strokeWidth={2.5} />
-                      ) : index === 1 ? (
-                        <Medal className="w-4 h-4 text-white" strokeWidth={2.5} />
-                      ) : index === 2 ? (
-                        <Medal className="w-4 h-4 text-white" strokeWidth={2.5} />
-                      ) : (
-                        <span className="text-base font-black text-white" style={{ fontFamily: FONT }}>{index + 1}</span>
-                      )}
-                    </motion.div>
-                  </div>
-
-                  {/* Card body */}
-                  <div className="p-4 pt-5 space-y-3">
-                    {/* Player info row */}
-                    <div className="flex items-center gap-3">
-                      <PlayerAvatar playerId={result.playerId} playerName={result.playerName} size="lg" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h3 className="text-xl font-black text-white truncate"
-                            style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
-                            {isMe ? "Toi" : result.playerName}
-                          </h3>
-                          {isMe && (
-                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
-                              style={{ background: "rgba(6,182,212,0.2)", color: "#06b6d4", border: "1.5px solid #06b6d4", fontFamily: FONT }}>
-                              Toi
-                            </span>
-                          )}
-                        </div>
-                        {/* Score */}
-                        <div className="flex items-center gap-3 mt-1">
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-sm font-black text-emerald-400" style={{ fontFamily: FONT }}>{result.likes}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <ThumbsDown className="w-3.5 h-3.5 text-red-400" />
-                            <span className="text-sm font-black text-red-400" style={{ fontFamily: FONT }}>{result.dislikes}</span>
-                          </div>
-                          <span className="text-sm font-black ml-auto"
-                            style={{
-                              fontFamily: FONT,
-                              color: result.score > 0 ? "#34d399" : result.score < 0 ? "#ef4444" : "rgba(255,255,255,0.5)",
-                              textShadow: SHADOW_SM,
-                            }}>
-                            {result.score > 0 ? "+" : ""}{result.score} pts
-                          </span>
-                        </div>
-                      </div>
+          {/* Rest of players (4th+) — compact list */}
+          {rest.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-black uppercase tracking-widest text-white/40 px-1" style={{ fontFamily: FONT }}>
+                Autres joueurs
+              </p>
+              {rest.map((result, i) => (
+                <motion.div key={result.playerId}
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 + i * 0.05 }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-2xl"
+                  style={{ background: "rgba(255,255,255,0.03)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                  <span className="text-base font-black text-white/40 w-6 text-center" style={{ fontFamily: FONT }}>
+                    {i + 4}
+                  </span>
+                  <PlayerAvatar playerId={result.playerId} playerName={result.playerName} size="sm" />
+                  <span className="flex-1 text-base font-black text-white truncate" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+                    {result.playerId === currentPlayer.id ? "Toi" : result.playerName}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <ThumbsUp className="w-3 h-3 text-emerald-400" />
+                      <span className="text-xs font-black text-emerald-400" style={{ fontFamily: FONT }}>{result.likes}</span>
                     </div>
-
-                    {/* Action buttons row */}
-                    <div className="flex items-center gap-2">
-                      {/* Expand/collapse video */}
-                      <motion.button
-                        type="button"
-                        onClick={() => toggleExpand(result.playerId)}
-                        whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-2xl"
-                        style={{
-                          background: isExpanded
-                            ? "linear-gradient(180deg, #a855f7, #7c3aed)"
-                            : "rgba(168,85,247,0.15)",
-                          border: "2.5px solid #0a0810",
-                          boxShadow: "0 3px 0 #0a0810",
-                        }}
-                      >
-                        {clipLoading ? (
-                          <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-                        ) : isExpanded ? (
-                          <ChevronUp className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
-                        ) : (
-                          <Play className="w-3.5 h-3.5 text-purple-300" strokeWidth={2.5} />
-                        )}
-                        <span className="text-sm font-black"
-                          style={{ fontFamily: FONT, color: isExpanded ? "white" : "rgba(168,85,247,0.9)", textShadow: isExpanded ? SHADOW_SM : "none" }}>
-                          {isExpanded ? "Cacher" : "Voir l'imitation"}
-                        </span>
-                      </motion.button>
-
-                      {/* Download */}
-                      <motion.button
-                        type="button"
-                        onClick={() => handleDownloadImitation(result.playerId, result.playerName)}
-                        disabled={downloadingPlayer === result.playerId}
-                        whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
-                        className="w-9 h-9 rounded-xl flex items-center justify-center disabled:opacity-50"
-                        style={{ background: "rgba(255,255,255,0.06)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}
-                        title="Télécharger"
-                      >
-                        {downloadingPlayer === result.playerId
-                          ? <Loader2 className="w-4 h-4 text-white animate-spin" />
-                          : <Download className="w-4 h-4 text-white/70" strokeWidth={2.5} />}
-                      </motion.button>
-
-                      {/* Share (own clip + logged in only) */}
-                      {result.playerId === currentPlayer.id && authUser && (
-                        <motion.button
-                          type="button"
-                          onClick={() => handleShareImitation(result.playerId, result.playerName)}
-                          disabled={sharingPlayer === result.playerId}
-                          whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
-                          className="w-9 h-9 rounded-xl flex items-center justify-center disabled:opacity-50"
-                          style={{
-                            background: sharedClipIds.size > 0 ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.15)",
-                            border: "2px solid #0a0810",
-                            boxShadow: "0 2px 0 #0a0810",
-                          }}
-                          title="Partager sur Social"
-                        >
-                          {sharingPlayer === result.playerId
-                            ? <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
-                            : sharedClipIds.size > 0
-                              ? <Check className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
-                              : <Share2 className="w-4 h-4 text-amber-400" strokeWidth={2.5} />}
-                        </motion.button>
-                      )}
+                    <div className="flex items-center gap-1">
+                      <ThumbsDown className="w-3 h-3 text-red-400" />
+                      <span className="text-xs font-black text-red-400" style={{ fontFamily: FONT }}>{result.dislikes}</span>
                     </div>
-
-                    {/* Expandable video panel */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ type: "spring", damping: 22 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="rounded-2xl overflow-hidden"
-                            style={{ border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
-                            {clipLoading ? (
-                              <div className="aspect-video bg-black/60 flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-                              </div>
-                            ) : clip && challengeClipId ? (
-                              <VideoWithAudioOverlay
-                                videoClipId={challengeClipId}
-                                audioClipId={clip.id}
-                                className="w-full"
-                              />
-                            ) : clip ? (
-                              /* No challenge clip — show audio-only player */
-                              <div className="aspect-video bg-black/60 flex flex-col items-center justify-center gap-3">
-                                <div className="w-16 h-16 rounded-full flex items-center justify-center"
-                                  style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)", border: "3px solid #0a0810" }}>
-                                  <Play className="w-7 h-7 text-white" strokeWidth={2.5} />
-                                </div>
-                                <audio src={undefined} controls className="w-full max-w-xs" />
-                              </div>
-                            ) : (
-                              <div className="aspect-video bg-black/60 flex items-center justify-center">
-                                <p className="text-white/50 text-sm font-bold" style={{ fontFamily: FONT }}>
-                                  Aucune imitation enregistrée
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <span className="text-xs font-black w-12 text-right"
+                      style={{ fontFamily: FONT, color: result.score > 0 ? "#34d399" : result.score < 0 ? "#ef4444" : "rgba(255,255,255,0.4)" }}>
+                      {result.score > 0 ? "+" : ""}{result.score}
+                    </span>
                   </div>
                 </motion.div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Host actions */}
           {currentPlayer.isHost && (
