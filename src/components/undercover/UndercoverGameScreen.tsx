@@ -183,7 +183,7 @@ export const UndercoverGameScreen = memo(
               }
 
               return (
-                <div key={player.id} className="flex flex-col items-center gap-2 min-w-0" style={{ flex: '1 1 0', maxWidth: '150px' }}>
+                <div key={player.id} className="flex flex-col items-center gap-2.5 min-w-0" style={{ flex: '1 1 0', maxWidth: '220px' }}>
                   {/* Avatar */}
                   <motion.button
                     type="button"
@@ -194,7 +194,7 @@ export const UndercoverGameScreen = memo(
                     animate={isCurrent ? { y: [0, -4, 0] } : undefined}
                     transition={isCurrent ? { duration: 1.2, repeat: Infinity } : undefined}
                     className={cn(
-                      'relative w-24 h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center flex-shrink-0',
+                      'relative w-36 h-36 md:w-40 md:h-40 rounded-full flex items-center justify-center flex-shrink-0',
                       canVotePlayer && 'cursor-pointer',
                       isEliminated && 'opacity-40 grayscale',
                     )}
@@ -207,55 +207,55 @@ export const UndercoverGameScreen = memo(
                       boxShadow: isCurrent ? `0 5px 0 #0a0810, 0 0 20px ${accent}66` : '0 4px 0 #0a0810',
                     }}
                   >
-                    {isEliminated ? <Skull className="w-10 h-10 text-white/70" /> :
-                      av.type === 'image' && av.imageUrl ? <img src={av.imageUrl} alt="" className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover" /> :
-                      <span className="text-4xl md:text-5xl font-black text-white" style={{ fontFamily: FONT }}>{player.player_name[0]?.toUpperCase()}</span>}
+                    {isEliminated ? <Skull className="w-14 h-14 text-white/70" /> :
+                      av.type === 'image' && av.imageUrl ? <img src={av.imageUrl} alt="" className="w-32 h-32 md:w-36 md:h-36 rounded-full object-cover" /> :
+                      <span className="text-5xl md:text-6xl font-black text-white" style={{ fontFamily: FONT }}>{player.player_name[0]?.toUpperCase()}</span>}
                     {isCurrent && (
                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
-                        className="absolute -top-2 -right-1 px-1 py-0.5 rounded text-[8px] font-black text-white"
+                        className="absolute -top-2 -right-1 px-1.5 py-0.5 rounded text-[10px] font-black text-white"
                         style={{ background: accent, border: '1.5px solid #0a0810' }}>
                         💬
                       </motion.div>
                     )}
                     {isSelected && (
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-red-500 border-2 border-[#0a0810] flex items-center justify-center">
-                        <X className="w-3 h-3 text-white" strokeWidth={3} />
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 border-2 border-[#0a0810] flex items-center justify-center">
+                        <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                       </div>
                     )}
                   </motion.button>
 
                   {/* Player name */}
-                  <span className={cn('text-sm md:text-base font-black truncate max-w-full text-center',
-                    isMe ? 'text-cyan-300' : 'text-white/80')}
+                  <span className={cn('text-base md:text-lg font-black truncate max-w-full text-center',
+                    isMe ? 'text-cyan-300' : 'text-white/90')}
                     style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
                     {isMe ? 'Toi' : player.player_name}
                   </span>
 
                   {/* Clue history — stacked cards below avatar */}
-                  <div className="flex flex-col gap-1.5 w-full">
+                  <div className="flex flex-col gap-2 w-full">
                     {allClues.map((clue, i) => (
                       <motion.div
                         key={`${player.player_id}-${i}`}
                         initial={{ scale: 0.7, opacity: 0, y: -5 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.05, type: 'spring', damping: 15 }}
-                        className="w-full px-2 py-1.5 rounded-xl text-center truncate"
+                        className="w-full px-3 py-2 rounded-xl text-center truncate"
                         style={{
-                          background: 'rgba(0,0,0,0.5)',
-                          border: '2px solid rgba(255,255,255,0.15)',
+                          background: 'rgba(0,0,0,0.55)',
+                          border: '2px solid rgba(255,255,255,0.2)',
                           backdropFilter: 'blur(4px)',
                         }}
                       >
-                        <span className="text-sm md:text-base font-bold text-white/90" style={{ fontFamily: FONT }}>
+                        <span className="text-base md:text-lg font-bold text-white/95" style={{ fontFamily: FONT }}>
                           {clue}
                         </span>
                       </motion.div>
                     ))}
                     {/* Empty placeholder slots */}
                     {allClues.length === 0 && (
-                      <div className="w-full px-2 py-1.5 rounded-xl text-center"
+                      <div className="w-full px-3 py-2 rounded-xl text-center"
                         style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(255,255,255,0.1)' }}>
-                        <span className="text-xs text-white/30 italic" style={{ fontFamily: FONT }}>…</span>
+                        <span className="text-sm text-white/30 italic" style={{ fontFamily: FONT }}>…</span>
                       </div>
                     )}
                   </div>
