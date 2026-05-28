@@ -1607,6 +1607,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_undercover_clues: {
+        Args: { p_game_id: string }
+        Returns: undefined
+      }
       bump_quest_progress: {
         Args: {
           p_increment?: number
