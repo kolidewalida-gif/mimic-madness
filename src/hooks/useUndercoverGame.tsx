@@ -53,6 +53,7 @@ interface UndercoverPlayer {
   is_alive: boolean;
   vote_target: string | null;
   current_clue: string | null;
+  clue_history?: string[];
 }
 
 interface UndercoverGame {
@@ -179,7 +180,12 @@ export const useUndercoverGame = (
     }
 
     const wordPair = getRandomWordPair();
-    const playerOrder = players.map(p => p.id).sort(() => Math.random() - 0.5);
+    // Fisher-Yates shuffle for unbiased random order
+    const playerOrder = players.map(p => p.id);
+    for (let i = playerOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [playerOrder[i], playerOrder[j]] = [playerOrder[j], playerOrder[i]];
+    }
 
     // Re-check just before insert to mitigate 2-host race
     const { data: existing2 } = await supabase
@@ -245,8 +251,12 @@ export const useUndercoverGame = (
       const safeUndercover = clampUndercover(numUndercover, players.length, enableMrWhite);
       const safeRounds = Math.max(1, Math.min(99, totalRounds));
 
-      // Build role/word maps via pure logic
-      const shuffled = [...game.player_order].sort(() => Math.random() - 0.5);
+      // Build role/word maps via pure logic — Fisher-Yates shuffle
+      const shuffled = [...game.player_order];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
       const { roles, words } = distributeRoles(
         shuffled,
         safeUndercover,
@@ -307,7 +317,11 @@ export const useUndercoverGame = (
       if (!game || !currentPlayer.isHost) return;
 
       const newPair = getRandomWordPair();
-      const newOrder = [...game.player_order].sort(() => Math.random() - 0.5);
+      const newOrder = [...game.player_order];
+      for (let i = newOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newOrder[i], newOrder[j]] = [newOrder[j], newOrder[i]];
+      }
       const safeUndercover = Math.max(1, game.num_undercover || 1);
       const enableMrWhite = Boolean(game.enable_mr_white);
 
@@ -331,6 +345,7 @@ export const useUndercoverGame = (
               is_alive: true,
               vote_target: null,
               current_clue: null,
+              clue_history: [],
             })
             .eq('game_id', game.id)
             .eq('player_id', pid),
@@ -588,10 +603,10 @@ export const useUndercoverGame = (
     }
 
     // Case B — nobody won this round (tie / partial elimination).
-    // Clear clues/votes, keep alive set, and start another clue cycle.
+    // Clear clues/votes/history, keep alive set, and start another clue cycle.
     await supabase
       .from('undercover_players')
-      .update({ current_clue: null, vote_target: null })
+      .update({ current_clue: null, vote_target: null, clue_history: [] })
       .eq('game_id', game.id);
 
         await safeUpdateGame(game.id, {
@@ -675,12 +690,20 @@ export const useUndercoverGame = (
         const currentPass = (game as any).clue_pass ?? 0;
 
         if (currentPass < 1) {
-          // First pass done → start second pass: reset index, clear clues,
-          // bump clue_pass so everyone gives a 2nd clue.
-          await supabase
-            .from('undercover_players')
-            .update({ current_clue: null })
-            .eq('game_id', game.id);
+          // First pass done → start second pass: archive current clues into
+          // clue_history (so they stay visible), clear current_clue, bump pass.
+          // Use the DB function for atomicity; fall back to raw clear if the
+          // function doesn't exist yet (migration not applied).
+          const { error: rpcErr } = await supabase.rpc('archive_undercover_clues', {
+            p_game_id: game.id,
+          });
+          if (rpcErr) {
+            // Fallback: just clear current_clue (clues will disappear but game continues)
+            await supabase
+              .from('undercover_players')
+              .update({ current_clue: null })
+              .eq('game_id', game.id);
+          }
 
           await safeUpdateGame(game.id, { current_player_index: 0, clue_pass: currentPass + 1 });
           return;
