@@ -1445,6 +1445,7 @@ export type Database = {
       }
       undercover_players: {
         Row: {
+          clue_history: string[]
           created_at: string
           current_clue: string | null
           game_id: string
@@ -1457,6 +1458,7 @@ export type Database = {
           word: string | null
         }
         Insert: {
+          clue_history?: string[]
           created_at?: string
           current_clue?: string | null
           game_id: string
@@ -1469,6 +1471,7 @@ export type Database = {
           word?: string | null
         }
         Update: {
+          clue_history?: string[]
           created_at?: string
           current_clue?: string | null
           game_id?: string
@@ -1604,6 +1607,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_undercover_clues: {
+        Args: { p_game_id: string }
+        Returns: undefined
+      }
       bump_quest_progress: {
         Args: {
           p_increment?: number

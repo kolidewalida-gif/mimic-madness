@@ -694,7 +694,7 @@ export const useUndercoverGame = (
           // clue_history (so they stay visible), clear current_clue, bump pass.
           // Use the DB function for atomicity; fall back to raw clear if the
           // function doesn't exist yet (migration not applied).
-          const { error: rpcErr } = await supabase.rpc('archive_undercover_clues', {
+          const { error: rpcErr } = await (supabase as any).rpc('archive_undercover_clues', {
             p_game_id: game.id,
           });
           if (rpcErr) {
