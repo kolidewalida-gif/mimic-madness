@@ -93,6 +93,32 @@ interface Player {
   isHost: boolean;
 }
 
+/**
+ * Safely update undercover_games with clue_pass. If the column doesn't exist
+ * yet (migration not applied), retry without it so the game still works
+ * (falls back to single-pass clues).
+ */
+const safeUpdateGame = async (
+  gameId: string,
+  patch: Record<string, unknown>,
+) => {
+  const { error } = await supabase
+    .from('undercover_games')
+    .update(patch as any)
+    .eq('id', gameId);
+
+  if (error && 'clue_pass' in patch) {
+    // Column likely doesn't exist — retry without it
+    const { clue_pass, ...rest } = patch;
+    if (Object.keys(rest).length > 0) {
+      await supabase
+        .from('undercover_games')
+        .update(rest as any)
+        .eq('id', gameId);
+    }
+  }
+};
+
 export const useUndercoverGame = (
   lobbyId: string,
   currentPlayer: Player,
@@ -337,9 +363,10 @@ export const useUndercoverGame = (
         .eq('id', game.id);
 
       if (error) {
-        // Score columns may not exist yet — retry without them.
+        // Score/clue_pass columns may not exist yet — retry without them.
         delete patch.civilian_wins;
         delete patch.undercover_wins;
+        delete patch.clue_pass;
         await supabase
           .from('undercover_games')
           .update(patch as any)
@@ -567,16 +594,13 @@ export const useUndercoverGame = (
       .update({ current_clue: null, vote_target: null })
       .eq('game_id', game.id);
 
-    await supabase
-      .from('undercover_games')
-      .update({
-        phase: 'clue_giving',
-        current_player_index: 0,
-        clue_pass: 0,
-        eliminated_player_id: null,
-        eliminated_role: null,
-      })
-      .eq('id', game.id);
+        await safeUpdateGame(game.id, {
+          phase: 'clue_giving',
+          current_player_index: 0,
+          clue_pass: 0,
+          eliminated_player_id: null,
+          eliminated_role: null,
+        });
   }, [game, currentPlayer.isHost, startNextRoundFresh, concludeMatch]);
 
   // Confirm word seen
@@ -588,10 +612,7 @@ export const useUndercoverGame = (
       // Small delay to let others see
       setTimeout(async () => {
         if (game) {
-          await supabase
-            .from('undercover_games')
-            .update({ phase: 'clue_giving', clue_pass: 0 })
-            .eq('id', game.id);
+          await safeUpdateGame(game.id, { phase: 'clue_giving', clue_pass: 0 });
         }
       }, 2000);
     }
@@ -600,10 +621,7 @@ export const useUndercoverGame = (
   // Start clue phase (host)
   const startCluePhase = useCallback(async () => {
     if (!game || !currentPlayer.isHost) return;
-    await supabase
-      .from('undercover_games')
-      .update({ phase: 'clue_giving', current_player_index: 0, clue_pass: 0 })
-      .eq('id', game.id);
+    await safeUpdateGame(game.id, { phase: 'clue_giving', current_player_index: 0, clue_pass: 0 });
   }, [game, currentPlayer.isHost]);
 
   useEffect(() => {
@@ -664,10 +682,7 @@ export const useUndercoverGame = (
             .update({ current_clue: null })
             .eq('game_id', game.id);
 
-          await supabase
-            .from('undercover_games')
-            .update({ current_player_index: 0, clue_pass: currentPass + 1 })
-            .eq('id', game.id);
+          await safeUpdateGame(game.id, { current_player_index: 0, clue_pass: currentPass + 1 });
           return;
         }
 
@@ -739,10 +754,7 @@ export const useUndercoverGame = (
       botTimerRef.current = setTimeout(async () => {
         // Host auto-starts clue phase (which also confirms word seen for everyone)
         if (game) {
-          await supabase
-            .from('undercover_games')
-            .update({ phase: 'clue_giving', current_player_index: 0, clue_pass: 0 })
-            .eq('id', game.id);
+          await safeUpdateGame(game.id, { phase: 'clue_giving', current_player_index: 0, clue_pass: 0 });
         }
       }, 2500);
       return;
