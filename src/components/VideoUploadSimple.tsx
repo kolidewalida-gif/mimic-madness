@@ -50,14 +50,25 @@ export const VideoUploadSimple = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Vérifier que c'est une vidéo (accepter formats courants)
-    const validTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-matroska'];
-    const isVideo = file.type.startsWith('video/') || validTypes.includes(file.type);
+    // Accept any video file — browsers may not always report the correct MIME
+    // type for formats like .mkv, .avi, .m4v, so we only reject files that are
+    // clearly NOT video (e.g. images, documents).
+    const isVideo = file.type.startsWith('video/') || file.type.startsWith('audio/') || file.type === '' || file.type === 'application/octet-stream';
     
     if (!isVideo) {
       toast({
         title: "Format invalide",
-        description: "Formats acceptés: MP4, WebM, MOV, MKV, OGG",
+        description: "Ce fichier ne semble pas être une vidéo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 600 MB limit
+    if (file.size > 600 * 1024 * 1024) {
+      toast({
+        title: "Fichier trop volumineux",
+        description: `${(file.size / 1024 / 1024).toFixed(0)} Mo — max 600 Mo.`,
         variant: "destructive",
       });
       return;

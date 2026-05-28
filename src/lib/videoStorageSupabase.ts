@@ -28,13 +28,19 @@ class VideoStorageSupabase {
       lobbyId?: string;
     }
   ): Promise<VideoClip> {
-    // Upload video to Supabase Storage
-    const fileName = `${clipData.playerId}/${clipData.id}.${file.name.split('.').pop()}`;
+    // Upload video/audio to Supabase Storage
+    // Override contentType to bypass bucket allowed_mime_types restrictions
+    // (e.g. .mkv, .avi, .wav are not in the default allow-list)
+    const ext = file.name.split('.').pop() || 'mp4';
+    const fileName = `${clipData.playerId}/${clipData.id}.${ext}`;
+    const contentType = file.type || 'video/mp4';
+
     const { error: uploadError } = await supabase.storage
       .from('video-challenges')
       .upload(fileName, file, {
         cacheControl: '3600',
-        upsert: true
+        upsert: true,
+        contentType,
       });
 
     if (uploadError) {
