@@ -202,7 +202,7 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
   const { posts, loading, toggleLike, remove } = useSocialFeed(tab);
 
   const tabsBar = (
-    <div className={cn('flex gap-2 flex-shrink-0', !inlineMode && 'px-4 py-2.5 border-b border-white/10')}>
+    <div className={cn('flex gap-2 flex-shrink-0', inlineMode ? 'px-5 pt-4 pb-3' : 'px-4 py-2.5 border-b border-white/10')}>
       {(['top_week', 'recent', 'mine'] as SocialFeedTab[]).map((t) => {
         const meta = TAB_META[t];
         const Icon = meta.icon;
@@ -216,7 +216,7 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
             }}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            className="px-3 py-1.5 rounded-2xl flex items-center gap-1.5"
+            className="px-4 py-2 rounded-2xl flex items-center gap-2"
             style={{
               background: active
                 ? `linear-gradient(180deg, ${meta.color}, ${meta.color}cc)`
@@ -225,9 +225,9 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
               boxShadow: active ? '0 3px 0 #0a0810' : 'none',
             }}
           >
-            <Icon className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+            <Icon className="w-4 h-4 text-white" strokeWidth={2.5} />
             <span
-              className="text-sm font-black text-white"
+              className="text-base font-black text-white"
               style={{ fontFamily: FONT, textShadow: active ? SHADOW_SM : 'none' }}
             >
               {meta.label}
@@ -239,34 +239,34 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
   );
 
   const feedBody = (
-    <div className={cn('flex-1 overflow-y-auto custom-scrollbar', !inlineMode && 'p-3')}>
+    <div className={cn('flex-1 overflow-y-auto custom-scrollbar', inlineMode ? 'px-5 pb-5' : 'p-3')}>
       {loading ? (
-        <div className="flex items-center justify-center py-10">
-          <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-7 h-7 text-purple-400 animate-spin" />
         </div>
       ) : posts.length === 0 ? (
-        <div className="text-center py-10 space-y-2">
+        <div className="text-center py-16 space-y-3">
           <motion.div
             animate={{ rotate: [-5, 5, -5] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="text-6xl inline-block"
+            className="text-7xl inline-block"
           >
             {tab === 'mine' ? '📭' : '✨'}
           </motion.div>
           <p
-            className="text-lg font-black text-white/70"
+            className="text-xl font-black text-white/70"
             style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
           >
             {tab === 'mine'
               ? 'Tu n\'as pas encore partagé d\'imitation'
               : 'Pas encore de post — sois le premier !'}
           </p>
-          <p className="text-xs text-white/45" style={{ fontFamily: FONT }}>
-            À la fin d'une partie d'imitation, partage tes meilleurs moments.
+          <p className="text-sm text-white/45 max-w-sm mx-auto" style={{ fontFamily: FONT }}>
+            À la fin d'une partie d'imitation, partage tes meilleurs moments avec la communauté.
           </p>
         </div>
       ) : (
-        <div className={cn('grid gap-3', inlineMode ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2')}>
+        <div className={cn('grid gap-4', inlineMode ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2')}>
           <AnimatePresence mode="popLayout">
             {posts.map((post, idx) => (
               <PostCard
@@ -285,10 +285,10 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
   );
 
   // Inline mode: no outer card, no header — caller already provides them.
-  // Used by SocialHubPanel which has its own drawer chrome.
+  // Used by SocialHubPanel which has its own modal chrome.
   if (inlineMode) {
     return (
-      <div className="flex flex-col gap-3 h-full">
+      <div className="flex flex-col h-full">
         {tabsBar}
         {feedBody}
       </div>

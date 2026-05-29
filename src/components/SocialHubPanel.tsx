@@ -1051,8 +1051,8 @@ const SocialHubPanelComponent = ({
                 transition={{ type: 'spring', damping: 24, stiffness: 280 }}
                 style={{
                   position: 'relative',
-                  width: 'min(95vw, 1100px)',
-                  height: 'min(90vh, 820px)',
+                  width: 'min(94vw, 980px)',
+                  height: 'min(88vh, 720px)',
                   display: 'flex',
                   flexDirection: 'column',
                   borderRadius: '24px',
@@ -1093,7 +1093,7 @@ const SocialHubPanelComponent = ({
                         Social
                       </h2>
                       <p style={{ fontFamily: "'Caveat', cursive", fontSize: 13, color: 'rgba(251,182,206,0.8)', margin: '2px 0 0', fontWeight: 700 }}>
-                        Top imitations · Récents · Tes posts
+                        Les meilleures imitations de la communauté
                       </p>
                     </div>
                   </div>
