@@ -361,7 +361,6 @@ export const ResultsPhase = ({
       <div className="flex-1 max-w-[280px] flex flex-col items-center gap-0" style={{ zIndex: isCenter ? 10 : 5 }}>
         {/* Avatar bubble above card */}
         <div className="relative mb-[-24px] z-10">
-        >
           <div
             className="rounded-full flex items-center justify-center"
             style={{
