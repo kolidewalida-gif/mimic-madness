@@ -97,6 +97,7 @@ class VideoStorageSupabase {
       .from('video_clips')
       .select('*')
       .eq('player_id', playerId)
+      .is('round_number', null) // Exclude recorded imitations (they have a round_number)
       .order('created_at', { ascending: false });
 
     if (error) {
