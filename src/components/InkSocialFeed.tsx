@@ -35,13 +35,13 @@ const PostCard = memo(({
     <motion.div
       initial={{ opacity: 0, y: 14, rotate: -1 }}
       animate={{ opacity: 1, y: 0, rotate: 0 }}
-      whileHover={{ y: -3 }}
+      whileHover={{ y: -4, scale: 1.01 }}
       transition={{ type: 'spring', damping: 22 }}
       className="relative rounded-3xl overflow-hidden flex flex-col"
       style={{
         background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
         border: '4px solid #0a0810',
-        boxShadow: '0 6px 0 #0a0810',
+        boxShadow: '0 8px 0 #0a0810',
       }}
     >
       {/* Rank medal (only on top_week leaderboard) */}
@@ -92,57 +92,59 @@ const PostCard = memo(({
         type="button"
         onClick={() => { playInkSound('cartoonPop', 0.3); onOpen(); }}
         className="relative w-full aspect-video bg-black/60 overflow-hidden flex items-center justify-center group"
+        style={{ borderBottom: '4px solid #0a0810' }}
       >
         <VideoPreview
           clipId={post.challenge_clip_id || post.clip_id}
           className="w-full h-full"
           muted
         />
-        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 bg-black/35 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
           <motion.div
-            className="w-14 h-14 rounded-full flex items-center justify-center"
+            whileHover={{ scale: 1.1 }}
+            className="w-16 h-16 rounded-full flex items-center justify-center"
             style={{
               background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-              border: '3px solid #0a0810',
-              boxShadow: '0 4px 0 #0a0810',
+              border: '4px solid #0a0810',
+              boxShadow: '0 5px 0 #0a0810',
             }}
           >
-            <Sparkles className="w-6 h-6 text-white" strokeWidth={2.5} />
+            <Sparkles className="w-7 h-7 text-white" strokeWidth={2.5} />
           </motion.div>
         </div>
       </button>
 
       {/* Footer */}
-      <div className="p-3 space-y-2">
+      <div className="p-3.5 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-base font-black text-white truncate" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+          <span className="text-lg font-black text-white truncate" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
             {post.owner_name}
           </span>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Comment count → opens viewer */}
             <button
               onClick={() => { playInkSound('cartoonPop', 0.3); onOpen(); }}
-              className="flex items-center gap-1 px-2 py-1 rounded-xl"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '2.5px solid #0a0810', boxShadow: '0 2px 0 #0a0810' }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '2.5px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}
             >
-              <MessageCircle className="w-3.5 h-3.5 text-white/70" strokeWidth={2.5} />
-              <span className="text-xs font-black text-white" style={{ fontFamily: FONT }}>{post.comments_count ?? 0}</span>
+              <MessageCircle className="w-4 h-4 text-white/70" strokeWidth={2.5} />
+              <span className="text-sm font-black text-white" style={{ fontFamily: FONT }}>{post.comments_count ?? 0}</span>
             </button>
 
             <motion.button
               whileHover={{ scale: 1.08, rotate: -5 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => { playInkSound('cartoonPop', 0.3); onLike(post.id); }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
               style={{
-                background: post.liked_by_me ? 'linear-gradient(180deg, #ef4444, #b91c1c)' : 'rgba(255,255,255,0.05)',
+                background: post.liked_by_me ? 'linear-gradient(180deg, #ef4444, #b91c1c)' : 'rgba(255,255,255,0.06)',
                 border: '2.5px solid #0a0810',
-                boxShadow: '0 2px 0 #0a0810',
+                boxShadow: '0 3px 0 #0a0810',
               }}
             >
-              <Heart className={cn('w-3.5 h-3.5', post.liked_by_me && 'fill-current')} style={{ color: 'white' }} strokeWidth={2.5} />
-              <span className="text-xs font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+              <Heart className={cn('w-4 h-4', post.liked_by_me && 'fill-current')} style={{ color: 'white' }} strokeWidth={2.5} />
+              <span className="text-sm font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
                 {post.likes_count}
               </span>
             </motion.button>
@@ -150,7 +152,7 @@ const PostCard = memo(({
         </div>
 
         {post.caption && (
-          <p className="text-xs text-white/65 line-clamp-2" style={{ fontFamily: FONT }}>
+          <p className="text-sm text-white/65 line-clamp-2" style={{ fontFamily: FONT }}>
             {post.caption}
           </p>
         )}

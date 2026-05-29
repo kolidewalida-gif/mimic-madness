@@ -1051,8 +1051,8 @@ const SocialHubPanelComponent = ({
                 transition={{ type: 'spring', damping: 24, stiffness: 280 }}
                 style={{
                   position: 'relative',
-                  width: 'min(94vw, 980px)',
-                  height: 'min(88vh, 720px)',
+                  width: 'min(96vw, 1100px)',
+                  height: 'min(90vh, 800px)',
                   display: 'flex',
                   flexDirection: 'column',
                   borderRadius: '24px',
