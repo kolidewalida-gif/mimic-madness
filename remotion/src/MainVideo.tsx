@@ -12,7 +12,7 @@ import { loadFont as loadCaveat } from "@remotion/google-fonts/Caveat";
 import { loadFont as loadGrotesk } from "@remotion/google-fonts/SpaceGrotesk";
 
 const { fontFamily: caveat } = loadCaveat("normal", { weights: ["600", "700"] });
-const { fontFamily: grotesk } = loadGrotesk("normal", { weights: ["400", "500", "700", "900"] });
+const { fontFamily: grotesk } = loadGrotesk("normal", { weights: ["400", "500", "700"] });
 
 const BG = "#0a0a0a";
 const BG_DEEP = "#050505";
