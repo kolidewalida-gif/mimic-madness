@@ -13,6 +13,7 @@ export interface SocialPost {
   week_key: string;
   likes_count: number;
   views_count: number;
+  comments_count?: number;
   is_featured: boolean;
   created_at: string;
   /** computed client-side: did the current user already like this post? */

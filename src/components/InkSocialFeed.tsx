@@ -1,12 +1,13 @@
 import { memo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Heart, Trophy, Clock, User, Trash2, Loader2, Sparkles, Share2,
+  Heart, Trophy, Clock, User, Trash2, Loader2, Sparkles, Share2, MessageCircle,
 } from 'lucide-react';
 import { useSocialFeed, SocialFeedTab, SocialPost } from '@/hooks/useSocialFeed';
 import { useAuth } from '@/hooks/useAuth';
-import { VideoWithAudioOverlay } from '@/components/VideoWithAudioOverlay';
 import { VideoPreview } from '@/components/VideoPreview';
+import { SocialTikTokViewer } from '@/components/SocialTikTokViewer';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
@@ -21,16 +22,15 @@ const TAB_META: Record<SocialFeedTab, { label: string; icon: any; color: string 
 };
 
 const PostCard = memo(({
-  post, rank, onLike, onDelete, isOwner,
+  post, rank, onLike, onDelete, onOpen, isOwner,
 }: {
   post: SocialPost;
   rank?: number;
   onLike: (id: string) => void;
   onDelete?: (id: string) => void;
+  onOpen: () => void;
   isOwner: boolean;
 }) => {
-  const [showPlayer, setShowPlayer] = useState(false);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 14, rotate: -1 }}
@@ -59,10 +59,7 @@ const PostCard = memo(({
             boxShadow: '0 3px 0 #0a0810',
           }}
         >
-          <span
-            className="text-base font-black text-white"
-            style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
-          >
+          <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
             {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
           </span>
         </div>
@@ -73,7 +70,8 @@ const PostCard = memo(({
         <motion.button
           whileHover={{ scale: 1.1, rotate: 8 }}
           whileTap={{ scale: 0.9 }}
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             playInkSound('cartoonZap', 0.3);
             onDelete(post.id);
           }}
@@ -89,91 +87,70 @@ const PostCard = memo(({
         </motion.button>
       )}
 
-      {/* Player area — clickable thumb that mounts the video on demand */}
+      {/* Thumbnail — clicking opens the TikTok-style viewer */}
       <button
         type="button"
-        onClick={() => setShowPlayer(true)}
-        className="relative w-full aspect-video bg-black/60 overflow-hidden flex items-center justify-center"
+        onClick={() => { playInkSound('cartoonPop', 0.3); onOpen(); }}
+        className="relative w-full aspect-video bg-black/60 overflow-hidden flex items-center justify-center group"
       >
-        {showPlayer ? (
-          post.challenge_clip_id ? (
-            <VideoWithAudioOverlay
-              videoClipId={post.challenge_clip_id}
-              audioClipId={post.clip_id}
-              className="w-full h-full"
-            />
-          ) : (
-            <VideoPreview clipId={post.clip_id} className="w-full h-full" />
-          )
-        ) : (
-          <>
-            <VideoPreview
-              clipId={post.challenge_clip_id || post.clip_id}
-              className="w-full h-full"
-              muted
-            />
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                className="w-14 h-14 rounded-full flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                  border: '3px solid #0a0810',
-                  boxShadow: '0 4px 0 #0a0810',
-                }}
-              >
-                <Sparkles className="w-6 h-6 text-white" strokeWidth={2.5} />
-              </motion.div>
-            </div>
-          </>
-        )}
+        <VideoPreview
+          clipId={post.challenge_clip_id || post.clip_id}
+          className="w-full h-full"
+          muted
+        />
+        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
+          <motion.div
+            className="w-14 h-14 rounded-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(180deg, #fbbf24, #d97706)',
+              border: '3px solid #0a0810',
+              boxShadow: '0 4px 0 #0a0810',
+            }}
+          >
+            <Sparkles className="w-6 h-6 text-white" strokeWidth={2.5} />
+          </motion.div>
+        </div>
       </button>
 
       {/* Footer */}
       <div className="p-3 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <span
-            className="text-base font-black text-white truncate"
-            style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
-          >
+          <span className="text-base font-black text-white truncate" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
             {post.owner_name}
           </span>
 
-          <motion.button
-            whileHover={{ scale: 1.08, rotate: -5 }}
-            whileTap={{ scale: 0.92 }}
-            onClick={() => {
-              playInkSound('cartoonPop', 0.3);
-              onLike(post.id);
-            }}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl flex-shrink-0"
-            style={{
-              background: post.liked_by_me
-                ? 'linear-gradient(180deg, #ef4444, #b91c1c)'
-                : 'rgba(255,255,255,0.05)',
-              border: '2.5px solid #0a0810',
-              boxShadow: '0 2px 0 #0a0810',
-            }}
-          >
-            <Heart
-              className={cn('w-3.5 h-3.5', post.liked_by_me && 'fill-current')}
-              style={{ color: 'white' }}
-              strokeWidth={2.5}
-            />
-            <span
-              className="text-xs font-black text-white"
-              style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Comment count → opens viewer */}
+            <button
+              onClick={() => { playInkSound('cartoonPop', 0.3); onOpen(); }}
+              className="flex items-center gap-1 px-2 py-1 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '2.5px solid #0a0810', boxShadow: '0 2px 0 #0a0810' }}
             >
-              {post.likes_count}
-            </span>
-          </motion.button>
+              <MessageCircle className="w-3.5 h-3.5 text-white/70" strokeWidth={2.5} />
+              <span className="text-xs font-black text-white" style={{ fontFamily: FONT }}>{post.comments_count ?? 0}</span>
+            </button>
+
+            <motion.button
+              whileHover={{ scale: 1.08, rotate: -5 }}
+              whileTap={{ scale: 0.92 }}
+              onClick={() => { playInkSound('cartoonPop', 0.3); onLike(post.id); }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl"
+              style={{
+                background: post.liked_by_me ? 'linear-gradient(180deg, #ef4444, #b91c1c)' : 'rgba(255,255,255,0.05)',
+                border: '2.5px solid #0a0810',
+                boxShadow: '0 2px 0 #0a0810',
+              }}
+            >
+              <Heart className={cn('w-3.5 h-3.5', post.liked_by_me && 'fill-current')} style={{ color: 'white' }} strokeWidth={2.5} />
+              <span className="text-xs font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+                {post.likes_count}
+              </span>
+            </motion.button>
+          </div>
         </div>
 
         {post.caption && (
-          <p
-            className="text-xs text-white/65 line-clamp-2"
-            style={{ fontFamily: FONT }}
-          >
+          <p className="text-xs text-white/65 line-clamp-2" style={{ fontFamily: FONT }}>
             {post.caption}
           </p>
         )}
@@ -200,6 +177,7 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
   const { user } = useAuth();
   const [tab, setTab] = useState<SocialFeedTab>('top_week');
   const { posts, loading, toggleLike, remove } = useSocialFeed(tab);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const tabsBar = (
     <div className={cn('flex gap-2 flex-shrink-0', inlineMode ? 'px-5 pt-4 pb-3' : 'px-4 py-2.5 border-b border-white/10')}>
@@ -275,6 +253,7 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
                 rank={tab === 'top_week' ? idx + 1 : undefined}
                 onLike={toggleLike}
                 onDelete={remove}
+                onOpen={() => setViewerIndex(idx)}
                 isOwner={user?.id === post.owner_id}
               />
             ))}
@@ -284,6 +263,34 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
     </div>
   );
 
+  // TikTok-style full viewer (portaled to body to escape transformed ancestors)
+  const viewer = typeof document !== 'undefined' && createPortal(
+    <AnimatePresence>
+      {viewerIndex !== null && posts[viewerIndex] && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed', inset: 0, width: '100vw', height: '100vh',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16, zIndex: 10000, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setViewerIndex(null); }}
+        >
+          <SocialTikTokViewer
+            posts={posts}
+            startIndex={viewerIndex}
+            onClose={() => setViewerIndex(null)}
+            onLike={toggleLike}
+            onDelete={remove}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
+  );
+
   // Inline mode: no outer card, no header — caller already provides them.
   // Used by SocialHubPanel which has its own modal chrome.
   if (inlineMode) {
@@ -291,6 +298,7 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
       <div className="flex flex-col h-full">
         {tabsBar}
         {feedBody}
+        {viewer}
       </div>
     );
   }
@@ -341,6 +349,7 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
 
       {tabsBar}
       {feedBody}
+      {viewer}
     </div>
   );
 };
