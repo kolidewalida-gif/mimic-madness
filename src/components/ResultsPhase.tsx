@@ -255,14 +255,20 @@ export const ResultsPhase = ({
           return { teamNumber: team.teamNumber, playerNames: team.players.map(p => p.name), likes: totalLikes, dislikes: totalDislikes, score: totalLikes - totalDislikes };
         });
         teamResultsData.sort((a, b) => b.score - a.score);
-        setTeamResults(teamResultsData);
+        setTeamResults((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(teamResultsData)) return prev;
+          return teamResultsData;
+        });
       } else {
         const resultsData: PlayerResult[] = players.map((player) => {
           const t = tally.get(player.id) ?? { likes: 0, dislikes: 0 };
           return { playerId: player.id, playerName: player.name, likes: t.likes, dislikes: t.dislikes, score: t.likes - t.dislikes };
         });
         resultsData.sort((a, b) => b.score - a.score);
-        setResults(resultsData);
+        setResults((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(resultsData)) return prev;
+          return resultsData;
+        });
       }
     };
 
@@ -271,7 +277,8 @@ export const ResultsPhase = ({
     return () => {
       isMounted = false;
     };
-  }, [lobbyId, roundNumber, players, gameMode, teams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lobbyId, roundNumber, gameMode]);
 
   const winner = results[0];
   const winnerTeam = teamResults[0];
@@ -403,40 +410,38 @@ export const ResultsPhase = ({
           {/* Video area */}
           <div className="relative" style={{ paddingTop: "56.25%" /* 16:9 */ }}>
             <div className="absolute inset-0">
-              {isExpanded && clip && challengeClipId ? (
-                <VideoWithAudioOverlay
-                  videoClipId={challengeClipId}
-                  audioClipId={clip.id}
-                  className="w-full h-full"
-                />
-              ) : (
-                <div
-                  className="w-full h-full flex flex-col items-center justify-center gap-2 cursor-pointer group"
-                  onClick={() => toggleExpand(result.playerId)}
-                  style={{ background: "rgba(0,0,0,0.5)" }}
-                >
-                  {clipLoading ? (
-                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-                  ) : (
-                    <>
-                      <motion.div
-                        whileHover={{ scale: 1.1 }}
-                        className="w-14 h-14 rounded-full flex items-center justify-center"
-                        style={{
-                          background: `linear-gradient(135deg, ${color}, ${color}88)`,
-                          border: "3px solid #0a0810",
-                          boxShadow: `0 4px 0 #0a0810, 0 0 16px ${color}66`,
-                        }}
-                      >
-                        <Play className="w-6 h-6 text-white" strokeWidth={2.5} />
-                      </motion.div>
-                      <span className="text-sm font-black text-white/80" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
-                        Voir l'imitation
-                      </span>
-                    </>
-                  )}
-                </div>
-              )}
+              <div
+                className="w-full h-full flex flex-col items-center justify-center gap-2 cursor-pointer group"
+                onClick={() => toggleExpand(result.playerId)}
+                style={{ background: "rgba(0,0,0,0.5)" }}
+              >
+                {clipLoading ? (
+                  <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                ) : isExpanded && clip && challengeClipId ? (
+                  <VideoWithAudioOverlay
+                    videoClipId={challengeClipId}
+                    audioClipId={clip.id}
+                    className="w-full h-full"
+                  />
+                ) : (
+                  <>
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className="w-14 h-14 rounded-full flex items-center justify-center"
+                      style={{
+                        background: `linear-gradient(135deg, ${color}, ${color}88)`,
+                        border: "3px solid #0a0810",
+                        boxShadow: `0 4px 0 #0a0810, 0 0 16px ${color}66`,
+                      }}
+                    >
+                      <Play className="w-6 h-6 text-white" strokeWidth={2.5} />
+                    </motion.div>
+                    <span className="text-sm font-black text-white/80" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+                      Voir l'imitation
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
