@@ -43,6 +43,10 @@ export const ChallengePreviewPhase = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMode]);
 
+  // Single channel for both sending and receiving "player ready" broadcasts.
+  // Also fetches from DB as fallback for reconnections.
+  const readyBroadcastRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   useEffect(() => {
     let isMounted = true;
     const fetchReady = async () => {
@@ -52,30 +56,29 @@ export const ChallengePreviewPhase = ({
     };
     fetchReady();
 
-    // Broadcast channel for instant "player ready" notifications
-    const broadcastCh = supabase
-      .channel(`ready:${lobbyId}:${roundNumber}`, { config: { broadcast: { self: true, ack: false } } })
+    // Single broadcast channel — self:true so sender also receives their own event
+    const ch = supabase
+      .channel(`ready-sync:${lobbyId}:${roundNumber}`, { config: { broadcast: { self: true, ack: false } } })
       .on('broadcast', { event: 'player_ready' }, (msg) => {
         if (!isMounted) return;
         const pid = msg.payload?.playerId as string | undefined;
         if (pid) setReadyPlayers((prev) => prev.includes(pid) ? prev : [...prev, pid]);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') readyBroadcastRef.current = ch;
+      });
 
-    // Postgres realtime as fallback (handles reconnections)
-    const pgChannel = supabase.channel(`preview:${lobbyId}:${roundNumber}`)
+    // Postgres realtime as fallback
+    const pgChannel = supabase.channel(`preview-pg:${lobbyId}:${roundNumber}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "player_imitations", filter: `lobby_id=eq.${lobbyId}` }, () => { if (isMounted) fetchReady(); })
       .subscribe();
 
-    return () => { isMounted = false; supabase.removeChannel(pgChannel); supabase.removeChannel(broadcastCh); };
-  }, [lobbyId, roundNumber]);
-
-  // Ref to the broadcast channel for sending "ready" events
-  const readyBroadcastRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  useEffect(() => {
-    const ch = supabase.channel(`ready:${lobbyId}:${roundNumber}`, { config: { broadcast: { self: true, ack: false } } });
-    ch.subscribe(() => { readyBroadcastRef.current = ch; });
-    return () => { readyBroadcastRef.current = null; supabase.removeChannel(ch); };
+    return () => {
+      isMounted = false;
+      readyBroadcastRef.current = null;
+      supabase.removeChannel(ch);
+      supabase.removeChannel(pgChannel);
+    };
   }, [lobbyId, roundNumber]);
 
   useEffect(() => {
