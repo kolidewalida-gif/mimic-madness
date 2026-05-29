@@ -143,7 +143,39 @@ const Index = () => {
     resetState 
   } = useLobbySync();
 
-  // Register invitation callback for premium notification
+  // ── Resume session (crash/reload recovery) ──────────────────────────────
+  const resumeStatus = useResumeSession({ enabled: gameState === 'home' && inkAnimationCompleted });
+  const [showResumeModal, setShowResumeModal] = useState(false);
+
+  useEffect(() => {
+    if (resumeStatus.kind === 'ready') {
+      setShowResumeModal(true);
+    }
+  }, [resumeStatus.kind]);
+
+  const handleResumeYes = useCallback(async () => {
+    setShowResumeModal(false);
+    if (resumeStatus.kind !== 'ready') return;
+    const { session } = resumeStatus;
+    const newPlayer: Player = {
+      id: session.playerId,
+      name: session.playerName,
+      isHost: false,
+    };
+    setCurrentPlayer(newPlayer);
+    const result = await joinLobby(session.lobbyCode, session.playerId, session.playerName);
+    if (result) {
+      setGameState('lobby');
+    } else {
+      clearResumeSession();
+      setCurrentPlayer(null);
+    }
+  }, [resumeStatus, joinLobby]);
+
+  const handleResumeNo = useCallback(() => {
+    setShowResumeModal(false);
+    clearResumeSession();
+  }, []);  // Register invitation callback for premium notification
   useEffect(() => {
     setOnNewInvitationCallback((invitation) => {
       setActiveInvitation(invitation);
@@ -394,6 +426,12 @@ const Index = () => {
     
     if (result) {
       playSoundEffect('join', 0.4);
+      saveResumeSession({
+        lobbyCode: code.trim().toUpperCase(),
+        lobbyId: result.lobby.id,
+        playerId,
+        playerName,
+      });
       setGameState("lobby");
     } else {
       playSoundEffect('error', 0.4);
@@ -549,6 +587,7 @@ const Index = () => {
     if (currentPlayer) {
       await leaveLobby(currentPlayer.id);
     }
+    clearResumeSession();
     setGameState("home");
     setCurrentPlayer(null);
     setSubmittedChallenges([]);
@@ -777,6 +816,33 @@ const Index = () => {
       <ScreenTransition screenKey={gameState}>
         {renderContent}
       </ScreenTransition>
+      
+      {/* Resume session modal — shown when a player reloads/crashes and comes back */}
+      {showResumeModal && resumeStatus.kind === 'ready' && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#1a0d2e] border-4 border-[#0a0810] rounded-3xl p-6 max-w-sm mx-4 text-center space-y-4"
+            style={{ boxShadow: '0 8px 0 #0a0810, 0 0 40px rgba(168,85,247,0.3)' }}>
+            <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: '2px 2px 0 #0a0810' }}>
+              🎮 Partie en cours
+            </h2>
+            <p className="text-white/70 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>
+              Tu étais dans une partie avec le code <span className="text-purple-300 font-black">{resumeStatus.session.lobbyCode}</span>. Veux-tu revenir ?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={handleResumeNo}
+                className="flex-1 py-3 rounded-2xl text-lg font-black text-white/70"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: "'Caveat', cursive" }}>
+                Non
+              </button>
+              <button onClick={handleResumeYes}
+                className="flex-1 py-3 rounded-2xl text-lg font-black text-white"
+                style={{ background: 'linear-gradient(180deg, #a855f7, #7c3aed)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: "'Caveat', cursive" }}>
+                Oui
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Only show music bar in non-ink mode */}
       <MusicPlayerBar />
