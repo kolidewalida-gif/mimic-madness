@@ -63,8 +63,9 @@ export const ImitationPhase = ({
   onAllReady,
 }: ImitationPhaseProps) => {
   const [hasRecorded, setHasRecorded] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
+  // Derive hasSubmitted from DB state — survives page reloads
+  const hasSubmitted = readyPlayers.includes(currentPlayer.id);
   const [recordedClipId, setRecordedClipId] = useState<string | null>(null);
   const [uploadKey, setUploadKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -160,14 +161,11 @@ export const ImitationPhase = ({
   }, [readyPlayers.length, players.length, onAllReady, currentPlayer.isHost]);
 
   const handleSubmit = async () => {
+    if (hasSubmitted) return;
     try {
       playInkSound('cartoonDing', 0.5);
-      if (recordedClipId) {
-        await supabase
-          .from('video_clips')
-          .update({ round_number: roundNumber })
-          .eq('id', recordedClipId);
-      }
+      // Optimistic update
+      setReadyPlayers((prev) => prev.includes(currentPlayer.id) ? prev : [...prev, currentPlayer.id]);
 
       const { error } = await supabase
         .from('player_imitations')
@@ -184,9 +182,11 @@ export const ImitationPhase = ({
           { onConflict: 'lobby_id,round_number,player_id' },
         );
 
-      if (error) throw error;
+      if (error) {
+        setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
+        throw error;
+      }
 
-      setHasSubmitted(true);
       void questTracker.track('submit_imitation');
       void questTracker.track('play_imitation');
       toast({
@@ -194,6 +194,7 @@ export const ImitationPhase = ({
         description: 'En attente des autres joueurs...',
       });
     } catch (error) {
+      setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
       console.error('Error submitting:', error);
       toast({
         title: 'Erreur',
@@ -208,6 +209,9 @@ export const ImitationPhase = ({
     setRecordedClipId(clip.id);
     setIsRecording(false);
     playInkSound('cartoonPop', 0.4);
+    // Tag the clip with round_number immediately so VotingPhase can find it
+    // even if the player hasn't clicked "Soumettre" yet (e.g. host force-advance).
+    supabase.from('video_clips').update({ round_number: roundNumber }).eq('id', clip.id).then(() => {});
     if (challengeVideoRef.current) {
       challengeVideoRef.current.pause();
       const startTime = challengeClipData?.startTime ?? 0;

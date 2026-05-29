@@ -70,17 +70,22 @@ export const VideoSubmissionScreen = ({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const next: Record<string, string> = { ...clipUrls };
-      for (const clip of savedClips) {
-        if (next[clip.id]) continue;
-        const url = await videoStorage.getVideoUrl(clip.id);
-        if (url) next[clip.id] = url;
+      const clipsToLoad = savedClips.filter((clip) => !clipUrls[clip.id]);
+      if (clipsToLoad.length === 0) return;
+      const entries = await Promise.all(
+        clipsToLoad.map(async (clip) => {
+          const url = await videoStorage.getVideoUrl(clip.id);
+          return url ? [clip.id, url] as const : null;
+        })
+      );
+      if (cancelled) return;
+      const next = { ...clipUrls };
+      for (const entry of entries) {
+        if (entry) next[entry[0]] = entry[1];
       }
-      if (!cancelled) setClipUrls(next);
+      setClipUrls(next);
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedClips]);
 

@@ -23,8 +23,9 @@ const ACCENT = "#06b6d4";
 export const ChallengePreviewPhase = ({
   lobbyId, roundNumber, currentPlayer, players, currentChallenge, onAllReady,
 }: ChallengePreviewPhaseProps) => {
-  const [isReady, setIsReady] = useState(false);
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
+  // Derive isReady from DB state — survives page reloads and prevents desync
+  const isReady = readyPlayers.includes(currentPlayer.id);
   const playerIds = useMemo(() => players.map((p) => p.id), [players]);
   const { getAvatar } = useMultiplePlayerAvatars(playerIds);
   const { setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
@@ -61,14 +62,24 @@ export const ChallengePreviewPhase = ({
   }, [readyPlayers.length, players.length, onAllReady, currentPlayer.isHost]);
 
   const handleReady = async () => {
+    if (isReady) return;
     try {
       playInkSound("cartoonPop", 0.4);
-      await supabase.from("player_imitations").upsert(
+      // Optimistic update
+      setReadyPlayers((prev) => prev.includes(currentPlayer.id) ? prev : [...prev, currentPlayer.id]);
+      const { error } = await supabase.from("player_imitations").upsert(
         { lobby_id: lobbyId, round_number: roundNumber, player_id: currentPlayer.id, player_name: currentPlayer.name, is_ready: true },
         { onConflict: "lobby_id,round_number,player_id" }
       );
-      setIsReady(true);
-    } catch (e) { console.error(e); }
+      if (error) {
+        // Rollback optimistic update
+        setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
+        console.error('Ready failed:', error);
+      }
+    } catch (e) {
+      setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
+      console.error(e);
+    }
   };
 
   return (

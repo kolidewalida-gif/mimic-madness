@@ -228,68 +228,41 @@ export const ResultsPhase = ({
     let isMounted = true;
     
     const loadResults = async () => {
+      // Single query for ALL votes of this round — no N+1
+      const { data: allVotes } = await supabase
+        .from('imitation_votes')
+        .select('imitation_player_id, vote_type')
+        .eq('lobby_id', lobbyId)
+        .eq('round_number', roundNumber);
+
+      const tally = new Map<string, { likes: number; dislikes: number }>();
+      for (const v of allVotes ?? []) {
+        const entry = tally.get(v.imitation_player_id) ?? { likes: 0, dislikes: 0 };
+        if (v.vote_type === 'like') entry.likes++;
+        else if (v.vote_type === 'dislike') entry.dislikes++;
+        tally.set(v.imitation_player_id, entry);
+      }
+
+      if (!isMounted) return;
+
       if (gameMode === '2v2' && teams.length > 0) {
-        // Load team results
-        const teamResultsData: TeamResult[] = [];
-        
-        for (const team of teams) {
-          let totalLikes = 0;
-          let totalDislikes = 0;
-          
+        const teamResultsData: TeamResult[] = teams.map((team) => {
+          let totalLikes = 0, totalDislikes = 0;
           for (const player of team.players) {
-            const { data: votes } = await supabase
-              .from('imitation_votes')
-              .select('vote_type')
-              .eq('lobby_id', lobbyId)
-              .eq('round_number', roundNumber)
-              .eq('imitation_player_id', player.id);
-
-            totalLikes += votes?.filter(v => v.vote_type === 'like').length || 0;
-            totalDislikes += votes?.filter(v => v.vote_type === 'dislike').length || 0;
+            const t = tally.get(player.id);
+            if (t) { totalLikes += t.likes; totalDislikes += t.dislikes; }
           }
-          
-          teamResultsData.push({
-            teamNumber: team.teamNumber,
-            playerNames: team.players.map(p => p.name),
-            likes: totalLikes,
-            dislikes: totalDislikes,
-            score: totalLikes - totalDislikes
-          });
-        }
-        
-        if (isMounted) {
-          teamResultsData.sort((a, b) => b.score - a.score);
-          setTeamResults(teamResultsData);
-        }
+          return { teamNumber: team.teamNumber, playerNames: team.players.map(p => p.name), likes: totalLikes, dislikes: totalDislikes, score: totalLikes - totalDislikes };
+        });
+        teamResultsData.sort((a, b) => b.score - a.score);
+        setTeamResults(teamResultsData);
       } else {
-        // Load individual results
-        const resultsData: PlayerResult[] = [];
-
-        for (const player of players) {
-          const { data: votes } = await supabase
-            .from('imitation_votes')
-            .select('vote_type')
-            .eq('lobby_id', lobbyId)
-            .eq('round_number', roundNumber)
-            .eq('imitation_player_id', player.id);
-
-          const likes = votes?.filter(v => v.vote_type === 'like').length || 0;
-          const dislikes = votes?.filter(v => v.vote_type === 'dislike').length || 0;
-          const score = likes - dislikes;
-
-          resultsData.push({
-            playerId: player.id,
-            playerName: player.name,
-            likes,
-            dislikes,
-            score
-          });
-        }
-
-        if (isMounted) {
-          resultsData.sort((a, b) => b.score - a.score);
-          setResults(resultsData);
-        }
+        const resultsData: PlayerResult[] = players.map((player) => {
+          const t = tally.get(player.id) ?? { likes: 0, dislikes: 0 };
+          return { playerId: player.id, playerName: player.name, likes: t.likes, dislikes: t.dislikes, score: t.likes - t.dislikes };
+        });
+        resultsData.sort((a, b) => b.score - a.score);
+        setResults(resultsData);
       }
     };
 
