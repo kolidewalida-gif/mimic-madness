@@ -34,7 +34,17 @@ export const useSocialComments = (postId: string | null) => {
         .select('*')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
-      if (!error && data) setComments(data as SocialComment[]);
+      if (!error && data) {
+        setComments((prev) => {
+          // Keep any optimistic (tmp-*) comments that haven't been confirmed yet
+          const optimistic = prev.filter((c) => c.id.startsWith('tmp-'));
+          const confirmed = data as SocialComment[];
+          // Merge: confirmed first, then any optimistic not yet in confirmed
+          const confirmedIds = new Set(confirmed.map((c) => c.id));
+          const pendingOptimistic = optimistic.filter((c) => !confirmedIds.has(c.id));
+          return [...confirmed, ...pendingOptimistic];
+        });
+      }
     } catch {
       /* table may not exist yet — degrade gracefully */
     } finally {

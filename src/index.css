@@ -405,6 +405,19 @@
   cursor: none !important;
 }
 
+/* Override cursor:none for modals/overlays that need the real cursor */
+.force-cursor,
+.force-cursor * {
+  cursor: auto !important;
+}
+.force-cursor input,
+.force-cursor button {
+  cursor: pointer !important;
+}
+.force-cursor input[type="text"] {
+  cursor: text !important;
+}
+
 /* ===== MIMIC MASTER — Fountain pen / ink-nib cursor ===== */
 .game-cursor-nib,
 .game-cursor-drop,

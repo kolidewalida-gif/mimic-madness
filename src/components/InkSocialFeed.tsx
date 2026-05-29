@@ -271,6 +271,7 @@ const InkSocialFeedComponent = ({ inlineMode = false }: InkSocialFeedProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          className="force-cursor"
           style={{
             position: 'fixed', inset: 0, width: '100vw', height: '100vh',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
