@@ -224,11 +224,25 @@ export const VotingPhase = ({
         .eq('round_number', roundNumber)
         .eq('is_ready', true);
 
-      console.log(`Loading imitations for round ${roundNumber}:`, imitationRecords);
-      
-      // Process all players in parallel for faster loading
+      // Single query for ALL votes this round (eliminates N+1 per-player queries)
+      const { data: allVotes } = await supabase
+        .from('imitation_votes')
+        .select('imitation_player_id, voter_player_id, vote_type')
+        .eq('lobby_id', lobbyId)
+        .eq('round_number', roundNumber);
+
+      // Pre-compute vote tallies in memory
+      const voteTally = new Map<string, { likes: number; dislikes: number; userVote: 'like' | 'dislike' | null }>();
+      for (const v of allVotes ?? []) {
+        const entry = voteTally.get(v.imitation_player_id) ?? { likes: 0, dislikes: 0, userVote: null };
+        if (v.vote_type === 'like') entry.likes++;
+        else if (v.vote_type === 'dislike') entry.dislikes++;
+        if (v.voter_player_id === currentPlayer.id) entry.userVote = v.vote_type as 'like' | 'dislike';
+        voteTally.set(v.imitation_player_id, entry);
+      }
+
+      // Resolve clip IDs in parallel (only for players who have an imitation record)
       const playerPromises = players.map(async (player) => {
-        // Find if player submitted an imitation for this round
         const imitationRecord = imitationRecords?.find(r => r.player_id === player.id);
         
         let clipId: string | null = null;
@@ -236,56 +250,25 @@ export const VotingPhase = ({
         const originalAudioVolume = (imitationRecord as any)?.original_audio_volume ?? 50;
         
         if (imitationRecord) {
-          // First try to get clip by round_number (most accurate)
           const roundClip = await videoStorage.getClipByPlayerAndRound(player.id, lobbyId, roundNumber);
-          
           if (roundClip) {
             clipId = roundClip.id;
-            console.log(`Found clip for player ${player.name} by round: ${clipId}`);
           } else {
-            // Fallback: Get clip created around the imitation time
             const imitationTime = new Date(imitationRecord.created_at);
             const searchTime = new Date(imitationTime.getTime() - 10 * 60 * 1000);
             const timeClip = await videoStorage.getClipByPlayerAfterTime(player.id, lobbyId, searchTime);
-            
-            if (timeClip) {
-              clipId = timeClip.id;
-              console.log(`Found clip for player ${player.name} by time: ${clipId}`);
-            } else {
-              // Last resort: get latest clip
-              const latestClip = await videoStorage.getLatestClipByPlayerInLobby(player.id, lobbyId);
-              clipId = latestClip?.id || null;
-              console.log(`Fallback clip for player ${player.name}: ${clipId}`);
-            }
+            if (timeClip) clipId = timeClip.id;
           }
         }
 
-        const { data: votes } = await supabase
-          .from('imitation_votes')
-          .select('vote_type')
-          .eq('lobby_id', lobbyId)
-          .eq('round_number', roundNumber)
-          .eq('imitation_player_id', player.id);
-
-        const likes = votes?.filter(v => v.vote_type === 'like').length || 0;
-        const dislikes = votes?.filter(v => v.vote_type === 'dislike').length || 0;
-
-        const { data: userVote } = await supabase
-          .from('imitation_votes')
-          .select('vote_type')
-          .eq('lobby_id', lobbyId)
-          .eq('round_number', roundNumber)
-          .eq('imitation_player_id', player.id)
-          .eq('voter_player_id', currentPlayer.id)
-          .maybeSingle();
-
+        const v = voteTally.get(player.id) ?? { likes: 0, dislikes: 0, userVote: null };
         return {
           playerId: player.id,
           playerName: player.name,
           clipId,
-          likes,
-          dislikes,
-          userVote: userVote?.vote_type as 'like' | 'dislike' | null,
+          likes: v.likes,
+          dislikes: v.dislikes,
+          userVote: v.userVote,
           includeOriginalAudio,
           originalAudioVolume
         };
@@ -295,25 +278,27 @@ export const VotingPhase = ({
       imitationsData.push(...results);
 
       if (isMounted) {
-        // Check if any imitations with records are missing clips - retry if so
+        // Skip retry for bots (no clip will ever exist)
         const hasMissingClips = imitationsData.some(im => {
+          if (im.playerId.startsWith('bot-')) return false;
           const hasRecord = imitationRecords?.some(r => r.player_id === im.playerId);
           return hasRecord && !im.clipId;
         });
 
-        if (hasMissingClips && retryCount < 5) {
-          console.log(`Retrying imitations load (attempt ${retryCount + 1}) - missing clips detected`);
+        if (hasMissingClips && retryCount < 3) {
           retryTimeout = setTimeout(() => loadImitations(retryCount + 1), 1500);
           return;
         }
 
-        console.log('Loaded imitations:', imitationsData);
         setImitations(imitationsData);
       }
     };
 
     loadImitations();
 
+    // Debounce realtime vote events — when 8 players vote simultaneously,
+    // we don't want 8 full reloads. Wait 500ms after the last event.
+    let debounceTimer: NodeJS.Timeout | null = null;
     const channel = supabase
       .channel(`votes:${lobbyId}:${roundNumber}`)
       .on(
@@ -325,7 +310,11 @@ export const VotingPhase = ({
           filter: `lobby_id=eq.${lobbyId}`
         },
         () => {
-          if (isMounted) loadImitations();
+          if (!isMounted) return;
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            if (isMounted) loadImitations();
+          }, 500);
         }
       )
       .subscribe();
@@ -333,6 +322,7 @@ export const VotingPhase = ({
     return () => {
       isMounted = false;
       if (retryTimeout) clearTimeout(retryTimeout);
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [lobbyId, roundNumber, players, currentPlayer.id]);

@@ -14,6 +14,11 @@ export interface VideoClip {
   lobbyId?: string;
 }
 
+// In-memory signed URL cache — avoids re-creating URLs when multiple components
+// request the same clip (VideoPreview, VideoWithAudioOverlay, thumbnails).
+// Entries expire after 50 min (signed URLs are valid 1h).
+const urlCache = new Map<string, { url: string; expiresAt: number }>();
+
 class VideoStorageSupabase {
   async uploadVideo(
     file: File,
@@ -119,10 +124,10 @@ class VideoStorageSupabase {
       .from('video_clips')
       .select('*')
       .eq('id', clipId)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
-      console.error('Error fetching clip:', error);
+      if (error) console.error('Error fetching clip:', error);
       return null;
     }
 
@@ -142,36 +147,46 @@ class VideoStorageSupabase {
   }
 
   async getVideoUrl(clipId: string): Promise<string | null> {
+    // Check cache first
+    const cached = urlCache.get(clipId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.url;
+    }
+
     const clip = await this.getVideoClip(clipId);
     if (!clip) {
       console.error('Clip not found:', clipId);
       return null;
     }
 
-    console.log('Getting URL for clip:', clipId, 'path:', clip.storagePath);
-
-    // Use signed URL for more reliability
     const { data, error } = await supabase.storage
       .from('video-challenges')
-      .createSignedUrl(clip.storagePath, 3600); // 1 hour expiry
+      .createSignedUrl(clip.storagePath, 3600);
 
+    let url: string | null = null;
     if (error) {
       console.error('Error creating signed URL:', error);
-      // Fallback to public URL
       const { data: publicData } = supabase.storage
         .from('video-challenges')
         .getPublicUrl(clip.storagePath);
-      return publicData.publicUrl;
+      url = publicData.publicUrl;
+    } else {
+      url = data.signedUrl;
     }
 
-    console.log('Signed URL created:', data.signedUrl);
-    return data.signedUrl;
+    // Cache for 50 min
+    if (url) {
+      urlCache.set(clipId, { url, expiresAt: Date.now() + 50 * 60 * 1000 });
+    }
+    return url;
   }
 
   async deleteVideoClip(clipId: string): Promise<void> {
-    // Get clip to find storage path
     const clip = await this.getVideoClip(clipId);
     if (!clip) return;
+
+    // Invalidate cache
+    urlCache.delete(clipId);
 
     // Delete from storage
     const { error: storageError } = await supabase.storage
