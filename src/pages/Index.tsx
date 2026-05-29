@@ -157,15 +157,47 @@ const Index = () => {
     setShowResumeModal(false);
     if (resumeStatus.kind !== 'ready') return;
     const { session } = resumeStatus;
-    const newPlayer: Player = {
-      id: session.playerId,
-      name: session.playerName,
-      isHost: false,
-    };
-    setCurrentPlayer(newPlayer);
+
     const result = await joinLobby(session.lobbyCode, session.playerId, session.playerName);
     if (result) {
-      setGameState('lobby');
+      // Check if this player is the host (they might have been before crash)
+      const { data: playerRow } = await supabase
+        .from('lobby_players')
+        .select('is_host')
+        .eq('lobby_id', session.lobbyId)
+        .eq('player_id', session.playerId)
+        .maybeSingle();
+
+      const newPlayer: Player = {
+        id: session.playerId,
+        name: session.playerName,
+        isHost: playerRow?.is_host ?? false,
+      };
+      setCurrentPlayer(newPlayer);
+
+      // Route directly to the correct game phase
+      const lobbyData = result.lobby as any;
+      const phase = lobbyData?.game_phase;
+      const mode = lobbyData?.game_mode;
+      if (mode) setGameMode(mode as GameMode);
+
+      if (phase === 'playing') {
+        setGameState('playing');
+      } else if (phase === 'preparation') {
+        setGameState('preparation');
+      } else if (phase === 'quiz') {
+        setGameState('quiz');
+      } else if (phase === 'audiophone') {
+        setGameState('audiophone');
+      } else if (phase === 'pixoguess') {
+        setGameState('pixoguess');
+      } else if (phase === 'monopoly') {
+        setGameState('monopoly');
+      } else if (phase === 'undercover') {
+        setGameState('undercover');
+      } else {
+        setGameState('lobby');
+      }
     } else {
       clearResumeSession();
       setCurrentPlayer(null);
