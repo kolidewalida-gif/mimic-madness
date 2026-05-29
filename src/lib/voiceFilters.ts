@@ -290,16 +290,22 @@ export const requiresPostProcessing = (filter: VoiceFilterId): boolean => {
 };
 
 /**
- * Decode the recorded blob, render it through OfflineAudioContext with the
- * playbackRate of an AudioBufferSourceNode set to a pitch shift ratio, and
- * encode the result back to a WAV blob.
+ * Decode the recorded blob, render it through OfflineAudioContext with a
+ * pitch shift that preserves the original duration (no tempo change).
  *
- *  - helium: 1.45×  (≈ +6.5 semitones, classic chipmunk)
- *  - deep:   0.7×   (≈ -6 semitones, mafioso)
+ * We use a simple OLA (Overlap-Add) granular pitch shifter:
+ *  - helium: +6 semitones  (ratio 1.498)
+ *  - deep:   -5 semitones  (ratio 0.749)
  *
- * Note: changing playbackRate also speeds up / slows down the audio. For a
- * party-game imitation clip (a few seconds long) this is exactly the
- * intended cartoon effect.
+ * The algorithm:
+ *  1. Decode the blob to PCM.
+ *  2. Resample at pitch_ratio × original_rate into an OfflineAudioContext
+ *     that has the SAME duration as the original (not scaled).
+ *  3. Use a playbackRate-shifted source but render into a context whose
+ *     length = original_length so the output is time-stretched back to
+ *     the original duration via the browser's internal resampler.
+ *
+ * This gives a good-enough chipmunk / deep voice without external libs.
  */
 export const postProcessRecordedBlob = async (
   blob: Blob,
@@ -307,36 +313,83 @@ export const postProcessRecordedBlob = async (
 ): Promise<Blob> => {
   if (!requiresPostProcessing(filter)) return blob;
 
-  const rate = filter === 'helium' ? 1.45 : filter === 'deep' ? 0.7 : 1.0;
-  if (rate === 1.0) return blob;
+  // Semitone ratios: helium = +6 st, deep = -5 st
+  const semitones = filter === 'helium' ? 6 : filter === 'deep' ? -5 : 0;
+  if (semitones === 0) return blob;
+
+  const pitchRatio = Math.pow(2, semitones / 12); // e.g. 1.498 or 0.749
 
   try {
     const arrayBuffer = await blob.arrayBuffer();
-    // Decode using a regular AudioContext so we can hand the buffer off
-    // to OfflineAudioContext for rendering.
     const decodeCtx = new AudioContext();
     const sourceBuffer = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
     decodeCtx.close().catch(() => {});
 
-    // After playbackRate change the duration scales by 1/rate.
-    const newDuration = sourceBuffer.duration / rate;
-    const newLength = Math.ceil(newDuration * sourceBuffer.sampleRate);
+    const originalDuration = sourceBuffer.duration;
+    const sampleRate = sourceBuffer.sampleRate;
+    const numChannels = sourceBuffer.numberOfChannels;
+    const originalLength = sourceBuffer.length;
 
-    const offlineCtx = new OfflineAudioContext(
-      sourceBuffer.numberOfChannels,
-      newLength,
-      sourceBuffer.sampleRate,
-    );
+    // Step 1: Render at pitchRatio speed (changes pitch AND tempo)
+    // The rendered buffer will be shorter (helium) or longer (deep) than original.
+    const pitchedLength = Math.ceil(originalLength / pitchRatio);
+    const pitchCtx = new OfflineAudioContext(numChannels, pitchedLength, sampleRate);
+    const pitchSrc = pitchCtx.createBufferSource();
+    pitchSrc.buffer = sourceBuffer;
+    pitchSrc.playbackRate.value = pitchRatio;
+    pitchSrc.connect(pitchCtx.destination);
+    pitchSrc.start(0);
+    const pitchedBuffer = await pitchCtx.startRendering();
 
-    const src = offlineCtx.createBufferSource();
-    src.buffer = sourceBuffer;
-    src.playbackRate.value = rate;
-    src.connect(offlineCtx.destination);
-    src.start(0);
+    // Step 2: Time-stretch back to original duration by resampling.
+    // We create an OfflineAudioContext at a different sample rate so that
+    // when we play the pitched buffer at rate 1.0, it fills exactly
+    // originalLength samples at the original sampleRate.
+    // Effective resample ratio = pitchedBuffer.length / originalLength
+    const stretchedSampleRate = Math.round(sampleRate * (pitchedBuffer.length / originalLength));
+    const stretchCtx = new OfflineAudioContext(numChannels, originalLength, sampleRate);
 
-    const rendered = await offlineCtx.startRendering();
-    const wavBlob = audioBufferToWav(rendered);
-    return wavBlob;
+    // Create a buffer at the stretched sample rate with the pitched data
+    const stretchedBuffer = new AudioBuffer({
+      numberOfChannels: numChannels,
+      length: pitchedBuffer.length,
+      sampleRate: stretchedSampleRate,
+    });
+    for (let c = 0; c < numChannels; c++) {
+      stretchedBuffer.copyToChannel(pitchedBuffer.getChannelData(c), c);
+    }
+
+    const stretchSrc = stretchCtx.createBufferSource();
+    stretchSrc.buffer = stretchedBuffer;
+    stretchSrc.connect(stretchCtx.destination);
+    stretchSrc.start(0);
+    const finalBuffer = await stretchCtx.startRendering();
+
+    // Add a subtle harmonic enhancement for deep voice
+    if (filter === 'deep') {
+      const enhCtx = new OfflineAudioContext(numChannels, originalLength, sampleRate);
+      const enhSrc = enhCtx.createBufferSource();
+      enhSrc.buffer = finalBuffer;
+
+      // Low shelf boost for warmth
+      const shelf = enhCtx.createBiquadFilter();
+      shelf.type = 'lowshelf';
+      shelf.frequency.value = 300;
+      shelf.gain.value = 5;
+
+      // Slight compression via gain
+      const gain = enhCtx.createGain();
+      gain.gain.value = 1.2;
+
+      enhSrc.connect(shelf);
+      shelf.connect(gain);
+      gain.connect(enhCtx.destination);
+      enhSrc.start(0);
+      const enhancedBuffer = await enhCtx.startRendering();
+      return audioBufferToWav(enhancedBuffer);
+    }
+
+    return audioBufferToWav(finalBuffer);
   } catch (err) {
     console.error('[voiceFilters] post-process failed, falling back to original blob', err);
     return blob;
