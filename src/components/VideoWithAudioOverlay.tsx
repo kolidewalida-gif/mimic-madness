@@ -306,6 +306,14 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
           onCanPlay={handleAudioCanPlay}
           onLoadedData={handleAudioCanPlay}
           onError={handleAudioError}
+          onEnded={() => {
+            // When the imitation audio ends, stop the video too.
+            // This prevents the original video from playing past the
+            // imitation duration (e.g. 40s imitation on a 1min video).
+            if (videoRef.current) videoRef.current.pause();
+            setIsPlaying(false);
+            onPlayStateChange?.(false);
+          }}
         />
       )}
 
