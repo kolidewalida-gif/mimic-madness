@@ -328,15 +328,12 @@ export const ResultsPhase = ({
 
   // Podium order: 2nd (left), 1st (center), 3rd (right)
   const podium = [results[1] ?? null, results[0] ?? null, results[2] ?? null];
-  const podiumOrder = [1, 0, 2]; // index in results[]
   const rest = results.slice(3);
 
-  // Podium card heights (center taller)
-  const podiumHeight = [220, 280, 200];
-  const podiumScale = [0.88, 1, 0.82];
+  // Podium card heights (center taller) — bigger for better visibility
+  const podiumHeight = [280, 360, 260];
   const podiumLabel = ["🥈", "🥇", "🥉"];
   const podiumColor = ["#d1d5db", "#fbbf24", "#f97316"];
-  const podiumRank = [2, 1, 3];
 
   // PodiumCard — video + avatar + score
   const PodiumCard = ({
@@ -361,26 +358,22 @@ export const ResultsPhase = ({
     const isMe = result.playerId === currentPlayer.id;
 
     return (
-      <div className="flex-1 flex flex-col items-center gap-0" style={{ zIndex: isCenter ? 10 : 5 }}>
+      <div className="flex-1 max-w-[280px] flex flex-col items-center gap-0" style={{ zIndex: isCenter ? 10 : 5 }}>
         {/* Avatar bubble above card */}
-        <motion.div
-          initial={{ scale: 0, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 14, delay: isCenter ? 0.1 : 0.25 }}
-          className="relative mb-[-20px] z-10"
+        <div className="relative mb-[-24px] z-10">
         >
           <div
             className="rounded-full flex items-center justify-center"
             style={{
-              width: isCenter ? 80 : 64,
-              height: isCenter ? 80 : 64,
+              width: isCenter ? 100 : 80,
+              height: isCenter ? 100 : 80,
               background: `linear-gradient(135deg, ${color}, ${color}88)`,
               border: `4px solid #0a0810`,
               boxShadow: `0 5px 0 #0a0810, 0 0 20px ${color}66`,
             }}
           >
             <PlayerAvatar playerId={result.playerId} playerName={result.playerName}
-              size={isCenter ? "lg" : "md"} />
+              size={isCenter ? "lg" : "lg"} />
           </div>
           {/* Rank badge */}
           <div
@@ -391,13 +384,10 @@ export const ResultsPhase = ({
               {rank}
             </span>
           </div>
-        </motion.div>
+        </div>
 
         {/* Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", damping: 18, delay: isCenter ? 0.05 : 0.2 }}
+        <div
           className="w-full rounded-3xl overflow-hidden flex flex-col"
           style={{
             background: isCenter
@@ -529,7 +519,7 @@ export const ResultsPhase = ({
               )}
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Podium base */}
         <div
@@ -543,7 +533,7 @@ export const ResultsPhase = ({
           }}
         >
           <span className="text-2xl font-black" style={{ fontFamily: FONT, color, textShadow: SHADOW_SM }}>
-            {podiumLabel[podiumOrder.indexOf(rank - 1)]}
+            {rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}
           </span>
         </div>
       </div>
@@ -591,10 +581,14 @@ export const ResultsPhase = ({
 
           {/* PODIUM — 2nd left, 1st center, 3rd right */}
           {results.length > 0 && (
-            <div className="flex items-end gap-3 px-2">
-              <PodiumCard result={podium[0]} rank={2} color={podiumColor[0]} height={podiumHeight[0]} isCenter={false} />
+            <div className="flex items-end justify-center gap-4 px-2">
+              {results.length >= 2 && (
+                <PodiumCard result={podium[0]} rank={2} color={podiumColor[0]} height={podiumHeight[0]} isCenter={false} />
+              )}
               <PodiumCard result={podium[1]} rank={1} color={podiumColor[1]} height={podiumHeight[1]} isCenter={true} />
-              <PodiumCard result={podium[2]} rank={3} color={podiumColor[2]} height={podiumHeight[2]} isCenter={false} />
+              {results.length >= 3 && (
+                <PodiumCard result={podium[2]} rank={3} color={podiumColor[2]} height={podiumHeight[2]} isCenter={false} />
+              )}
             </div>
           )}
 
