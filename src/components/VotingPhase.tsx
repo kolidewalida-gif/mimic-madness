@@ -467,11 +467,8 @@ export const VotingPhase = ({
 
     if (!isPlayingSynced) {
       // Starting playback - show countdown for all, synchronized via wall-clock startAt.
-      // Generous 800ms buffer covers typical broadcast latency (50-300ms) + jitter so
-      // every client receives the event before startAt and aligns its countdown.
-      // The host listens to its OWN broadcast (self:true) instead of starting the
-      // countdown locally, guaranteeing all clients start from the same wall-clock moment.
-      const startAt = Date.now() + 800;
+      // 500ms buffer covers typical broadcast latency (50-200ms) + jitter.
+      const startAt = Date.now() + 500;
 
       const ch = countdownChannelRef.current;
       if (ch && countdownReadyRef.current) {
@@ -580,6 +577,12 @@ export const VotingPhase = ({
   const handleNext = async () => {
     if (!votingSessionId || !currentPlayer.isHost) {
       return;
+    }
+
+    // Broadcast pause immediately so all clients stop in sync (no DB latency)
+    const ch = countdownChannelRef.current;
+    if (ch && countdownReadyRef.current) {
+      ch.send({ type: 'broadcast', event: 'force_pause', payload: { at: Date.now() } });
     }
 
     const nextIndex = currentIndex + 1;
@@ -725,7 +728,20 @@ export const VotingPhase = ({
               ) : currentImitation?.clipId ? (
                 <VideoWithAudioOverlay ref={videoRef} videoClipId={challengeVideoClipId} audioClipId={currentImitation.clipId}
                   className="w-full" externalControl isPlayingExternal={isPlayingSynced}
-                  includeOriginalAudio={currentImitation?.includeOriginalAudio ?? false} originalAudioVolume={currentImitation?.originalAudioVolume ?? 50} />
+                  includeOriginalAudio={currentImitation?.includeOriginalAudio ?? false} originalAudioVolume={currentImitation?.originalAudioVolume ?? 50}
+                  onPlayStateChange={(playing) => {
+                    if (!playing && isPlayingSynced) {
+                      // Audio ended — broadcast pause to all clients for sync
+                      setIsPlayingSynced(false);
+                      const ch = countdownChannelRef.current;
+                      if (ch && countdownReadyRef.current) {
+                        ch.send({ type: 'broadcast', event: 'force_pause', payload: { at: Date.now() } });
+                      }
+                      if (currentPlayer.isHost && votingSessionId) {
+                        supabase.from('voting_session').update({ is_playing: false, updated_at: new Date().toISOString() }).eq('id', votingSessionId).then(() => {});
+                      }
+                    }
+                  }} />
               ) : (
                 <div className="aspect-video flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
                   <p className="text-white/50 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Aucun audio disponible</p>
