@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VideoPreview } from "@/components/VideoPreview";
 import { Play, Check, Users, Eye, Loader2, Sparkles, Crown, Zap } from "lucide-react";
@@ -45,16 +45,37 @@ export const ChallengePreviewPhase = ({
 
   useEffect(() => {
     let isMounted = true;
-    const fetch = async () => {
+    const fetchReady = async () => {
       const { data } = await supabase.from("player_imitations").select("player_id, is_ready")
         .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
       if (data && isMounted) setReadyPlayers(data.filter((p) => p.is_ready).map((p) => p.player_id));
     };
-    fetch();
-    const channel = supabase.channel(`preview:${lobbyId}:${roundNumber}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "player_imitations", filter: `lobby_id=eq.${lobbyId}` }, () => { if (isMounted) fetch(); })
+    fetchReady();
+
+    // Broadcast channel for instant "player ready" notifications
+    const broadcastCh = supabase
+      .channel(`ready:${lobbyId}:${roundNumber}`, { config: { broadcast: { self: true, ack: false } } })
+      .on('broadcast', { event: 'player_ready' }, (msg) => {
+        if (!isMounted) return;
+        const pid = msg.payload?.playerId as string | undefined;
+        if (pid) setReadyPlayers((prev) => prev.includes(pid) ? prev : [...prev, pid]);
+      })
       .subscribe();
-    return () => { isMounted = false; supabase.removeChannel(channel); };
+
+    // Postgres realtime as fallback (handles reconnections)
+    const pgChannel = supabase.channel(`preview:${lobbyId}:${roundNumber}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "player_imitations", filter: `lobby_id=eq.${lobbyId}` }, () => { if (isMounted) fetchReady(); })
+      .subscribe();
+
+    return () => { isMounted = false; supabase.removeChannel(pgChannel); supabase.removeChannel(broadcastCh); };
+  }, [lobbyId, roundNumber]);
+
+  // Ref to the broadcast channel for sending "ready" events
+  const readyBroadcastRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  useEffect(() => {
+    const ch = supabase.channel(`ready:${lobbyId}:${roundNumber}`, { config: { broadcast: { self: true, ack: false } } });
+    ch.subscribe(() => { readyBroadcastRef.current = ch; });
+    return () => { readyBroadcastRef.current = null; supabase.removeChannel(ch); };
   }, [lobbyId, roundNumber]);
 
   useEffect(() => {
@@ -65,14 +86,16 @@ export const ChallengePreviewPhase = ({
     if (isReady) return;
     try {
       playInkSound("cartoonPop", 0.4);
+      // Broadcast instantly to all clients
+      readyBroadcastRef.current?.send({ type: 'broadcast', event: 'player_ready', payload: { playerId: currentPlayer.id } });
       // Optimistic update
       setReadyPlayers((prev) => prev.includes(currentPlayer.id) ? prev : [...prev, currentPlayer.id]);
+      // Persist to DB
       const { error } = await supabase.from("player_imitations").upsert(
         { lobby_id: lobbyId, round_number: roundNumber, player_id: currentPlayer.id, player_name: currentPlayer.name, is_ready: true },
         { onConflict: "lobby_id,round_number,player_id" }
       );
       if (error) {
-        // Rollback optimistic update
         setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
         console.error('Ready failed:', error);
       }

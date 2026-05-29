@@ -219,7 +219,9 @@ export const GamePlayScreen = ({
           }
         }
       })
-      .subscribe();
+      .subscribe(() => {
+        gameSyncChannelRef.current = broadcastChannel;
+      });
 
     // Keep postgres realtime as fallback (handles reconnections, late-joiners)
     const channel = supabase
@@ -256,6 +258,7 @@ export const GamePlayScreen = ({
 
     return () => {
       isMounted = false;
+      gameSyncChannelRef.current = null;
       supabase.removeChannel(channel);
       supabase.removeChannel(broadcastChannel);
     };
@@ -266,15 +269,10 @@ export const GamePlayScreen = ({
     roundNumber,
   ]);
 
-  // Ref to the broadcast channel for phase transitions
+  // Ref to the broadcast channel for instant phase transitions.
+  // Single channel used for both sending (host) and receiving (all clients).
+  // Created in the initializeRound effect alongside the postgres listener.
   const gameSyncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  useEffect(() => {
-    if (!lobbyId) return;
-    const ch = supabase.channel(`game-sync:${lobbyId}`, { config: { broadcast: { self: false, ack: false } } });
-    ch.subscribe();
-    gameSyncChannelRef.current = ch;
-    return () => { gameSyncChannelRef.current = null; supabase.removeChannel(ch); };
-  }, [lobbyId]);
 
   const handlePreviewReady = async () => {
     if (currentPlayer.isHost) {
