@@ -200,6 +200,28 @@ export const GamePlayScreen = ({
 
     initializeRound();
 
+    // Broadcast channel for instant phase transitions (< 50ms latency).
+    // The postgres_changes channel below is kept as a fallback for late-joiners
+    // and reconnections, but the broadcast fires first for connected clients.
+    const broadcastChannel = supabase
+      .channel(`game-sync:${lobbyId}`, { config: { broadcast: { self: true, ack: false } } })
+      .on('broadcast', { event: 'phase_change' }, (msg) => {
+        if (!isMounted) return;
+        const { phase, round, challengeId, challengePlayerId } = msg.payload ?? {};
+        if (phase && round) {
+          if (phase !== gamePhaseRef.current) playSound("transition");
+          setRoundNumber(round);
+          setGamePhase(phase as GamePhase);
+          setInitializationError(null);
+          setIsInitializingRound(false);
+          if (challengeId && challengePlayerId) {
+            setCurrentChallenge(buildChallenge(challengeId, challengePlayerId));
+          }
+        }
+      })
+      .subscribe();
+
+    // Keep postgres realtime as fallback (handles reconnections, late-joiners)
     const channel = supabase
       .channel(`game-round:${lobbyId}`)
       .on(
@@ -235,6 +257,7 @@ export const GamePlayScreen = ({
     return () => {
       isMounted = false;
       supabase.removeChannel(channel);
+      supabase.removeChannel(broadcastChannel);
     };
   }, [
     currentPlayer.isHost,
@@ -243,22 +266,31 @@ export const GamePlayScreen = ({
     roundNumber,
   ]);
 
+  // Ref to the broadcast channel for phase transitions
+  const gameSyncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  useEffect(() => {
+    if (!lobbyId) return;
+    const ch = supabase.channel(`game-sync:${lobbyId}`, { config: { broadcast: { self: false, ack: false } } });
+    ch.subscribe();
+    gameSyncChannelRef.current = ch;
+    return () => { gameSyncChannelRef.current = null; supabase.removeChannel(ch); };
+  }, [lobbyId]);
+
   const handlePreviewReady = async () => {
     if (currentPlayer.isHost) {
       try {
-        await supabase
-          .from("player_imitations")
-          .update({ is_ready: false })
-          .eq("lobby_id", lobbyId)
-          .eq("round_number", roundNumber);
-
-        await supabase
-          .from("game_rounds")
-          .update({ phase: "imitation" })
-          .eq("lobby_id", lobbyId)
-          .eq("round_number", roundNumber);
-
+        // Broadcast instant phase change to all clients (< 50ms)
+        gameSyncChannelRef.current?.send({
+          type: 'broadcast', event: 'phase_change',
+          payload: { phase: 'imitation', round: roundNumber, challengeId: currentChallenge?.id, challengePlayerId: currentChallenge?.playerId },
+        });
         setGamePhase("imitation");
+
+        // Persist to DB (for late-joiners / reconnections)
+        await supabase.from("player_imitations").update({ is_ready: false })
+          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
+        await supabase.from("game_rounds").update({ phase: "imitation" })
+          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
       } catch (error) {
         console.error("Error updating phase:", error);
       }
@@ -268,13 +300,14 @@ export const GamePlayScreen = ({
   const handleImitationReady = async () => {
     if (currentPlayer.isHost) {
       try {
-        await supabase
-          .from("game_rounds")
-          .update({ phase: "voting" })
-          .eq("lobby_id", lobbyId)
-          .eq("round_number", roundNumber);
-
+        gameSyncChannelRef.current?.send({
+          type: 'broadcast', event: 'phase_change',
+          payload: { phase: 'voting', round: roundNumber, challengeId: currentChallenge?.id, challengePlayerId: currentChallenge?.playerId },
+        });
         setGamePhase("voting");
+
+        await supabase.from("game_rounds").update({ phase: "voting" })
+          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
       } catch (error) {
         console.error("Error updating phase:", error);
       }
@@ -284,11 +317,13 @@ export const GamePlayScreen = ({
   const handleVotingComplete = async () => {
     if (currentPlayer.isHost) {
       try {
-        await supabase
-          .from("game_rounds")
-          .update({ phase: "results" })
-          .eq("lobby_id", lobbyId)
-          .eq("round_number", roundNumber);
+        gameSyncChannelRef.current?.send({
+          type: 'broadcast', event: 'phase_change',
+          payload: { phase: 'results', round: roundNumber, challengeId: currentChallenge?.id, challengePlayerId: currentChallenge?.playerId },
+        });
+
+        await supabase.from("game_rounds").update({ phase: "results" })
+          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
       } catch (error) {
         console.error("Error updating phase:", error);
       }
@@ -330,6 +365,12 @@ export const GamePlayScreen = ({
         });
 
       if (error) throw error;
+
+      // Broadcast instant transition to all clients
+      gameSyncChannelRef.current?.send({
+        type: 'broadcast', event: 'phase_change',
+        payload: { phase: 'preview', round: newRoundNumber, challengeId: nextChallenge.clip.id, challengePlayerId: nextChallenge.clip.playerId },
+      });
 
       setRoundNumber(newRoundNumber);
       setGamePhase("preview");
