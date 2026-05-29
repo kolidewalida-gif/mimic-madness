@@ -150,11 +150,19 @@ export const ImitationPhase = ({
     };
   }, [lobbyId, roundNumber]);
 
+  // Guard: don't fire onAllReady in the first 2s after mount — gives time for
+  // the host's reset (is_ready=false) to propagate before we check readiness.
+  // Without this, at round 2+ the ImitationPhase can mount, fetch stale
+  // is_ready=true from the preview phase, and immediately skip to voting.
+  const mountedAtRef = useRef(Date.now());
+  useEffect(() => { mountedAtRef.current = Date.now(); }, [roundNumber]);
+
   useEffect(() => {
     if (
       currentPlayer.isHost &&
       readyPlayers.length === players.length &&
-      readyPlayers.length > 0
+      readyPlayers.length > 0 &&
+      Date.now() - mountedAtRef.current > 2000
     ) {
       onAllReady();
     }

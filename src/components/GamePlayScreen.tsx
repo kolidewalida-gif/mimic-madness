@@ -277,16 +277,20 @@ export const GamePlayScreen = ({
   const handlePreviewReady = async () => {
     if (currentPlayer.isHost) {
       try {
-        // Broadcast instant phase change to all clients (< 50ms)
+        // IMPORTANT: Reset is_ready BEFORE broadcasting the phase change.
+        // Otherwise ImitationPhase mounts, fetches readyPlayers, sees them
+        // still at true (from the preview phase), and immediately fires
+        // onAllReady → skips straight to voting.
+        await supabase.from("player_imitations").update({ is_ready: false })
+          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
+
+        // Now broadcast + persist the phase change
         gameSyncChannelRef.current?.send({
           type: 'broadcast', event: 'phase_change',
           payload: { phase: 'imitation', round: roundNumber, challengeId: currentChallenge?.id, challengePlayerId: currentChallenge?.playerId },
         });
         setGamePhase("imitation");
 
-        // Persist to DB (for late-joiners / reconnections)
-        await supabase.from("player_imitations").update({ is_ready: false })
-          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
         await supabase.from("game_rounds").update({ phase: "imitation" })
           .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
       } catch (error) {
