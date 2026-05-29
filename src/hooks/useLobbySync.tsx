@@ -35,9 +35,9 @@ interface UseLobbyResult {
   resetState: () => void;
 }
 
-const RECONNECTION_TIMEOUT = 60000; // 60 seconds before disconnected players are removed (mobile-friendly)
-const HEARTBEAT_INTERVAL = 3000; // 3 seconds heartbeat tick
-const HOST_MIGRATION_GRACE = 10000; // wait 10s before promoting a new host
+const RECONNECTION_TIMEOUT = 60000;
+const HEARTBEAT_INTERVAL = 15000; // 15s (was 3s — caused realtime spam)
+const HOST_MIGRATION_GRACE = 10000;
 
 export const useLobbySync = (): UseLobbyResult => {
   const [lobby, setLobby] = useState<Lobby | null>(null);
@@ -605,11 +605,14 @@ export const useLobbySync = (): UseLobbyResult => {
       const pid = currentPlayerIdRef.current;
       if (!pid) return;
       try {
+        // Only update if currently disconnected — avoids triggering realtime
+        // events every tick when nothing has changed (was causing massive spam).
         await supabase
           .from('lobby_players')
           .update({ connection_status: 'connected', disconnected_at: null })
           .eq('lobby_id', lobbyId)
-          .eq('player_id', pid);
+          .eq('player_id', pid)
+          .eq('connection_status', 'disconnected');
       } catch (e) { console.error('heartbeat connected error', e); }
     };
     const beatDisconnected = async () => {

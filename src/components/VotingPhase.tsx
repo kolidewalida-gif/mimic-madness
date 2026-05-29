@@ -375,13 +375,25 @@ export const VotingPhase = ({
     setTeamImitations(grouped);
   }, [gameMode, teams, imitations]);
 
-  // Reset hasVotedCurrent when index changes
+  // Reset hasVotedCurrent when index changes — derive from loaded data
   useEffect(() => {
-    setHasVotedCurrent(false);
-  }, [currentIndex]);
+    const current = gameMode === '2v2' ? teamImitations[currentIndex] : imitations[currentIndex];
+    setHasVotedCurrent(!!current?.userVote);
+  }, [currentIndex, imitations, teamImitations, gameMode]);
 
   const handleVote = async (voteType: 'like' | 'dislike', evt?: React.MouseEvent) => {
-    // Juice — instant haptic-style feedback before async work
+    // Guards FIRST — block self-vote before any side effects (XP, juice)
+    if (gameMode === '2v2') {
+      const currentTeam = teamImitations[currentIndex];
+      if (!currentTeam) return;
+      if (currentTeam.players.some(p => p.id === currentPlayer.id)) return;
+    } else {
+      const currentImitation = imitations[currentIndex];
+      if (!currentImitation || currentImitation.playerId === currentPlayer.id) return;
+    }
+    if (hasVotedCurrent) return;
+
+    // Juice — instant haptic-style feedback
     const origin = centerOf(evt?.currentTarget ?? null);
     if (origin) {
       juice.burst({
@@ -398,7 +410,7 @@ export const VotingPhase = ({
       juice.shake(160, 0.7);
     }
 
-    // Award XP for voting
+    // Award XP only after guards pass
     const xpResult = await addXp('voteLike');
     emitXpGain(XP_REWARDS.voteLike, 'voteLike');
     if (xpResult?.leveledUp) {
@@ -407,85 +419,44 @@ export const VotingPhase = ({
     void questTracker.track('vote_imitation');
 
     if (gameMode === '2v2') {
-      // Vote for team
       const currentTeam = teamImitations[currentIndex];
-      if (!currentTeam) return;
-      
-      // Check if current player is in this team
-      const isOwnTeam = currentTeam.players.some(p => p.id === currentPlayer.id);
-      if (isOwnTeam) {
-        setHasVotedCurrent(true);
-        return;
-      }
-
       try {
         playSound('vote');
-        
-        // Vote for all team members
-        for (const player of currentTeam.players) {
-          await supabase
-            .from('imitation_votes')
-            .upsert({
-              lobby_id: lobbyId,
-              round_number: roundNumber,
-              imitation_player_id: player.id,
-              voter_player_id: currentPlayer.id,
-              vote_type: voteType
-            });
-        }
-
-        toast({
-          title: voteType === 'like' ? "👍 Like !" : "👎 Dislike",
-          description: `Vote pour l'équipe enregistré`,
-        });
-
+        await Promise.all(currentTeam.players.map((player) =>
+          supabase.from('imitation_votes').upsert({
+            lobby_id: lobbyId,
+            round_number: roundNumber,
+            imitation_player_id: player.id,
+            voter_player_id: currentPlayer.id,
+            vote_type: voteType
+          }, { onConflict: 'lobby_id,round_number,imitation_player_id,voter_player_id' })
+        ));
+        toast({ title: voteType === 'like' ? "👍 Like !" : "👎 Dislike", description: "Vote pour l'équipe enregistré" });
         setHasVotedCurrent(true);
       } catch (error) {
         console.error('Error voting:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible d'enregistrer le vote",
-          variant: "destructive",
-        });
+        toast({ title: "Erreur", description: "Impossible d'enregistrer le vote", variant: "destructive" });
       }
       return;
     }
 
-    // Normal mode voting
+    // Normal mode
     const currentImitation = imitations[currentIndex];
-    if (!currentImitation || currentImitation.playerId === currentPlayer.id) {
-      setHasVotedCurrent(true);
-      return;
-    }
-
     try {
       playSound('vote');
-      
-      const { error } = await supabase
-        .from('imitation_votes')
-        .upsert({
-          lobby_id: lobbyId,
-          round_number: roundNumber,
-          imitation_player_id: currentImitation.playerId,
-          voter_player_id: currentPlayer.id,
-          vote_type: voteType
-        });
-
+      const { error } = await supabase.from('imitation_votes').upsert({
+        lobby_id: lobbyId,
+        round_number: roundNumber,
+        imitation_player_id: currentImitation.playerId,
+        voter_player_id: currentPlayer.id,
+        vote_type: voteType
+      }, { onConflict: 'lobby_id,round_number,imitation_player_id,voter_player_id' });
       if (error) throw error;
-
-      toast({
-        title: voteType === 'like' ? "👍 Like !" : "👎 Dislike",
-        description: `Vote enregistré`,
-      });
-
+      toast({ title: voteType === 'like' ? "👍 Like !" : "👎 Dislike", description: "Vote enregistré" });
       setHasVotedCurrent(true);
     } catch (error) {
       console.error('Error voting:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible d'enregistrer le vote",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", description: "Impossible d'enregistrer le vote", variant: "destructive" });
     }
   };
 

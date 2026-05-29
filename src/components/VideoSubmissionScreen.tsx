@@ -94,7 +94,7 @@ export const VideoSubmissionScreen = ({
   };
 
   const handleClipSaved = (newClip: VideoClip) => {
-    setSavedClips([...savedClips, newClip]);
+    setSavedClips((prev) => prev.some((c) => c.id === newClip.id) ? prev : [...prev, newClip]);
     setUploadCollapsed(true);
   };
 

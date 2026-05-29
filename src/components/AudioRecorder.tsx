@@ -21,7 +21,13 @@ const trimLeadingSilence = async (blob: Blob): Promise<Blob> => {
   try {
     const arrayBuffer = await blob.arrayBuffer();
     const ctx = new AudioContext();
-    const buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    let buffer: AudioBuffer;
+    try {
+      buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    } catch {
+      ctx.close().catch(() => {});
+      return blob;
+    }
     ctx.close().catch(() => {});
 
     // Find first non-silent sample across all channels

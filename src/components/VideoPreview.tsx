@@ -114,9 +114,14 @@ export const VideoPreview = ({
     if (el) {
       const duration = Number.isFinite(el.duration) ? el.duration : 0;
       const rawStart = startTime ?? clipData?.startTime ?? 0;
-      const rawEnd = endTime ?? clipData?.endTime ?? duration;
+      const rawEnd = endTime ?? clipData?.endTime ?? 0;
       const effectiveStartTime = Math.min(Math.max(0, rawStart), Math.max(0, duration - 0.1));
-      const effectiveEndTime = Math.min(Math.max(effectiveStartTime, rawEnd), duration || Number.MAX_SAFE_INTEGER);
+      // If endTime is 0 or <= startTime, treat as "no trim" — let video play
+      // to its natural end. Clips imported via folder linking have endTime=0.
+      const noTrim = rawEnd <= 0 || rawEnd <= rawStart;
+      const effectiveEndTime = noTrim
+        ? (duration || Number.MAX_SAFE_INTEGER)
+        : Math.min(Math.max(effectiveStartTime, rawEnd), duration || Number.MAX_SAFE_INTEGER);
       if (el.currentTime >= effectiveEndTime) {
         el.pause();
         el.currentTime = effectiveStartTime;
