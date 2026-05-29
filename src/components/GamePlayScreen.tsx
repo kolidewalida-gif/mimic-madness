@@ -90,12 +90,18 @@ export const GamePlayScreen = ({
       setInitializationError(null);
 
       try {
-        const { data: existingRound, error: roundLookupError } = await supabase
+        // Fetch the LATEST round (highest round_number) — important after a
+        // page refresh: roundNumber state defaults to 1, but the game may be
+        // on round 2+. Querying the latest round keeps the refreshed client
+        // in sync with the actual game state.
+        const { data: latestRounds, error: roundLookupError } = await supabase
           .from("game_rounds")
           .select("*")
           .eq("lobby_id", lobbyId)
-          .eq("round_number", roundNumber)
-          .maybeSingle();
+          .order("round_number", { ascending: false })
+          .limit(1);
+
+        const existingRound = latestRounds?.[0] ?? null;
 
         if (roundLookupError) {
           throw roundLookupError;
@@ -104,6 +110,9 @@ export const GamePlayScreen = ({
         if (!isMounted) return;
 
         if (existingRound) {
+          // Sync local round number to the actual latest round
+          setRoundNumber(existingRound.round_number);
+
           const existingClip = await videoStorage.getVideoClip(existingRound.current_challenge_id);
 
           if (!existingClip && currentPlayer.isHost) {
