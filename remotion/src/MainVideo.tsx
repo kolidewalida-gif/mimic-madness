@@ -188,7 +188,7 @@ const MimicReveal: React.FC = () => {
         <div
           style={{
             fontFamily: grotesk,
-            fontWeight: 900,
+            fontWeight: 700,
             fontSize: 280,
             letterSpacing: "-0.04em",
             color: INK,
@@ -264,7 +264,7 @@ const SlashAndMadness: React.FC = () => {
         style={{
           position: "absolute",
           fontFamily: grotesk,
-          fontWeight: 900,
+          fontWeight: 700,
           fontSize: 280,
           letterSpacing: "-0.04em",
           color: INK,
@@ -282,7 +282,7 @@ const SlashAndMadness: React.FC = () => {
           position: "absolute",
           marginTop: 120,
           fontFamily: grotesk,
-          fontWeight: 900,
+          fontWeight: 700,
           fontSize: 280,
           letterSpacing: "-0.04em",
           color: RED,
@@ -343,7 +343,7 @@ const FinalStamp: React.FC = () => {
         <div
           style={{
             fontFamily: grotesk,
-            fontWeight: 900,
+            fontWeight: 700,
             fontSize: 280,
             letterSpacing: "-0.04em",
             color: INK,
@@ -355,7 +355,7 @@ const FinalStamp: React.FC = () => {
         <div
           style={{
             fontFamily: grotesk,
-            fontWeight: 900,
+            fontWeight: 700,
             fontSize: 280,
             letterSpacing: "-0.04em",
             color: RED,
