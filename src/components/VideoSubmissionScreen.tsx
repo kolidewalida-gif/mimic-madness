@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { VideoUploadSimple } from "@/components/VideoUploadSimple";
 import {
   ArrowLeft,
   Send,
-  ChevronUp,
   Video as VideoIcon,
   Sparkles,
   Clapperboard,
   ListChecks,
   Users,
   Crown,
+  Upload,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
@@ -53,19 +54,16 @@ export const VideoSubmissionScreen = ({
   const [savedClips, setSavedClips] = useState<VideoClip[]>([]);
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadCollapsed, setUploadCollapsed] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [clipUrls, setClipUrls] = useState<Record<string, string>>({});
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     loadPlayerClips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer.id]);
-
-  useEffect(() => {
-    if (savedClips.length > 0) setUploadCollapsed(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedClips.length > 0]);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,9 +96,89 @@ export const VideoSubmissionScreen = ({
     }
   };
 
-  const handleClipSaved = (newClip: VideoClip) => {
-    setSavedClips((prev) => prev.some((c) => c.id === newClip.id) ? prev : [...prev, newClip]);
-    setUploadCollapsed(true);
+  // ── Multi-file import (click or drag & drop) ─────────────────────────────
+  const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.mkv', '.avi', '.ogg', '.m4v'];
+  const isVideoFile = (name: string) =>
+    VIDEO_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext));
+
+  const importFiles = async (files: File[]) => {
+    const videoFiles = files.filter((f) => f.type.startsWith('video/') || f.type === '' || isVideoFile(f.name));
+    if (videoFiles.length === 0) {
+      toast({ title: 'Aucune vidéo', description: 'Aucun fichier vidéo détecté.', variant: 'destructive' });
+      return;
+    }
+    // Dedup by name against existing clips
+    const existingNames = new Set(savedClips.map((c) => c.name));
+    const newFiles = videoFiles.filter((f) => !existingNames.has(f.name.replace(/\.[^/.]+$/, '')));
+    if (newFiles.length === 0) {
+      toast({ title: '✅ Déjà importées', description: 'Toutes ces vidéos sont déjà dans ta bibliothèque.' });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const results = await Promise.all(newFiles.map(async (file) => {
+        const baseName = file.name.replace(/\.[^/.]+$/, '');
+        const clipData = {
+          id: `${currentPlayer.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: baseName,
+          playerId: currentPlayer.id,
+          playerName: currentPlayer.name,
+          startTime: 0,
+          endTime: 0,
+          isMuted: false,
+        };
+        try {
+          return await videoStorage.uploadVideo(file, clipData);
+        } catch (err) {
+          console.error('[import] error for', file.name, err);
+          return null;
+        }
+      }));
+      const imported = results.filter(Boolean) as VideoClip[];
+      if (imported.length > 0) {
+        setSavedClips((prev) => [...prev, ...imported]);
+        toast({ title: `📂 ${imported.length} vidéo${imported.length > 1 ? 's' : ''} importée${imported.length > 1 ? 's' : ''} !` });
+      }
+      const failed = newFiles.length - imported.length;
+      if (failed > 0) {
+        toast({ title: `⚠️ ${failed} échec${failed > 1 ? 's' : ''}`, description: 'Certains fichiers n\'ont pas pu être uploadés.', variant: 'destructive' });
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      void importFiles(Array.from(files));
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) void importFiles(files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = () => setIsDragging(false);
+
+  const wipeLibrary = async () => {
+    try {
+      const clips = await videoStorage.getVideoClipsByPlayer(currentPlayer.id);
+      await Promise.all(clips.map((c) => videoStorage.deleteVideoClip(c.id).catch(() => {})));
+      setSavedClips([]);
+      setSelectedClips([]);
+      setClipUrls({});
+      toast({ title: '🗑️ Bibliothèque vidée', description: `${clips.length} vidéo(s) supprimée(s).` });
+    } catch (err) {
+      console.error('[wipe] error:', err);
+      toast({ title: 'Erreur', description: 'Impossible de vider.', variant: 'destructive' });
+    }
   };
 
   const toggleClipSelection = (clipId: string) => {
@@ -290,104 +368,81 @@ export const VideoSubmissionScreen = ({
             pour cette partie.
           </p>
 
-          {/* GRID — adapts: empty state shows a big CTA + status; filled state
-              shows a 3-col thumbnail grid + status. */}
+          {/* GRID — always shows import zone + thumbnails + status */}
           <div className="grid md:grid-cols-[1fr_320px] gap-4 items-start">
-            {/* LEFT — Upload CTA when empty, thumbnail grid otherwise */}
+            {/* LEFT — Import + thumbnail grid */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              {savedClips.length === 0 ? (
-                /* EMPTY STATE — single big "Ajouter une vidéo" card */
-                <CartoonCard accent={ACCENT} highlighted>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <motion.div
-                        animate={{ rotate: [-3, 3, -3] }}
-                        transition={{ duration: 2.4, repeat: Infinity }}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{
-                          background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
-                          border: "2.5px solid #0a0810",
-                          boxShadow: "0 3px 0 #0a0810",
-                        }}
-                      >
-                        <VideoIcon className="w-5 h-5 text-white" strokeWidth={2.5} />
-                      </motion.div>
-                      <span
-                        className="text-2xl font-black text-white leading-none"
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          textShadow: GRAFFITI_TEXT_SHADOW,
-                        }}
-                      >
-                        Ajouter des vidéos
-                      </span>
-                    </div>
-                    <p
-                      className="text-sm text-white/65 font-bold"
-                      style={{ fontFamily: "'Caveat', cursive" }}
+              <CartoonCard accent={ACCENT} highlighted>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <motion.div
+                      animate={{ rotate: [-3, 3, -3] }}
+                      transition={{ duration: 2.4, repeat: Infinity }}
+                      className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      style={{
+                        background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
+                        border: "2.5px solid #0a0810",
+                        boxShadow: "0 3px 0 #0a0810",
+                      }}
                     >
-                      Importe ou lie un fichier local pour créer tes défis.
-                    </p>
-                    <VideoUploadSimple
-                      playerId={currentPlayer.id}
-                      playerName={currentPlayer.name}
-                      maxVideos={5}
-                      onVideoSaved={handleClipSaved}
-                    />
+                      <ListChecks className="w-4 h-4 text-white" strokeWidth={2.5} />
+                    </motion.div>
+                    <span
+                      className="text-2xl font-black text-white leading-none"
+                      style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}
+                    >
+                      Tes vidéos
+                    </span>
+                    <span
+                      className="ml-auto px-2 py-0.5 rounded-full text-sm font-black"
+                      style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810", color: "white", fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                    >
+                      {selectedClips.length}/3
+                    </span>
                   </div>
-                </CartoonCard>
-              ) : (
-                /* FILLED STATE — thumbnail grid + add/submit controls */
-                <CartoonCard accent={ACCENT} highlighted>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <motion.div
-                        animate={{ rotate: [-3, 3, -3] }}
-                        transition={{ duration: 2.4, repeat: Infinity }}
-                        className="w-9 h-9 rounded-xl flex items-center justify-center"
-                        style={{
-                          background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
-                          border: "2.5px solid #0a0810",
-                          boxShadow: "0 3px 0 #0a0810",
-                        }}
-                      >
-                        <ListChecks className="w-4 h-4 text-white" strokeWidth={2.5} />
-                      </motion.div>
-                      <span
-                        className="text-2xl font-black text-white leading-none"
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          textShadow: GRAFFITI_TEXT_SHADOW,
-                        }}
-                      >
-                        Tes vidéos
-                      </span>
-                      <span
-                        className="ml-auto px-2 py-0.5 rounded-full text-sm font-black"
-                        style={{
-                          background: "linear-gradient(180deg, #fbbf24, #d97706)",
-                          border: "2px solid #0a0810",
-                          boxShadow: "0 2px 0 #0a0810",
-                          color: "white",
-                          fontFamily: "'Caveat', cursive",
-                          textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                        }}
-                      >
-                        {selectedClips.length}/3
-                      </span>
-                    </div>
 
-                    {/* THUMBNAIL GRID — 2 cols on mobile, 3 on tablet+, max 5+1 add tile */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {savedClips.slice(0, 5).map((clip, idx) => {
+                  {/* Hidden file input — accepts multiple */}
+                  <input ref={fileInputRef} type="file" multiple accept="video/*,.mkv,.avi,.mov,.m4v"
+                    onChange={handleFileInput} style={{ display: 'none' }} />
+
+                  {/* DROP ZONE — always visible, click or drag */}
+                  <div
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={cn(
+                      "relative rounded-2xl py-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all",
+                      isDragging && "scale-[1.02]"
+                    )}
+                    style={{
+                      background: isDragging ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.05)",
+                      border: isDragging ? `3px solid ${ACCENT}` : "3px dashed rgba(168,85,247,0.4)",
+                    }}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                    ) : (
+                      <Upload className="w-8 h-8 text-purple-300" strokeWidth={2} />
+                    )}
+                    <span className="text-base font-black text-purple-200" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
+                      {isUploading ? "Upload en cours..." : isDragging ? "Lâche ici !" : "Glisse tes vidéos ici ou clique"}
+                    </span>
+                    <span className="text-xs text-white/40" style={{ fontFamily: "'Caveat', cursive" }}>
+                      MP4, WebM, MOV, MKV — plusieurs fichiers à la fois
+                    </span>
+                  </div>
+
+                  {/* THUMBNAIL GRID — scrollable, all clips */}
+                  {savedClips.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
+                      {savedClips.map((clip, idx) => {
                         const isSelected = selectedClips.includes(clip.id);
-                        const slotIdx = isSelected
-                          ? selectedClips.indexOf(clip.id) + 1
-                          : null;
+                        const slotIdx = isSelected ? selectedClips.indexOf(clip.id) + 1 : null;
                         return (
                           <motion.button
                             key={clip.id}
@@ -395,78 +450,35 @@ export const VideoSubmissionScreen = ({
                             onClick={() => toggleClipSelection(clip.id)}
                             initial={{ opacity: 0, scale: 0.85 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: idx * 0.04 }}
+                            transition={{ delay: idx * 0.03 }}
                             whileHover={{ scale: 1.04, rotate: -1 }}
                             whileTap={{ scale: 0.96 }}
                             className="relative aspect-video rounded-2xl overflow-hidden group"
                             style={{
                               background: "rgba(0,0,0,0.6)",
-                              border: isSelected
-                                ? "3px solid #fbbf24"
-                                : "3px solid #0a0810",
-                              boxShadow: isSelected
-                                ? "0 4px 0 #0a0810, 0 0 14px rgba(251,191,36,0.5)"
-                                : "0 4px 0 #0a0810",
+                              border: isSelected ? "3px solid #fbbf24" : "3px solid #0a0810",
+                              boxShadow: isSelected ? "0 4px 0 #0a0810, 0 0 14px rgba(251,191,36,0.5)" : "0 4px 0 #0a0810",
                             }}
                             title={clip.name}
                           >
                             {clipUrls[clip.id] ? (
-                              <video
-                                src={`${clipUrls[clip.id]}#t=${Math.max(
-                                  0.1,
-                                  clip.startTime || 0.1,
-                                )}`}
-                                className="w-full h-full object-cover"
-                                preload="metadata"
-                                muted
-                                playsInline
-                              />
+                              <video src={`${clipUrls[clip.id]}#t=0.5`} className="w-full h-full object-cover" preload="metadata" muted playsInline />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <VideoIcon className="w-6 h-6 text-white/30" />
                               </div>
                             )}
-
-                            {/* Bottom gradient + name */}
-                            <div
-                              className="absolute inset-x-0 bottom-0 h-10 flex items-end px-2 pb-1.5"
-                              style={{
-                                background:
-                                  "linear-gradient(180deg, transparent, rgba(0,0,0,0.85))",
-                              }}
-                            >
-                              <span
-                                className="text-xs font-black text-white truncate w-full"
-                                style={{
-                                  fontFamily: "'Caveat', cursive",
-                                  textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                                }}
-                              >
+                            <div className="absolute inset-x-0 bottom-0 h-10 flex items-end px-2 pb-1.5"
+                              style={{ background: "linear-gradient(180deg, transparent, rgba(0,0,0,0.85))" }}>
+                              <span className="text-xs font-black text-white truncate w-full" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
                                 {clip.name}
                               </span>
                             </div>
-
-                            {/* Selection badge — top-right slot number */}
                             {isSelected && slotIdx != null && (
-                              <motion.div
-                                initial={{ scale: 0, rotate: -10 }}
-                                animate={{ scale: 1, rotate: 0 }}
-                                transition={{ type: "spring", damping: 12 }}
+                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", damping: 12 }}
                                 className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center"
-                                style={{
-                                  background:
-                                    "linear-gradient(180deg, #fbbf24, #d97706)",
-                                  border: "2.5px solid #0a0810",
-                                  boxShadow: "0 2px 0 #0a0810",
-                                }}
-                              >
-                                <span
-                                  className="text-base font-black text-white leading-none"
-                                  style={{
-                                    fontFamily: "'Caveat', cursive",
-                                    textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                                  }}
-                                >
+                                style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2.5px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                                <span className="text-base font-black text-white leading-none" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
                                   {slotIdx}
                                 </span>
                               </motion.div>
@@ -474,133 +486,40 @@ export const VideoSubmissionScreen = ({
                           </motion.button>
                         );
                       })}
-
-                      {/* Add tile — only shows when there's room and uploader collapsed */}
-                      {savedClips.length < 5 && uploadCollapsed && (
-                        <motion.button
-                          type="button"
-                          onClick={() => setUploadCollapsed(false)}
-                          whileHover={{ scale: 1.04, rotate: -1 }}
-                          whileTap={{ scale: 0.96 }}
-                          className="relative aspect-video rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-1"
-                          style={{
-                            background:
-                              "linear-gradient(135deg, rgba(168,85,247,0.18), rgba(168,85,247,0.04))",
-                            border: "3px dashed rgba(168,85,247,0.5)",
-                          }}
-                        >
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center"
-                            style={{
-                              background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
-                              border: "2.5px solid #0a0810",
-                              boxShadow: "0 2px 0 #0a0810",
-                            }}
-                          >
-                            <VideoIcon className="w-4 h-4 text-white" strokeWidth={2.5} />
-                          </div>
-                          <span
-                            className="text-base font-black text-purple-200"
-                            style={{
-                              fontFamily: "'Caveat', cursive",
-                              textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                            }}
-                          >
-                            + Ajouter
-                          </span>
-                        </motion.button>
-                      )}
                     </div>
+                  )}
 
-                    {/* Inline uploader expands when user clicks "+ Ajouter" */}
-                    {!uploadCollapsed && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="rounded-2xl overflow-hidden"
-                        style={{
-                          background: "rgba(0,0,0,0.4)",
-                          border: "2.5px solid #0a0810",
-                        }}
-                      >
-                        <div className="p-3 flex items-center justify-between">
-                          <span
-                            className="text-base font-black text-white"
-                            style={{
-                              fontFamily: "'Caveat', cursive",
-                              textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                            }}
-                          >
-                            Ajouter une vidéo
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setUploadCollapsed(true)}
-                            className="flex items-center gap-1 text-xs text-white/60 hover:text-white transition-colors font-black"
-                            style={{ fontFamily: "'Caveat', cursive" }}
-                          >
-                            <ChevronUp className="w-3 h-3" />
-                            Réduire
-                          </button>
-                        </div>
-                        <div className="px-3 pb-3">
-                          <VideoUploadSimple
-                            playerId={currentPlayer.id}
-                            playerName={currentPlayer.name}
-                            maxVideos={5}
-                            onVideoSaved={handleClipSaved}
-                          />
-                        </div>
-                      </motion.div>
+                  {/* Wipe + Submit buttons */}
+                  <div className="flex gap-2">
+                    {savedClips.length > 0 && (
+                      <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        onClick={() => { if (window.confirm(`Supprimer ${savedClips.length} vidéo(s) ?`)) void wipeLibrary(); }}
+                        className="px-3 py-2.5 rounded-2xl flex items-center gap-1.5"
+                        style={{ background: "rgba(239,68,68,0.1)", border: "2.5px solid rgba(239,68,68,0.4)" }}>
+                        <Trash2 className="w-4 h-4 text-red-300" />
+                        <span className="text-sm font-black text-red-300" style={{ fontFamily: "'Caveat', cursive" }}>Vider</span>
+                      </motion.button>
                     )}
-
-                    {/* Submit button */}
                     <motion.button
                       type="button"
                       onClick={handleSubmitChallenges}
                       disabled={selectedClips.length === 0 || isSubmitting}
-                      whileHover={
-                        selectedClips.length > 0 && !isSubmitting
-                          ? { scale: 1.02, rotate: -0.5 }
-                          : undefined
-                      }
-                      whileTap={
-                        selectedClips.length > 0 && !isSubmitting
-                          ? { scale: 0.98 }
-                          : undefined
-                      }
-                      className={cn(
-                        "relative w-full py-3 rounded-2xl flex items-center justify-center gap-2",
-                        (selectedClips.length === 0 || isSubmitting) &&
-                          "opacity-50 cursor-not-allowed",
-                      )}
+                      whileHover={selectedClips.length > 0 && !isSubmitting ? { scale: 1.02 } : undefined}
+                      whileTap={selectedClips.length > 0 && !isSubmitting ? { scale: 0.98 } : undefined}
+                      className={cn("flex-1 py-3 rounded-2xl flex items-center justify-center gap-2", (selectedClips.length === 0 || isSubmitting) && "opacity-50 cursor-not-allowed")}
                       style={{
-                        background:
-                          selectedClips.length > 0
-                            ? "linear-gradient(180deg, #fbbf24, #d97706)"
-                            : "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))",
-                        border: "3px solid #0a0810",
-                        boxShadow: "0 4px 0 #0a0810",
+                        background: selectedClips.length > 0 ? "linear-gradient(180deg, #fbbf24, #d97706)" : "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))",
+                        border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810",
                       }}
                     >
                       <Send className="w-5 h-5 text-white" strokeWidth={2.5} />
-                      <span
-                        className="text-xl font-black text-white leading-none"
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          textShadow: GRAFFITI_TEXT_SHADOW,
-                        }}
-                      >
-                        {isSubmitting
-                          ? "Envoi…"
-                          : `Soumettre ${selectedClips.length} défi${
-                              selectedClips.length > 1 ? "s" : ""
-                            }`}
+                      <span className="text-xl font-black text-white leading-none" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}>
+                        {isSubmitting ? "Envoi…" : `Soumettre ${selectedClips.length} défi${selectedClips.length > 1 ? "s" : ""}`}
                       </span>
                     </motion.button>
                   </div>
-                </CartoonCard>
-              )}
+                </div>
+              </CartoonCard>
             </motion.div>
 
             {/* RIGHT — Submission Status (always present) */}
