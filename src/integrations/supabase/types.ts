@@ -1289,6 +1289,41 @@ export type Database = {
           },
         ]
       }
+      social_post_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_post_likes: {
         Row: {
           created_at: string
@@ -1323,6 +1358,7 @@ export type Database = {
           caption: string | null
           challenge_clip_id: string | null
           clip_id: string
+          comments_count: number
           created_at: string
           id: string
           is_featured: boolean
@@ -1337,6 +1373,7 @@ export type Database = {
           caption?: string | null
           challenge_clip_id?: string | null
           clip_id: string
+          comments_count?: number
           created_at?: string
           id?: string
           is_featured?: boolean
@@ -1351,6 +1388,7 @@ export type Database = {
           caption?: string | null
           challenge_clip_id?: string | null
           clip_id?: string
+          comments_count?: number
           created_at?: string
           id?: string
           is_featured?: boolean
