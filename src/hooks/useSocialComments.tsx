@@ -2,6 +2,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
+// `social_post_comments` is not yet in the generated Supabase types.
+// Cast to any so this hook degrades gracefully until the table is added.
+const db = supabase as any;
+
 export interface SocialComment {
   id: string;
   post_id: string;
@@ -29,7 +33,7 @@ export const useSocialComments = (postId: string | null) => {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('social_post_comments')
         .select('*')
         .eq('post_id', postId)
@@ -89,7 +93,7 @@ export const useSocialComments = (postId: string | null) => {
       };
       setComments((prev) => [...prev, optimistic]);
       try {
-        const { error } = await supabase.from('social_post_comments').insert({
+        const { error } = await db.from('social_post_comments').insert({
           post_id: postId,
           user_id: user.id,
           user_name: profile?.display_name || 'Joueur',
@@ -111,7 +115,7 @@ export const useSocialComments = (postId: string | null) => {
     async (commentId: string) => {
       if (!user) return;
       setComments((prev) => prev.filter((c) => c.id !== commentId));
-      await supabase.from('social_post_comments').delete().eq('id', commentId).eq('user_id', user.id);
+      await db.from('social_post_comments').delete().eq('id', commentId).eq('user_id', user.id);
     },
     [user],
   );
