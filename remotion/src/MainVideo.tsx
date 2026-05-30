@@ -8,11 +8,13 @@ import {
   spring,
   Easing,
 } from "remotion";
+import { loadFont as loadBangers } from "@remotion/google-fonts/Bangers";
+import { loadFont as loadFredoka } from "@remotion/google-fonts/Fredoka";
 import { loadFont as loadCaveat } from "@remotion/google-fonts/Caveat";
-import { loadFont as loadGrotesk } from "@remotion/google-fonts/SpaceGrotesk";
 
-const { fontFamily: caveat } = loadCaveat("normal", { weights: ["600", "700"] });
-const { fontFamily: grotesk } = loadGrotesk("normal", { weights: ["400", "500", "700"] });
+const { fontFamily: bangers } = loadBangers("normal", { weights: ["400"] });
+const { fontFamily: fredoka } = loadFredoka("normal", { weights: ["600", "700"] });
+const { fontFamily: caveat } = loadCaveat("normal", { weights: ["700"] });
 
 const BG = "#0a0a0a";
 const BG_DEEP = "#050505";
