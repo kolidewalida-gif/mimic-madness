@@ -8,96 +8,156 @@ import {
   spring,
   Easing,
 } from "remotion";
+import { loadFont as loadBangers } from "@remotion/google-fonts/Bangers";
+import { loadFont as loadFredoka } from "@remotion/google-fonts/Fredoka";
 import { loadFont as loadCaveat } from "@remotion/google-fonts/Caveat";
-import { loadFont as loadGrotesk } from "@remotion/google-fonts/SpaceGrotesk";
 
-const { fontFamily: caveat } = loadCaveat("normal", { weights: ["600", "700"] });
-const { fontFamily: grotesk } = loadGrotesk("normal", { weights: ["400", "500", "700"] });
+const { fontFamily: bangers } = loadBangers("normal", { weights: ["400"] });
+const { fontFamily: fredoka } = loadFredoka("normal", { weights: ["600", "700"] });
+const { fontFamily: caveat } = loadCaveat("normal", { weights: ["700"] });
 
 const BG = "#0a0a0a";
 const BG_DEEP = "#050505";
 const INK = "#f5f5f5";
 const RED = "#ee3434";
 const RED_DEEP = "#c01818";
-const PAPER_GRAIN =
-  "radial-gradient(ellipse at 30% 20%, rgba(238,52,52,0.06), transparent 55%), radial-gradient(ellipse at 80% 90%, rgba(255,255,255,0.03), transparent 60%)";
+const CREAM = "#f4ead5";
+const OUTLINE = "#0a0a0a";
 
-// ---------- Persistent atmosphere ----------
-const InkAtmosphere: React.FC = () => {
+// Comic-style thick black outline (text-shadow stack)
+const comicOutline = (size: number, color = OUTLINE) =>
+  [
+    `${size}px 0 0 ${color}`,
+    `-${size}px 0 0 ${color}`,
+    `0 ${size}px 0 ${color}`,
+    `0 -${size}px 0 ${color}`,
+    `${size}px ${size}px 0 ${color}`,
+    `-${size}px ${size}px 0 ${color}`,
+    `${size}px -${size}px 0 ${color}`,
+    `-${size}px -${size}px 0 ${color}`,
+  ].join(", ");
+
+// Halftone dot pattern (comic newsprint)
+const halftone = (color = RED, size = 14, opacity = 0.18) =>
+  `radial-gradient(circle, ${color} 22%, transparent 23%) 0 0 / ${size}px ${size}px`;
+
+// ---------- Persistent halftone paper background ----------
+const PaperBackground: React.FC = () => {
   const frame = useCurrentFrame();
-  const { durationInFrames } = useVideoConfig();
-  const drift = Math.sin(frame / 40) * 8;
-  const vignette = interpolate(frame, [0, 30, durationInFrames - 30, durationInFrames], [0.4, 0.7, 0.7, 0.5]);
+  const drift = Math.sin(frame / 30) * 6;
+  const pulse = 0.12 + Math.sin(frame / 8) * 0.04;
   return (
-    <AbsoluteFill style={{ background: `linear-gradient(180deg, ${BG} 0%, ${BG_DEEP} 100%)` }}>
-      <AbsoluteFill style={{ background: PAPER_GRAIN, transform: `translateY(${drift}px)` }} />
-      {/* subtle ink splatters drifting */}
-      {Array.from({ length: 14 }).map((_, i) => {
-        const seed = i * 137.5;
-        const x = (seed % 100);
-        const y = ((seed * 1.7) % 100);
-        const size = 2 + ((i * 13) % 7);
-        const opacity = 0.04 + ((i % 5) * 0.012);
-        const float = Math.sin((frame + i * 20) / 60) * 4;
-        return (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: `${x}%`,
-              top: `${y}%`,
-              width: size,
-              height: size,
-              borderRadius: "50%",
-              background: i % 4 === 0 ? RED : INK,
-              opacity,
-              transform: `translateY(${float}px)`,
-              filter: "blur(1px)",
-            }}
-          />
-        );
-      })}
-      {/* vignette */}
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse at center, ${BG} 0%, ${BG_DEEP} 100%)` }}>
+      {/* big halftone wash */}
       <AbsoluteFill
         style={{
-          background: `radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,${vignette}) 100%)`,
-          pointerEvents: "none",
+          background: halftone(RED, 22, pulse),
+          opacity: pulse,
+          transform: `translate(${drift}px, ${-drift}px)`,
+        }}
+      />
+      {/* secondary cream dots */}
+      <AbsoluteFill
+        style={{
+          background: halftone(CREAM, 9, 0.06),
+          opacity: 0.08,
+          transform: `translate(${-drift}px, ${drift}px)`,
         }}
       />
     </AbsoluteFill>
   );
 };
 
-// ---------- Scene 1: Ink drop falls and splatters ----------
-const InkDropScene: React.FC = () => {
+// ---------- Speed lines (radial comic burst) ----------
+const SpeedLines: React.FC<{ count?: number; color?: string; rotation?: number }> = ({
+  count = 24,
+  color = OUTLINE,
+  rotation = 0,
+}) => (
+  <svg viewBox="-500 -500 1000 1000" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+    <g transform={`rotate(${rotation})`}>
+      {Array.from({ length: count }).map((_, i) => {
+        const a = (i / count) * Math.PI * 2;
+        const r1 = 180;
+        const r2 = 700;
+        const w = 2 + (i % 3) * 2;
+        return (
+          <line
+            key={i}
+            x1={Math.cos(a) * r1}
+            y1={Math.sin(a) * r1}
+            x2={Math.cos(a) * r2}
+            y2={Math.sin(a) * r2}
+            stroke={color}
+            strokeWidth={w}
+            strokeLinecap="round"
+          />
+        );
+      })}
+    </g>
+  </svg>
+);
+
+// ---------- Comic burst (star shape) ----------
+const ComicBurst: React.FC<{ points?: number; fill: string; stroke?: string }> = ({
+  points = 14,
+  fill,
+  stroke = OUTLINE,
+}) => {
+  const path: string[] = [];
+  for (let i = 0; i < points * 2; i++) {
+    const a = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+    const r = i % 2 === 0 ? 220 : 130;
+    const wob = 1 + Math.sin(i * 3.7) * 0.18;
+    const rr = r * wob;
+    path.push(`${i === 0 ? "M" : "L"} ${Math.cos(a) * rr} ${Math.sin(a) * rr}`);
+  }
+  path.push("Z");
+  return (
+    <svg viewBox="-260 -260 520 520" style={{ width: "100%", height: "100%" }}>
+      <path d={path.join(" ")} fill={fill} stroke={stroke} strokeWidth={10} strokeLinejoin="round" />
+    </svg>
+  );
+};
+
+// ---------- Scene 1: SPLAT! burst with falling drop ----------
+const SplatScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Drop falls from top
-  const dropY = interpolate(frame, [0, 22], [-200, 540], {
+  // Drop falls
+  const dropY = interpolate(frame, [0, 14], [-300, 540], {
     extrapolateRight: "clamp",
-    easing: Easing.bezier(0.5, 0, 0.9, 0.4),
+    easing: Easing.bezier(0.4, 0, 0.9, 0.3),
   });
-  const dropStretch = interpolate(frame, [0, 18, 22], [1, 1.6, 0.6], { extrapolateRight: "clamp" });
-  const dropOpacity = interpolate(frame, [20, 23], [1, 0], { extrapolateRight: "clamp" });
+  const dropStretch = interpolate(frame, [0, 12, 14], [1, 1.8, 0.4], { extrapolateRight: "clamp" });
+  const dropOpacity = interpolate(frame, [13, 16], [1, 0], { extrapolateRight: "clamp" });
 
-  // Splatter
-  const splatProgress = spring({ frame: frame - 22, fps, config: { damping: 12, stiffness: 120, mass: 1 } });
-  const splatScale = interpolate(splatProgress, [0, 1], [0, 1]);
-  const ringScale = interpolate(frame, [22, 60], [0, 6], { extrapolateRight: "clamp" });
-  const ringOpacity = interpolate(frame, [22, 60], [0.6, 0], { extrapolateRight: "clamp" });
+  // SPLAT burst appears
+  const burst = spring({ frame: frame - 14, fps, config: { damping: 9, stiffness: 220, mass: 0.6 } });
+  const burstScale = interpolate(burst, [0, 1], [0, 1.05]);
+  const burstRot = interpolate(frame, [14, 60], [0, 18], { extrapolateRight: "clamp" });
+
+  // SPEED LINES converging
+  const linesOpacity = interpolate(frame, [14, 22, 50], [0, 1, 0.4], { extrapolateRight: "clamp" });
+  const linesRot = interpolate(frame, [14, 60], [0, 30]);
+
+  // SPLAT word
+  const wordPop = spring({ frame: frame - 18, fps, config: { damping: 8, stiffness: 260 } });
+  const wordScale = interpolate(wordPop, [0, 1], [0, 1]);
+  const wordRot = interpolate(frame, [18, 60], [-15, -8], { extrapolateRight: "clamp" });
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      {/* Falling drop */}
+      {/* falling drop */}
       <div
         style={{
           position: "absolute",
           left: "50%",
           top: 0,
-          width: 28,
-          height: 40,
-          marginLeft: -14,
+          width: 40,
+          height: 60,
+          marginLeft: -20,
           transform: `translateY(${dropY}px) scaleY(${dropStretch})`,
           opacity: dropOpacity,
         }}
@@ -107,220 +167,229 @@ const InkDropScene: React.FC = () => {
             width: "100%",
             height: "100%",
             background: RED,
+            border: `4px solid ${OUTLINE}`,
             borderRadius: "50% 50% 50% 50% / 30% 30% 70% 70%",
-            boxShadow: `0 0 20px ${RED}80`,
           }}
         />
       </div>
 
-      {/* Splatter pool */}
-      <svg
-        width="600"
-        height="200"
-        viewBox="-300 -100 600 200"
-        style={{
-          position: "absolute",
-          transform: `scale(${splatScale})`,
-          transformOrigin: "center",
-        }}
-      >
-        <g fill={RED}>
-          <ellipse cx="0" cy="0" rx="120" ry="22" />
-          <circle cx="-140" cy="-8" r="8" />
-          <circle cx="160" cy="6" r="11" />
-          <circle cx="-80" cy="14" r="5" />
-          <circle cx="90" cy="-18" r="4" />
-          <circle cx="-180" cy="10" r="3" />
-          <circle cx="200" cy="-4" r="6" />
-          <circle cx="40" cy="22" r="3" />
-          <circle cx="-50" cy="-22" r="3" />
-          <ellipse cx="-60" cy="0" rx="80" ry="18" opacity="0.9" />
-        </g>
-      </svg>
+      {/* speed lines */}
+      <div style={{ position: "absolute", width: 1400, height: 1400, opacity: linesOpacity }}>
+        <SpeedLines count={28} color={OUTLINE} rotation={linesRot} />
+      </div>
 
-      {/* Shockwave ring */}
+      {/* comic burst SPLAT */}
       <div
         style={{
           position: "absolute",
-          width: 100,
-          height: 100,
-          border: `2px solid ${RED}`,
-          borderRadius: "50%",
-          transform: `scale(${ringScale})`,
-          opacity: ringOpacity,
+          width: 900,
+          height: 900,
+          transform: `scale(${burstScale}) rotate(${burstRot}deg)`,
+          filter: `drop-shadow(10px 10px 0 ${OUTLINE})`,
         }}
-      />
+      >
+        <ComicBurst points={16} fill={RED} stroke={OUTLINE} />
+      </div>
+
+      {/* SPLAT! word */}
+      <div
+        style={{
+          position: "absolute",
+          fontFamily: bangers,
+          fontSize: 220,
+          color: CREAM,
+          letterSpacing: "0.04em",
+          transform: `scale(${wordScale}) rotate(${wordRot}deg)`,
+          textShadow: `${comicOutline(6)}, 12px 12px 0 ${OUTLINE}`,
+          WebkitTextStroke: `2px ${OUTLINE}`,
+        }}
+      >
+        SPLAT!
+      </div>
     </AbsoluteFill>
   );
 };
 
-// ---------- Scene 2: "MIMIC" stroke reveal ----------
-const MimicReveal: React.FC = () => {
+// ---------- Scene 2: MIMIC letter slam ----------
+const MimicSlam: React.FC = () => {
   const frame = useCurrentFrame();
-  const reveal = interpolate(frame, [0, 35], [0, 100], {
+  const { fps } = useVideoConfig();
+  const letters = "MIMIC".split("");
+
+  // page shake on slam
+  const shake = interpolate(frame, [0, 4, 10, 16, 22], [0, -10, 8, -4, 0], {
     extrapolateRight: "clamp",
-    easing: Easing.bezier(0.65, 0, 0.35, 1),
   });
-  const lift = interpolate(frame, [0, 40], [30, 0], { extrapolateRight: "clamp" });
-  const opacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
-  const inkBleed = interpolate(frame, [20, 60], [0, 1], { extrapolateRight: "clamp" });
 
   return (
-    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      <div
-        style={{
-          position: "relative",
-          transform: `translateY(${lift}px)`,
-          opacity,
-        }}
-      >
-        {/* Background ink-bleed shadow */}
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            inset: -20,
-            background: `radial-gradient(ellipse at center, ${RED}30 0%, transparent 70%)`,
-            opacity: inkBleed,
-            filter: "blur(20px)",
-          }}
-        />
-        <div
-          style={{
-            fontFamily: grotesk,
-            fontWeight: 700,
-            fontSize: 280,
-            letterSpacing: "-0.04em",
-            color: INK,
-            lineHeight: 1,
-            position: "relative",
-            clipPath: `inset(0 ${100 - reveal}% 0 0)`,
-          }}
-        >
-          MIMIC
-        </div>
+    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", transform: `translate(${shake}px, ${-shake / 2}px)` }}>
+      {/* secondary halftone burst behind */}
+      <div style={{ position: "absolute", width: 1200, height: 1200, opacity: 0.55 }}>
+        <ComicBurst points={20} fill={CREAM} stroke={OUTLINE} />
+      </div>
+
+      <div style={{ display: "flex", gap: 6, position: "relative" }}>
+        {letters.map((ch, i) => {
+          const s = spring({ frame: frame - i * 3, fps, config: { damping: 7, stiffness: 220 } });
+          const scale = interpolate(s, [0, 1], [3, 1]);
+          const opacity = interpolate(s, [0, 0.4, 1], [0, 1, 1]);
+          const rot = (i % 2 === 0 ? -1 : 1) * 4 * (1 - s) + (i % 2 === 0 ? -3 : 3);
+          const y = interpolate(s, [0, 1], [-300, 0]);
+          return (
+            <span
+              key={i}
+              style={{
+                fontFamily: bangers,
+                fontSize: 320,
+                color: CREAM,
+                lineHeight: 1,
+                transform: `translateY(${y}px) scale(${scale}) rotate(${rot}deg)`,
+                opacity,
+                textShadow: `${comicOutline(8)}, 14px 14px 0 ${RED}, 14px 14px 0 ${OUTLINE}`,
+                WebkitTextStroke: `3px ${OUTLINE}`,
+                display: "inline-block",
+              }}
+            >
+              {ch}
+            </span>
+          );
+        })}
       </div>
     </AbsoluteFill>
   );
 };
 
-// ---------- Scene 3: Red slash + "MADNESS" ----------
-const SlashAndMadness: React.FC = () => {
+// ---------- Scene 3: SLASH + MADNESS ----------
+const SlashMadness: React.FC = () => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
-  // Red ink slash
-  const slashProgress = interpolate(frame, [0, 14], [0, 1], {
+  // slash sweep
+  const slashProgress = interpolate(frame, [0, 12], [0, 1], {
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.7, 0, 0.3, 1),
   });
-  const slashFade = interpolate(frame, [40, 70], [1, 0.25], { extrapolateRight: "clamp" });
+  const slashFade = interpolate(frame, [22, 55], [1, 0.25], { extrapolateRight: "clamp" });
 
-  // MADNESS reveal after slash
-  const madnessReveal = interpolate(frame, [16, 50], [0, 100], {
-    extrapolateRight: "clamp",
-    easing: Easing.bezier(0.65, 0, 0.35, 1),
-  });
-  const madnessOpacity = interpolate(frame, [16, 24], [0, 1], { extrapolateRight: "clamp" });
+  // MADNESS letters
+  const letters = "MADNESS".split("");
 
-  // Sub label
-  const subOpacity = interpolate(frame, [44, 60], [0, 1], { extrapolateRight: "clamp" });
-  const subLift = interpolate(frame, [44, 60], [12, 0], { extrapolateRight: "clamp" });
+  // POW corner stamp
+  const powPop = spring({ frame: frame - 26, fps, config: { damping: 8, stiffness: 240 } });
+  const powScale = interpolate(powPop, [0, 1], [0, 1]);
+  const powWiggle = Math.sin((frame - 26) / 4) * 4;
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      {/* The slash, drawn left to right */}
-      <svg
-        width={1700}
-        height={420}
-        viewBox="0 0 1700 420"
-        style={{ position: "absolute", opacity: slashFade }}
-      >
+      {/* slash */}
+      <svg width={1800} height={500} viewBox="0 0 1800 500" style={{ position: "absolute", opacity: slashFade }}>
         <defs>
-          <linearGradient id="slashGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={RED_DEEP} />
-            <stop offset="50%" stopColor={RED} />
-            <stop offset="100%" stopColor={RED_DEEP} />
-          </linearGradient>
-          <filter id="rough">
-            <feTurbulence baseFrequency="0.9" numOctaves="2" seed="3" />
-            <feDisplacementMap in="SourceGraphic" scale="6" />
+          <filter id="rough3">
+            <feTurbulence baseFrequency="0.8" numOctaves="2" seed="5" />
+            <feDisplacementMap in="SourceGraphic" scale="8" />
           </filter>
         </defs>
+        {/* black underlay (outline) */}
         <path
-          d="M 40 210 Q 850 70 1660 210"
-          stroke="url(#slashGrad)"
-          strokeWidth="22"
+          d="M 60 260 Q 900 80 1740 260"
+          stroke={OUTLINE}
+          strokeWidth={50}
           strokeLinecap="round"
           fill="none"
-          filter="url(#rough)"
+          filter="url(#rough3)"
+          pathLength={1}
+          strokeDasharray={1}
+          strokeDashoffset={1 - slashProgress}
+        />
+        {/* red fill on top */}
+        <path
+          d="M 60 260 Q 900 80 1740 260"
+          stroke={RED}
+          strokeWidth={28}
+          strokeLinecap="round"
+          fill="none"
+          filter="url(#rough3)"
           pathLength={1}
           strokeDasharray={1}
           strokeDashoffset={1 - slashProgress}
         />
       </svg>
 
-      {/* MIMIC stays soft in background */}
-      <div
-        style={{
-          position: "absolute",
-          fontFamily: grotesk,
-          fontWeight: 700,
-          fontSize: 280,
-          letterSpacing: "-0.04em",
-          color: INK,
-          lineHeight: 1,
-          marginTop: -180,
-          opacity: 0.95,
-        }}
-      >
-        MIMIC
+      {/* MADNESS letters bursting up */}
+      <div style={{ display: "flex", gap: 4, position: "absolute", marginTop: 120 }}>
+        {letters.map((ch, i) => {
+          const s = spring({ frame: frame - 14 - i * 2, fps, config: { damping: 8, stiffness: 240 } });
+          const scale = interpolate(s, [0, 1], [0.2, 1]);
+          const opacity = interpolate(s, [0, 0.5], [0, 1]);
+          const rot = (i % 2 === 0 ? -4 : 4);
+          const y = interpolate(s, [0, 1], [200, 0]);
+          return (
+            <span
+              key={i}
+              style={{
+                fontFamily: bangers,
+                fontSize: 230,
+                color: RED,
+                lineHeight: 1,
+                transform: `translateY(${y}px) scale(${scale}) rotate(${rot}deg)`,
+                opacity,
+                textShadow: `${comicOutline(7)}, 10px 10px 0 ${OUTLINE}`,
+                WebkitTextStroke: `3px ${OUTLINE}`,
+                display: "inline-block",
+              }}
+            >
+              {ch}
+            </span>
+          );
+        })}
       </div>
 
-      {/* MADNESS - red, below */}
-      <div
-        style={{
-          position: "absolute",
-          marginTop: 120,
-          fontFamily: grotesk,
-          fontWeight: 700,
-          fontSize: 280,
-          letterSpacing: "-0.04em",
-          color: RED,
-          lineHeight: 1,
-          opacity: madnessOpacity,
-          clipPath: `inset(0 0 0 ${100 - madnessReveal}%)`,
-          textShadow: `0 0 60px ${RED}60`,
-        }}
-      >
-        MADNESS
-      </div>
-
-      {/* Subtitle */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 130,
-          display: "flex",
-          alignItems: "center",
-          gap: 24,
-          opacity: subOpacity,
-          transform: `translateY(${subLift}px)`,
-        }}
-      >
-        <span style={{ width: 60, height: 2, background: INK, opacity: 0.6 }} />
+      {/* MIMIC sitting above */}
+      <div style={{ position: "absolute", marginTop: -240, opacity: 0.85 }}>
         <span
           style={{
-            fontFamily: grotesk,
-            fontWeight: 500,
-            fontSize: 32,
-            letterSpacing: "0.5em",
-            color: INK,
-            textTransform: "uppercase",
+            fontFamily: bangers,
+            fontSize: 200,
+            color: CREAM,
+            letterSpacing: "0.02em",
+            textShadow: `${comicOutline(6)}, 8px 8px 0 ${OUTLINE}`,
+            WebkitTextStroke: `2px ${OUTLINE}`,
           }}
         >
-          Ink Mode
+          MIMIC
         </span>
-        <span style={{ width: 60, height: 2, background: INK, opacity: 0.6 }} />
+      </div>
+
+      {/* POW corner stamp */}
+      <div
+        style={{
+          position: "absolute",
+          top: 80,
+          right: 120,
+          width: 320,
+          height: 320,
+          transform: `scale(${powScale}) rotate(${-15 + powWiggle}deg)`,
+        }}
+      >
+        <div style={{ position: "absolute", inset: 0 }}>
+          <ComicBurst points={12} fill={CREAM} stroke={OUTLINE} />
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: bangers,
+            fontSize: 100,
+            color: RED,
+            textShadow: `${comicOutline(4)}`,
+            WebkitTextStroke: `2px ${OUTLINE}`,
+          }}
+        >
+          POW!
+        </div>
       </div>
     </AbsoluteFill>
   );
@@ -331,122 +400,170 @@ const FinalStamp: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const stampScale = spring({ frame, fps, config: { damping: 10, stiffness: 150 } });
-  const stampOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateRight: "clamp" });
-  const sign = interpolate(frame, [10, 45], [0, 100], { extrapolateRight: "clamp" });
+  const titleBreathe = 1 + Math.sin(frame / 14) * 0.018;
+  const badgePop = spring({ frame: frame - 4, fps, config: { damping: 9, stiffness: 200 } });
+  const badgeScale = interpolate(badgePop, [0, 1], [0, 1]);
+  const badgeWiggle = Math.sin(frame / 6) * 2;
 
-  const breathe = 1 + Math.sin(frame / 18) * 0.012;
+  const sign = interpolate(frame, [10, 36], [0, 100], { extrapolateRight: "clamp" });
+  const sparkleOpacity = interpolate(frame, [0, 12, 40, 48], [0, 1, 1, 0]);
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      <div style={{ textAlign: "center", transform: `scale(${breathe})` }}>
+      {/* radial speed lines fade */}
+      <div style={{ position: "absolute", width: 1800, height: 1800, opacity: 0.25 }}>
+        <SpeedLines count={36} color={OUTLINE} rotation={frame * 0.3} />
+      </div>
+
+      <div style={{ textAlign: "center", transform: `scale(${titleBreathe})` }}>
         <div
           style={{
-            fontFamily: grotesk,
-            fontWeight: 700,
-            fontSize: 280,
-            letterSpacing: "-0.04em",
-            color: INK,
-            lineHeight: 1,
+            fontFamily: bangers,
+            fontSize: 240,
+            color: CREAM,
+            lineHeight: 0.95,
+            letterSpacing: "0.02em",
+            textShadow: `${comicOutline(8)}, 14px 14px 0 ${RED}, 14px 14px 0 ${OUTLINE}`,
+            WebkitTextStroke: `3px ${OUTLINE}`,
           }}
         >
           MIMIC
         </div>
         <div
           style={{
-            fontFamily: grotesk,
-            fontWeight: 700,
-            fontSize: 280,
-            letterSpacing: "-0.04em",
+            fontFamily: bangers,
+            fontSize: 240,
             color: RED,
-            lineHeight: 1,
-            textShadow: `0 0 80px ${RED}50`,
+            lineHeight: 0.95,
+            letterSpacing: "0.02em",
+            textShadow: `${comicOutline(8)}, 14px 14px 0 ${OUTLINE}`,
+            WebkitTextStroke: `3px ${OUTLINE}`,
           }}
         >
           MADNESS
         </div>
 
-        {/* Hand-signed ink mode */}
+        {/* hand-signed ink mode */}
         <div
           style={{
-            marginTop: 30,
+            marginTop: 28,
             fontFamily: caveat,
             fontWeight: 700,
-            fontSize: 84,
-            color: INK,
+            fontSize: 96,
+            color: CREAM,
             transform: `rotate(-3deg)`,
-            opacity: stampOpacity,
+            textShadow: `${comicOutline(4)}`,
           }}
         >
-          <span
-            style={{
-              display: "inline-block",
-              clipPath: `inset(0 ${100 - sign}% 0 0)`,
-            }}
-          >
+          <span style={{ display: "inline-block", clipPath: `inset(0 ${100 - sign}% 0 0)` }}>
             ~ ink mode ~
           </span>
         </div>
       </div>
 
-      {/* Corner stamp */}
+      {/* corner BAM badge */}
       <div
         style={{
           position: "absolute",
-          bottom: 80,
-          right: 100,
-          width: 140,
-          height: 140,
-          border: `4px solid ${RED}`,
-          borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transform: `scale(${stampScale}) rotate(-12deg)`,
-          color: RED,
-          fontFamily: grotesk,
-          fontWeight: 700,
-          fontSize: 18,
-          letterSpacing: "0.2em",
-          textTransform: "uppercase",
-          textAlign: "center",
-          lineHeight: 1.1,
-          boxShadow: `0 0 40px ${RED}40`,
+          bottom: 90,
+          right: 120,
+          width: 280,
+          height: 280,
+          transform: `scale(${badgeScale}) rotate(${-12 + badgeWiggle}deg)`,
         }}
       >
-        EST.
-        <br />
-        2026
+        <div style={{ position: "absolute", inset: 0 }}>
+          <ComicBurst points={14} fill={RED} stroke={OUTLINE} />
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: bangers,
+            fontSize: 110,
+            color: CREAM,
+            WebkitTextStroke: `3px ${OUTLINE}`,
+            textShadow: `${comicOutline(4)}`,
+          }}
+        >
+          BAM!
+        </div>
       </div>
+
+      {/* sparkle stars */}
+      {Array.from({ length: 10 }).map((_, i) => {
+        const ang = (i / 10) * Math.PI * 2;
+        const r = 520;
+        const x = Math.cos(ang) * r;
+        const y = Math.sin(ang) * r;
+        const bob = Math.sin(frame / 8 + i) * 8;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: `translate(${x}px, ${y + bob}px) rotate(${i * 36 + frame}deg)`,
+              opacity: sparkleOpacity,
+            }}
+          >
+            <svg width="60" height="60" viewBox="-12 -12 24 24">
+              <path d="M0 -10 L3 -3 L10 0 L3 3 L0 10 L-3 3 L-10 0 L-3 -3 Z" fill={i % 2 === 0 ? CREAM : RED} stroke={OUTLINE} strokeWidth={2} />
+            </svg>
+          </div>
+        );
+      })}
     </AbsoluteFill>
   );
+};
+
+// ---------- Quick flash between scenes ----------
+const FlashCut: React.FC = () => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(frame, [0, 2, 6], [0, 1, 0], { extrapolateRight: "clamp" });
+  return <AbsoluteFill style={{ background: CREAM, opacity }} />;
 };
 
 // ---------- Main ----------
 export const MainVideo: React.FC = () => {
   return (
-    <AbsoluteFill>
-      <InkAtmosphere />
+    <AbsoluteFill style={{ background: BG }}>
+      <PaperBackground />
 
-      {/* Scene 1: ink drop (0-60) */}
-      <Sequence from={0} durationInFrames={60}>
-        <InkDropScene />
+      {/* Scene 1: SPLAT (0-50) */}
+      <Sequence from={0} durationInFrames={50}>
+        <SplatScene />
       </Sequence>
 
-      {/* Scene 2: MIMIC reveal (50-115) */}
-      <Sequence from={50} durationInFrames={75}>
-        <MimicReveal />
+      {/* Flash cut */}
+      <Sequence from={46} durationInFrames={8}>
+        <FlashCut />
       </Sequence>
 
-      {/* Scene 3: slash + MADNESS (105-175) */}
-      <Sequence from={105} durationInFrames={75}>
-        <SlashAndMadness />
+      {/* Scene 2: MIMIC slam (50-100) */}
+      <Sequence from={50} durationInFrames={50}>
+        <MimicSlam />
       </Sequence>
 
-      {/* Scene 4: final stamp (165-210) */}
-      <Sequence from={165} durationInFrames={45}>
+      {/* Flash cut */}
+      <Sequence from={96} durationInFrames={8}>
+        <FlashCut />
+      </Sequence>
+
+      {/* Scene 3: slash + MADNESS (100-160) */}
+      <Sequence from={100} durationInFrames={60}>
+        <SlashMadness />
+      </Sequence>
+
+      {/* Scene 4: final stamp (160-210) */}
+      <Sequence from={160} durationInFrames={50}>
         <FinalStamp />
       </Sequence>
     </AbsoluteFill>
   );
 };
+
