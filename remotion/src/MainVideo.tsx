@@ -21,8 +21,25 @@ const BG_DEEP = "#050505";
 const INK = "#f5f5f5";
 const RED = "#ee3434";
 const RED_DEEP = "#c01818";
-const PAPER_GRAIN =
-  "radial-gradient(ellipse at 30% 20%, rgba(238,52,52,0.06), transparent 55%), radial-gradient(ellipse at 80% 90%, rgba(255,255,255,0.03), transparent 60%)";
+const CREAM = "#f4ead5";
+const OUTLINE = "#0a0a0a";
+
+// Comic-style thick black outline (text-shadow stack)
+const comicOutline = (size: number, color = OUTLINE) =>
+  [
+    `${size}px 0 0 ${color}`,
+    `-${size}px 0 0 ${color}`,
+    `0 ${size}px 0 ${color}`,
+    `0 -${size}px 0 ${color}`,
+    `${size}px ${size}px 0 ${color}`,
+    `-${size}px ${size}px 0 ${color}`,
+    `${size}px -${size}px 0 ${color}`,
+    `-${size}px -${size}px 0 ${color}`,
+  ].join(", ");
+
+// Halftone dot pattern (comic newsprint)
+const halftone = (color = RED, size = 14, opacity = 0.18) =>
+  `radial-gradient(circle, ${color} 22%, transparent 23%) 0 0 / ${size}px ${size}px`;
 
 // ---------- Persistent atmosphere ----------
 const InkAtmosphere: React.FC = () => {
