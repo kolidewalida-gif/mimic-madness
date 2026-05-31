@@ -313,11 +313,9 @@ export const postProcessRecordedBlob = async (
 ): Promise<Blob> => {
   if (!requiresPostProcessing(filter)) return blob;
 
-  // Semitone ratios: helium = +6 st, deep = -5 st
+  // Semitone shifts: helium = +6 st, deep = -5 st
   const semitones = filter === 'helium' ? 6 : filter === 'deep' ? -5 : 0;
   if (semitones === 0) return blob;
-
-  const pitchRatio = Math.pow(2, semitones / 12); // e.g. 1.498 or 0.749
 
   try {
     const arrayBuffer = await blob.arrayBuffer();
@@ -325,71 +323,66 @@ export const postProcessRecordedBlob = async (
     const sourceBuffer = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
     decodeCtx.close().catch(() => {});
 
-    const originalDuration = sourceBuffer.duration;
+    // Use SoundTouchJS for proper pitch shifting that preserves duration.
+    // (Phase-vocoder-style time/pitch independent processing.)
+    const { SoundTouch, SimpleFilter, WebAudioBufferSource } = await import('soundtouchjs');
+
     const sampleRate = sourceBuffer.sampleRate;
     const numChannels = sourceBuffer.numberOfChannels;
     const originalLength = sourceBuffer.length;
 
-    // Step 1: Render at pitchRatio speed (changes pitch AND tempo)
-    // The rendered buffer will be shorter (helium) or longer (deep) than original.
-    const pitchedLength = Math.ceil(originalLength / pitchRatio);
-    const pitchCtx = new OfflineAudioContext(numChannels, pitchedLength, sampleRate);
-    const pitchSrc = pitchCtx.createBufferSource();
-    pitchSrc.buffer = sourceBuffer;
-    pitchSrc.playbackRate.value = pitchRatio;
-    pitchSrc.connect(pitchCtx.destination);
-    pitchSrc.start(0);
-    const pitchedBuffer = await pitchCtx.startRendering();
+    const st = new SoundTouch(sampleRate);
+    st.pitchSemitones = semitones; // shifts pitch only, keeps tempo
+    st.tempo = 1;
+    st.rate = 1;
 
-    // Step 2: Time-stretch back to original duration by resampling.
-    // We create an OfflineAudioContext at a different sample rate so that
-    // when we play the pitched buffer at rate 1.0, it fills exactly
-    // originalLength samples at the original sampleRate.
-    // Effective resample ratio = pitchedBuffer.length / originalLength
-    const stretchedSampleRate = Math.round(sampleRate * (pitchedBuffer.length / originalLength));
-    const stretchCtx = new OfflineAudioContext(numChannels, originalLength, sampleRate);
+    const source = new WebAudioBufferSource(sourceBuffer);
+    const stFilter = new SimpleFilter(source, st);
 
-    // Create a buffer at the stretched sample rate with the pitched data
-    const stretchedBuffer = new AudioBuffer({
-      numberOfChannels: numChannels,
-      length: pitchedBuffer.length,
-      sampleRate: stretchedSampleRate,
-    });
-    for (let c = 0; c < numChannels; c++) {
-      stretchedBuffer.copyToChannel(pitchedBuffer.getChannelData(c), c);
+    // Pull processed samples. SoundTouchJS always works in stereo interleaved.
+    const BLOCK = 4096;
+    const interleaved: number[] = [];
+    const tmp = new Float32Array(BLOCK * 2);
+    let received = stFilter.extract(tmp, BLOCK);
+    while (received > 0) {
+      for (let i = 0; i < received * 2; i++) interleaved.push(tmp[i]);
+      received = stFilter.extract(tmp, BLOCK);
     }
 
-    const stretchSrc = stretchCtx.createBufferSource();
-    stretchSrc.buffer = stretchedBuffer;
-    stretchSrc.connect(stretchCtx.destination);
-    stretchSrc.start(0);
-    const finalBuffer = await stretchCtx.startRendering();
+    // Clamp to original length so the output duration is identical.
+    const outFrames = Math.min(Math.floor(interleaved.length / 2), originalLength);
+    const outChannels = Math.min(numChannels, 2);
+    const shiftedBuffer = new AudioBuffer({
+      numberOfChannels: outChannels,
+      length: outFrames,
+      sampleRate,
+    });
+    for (let c = 0; c < outChannels; c++) {
+      const chan = shiftedBuffer.getChannelData(c);
+      for (let i = 0; i < outFrames; i++) {
+        chan[i] = interleaved[i * 2 + c] ?? 0;
+      }
+    }
 
-    // Add a subtle harmonic enhancement for deep voice
+    // Subtle warmth pass for the deep voice.
     if (filter === 'deep') {
-      const enhCtx = new OfflineAudioContext(numChannels, originalLength, sampleRate);
+      const enhCtx = new OfflineAudioContext(outChannels, outFrames, sampleRate);
       const enhSrc = enhCtx.createBufferSource();
-      enhSrc.buffer = finalBuffer;
-
-      // Low shelf boost for warmth
+      enhSrc.buffer = shiftedBuffer;
       const shelf = enhCtx.createBiquadFilter();
       shelf.type = 'lowshelf';
       shelf.frequency.value = 300;
       shelf.gain.value = 5;
-
-      // Slight compression via gain
       const gain = enhCtx.createGain();
       gain.gain.value = 1.2;
-
       enhSrc.connect(shelf);
       shelf.connect(gain);
       gain.connect(enhCtx.destination);
       enhSrc.start(0);
-      const enhancedBuffer = await enhCtx.startRendering();
-      return audioBufferToWav(enhancedBuffer);
+      return audioBufferToWav(await enhCtx.startRendering());
     }
 
-    return audioBufferToWav(finalBuffer);
+    return audioBufferToWav(shiftedBuffer);
   } catch (err) {
     console.error('[voiceFilters] post-process failed, falling back to original blob', err);
     return blob;
