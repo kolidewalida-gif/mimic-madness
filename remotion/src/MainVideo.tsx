@@ -432,7 +432,7 @@ const SceneZap: React.FC = () => {
         <svg viewBox="-100 -130 200 280">
           <path
             d="M 30 -120 L -60 30 L -10 30 L -40 130 L 70 -20 L 20 -20 L 60 -120 Z"
-            fill={CREAM}
+            fill={NEON}
             stroke={OUTLINE}
             strokeWidth={8}
             strokeLinejoin="round"
