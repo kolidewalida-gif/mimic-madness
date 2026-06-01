@@ -17,13 +17,15 @@ const { fontFamily: bangers } = loadBangers("normal", { weights: ["400"] });
 const { fontFamily: fredoka } = loadFredoka("normal", { weights: ["600", "700"] });
 const { fontFamily: caveat } = loadCaveat("normal", { weights: ["700"] });
 
-/* ---------- Palette (Ink theme: black / red / cream) ---------- */
-const BG = "#0a0a0a";
-const BG_DEEP = "#050505";
-const RED = "#ee3434";
-const RED_DEEP = "#a81818";
-const CREAM = "#f4ead5";
-const OUTLINE = "#0a0a0a";
+/* ---------- Palette (Ink theme: dark purple cartoon) ---------- */
+const BG = "#15082b";         // deep purple bg
+const BG_DEEP = "#08031a";    // near-black violet
+const RED = "#a855f7";        // primary violet (was "red" slot)
+const RED_DEEP = "#5b21b6";   // deep violet
+const CREAM = "#fde68a";      // warm cartoon yellow accent
+const MAGENTA = "#ec4899";    // hot pink secondary
+const NEON = "#22d3ee";       // cyan zap accent
+const OUTLINE = "#0b0418";    // ultra-dark purple outline
 const WHITE = "#ffffff";
 
 /* ---------- Comic helpers ---------- */
