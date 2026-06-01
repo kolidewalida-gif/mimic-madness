@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { playInkSound, InkSoundType } from '@/hooks/useInkSoundEffects';
 
 interface InkSplashAnimationProps {
   onComplete: () => void;
@@ -16,12 +17,53 @@ interface InkSplashAnimationProps {
 export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const doneRef = useRef(false);
+  const sfxTimeoutsRef = useRef<number[]>([]);
+  const sfxScheduledRef = useRef(false);
   const [ready, setReady] = useState(false);
 
   const finish = () => {
     if (doneRef.current) return;
     doneRef.current = true;
+    sfxTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+    sfxTimeoutsRef.current = [];
     onComplete();
+  };
+
+  /**
+   * Schedule of SFX synced to the Remotion-rendered intro (195 frames @ 30fps ≈ 6.5s).
+   * Scenes:
+   *   0.0–1.5s  → ink drop + SPLAT
+   *   1.5–2.8s  → masks slide in + face-swap pop
+   *   2.8–4.2s  → slash + ZAP + POW
+   *   4.2–6.5s  → page-slam title reveal + BAM + sparkles
+   */
+  const SFX_SCHEDULE: Array<{ t: number; sound: InkSoundType; volume: number }> = [
+    { t: 200,  sound: 'cartoonSwoosh', volume: 0.35 }, // ink drop falling
+    { t: 700,  sound: 'inkSplash',     volume: 0.6  }, // SPLAT!
+    { t: 900,  sound: 'cartoonPop',    volume: 0.4  }, // splat accent
+    { t: 1600, sound: 'cartoonSwoosh', volume: 0.4  }, // masks slide in
+    { t: 2200, sound: 'cartoonBoing',  volume: 0.45 }, // mask face-swap bounce
+    { t: 2500, sound: 'cartoonPop',    volume: 0.4  }, // mask snap
+    { t: 3200, sound: 'brushSwipe',    volume: 0.45 }, // slash
+    { t: 3500, sound: 'cartoonZap',    volume: 0.55 }, // ZAP!
+    { t: 3800, sound: 'cartoonPop',    volume: 0.5  }, // POW stamp
+    { t: 4400, sound: 'cartoonSwoosh', volume: 0.5  }, // page-slam incoming
+    { t: 4700, sound: 'cartoonBoing',  volume: 0.55 }, // title slam
+    { t: 4750, sound: 'inkSplash',     volume: 0.35 }, // BAM impact
+    { t: 5100, sound: 'cartoonFanfare',volume: 0.5  }, // title fanfare
+    { t: 5900, sound: 'cartoonDing',   volume: 0.4  }, // sparkle shimmer
+  ];
+
+  const scheduleSfx = () => {
+    if (sfxScheduledRef.current || doneRef.current) return;
+    sfxScheduledRef.current = true;
+    SFX_SCHEDULE.forEach(({ t, sound, volume }) => {
+      const id = window.setTimeout(() => {
+        if (doneRef.current) return;
+        playInkSound(sound, volume);
+      }, t);
+      sfxTimeoutsRef.current.push(id);
+    });
   };
 
   useEffect(() => {
@@ -52,6 +94,8 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
     return () => {
       window.clearTimeout(safety);
       window.removeEventListener('keydown', onKey);
+      sfxTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+      sfxTimeoutsRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -71,6 +115,7 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
         playsInline
         preload="auto"
         onCanPlay={() => setReady(true)}
+        onPlay={scheduleSfx}
         onEnded={finish}
         className="w-full h-full object-cover"
       />
