@@ -5,608 +5,62 @@ import {
   useVideoConfig,
   interpolate,
   spring,
-  Easing,
   random,
 } from "remotion";
 import { loadFont as loadBangers } from "@remotion/google-fonts/Bangers";
-import { loadFont as loadCreepster } from "@remotion/google-fonts/Creepster";
+import { loadFont as loadLuckiest } from "@remotion/google-fonts/LuckiestGuy";
 
 const { fontFamily: bangers } = loadBangers("normal", { weights: ["400"] });
-const { fontFamily: creepster } = loadCreepster("normal", { weights: ["400"] });
+const { fontFamily: luckiest } = loadLuckiest("normal", { weights: ["400"] });
 
-/* ---------- Stormy Violet Palette ---------- */
-const BG_DEEP = "#05010f";
-const BG = "#0c0420";
-const CLOUD_DARK = "#1a0a3a";
-const CLOUD_MID = "#2d1465";
-const CLOUD_HIGH = "#5b2db8";
-const CLOUD_RIM = "#9b6dff";
-const LIGHTNING = "#f0e7ff";
-const LIGHTNING_GLOW = "#c4b1ff";
-const VIOLET_GLOW = "#a855f7";
-const PINK_FLASH = "#ff4fd8";
+/* Cartoon Ink Palette */
+const INK = "#0a0418";
+const PURPLE_DEEP = "#2a0d52";
+const PURPLE = "#7c2bd6";
+const PURPLE_BRIGHT = "#a855f7";
+const PINK = "#ff3ea5";
+const YELLOW = "#ffd93d";
+const CREAM = "#fff6d6";
+const WHITE = "#ffffff";
 
-/* ---------- Helpers ---------- */
-
-// Soft cloud blob — radial gradient ellipse
-const Cloud: React.FC<{
-  x: number;
-  y: number;
-  rx: number;
-  ry: number;
-  color: string;
-  opacity?: number;
-  blur?: number;
-}> = ({ x, y, rx, ry, color, opacity = 1, blur = 0 }) => (
+const Halftone: React.FC<{ color?: string; opacity?: number }> = ({
+  color = INK,
+  opacity = 0.18,
+}) => (
   <div
     style={{
       position: "absolute",
-      left: x - rx,
-      top: y - ry,
-      width: rx * 2,
-      height: ry * 2,
-      borderRadius: "50%",
-      background: `radial-gradient(ellipse at 50% 45%, ${color} 0%, ${color} 30%, transparent 70%)`,
+      inset: -40,
+      backgroundImage: `radial-gradient(${color} 2px, transparent 2.5px)`,
+      backgroundSize: "18px 18px",
       opacity,
-      filter: blur ? `blur(${blur}px)` : undefined,
       pointerEvents: "none",
     }}
   />
 );
 
-/* ---------- Persistent stormy sky ---------- */
-
-const StormySky: React.FC = () => {
+const SpeedStripes: React.FC<{ from: number; to: number; color?: string }> = ({
+  from,
+  to,
+  color = PINK,
+}) => {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
-
-  // Parallax drift — slow background, faster foreground
-  const drift = (speed: number) => (frame * speed) % (width + 600);
-
-  // Slow vertical breathing
-  const breathe = Math.sin(frame * 0.04) * 8;
-
-  // Lightning flash schedule (4 flashes total)
-  const flashes = [22, 70, 118, 170];
-  const flash = flashes.reduce((acc, f) => {
-    const local = frame - f;
-    if (local < 0 || local > 14) return acc;
-    // Quick flash envelope: peak fast, decay
-    const v =
-      local < 2
-        ? local / 2
-        : Math.max(0, 1 - (local - 2) / 12);
-    return Math.max(acc, v);
-  }, 0);
-
-  return (
-    <AbsoluteFill style={{ overflow: "hidden", background: BG_DEEP }}>
-      {/* Deep vignette gradient */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: `radial-gradient(ellipse at 50% 45%, ${BG} 0%, ${BG_DEEP} 65%, #000 100%)`,
-        }}
-      />
-
-      {/* Background cloud layer (deepest, slowest) */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          transform: `translateX(${-drift(0.3)}px)`,
-          opacity: 0.85,
-        }}
-      >
-        {[0, 1, 2].map((rep) =>
-          [
-            { x: 200, y: 280, rx: 380, ry: 180 },
-            { x: 700, y: 220, rx: 460, ry: 200 },
-            { x: 1250, y: 320, rx: 420, ry: 190 },
-            { x: 1750, y: 240, rx: 500, ry: 220 },
-          ].map((c, i) => (
-            <Cloud
-              key={`bg-${rep}-${i}`}
-              x={c.x + rep * (width + 400) + breathe}
-              y={c.y + Math.sin(frame * 0.03 + i) * 6}
-              rx={c.rx}
-              ry={c.ry}
-              color={CLOUD_DARK}
-              opacity={0.9}
-              blur={28}
-            />
-          )),
-        )}
-      </div>
-
-      {/* Mid cloud layer */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          transform: `translateX(${-drift(0.7)}px)`,
-        }}
-      >
-        {[0, 1, 2].map((rep) =>
-          [
-            { x: 100, y: 740, rx: 420, ry: 200 },
-            { x: 600, y: 800, rx: 500, ry: 240 },
-            { x: 1200, y: 760, rx: 460, ry: 220 },
-            { x: 1700, y: 820, rx: 480, ry: 230 },
-          ].map((c, i) => (
-            <Cloud
-              key={`mid-${rep}-${i}`}
-              x={c.x + rep * (width + 400)}
-              y={c.y + Math.sin(frame * 0.05 + i * 1.7) * 10}
-              rx={c.rx}
-              ry={c.ry}
-              color={CLOUD_MID}
-              opacity={0.95}
-              blur={18}
-            />
-          )),
-        )}
-      </div>
-
-      {/* Foreground cloud layer (fastest, sharpest) */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          transform: `translateX(${-drift(1.2)}px)`,
-        }}
-      >
-        {[0, 1].map((rep) =>
-          [
-            { x: 150, y: 150, rx: 280, ry: 120 },
-            { x: 800, y: 90, rx: 340, ry: 130 },
-            { x: 1500, y: 130, rx: 300, ry: 120 },
-            { x: 300, y: 960, rx: 320, ry: 130 },
-            { x: 1100, y: 990, rx: 380, ry: 150 },
-            { x: 1850, y: 940, rx: 340, ry: 140 },
-          ].map((c, i) => (
-            <Cloud
-              key={`fg-${rep}-${i}`}
-              x={c.x + rep * (width + 400)}
-              y={c.y + Math.sin(frame * 0.07 + i * 0.9) * 8}
-              rx={c.rx}
-              ry={c.ry}
-              color={CLOUD_HIGH}
-              opacity={0.55}
-              blur={10}
-            />
-          )),
-        )}
-      </div>
-
-      {/* Rim glow on top of mid clouds (subtle violet sheen) */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: `radial-gradient(ellipse at 50% 55%, ${CLOUD_RIM}22 0%, transparent 55%)`,
-          mixBlendMode: "screen",
-        }}
-      />
-
-      {/* Atmospheric fog at bottom */}
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 320,
-          background: `linear-gradient(to top, ${BG_DEEP} 0%, ${CLOUD_DARK}aa 50%, transparent 100%)`,
-        }}
-      />
-
-      {/* Lightning flash overlay (full-screen) */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: `radial-gradient(ellipse at 50% 35%, ${LIGHTNING}cc 0%, ${LIGHTNING_GLOW}66 30%, transparent 65%)`,
-          opacity: flash * 0.85,
-          mixBlendMode: "screen",
-          pointerEvents: "none",
-        }}
-      />
-      {/* Lightning tint */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: PINK_FLASH,
-          opacity: flash * 0.08,
-          mixBlendMode: "overlay",
-          pointerEvents: "none",
-        }}
-      />
-    </AbsoluteFill>
-  );
-};
-
-/* ---------- Animated lightning bolts ---------- */
-
-type Bolt = {
-  startFrame: number;
-  duration: number;
-  d: string;
-  strokeWidth: number;
-  x: number;
-  y: number;
-  scale: number;
-};
-
-const BOLTS: Bolt[] = [
-  // Quick zap at first flash
-  {
-    startFrame: 20,
-    duration: 14,
-    d: "M0 0 L-25 90 L15 100 L-20 220 L25 240 L-35 380",
-    strokeWidth: 8,
-    x: 480,
-    y: 80,
-    scale: 1,
-  },
-  // Right side flash
-  {
-    startFrame: 68,
-    duration: 14,
-    d: "M0 0 L30 110 L-20 140 L35 260 L-15 290 L40 420",
-    strokeWidth: 9,
-    x: 1500,
-    y: 60,
-    scale: 1.05,
-  },
-  // Center mega bolt (when text reveals)
-  {
-    startFrame: 116,
-    duration: 18,
-    d: "M0 0 L-40 160 L25 180 L-35 350 L30 380 L-20 540 L20 580",
-    strokeWidth: 12,
-    x: 960,
-    y: 30,
-    scale: 1.15,
-  },
-  // Final dramatic bolt at climax
-  {
-    startFrame: 168,
-    duration: 22,
-    d: "M0 0 L-50 140 L40 170 L-45 320 L50 360 L-30 520 L40 560 L-20 720",
-    strokeWidth: 14,
-    x: 960,
-    y: 0,
-    scale: 1.25,
-  },
-];
-
-const LightningBolt: React.FC<{ bolt: Bolt }> = ({ bolt }) => {
-  const frame = useCurrentFrame();
-  const local = frame - bolt.startFrame;
-  if (local < 0 || local > bolt.duration) return null;
-
-  // Trace progress
-  const trace = interpolate(local, [0, 3], [0, 1], {
-    extrapolateRight: "clamp",
-  });
-  // Hold then fade
-  const opacity =
-    local < 4
-      ? trace
-      : interpolate(local, [4, bolt.duration], [1, 0], {
-          extrapolateRight: "clamp",
-          easing: Easing.out(Easing.quad),
-        });
-
-  // Subtle jitter on the bolt
-  const jitter = local < 6 ? Math.sin(local * 9) * 2 : 0;
-
-  return (
-    <svg
-      style={{
-        position: "absolute",
-        left: bolt.x - 200,
-        top: bolt.y,
-        width: 400,
-        height: 800,
-        overflow: "visible",
-        opacity,
-        pointerEvents: "none",
-        transform: `translateX(${jitter}px) scale(${bolt.scale})`,
-        transformOrigin: "200px 0",
-      }}
-    >
-      <defs>
-        <filter id={`glow-${bolt.startFrame}`} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="6" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <g transform="translate(200, 0)" filter={`url(#glow-${bolt.startFrame})`}>
-        {/* Outer glow */}
-        <path
-          d={bolt.d}
-          stroke={VIOLET_GLOW}
-          strokeWidth={bolt.strokeWidth + 12}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          opacity={0.45}
-          pathLength={1}
-          strokeDasharray={1}
-          strokeDashoffset={1 - trace}
-        />
-        {/* Mid glow */}
-        <path
-          d={bolt.d}
-          stroke={LIGHTNING_GLOW}
-          strokeWidth={bolt.strokeWidth + 4}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          opacity={0.85}
-          pathLength={1}
-          strokeDasharray={1}
-          strokeDashoffset={1 - trace}
-        />
-        {/* Core */}
-        <path
-          d={bolt.d}
-          stroke={LIGHTNING}
-          strokeWidth={bolt.strokeWidth - 2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          pathLength={1}
-          strokeDasharray={1}
-          strokeDashoffset={1 - trace}
-        />
-      </g>
-    </svg>
-  );
-};
-
-const LightningStorm: React.FC = () => (
-  <AbsoluteFill style={{ pointerEvents: "none" }}>
-    {BOLTS.map((b) => (
-      <LightningBolt key={b.startFrame} bolt={b} />
-    ))}
-  </AbsoluteFill>
-);
-
-/* ---------- Floating embers / dust particles ---------- */
-
-const Embers: React.FC = () => {
-  const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
-  const count = 40;
-
-  return (
-    <AbsoluteFill style={{ pointerEvents: "none", mixBlendMode: "screen" }}>
-      {Array.from({ length: count }).map((_, i) => {
-        const seed = i * 7.13;
-        const baseX = random(`x${i}`) * width;
-        const baseY = random(`y${i}`) * height;
-        const drift = Math.sin(frame * 0.02 + seed) * 30;
-        const rise = -(frame * (0.3 + random(`s${i}`) * 0.6)) % height;
-        const y = (baseY + rise + height) % height;
-        const size = 1.5 + random(`r${i}`) * 3;
-        const opacity = 0.3 + Math.sin(frame * 0.06 + seed) * 0.3;
-        return (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: baseX + drift,
-              top: y,
-              width: size,
-              height: size,
-              borderRadius: "50%",
-              background: CLOUD_RIM,
-              boxShadow: `0 0 ${size * 4}px ${VIOLET_GLOW}`,
-              opacity: Math.max(0, opacity),
-            }}
-          />
-        );
-      })}
-    </AbsoluteFill>
-  );
-};
-
-/* ---------- "MIMIC MASTER" Title — letter-by-letter reveal ---------- */
-
-const TITLE_LINE1 = "MIMIC";
-const TITLE_LINE2 = "MASTER";
-const TITLE_START = 50; // when reveal begins
-const PER_LETTER = 5;   // frames between each letter
-
-const TitleLetter: React.FC<{
-  char: string;
-  index: number;
-  totalIndex: number;
-  fontSize: number;
-}> = ({ char, index, totalIndex, fontSize }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const local = frame - (TITLE_START + totalIndex * PER_LETTER);
-
-  // Spring drop-in
-  const drop = spring({
-    frame: local,
-    fps,
-    config: { damping: 11, stiffness: 180, mass: 0.9 },
-  });
-
-  // Initial values
-  const y = interpolate(drop, [0, 1], [-180, 0]);
-  const scale = interpolate(drop, [0, 1], [0.3, 1]);
-  const opacity = interpolate(local, [0, 6], [0, 1], {
+  const local = frame - from;
+  const dur = to - from;
+  if (local < 0 || local > dur) return null;
+  const slide = interpolate(local, [0, dur], [0, -200]);
+  const op = interpolate(local, [0, 4, dur - 6, dur], [0, 1, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const rotate = interpolate(drop, [0, 1], [-25 + (index % 2) * 50, 0]);
-
-  // Subtle continuous wobble after settled
-  const wobble = local > 30 ? Math.sin((local - 30) * 0.12 + totalIndex) * 1.5 : 0;
-
-  // Big lightning flash boost at frame 116 (mega bolt)
-  const flashBoost = interpolate(
-    frame,
-    [116, 122, 132],
-    [0, 1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-  );
-  const flashScale = 1 + flashBoost * 0.06;
-
-  if (local < 0) return null;
-
   return (
-    <span
+    <div
       style={{
-        display: "inline-block",
-        transform: `translateY(${y}px) scale(${scale * flashScale}) rotate(${rotate + wobble}deg)`,
-        opacity,
-        color: LIGHTNING,
-        WebkitTextStroke: `4px ${BG_DEEP}`,
-        textShadow: `
-          0 0 ${20 + flashBoost * 40}px ${VIOLET_GLOW},
-          0 0 ${40 + flashBoost * 60}px ${VIOLET_GLOW},
-          0 0 ${80 + flashBoost * 80}px ${PINK_FLASH}aa,
-          6px 8px 0 ${BG_DEEP},
-          0 14px 24px rgba(0,0,0,0.7)
-        `,
-        fontSize,
-        fontFamily: bangers,
-        letterSpacing: "0.04em",
-        lineHeight: 1,
-        marginInline: char === " " ? "0.35em" : 0,
-      }}
-    >
-      {char === " " ? "\u00A0" : char}
-    </span>
-  );
-};
-
-const Title: React.FC = () => {
-  const frame = useCurrentFrame();
-  const { fps, width } = useVideoConfig();
-
-  // Subtle camera-style breathing
-  const settleFrame = TITLE_START + (TITLE_LINE1.length + TITLE_LINE2.length) * PER_LETTER + 10;
-  const breathe = Math.sin(frame * 0.05) * 6;
-
-  // Final climactic zoom on last bolt
-  const climax = spring({
-    frame: frame - 165,
-    fps,
-    config: { damping: 200, stiffness: 80 },
-  });
-  const climaxScale = interpolate(climax, [0, 1], [1, 1.08]);
-
-  // Underline ink stroke reveal
-  const underlineProgress = interpolate(
-    frame,
-    [settleFrame, settleFrame + 25],
-    [0, 1],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-  );
-
-  return (
-    <AbsoluteFill
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        transform: `translateY(${breathe}px) scale(${climaxScale})`,
-      }}
-    >
-      {/* Behind-text radial halo */}
-      <div
-        style={{
-          position: "absolute",
-          width: 1400,
-          height: 700,
-          borderRadius: "50%",
-          background: `radial-gradient(ellipse at center, ${VIOLET_GLOW}55 0%, ${PINK_FLASH}22 35%, transparent 65%)`,
-          filter: "blur(20px)",
-          opacity: interpolate(frame, [40, 70], [0, 1], { extrapolateRight: "clamp" }),
-          mixBlendMode: "screen",
-        }}
-      />
-
-      {/* Line 1 — MIMIC */}
-      <div style={{ display: "flex", justifyContent: "center", whiteSpace: "nowrap" }}>
-        {TITLE_LINE1.split("").map((c, i) => (
-          <TitleLetter
-            key={`l1-${i}`}
-            char={c}
-            index={i}
-            totalIndex={i}
-            fontSize={260}
-          />
-        ))}
-      </div>
-
-      {/* Line 2 — MASTER */}
-      <div style={{ display: "flex", justifyContent: "center", whiteSpace: "nowrap", marginTop: 20 }}>
-        {TITLE_LINE2.split("").map((c, i) => (
-          <TitleLetter
-            key={`l2-${i}`}
-            char={c}
-            index={i}
-            totalIndex={TITLE_LINE1.length + i}
-            fontSize={260}
-          />
-        ))}
-      </div>
-
-      {/* Ink underline stroke */}
-      <svg
-        width={900}
-        height={40}
-        style={{ marginTop: 30, overflow: "visible" }}
-      >
-        <path
-          d="M30 20 Q 230 5, 450 22 T 870 18"
-          stroke={VIOLET_GLOW}
-          strokeWidth={10}
-          strokeLinecap="round"
-          fill="none"
-          pathLength={1}
-          strokeDasharray={1}
-          strokeDashoffset={1 - underlineProgress}
-          style={{
-            filter: `drop-shadow(0 0 14px ${VIOLET_GLOW}) drop-shadow(0 0 30px ${PINK_FLASH})`,
-          }}
-        />
-      </svg>
-    </AbsoluteFill>
-  );
-};
-
-/* ---------- Vignette + final whiteout flash ---------- */
-
-const FinalFlash: React.FC = () => {
-  const frame = useCurrentFrame();
-  // big flash at climax bolt
-  const flash = interpolate(
-    frame,
-    [168, 173, 188],
-    [0, 1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-  );
-  return (
-    <AbsoluteFill
-      style={{
-        background: `radial-gradient(ellipse at center, ${LIGHTNING} 0%, ${LIGHTNING_GLOW} 40%, transparent 75%)`,
-        opacity: flash * 0.55,
+        position: "absolute",
+        inset: -100,
+        backgroundImage: `repeating-linear-gradient(115deg, ${color} 0 24px, transparent 24px 110px)`,
+        transform: `translateX(${slide}px)`,
+        opacity: op * 0.55,
         mixBlendMode: "screen",
         pointerEvents: "none",
       }}
@@ -614,29 +68,525 @@ const FinalFlash: React.FC = () => {
   );
 };
 
-const Vignette: React.FC = () => (
-  <AbsoluteFill
-    style={{
-      pointerEvents: "none",
-      background:
-        "radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%)",
-    }}
-  />
-);
+const RadialBurst: React.FC<{ from: number; cx: number; cy: number; color?: string }> = ({
+  from,
+  cx,
+  cy,
+  color = YELLOW,
+}) => {
+  const frame = useCurrentFrame();
+  const local = frame - from;
+  if (local < 0 || local > 30) return null;
+  const scale = interpolate(local, [0, 12], [0.2, 1.4], { extrapolateRight: "clamp" });
+  const op = interpolate(local, [0, 4, 20, 30], [0, 1, 1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const rot = local * 2;
+  const rays = 28;
+  return (
+    <svg
+      width={1600}
+      height={1600}
+      style={{
+        position: "absolute",
+        left: cx - 800,
+        top: cy - 800,
+        transform: `scale(${scale}) rotate(${rot}deg)`,
+        transformOrigin: "800px 800px",
+        opacity: op,
+        pointerEvents: "none",
+      }}
+    >
+      {Array.from({ length: rays }).map((_, i) => {
+        const a = (i / rays) * Math.PI * 2;
+        const r1 = 180;
+        const r2 = 780;
+        const w = 0.09;
+        const x1 = 800 + Math.cos(a - w) * r1;
+        const y1 = 800 + Math.sin(a - w) * r1;
+        const x2 = 800 + Math.cos(a + w) * r1;
+        const y2 = 800 + Math.sin(a + w) * r1;
+        const x3 = 800 + Math.cos(a) * r2;
+        const y3 = 800 + Math.sin(a) * r2;
+        return (
+          <polygon
+            key={i}
+            points={`${x1},${y1} ${x2},${y2} ${x3},${y3}`}
+            fill={color}
+          />
+        );
+      })}
+    </svg>
+  );
+};
 
-/* ---------- Root composition ---------- */
+const InkSplat: React.FC<{
+  from: number;
+  cx: number;
+  cy: number;
+  size: number;
+  color: string;
+  rot?: number;
+}> = ({ from, cx, cy, size, color, rot = 0 }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const local = frame - from;
+  if (local < 0) return null;
+  const s = spring({ frame: local, fps, config: { damping: 9, stiffness: 180 } });
+  const scale = interpolate(s, [0, 1], [0, 1]);
+  const path =
+    "M100,15 C140,5 175,30 180,70 C200,80 195,130 165,140 C170,175 130,200 95,180 C70,210 25,195 20,160 C-10,150 -5,105 25,90 C15,55 55,25 100,15 Z";
+  return (
+    <svg
+      width={size}
+      height={size * 1.05}
+      viewBox="0 0 200 210"
+      style={{
+        position: "absolute",
+        left: cx - size / 2,
+        top: cy - (size * 1.05) / 2,
+        transform: `scale(${scale}) rotate(${rot}deg)`,
+        transformOrigin: "center",
+      }}
+    >
+      <path d={path} fill={color} stroke={INK} strokeWidth={8} strokeLinejoin="round" />
+    </svg>
+  );
+};
+
+const ComicWord: React.FC<{
+  from: number;
+  duration: number;
+  text: string;
+  cx: number;
+  cy: number;
+  size?: number;
+  fill?: string;
+  rot?: number;
+}> = ({ from, duration, text, cx, cy, size = 150, fill = YELLOW, rot = -8 }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const local = frame - from;
+  if (local < 0 || local > duration) return null;
+  const s = spring({ frame: local, fps, config: { damping: 7, stiffness: 220, mass: 0.7 } });
+  const out = interpolate(local, [duration - 8, duration], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const scale = interpolate(s, [0, 1], [0, 1.05]) * out;
+  const wobble = Math.sin(local * 0.5) * 2;
+  const spikes = 16;
+  const pts: string[] = [];
+  for (let i = 0; i < spikes * 2; i++) {
+    const a = (i / (spikes * 2)) * Math.PI * 2;
+    const r = i % 2 === 0 ? 1 : 0.78;
+    pts.push(`${Math.cos(a) * r * 240 + 250},${Math.sin(a) * r * 140 + 160}`);
+  }
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: cx - 250,
+        top: cy - 160,
+        transform: `scale(${scale}) rotate(${rot + wobble}deg)`,
+        transformOrigin: "center",
+      }}
+    >
+      <svg width={500} height={320} viewBox="0 0 500 320" style={{ overflow: "visible" }}>
+        <polygon
+          points={pts.join(" ")}
+          fill={fill}
+          stroke={INK}
+          strokeWidth={10}
+          strokeLinejoin="round"
+        />
+      </svg>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: luckiest,
+          fontSize: size,
+          color: INK,
+          letterSpacing: "0.02em",
+          textShadow: `4px 5px 0 ${WHITE}`,
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+};
+
+const CartoonMask: React.FC<{
+  from: number;
+  cx: number;
+  cy: number;
+  size: number;
+  color: string;
+  rot?: number;
+}> = ({ from, cx, cy, size, color, rot = 0 }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const local = frame - from;
+  if (local < 0) return null;
+  const s = spring({ frame: local, fps, config: { damping: 8, stiffness: 160 } });
+  const sc = interpolate(s, [0, 1], [0, 1]);
+  const bob = Math.sin(local * 0.18) * 6;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 200 200"
+      style={{
+        position: "absolute",
+        left: cx - size / 2,
+        top: cy - size / 2 + bob,
+        transform: `scale(${sc}) rotate(${rot}deg)`,
+        transformOrigin: "center",
+      }}
+    >
+      <ellipse cx={100} cy={110} rx={80} ry={70} fill={color} stroke={INK} strokeWidth={9} />
+      <ellipse cx={72} cy={95} rx={18} ry={22} fill={WHITE} stroke={INK} strokeWidth={6} />
+      <ellipse cx={128} cy={95} rx={18} ry={22} fill={WHITE} stroke={INK} strokeWidth={6} />
+      <circle cx={75} cy={100} r={7} fill={INK} />
+      <circle cx={131} cy={100} r={7} fill={INK} />
+      <path d="M60 135 Q100 175 140 135" stroke={INK} strokeWidth={8} fill={WHITE} strokeLinejoin="round" />
+      <path d="M68 138 L132 138" stroke={INK} strokeWidth={4} />
+    </svg>
+  );
+};
+
+const Backdrop: React.FC = () => {
+  const frame = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ overflow: "hidden" }}>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: `radial-gradient(ellipse at 50% 45%, ${PURPLE} 0%, ${PURPLE_DEEP} 55%, ${INK} 100%)`,
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          width: 3200,
+          height: 3200,
+          marginLeft: -1600,
+          marginTop: -1600,
+          background: `repeating-conic-gradient(from 0deg, ${PURPLE_BRIGHT}22 0deg 8deg, transparent 8deg 16deg)`,
+          transform: `rotate(${frame * 0.4}deg)`,
+          mixBlendMode: "screen",
+        }}
+      />
+      <Halftone color={INK} opacity={0.25} />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)",
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+const FloatingDrops: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      {Array.from({ length: 18 }).map((_, i) => {
+        const seed = i * 9.13;
+        const x = (random(`x${i}`) * width + frame * (0.4 + random(`s${i}`))) % width;
+        const y =
+          (random(`y${i}`) * height - frame * (0.6 + random(`t${i}`) * 0.6) + height * 2) %
+          height;
+        const r = 6 + random(`r${i}`) * 14;
+        const color = i % 3 === 0 ? PINK : i % 3 === 1 ? YELLOW : PURPLE_BRIGHT;
+        const wob = Math.sin(frame * 0.05 + seed) * 18;
+        return (
+          <svg
+            key={i}
+            width={r * 2.5}
+            height={r * 3.2}
+            viewBox="0 0 50 64"
+            style={{ position: "absolute", left: x + wob, top: y, opacity: 0.85 }}
+          >
+            <path
+              d="M25 2 C40 22 46 36 46 46 C46 56 36 62 25 62 C14 62 4 56 4 46 C4 36 10 22 25 2 Z"
+              fill={color}
+              stroke={INK}
+              strokeWidth={3}
+            />
+            <ellipse cx={18} cy={36} rx={5} ry={9} fill={WHITE} opacity={0.6} />
+          </svg>
+        );
+      })}
+    </AbsoluteFill>
+  );
+};
+
+/* SCENE 1: ink drop -> SPLAT (0-50) */
+const Scene1Drop: React.FC = () => {
+  const frame = useCurrentFrame();
+  if (frame > 55) return null;
+  const dropY = interpolate(frame, [0, 22], [-400, 540], { extrapolateRight: "clamp" });
+  const dropOp = interpolate(frame, [22, 24], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const stretch = interpolate(frame, [0, 22], [1, 1.6]);
+
+  return (
+    <AbsoluteFill>
+      <SpeedStripes from={0} to={26} color={YELLOW} />
+      <svg
+        width={120}
+        height={180}
+        viewBox="0 0 50 64"
+        style={{
+          position: "absolute",
+          left: 960 - 60,
+          top: dropY,
+          transform: `scaleY(${stretch})`,
+          opacity: dropOp,
+        }}
+      >
+        <path
+          d="M25 2 C40 22 46 36 46 46 C46 56 36 62 25 62 C14 62 4 56 4 46 C4 36 10 22 25 2 Z"
+          fill={PURPLE_BRIGHT}
+          stroke={INK}
+          strokeWidth={3}
+        />
+      </svg>
+      <RadialBurst from={22} cx={960} cy={540} color={YELLOW} />
+      <InkSplat from={22} cx={960} cy={540} size={900} color={PURPLE_BRIGHT} />
+      <InkSplat from={26} cx={960} cy={540} size={620} color={PINK} rot={35} />
+      <InkSplat from={28} cx={960} cy={540} size={380} color={CREAM} rot={-15} />
+      <ComicWord from={24} duration={22} text="SPLAT!" cx={960} cy={540} size={140} fill={YELLOW} rot={-6} />
+    </AbsoluteFill>
+  );
+};
+
+/* SCENE 2: masks parade + POW (50-110) */
+const Scene2Masks: React.FC = () => {
+  const frame = useCurrentFrame();
+  if (frame < 50 || frame > 115) return null;
+  const local = frame - 50;
+  const wipe = interpolate(local, [0, 16], [-1200, 0], { extrapolateRight: "clamp" });
+
+  return (
+    <AbsoluteFill>
+      <SpeedStripes from={50} to={86} color={PINK} />
+      <Halftone color={YELLOW} opacity={0.1} />
+      <div style={{ position: "absolute", inset: 0, transform: `translateX(${wipe}px)` }}>
+        <CartoonMask from={50} cx={420} cy={520} size={380} color={PINK} rot={-12} />
+      </div>
+      <div style={{ position: "absolute", inset: 0, transform: `translateX(${-wipe}px)` }}>
+        <CartoonMask from={56} cx={1500} cy={520} size={380} color={YELLOW} rot={12} />
+      </div>
+      <CartoonMask from={64} cx={960} cy={540} size={460} color={PURPLE_BRIGHT} rot={0} />
+      <RadialBurst from={78} cx={960} cy={540} color={PINK} />
+      <ComicWord from={80} duration={26} text="POW!" cx={1280} cy={300} size={160} fill={YELLOW} rot={12} />
+      <ComicWord from={86} duration={22} text="ZAP!" cx={640} cy={780} size={140} fill={PINK} rot={-14} />
+    </AbsoluteFill>
+  );
+};
+
+/* SCENE 3: TITLE SLAM (110-end) */
+const TITLE = "MIMIC MASTER";
+const Scene3Title: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const local = frame - 110;
+  if (local < 0) return null;
+
+  const slam = spring({ frame: local, fps, config: { damping: 9, stiffness: 110, mass: 1.1 } });
+  const slamScale = interpolate(slam, [0, 1], [3.6, 1]);
+  const slamOp = interpolate(local, [0, 4], [0, 1], { extrapolateRight: "clamp" });
+  const shake = local < 14 ? Math.sin(local * 4) * (1 - local / 14) * 14 : 0;
+  const breathe = local > 18 ? Math.sin((local - 18) * 0.12) * 4 : 0;
+  const ul = interpolate(local, [16, 36], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const spikes = 22;
+  const burstPts: string[] = [];
+  for (let i = 0; i < spikes * 2; i++) {
+    const a = (i / (spikes * 2)) * Math.PI * 2;
+    const r = i % 2 === 0 ? 1 : 0.82;
+    burstPts.push(`${Math.cos(a) * r * 760 + 800},${Math.sin(a) * r * 320 + 350}`);
+  }
+
+  return (
+    <AbsoluteFill>
+      <RadialBurst from={110} cx={960} cy={540} color={YELLOW} />
+      <SpeedStripes from={112} to={150} color={CREAM} />
+
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transform: `translate(${shake}px, ${breathe}px) scale(${slamScale})`,
+          opacity: slamOp,
+        }}
+      >
+        <div style={{ position: "relative", textAlign: "center" }}>
+          <svg
+            width={1600}
+            height={700}
+            viewBox="0 0 1600 700"
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <polygon
+              points={burstPts.join(" ")}
+              fill={YELLOW}
+              stroke={INK}
+              strokeWidth={12}
+              strokeLinejoin="round"
+            />
+          </svg>
+
+          <div
+            style={{
+              position: "relative",
+              fontFamily: bangers,
+              fontSize: 260,
+              lineHeight: 0.95,
+              color: WHITE,
+              WebkitTextStroke: `10px ${INK}`,
+              textShadow: `
+                8px 10px 0 ${INK},
+                12px 14px 0 ${PINK},
+                16px 18px 0 ${PURPLE_DEEP}
+              `,
+              letterSpacing: "0.04em",
+              transform: "rotate(-3deg)",
+              whiteSpace: "nowrap",
+              padding: "0 60px",
+            }}
+          >
+            {TITLE}
+          </div>
+
+          <svg
+            width={1100}
+            height={60}
+            viewBox="0 0 1100 60"
+            style={{
+              display: "block",
+              margin: "10px auto 0",
+              overflow: "visible",
+              transform: "rotate(-3deg)",
+            }}
+          >
+            <path
+              d="M30 30 Q 200 5, 400 32 T 800 28 T 1070 30"
+              stroke={PINK}
+              strokeWidth={14}
+              strokeLinecap="round"
+              fill="none"
+              pathLength={1}
+              strokeDasharray={1}
+              strokeDashoffset={1 - ul}
+              style={{ filter: `drop-shadow(4px 5px 0 ${INK})` }}
+            />
+          </svg>
+        </div>
+      </div>
+
+      {local > 20 &&
+        Array.from({ length: 14 }).map((_, i) => {
+          const seed = i * 3.7;
+          const x = 200 + random(`sx${i}`) * 1520;
+          const y = 120 + random(`sy${i}`) * 800;
+          const t = local - 20 - (i % 7) * 3;
+          if (t < 0 || t > 30) return null;
+          const s = interpolate(t, [0, 6, 24, 30], [0, 1, 1, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          const size = 24 + random(`ss${i}`) * 36;
+          return (
+            <svg
+              key={i}
+              width={size}
+              height={size}
+              viewBox="0 0 24 24"
+              style={{
+                position: "absolute",
+                left: x - size / 2,
+                top: y - size / 2,
+                transform: `scale(${s}) rotate(${t * 6 + seed}deg)`,
+              }}
+            >
+              <path
+                d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z"
+                fill={YELLOW}
+                stroke={INK}
+                strokeWidth={1.5}
+              />
+            </svg>
+          );
+        })}
+    </AbsoluteFill>
+  );
+};
+
+const FlashAt: React.FC<{ at: number; intensity?: number }> = ({ at, intensity = 0.7 }) => {
+  const frame = useCurrentFrame();
+  const f = interpolate(frame, [at, at + 2, at + 10], [0, 1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  return (
+    <AbsoluteFill
+      style={{
+        background: WHITE,
+        opacity: f * intensity,
+        mixBlendMode: "screen",
+        pointerEvents: "none",
+      }}
+    />
+  );
+};
 
 export const MainVideo: React.FC = () => {
-  // unused vars suppressed
-  void creepster;
   return (
-    <AbsoluteFill style={{ background: BG_DEEP }}>
-      <StormySky />
-      <Embers />
-      <LightningStorm />
-      <Title />
-      <FinalFlash />
-      <Vignette />
+    <AbsoluteFill style={{ background: INK, fontFamily: bangers }}>
+      <Backdrop />
+      <FloatingDrops />
+      <Scene1Drop />
+      <Scene2Masks />
+      <Scene3Title />
+      <FlashAt at={22} intensity={0.85} />
+      <FlashAt at={78} intensity={0.6} />
+      <FlashAt at={110} intensity={0.95} />
+      <AbsoluteFill
+        style={{
+          pointerEvents: "none",
+          background:
+            "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%)",
+        }}
+      />
     </AbsoluteFill>
   );
 };
