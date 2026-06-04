@@ -111,17 +111,15 @@ const Index = () => {
   // Check if we need to show ink animation (fresh load with ink mode)
   useEffect(() => {
     if (inkModeEnabled && theme === 'ink') {
-      const hasSeenAnimation = sessionStorage.getItem('ink-animation-seen');
-      if (!hasSeenAnimation) {
-        setShowInkAnimation(true);
-      } else {
-        setInkAnimationCompleted(true);
-      }
+      setShowInkAnimation(true);
+      setInkAnimationCompleted(false);
+    } else {
+      setShowInkAnimation(false);
+      setInkAnimationCompleted(true);
     }
   }, [inkModeEnabled, theme]);
   
   const handleInkAnimationComplete = useCallback(() => {
-    sessionStorage.setItem('ink-animation-seen', 'true');
     setShowInkAnimation(false);
     setInkAnimationCompleted(true);
   }, []);
