@@ -411,7 +411,7 @@ const Scene3Title: React.FC = () => {
   if (local < 0) return null;
 
   const slam = spring({ frame: local, fps, config: { damping: 9, stiffness: 110, mass: 1.1 } });
-  const slamScale = interpolate(slam, [0, 1], [3.6, 1]);
+  const burstScale = interpolate(slam, [0, 1], [3.6, 1]);
   const slamOp = interpolate(local, [0, 4], [0, 1], { extrapolateRight: "clamp" });
   const shake = local < 14 ? Math.sin(local * 4) * (1 - local / 14) * 14 : 0;
   const breathe = local > 18 ? Math.sin((local - 18) * 0.12) * 4 : 0;
@@ -440,7 +440,7 @@ const Scene3Title: React.FC = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          transform: `translate(${shake}px, ${breathe}px) scale(${slamScale})`,
+          transform: `translate(${shake}px, ${breathe}px)`,
           opacity: slamOp,
         }}
       >
@@ -453,7 +453,7 @@ const Scene3Title: React.FC = () => {
               position: "absolute",
               left: "50%",
               top: "50%",
-              transform: "translate(-50%, -50%)",
+              transform: `translate(-50%, -50%) scale(${burstScale})`,
             }}
           >
             <polygon
@@ -482,9 +482,30 @@ const Scene3Title: React.FC = () => {
               transform: "rotate(-3deg)",
               whiteSpace: "nowrap",
               padding: "0 60px",
+              display: "flex",
+              justifyContent: "center",
             }}
           >
-            {TITLE}
+            {TITLE.split("").map((ch, i) => {
+              const t = local - 4 - i * 2;
+              const s = spring({ frame: Math.max(0, t), fps, config: { damping: 6, stiffness: 220, mass: 0.6 } });
+              const sc = interpolate(s, [0, 1], [0, 1]);
+              const tilt = (i % 2 === 0 ? -1 : 1) * 6;
+              const bob = t > 0 ? Math.sin(t * 0.2 + i) * 4 : 0;
+              return (
+                <span
+                  key={i}
+                  style={{
+                    display: "inline-block",
+                    transform: `scale(${sc}) rotate(${tilt}deg) translateY(${bob}px)`,
+                    transformOrigin: "center bottom",
+                    width: ch === " " ? "0.4em" : undefined,
+                  }}
+                >
+                  {ch === " " ? "\u00A0" : ch}
+                </span>
+              );
+            })}
           </div>
 
           <svg
