@@ -60,10 +60,6 @@ const SpeedLines: React.FC<{ from: number; dur: number; color?: string }> = ({
   color = WHITE,
 }) => {
   const frame = useCurrentFrame();
-  const local = frame - from;
-  if (local < 0 || local > dur) return null;
-  const t = local / dur;
-  const op = interpolate(t, [0, 0.15, 0.85, 1], [0, 0.55, 0.55, 0]);
   const lines = React.useMemo(
     () =>
       new Array(38).fill(0).map((_, i) => ({
@@ -73,6 +69,10 @@ const SpeedLines: React.FC<{ from: number; dur: number; color?: string }> = ({
       })),
     []
   );
+  const local = frame - from;
+  if (local < 0 || local > dur) return null;
+  const t = local / dur;
+  const op = interpolate(t, [0, 0.15, 0.85, 1], [0, 0.55, 0.55, 0]);
   return (
     <svg width={1920} height={1080} style={{ position: "absolute", inset: 0, opacity: op }}>
       {lines.map((l, i) => {
