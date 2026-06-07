@@ -397,15 +397,25 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     <div className="h-screen w-full flex flex-col bg-[#0a0510] text-white relative overflow-hidden">
       {/* ============== BACKGROUND ============== */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <ImageWithFallback
-          src={[
-            '/home/background.png',
-            '/home/background.jpg',
-            '/home/background.jpeg',
-          ]}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          fallback={
+        {/* Ken Burns animated background image */}
+        <motion.div
+          className="absolute inset-0"
+          animate={{
+            scale: [1.08, 1.18, 1.08],
+            x: ['-1%', '1.5%', '-1%'],
+            y: ['-1%', '1%', '-1%'],
+          }}
+          transition={{ duration: 28, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <ImageWithFallback
+            src={[
+              '/home/background.png',
+              '/home/background.jpg',
+              '/home/background.jpeg',
+            ]}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            fallback={
             <>
               <div className="absolute inset-0 bg-gradient-to-br from-[#0f0820] via-[#0a0510] to-[#160a26]" />
               {/* Mode-tinted glow */}
@@ -428,8 +438,39 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                 </motion.div>
               </AnimatePresence>
             </>
-          }
+            }
+          />
+        </motion.div>
+
+        {/* Pulsing mode-tinted vignette on top of the image */}
+        <AnimatePresence mode="sync">
+          <motion.div
+            key={selectedMode.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.25, 0.5, 0.25] }}
+            exit={{ opacity: 0 }}
+            transition={{
+              opacity: { duration: 7, repeat: Infinity, ease: 'easeInOut' },
+            }}
+            className="absolute inset-0 mix-blend-screen"
+            style={{
+              background: `radial-gradient(ellipse at 50% 45%, ${selectedMode.accent}40 0%, transparent 60%)`,
+            }}
+          />
+        </AnimatePresence>
+
+        {/* Light sweep across the image */}
+        <motion.div
+          className="absolute inset-y-0 w-[40%] mix-blend-overlay pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%)',
+            filter: 'blur(30px)',
+          }}
+          animate={{ x: ['-60%', '260%'] }}
+          transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', repeatDelay: 4 }}
         />
+
         {/* Animated ambient layer (drifting ink blobs, droplets, sheen) */}
         <InkAnimatedBackground accent={selectedMode.accent} />
         {/* Slight dark overlay so the foreground stays legible */}
