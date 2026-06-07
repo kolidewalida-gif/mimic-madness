@@ -34,6 +34,7 @@ import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { toast } from 'sonner';
+import { InkAnimatedBackground } from '@/components/InkAnimatedBackground';
 
 interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
@@ -429,6 +430,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             </>
           }
         />
+        {/* Animated ambient layer (drifting ink blobs, droplets, sheen) */}
+        <InkAnimatedBackground accent={selectedMode.accent} />
         {/* Slight dark overlay so the foreground stays legible */}
         <div className="absolute inset-0 bg-[#0a0510]/30" />
       </div>
