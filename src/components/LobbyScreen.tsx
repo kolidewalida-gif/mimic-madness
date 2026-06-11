@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getModeEmojiLabel, getModeLabel, getStartStatus, type LobbyGameMode } from "@/lib/gameModes";
 import { useTheme } from "@/hooks/useTheme";
-import { NeverLikeThatModeDeck } from "@/components/neverlikethat/NeverLikeThatModeDeck";
+import { NeverLikeThatModeShuffle } from "@/components/neverlikethat/NeverLikeThatModeShuffle";
 
 interface Player {
   id: string;
@@ -363,7 +363,7 @@ export const LobbyScreen = ({
           <div className="space-y-4">
             {isHost && (
               isNLT ? (
-                <NeverLikeThatModeDeck
+                <NeverLikeThatModeShuffle
                   gameMode={gameMode}
                   onGameModeChange={handleGameModeChange}
                   playerCount={players.filter(p => !p.isDisconnected).length}
