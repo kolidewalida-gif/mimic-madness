@@ -21,7 +21,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { useGameTeams } from "@/hooks/useGameTeams";
 import { getStartStatus, GAME_MODE_META, type LobbyGameMode } from "@/lib/gameModes";
 import { useMultiplePlayerAvatars } from "@/hooks/useGlobalPlayerAvatar";
-import { NeverLikeThatModeCarousel } from "@/components/neverlikethat/NeverLikeThatModeCarousel";
+import { NeverLikeThatModeDeck } from "@/components/neverlikethat/NeverLikeThatModeDeck";
 import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { LobbyChat } from "@/components/LobbyChat";
@@ -183,8 +183,7 @@ export const NeverLikeThatLobbyScreen = ({
         {/* CENTER STAGE — the carousel is the hero */}
         <main className="flex flex-col items-center justify-center min-h-0 overflow-y-auto custom-scrollbar py-2">
           <div className="w-full max-w-2xl">
-            <NeverLikeThatModeCarousel
-              large
+            <NeverLikeThatModeDeck
               gameMode={gameMode}
               onGameModeChange={handleGameModeChange}
               playerCount={connectedCount}
