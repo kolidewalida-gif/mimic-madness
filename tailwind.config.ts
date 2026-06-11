@@ -245,6 +245,10 @@ export default {
           "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-8px)" },
           "20%, 40%, 60%, 80%": { transform: "translateX(8px)" },
         },
+        spotlight: {
+          "0%": { opacity: "0", transform: "translate(-72%, -62%) scale(0.5)" },
+          "100%": { opacity: "1", transform: "translate(-50%, -40%) scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -287,6 +291,7 @@ export default {
         optionAppear: "optionAppear 0.4s ease-out forwards",
         correctPulse: "correctPulse 1s ease-out",
         wrongShake: "wrongShake 0.6s ease-in-out",
+        spotlight: "spotlight 2s ease 0.75s 1 forwards",
       },
       boxShadow: {
         glow: "0 0 40px rgba(139, 92, 246, 0.4)",

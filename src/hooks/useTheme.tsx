@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type ThemeType = 'neon' | 'cosmic' | 'fire' | 'ice' | 'ink' | 'cartoon';
+export type ThemeType = 'neon' | 'cosmic' | 'fire' | 'ice' | 'ink' | 'cartoon' | 'neverlikethat';
 
 interface ThemeContextType {
   theme: ThemeType;
@@ -12,7 +12,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const themes: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice', 'ink', 'cartoon'];
+export const themes: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice', 'ink', 'cartoon', 'neverlikethat'];
 
 export const themeConfig: Record<ThemeType, {
   name: string;
@@ -151,6 +151,25 @@ export const themeConfig: Record<ThemeType, {
       glowSecondary: '350 95% 58%',
     },
   },
+  neverlikethat: {
+    name: 'Never Like That',
+    emoji: '🤖',
+    description: 'Scène 3D interactive & spotlight',
+    colors: {
+      primary: '217 91% 60%',      // bleu électrique
+      secondary: '270 95% 65%',    // violet néon
+      accent: '190 95% 55%',       // cyan
+      background: '240 28% 4%',    // noir bleuté profond
+      foreground: '0 0% 98%',
+      card: '240 22% 8%',
+      cardForeground: '0 0% 98%',
+      muted: '240 16% 14%',
+      mutedForeground: '240 10% 68%',
+      border: '240 22% 18%',
+      glow: '217 91% 60%',
+      glowSecondary: '270 95% 65%',
+    },
+  },
 };
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
@@ -210,6 +229,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       document.body.classList.add('cartoon-mode');
     } else {
       document.body.classList.remove('cartoon-mode');
+    }
+
+    // Add neverlikethat-mode class for the 3D scene theme overrides
+    if (theme === 'neverlikethat') {
+      document.body.classList.add('neverlikethat-mode');
+    } else {
+      document.body.classList.remove('neverlikethat-mode');
     }
   }, [theme]);
 

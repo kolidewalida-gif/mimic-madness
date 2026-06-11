@@ -37,6 +37,7 @@ const AudioPhoneGameScreen = React.lazy(() => import("@/components/AudioPhoneGam
 const PixoguessGameScreen = React.lazy(() => import("@/components/PixoguessGameScreen").then(m => ({ default: m.PixoguessGameScreen })));
 const MonopolyGameScreen = React.lazy(() => import("@/components/monopoly/MonopolyGameScreen").then(m => ({ default: m.MonopolyGameScreen })));
 const UndercoverGameScreen = React.lazy(() => import("@/components/undercover/UndercoverGameScreen").then(m => ({ default: m.UndercoverGameScreen })));
+const NeverLikeThatBackground = React.lazy(() => import("@/components/NeverLikeThatBackground").then(m => ({ default: m.NeverLikeThatBackground })));
 
 interface Player {
   id: string;
@@ -840,8 +841,15 @@ const Index = () => {
 
   return (
     <div className="h-screen overflow-hidden">
-      {/* Only show dynamic background in non-ink mode */}
-      {!useInkMode && <DynamicBackground />}
+      {/* Only show dynamic background in non-ink mode (and not when the 3D theme is active) */}
+      {!useInkMode && theme !== 'neverlikethat' && <DynamicBackground />}
+
+      {/* "Never Like That" theme — interactive 3D Spline background */}
+      {theme === 'neverlikethat' && (
+        <React.Suspense fallback={null}>
+          <NeverLikeThatBackground />
+        </React.Suspense>
+      )}
       
       <ScreenTransition screenKey={gameState}>
         {renderContent}

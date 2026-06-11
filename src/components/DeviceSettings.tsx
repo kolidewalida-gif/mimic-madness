@@ -11,6 +11,8 @@ import {
   X,
   Sparkles,
   Sliders,
+  Palette,
+  Check,
 } from "lucide-react";
 import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
@@ -20,6 +22,7 @@ import { useSoundEffectsVolume } from "@/hooks/useSoundEffectsVolume";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInkMode } from "@/hooks/useInkMode";
 import { AvatarSettings } from "@/components/AvatarSettings";
+import { useTheme, themeConfig, ThemeType } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -37,7 +40,7 @@ const GRAFFITI_TEXT_SHADOW =
 const GRAFFITI_TEXT_SHADOW_SM =
   "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810";
 
-type Tab = "audio" | "volume" | "avatar";
+type Tab = "audio" | "volume" | "avatar" | "theme";
 
 export const DeviceSettings = ({
   onClose,
@@ -71,6 +74,7 @@ export const DeviceSettings = ({
   const tabs: { id: Tab; label: string; icon: any; color: string }[] = [
     { id: "audio", label: "Audio", icon: Mic, color: "#a855f7" },
     { id: "volume", label: "Volume", icon: Sliders, color: "#fbbf24" },
+    { id: "theme", label: "Thème", icon: Palette, color: "#38bdf8" },
     ...(showAvatarTab
       ? [{ id: "avatar" as Tab, label: "Avatar", icon: User, color: "#06b6d4" }]
       : []),
@@ -165,7 +169,7 @@ export const DeviceSettings = ({
               className="text-sm text-purple-200/80 font-bold mt-0.5"
               style={{ fontFamily: "'Caveat', cursive" }}
             >
-              Audio · Volume{showAvatarTab ? " · Avatar" : ""}
+              Audio · Volume · Thème{showAvatarTab ? " · Avatar" : ""}
             </p>
           </div>
         </div>
@@ -291,6 +295,16 @@ export const DeviceSettings = ({
               exit={{ opacity: 0, y: -8 }}
             >
               <VolumeSection />
+            </motion.div>
+          )}
+          {activeTab === "theme" && (
+            <motion.div
+              key="theme"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <ThemeSection />
             </motion.div>
           )}
           {activeTab === "avatar" && showAvatarTab && (
@@ -605,6 +619,106 @@ const AudioSection = ({
     </div>
   </div>
 );
+
+/* ============================================================
+   THEME SECTION — cartoon theme picker (les choix des thèmes)
+============================================================ */
+const ThemeSection = () => {
+  const { theme, setTheme, themes, inkModeEnabled, setInkModeEnabled } = useTheme();
+
+  const handlePick = (t: ThemeType) => {
+    if (t === theme) return;
+    setTheme(t);
+    // Selecting Ink should also (re)enable Ink mode + replay intro on reload
+    if (t === 'ink') {
+      setInkModeEnabled(true);
+      sessionStorage.removeItem('ink-animation-seen');
+    }
+  };
+
+  return (
+    <CartoonSection
+      icon={Palette}
+      title="Thème"
+      accent="#38bdf8"
+      glow="rgba(56,189,248,0.5)"
+    >
+      <p
+        className="text-base font-bold text-white/65"
+        style={{ fontFamily: "'Caveat', cursive" }}
+      >
+        Choisis l'ambiance visuelle du jeu
+      </p>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        {themes.map((t) => {
+          const config = themeConfig[t];
+          const isSelected = theme === t;
+          return (
+            <motion.button
+              key={t}
+              type="button"
+              onClick={() => handlePick(t)}
+              whileHover={{ scale: 1.03, y: -2, rotate: -0.5 }}
+              whileTap={{ scale: 0.96 }}
+              className="relative rounded-2xl p-3 flex items-center gap-2.5 overflow-hidden text-left"
+              style={{
+                background: isSelected
+                  ? `linear-gradient(135deg, hsl(${config.colors.primary}), hsl(${config.colors.secondary}))`
+                  : "rgba(255,255,255,0.04)",
+                border: "3px solid #0a0810",
+                boxShadow: isSelected
+                  ? `0 4px 0 #0a0810, 0 0 18px hsl(${config.colors.primary} / 0.6)`
+                  : "0 3px 0 #0a0810",
+              }}
+            >
+              <span
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                style={{
+                  background: `linear-gradient(135deg, hsl(${config.colors.primary}), hsl(${config.colors.secondary}))`,
+                  border: "2.5px solid #0a0810",
+                  boxShadow: "0 2px 0 #0a0810",
+                }}
+              >
+                {config.emoji}
+              </span>
+              <span
+                className={cn(
+                  "text-lg font-black leading-none truncate",
+                  isSelected ? "text-white" : "text-white/80",
+                )}
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                }}
+              >
+                {config.name}
+              </span>
+              {isSelected && (
+                <span
+                  className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white flex items-center justify-center"
+                  style={{ boxShadow: "0 1.5px 0 #0a0810" }}
+                >
+                  <Check className="w-3.5 h-3.5 text-[#0a0810]" strokeWidth={3} />
+                </span>
+              )}
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {inkModeEnabled && theme !== 'ink' && (
+        <p
+          className="text-sm font-bold text-amber-300/80 flex items-center gap-1.5"
+          style={{ fontFamily: "'Caveat', cursive" }}
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Mode Ink toujours actif — choisis « Ink » pour y revenir
+        </p>
+      )}
+    </CartoonSection>
+  );
+};
 
 /* ============================================================
    VOLUME SECTION
