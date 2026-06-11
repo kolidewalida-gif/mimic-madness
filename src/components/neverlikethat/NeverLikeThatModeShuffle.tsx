@@ -74,7 +74,7 @@ function ModeCard({
       animate={{
         rotate: position === "front" ? "-6deg" : position === "middle" ? "0deg" : "6deg",
         x: position === "front" ? "0%" : position === "middle" ? "33%" : "66%",
-        opacity: position === "back" ? 0.7 : 1,
+        opacity: position === "back" ? 0.75 : 1,
       }}
       drag={isFront && !disabled}
       dragElastic={0.35}
@@ -92,8 +92,8 @@ function ModeCard({
       }}
       transition={{ duration: 0.35 }}
       className={cn(
-        "absolute left-0 top-0 grid h-[340px] w-[280px] select-none place-content-center gap-5 rounded-3xl border-2 p-6 shadow-2xl backdrop-blur-md",
-        "bg-[hsl(240_24%_9%/0.85)]",
+        "absolute left-0 top-0 grid h-[400px] w-[300px] select-none place-content-center gap-6 rounded-3xl border-2 p-7 shadow-2xl backdrop-blur-md",
+        "bg-[hsl(240_24%_9%/0.88)]",
         selected ? "border-sky-400/70" : "border-white/10",
         isFront && !disabled ? "cursor-grab active:cursor-grabbing" : "",
       )}
@@ -102,40 +102,40 @@ function ModeCard({
       <div
         className="absolute -inset-2 -z-10 rounded-3xl pointer-events-none"
         style={{
-          background: `radial-gradient(circle, rgba(${mode.glow},${selected ? 0.4 : 0.22}), transparent 70%)`,
-          filter: "blur(22px)",
+          background: `radial-gradient(circle, rgba(${mode.glow},${selected ? 0.45 : 0.25}), transparent 70%)`,
+          filter: "blur(26px)",
         }}
       />
 
       {/* Icon */}
       <div
         className={cn(
-          "pointer-events-none mx-auto flex h-28 w-28 items-center justify-center rounded-full border-2 border-white/15 bg-gradient-to-br",
+          "pointer-events-none mx-auto flex h-32 w-32 items-center justify-center rounded-full border-2 border-white/15 bg-gradient-to-br",
           mode.gradient,
         )}
-        style={{ boxShadow: `0 8px 30px rgba(${mode.glow},0.4)` }}
+        style={{ boxShadow: `0 10px 36px rgba(${mode.glow},0.45)` }}
       >
-        <Icon className="h-12 w-12 text-white" strokeWidth={2} />
+        <Icon className="h-14 w-14 text-white" strokeWidth={2} />
       </div>
 
       <div className="text-center">
-        <p className="text-2xl font-black text-white leading-tight">{mode.name}</p>
-        <p className="mt-1 text-sm text-white/55">{mode.subtitle}</p>
+        <p className="text-3xl font-black text-white leading-tight">{mode.name}</p>
+        <p className="mt-1.5 text-base text-white/55">{mode.subtitle}</p>
       </div>
 
       {/* Status pill */}
       <div className="flex justify-center">
         {selected ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-400/20 border border-sky-400/40 text-sky-200 text-xs font-bold">
-            <Check className="w-3.5 h-3.5" /> Mode actif
+          <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-sky-400/20 border border-sky-400/40 text-sky-200 text-sm font-bold">
+            <Check className="w-4 h-4" /> Mode actif
           </span>
         ) : !playable ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/15 text-white/50 text-xs font-bold">
-            <Lock className="w-3.5 h-3.5" /> Min. {mode.minPlayers} joueurs
+          <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 border border-white/15 text-white/50 text-sm font-bold">
+            <Lock className="w-4 h-4" /> Min. {mode.minPlayers} joueurs
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/15 text-white/70 text-xs font-bold">
-            <MousePointerClick className="w-3.5 h-3.5" /> Clique pour choisir
+          <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 border border-white/15 text-white/70 text-sm font-bold">
+            <MousePointerClick className="w-4 h-4" /> Clique pour choisir
           </span>
         )}
       </div>
@@ -144,9 +144,9 @@ function ModeCard({
 }
 
 /**
- * Game-mode selection as a draggable shuffle stack. The front card is the
- * focused mode: drag it to the left (or use the dots) to shuffle to the next
- * mode, click it to select. Inspired by the shuffle testimonial cards.
+ * Game-mode selection as a draggable shuffle stack (front / middle / back).
+ * Drag the front card to the left to shuffle to the next mode, click it to
+ * select. Built on the shuffle testimonial-cards mechanic.
  */
 export const NeverLikeThatModeShuffle = ({
   gameMode,
@@ -170,7 +170,6 @@ export const NeverLikeThatModeShuffle = ({
     setActiveIndex((i) => (i + 1) % n);
   };
 
-  // Visible cards: front, middle, back
   const visible: { mode: ModeDef; position: Position }[] = [
     { mode: MODES[activeIndex], position: "front" },
     { mode: MODES[(activeIndex + 1) % n], position: "middle" },
@@ -179,14 +178,14 @@ export const NeverLikeThatModeShuffle = ({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="text-center mb-3">
+      <div className="text-center mb-2">
         <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-sky-300/70">Mode de jeu</p>
         <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">Choisis ton terrain</h3>
       </div>
 
-      {/* Shuffle stage */}
-      <div className="relative flex items-center justify-center" style={{ height: 360, width: 360 }}>
-        <div className="relative h-[340px] w-[280px] -translate-x-[14%]">
+      {/* Shuffle stage — fan is offset left to stay centered (like the demo) */}
+      <div className="flex w-full items-center justify-center" style={{ minHeight: 440 }}>
+        <div className="relative h-[400px] w-[300px] -ml-[80px] md:-ml-[150px]">
           {visible.map(({ mode, position }) => (
             <ModeCard
               key={mode.id}
@@ -203,7 +202,7 @@ export const NeverLikeThatModeShuffle = ({
       </div>
 
       {/* Hint + dots */}
-      <p className="text-xs text-white/45 mb-3">
+      <p className="text-xs text-white/45 mb-3 mt-2 text-center">
         {disabled ? "L'hôte choisit le mode" : "Glisse la carte vers la gauche pour changer · clique pour choisir"}
       </p>
       <div className="flex items-center justify-center gap-1.5">
