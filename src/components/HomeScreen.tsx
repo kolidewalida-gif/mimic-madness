@@ -19,6 +19,7 @@ import {
 } from "@/components/premium";
 import { Play, Users, Settings, User, Zap, ArrowRight, ChevronLeft, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 
 interface HomeScreenProps {
   onCreateGame: (playerName: string) => void;
@@ -29,6 +30,8 @@ type ViewMode = "home" | "join";
 
 const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
   const { profile } = useAuth();
+  const { theme } = useTheme();
+  const isNLT = theme === 'neverlikethat';
   const [playerName, setPlayerName] = useState("");
   const [lobbyCode, setLobbyCode] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("home");
@@ -82,18 +85,22 @@ const HomeScreenComponent = ({ onCreateGame, onJoinGame }: HomeScreenProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 pb-28 relative overflow-y-auto overflow-x-hidden">
-      {/* Cyber Grid Background */}
-      <CyberGrid color="primary" opacity={0.03} animated />
-      
-      {/* Floating Particles */}
-      <FloatingParticles count={60} color="mixed" speed="slow" size="medium" glow />
-      
-      {/* Enhanced Glowing Orbs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <GlowingOrb size="xl" color="primary" className="absolute top-[-10%] right-[-5%]" />
-        <GlowingOrb size="lg" color="accent" className="absolute bottom-[-10%] left-[-5%]" />
-        <GlowingOrb size="md" color="accent" className="absolute top-[30%] left-[20%]" intensity="low" />
-      </div>
+      {/* Cyber Grid Background — hidden for the Never Like That 3D theme */}
+      {!isNLT && (
+        <>
+          <CyberGrid color="primary" opacity={0.03} animated />
+
+          {/* Floating Particles */}
+          <FloatingParticles count={60} color="mixed" speed="slow" size="medium" glow />
+
+          {/* Enhanced Glowing Orbs */}
+          <div className="fixed inset-0 pointer-events-none overflow-hidden">
+            <GlowingOrb size="xl" color="primary" className="absolute top-[-10%] right-[-5%]" />
+            <GlowingOrb size="lg" color="accent" className="absolute bottom-[-10%] left-[-5%]" />
+            <GlowingOrb size="md" color="accent" className="absolute top-[30%] left-[20%]" intensity="low" />
+          </div>
+        </>
+      )}
 
       {/* Main Layout */}
       <div className="relative z-10 flex items-start justify-center gap-6 w-full max-w-6xl my-auto py-8">

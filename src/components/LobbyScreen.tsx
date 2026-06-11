@@ -25,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getModeEmojiLabel, getModeLabel, getStartStatus, type LobbyGameMode } from "@/lib/gameModes";
+import { useTheme } from "@/hooks/useTheme";
+import { NeverLikeThatModeCarousel } from "@/components/neverlikethat/NeverLikeThatModeCarousel";
 
 interface Player {
   id: string;
@@ -58,6 +60,8 @@ export const LobbyScreen = ({
   onTransferHost
 }: LobbyScreenProps) => {
   const { isInkMode, inkClasses, inkFont } = useInkMode();
+  const { theme } = useTheme();
+  const isNLT = theme === 'neverlikethat';
   const { isAdmin } = useAdmin();
   const [showSettings, setShowSettings] = useState(false);
   const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
@@ -163,7 +167,8 @@ export const LobbyScreen = ({
       "h-screen flex flex-col p-4 sm:p-6 pb-28 relative overflow-hidden",
       isInkMode ? "bg-background" : ""
     )}>
-      {/* Premium Background Effects - Hidden in Ink Mode */}
+      {/* Premium Background Effects - Hidden in Ink Mode and Never Like That (3D scene shows through) */}
+      {!isNLT && (
       <InkHideable>
         <CyberGrid color="primary" opacity={0.04} animated />
         <FloatingParticles count={50} color="mixed" speed="slow" size="small" glow />
@@ -173,6 +178,7 @@ export const LobbyScreen = ({
           <GlowingOrb size="md" color="accent" className="absolute top-[40%] left-[30%]" intensity="low" />
         </div>
       </InkHideable>
+      )}
       
       {/* Ink Mode Decorations - subtle red glow */}
       {isInkMode && (
@@ -356,7 +362,14 @@ export const LobbyScreen = ({
           {/* Right Column - Game Mode & Teams / Settings */}
           <div className="space-y-4">
             {isHost && (
-              isInkMode ? (
+              isNLT ? (
+                <NeverLikeThatModeCarousel
+                  gameMode={gameMode}
+                  onGameModeChange={handleGameModeChange}
+                  playerCount={players.filter(p => !p.isDisconnected).length}
+                  isAdmin={isAdmin}
+                />
+              ) : isInkMode ? (
                 <InkCard className="p-0 overflow-hidden">
                   <GameModeSelector
                     gameMode={gameMode}
