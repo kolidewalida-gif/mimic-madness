@@ -39,6 +39,7 @@ const MonopolyGameScreen = React.lazy(() => import("@/components/monopoly/Monopo
 const UndercoverGameScreen = React.lazy(() => import("@/components/undercover/UndercoverGameScreen").then(m => ({ default: m.UndercoverGameScreen })));
 const NeverLikeThatBackground = React.lazy(() => import("@/components/NeverLikeThatBackground").then(m => ({ default: m.NeverLikeThatBackground })));
 const NeverLikeThatLobbyScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatLobbyScreen").then(m => ({ default: m.NeverLikeThatLobbyScreen })));
+const NeverLikeThatHomeScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatHomeScreen").then(m => ({ default: m.NeverLikeThatHomeScreen })));
 
 interface Player {
   id: string;
@@ -690,7 +691,12 @@ const Index = () => {
     return (
       <React.Suspense fallback={<LoadingFallback />}>
         {gameState === "home" && (
-          useNeonHub ? (
+          theme === 'neverlikethat' ? (
+            <NeverLikeThatHomeScreen
+              onCreateGame={handleCreateGame}
+              onJoinGame={handleJoinGame}
+            />
+          ) : useNeonHub ? (
             <NeonHomeScreen
               onCreateGame={handleCreateGame}
               onJoinGame={handleJoinGame}
