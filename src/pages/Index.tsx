@@ -38,6 +38,7 @@ const PixoguessGameScreen = React.lazy(() => import("@/components/PixoguessGameS
 const MonopolyGameScreen = React.lazy(() => import("@/components/monopoly/MonopolyGameScreen").then(m => ({ default: m.MonopolyGameScreen })));
 const UndercoverGameScreen = React.lazy(() => import("@/components/undercover/UndercoverGameScreen").then(m => ({ default: m.UndercoverGameScreen })));
 const NeverLikeThatBackground = React.lazy(() => import("@/components/NeverLikeThatBackground").then(m => ({ default: m.NeverLikeThatBackground })));
+const NeverLikeThatLobbyScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatLobbyScreen").then(m => ({ default: m.NeverLikeThatLobbyScreen })));
 
 interface Player {
   id: string;
@@ -708,7 +709,19 @@ const Index = () => {
         )}
 
         {gameState === "lobby" && currentPlayer && lobby && (
-          (useInkMode || useNeonHub) ? (
+          theme === 'neverlikethat' ? (
+            <NeverLikeThatLobbyScreen
+              players={players}
+              lobbyCode={lobby.code}
+              lobbyId={lobby.id}
+              isHost={currentPlayer.isHost}
+              currentPlayer={currentPlayer}
+              onStartGame={handleStartGame}
+              onLeaveGame={handleLeaveGame}
+              onKickPlayer={handleKickPlayer}
+              onTransferHost={handleTransferHost}
+            />
+          ) : (useInkMode || useNeonHub) ? (
             <InkLobbyScreen
               players={players}
               lobbyCode={lobby.code}
@@ -804,7 +817,7 @@ const Index = () => {
 
       </React.Suspense>
     );
-  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, theme, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   // Enforce login before Ink intro animation
   if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {

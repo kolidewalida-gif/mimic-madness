@@ -24,6 +24,8 @@ interface NeverLikeThatModeCarouselProps {
   playerCount: number;
   isAdmin?: boolean;
   disabled?: boolean;
+  /** Bigger, centerpiece layout for the dedicated lobby */
+  large?: boolean;
 }
 
 interface ModeDef {
@@ -48,6 +50,7 @@ export const NeverLikeThatModeCarousel = ({
   playerCount,
   isAdmin = false,
   disabled = false,
+  large = false,
 }: NeverLikeThatModeCarouselProps) => {
   const modes = useMemo<ModeDef[]>(
     () => [
@@ -92,7 +95,7 @@ export const NeverLikeThatModeCarousel = ({
 
   return (
     <div
-      className="relative rounded-3xl p-5 overflow-hidden"
+      className={cn("relative rounded-3xl overflow-hidden", large ? "p-6 sm:p-8" : "p-5")}
       style={{
         background: "linear-gradient(160deg, hsl(240 22% 9% / 0.85), hsl(240 28% 5% / 0.9))",
         border: "1px solid hsl(217 91% 60% / 0.25)",
@@ -102,31 +105,36 @@ export const NeverLikeThatModeCarousel = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-sky-300/70">
+          <p className={cn("font-bold uppercase tracking-[0.25em] text-sky-300/70", large ? "text-xs" : "text-[11px]")}>
             Mode de jeu
           </p>
-          <h3 className="text-xl font-black text-white leading-tight">Choisis ton terrain</h3>
+          <h3 className={cn("font-black text-white leading-tight", large ? "text-2xl sm:text-4xl" : "text-xl")}>
+            Choisis ton terrain
+          </h3>
         </div>
-        <span className="text-xs font-semibold text-white/50">
+        <span className={cn("font-semibold text-white/50", large ? "text-sm" : "text-xs")}>
           {activeIndex + 1} / {modes.length}
         </span>
       </div>
 
       {/* Carousel stage */}
-      <div className="relative flex items-center justify-center gap-2 sm:gap-4 py-6 min-h-[210px]">
+      <div className={cn("relative flex items-center justify-center gap-2 sm:gap-5 py-6", large ? "min-h-[320px]" : "min-h-[210px]")}>
         {/* Prev arrow */}
         <button
           type="button"
           onClick={() => go(-1)}
           disabled={disabled}
-          className="z-30 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/15 text-white/80 hover:bg-sky-500/20 hover:border-sky-400/40 hover:text-white transition-all disabled:opacity-30"
+          className={cn(
+            "z-30 flex-shrink-0 rounded-full flex items-center justify-center bg-white/5 border border-white/15 text-white/80 hover:bg-sky-500/20 hover:border-sky-400/40 hover:text-white transition-all disabled:opacity-30",
+            large ? "w-12 h-12" : "w-10 h-10",
+          )}
           aria-label="Mode précédent"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className={large ? "w-6 h-6" : "w-5 h-5"} />
         </button>
 
         {/* Card deck */}
-        <div className="relative flex-1 flex items-center justify-center h-[180px]">
+        <div className={cn("relative flex-1 flex items-center justify-center", large ? "h-[280px]" : "h-[180px]")}>
           {/* Back peek cards */}
           <DisplayCard
             title={prev.name}
@@ -160,10 +168,11 @@ export const NeverLikeThatModeCarousel = ({
                 title={active.name}
                 description={active.subtitle}
                 date={playable ? (isSelected ? "✓ Mode actif" : "Clique pour choisir") : `Min. ${active.minPlayers} joueurs`}
-                icon={<Icon className={cn("size-4", active.accent)} />}
+                icon={<Icon className={cn(large ? "size-6" : "size-4", active.accent)} />}
                 titleClassName="text-white"
                 className={cn(
-                  "!skew-y-0 !w-[20rem] !h-[170px] !bg-[hsl(240_22%_11%/0.9)] !backdrop-blur-md transition-all",
+                  "!skew-y-0 !bg-[hsl(240_22%_11%/0.9)] !backdrop-blur-md transition-all",
+                  large ? "!w-[26rem] !h-[240px] !px-6 !py-5 [&_p]:text-xl [&>div_p]:text-3xl" : "!w-[20rem] !h-[170px]",
                   isSelected
                     ? "border-sky-400/70"
                     : "border-white/10 hover:border-sky-400/40",
@@ -200,23 +209,27 @@ export const NeverLikeThatModeCarousel = ({
           type="button"
           onClick={() => go(1)}
           disabled={disabled}
-          className="z-30 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/15 text-white/80 hover:bg-sky-500/20 hover:border-sky-400/40 hover:text-white transition-all disabled:opacity-30"
+          className={cn(
+            "z-30 flex-shrink-0 rounded-full flex items-center justify-center bg-white/5 border border-white/15 text-white/80 hover:bg-sky-500/20 hover:border-sky-400/40 hover:text-white transition-all disabled:opacity-30",
+            large ? "w-12 h-12" : "w-10 h-10",
+          )}
           aria-label="Mode suivant"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className={large ? "w-6 h-6" : "w-5 h-5"} />
         </button>
       </div>
 
       {/* Description + select action */}
       <div className="mt-2 flex items-center justify-between gap-4">
-        <p className="text-sm text-white/60 flex-1">{active.description}</p>
+        <p className={cn("text-white/60 flex-1", large ? "text-lg" : "text-sm")}>{active.description}</p>
         {!disabled && (
           <button
             type="button"
             onClick={handleSelect}
             disabled={!playable}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all flex-shrink-0",
+              "flex items-center gap-2 rounded-xl font-bold transition-all flex-shrink-0",
+              large ? "px-6 py-3 text-base" : "px-4 py-2 text-sm",
               isSelected
                 ? "bg-sky-400/20 text-sky-200 border border-sky-400/40 cursor-default"
                 : playable
@@ -226,11 +239,11 @@ export const NeverLikeThatModeCarousel = ({
           >
             {isSelected ? (
               <>
-                <Check className="w-4 h-4" /> Sélectionné
+                <Check className={large ? "w-5 h-5" : "w-4 h-4"} /> Sélectionné
               </>
             ) : (
               <>
-                <Play className="w-4 h-4" /> Choisir
+                <Play className={large ? "w-5 h-5" : "w-4 h-4"} /> Choisir
               </>
             )}
           </button>
