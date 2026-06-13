@@ -427,30 +427,270 @@ const DriftingInk: React.FC = () => {
 //   140–240: SCENE 3 — logo reveal + breathing hold
 // ---------------------------------------------------------------------
 export const MainVideo: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // ---------- SCENE 1 (0–60): brush stroke sweep ----------
+  const brush = interpolate(frame, [4, 46], [0, 1], {
+    easing: Easing.bezier(0.7, 0, 0.3, 1),
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const brushOpacity = interpolate(frame, [0, 6, 56, 70], [0, 1, 1, 0]);
+  const brushLen = 1700;
+
+  // brush drips
+  const drips = React.useMemo(
+    () =>
+      new Array(7).fill(0).map((_, i) => ({
+        x: 180 + i * 230 + random(`dx${i}`) * 60,
+        d: 8 + i * 4,
+        h: 60 + random(`dh${i}`) * 80,
+        r: 6 + random(`dr${i}`) * 6,
+      })),
+    []
+  );
+
+  // ---------- SCENE 2 (44–110): paint splash impact ----------
+  const splashSp = spring({
+    frame: frame - 50,
+    fps,
+    config: { damping: 11, stiffness: 130, mass: 0.7 },
+  });
+  const splashScale = interpolate(splashSp, [0, 1], [0, 1]);
+  const splashRot = interpolate(frame, [50, 210], [0, 14]);
+
+  // Shockwave ring at impact
+  const ringT = (frame - 50) / 36;
+  const ringR = interpolate(ringT, [0, 1], [40, 1100], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const ringOp = interpolate(ringT, [0, 0.08, 1], [0, 0.9, 0]);
+
+  // INK word in white-on-red splash
+  const inkSp = spring({
+    frame: frame - 62,
+    fps,
+    config: { damping: 12, stiffness: 160 },
+  });
+  const inkScale = interpolate(inkSp, [0, 1], [1.4, 1]);
+  const inkOp = interpolate(frame, [62, 70, 118, 128], [0, 1, 1, 0]);
+  const inkShake = Math.sin(frame * 0.9) * interpolate(frame, [62, 78, 110], [6, 1.2, 0]);
+
+  // ---------- SCENE 3 (120–210): logo reveal ----------
+  const wipe = interpolate(frame, [126, 158], [0, 100], {
+    easing: Easing.out(Easing.cubic),
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const titleBreathe = 1 + Math.sin((frame - 120) / 24) * 0.01;
+  const titleY = interpolate(frame, [120, 158], [40, 0], {
+    easing: Easing.out(Easing.cubic),
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const underline = interpolate(frame, [156, 184], [0, 1], {
+    easing: Easing.out(Easing.cubic),
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const plateSp = spring({
+    frame: frame - 170,
+    fps,
+    config: { damping: 10, stiffness: 140 },
+  });
+  const plateScale = interpolate(plateSp, [0, 1], [0, 1]);
+  const plateRot = interpolate(frame - 170, [0, 12, 28, 50], [-8, 4, -1.5, -1.5], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  // Persistent splash visible during scene 3 (smaller, behind text)
+  const splashFade = interpolate(frame, [110, 130, 210], [1, 0.55, 0.55], {
+    extrapolateRight: "clamp",
+  });
+
   return (
     <AbsoluteFill style={{ background: BLACK }}>
       <Backdrop />
       <DriftingInk />
 
-      {/* SCENE 1 */}
-      <Sequence from={0} durationInFrames={70}>
-        <DropAndStrike />
-      </Sequence>
+      {/* SCENE 1 — brush stroke sweep */}
+      {frame < 70 && (
+        <AbsoluteFill style={{ opacity: brushOpacity }}>
+          <svg width={1920} height={1080} style={{ position: "absolute", inset: 0 }}>
+            <defs>
+              <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" />
+                <feDisplacementMap in="SourceGraphic" scale="6" />
+              </filter>
+            </defs>
+            <path
+              d="M 110 560 C 500 460, 900 660, 1810 520"
+              stroke={RED}
+              strokeWidth={92}
+              strokeLinecap="round"
+              fill="none"
+              strokeDasharray={brushLen}
+              strokeDashoffset={brushLen * (1 - brush)}
+              filter="url(#rough)"
+            />
+            {/* drips */}
+            {drips.map((d, i) => {
+              const t = interpolate(frame, [d.d, d.d + 30], [0, 1], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              });
+              return (
+                <g key={i}>
+                  <rect
+                    x={d.x - 3}
+                    y={560}
+                    width={6}
+                    height={d.h * t}
+                    fill={RED}
+                  />
+                  <circle cx={d.x} cy={560 + d.h * t} r={d.r * t} fill={RED} />
+                </g>
+              );
+            })}
+          </svg>
+        </AbsoluteFill>
+      )}
 
-      <Flash at={55} dur={10} />
+      {/* SCENE 2 — shockwave + central splash */}
+      {frame >= 48 && frame < 130 && ringT > 0 && ringT < 1 && (
+        <svg width={1920} height={1080} style={{ position: "absolute", inset: 0 }}>
+          <circle
+            cx={960}
+            cy={540}
+            r={ringR}
+            fill="none"
+            stroke={RED}
+            strokeWidth={interpolate(ringT, [0, 1], [12, 1])}
+            opacity={ringOp}
+          />
+        </svg>
+      )}
 
-      {/* SCENE 2 */}
-      <Sequence from={60} durationInFrames={80}>
-        <KineticInk from={0} />
-        <SideSplats from={6} />
-      </Sequence>
+      {frame >= 48 && (
+        <svg
+          width={1400}
+          height={1400}
+          viewBox="-700 -700 1400 1400"
+          style={{
+            position: "absolute",
+            left: 960 - 700,
+            top: 540 - 700,
+            transform: `scale(${splashScale * (frame >= 120 ? 0.85 : 1)}) rotate(${splashRot}deg)`,
+            transformOrigin: "center",
+            opacity: splashFade,
+          }}
+        >
+          <g fill={RED}>
+            <path d="M-220,-80 C-320,-260 -100,-360 80,-300 C260,-380 440,-220 380,-50 C500,40 460,260 290,310 C180,460 -100,440 -220,300 C-400,280 -480,80 -340,-20 C-380,-100 -320,-150 -220,-80 Z" />
+            <circle cx={-440} cy={-260} r={32} />
+            <circle cx={480} cy={-300} r={26} />
+            <circle cx={-520} cy={140} r={22} />
+            <circle cx={540} cy={170} r={30} />
+            <circle cx={-360} cy={400} r={24} />
+            <circle cx={340} cy={440} r={18} />
+            <circle cx={-580} cy={-50} r={12} />
+            <circle cx={600} cy={30} r={14} />
+            <circle cx={140} cy={-450} r={16} />
+            <circle cx={-140} cy={490} r={13} />
+            <circle cx={-620} cy={260} r={9} />
+            <circle cx={620} cy={-180} r={10} />
+          </g>
+        </svg>
+      )}
 
-      <Flash at={135} dur={10} intensity={0.85} />
+      {/* SCENE 2 — INK word on splash */}
+      {frame >= 60 && frame < 130 && (
+        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
+          <div
+            style={{
+              fontFamily: bangers,
+              fontSize: 480,
+              color: BONE,
+              letterSpacing: "0.04em",
+              lineHeight: 0.9,
+              opacity: inkOp,
+              transform: `scale(${inkScale}) translate(${inkShake}px, ${inkShake * 0.4}px)`,
+              WebkitTextStroke: `5px ${BLACK}`,
+              textShadow: `0 10px 0 ${BLACK}, 0 0 60px rgba(0,0,0,0.6)`,
+            }}
+          >
+            INK
+          </div>
+        </AbsoluteFill>
+      )}
 
-      {/* SCENE 3 */}
-      <Sequence from={140}>
-        <LogoReveal from={0} />
-      </Sequence>
+      {/* SCENE 3 — logo reveal */}
+      {frame >= 120 && (
+        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
+          <div
+            style={{
+              transform: `translateY(${titleY}px) scale(${titleBreathe})`,
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: inter,
+                fontWeight: 900,
+                fontSize: 210,
+                color: BONE,
+                letterSpacing: "-0.045em",
+                lineHeight: 0.9,
+                clipPath: `inset(0 0 ${100 - wipe}% 0)`,
+                textShadow: `0 6px 0 ${RED_DEEP}, 0 0 80px rgba(255,31,58,0.25)`,
+              }}
+            >
+              MIMIC<br />MASTER
+            </div>
+
+            <svg width={620} height={20} style={{ display: "block", margin: "22px auto 0" }}>
+              <line
+                x1={10}
+                y1={10}
+                x2={10 + 600 * underline}
+                y2={10}
+                stroke={RED}
+                strokeWidth={7}
+                strokeLinecap="round"
+              />
+            </svg>
+
+            <div
+              style={{
+                marginTop: 30,
+                display: "inline-block",
+                transform: `scale(${plateScale}) rotate(${plateRot}deg)`,
+                fontFamily: inter,
+                fontWeight: 800,
+                fontSize: 34,
+                color: BLACK,
+                letterSpacing: "0.55em",
+                textTransform: "uppercase",
+                padding: "14px 32px 12px 40px",
+                background: RED,
+                borderRadius: 3,
+                boxShadow: `7px 7px 0 ${BONE}`,
+              }}
+            >
+              INK MODE
+            </div>
+          </div>
+        </AbsoluteFill>
+      )}
+
+      {/* Flashes */}
+      <Flash at={48} dur={10} intensity={0.85} />
+      <Flash at={122} dur={9} intensity={0.75} />
     </AbsoluteFill>
   );
 };
