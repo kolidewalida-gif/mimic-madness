@@ -25,7 +25,7 @@ import { useOnlinePresence } from '@/hooks/useOnlinePresence';
 import { useGameInvitations } from '@/hooks/useGameInvitations';
 import { useUnreadCounts } from '@/hooks/useDirectMessages';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { InkSocialFeed } from '@/components/InkSocialFeed';
+import { SocialExperience } from '@/components/SocialExperience';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DirectMessageDialog } from '@/components/DirectMessageDialog';
@@ -1093,7 +1093,7 @@ const SocialHubPanelComponent = ({
                         Social
                       </h2>
                       <p style={{ fontFamily: "'Caveat', cursive", fontSize: 13, color: 'rgba(251,182,206,0.8)', margin: '2px 0 0', fontWeight: 700 }}>
-                        Les meilleures imitations de la communauté
+                        Profil · Pour toi · Tendances
                       </p>
                     </div>
                   </div>
@@ -1116,7 +1116,7 @@ const SocialHubPanelComponent = ({
 
                 {/* Feed */}
                 <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                  <InkSocialFeed inlineMode />
+                  <SocialExperience />
                 </div>
               </motion.div>
             </div>
