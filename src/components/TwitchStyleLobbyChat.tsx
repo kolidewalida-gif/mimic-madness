@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { useLobbyChat, type ChatMessage } from '@/hooks/useLobbyChat';
 import { useChatColor } from '@/hooks/useChatColor';
 import { useQuestTracker } from '@/hooks/useQuestTracker';
-import { Send, Smile, Sparkles, Search, X, Image as ImageIcon } from 'lucide-react';
+import { Send, Search, X, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -15,101 +16,49 @@ interface TwitchStyleLobbyChatProps {
   className?: string;
 }
 
-const SHADOW_SM = '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810';
-const FONT = "'Caveat', cursive";
-
-/* ============================================================
-   Pseudo colors — Twitch-style stable hash → vivid cartoon palette
-============================================================ */
+/* Stable vivid pseudo colors */
 const PSEUDO_COLORS = [
-  '#a855f7', '#06b6d4', '#fbbf24', '#34d399', '#ef4444',
-  '#f472b6', '#60a5fa', '#fb923c', '#c084fc', '#22d3ee',
-  '#a3e635', '#f87171', '#e879f9', '#fde047', '#67e8f9',
+  '#c084fc', '#22d3ee', '#fbbf24', '#34d399', '#fb7185',
+  '#f472b6', '#60a5fa', '#fb923c', '#a855f7', '#67e8f9',
+  '#a3e635', '#f87171', '#e879f9', '#fde047', '#38bdf8',
 ];
-
 const colorFor = (key: string): string => {
   let h = 0;
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0;
   return PSEUDO_COLORS[Math.abs(h) % PSEUDO_COLORS.length];
 };
-
 const formatTime = (date: string | Date): string => {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 };
 
 /* ============================================================
-   Single chat line — graffiti style
+   Chat line — clean, readable
 ============================================================ */
 const ChatLine = memo(({ msg, isOwn, ownColor }: { msg: ChatMessage; isOwn: boolean; ownColor?: string }) => {
   const hashColor = colorFor(msg.playerId || msg.playerName);
-  // For own messages, apply the picked color (override). Rainbow uses a
-  // gradient text instead of a flat hex.
-  const isRainbow = isOwn && ownColor === 'rainbow';
-  const color = isOwn && ownColor && ownColor !== '' && ownColor !== 'rainbow'
-    ? ownColor
-    : hashColor;
+  const color = isOwn && ownColor && ownColor !== '' && ownColor !== 'rainbow' ? ownColor : hashColor;
   const isMedia = msg.messageType === 'gif' || msg.messageType === 'image';
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -10, rotate: isOwn ? 1 : -1 }}
-      animate={{ opacity: 1, x: 0, rotate: 0 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-      className={cn(
-        'group px-2 py-1.5 rounded-lg break-words transition-colors',
-        'hover:bg-white/[0.04]',
-        isOwn && 'bg-white/[0.02]',
-      )}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+      className="px-2.5 py-1 rounded-lg hover:bg-white/[0.03] transition-colors"
     >
-      <div className="flex items-baseline gap-1.5 flex-wrap">
-        <span
-          className="text-[10px] text-white/30 font-mono flex-shrink-0"
-        >
-          {formatTime(msg.createdAt)}
-        </span>
-        <span
-          className="font-black text-base flex-shrink-0"
-          style={{
-            color,
-            fontFamily: FONT,
-            textShadow: SHADOW_SM,
-          }}
-        >
-          {msg.playerName}
-        </span>
-        <span className="text-white/40 text-sm">:</span>
-        {!isMedia && (
-          <span
-            className="text-base text-white/95 font-bold break-words"
-            style={{ fontFamily: FONT }}
-          >
-            {msg.content}
-          </span>
-        )}
-        {msg.messageType === 'voice' && (
-          <span className="italic text-white/60 text-sm" style={{ fontFamily: FONT }}>
-            🎤 message vocal
-          </span>
-        )}
-      </div>
+      <span className="text-[10px] text-white/25 mr-1.5 tabular-nums align-middle">{formatTime(msg.createdAt)}</span>
+      <span className="font-bold text-sm align-middle" style={{ color }}>{msg.playerName}</span>
+      {!isMedia && msg.messageType !== 'voice' && (
+        <span className="text-sm text-white/90 align-middle"> {msg.content}</span>
+      )}
+      {msg.messageType === 'voice' && (
+        <span className="italic text-white/50 text-xs align-middle"> 🎤 message vocal</span>
+      )}
       {isMedia && (
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1, type: 'spring', damping: 15 }}
-          className="mt-1.5 ml-3 inline-block"
-        >
-          <img
-            src={msg.content}
-            alt="gif"
-            className="rounded-xl max-h-32 max-w-[220px]"
-            style={{
-              border: '2.5px solid #0a0810',
-              boxShadow: '0 3px 0 #0a0810',
-            }}
-          />
-        </motion.div>
+        <div className="mt-1">
+          <img src={msg.content} alt="gif" className="rounded-xl max-h-32 max-w-[200px] border border-white/10" />
+        </div>
       )}
     </motion.div>
   );
@@ -117,9 +66,9 @@ const ChatLine = memo(({ msg, isOwn, ownColor }: { msg: ChatMessage; isOwn: bool
 ChatLine.displayName = 'ChatLine';
 
 /* ============================================================
-   GIF Picker — cartoon graffiti modal
+   GIF Picker — portaled centered modal (never clipped)
 ============================================================ */
-const GifPicker = memo(function GifPicker({
+const GifPickerModal = memo(function GifPickerModal({
   onSelect,
   onClose,
 }: {
@@ -135,150 +84,109 @@ const GifPicker = memo(function GifPicker({
     return CHAT_GIFS.filter((g) => g.category === activeCategory);
   }, [activeCategory, search]);
 
-  const categories = useMemo(() => Object.entries(CATEGORY_LABELS) as [GifCategory, typeof CATEGORY_LABELS[GifCategory]][], []);
+  const categories = useMemo(
+    () => Object.entries(CATEGORY_LABELS) as [GifCategory, typeof CATEGORY_LABELS[GifCategory]][],
+    [],
+  );
 
-  return (
+  return createPortal(
     <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-      transition={{ type: 'spring', damping: 22, stiffness: 320 }}
-      className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl overflow-hidden flex flex-col"
-      style={{
-        background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
-        border: '3px solid #0a0810',
-        boxShadow: '0 6px 0 #0a0810, 0 12px 30px rgba(0,0,0,0.6)',
-        height: '320px',
-      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 flex-shrink-0" style={{ borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
-            GIFs
-          </span>
-          <span className="text-xs text-white/40 font-mono">({CHAT_GIFS.length})</span>
-        </div>
-        <div className="flex-1 relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher…"
-            className="w-full pl-7 pr-2 py-1.5 rounded-lg text-sm font-bold text-white placeholder:text-white/30 outline-none"
-            style={{
-              background: 'rgba(0,0,0,0.4)',
-              border: '2px solid rgba(255,255,255,0.1)',
-              fontFamily: FONT,
-            }}
-          />
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.1, rotate: 90 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={onClose}
-          className="w-7 h-7 rounded-lg flex items-center justify-center"
-          style={{
-            background: 'rgba(239,68,68,0.2)',
-            border: '2px solid #0a0810',
-            boxShadow: '0 2px 0 #0a0810',
-          }}
-        >
-          <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-        </motion.button>
-      </div>
-
-      {/* Categories */}
-      {!search.trim() && (
-        <div className="flex gap-1.5 px-2 py-2 overflow-x-auto custom-scrollbar flex-shrink-0">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 16 }}
+        transition={{ type: 'spring', damping: 24, stiffness: 300 }}
+        className="w-full max-w-md flex flex-col rounded-2xl overflow-hidden"
+        style={{ height: 'min(70vh, 540px)', background: 'linear-gradient(180deg,#1a0d2e,#0d0618)', border: '1px solid rgba(168,85,247,0.3)' }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 flex-shrink-0">
+          <span className="text-base font-bold text-white">GIFs</span>
+          <span className="text-xs text-white/40">{CHAT_GIFS.length}</span>
+          <div className="flex-1 relative ml-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <input
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher un GIF…"
+              className="w-full h-9 pl-8 pr-2 rounded-lg text-sm text-white placeholder:text-white/30 outline-none bg-black/40 border border-white/10 focus:border-purple-400/50"
+            />
+          </div>
           <button
-            onClick={() => setActiveCategory('all')}
-            className={cn(
-              'flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-black transition-all',
-              activeCategory === 'all' ? 'scale-105' : 'opacity-60 hover:opacity-100',
-            )}
-            style={{
-              background: activeCategory === 'all' ? 'linear-gradient(180deg, #a855f7, #7c3aed)' : 'rgba(255,255,255,0.06)',
-              border: '2px solid #0a0810',
-              boxShadow: activeCategory === 'all' ? '0 2px 0 #0a0810' : 'none',
-              color: 'white',
-              fontFamily: FONT,
-              textShadow: activeCategory === 'all' ? SHADOW_SM : 'none',
-            }}
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-rose-500/20"
           >
-            ✨ Tout
+            <X className="w-4 h-4" />
           </button>
-          {categories.map(([key, info]) => (
-            <button
-              key={key}
-              onClick={() => setActiveCategory(key)}
-              className={cn(
-                'flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap',
-                activeCategory === key ? 'scale-105' : 'opacity-60 hover:opacity-100',
-              )}
-              style={{
-                background: activeCategory === key
-                  ? `linear-gradient(180deg, ${info.color}, ${info.color}cc)`
-                  : 'rgba(255,255,255,0.06)',
-                border: '2px solid #0a0810',
-                boxShadow: activeCategory === key ? '0 2px 0 #0a0810' : 'none',
-                color: 'white',
-                fontFamily: FONT,
-                textShadow: activeCategory === key ? SHADOW_SM : 'none',
-              }}
-            >
-              {info.emoji} {info.label}
-            </button>
-          ))}
         </div>
-      )}
 
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
-        <div className="grid grid-cols-3 gap-2">
-          {visibleGifs.map((gif, i) => (
-            <motion.button
-              key={`${gif.url}-${i}`}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: Math.min(i * 0.01, 0.2) }}
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                playInkSound('cartoonPop', 0.3);
-                onSelect(gif.url);
-              }}
-              className="relative aspect-square rounded-lg overflow-hidden"
-              style={{
-                border: '2px solid #0a0810',
-                boxShadow: '0 2px 0 #0a0810',
-              }}
-            >
-              <img
-                src={gif.url}
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
+        {/* Categories */}
+        {!search.trim() && (
+          <div className="flex gap-1.5 px-3 py-2.5 overflow-x-auto custom-scrollbar flex-shrink-0 border-b border-white/5">
+            <CatChip active={activeCategory === 'all'} onClick={() => setActiveCategory('all')} label="✨ Tout" color="#a855f7" />
+            {categories.map(([key, info]) => (
+              <CatChip
+                key={key}
+                active={activeCategory === key}
+                onClick={() => setActiveCategory(key)}
+                label={`${info.emoji} ${info.label}`}
+                color={info.color}
               />
-            </motion.button>
-          ))}
-          {visibleGifs.length === 0 && (
-            <div className="col-span-3 py-8 text-center">
-              <span className="text-5xl">🤷</span>
-              <p className="text-sm text-white/50 mt-2 font-bold" style={{ fontFamily: FONT }}>
-                Aucun GIF trouvé
-              </p>
-            </div>
-          )}
+            ))}
+          </div>
+        )}
+
+        {/* Grid */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {visibleGifs.map((gif, i) => (
+              <motion.button
+                key={`${gif.url}-${i}`}
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: Math.min(i * 0.008, 0.15) }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => { playInkSound('cartoonPop', 0.3); onSelect(gif.url); }}
+                className="relative aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-purple-400/50"
+              >
+                <img src={gif.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+              </motion.button>
+            ))}
+            {visibleGifs.length === 0 && (
+              <div className="col-span-full py-12 text-center">
+                <span className="text-5xl">🤷</span>
+                <p className="text-sm text-white/50 mt-2">Aucun GIF trouvé</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </motion.div>,
+    document.body,
   );
 });
 
+const CatChip = ({ active, onClick, label, color }: { active: boolean; onClick: () => void; label: string; color: string }) => (
+  <button
+    onClick={onClick}
+    className={cn('flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border', active ? 'text-white' : 'text-white/55 border-white/10 hover:text-white')}
+    style={{ background: active ? `linear-gradient(180deg,${color},${color}cc)` : 'rgba(255,255,255,0.04)', borderColor: active ? 'transparent' : undefined }}
+  >
+    {label}
+  </button>
+);
+
 /* ============================================================
-   MAIN CHAT
+   MAIN CHAT — clean redesign
 ============================================================ */
 export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
   lobbyId,
@@ -289,14 +197,12 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
   const { messages, isLoading, sendMessage, isSending } = useLobbyChat(lobbyId, playerId, playerName);
   const { colorId: ownColorId, currentHex: ownColorHex } = useChatColor();
   const { track } = useQuestTracker();
-  // Translate "default" / empty -> undefined (let hash color win for own too)
   const ownColor = ownColorId === 'default' ? undefined : (ownColorHex || ownColorId);
   const [input, setInput] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll on new messages
   useEffect(() => {
     if (!autoScroll || !scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -305,8 +211,7 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
-    setAutoScroll(atBottom);
+    setAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 30);
   }, []);
 
   const handleSend = useCallback(() => {
@@ -332,216 +237,104 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
 
   return (
     <div
-      className={cn('relative flex flex-col rounded-2xl overflow-hidden', className)}
-      style={{
-        background: 'linear-gradient(180deg, rgba(20,15,30,0.92), rgba(10,8,16,0.92))',
-        border: '3px solid #0a0810',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 0 #0a0810',
-      }}
+      className={cn('relative flex flex-col rounded-2xl overflow-hidden bg-[#140a22]/85 border border-white/10', className)}
+      style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}
     >
-      {/* Decorative graffiti corner sparkles */}
-      <Sparkles
-        className="absolute top-1.5 right-2 w-3 h-3 text-amber-400 pointer-events-none"
-        style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
-      />
-
       {/* Header */}
-      <div
-        className="flex items-center justify-between px-3 py-2 flex-shrink-0 relative"
-        style={{ borderBottom: '2.5px solid rgba(255,255,255,0.1)' }}
-      >
+      <div className="flex items-center justify-between px-3.5 py-2.5 flex-shrink-0 border-b border-white/10 bg-white/[0.02]">
         <div className="flex items-center gap-2">
           <motion.span
             className="w-2 h-2 rounded-full bg-emerald-400"
-            animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+            animate={{ scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
             transition={{ duration: 1.5, repeat: Infinity }}
             style={{ boxShadow: '0 0 6px #34d39988' }}
           />
-          <span
-            className="text-base font-black uppercase text-white"
-            style={{
-              fontFamily: FONT,
-              textShadow: SHADOW_SM,
-              letterSpacing: '0.05em',
-            }}
-          >
-            💬 CHAT LIVE
-          </span>
+          <span className="text-sm font-bold uppercase tracking-wide text-white/90">Chat en direct</span>
         </div>
-        <span
-          className="text-xs font-black px-1.5 py-0.5 rounded-md text-white"
-          style={{
-            background: 'rgba(168,85,247,0.25)',
-            border: '1.5px solid #0a0810',
-            fontFamily: FONT,
-          }}
-        >
+        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-purple-200 bg-purple-500/20 border border-purple-400/20">
           {messages.length}
         </span>
       </div>
 
       {/* Messages */}
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto custom-scrollbar py-1.5 px-1 min-h-0"
-      >
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto custom-scrollbar py-2 px-1 min-h-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              className="w-6 h-6 rounded-full"
-              style={{
-                border: '3px solid #a855f7',
-                borderTopColor: 'transparent',
-              }}
-            />
+            <div className="w-6 h-6 rounded-full border-[3px] border-purple-500 border-t-transparent animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-10 px-4 text-center"
-          >
-            <motion.div
-              animate={{ y: [0, -4, 0], rotate: [-3, 3, -3] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              className="text-5xl mb-3"
-            >
-              💬
-            </motion.div>
-            <p
-              className="text-base font-black text-white/70 mb-1"
-              style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
-            >
-              Aucun message !
-            </p>
-            <p
-              className="text-sm text-white/40 italic font-bold"
-              style={{ fontFamily: FONT }}
-            >
-              Sois le premier à écrire ✨
-            </p>
-          </motion.div>
+          <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+            <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }} className="text-4xl mb-2 opacity-80">💬</motion.div>
+            <p className="text-sm font-bold text-white/70">Aucun message</p>
+            <p className="text-xs text-white/40 mt-0.5">Sois le premier à écrire ✨</p>
+          </div>
         ) : (
           <div className="flex flex-col gap-0.5">
             <AnimatePresence initial={false}>
               {messages.map((msg) => (
-                <ChatLine
-                  key={msg.id}
-                  msg={msg}
-                  isOwn={msg.playerId === playerId}
-                  ownColor={msg.playerId === playerId ? ownColor : undefined}
-                />
+                <ChatLine key={msg.id} msg={msg} isOwn={msg.playerId === playerId} ownColor={msg.playerId === playerId ? ownColor : undefined} />
               ))}
             </AnimatePresence>
           </div>
         )}
       </div>
 
-      {/* New messages button */}
-      {!autoScroll && (
+      {/* New messages pill */}
+      {!autoScroll && messages.length > 0 && (
         <motion.button
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          onClick={() => {
-            setAutoScroll(true);
-            scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-          }}
-          className="mx-2 mb-1 py-1.5 rounded-lg text-xs font-black text-white"
-          style={{
-            background: 'linear-gradient(180deg, #a855f7, #7c3aed)',
-            border: '2px solid #0a0810',
-            boxShadow: '0 2px 0 #0a0810',
-            fontFamily: FONT,
-            textShadow: SHADOW_SM,
-          }}
-          whileHover={{ scale: 1.02 }}
+          onClick={() => { setAutoScroll(true); scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }}
+          className="mx-2 mb-1 py-1.5 rounded-lg text-xs font-bold text-white bg-purple-600/90 hover:bg-purple-600"
           whileTap={{ scale: 0.98 }}
         >
           ↓ Nouveaux messages
         </motion.button>
       )}
 
-      {/* GIF Picker overlay */}
-      <AnimatePresence>
-        {showGifPicker && <GifPicker onSelect={handleSendGif} onClose={() => setShowGifPicker(false)} />}
-      </AnimatePresence>
-
       {/* Input bar */}
-      <div
-        className="p-2 flex-shrink-0 relative"
-        style={{ borderTop: '2.5px solid rgba(255,255,255,0.1)' }}
-      >
-        <div className="flex gap-1.5 items-center">
-          {/* GIF button */}
-          <motion.button
+      <div className="p-2 flex-shrink-0 border-t border-white/10 bg-white/[0.02]">
+        <div className="flex gap-2 items-center">
+          <button
             type="button"
-            onClick={() => setShowGifPicker((v) => !v)}
-            whileHover={{ scale: 1.1, rotate: -5 }}
-            whileTap={{ scale: 0.9 }}
-            className="flex-shrink-0 px-2 py-2 rounded-xl flex items-center gap-1"
-            style={{
-              background: showGifPicker
-                ? 'linear-gradient(180deg, #fbbf24, #d97706)'
-                : 'rgba(251,191,36,0.2)',
-              border: '2px solid #0a0810',
-              boxShadow: '0 2px 0 #0a0810',
-            }}
-            title="GIFs"
+            onClick={() => { playInkSound('cartoonPop', 0.3); setShowGifPicker(true); }}
+            className={cn(
+              'flex-shrink-0 h-10 px-3 rounded-xl flex items-center gap-1.5 font-bold text-sm transition-all',
+              showGifPicker ? 'bg-amber-500 text-white' : 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25',
+            )}
+            title="Envoyer un GIF"
           >
-            <ImageIcon className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
-            <span
-              className="text-xs font-black text-white leading-none"
-              style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
-            >
-              GIF
-            </span>
-          </motion.button>
+            <ImageIcon className="w-4 h-4" strokeWidth={2.5} />
+            GIF
+          </button>
 
-          {/* Text input */}
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder="Ton message…"
             maxLength={300}
-            className="flex-1 min-w-0 px-3 py-2 rounded-xl text-sm font-bold text-white placeholder:text-white/30 outline-none"
-            style={{
-              background: 'rgba(0,0,0,0.5)',
-              border: '2.5px solid #0a0810',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
-              fontFamily: FONT,
-            }}
+            className="flex-1 min-w-0 h-10 px-3.5 rounded-xl text-sm text-white placeholder:text-white/30 outline-none bg-black/40 border border-white/10 focus:border-purple-400/50 transition-colors"
           />
 
-          {/* Send button */}
-          <motion.button
+          <button
             type="button"
             onClick={handleSend}
             disabled={!input.trim() || isSending}
-            whileHover={input.trim() && !isSending ? { scale: 1.1, rotate: -5 } : undefined}
-            whileTap={input.trim() && !isSending ? { scale: 0.9 } : undefined}
             className={cn(
-              'flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-opacity',
-              (!input.trim() || isSending) && 'opacity-40 cursor-not-allowed',
+              'flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all',
+              input.trim() && !isSending ? 'bg-gradient-to-br from-purple-500 to-violet-700 text-white hover:brightness-110' : 'bg-white/5 text-white/30 cursor-not-allowed',
             )}
-            style={{
-              background: 'linear-gradient(180deg, #a855f7, #7c3aed)',
-              border: '2.5px solid #0a0810',
-              boxShadow: '0 3px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)',
-            }}
           >
-            <Send className="w-4 h-4 text-white" strokeWidth={2.5} />
-          </motion.button>
+            <Send className="w-4 h-4" strokeWidth={2.5} />
+          </button>
         </div>
       </div>
+
+      {/* GIF modal (portaled to body — never clipped by overflow) */}
+      <AnimatePresence>
+        {showGifPicker && <GifPickerModal onSelect={handleSendGif} onClose={() => setShowGifPicker(false)} />}
+      </AnimatePresence>
     </div>
   );
 });
