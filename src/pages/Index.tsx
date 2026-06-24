@@ -185,7 +185,7 @@ const Index = () => {
       if (mode) setGameMode(mode as GameMode);
 
       if (phase === 'playing') {
-        setGameState('playing');
+        setGameState(mode === 'memorise' ? 'memorise' : 'playing');
       } else if (phase === 'preparation') {
         setGameState('preparation');
       } else if (phase === 'quiz') {
@@ -397,7 +397,16 @@ const Index = () => {
               title: "🧠 Memorise !",
               description: "Mémorise l'image puis réponds le plus vite !",
             });
-          } else if (newPhase === 'playing' && gameState !== 'playing') {
+          } else if (newPhase === 'playing' && newMode === 'memorise' && gameState !== 'memorise') {
+            // Memorise piggybacks on the allowed 'playing' phase (avoids a DB
+            // game_phase CHECK constraint migration). Disambiguate via mode.
+            playSoundEffect('quizReveal', 0.5);
+            setGameState('memorise');
+            toast({
+              title: "🧠 Memorise !",
+              description: "Mémorise l'image puis réponds le plus vite !",
+            });
+          } else if (newPhase === 'playing' && gameState !== 'playing' && gameState !== 'memorise') {
             playSoundEffect('start', 0.5);
             // Dopamine launch — fires for every client when the game starts
             juice.confetti({ count: 80 });
@@ -526,7 +535,7 @@ const Index = () => {
           console.log(`[Index] Added ${botsToAdd.length} bots for admin solo play`);
         }
 
-        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : mode === 'undercover' ? 'undercover' : mode === 'memorise' ? 'memorise' : 'preparation';
+        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : mode === 'undercover' ? 'undercover' : mode === 'memorise' ? 'playing' : 'preparation';
         console.log('[Index] Updating lobby to phase:', gamePhase);
         
         const { error } = await supabase
