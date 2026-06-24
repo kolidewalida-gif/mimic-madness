@@ -30,6 +30,12 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [isTopWeek, setIsTopWeek] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [soundId, setSoundId] = useState<string | null>(null);
+  const [volume, setVolume] = useState<number>(() => {
+    const v = parseFloat(localStorage.getItem('feedVolume') || '0.7');
+    return isNaN(v) ? 0.7 : v;
+  });
+  const setVol = (v: number) => { setVolume(v); try { localStorage.setItem('feedVolume', String(v)); } catch { /* ignore */ } };
   const isMe = user?.id === userId;
 
   useEffect(() => {
@@ -179,7 +185,11 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
                         square
                         isOwner={isMe}
                         onLike={localLike}
-                        onOpen={() => setViewerIndex(idx)}
+                        onOpen={() => { setSoundId(null); setViewerIndex(idx); }}
+                        soundActive={soundId === post.id}
+                        volume={volume}
+                        onToggleSound={() => setSoundId((prev) => (prev === post.id ? null : post.id))}
+                        onVolume={setVol}
                       />
                     ))}
                   </AnimatePresence>

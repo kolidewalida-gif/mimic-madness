@@ -46,6 +46,20 @@ const SocialExperienceComponent = () => {
   const [myStats, setMyStats] = useState({ posts: 0, likes: 0, top: false });
   const [profileUser, setProfileUser] = useState<{ id: string; name: string } | null>(null);
 
+  // Feed audio: one tile plays sound at a time, volume persisted
+  const [soundId, setSoundId] = useState<string | null>(null);
+  const [volume, setVolume] = useState<number>(() => {
+    const v = parseFloat(localStorage.getItem('feedVolume') || '0.7');
+    return isNaN(v) ? 0.7 : v;
+  });
+  const setVol = (v: number) => {
+    setVolume(v);
+    try { localStorage.setItem('feedVolume', String(v)); } catch { /* ignore */ }
+  };
+  const toggleSound = (id: string) => setSoundId((prev) => (prev === id ? null : id));
+  const openViewer = (idx: number) => { setSoundId(null); setViewerIndex(idx); };
+  useEffect(() => { setSoundId(null); }, [view]);
+
   // search
   const [search, setSearch] = useState('');
   const [userResults, setUserResults] = useState<UserResult[]>([]);
@@ -248,7 +262,8 @@ const SocialExperienceComponent = () => {
           <div className="grid grid-cols-3 gap-2">
             <AnimatePresence mode="popLayout">
               {filteredPosts.map((post, idx) => (
-                <FeedTile key={post.id} post={post} square onOpen={() => setViewerIndex(idx)} onLike={toggleLike} onDelete={remove} isOwner={user?.id === post.owner_id} />
+                <FeedTile key={post.id} post={post} square onOpen={() => openViewer(idx)} onLike={toggleLike} onDelete={remove} isOwner={user?.id === post.owner_id}
+                  soundActive={soundId === post.id} volume={volume} onToggleSound={() => toggleSound(post.id)} onVolume={setVol} />
               ))}
             </AnimatePresence>
           </div>
@@ -260,11 +275,15 @@ const SocialExperienceComponent = () => {
                   key={post.id}
                   post={post}
                   rank={view === 'trending' && !search.trim() ? idx + 1 : undefined}
-                  onOpen={() => setViewerIndex(idx)}
+                  onOpen={() => openViewer(idx)}
                   onLike={toggleLike}
                   onDelete={remove}
                   onOpenProfile={(p) => openProfile(p.owner_id, p.owner_name)}
                   isOwner={user?.id === post.owner_id}
+                  soundActive={soundId === post.id}
+                  volume={volume}
+                  onToggleSound={() => toggleSound(post.id)}
+                  onVolume={setVol}
                 />
               ))}
             </AnimatePresence>

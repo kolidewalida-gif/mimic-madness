@@ -1,8 +1,8 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Play, Trash2 } from 'lucide-react';
+import { Heart, Play, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { SocialPost } from '@/hooks/useSocialFeed';
-import { VideoPreview } from '@/components/VideoPreview';
+import { FeedVideo } from '@/components/social/FeedVideo';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +27,7 @@ export const LikePill = ({ post, onLike }: { post: SocialPost; onLike: (id: stri
 
 export const FeedTile = memo(({
   post, rank, onOpen, onLike, onDelete, onOpenProfile, isOwner, square,
+  soundActive = false, volume = 0.7, onToggleSound, onVolume,
 }: {
   post: SocialPost;
   rank?: number;
@@ -36,6 +37,10 @@ export const FeedTile = memo(({
   onOpenProfile?: (post: SocialPost) => void;
   isOwner: boolean;
   square?: boolean;
+  soundActive?: boolean;
+  volume?: number;
+  onToggleSound?: () => void;
+  onVolume?: (v: number) => void;
 }) => (
   <motion.div
     layout
@@ -50,7 +55,7 @@ export const FeedTile = memo(({
       square ? 'aspect-square' : 'aspect-[9/16]',
     )}
   >
-    <VideoPreview clipId={post.challenge_clip_id || post.clip_id} className="absolute inset-0 w-full h-full" muted />
+    <FeedVideo clipId={post.challenge_clip_id || post.clip_id} soundActive={soundActive} volume={volume} className="absolute inset-0 w-full h-full" />
 
     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20 pointer-events-none" />
     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -59,8 +64,39 @@ export const FeedTile = memo(({
       </div>
     </div>
 
+    {/* sound toggle */}
+    {onToggleSound && (
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggleSound(); }}
+        className="absolute top-2 left-2 z-20 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-md flex items-center justify-center text-white transition-colors"
+        title={soundActive ? 'Couper le son' : 'Activer le son'}
+      >
+        {soundActive ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+      </button>
+    )}
+
+    {/* volume slider (only when this tile has sound) */}
+    {onToggleSound && soundActive && onVolume && (
+      <div
+        className="absolute top-2 left-11 z-20 flex items-center px-2 h-8 rounded-full bg-black/55 backdrop-blur-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={volume}
+          onChange={(e) => onVolume(parseFloat(e.target.value))}
+          onClick={(e) => e.stopPropagation()}
+          className="w-16 sm:w-20 accent-rose-400 cursor-pointer"
+          aria-label="Volume"
+        />
+      </div>
+    )}
+
     {rank != null && rank <= 3 && (
-      <div className="absolute top-2 left-2 text-2xl drop-shadow-lg">
+      <div className="absolute bottom-12 left-2 z-10 text-2xl drop-shadow-lg pointer-events-none">
         {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
       </div>
     )}
