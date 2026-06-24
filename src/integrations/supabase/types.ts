@@ -694,6 +694,50 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          emoji: string | null
+          id: string
+          is_read: boolean
+          post_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          is_read?: boolean
+          post_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          is_read?: boolean
+          post_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pixoguess_guesses: {
         Row: {
           created_at: string
@@ -1289,6 +1333,24 @@ export type Database = {
           },
         ]
       }
+      social_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+        }
+        Relationships: []
+      }
       social_post_comments: {
         Row: {
           body: string
@@ -1346,6 +1408,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "social_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_post_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_post_reactions_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "social_posts"
