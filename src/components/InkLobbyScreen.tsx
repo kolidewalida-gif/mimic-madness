@@ -31,6 +31,7 @@ import { getStartStatus, GAME_MODE_META, type LobbyGameMode } from '@/lib/gameMo
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { Share2 } from 'lucide-react';
+import CardFanCarousel from '@/components/ui/card-fan-carousel';
 
 interface Player {
   id: string;
@@ -303,6 +304,23 @@ export const InkLobbyScreen = ({
 
   const selectedCard = useMemo(
     () => MODE_CARDS.find((c) => c.id === gameMode) ?? MODE_CARDS[0],
+    [gameMode],
+  );
+
+  // Fan carousel cards (stable) + selected index for the highlight ring
+  const fanCards = useMemo(
+    () =>
+      MODE_CARDS.map((c) => ({
+        imgUrl: c.imageCandidates[0],
+        alt: c.label,
+        id: c.id,
+        label: c.label,
+        bgColor: `linear-gradient(180deg, ${c.fallbackColor}, ${c.fallbackColor}dd)`,
+      })),
+    [],
+  );
+  const selectedFanIndex = useMemo(
+    () => MODE_CARDS.findIndex((c) => c.id === gameMode),
     [gameMode],
   );
 
@@ -924,96 +942,15 @@ export const InkLobbyScreen = ({
             )}
           </AnimatePresence>
 
-          {/* MODE CARD GRID — uses real images */}
-          <div className="flex-1 min-h-0 flex items-center justify-center py-2">
-            <div className="grid grid-cols-3 gap-3 w-full" style={{ maxWidth: 'min(100%, calc((100vh - 280px) * 1.5))' }}>
-              {MODE_CARDS.map((card) => {
-                const isActive = card.id === gameMode;
-                const meta = GAME_MODE_META[card.id];
-                const enoughPlayers = connectedCount >= meta.minPlayers || isAdmin;
-                const disabled = !isHost;
-                const count = playerCountForMode(card.id);
-
-                return (
-                  <motion.button
-                    key={card.id}
-                    type="button"
-                    onClick={() => !disabled && handleGameModeChange(card.id)}
-                    whileHover={!disabled ? { y: -3, scale: 1.03 } : undefined}
-                    whileTap={!disabled ? { scale: 0.97 } : undefined}
-                    disabled={disabled}
-                    animate={
-                      isActive
-                        ? {
-                            y: [0, -2, 0],
-                            transition: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
-                          }
-                        : undefined
-                    }
-                    className={cn(
-                      'relative aspect-square rounded-2xl overflow-hidden text-left transition-all group',
-                      !enoughPlayers && !isActive && 'opacity-60',
-                      disabled && 'cursor-default',
-                    )}
-                    style={{
-                      filter: isActive
-                        ? `drop-shadow(0 0 14px ${card.glowColor}cc) drop-shadow(0 6px 18px ${card.glowColor}77)`
-                        : 'drop-shadow(0 4px 10px rgba(0,0,0,0.4))',
-                    }}
-                  >
-                    {/* Active outer glow ring */}
-                    {isActive && (
-                      <div
-                        className="absolute -inset-1 rounded-2xl pointer-events-none"
-                        style={{
-                          background: `${card.glowColor}`,
-                          opacity: 0.4,
-                          filter: 'blur(12px)',
-                        }}
-                      />
-                    )}
-
-                    {/* Card art — image OR fallback */}
-                    <CardArt card={card} isActive={isActive} />
-
-                    {/* Player count pill — overlay at bottom */}
-                    <div
-                      className="absolute bottom-1.5 left-1.5 right-1.5 px-2 py-1 rounded-full flex items-center justify-center gap-1 border text-[10px] font-black uppercase tracking-wider text-white"
-                      style={{
-                        background: 'rgba(0,0,0,0.6)',
-                        borderColor: 'rgba(255,255,255,0.15)',
-                        backdropFilter: 'blur(4px)',
-                        fontFamily: "'Caveat', cursive",
-                      }}
-                    >
-                      <Users className="w-2.5 h-2.5" />
-                      {count} JOUEUR{count !== 1 ? 'S' : ''}
-                    </div>
-
-                    {/* Active checkmark */}
-                    {isActive && (
-                      <motion.div
-                        initial={{ scale: 0, rotate: -45 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-amber-400 border-3 border-[#1a0d2e] flex items-center justify-center z-10"
-                        style={{
-                          boxShadow: '0 3px 10px rgba(251, 191, 36, 0.6)',
-                        }}
-                      >
-                        <Check className="w-4 h-4 text-[#0a0810]" strokeWidth={3} />
-                      </motion.div>
-                    )}
-
-                    {/* Lock for non-host */}
-                    {disabled && !isActive && (
-                      <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-sm">
-                        <Lock className="w-3 h-3 text-white/60" />
-                      </div>
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
+          {/* MODE FAN CAROUSEL — all modes shown in a fan */}
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <CardFanCarousel
+              cards={fanCards}
+              selectedIndex={selectedFanIndex}
+              onCardClick={(i) => {
+                if (isHost) handleGameModeChange(MODE_CARDS[i].id);
+              }}
+            />
           </div>
 
           {/* PRÊT button (host) — uses /lobby/pret-stamp.png */}
