@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
 import { LobbyChat } from "@/components/LobbyChat";
 import { cn } from "@/lib/utils";
+import { CircularGallery } from "@/components/ui/circular-gallery";
 
 interface Player {
   id: string;
@@ -437,55 +438,44 @@ export const VideoSubmissionScreen = ({
                     </span>
                   </div>
 
-                  {/* THUMBNAIL GRID — scrollable, all clips */}
+                  {/* CIRCULAR GALLERY — drag with the cursor to browse, click center to (de)select */}
                   {savedClips.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
-                      {savedClips.map((clip, idx) => {
-                        const isSelected = selectedClips.includes(clip.id);
-                        const slotIdx = isSelected ? selectedClips.indexOf(clip.id) + 1 : null;
-                        return (
-                          <motion.button
-                            key={clip.id}
-                            type="button"
-                            onClick={() => toggleClipSelection(clip.id)}
-                            initial={{ opacity: 0, scale: 0.85 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: idx * 0.03 }}
-                            whileHover={{ scale: 1.04, rotate: -1 }}
-                            whileTap={{ scale: 0.96 }}
-                            className="relative aspect-video rounded-2xl overflow-hidden group"
-                            style={{
-                              background: "rgba(0,0,0,0.6)",
-                              border: isSelected ? "3px solid #fbbf24" : "3px solid #0a0810",
-                              boxShadow: isSelected ? "0 4px 0 #0a0810, 0 0 14px rgba(251,191,36,0.5)" : "0 4px 0 #0a0810",
-                            }}
-                            title={clip.name}
-                          >
-                            {clipUrls[clip.id] ? (
-                              <video src={`${clipUrls[clip.id]}#t=0.5`} className="w-full h-full object-cover" preload="metadata" muted playsInline />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <VideoIcon className="w-6 h-6 text-white/30" />
-                              </div>
-                            )}
-                            <div className="absolute inset-x-0 bottom-0 h-10 flex items-end px-2 pb-1.5"
-                              style={{ background: "linear-gradient(180deg, transparent, rgba(0,0,0,0.85))" }}>
-                              <span className="text-xs font-black text-white truncate w-full" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
-                                {clip.name}
+                    <div className="space-y-1">
+                      <CircularGallery
+                        height={300}
+                        initialIndex={0}
+                        items={savedClips.map((clip) => ({
+                          common: clip.name,
+                          binomial: "",
+                          photo: { url: "" },
+                          videoUrl: clipUrls[clip.id],
+                        }))}
+                        selectedIndices={savedClips.reduce<number[]>((acc, c, i) => {
+                          if (selectedClips.includes(c.id)) acc.push(i);
+                          return acc;
+                        }, [])}
+                        badges={savedClips.reduce<Record<number, React.ReactNode>>((acc, c, i) => {
+                          const slot = selectedClips.indexOf(c.id);
+                          if (slot >= 0) {
+                            acc[i] = (
+                              <span
+                                className="text-base font-black text-white leading-none"
+                                style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                              >
+                                {slot + 1}
                               </span>
-                            </div>
-                            {isSelected && slotIdx != null && (
-                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", damping: 12 }}
-                                className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center"
-                                style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2.5px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
-                                <span className="text-base font-black text-white leading-none" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
-                                  {slotIdx}
-                                </span>
-                              </motion.div>
-                            )}
-                          </motion.button>
-                        );
-                      })}
+                            );
+                          }
+                          return acc;
+                        }, {})}
+                        onItemClick={(i) => toggleClipSelection(savedClips[i].id)}
+                      />
+                      <p
+                        className="text-center text-xs text-white/50"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                      >
+                        Glisse avec la souris pour parcourir · clique sur la vidéo centrale pour la (dé)sélectionner
+                      </p>
                     </div>
                   )}
 
