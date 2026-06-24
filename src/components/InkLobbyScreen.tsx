@@ -32,6 +32,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { Share2 } from 'lucide-react';
 import CardFanCarousel from '@/components/ui/card-fan-carousel';
+import { MemberSelector, type Member } from '@/components/ui/member-selector';
 
 interface Player {
   id: string;
@@ -600,172 +601,112 @@ export const InkLobbyScreen = ({
               </motion.button>
             </div>
 
-            {/* Player list */}
-            <div className="relative overflow-y-auto custom-scrollbar p-3 max-h-[180px] flex-shrink-0">
-              <div className="space-y-2">
-                <AnimatePresence>
-                  {players.map((player, idx) => {
-                    const isMe = player.id === currentPlayer.id;
-                    const isDisc = player.isDisconnected;
-                    const av = getAvatar(player.id);
-                    const hasImage = av.type === 'image' && av.imageUrl;
-                    return (
-                      <motion.div
-                        key={player.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ delay: idx * 0.04 }}
-                        className={cn(
-                          'group relative flex items-center gap-2.5 px-2.5 py-2 rounded-2xl transition-all',
-                          isMe ? 'bg-purple-500/10' : 'bg-transparent hover:bg-white/[0.03]',
-                          isDisc && 'opacity-60',
-                        )}
-                      >
-                        <div className="relative flex-shrink-0">
-                          <div
-                            className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-black text-white border-2 border-white/15"
-                            style={{ background: 'linear-gradient(135deg, #a855f7, #6b21a8)' }}
-                          >
-                            {hasImage ? (
-                              <img src={av.imageUrl} alt={player.name} className="w-full h-full object-cover" />
-                            ) : (
-                              player.name[0]?.toUpperCase()
-                            )}
-                          </div>
-                          <div
-                            className={cn(
-                              'absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#1a0d2e]',
-                              isDisc ? 'bg-amber-400' : 'bg-emerald-400',
-                            )}
-                            style={{
-                              boxShadow: isDisc
-                                ? '0 0 6px rgba(251, 191, 36, 0.6)'
-                                : '0 0 6px rgba(52, 211, 153, 0.6)',
-                            }}
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className="text-sm font-black text-white truncate"
-                              style={{ fontFamily: "'Caveat', cursive" }}
-                            >
-                              {player.name}
-                            </span>
-                            {player.isHost && (
-                              <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" fill="currentColor" />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[10px]">
-                            {isDisc ? (
-                              <span className="flex items-center gap-1 text-amber-400">
-                                <WifiOff className="w-2.5 h-2.5" />
-                                Reconnexion
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                                <span className="w-1 h-1 rounded-full bg-emerald-400" />
-                                EN LIGNE
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Host kebab */}
-                        {isHost && !isMe && (onKickPlayer || onTransferHost) && (
-                          <div className="relative flex-shrink-0">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                playInkSound('cartoonPop', 0.3);
-                                setOpenMenuFor(openMenuFor === player.id ? null : player.id);
-                              }}
-                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
-                            >
-                              <MoreVertical className="w-3 h-3" />
-                            </button>
-                            <AnimatePresence>
-                              {openMenuFor === player.id && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                                  exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                                  transition={{ duration: 0.15 }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="absolute right-0 top-7 z-50 w-44 rounded-xl bg-[#1a0d2e]/95 backdrop-blur-xl border-2 border-white/15 shadow-2xl overflow-hidden"
-                                >
-                                  {onTransferHost && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        playInkSound('cartoonDing', 0.3);
-                                        onTransferHost(player.id);
-                                        setOpenMenuFor(null);
-                                      }}
-                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/80 hover:bg-amber-500/10 hover:text-amber-400 transition-colors text-left"
-                                    >
-                                      <Crown className="w-3.5 h-3.5" />
-                                      Transférer l'hôte
-                                    </button>
-                                  )}
-                                  {onKickPlayer && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        playInkSound('cartoonZap', 0.3);
-                                        onKickPlayer(player.id);
-                                        setOpenMenuFor(null);
-                                      }}
-                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/80 hover:bg-red-500/10 hover:text-red-400 transition-colors text-left border-t border-white/8"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                      Exclure
-                                    </button>
-                                  )}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* Twitch-style chat + INVITER button (Mascot replaced by chat for QoL) */}
-            <div className="relative flex-1 px-3 pb-2 flex flex-col gap-2 min-h-0 overflow-hidden">
-              {/* Compact INVITER button */}
-              <motion.button
-                onClick={() => {
+            {/* Player roster + invite — vertical MemberSelector */}
+            <div className="relative overflow-y-auto custom-scrollbar p-3 max-h-[260px] flex-shrink-0">
+              <MemberSelector
+                orientation="vertical"
+                selectable={false}
+                addLabel="INVITER"
+                onAddClick={() => {
                   playInkSound('cartoonPop', 0.3);
                   setShowInvitePanel(true);
                 }}
-                whileHover={{ scale: 1.03, rotate: -1 }}
-                whileTap={{ scale: 0.97 }}
-                className="relative w-full py-2 px-3 rounded-2xl flex items-center justify-center gap-2 select-none flex-shrink-0"
-                style={{
-                  background: 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
-                  border: '3px solid #0a0810',
-                  boxShadow: '0 4px 0 #0a0810, 0 8px 16px rgba(251,191,36,0.3), inset 0 2px 0 rgba(255,255,255,0.4)',
+                selected={playerIds}
+                onChange={() => {}}
+                members={players.map((p) => {
+                  const av = getAvatar(p.id);
+                  return {
+                    id: p.id,
+                    name: p.name,
+                    avatar: av.type === 'image' ? av.imageUrl : undefined,
+                    statusColor: p.isDisconnected ? '#fbbf24' : '#34d399',
+                    highlight: p.id === currentPlayer.id,
+                  } as Member;
+                })}
+                getBadge={(m) =>
+                  players.find((p) => p.id === m.id)?.isHost ? (
+                    <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" fill="currentColor" />
+                  ) : null
+                }
+                renderItemMeta={(m) => {
+                  const p = players.find((pp) => pp.id === m.id);
+                  return p?.isDisconnected ? (
+                    <span className="flex items-center gap-1 text-amber-400">
+                      <WifiOff className="w-2.5 h-2.5" />
+                      Reconnexion
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                      EN LIGNE
+                    </span>
+                  );
                 }}
-              >
-                <UserPlus className="w-4 h-4 text-[#0a0810]" strokeWidth={3} />
-                <span
-                  className="text-base font-black tracking-wider text-white leading-none"
-                  style={{
-                    fontFamily: "'Caveat', cursive",
-                    textShadow: '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-                  }}
-                >
-                  INVITER
-                </span>
-              </motion.button>
+                renderItemAction={(m) => {
+                  const p = players.find((pp) => pp.id === m.id);
+                  if (!p || !isHost || p.id === currentPlayer.id || (!onKickPlayer && !onTransferHost)) return null;
+                  return (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playInkSound('cartoonPop', 0.3);
+                          setOpenMenuFor(openMenuFor === p.id ? null : p.id);
+                        }}
+                        className="w-6 h-6 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <MoreVertical className="w-3 h-3" />
+                      </button>
+                      <AnimatePresence>
+                        {openMenuFor === p.id && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                            transition={{ duration: 0.15 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 top-7 z-50 w-44 rounded-xl bg-[#1a0d2e]/95 backdrop-blur-xl border-2 border-white/15 shadow-2xl overflow-hidden"
+                          >
+                            {onTransferHost && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  playInkSound('cartoonDing', 0.3);
+                                  onTransferHost(p.id);
+                                  setOpenMenuFor(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/80 hover:bg-amber-500/10 hover:text-amber-400 transition-colors text-left"
+                              >
+                                <Crown className="w-3.5 h-3.5" />
+                                Transférer l'hôte
+                              </button>
+                            )}
+                            {onKickPlayer && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  playInkSound('cartoonZap', 0.3);
+                                  onKickPlayer(p.id);
+                                  setOpenMenuFor(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/80 hover:bg-red-500/10 hover:text-red-400 transition-colors text-left border-t border-white/8"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                Exclure
+                              </button>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                }}
+              />
+            </div>
 
+            {/* Twitch-style chat (INVITER is now part of the player roster above) */}
+            <div className="relative flex-1 px-3 pb-2 flex flex-col gap-2 min-h-0 overflow-hidden">
               {/* Twitch-style chat — fills remaining space */}
               <div className="flex-1 min-h-0">
                 <TwitchStyleLobbyChat
