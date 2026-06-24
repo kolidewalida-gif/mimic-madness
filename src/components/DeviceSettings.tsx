@@ -48,6 +48,10 @@ export const DeviceSettings = ({
   playerName,
 }: DeviceSettingsProps) => {
   const { isInkMode } = useInkMode();
+  const { theme } = useTheme();
+  // The rich tabbed UI (with the Theme picker) is used for Ink AND the
+  // "Never Like That" 3D theme, so users can always switch themes from here.
+  const useRichUI = isInkMode || theme === 'neverlikethat';
   const {
     audioInputs,
     selectedAudioId,
@@ -83,7 +87,7 @@ export const DeviceSettings = ({
   /* =========================================================
      LEGACY (NON-INK) RENDER — minimal kept for fallback
   ========================================================= */
-  if (!isInkMode) {
+  if (!useRichUI) {
     return (
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col min-h-0 h-full max-h-full">
         <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4">
