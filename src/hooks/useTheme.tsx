@@ -175,11 +175,14 @@ export const themeConfig: Record<ThemeType, {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setThemeState] = useState<ThemeType>(() => {
     const saved = localStorage.getItem('game-theme');
-    return (saved as ThemeType) || 'neon';
+    // Ink is the default experience for everyone (unless they picked another theme)
+    return (saved as ThemeType) || 'ink';
   });
 
   const [inkModeEnabled, setInkModeEnabledState] = useState<boolean>(() => {
-    return localStorage.getItem('ink-mode-enabled') === 'true';
+    const stored = localStorage.getItem('ink-mode-enabled');
+    // Default ON when the user has no saved preference yet
+    return stored === null ? true : stored === 'true';
   });
 
   const setTheme = (newTheme: ThemeType) => {
