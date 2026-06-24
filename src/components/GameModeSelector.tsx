@@ -25,6 +25,7 @@ export const GameModeSelector = ({
   const canPlayPixoguess = isAdmin || playerCount >= 2;
   const canPlayMonopoly = isAdmin || playerCount >= 2;
   const canPlayUndercover = isAdmin || playerCount >= 3;
+  const canPlayMemorise = isAdmin || playerCount >= 2;
 
   const modes = [
     {
@@ -95,6 +96,16 @@ export const GameModeSelector = ({
       canPlay: canPlayUndercover,
       color: 'from-rose-500 to-red-600',
       bgColor: 'bg-rose-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
+    },
+    {
+      id: 'memorise' as const,
+      name: 'Memorise',
+      subtitle: canPlayMemorise ? 'Mémorise !' : 'Min. 2',
+      icon: Brain,
+      canPlay: canPlayMemorise,
+      color: 'from-violet-500 to-purple-600',
+      bgColor: 'bg-violet-500',
       inkColor: 'border-primary bg-primary text-primary-foreground',
     },
   ];

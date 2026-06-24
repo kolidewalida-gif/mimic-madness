@@ -123,6 +123,15 @@ const MODE_CARDS: ModeCard[] = [
     fallbackColor: '#a855f7',
     glowColor: '#c084fc',
   },
+  {
+    id: 'memorise',
+    label: 'MEMORISE',
+    tagline: 'Mémorise puis réponds vite !',
+    imageCandidates: ['/lobby/cards/memorise.png', '/lobby/cards/memorise.jpg'],
+    fallbackEmoji: '🧠',
+    fallbackColor: '#8b5cf6',
+    glowColor: '#a78bfa',
+  },
 ];
 
 /**

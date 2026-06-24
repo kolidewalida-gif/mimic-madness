@@ -41,6 +41,7 @@ const MODES: ModeDef[] = [
   { id: "pixoguess", name: "BlurRush", subtitle: "Devine l'image au plus vite", icon: ImageIcon, minPlayers: 2, gradient: "from-violet-500 to-indigo-600", glow: "167,139,250" },
   { id: "monopoly", name: "Monopoly", subtitle: "Plateau 3D, achète et piège", icon: Landmark, minPlayers: 2, gradient: "from-green-500 to-emerald-600", glow: "74,222,128" },
   { id: "undercover", name: "Undercover", subtitle: "Trouve l'infiltré parmi vous", icon: UserX, minPlayers: 3, gradient: "from-rose-500 to-red-600", glow: "251,113,133" },
+  { id: "memorise", name: "Memorise", subtitle: "Mémorise puis réponds vite", icon: Brain, minPlayers: 2, gradient: "from-violet-500 to-purple-600", glow: "167,139,250" },
 ];
 
 type Position = "front" | "middle" | "back";

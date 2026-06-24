@@ -37,6 +37,7 @@ const AudioPhoneGameScreen = React.lazy(() => import("@/components/AudioPhoneGam
 const PixoguessGameScreen = React.lazy(() => import("@/components/PixoguessGameScreen").then(m => ({ default: m.PixoguessGameScreen })));
 const MonopolyGameScreen = React.lazy(() => import("@/components/monopoly/MonopolyGameScreen").then(m => ({ default: m.MonopolyGameScreen })));
 const UndercoverGameScreen = React.lazy(() => import("@/components/undercover/UndercoverGameScreen").then(m => ({ default: m.UndercoverGameScreen })));
+const MemoriseGameScreen = React.lazy(() => import("@/components/memorise/MemoriseGameScreen").then(m => ({ default: m.MemoriseGameScreen })));
 const NeverLikeThatBackground = React.lazy(() => import("@/components/NeverLikeThatBackground").then(m => ({ default: m.NeverLikeThatBackground })));
 const NeverLikeThatLobbyScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatLobbyScreen").then(m => ({ default: m.NeverLikeThatLobbyScreen })));
 const NeverLikeThatHomeScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatHomeScreen").then(m => ({ default: m.NeverLikeThatHomeScreen })));
@@ -47,8 +48,8 @@ interface Player {
   isHost: boolean;
 }
 
-type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover";
-type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover";
+type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise";
+type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise";
 
 const LoadingFallback = memo(() => (
   <div className="h-screen flex items-center justify-center">
@@ -107,6 +108,7 @@ const Index = () => {
       pixoguess: "pixoguess",
       monopoly: "monopoly",
       undercover: "undercover",
+      memorise: "quiz",
     };
     setSituation(map[gameState] ?? "home");
   }, [gameState, setSituation]);
@@ -196,6 +198,8 @@ const Index = () => {
         setGameState('monopoly');
       } else if (phase === 'undercover') {
         setGameState('undercover');
+      } else if (phase === 'memorise') {
+        setGameState('memorise');
       } else {
         setGameState('lobby');
       }
@@ -386,6 +390,13 @@ const Index = () => {
               title: "🕵️ Undercover !",
               description: "Trouvez l'infiltré parmi vous !",
             });
+          } else if (newPhase === 'memorise' && gameState !== 'memorise') {
+            playSoundEffect('quizReveal', 0.5);
+            setGameState('memorise');
+            toast({
+              title: "🧠 Memorise !",
+              description: "Mémorise l'image puis réponds le plus vite !",
+            });
           } else if (newPhase === 'playing' && gameState !== 'playing') {
             playSoundEffect('start', 0.5);
             // Dopamine launch — fires for every client when the game starts
@@ -515,7 +526,7 @@ const Index = () => {
           console.log(`[Index] Added ${botsToAdd.length} bots for admin solo play`);
         }
 
-        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : mode === 'undercover' ? 'undercover' : 'preparation';
+        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : mode === 'undercover' ? 'undercover' : mode === 'memorise' ? 'memorise' : 'preparation';
         console.log('[Index] Updating lobby to phase:', gamePhase);
         
         const { error } = await supabase
@@ -550,6 +561,8 @@ const Index = () => {
           setGameState('monopoly');
         } else if (mode === 'undercover') {
           setGameState('undercover');
+        } else if (mode === 'memorise') {
+          setGameState('memorise');
         } else {
           setGameState('preparation');
         }
@@ -814,6 +827,15 @@ const Index = () => {
 
         {gameState === "undercover" && currentPlayer && lobby && (
           <UndercoverGameScreen
+            currentPlayer={currentPlayer}
+            players={players}
+            lobbyId={lobby.id}
+            onEndGame={handleEndGame}
+          />
+        )}
+
+        {gameState === "memorise" && currentPlayer && lobby && (
+          <MemoriseGameScreen
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}

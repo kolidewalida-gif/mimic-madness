@@ -1,4 +1,4 @@
-export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly' | 'undercover';
+export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly' | 'undercover' | 'memorise';
 
 export const GAME_MODE_META: Record<
   LobbyGameMode,
@@ -42,6 +42,11 @@ export const GAME_MODE_META: Record<
     label: 'Undercover',
     emojiLabel: '🕵️ Undercover',
     minPlayers: 3,
+  },
+  memorise: {
+    label: 'Memorise',
+    emojiLabel: '🧠 Memorise',
+    minPlayers: 2,
   },
 };
 
