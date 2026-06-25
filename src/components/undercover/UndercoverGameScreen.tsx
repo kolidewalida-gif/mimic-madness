@@ -1,7 +1,9 @@
-import { useState, memo, useCallback, useEffect, useMemo } from 'react';
+import { useState, memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUndercoverGame } from '@/hooks/useUndercoverGame';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { UndercoverPreGameSettings } from './UndercoverPreGameSettings';
 import { computeRoundWinner } from '@/lib/undercoverLogic';
 import {
@@ -50,17 +52,67 @@ export const UndercoverGameScreen = memo(
     // Auto-dismisses after a short timeout so the recap (or next round) appears below.
     const [showEliminationFx, setShowEliminationFx] = useState(false);
 
+    // ── Adaptive music + SFX ────────────────────────────────────────────
+    const { setSituation, clearSituationOverride } = useBackgroundMusic();
+    const prevPhaseRef = useRef<string | null>(null);
+    const myTurnSfxRef = useRef<string | null>(null);
+
+    // Drive music situation + a juicy SFX on every phase change
+    useEffect(() => {
+      if (!game) return;
+      const phase = game.phase;
+      if (prevPhaseRef.current === phase) return;
+      prevPhaseRef.current = phase;
+
+      switch (phase) {
+        case 'word_reveal': playInkSound('cartoonDing', 0.4); break;
+        case 'clue_giving': playInkSound('cartoonPop', 0.4); break;
+        case 'discussion': playInkSound('cartoonSwoosh', 0.45); break;
+        case 'voting': playInkSound('cartoonWobble', 0.5); break;
+        case 'game_over':
+          playInkSound(game.winner_role === 'civilian' ? 'cartoonFanfare' : 'cartoonZap', 0.6);
+          break;
+        default: break;
+      }
+
+      // Adaptive soundtrack: tense during the vote, win/lose sting at the end
+      if (phase === 'voting' || phase === 'vote_result') {
+        setSituation('voting', { priority: 5, source: 'undercover' });
+      } else if (phase === 'game_over') {
+        setSituation(game.winner_role === 'civilian' ? 'victory' : 'defeat', { priority: 6, source: 'undercover' });
+      } else {
+        setSituation('undercover', { priority: 5, source: 'undercover' });
+      }
+    }, [game?.phase, game?.winner_role, setSituation]);
+
+    // Restore base music when leaving the mode
+    useEffect(() => () => clearSituationOverride('undercover'), [clearSituationOverride]);
+
+    // "It's your turn" chime during the clue phase (once per turn)
+    useEffect(() => {
+      if (game?.phase === 'clue_giving' && isMyTurn && myPlayer?.is_alive) {
+        const key = `${game.current_round}:${game.current_player_index}:${(game as any).clue_pass ?? 0}`;
+        if (myTurnSfxRef.current !== key) {
+          myTurnSfxRef.current = key;
+          playInkSound('cartoonDing', 0.5);
+        }
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [game?.phase, isMyTurn, myPlayer?.is_alive, game?.current_round, game?.current_player_index]);
+
     const accent = game ? PHASE_COLORS[game.phase] ?? '#a855f7' : '#a855f7';
 
     const handleSubmitClue = useCallback(() => {
       const trimmed = clueInput.trim();
       if (!trimmed) return;
+      playInkSound('cartoonPop', 0.4);
       submitClue(trimmed);
       setClueInput('');
     }, [clueInput, submitClue]);
 
     const handleVote = useCallback(() => {
       if (!selectedVote) return;
+      playInkSound('cartoonZap', 0.45);
       submitVote(selectedVote);
       setHasVoted(true);
     }, [selectedVote, submitVote]);
@@ -72,6 +124,7 @@ export const UndercoverGameScreen = memo(
     // elimination. Auto-hide after 2.6s so the recap card behind takes over.
     useEffect(() => {
       if (game?.phase === 'vote_result' && game.eliminated_player_id) {
+        playInkSound('cartoonZap', 0.5);
         setShowEliminationFx(true);
         const t = setTimeout(() => setShowEliminationFx(false), 2600);
         return () => clearTimeout(t);
@@ -192,7 +245,7 @@ export const UndercoverGameScreen = memo(
                   {/* Avatar */}
                   <motion.button
                     type="button"
-                    onClick={canVotePlayer ? () => setSelectedVote(player.player_id) : undefined}
+                    onClick={canVotePlayer ? () => { playInkSound('brushTap', 0.35); setSelectedVote(player.player_id); } : undefined}
                     disabled={!canVotePlayer}
                     whileHover={canVotePlayer ? { scale: 1.1 } : undefined}
                     whileTap={canVotePlayer ? { scale: 0.9 } : undefined}
