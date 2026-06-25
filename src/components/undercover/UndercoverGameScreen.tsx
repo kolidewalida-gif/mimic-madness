@@ -165,7 +165,7 @@ export const UndercoverGameScreen = memo(
         {/* Timer in header area — visible during discussion */}
         {game.phase === 'discussion' && (
           <div className="relative z-10 mx-auto max-w-xl px-5 pb-2">
-            <TimerBar accent={accent} />
+            <TimerBar accent={accent} total={28} />
           </div>
         )}
 
@@ -320,14 +320,13 @@ export const UndercoverGameScreen = memo(
                       Au tour de <span style={{ color: accent }}>{currentTurnName}</span> 💭
                     </p>
                   )}
-                  {/* Clue reveal threshold indicator */}
+                  {/* Clue submission progress for this pass */}
                   {(() => {
-                    const submitted = orderedPlayers.filter(p => p.current_clue).length;
-                    const total = orderedPlayers.filter(p => p.is_alive).length;
-                    if (submitted >= 2) return null;
+                    const submitted = orderedPlayers.filter((p) => p.is_alive && p.current_clue).length;
+                    const total = orderedPlayers.filter((p) => p.is_alive).length;
                     return (
                       <p className="text-center text-xs font-black text-white/50" style={{ fontFamily: FONT }}>
-                        🔒 Indices cachés jusqu'à 2 soumis ({submitted}/{Math.min(2, total)})
+                        ✍️ {submitted}/{total} indices donnés
                       </p>
                     );
                   })()}
@@ -833,8 +832,7 @@ const BackgroundWithFallback = () => {
 /* ═══════════════════════════════════════════════════════════
    Timer Bar — bottom countdown
 ═══════════════════════════════════════════════════════════ */
-const TimerBar = ({ accent }: { accent: string }) => {
-  const total = 60;
+const TimerBar = ({ accent, total = 28 }: { accent: string; total?: number }) => {
   const [seconds, setSeconds] = useState(total);
   useEffect(() => {
     if (seconds <= 0) return;

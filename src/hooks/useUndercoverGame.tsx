@@ -505,7 +505,7 @@ export const useUndercoverGame = (
       .eq('id', myPlayer.id);
   }, [game, myPlayer, gamePlayers, currentPlayer.id]);
 
-  const resolveVotingRound = useCallback(async () => {
+  const resolveVotingRound = useCallback(async (force = false) => {
     if (!game || !currentPlayer.isHost) return;
 
     const { data: latestPlayers } = await supabase
@@ -516,7 +516,9 @@ export const useUndercoverGame = (
     if (!latestPlayers) return;
 
     const alivePlayers = (latestPlayers as unknown as UndercoverPlayer[]).filter((player) => player.is_alive);
-    if (alivePlayers.length === 0 || alivePlayers.some((player) => !player.vote_target)) {
+    // Normally wait for everyone to vote; a timeout can `force` resolution
+    // with whatever votes were cast (non-voters simply don't count).
+    if (alivePlayers.length === 0 || (!force && alivePlayers.some((player) => !player.vote_target))) {
       return;
     }
 
@@ -618,20 +620,12 @@ export const useUndercoverGame = (
         });
   }, [game, currentPlayer.isHost, startNextRoundFresh, concludeMatch]);
 
-  // Confirm word seen
+  // Confirm word seen — purely local. The host explicitly starts the clue
+  // phase via the "Lancer les indices" button (or bots auto-start in solo),
+  // so players actually get time to memorize their word (no 2.5s rush).
   const confirmWordSeen = useCallback(async () => {
     setHasSeenWord(true);
-    
-    // Check if all players have seen - host moves to clue_giving
-    if (currentPlayer.isHost) {
-      // Small delay to let others see
-      setTimeout(async () => {
-        if (game) {
-          await safeUpdateGame(game.id, { phase: 'clue_giving', clue_pass: 0 });
-        }
-      }, 2000);
-    }
-  }, [currentPlayer.isHost, game]);
+  }, []);
 
   // Start clue phase (host)
   const startCluePhase = useCallback(async () => {
@@ -762,6 +756,7 @@ export const useUndercoverGame = (
   ============================================================== */
   const isBotId = (id: string) => id.startsWith('bot-');
   const botTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const phaseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!game || !currentPlayer.isHost) return;
@@ -772,10 +767,13 @@ export const useUndercoverGame = (
 
     const phase = game.phase as GamePhase;
 
-    // --- WORD REVEAL: auto-confirm for all bots after 1.5s ---
+    // --- WORD REVEAL: in solo (1 human + bots) auto-start after a beat.
+    //     In real multiplayer, wait for the host's "Lancer les indices" button
+    //     so everyone has time to memorize their word. ---
     if (phase === 'word_reveal') {
+      const humans = gamePlayers.filter((p) => p.is_alive && !isBotId(p.player_id));
+      if (humans.length > 1) return; // multiplayer — host starts manually
       botTimerRef.current = setTimeout(async () => {
-        // Host auto-starts clue phase (which also confirms word seen for everyone)
         if (game) {
           await safeUpdateGame(game.id, { phase: 'clue_giving', current_player_index: 0, clue_pass: 0 });
         }
@@ -863,6 +861,65 @@ export const useUndercoverGame = (
       }
     };
   }, [game?.phase, game?.current_player_index, (game as any)?.clue_pass, game?.id, gamePlayers, currentPlayer.isHost]);
+
+  /* ==============================================================
+     PACING / ANTI-STALL TIMERS (host) — keep rounds fast & fun,
+     and never let an AFK player freeze the game.
+     - clue_giving: auto-skip a stalling human turn (🤐) after 22s
+     - discussion:  auto-advance to voting after 28s (multiplayer)
+     - voting:      force-resolve with cast votes after 25s (multiplayer)
+     - vote_result: auto-continue to next round after 6s
+  ============================================================== */
+  useEffect(() => {
+    if (!game || !currentPlayer.isHost) return;
+    if (phaseTimerRef.current) {
+      clearTimeout(phaseTimerRef.current);
+      phaseTimerRef.current = null;
+    }
+    const phase = game.phase;
+    const humans = gamePlayers.filter((p) => p.is_alive && !isBotId(p.player_id));
+
+    if (phase === 'clue_giving') {
+      const aliveOrder = game.player_order.filter((id) =>
+        gamePlayers.some((p) => p.player_id === id && p.is_alive),
+      );
+      const currentTurnId = aliveOrder[game.current_player_index];
+      if (!currentTurnId || isBotId(currentTurnId)) return; // bots handled elsewhere
+      const cur = gamePlayers.find((p) => p.player_id === currentTurnId);
+      if (!cur || cur.current_clue) return;
+      phaseTimerRef.current = setTimeout(() => {
+        void supabase.from('undercover_players').update({ current_clue: '🤐' }).eq('id', cur.id);
+      }, 22000);
+      return;
+    }
+
+    if (phase === 'discussion') {
+      if (humans.length <= 1) return; // solo handled by bot effect
+      phaseTimerRef.current = setTimeout(async () => {
+        await supabase.from('undercover_players').update({ vote_target: null }).eq('game_id', game.id);
+        await supabase.from('undercover_games').update({ phase: 'voting' }).eq('id', game.id);
+      }, 28000);
+      return;
+    }
+
+    if (phase === 'voting') {
+      if (humans.length <= 1) return; // solo: bots vote fast → auto-resolves
+      phaseTimerRef.current = setTimeout(() => { void resolveVotingRound(true); }, 25000);
+      return;
+    }
+
+    if (phase === 'vote_result') {
+      phaseTimerRef.current = setTimeout(() => { void nextRound(); }, 6000);
+      return;
+    }
+
+    return () => {
+      if (phaseTimerRef.current) {
+        clearTimeout(phaseTimerRef.current);
+        phaseTimerRef.current = null;
+      }
+    };
+  }, [game?.phase, game?.current_player_index, game?.id, gamePlayers, currentPlayer.isHost, resolveVotingRound, nextRound]);
 
   // Realtime subscriptions
   useEffect(() => {
