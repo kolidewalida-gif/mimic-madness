@@ -1,696 +1,583 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   AbsoluteFill,
-  useCurrentFrame,
-  useVideoConfig,
+  Sequence,
   interpolate,
   spring,
-  random,
-  Sequence,
+  useCurrentFrame,
+  useVideoConfig,
   Easing,
+  random,
 } from "remotion";
+import { loadFont as loadCinzel } from "@remotion/google-fonts/Cinzel";
 import { loadFont as loadBangers } from "@remotion/google-fonts/Bangers";
-import { loadFont as loadInter } from "@remotion/google-fonts/InterTight";
+import { loadFont as loadAnton } from "@remotion/google-fonts/Anton";
 
-const { fontFamily: bangers } = loadBangers("normal", { weights: ["400"] });
-const { fontFamily: inter } = loadInter("normal", { weights: ["400", "700", "900"] });
+const { fontFamily: CINZEL } = loadCinzel("normal", { weights: ["900"], subsets: ["latin"] });
+const { fontFamily: BANGERS } = loadBangers("normal", { weights: ["400"], subsets: ["latin"] });
+const { fontFamily: ANTON } = loadAnton("normal", { weights: ["400"], subsets: ["latin"] });
 
-/* =====================================================================
-   INK STRIKE — cinematic dark ink intro
-   Palette: jet black, ink red, bone white, blood deep
-   Vibe: brutal cinematic minimal · kinetic typography · ink splash
-   ===================================================================== */
+// Palette — Ink Mode: jet black + blood red + bone cream
+const BG = "#050505";
+const INK = "#0a0a0a";
+const RED = "#e10b1d";
+const RED_DEEP = "#7a0410";
+const CREAM = "#f1e8d6";
 
-const BLACK = "#07070a";
-const NEAR_BLACK = "#101015";
-const RED = "#ff1f3a";
-const RED_DEEP = "#7a0010";
-const BONE = "#f4ede1";
-const WHITE = "#ffffff";
+// ────────────────────────── Persistent layers ──────────────────────────
+const Vignette: React.FC = () => (
+  <AbsoluteFill
+    style={{
+      background:
+        "radial-gradient(ellipse at center, rgba(0,0,0,0) 30%, rgba(0,0,0,0.92) 100%)",
+      pointerEvents: "none",
+    }}
+  />
+);
 
-// ---------------------------------------------------------------------
-// Shared seeded particles (memoized once)
-// ---------------------------------------------------------------------
-const useGrain = (count: number, seed: string) =>
-  React.useMemo(
-    () =>
-      new Array(count).fill(0).map((_, i) => ({
-        x: random(`${seed}x${i}`),
-        y: random(`${seed}y${i}`),
-        r: random(`${seed}r${i}`),
-        a: random(`${seed}a${i}`),
-      })),
-    [count, seed]
-  );
-
-// ---------------------------------------------------------------------
-// Persistent backdrop — slow dark gradient + film grain + halftone parallax
-// ---------------------------------------------------------------------
-const Backdrop: React.FC = () => {
+const Grain: React.FC = () => {
   const frame = useCurrentFrame();
-  const px = Math.sin(frame / 90) * 22;
-  const py = Math.cos(frame / 110) * 16;
-  const grain = useGrain(80, "g");
+  const seed = Math.floor(frame / 2);
   return (
-    <>
-      <AbsoluteFill
-        style={{
-          background: `radial-gradient(ellipse at 50% 58%, ${NEAR_BLACK} 0%, ${BLACK} 60%, #000 100%)`,
-        }}
-      />
-      {/* halftone dot field */}
-      <AbsoluteFill
-        style={{
-          backgroundImage: `radial-gradient(${RED_DEEP}22 1.3px, transparent 1.6px)`,
-          backgroundSize: "30px 30px",
-          backgroundPosition: `${px}px ${py}px`,
-          opacity: 0.5,
-          mixBlendMode: "screen",
-        }}
-      />
-      {/* film grain */}
-      <svg width={1920} height={1080} style={{ position: "absolute", inset: 0, opacity: 0.08 }}>
-        {grain.map((g, i) => (
-          <circle
-            key={i}
-            cx={g.x * 1920}
-            cy={g.y * 1080}
-            r={0.4 + g.r * 1.1}
-            fill={WHITE}
-            opacity={0.3 + g.a * 0.7}
-          />
-        ))}
-      </svg>
-      {/* vignette */}
-      <AbsoluteFill
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,0.85) 100%)",
-          pointerEvents: "none",
-        }}
-      />
-    </>
+    <AbsoluteFill
+      style={{
+        opacity: 0.22,
+        mixBlendMode: "overlay",
+        pointerEvents: "none",
+        backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' seed='${seed}'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.85'/></svg>")`,
+      }}
+    />
   );
 };
 
-// ---------------------------------------------------------------------
-// SCENE 1 — Drop falls + ink strike
-// ---------------------------------------------------------------------
-const DropAndStrike: React.FC = () => {
-  const frame = useCurrentFrame();
-
-  // drop falls from -40 to 540 (impact at frame 28)
-  const drop = interpolate(frame, [0, 28], [-60, 540], {
-    easing: Easing.bezier(0.55, 0.05, 0.95, 0.5),
-    extrapolateRight: "clamp",
-  });
-  const dropOpacity = interpolate(frame, [0, 6, 27, 29], [0, 1, 1, 0]);
-  const dropStretch = interpolate(frame, [0, 22, 27], [1, 1.8, 0.6]);
-
-  // shockwave ring
-  const ringT = (frame - 28) / 30;
-  const ringR = interpolate(ringT, [0, 1], [10, 900], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const ringOp = interpolate(ringT, [0, 0.1, 1], [0, 0.85, 0]);
-
-  // splash scale
-  const splash = interpolate(frame, [28, 36, 60], [0, 1.05, 1], {
-    easing: Easing.out(Easing.cubic),
-    extrapolateRight: "clamp",
-  });
-
-  return (
-    <AbsoluteFill>
-      {/* shockwave */}
-      {ringT > 0 && ringT < 1 && (
-        <svg width={1920} height={1080} style={{ position: "absolute", inset: 0 }}>
-          <circle
-            cx={960}
-            cy={540}
-            r={ringR}
-            fill="none"
-            stroke={RED}
-            strokeWidth={interpolate(ringT, [0, 1], [10, 1])}
-            opacity={ringOp}
-          />
-        </svg>
-      )}
-
-      {/* drop */}
-      <svg
-        width={60}
-        height={120}
-        viewBox="-30 -60 60 120"
-        style={{
-          position: "absolute",
-          left: 960 - 30,
-          top: drop - 60,
-          opacity: dropOpacity,
-          transform: `scaleY(${dropStretch})`,
-          transformOrigin: "50% 100%",
-        }}
-      >
-        <path d="M0,-50 C20,-10 26,10 26,28 A26,26 0 1 1 -26,28 C-26,10 -20,-10 0,-50 Z" fill={RED} />
-      </svg>
-
-      {/* central splash (organic blob with offshoot droplets) */}
-      <svg
-        width={1200}
-        height={1200}
-        viewBox="-600 -600 1200 1200"
-        style={{
-          position: "absolute",
-          left: 960 - 600,
-          top: 540 - 600,
-          transform: `scale(${splash})`,
-          transformOrigin: "center",
-        }}
-      >
-        <g fill={RED}>
-          <path d="M-180,-60 C-260,-220 -80,-300 60,-260 C220,-320 360,-180 320,-40 C420,40 380,220 240,260 C140,400 -80,380 -180,260 C-340,240 -420,60 -300,-20 C-340,-80 -280,-120 -180,-60 Z" />
-          <circle cx={-360} cy={-220} r={28} />
-          <circle cx={400} cy={-260} r={22} />
-          <circle cx={-440} cy={120} r={18} />
-          <circle cx={460} cy={140} r={26} />
-          <circle cx={-300} cy={340} r={20} />
-          <circle cx={280} cy={380} r={16} />
-          <circle cx={-500} cy={-40} r={10} />
-          <circle cx={520} cy={20} r={12} />
-          <circle cx={120} cy={-380} r={14} />
-          <circle cx={-120} cy={420} r={11} />
-        </g>
-      </svg>
-    </AbsoluteFill>
-  );
-};
-
-// ---------------------------------------------------------------------
-// SCENE 2 — White flash + camera "pull back" + kinetic word "INK"
-// ---------------------------------------------------------------------
-const Flash: React.FC<{ at: number; dur?: number; intensity?: number }> = ({
-  at,
-  dur = 12,
-  intensity = 0.95,
+const Halftone: React.FC<{ opacity?: number; speed?: number }> = ({
+  opacity = 0.07,
+  speed = 1,
 }) => {
   const frame = useCurrentFrame();
-  const t = frame - at;
-  if (t < 0 || t > dur) return null;
-  const op = interpolate(t, [0, 2, dur], [0, intensity, 0]);
-  return <AbsoluteFill style={{ background: WHITE, opacity: op }} />;
+  const tx = interpolate(frame, [0, 240], [0, -180 * speed]);
+  const ty = interpolate(frame, [0, 240], [0, 90 * speed]);
+  return (
+    <AbsoluteFill
+      style={{
+        opacity,
+        pointerEvents: "none",
+        backgroundImage:
+          "radial-gradient(rgba(255,255,255,0.9) 1.1px, transparent 1.4px)",
+        backgroundSize: "16px 16px",
+        backgroundPosition: `${tx}px ${ty}px`,
+        mixBlendMode: "screen",
+      }}
+    />
+  );
 };
 
-const KineticInk: React.FC<{ from: number }> = ({ from }) => {
+// Drifting ink particles
+const InkParticles: React.FC<{ count?: number }> = ({ count = 26 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const local = frame - from;
-  if (local < 0) return null;
-
-  const letters = ["I", "N", "K"];
   return (
-    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
-      <div style={{ display: "flex", gap: 24 }}>
-        {letters.map((ch, i) => {
-          const delay = i * 5;
-          const sp = spring({
-            frame: local - delay,
-            fps,
-            config: { damping: 12, stiffness: 140, mass: 0.8 },
-          });
-          const y = interpolate(sp, [0, 1], [180, 0]);
-          const op = interpolate(sp, [0, 1], [0, 1]);
-          const skew = interpolate(sp, [0, 1], [-18, 0]);
-          const blur = interpolate(sp, [0, 1], [10, 0]);
-          return (
-            <span
-              key={i}
-              style={{
-                fontFamily: bangers,
-                fontSize: 520,
-                color: BONE,
-                letterSpacing: "0.02em",
-                lineHeight: 0.9,
-                transform: `translateY(${y}px) skewY(${skew}deg)`,
-                opacity: op,
-                filter: `blur(${blur}px)`,
-                WebkitTextStroke: `4px ${RED}`,
-                textShadow: `0 0 30px rgba(255,31,58,0.45), 6px 8px 0 ${RED_DEEP}`,
-              }}
-            >
-              {ch}
-            </span>
-          );
-        })}
-      </div>
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      {Array.from({ length: count }).map((_, i) => {
+        const seed = i + 1;
+        const x = random(`x-${seed}`) * 1920;
+        const yStart = random(`y-${seed}`) * 1080;
+        const size = 2 + random(`s-${seed}`) * 6;
+        const drift = interpolate(frame, [0, 240], [0, 80 + random(`d-${seed}`) * 120]);
+        const y = (yStart + drift) % 1080;
+        const op = 0.15 + random(`o-${seed}`) * 0.35;
+        const isRed = random(`c-${seed}`) > 0.65;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: x,
+              top: y,
+              width: size,
+              height: size,
+              borderRadius: "50%",
+              background: isRed ? RED : CREAM,
+              opacity: op,
+              filter: "blur(0.5px)",
+              boxShadow: isRed ? `0 0 8px ${RED}` : "none",
+            }}
+          />
+        );
+      })}
     </AbsoluteFill>
   );
 };
 
-// Splatters anchored under the INK word
-const SideSplats: React.FC<{ from: number }> = ({ from }) => {
+// ────────────────────────── Scene 1 — Cinematic ink fall ──────────────────────────
+// A single ink drop falls in slow-mo, hits a surface, ripples outward, splashes red.
+const Scene1: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const local = frame - from;
-  if (local < 0) return null;
-  const splats = [
-    { x: 260, y: 760, s: 280, d: 0, color: RED },
-    { x: 1620, y: 240, s: 320, d: 4, color: RED_DEEP },
-    { x: 1700, y: 820, s: 260, d: 8, color: RED },
-    { x: 220, y: 220, s: 240, d: 12, color: RED_DEEP },
-  ];
+
+  // Slow build → impact at frame 32
+  const dropY = interpolate(frame, [0, 32], [-500, 620], {
+    extrapolateRight: "clamp",
+    easing: Easing.bezier(0.5, 0, 0.85, 0.15),
+  });
+  const dropStretch = interpolate(frame, [0, 30], [1, 1.8], { extrapolateRight: "clamp" });
+  const dropOpacity = frame < 33 ? 1 : 0;
+
+  // Impact flash
+  const flash = interpolate(frame, [32, 36, 50], [0, 1, 0], { extrapolateRight: "clamp" });
+
+  // Shockwave (multi-ring)
+  const ring = (delay: number, color: string) => {
+    const s = spring({ frame: frame - 32 - delay, fps, config: { damping: 22, stiffness: 60 } });
+    const op = interpolate(frame, [32 + delay, 70 + delay], [0.9, 0], { extrapolateRight: "clamp" });
+    return { scale: s * 40, opacity: op, color };
+  };
+  const r1 = ring(0, RED);
+  const r2 = ring(4, CREAM);
+  const r3 = ring(8, RED_DEEP);
+
+  // Splat splash
+  const splat = spring({ frame: frame - 32, fps, config: { damping: 14, stiffness: 120 } });
+
+  // Camera zoom-in at the very end as we cut
+  const zoom = interpolate(frame, [40, 70], [1, 1.25], { extrapolateRight: "clamp" });
+
   return (
-    <>
-      {splats.map((s, i) => {
-        const sp = spring({
-          frame: local - s.d,
-          fps,
-          config: { damping: 10, stiffness: 150, mass: 0.7 },
-        });
-        const scale = interpolate(sp, [0, 1], [0, 1]);
-        const rot = interpolate(sp, [0, 1], [-30, 0]);
-        return (
-          <svg
+    <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 70%, #1a0306 0%, ${BG} 60%)` }}>
+      <Halftone opacity={0.05} />
+      <InkParticles count={20} />
+
+      <AbsoluteFill style={{ transform: `scale(${zoom})`, transformOrigin: "50% 60%" }}>
+        {/* Flash */}
+        <AbsoluteFill style={{ backgroundColor: CREAM, opacity: flash * 0.6, mixBlendMode: "screen" }} />
+
+        {/* Falling drop with motion blur tail */}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: 0,
+            transform: `translate(-50%, ${dropY}px) scaleY(${dropStretch}) scaleX(${1 / Math.sqrt(dropStretch)})`,
+            width: 56,
+            height: 96,
+            background: `linear-gradient(180deg, ${RED} 0%, ${RED_DEEP} 100%)`,
+            borderRadius: "50% 50% 50% 50% / 30% 30% 70% 70%",
+            boxShadow: `0 0 80px ${RED}cc, 0 0 30px ${RED}`,
+            opacity: dropOpacity,
+          }}
+        />
+
+        {/* Shock rings */}
+        {[r1, r2, r3].map((r, i) => (
+          <div
             key={i}
-            width={s.s}
-            height={s.s}
-            viewBox="-50 -50 100 100"
             style={{
               position: "absolute",
-              left: s.x - s.s / 2,
-              top: s.y - s.s / 2,
-              transform: `scale(${scale}) rotate(${rot}deg)`,
+              left: "50%",
+              top: "62%",
+              width: 40,
+              height: 40,
+              marginLeft: -20,
+              marginTop: -20,
+              borderRadius: "50%",
+              border: `4px solid ${r.color}`,
+              transform: `scale(${r.scale})`,
+              opacity: r.opacity,
             }}
-          >
-            <g fill={s.color}>
-              <circle cx={0} cy={0} r={30} />
-              <circle cx={28} cy={-10} r={8} />
-              <circle cx={-26} cy={-18} r={10} />
-              <circle cx={-32} cy={14} r={6} />
-              <circle cx={22} cy={22} r={7} />
-              <circle cx={-12} cy={36} r={5} />
-            </g>
-          </svg>
-        );
-      })}
-    </>
+          />
+        ))}
+
+        {/* Splat */}
+        <svg
+          viewBox="0 0 1024 900"
+          width={1300}
+          height={1100}
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "62%",
+            transform: `translate(-50%, -50%) scale(${splat})`,
+            transformOrigin: "center",
+          }}
+        >
+          <defs>
+            <radialGradient id="splatG" cx="50%" cy="45%" r="60%">
+              <stop offset="0%" stopColor={RED} />
+              <stop offset="70%" stopColor={RED} />
+              <stop offset="100%" stopColor={RED_DEEP} />
+            </radialGradient>
+          </defs>
+          <path
+            d="M512,160 C620,160 720,200 770,280 C840,270 900,330 880,400 C940,440 940,540 870,580 C880,660 800,720 720,700 C700,780 560,810 480,740 C390,810 260,760 270,660 C180,640 160,530 230,480 C190,400 260,320 350,330 C390,240 470,160 512,160 Z"
+            fill="url(#splatG)"
+          />
+          {/* outer droplets */}
+          {Array.from({ length: 14 }).map((_, i) => {
+            const a = (i / 14) * Math.PI * 2 + 0.3;
+            const r = 380 + (i % 4) * 50;
+            const x = 512 + Math.cos(a) * r;
+            const y = 460 + Math.sin(a) * r;
+            return <circle key={i} cx={x} cy={y} r={18 + (i % 3) * 14} fill={RED} />;
+          })}
+          {/* glossy highlight */}
+          <ellipse cx={460} cy={360} rx={90} ry={32} fill={CREAM} opacity={0.22} />
+        </svg>
+      </AbsoluteFill>
+    </AbsoluteFill>
   );
 };
 
-// ---------------------------------------------------------------------
-// SCENE 3 — Logo reveal "MIMIC MASTER" with clip-path + "INK MODE" plate
-// ---------------------------------------------------------------------
-const LogoReveal: React.FC<{ from: number }> = ({ from }) => {
+// ────────────────────────── Scene 2 — Ink wipes & secret-society glyphs ──────────────────────────
+const Scene2: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const local = frame - from;
-  if (local < 0) return null;
 
-  // clip-path wipe from top to bottom
-  const wipeT = interpolate(local, [0, 28], [0, 100], {
-    easing: Easing.out(Easing.cubic),
-    extrapolateRight: "clamp",
-  });
-  const scale = interpolate(local, [0, 60], [1.04, 1], {
-    easing: Easing.out(Easing.cubic),
-    extrapolateRight: "clamp",
-  });
-  // gentle breathing forever
-  const breathe = 1 + Math.sin(local / 22) * 0.008;
-
-  // subtitle slam
-  const subSp = spring({ frame: local - 30, fps, config: { damping: 10, stiffness: 130 } });
-  const subScale = interpolate(subSp, [0, 1], [0, 1]);
-  const subRot = interpolate(local - 30, [0, 12, 24, 36], [-6, 3, -1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  // underline draw
-  const underline = interpolate(local, [44, 70], [0, 1], {
-    easing: Easing.out(Easing.cubic),
-    extrapolateRight: "clamp",
-  });
-
-  return (
-    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
+  // Three brush strokes wipe across screen
+  const stroke = (idx: number, rot: number, color: string, y: string) => {
+    const start = idx * 5;
+    const wipe = interpolate(frame, [start, start + 18], [-110, 110], {
+      extrapolateRight: "clamp",
+      easing: Easing.bezier(0.2, 0.7, 0.2, 1),
+    });
+    return (
       <div
+        key={idx}
         style={{
-          transform: `scale(${scale * breathe})`,
-          transformOrigin: "center",
-          textAlign: "center",
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: y,
+          height: 180,
+          transform: `rotate(${rot}deg)`,
+          overflow: "hidden",
         }}
       >
         <div
           style={{
-            fontFamily: inter,
-            fontWeight: 900,
-            fontSize: 220,
-            color: BONE,
-            letterSpacing: "-0.04em",
-            lineHeight: 0.92,
-            clipPath: `inset(0 0 ${100 - wipeT}% 0)`,
-            textShadow: `0 6px 0 ${RED_DEEP}, 0 0 60px rgba(255,31,58,0.25)`,
+            position: "absolute",
+            inset: 0,
+            background: `linear-gradient(90deg, transparent 0%, ${color} 15%, ${color} 85%, transparent 100%)`,
+            transform: `translateX(${wipe}%)`,
+            filter: "url(#roughen)",
           }}
-        >
-          MIMIC<br />MASTER
-        </div>
+        />
+      </div>
+    );
+  };
 
-        {/* underline */}
-        <svg width={620} height={20} style={{ display: "block", margin: "18px auto 0" }}>
-          <line
-            x1={10}
-            y1={10}
-            x2={10 + 600 * underline}
-            y2={10}
-            stroke={RED}
+  // Glyph reveal
+  const glyphScale = spring({ frame: frame - 20, fps, config: { damping: 14, stiffness: 120 } });
+  const glyphRot = interpolate(frame, [20, 60], [-15, 6]);
+
+  // Word "MIMIC" sliding in
+  const wordX = spring({ frame: frame - 28, fps, config: { damping: 16, stiffness: 100 } });
+  const wordOpacity = interpolate(frame, [28, 38], [0, 1], { extrapolateRight: "clamp" });
+
+  return (
+    <AbsoluteFill style={{ background: BG }}>
+      <svg width={0} height={0} style={{ position: "absolute" }}>
+        <defs>
+          <filter id="roughen">
+            <feTurbulence type="fractalNoise" baseFrequency="0.02 0.6" numOctaves="2" seed="3" />
+            <feDisplacementMap in="SourceGraphic" scale="14" />
+          </filter>
+        </defs>
+      </svg>
+
+      <Halftone opacity={0.06} speed={1.5} />
+      <InkParticles count={18} />
+
+      {stroke(0, -8, RED_DEEP, "18%")}
+      {stroke(1, 4, RED, "44%")}
+      {stroke(2, -3, CREAM, "70%")}
+
+      {/* Central glyph — a stylized mask */}
+      <div
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: `translate(-50%, -50%) scale(${glyphScale}) rotate(${glyphRot}deg)`,
+        }}
+      >
+        <svg viewBox="0 0 200 240" width={420} height={500}>
+          {/* mask outline */}
+          <path
+            d="M100,20 C150,20 180,60 180,120 C180,180 150,220 100,220 C50,220 20,180 20,120 C20,60 50,20 100,20 Z"
+            fill={CREAM}
+            stroke={INK}
             strokeWidth={6}
-            strokeLinecap="round"
           />
+          {/* eyes */}
+          <path d="M55,100 Q72,82 90,100 Q72,118 55,100 Z" fill={INK} />
+          <path d="M110,100 Q128,82 145,100 Q128,118 110,100 Z" fill={INK} />
+          <circle cx="73" cy="100" r="6" fill={RED} />
+          <circle cx="128" cy="100" r="6" fill={RED} />
+          {/* mouth — a crack */}
+          <path d="M70,170 L100,160 L130,170 L115,180 L100,172 L85,180 Z" fill={INK} />
+          {/* red mark across forehead */}
+          <rect x="40" y="55" width="120" height="10" fill={RED} transform="rotate(-4 100 60)" />
         </svg>
+      </div>
 
-        <div
-          style={{
-            marginTop: 28,
-            display: "inline-block",
-            transform: `scale(${subScale}) rotate(${subRot}deg)`,
-            fontFamily: inter,
-            fontWeight: 700,
-            fontSize: 32,
-            color: BLACK,
-            letterSpacing: "0.5em",
-            textTransform: "uppercase",
-            padding: "12px 30px 10px 36px",
-            background: RED,
-            borderRadius: 2,
-            boxShadow: `6px 6px 0 ${BONE}`,
-          }}
-        >
-          INK MODE
-        </div>
+      {/* MIMIC word in corner */}
+      <div
+        style={{
+          position: "absolute",
+          left: "8%",
+          bottom: "12%",
+          fontFamily: ANTON,
+          fontSize: 90,
+          color: CREAM,
+          letterSpacing: 6,
+          transform: `translateX(${interpolate(wordX, [0, 1], [-200, 0])}px)`,
+          opacity: wordOpacity,
+        }}
+      >
+        WHO IS THE
+        <div style={{ color: RED, fontSize: 140, lineHeight: 0.9, marginTop: 6 }}>MIMIC?</div>
       </div>
     </AbsoluteFill>
   );
 };
 
-// ---------------------------------------------------------------------
-// Drifting ink particles — ambient layer, runs the whole video
-// ---------------------------------------------------------------------
-const DriftingInk: React.FC = () => {
+// ────────────────────────── Scene 3 — Title reveal "MIMIC MASTER" ──────────────────────────
+const Letter: React.FC<{
+  char: string;
+  delay: number;
+  color: string;
+  stroke?: string;
+  shadow?: string;
+}> = ({ char, delay, color, stroke = INK, shadow }) => {
   const frame = useCurrentFrame();
-  const dots = React.useMemo(
-    () =>
-      new Array(34).fill(0).map((_, i) => ({
-        x: random(`dx${i}`) * 1920,
-        y: random(`dy${i}`) * 1080,
-        r: 1.5 + random(`dr${i}`) * 4,
-        sp: 0.25 + random(`ds${i}`) * 0.55,
-        ph: random(`dp${i}`) * Math.PI * 2,
-      })),
-    []
-  );
+  const { fps } = useVideoConfig();
+  const s = spring({
+    frame: frame - delay,
+    fps,
+    config: { damping: 9, stiffness: 170, mass: 0.9 },
+  });
+  const drop = interpolate(s, [0, 1], [-240, 0]);
+  const rot = interpolate(s, [0, 1], [-22, 0]);
+  const scale = interpolate(s, [0, 0.55, 1], [1.5, 0.94, 1]);
   return (
-    <svg width={1920} height={1080} style={{ position: "absolute", inset: 0 }}>
-      {dots.map((d, i) => {
-        const y = (d.y - frame * d.sp + 1080) % 1080;
-        const op = 0.18 + 0.22 * Math.sin(frame / 22 + d.ph);
-        return <circle key={i} cx={d.x} cy={y} r={d.r} fill={RED} opacity={op} />;
-      })}
-    </svg>
+    <span
+      style={{
+        display: "inline-block",
+        transform: `translateY(${drop}px) rotate(${rot}deg) scale(${scale})`,
+        color,
+        WebkitTextStroke: `3px ${stroke}`,
+        textShadow: shadow,
+        margin: "0 4px",
+      }}
+    >
+      {char}
+    </span>
   );
 };
 
-// ---------------------------------------------------------------------
-// MAIN
-// Timeline (30fps, 240f = 8s):
-//   0–60   : SCENE 1 — drop + ink strike
-//   55     : white flash
-//   60–130 : SCENE 2 — kinetic "INK" + side splats
-//   135    : white flash punch
-//   140–240: SCENE 3 — logo reveal + breathing hold
-// ---------------------------------------------------------------------
-export const MainVideo: React.FC = () => {
+const Scene3: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // ---------- SCENE 1 (0–60): brush stroke sweep ----------
-  const brush = interpolate(frame, [4, 46], [0, 1], {
-    easing: Easing.bezier(0.7, 0, 0.3, 1),
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const brushOpacity = interpolate(frame, [0, 6, 56, 70], [0, 1, 1, 0]);
-  const brushLen = 1700;
+  // Impact whitewash on slam
+  const slamFlash = interpolate(frame, [0, 4, 16], [0, 0.85, 0], { extrapolateRight: "clamp" });
+  // Camera shake first 18 frames
+  const shake = frame < 18 ? Math.sin(frame * 1.6) * 8 : Math.sin(frame / 4) * 1.5;
 
-  // brush drips
-  const drips = React.useMemo(
-    () =>
-      new Array(7).fill(0).map((_, i) => ({
-        x: 180 + i * 230 + random(`dx${i}`) * 60,
-        d: 8 + i * 4,
-        h: 60 + random(`dh${i}`) * 80,
-        r: 6 + random(`dr${i}`) * 6,
-      })),
-    []
-  );
+  // Plate (subtitle ribbon) drops in
+  const plate = spring({ frame: frame - 26, fps, config: { damping: 14, stiffness: 140 } });
+  const plateY = interpolate(plate, [0, 1], [120, 0]);
 
-  // ---------- SCENE 2 (44–110): paint splash impact ----------
-  const splashSp = spring({
-    frame: frame - 50,
-    fps,
-    config: { damping: 11, stiffness: 130, mass: 0.7 },
-  });
-  const splashScale = interpolate(splashSp, [0, 1], [0, 1]);
-  const splashRot = interpolate(frame, [50, 210], [0, 14]);
+  // Radial burst
+  const burstOp = interpolate(frame, [2, 10, 70], [0, 0.55, 0.18]);
 
-  // Shockwave ring at impact
-  const ringT = (frame - 50) / 36;
-  const ringR = interpolate(ringT, [0, 1], [40, 1100], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const ringOp = interpolate(ringT, [0, 0.08, 1], [0, 0.9, 0]);
+  const word1 = "MIMIC";
+  const word2 = "MASTER";
 
-  // INK word in white-on-red splash
-  const inkSp = spring({
-    frame: frame - 62,
-    fps,
-    config: { damping: 12, stiffness: 160 },
-  });
-  const inkScale = interpolate(inkSp, [0, 1], [1.4, 1]);
-  const inkOp = interpolate(frame, [62, 70, 118, 128], [0, 1, 1, 0]);
-  const inkShake = Math.sin(frame * 0.9) * interpolate(frame, [62, 78, 110], [6, 1.2, 0]);
-
-  // ---------- SCENE 3 (120–210): logo reveal ----------
-  const wipe = interpolate(frame, [126, 158], [0, 100], {
-    easing: Easing.out(Easing.cubic),
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const titleBreathe = 1 + Math.sin((frame - 120) / 24) * 0.01;
-  const titleY = interpolate(frame, [120, 158], [40, 0], {
-    easing: Easing.out(Easing.cubic),
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  const underline = interpolate(frame, [156, 184], [0, 1], {
-    easing: Easing.out(Easing.cubic),
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  const plateSp = spring({
-    frame: frame - 170,
-    fps,
-    config: { damping: 10, stiffness: 140 },
-  });
-  const plateScale = interpolate(plateSp, [0, 1], [0, 1]);
-  const plateRot = interpolate(frame - 170, [0, 12, 28, 50], [-8, 4, -1.5, -1.5], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  // Persistent splash visible during scene 3 (smaller, behind text)
-  const splashFade = interpolate(frame, [110, 130, 210], [1, 0.55, 0.55], {
-    extrapolateRight: "clamp",
-  });
-
+  // Floating embers in red
   return (
-    <AbsoluteFill style={{ background: BLACK }}>
-      <Backdrop />
-      <DriftingInk />
+    <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 55%, #1a0205 0%, ${BG} 70%)` }}>
+      <Halftone opacity={0.05} />
+      <InkParticles count={30} />
 
-      {/* SCENE 1 — brush stroke sweep */}
-      {frame < 70 && (
-        <AbsoluteFill style={{ opacity: brushOpacity }}>
-          <svg width={1920} height={1080} style={{ position: "absolute", inset: 0 }}>
-            <defs>
-              <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
-                <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" />
-                <feDisplacementMap in="SourceGraphic" scale="6" />
-              </filter>
-            </defs>
-            <path
-              d="M 110 560 C 500 460, 900 660, 1810 520"
-              stroke={RED}
-              strokeWidth={92}
-              strokeLinecap="round"
-              fill="none"
-              strokeDasharray={brushLen}
-              strokeDashoffset={brushLen * (1 - brush)}
-              filter="url(#rough)"
+      {/* Splash backdrop — leftover from scene 2 */}
+      <AbsoluteFill style={{ backgroundColor: CREAM, opacity: slamFlash, mixBlendMode: "screen" }} />
+
+      {/* Radial burst */}
+      <svg
+        viewBox="-200 -200 400 400"
+        preserveAspectRatio="xMidYMid slice"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: burstOp }}
+      >
+        {Array.from({ length: 28 }).map((_, i) => {
+          const a = (i / 28) * Math.PI * 2;
+          const r1 = 50;
+          const r2 = 420;
+          return (
+            <line
+              key={i}
+              x1={Math.cos(a) * r1}
+              y1={Math.sin(a) * r1}
+              x2={Math.cos(a) * r2}
+              y2={Math.sin(a) * r2}
+              stroke={i % 3 === 0 ? RED : RED_DEEP}
+              strokeWidth={i % 2 === 0 ? 8 : 4}
             />
-            {/* drips */}
-            {drips.map((d, i) => {
-              const t = interpolate(frame, [d.d, d.d + 30], [0, 1], {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-              });
-              return (
-                <g key={i}>
-                  <rect
-                    x={d.x - 3}
-                    y={560}
-                    width={6}
-                    height={d.h * t}
-                    fill={RED}
-                  />
-                  <circle cx={d.x} cy={560 + d.h * t} r={d.r * t} fill={RED} />
-                </g>
-              );
-            })}
-          </svg>
-        </AbsoluteFill>
-      )}
+          );
+        })}
+      </svg>
 
-      {/* SCENE 2 — shockwave + central splash */}
-      {frame >= 48 && frame < 130 && ringT > 0 && ringT < 1 && (
-        <svg width={1920} height={1080} style={{ position: "absolute", inset: 0 }}>
-          <circle
-            cx={960}
-            cy={540}
-            r={ringR}
-            fill="none"
-            stroke={RED}
-            strokeWidth={interpolate(ringT, [0, 1], [12, 1])}
-            opacity={ringOp}
-          />
-        </svg>
-      )}
+      {/* Big paint splash behind title */}
+      <svg
+        viewBox="0 0 1024 600"
+        width={1700}
+        height={1000}
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: `translate(-50%, -50%) scale(${spring({
+            frame: frame - 2,
+            fps,
+            config: { damping: 18, stiffness: 90 },
+          })})`,
+        }}
+      >
+        <path
+          d="M120,300 C180,180 360,140 512,180 C660,140 860,180 920,300 C880,420 700,460 512,420 C320,460 160,420 120,300 Z"
+          fill={RED_DEEP}
+          opacity={0.85}
+        />
+      </svg>
 
-      {frame >= 48 && (
-        <svg
-          width={1400}
-          height={1400}
-          viewBox="-700 -700 1400 1400"
+      {/* Title block */}
+      <AbsoluteFill
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          transform: `translate(${shake}px, ${shake / 2}px)`,
+        }}
+      >
+        <div
           style={{
-            position: "absolute",
-            left: 960 - 700,
-            top: 540 - 700,
-            transform: `scale(${splashScale * (frame >= 120 ? 0.85 : 1)}) rotate(${splashRot}deg)`,
-            transformOrigin: "center",
-            opacity: splashFade,
+            fontFamily: CINZEL,
+            fontWeight: 900,
+            fontSize: 200,
+            lineHeight: 0.95,
+            color: CREAM,
+            letterSpacing: 6,
           }}
         >
-          <g fill={RED}>
-            <path d="M-220,-80 C-320,-260 -100,-360 80,-300 C260,-380 440,-220 380,-50 C500,40 460,260 290,310 C180,460 -100,440 -220,300 C-400,280 -480,80 -340,-20 C-380,-100 -320,-150 -220,-80 Z" />
-            <circle cx={-440} cy={-260} r={32} />
-            <circle cx={480} cy={-300} r={26} />
-            <circle cx={-520} cy={140} r={22} />
-            <circle cx={540} cy={170} r={30} />
-            <circle cx={-360} cy={400} r={24} />
-            <circle cx={340} cy={440} r={18} />
-            <circle cx={-580} cy={-50} r={12} />
-            <circle cx={600} cy={30} r={14} />
-            <circle cx={140} cy={-450} r={16} />
-            <circle cx={-140} cy={490} r={13} />
-            <circle cx={-620} cy={260} r={9} />
-            <circle cx={620} cy={-180} r={10} />
-          </g>
-        </svg>
-      )}
+          {word1.split("").map((c, i) => (
+            <Letter
+              key={`a${i}`}
+              char={c}
+              delay={i * 2}
+              color={CREAM}
+              shadow={`0 6px 0 ${INK}, 0 0 40px rgba(0,0,0,0.8)`}
+            />
+          ))}
+        </div>
+        <div
+          style={{
+            fontFamily: CINZEL,
+            fontWeight: 900,
+            fontSize: 240,
+            lineHeight: 0.95,
+            color: RED,
+            letterSpacing: 8,
+            marginTop: -10,
+          }}
+        >
+          {word2.split("").map((c, i) => (
+            <Letter
+              key={`b${i}`}
+              char={c}
+              delay={12 + i * 2}
+              color={RED}
+              shadow={`0 8px 0 ${INK}, 0 0 60px ${RED}aa`}
+            />
+          ))}
+        </div>
 
-      {/* SCENE 2 — INK word on splash */}
-      {frame >= 60 && frame < 130 && (
-        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
-          <div
-            style={{
-              fontFamily: bangers,
-              fontSize: 480,
-              color: BONE,
-              letterSpacing: "0.04em",
-              lineHeight: 0.9,
-              opacity: inkOp,
-              transform: `scale(${inkScale}) translate(${inkShake}px, ${inkShake * 0.4}px)`,
-              WebkitTextStroke: `5px ${BLACK}`,
-              textShadow: `0 10px 0 ${BLACK}, 0 0 60px rgba(0,0,0,0.6)`,
-            }}
-          >
-            INK
-          </div>
-        </AbsoluteFill>
-      )}
+        {/* Subtitle plate */}
+        <div
+          style={{
+            marginTop: 36,
+            transform: `translateY(${plateY}px) rotate(-1.5deg)`,
+            opacity: plate,
+            background: INK,
+            color: CREAM,
+            fontFamily: ANTON,
+            fontSize: 36,
+            letterSpacing: 14,
+            padding: "14px 56px",
+            border: `3px solid ${RED}`,
+            boxShadow: `8px 8px 0 ${RED}`,
+          }}
+        >
+          INK&nbsp;MODE&nbsp;·&nbsp;CHAPTER&nbsp;ONE
+        </div>
+      </AbsoluteFill>
 
-      {/* SCENE 3 — logo reveal */}
-      {frame >= 120 && (
-        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
-          <div
-            style={{
-              transform: `translateY(${titleY}px) scale(${titleBreathe})`,
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontFamily: inter,
-                fontWeight: 900,
-                fontSize: 210,
-                color: BONE,
-                letterSpacing: "-0.045em",
-                lineHeight: 0.9,
-                clipPath: `inset(0 0 ${100 - wipe}% 0)`,
-                textShadow: `0 6px 0 ${RED_DEEP}, 0 0 80px rgba(255,31,58,0.25)`,
-              }}
-            >
-              MIMIC<br />MASTER
-            </div>
+      {/* Corner accent — POW! tag */}
+      <div
+        style={{
+          position: "absolute",
+          top: 90,
+          right: 130,
+          transform: `rotate(${-12 + Math.sin(frame / 5) * 4}deg) scale(${spring({
+            frame: frame - 22,
+            fps,
+            config: { damping: 10, stiffness: 200 },
+          })})`,
+          fontFamily: BANGERS,
+          fontSize: 130,
+          color: CREAM,
+          WebkitTextStroke: `5px ${INK}`,
+          textShadow: `8px 8px 0 ${RED}`,
+        }}
+      >
+        BOOM!
+      </div>
 
-            <svg width={620} height={20} style={{ display: "block", margin: "22px auto 0" }}>
-              <line
-                x1={10}
-                y1={10}
-                x2={10 + 600 * underline}
-                y2={10}
-                stroke={RED}
-                strokeWidth={7}
-                strokeLinecap="round"
-              />
-            </svg>
+      {/* Bottom signature */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 40,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          fontFamily: ANTON,
+          fontSize: 22,
+          letterSpacing: 18,
+          color: `${CREAM}80`,
+          opacity: interpolate(frame, [40, 70], [0, 1], { extrapolateRight: "clamp" }),
+        }}
+      >
+        A MIMICPOLY ORIGINAL
+      </div>
+    </AbsoluteFill>
+  );
+};
 
-            <div
-              style={{
-                marginTop: 30,
-                display: "inline-block",
-                transform: `scale(${plateScale}) rotate(${plateRot}deg)`,
-                fontFamily: inter,
-                fontWeight: 800,
-                fontSize: 34,
-                color: BLACK,
-                letterSpacing: "0.55em",
-                textTransform: "uppercase",
-                padding: "14px 32px 12px 40px",
-                background: RED,
-                borderRadius: 3,
-                boxShadow: `7px 7px 0 ${BONE}`,
-              }}
-            >
-              INK MODE
-            </div>
-          </div>
-        </AbsoluteFill>
-      )}
-
-      {/* Flashes */}
-      <Flash at={48} dur={10} intensity={0.85} />
-      <Flash at={122} dur={9} intensity={0.75} />
+// ────────────────────────── Main composition ──────────────────────────
+export const MainVideo: React.FC = () => {
+  return (
+    <AbsoluteFill style={{ background: BG }}>
+      <Sequence durationInFrames={70}>
+        <Scene1 />
+      </Sequence>
+      <Sequence from={70} durationInFrames={60}>
+        <Scene2 />
+      </Sequence>
+      <Sequence from={130} durationInFrames={110}>
+        <Scene3 />
+      </Sequence>
+      <Vignette />
+      <Grain />
     </AbsoluteFill>
   );
 };
