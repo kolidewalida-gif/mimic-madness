@@ -244,6 +244,15 @@ const MusicPlayerBarComponent = () => {
             </button>
 
             {/* controls */}
+            <button
+              onClick={() => setAutoMode(!autoMode)}
+              title={autoMode ? `Auto activé (${situation})` : 'Auto désactivé'}
+              className={cn('flex-shrink-0 flex items-center gap-1 px-2 h-8 rounded-lg text-[11px] font-black transition-all', autoMode ? 'text-white' : 'text-white/50 hover:text-white')}
+              style={{ background: autoMode ? 'linear-gradient(90deg,#a855f7,#22d3ee)' : 'rgba(255,255,255,0.06)', boxShadow: autoMode ? '0 0 12px rgba(168,85,247,0.5)' : 'none' }}
+            >
+              <Sparkles className="w-3.5 h-3.5" strokeWidth={2.5} />
+              <span className="hidden sm:inline">AUTO</span>
+            </button>
             <button onClick={() => setShuffle((s) => !s)} className={cn("hidden sm:flex w-8 h-8 rounded-lg items-center justify-center transition-colors", shuffle ? "text-purple-300" : "text-white/50 hover:text-white")}>
               <Shuffle className="w-4 h-4" />
             </button>
