@@ -35,7 +35,7 @@ import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { toast } from 'sonner';
-import { InkAnimatedBackground } from '@/components/InkAnimatedBackground';
+
 
 interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
