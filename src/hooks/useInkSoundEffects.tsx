@@ -72,7 +72,14 @@ const makeMasterGain = (ctx: AudioContext, baseVolume: number) => {
 
   const master = ctx.createGain();
   master.gain.value = baseVolume * globalVolume;
-  master.connect(compressor);
+  // Warm tone shaping: a gentle low-pass keeps highs soft & cozy so every
+  // sound feels rounded, premium and "ploop"-like rather than harsh.
+  const warm = ctx.createBiquadFilter();
+  warm.type = 'lowpass';
+  warm.frequency.value = 4800;
+  warm.Q.value = 0.4;
+  master.connect(warm);
+  warm.connect(compressor);
   return master;
 };
 
@@ -233,25 +240,24 @@ const createInkSound = (
     =========================================================== */
     case 'cartoonPop':
     case 'inkClick': {
-      // Chunky bubble pop: descending sine + sub thump + noise click + stereo width
-      sweepTone(ctx, master, now, 0.16, 680, 180, 'sine', 0.55);
-      // Sub thump for weight
-      tone(ctx, master, now, 0.08, 90, 'sine', 0.35, 0.003);
-      // High click transient
-      tone(ctx, master, now, 0.03, 2200, 'triangle', 0.28, 0.002);
-      // Noise texture
-      noiseBurst(ctx, master, now, 0.06, 'highpass', 1400, 2, 0.2);
-      // Subtle harmonic tail
-      tone(ctx, master, now + 0.04, 0.12, 440, 'sine', 0.08, 0.01);
+      // Warm rubbery "ploop": rounded sine drop + soft rebound bounce + cozy sub.
+      // Soft attack, smooth frequencies, satisfying and friendly — no harsh click.
+      sweepTone(ctx, master, now, 0.15, 560, 210, 'sine', 0.5, 0.012);
+      // Rubbery rebound (gentle bounce back up)
+      sweepTone(ctx, master, now + 0.055, 0.1, 210, 320, 'sine', 0.16, 0.01);
+      // Warm sub weight
+      tone(ctx, master, now, 0.09, 80, 'sine', 0.22, 0.008);
+      // Very soft rounded "lip" transient (no noise)
+      tone(ctx, master, now, 0.05, 1500, 'sine', 0.06, 0.006);
       break;
     }
 
     case 'brushTap':
     case 'inkHover':
     case 'inkDry': {
-      // Tiny tick — quick high blip
-      sweepTone(ctx, master, now, 0.07, 1400, 600, 'triangle', 0.22);
-      noiseBurst(ctx, master, now, 0.03, 'highpass', 2000, 1, 0.08);
+      // Tiny soft ploop — higher, quieter, quick rounded blip + micro rebound
+      sweepTone(ctx, master, now, 0.09, 880, 520, 'sine', 0.2, 0.008);
+      sweepTone(ctx, master, now + 0.035, 0.06, 520, 660, 'sine', 0.07, 0.006);
       break;
     }
 
@@ -360,10 +366,10 @@ const createInkSound = (
         tone(ctx, master, now + startOffset, 0.55, f * 1.002, 'sine', 0.12, 0.005, 8);
         tone(ctx, master, now + startOffset, 0.5, f * 2.003, 'sine', 0.06, 0.005, -6);
       });
-      // Percussive attack transient
-      noiseBurst(ctx, master, now, 0.035, 'highpass', 5000, 2, 0.22);
+      // Soft rounded attack (no harsh noise)
+      tone(ctx, master, now, 0.04, 2400, 'sine', 0.07, 0.006);
       // Sub warmth
-      tone(ctx, master, now, 0.15, 220, 'sine', 0.12, 0.005);
+      tone(ctx, master, now, 0.15, 220, 'sine', 0.12, 0.008);
       break;
     }
 
@@ -385,13 +391,13 @@ const createInkSound = (
         // Detuned shimmer
         tone(ctx, master, start, dur * 0.85, freq * 1.003, 'sine', vol * 0.15, 0.005, 5);
       });
-      // Big percussive hit on the final note
+      // Big warm hit on the final note (rounded, not harsh)
       const finalStart = now + 0.3;
-      noiseBurst(ctx, master, finalStart, 0.08, 'highpass', 4500, 2, 0.28);
-      tone(ctx, master, finalStart, 0.12, 110, 'sine', 0.25, 0.003); // sub punch
-      // Sparkle tail
+      tone(ctx, master, finalStart, 0.06, 1800, 'sine', 0.1, 0.006);
+      tone(ctx, master, finalStart, 0.14, 110, 'sine', 0.22, 0.006); // sub punch
+      // Sparkle tail (soft)
       [2093, 2637, 3136].forEach((f, i) => {
-        tone(ctx, master, now + 0.35 + i * 0.04, 0.35, f, 'sine', 0.06, 0.01);
+        tone(ctx, master, now + 0.35 + i * 0.04, 0.35, f, 'sine', 0.05, 0.012);
       });
       break;
     }
@@ -415,22 +421,15 @@ const createInkSound = (
     =========================================================== */
     case 'cartoonZap':
     case 'inkError': {
-      // Electric zap descend — more aggressive, multi-layer
-      // Main zap: fast descending sawtooth
-      sweepTone(ctx, master, now, 0.2, 1600, 60, 'sawtooth', 0.4);
-      // Secondary buzz
-      sweepTone(ctx, master, now + 0.015, 0.16, 1200, 50, 'square', 0.2);
-      // Crackle noise
-      noiseBurst(ctx, master, now, 0.18, 'bandpass', 2000, 5, 0.25, {
-        from: 4000,
-        to: 150,
-      });
-      // Sub punch for impact
-      tone(ctx, master, now, 0.1, 70, 'sine', 0.35, 0.003);
-      // Sad descending tail for error variant
+      // Soft rounded "aw" descend — warm and gentle, not harsh
+      sweepTone(ctx, master, now, 0.22, 520, 140, 'triangle', 0.34, 0.012);
+      // Warm sub for a little weight
+      tone(ctx, master, now, 0.1, 78, 'sine', 0.2, 0.008);
+      // Gentle low rumble texture (filtered, soft)
+      noiseBurst(ctx, master, now, 0.12, 'lowpass', 600, 1, 0.08, { from: 900, to: 200 });
       if (type === 'inkError') {
-        sweepTone(ctx, master, now + 0.15, 0.25, 400, 120, 'triangle', 0.15);
-        sweepTone(ctx, master, now + 0.2, 0.2, 300, 80, 'sine', 0.1);
+        // Soft sad two-note fall
+        sweepTone(ctx, master, now + 0.14, 0.26, 360, 130, 'sine', 0.18, 0.012);
       }
       break;
     }

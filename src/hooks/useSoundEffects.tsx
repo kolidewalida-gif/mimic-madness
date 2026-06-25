@@ -137,15 +137,17 @@ function playInkSound(
 
   switch (type) {
     case 'click': {
-      // Dry ink dot — tiny noise burst + low sine tap
-      inkNoise(ctx, tone, now, 0.05, 3500, 4, vol * 0.35);
-      inkBody(ctx, tone, now, 0.07, 720, 360, vol * 0.32);
+      // Warm rubbery "ploop" — rounded drop + soft rebound + cozy sub
+      inkBody(ctx, tone, now, 0.14, 560, 220, vol * 0.5, 'sine');
+      inkBody(ctx, tone, now + 0.05, 0.09, 220, 330, vol * 0.16, 'sine');
+      inkBody(ctx, tone, now, 0.08, 80, 80, vol * 0.22, 'sine');
       return true;
     }
     case 'pop': {
-      // Ink drop on paper — soft circular splash
-      inkBody(ctx, tone, now, 0.16, 520, 180, vol * 0.5, 'sine');
-      inkNoise(ctx, tone, now, 0.10, 1800, 2, vol * 0.25);
+      // Bigger warm ploop — satisfying bubble with gentle bounce
+      inkBody(ctx, tone, now, 0.17, 520, 190, vol * 0.55, 'sine');
+      inkBody(ctx, tone, now + 0.06, 0.1, 190, 300, vol * 0.18, 'sine');
+      inkBody(ctx, tone, now, 0.09, 75, 75, vol * 0.24, 'sine');
       return true;
     }
     case 'ding':
@@ -157,10 +159,11 @@ function playInkSound(
       return true;
     }
     case 'vote': {
-      // Decisive ink stroke — quick downward sweep with body
-      inkNoise(ctx, tone, now, 0.18, 2200, 3, vol * 0.45, 0.002);
-      inkBody(ctx, tone, now, 0.22, 540, 240, vol * 0.55, 'sine');
-      inkBody(ctx, tone, now, 0.20, 270, 140, vol * 0.35, 'triangle');
+      // Satisfying warm "ploop-thunk" — decisive but rounded & cozy
+      inkBody(ctx, tone, now, 0.2, 480, 170, vol * 0.55, 'sine');
+      inkBody(ctx, tone, now + 0.06, 0.12, 170, 280, vol * 0.2, 'sine');
+      inkBody(ctx, tone, now, 0.1, 70, 70, vol * 0.3, 'sine');
+      inkNoise(ctx, tone, now, 0.05, 1800, 2, vol * 0.12);
       return true;
     }
     case 'success':
