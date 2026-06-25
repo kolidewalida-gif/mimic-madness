@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { DeviceSettings } from '@/components/DeviceSettings';
 import { LobbyGameMode } from '@/lib/gameModes';
+import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
@@ -216,6 +217,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const prevModeIndexRef = useRef(1);
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
+  const { level } = usePlayerLevel();
   const isMuted = volume === 0;
   const {
     recent: recentLobbies,
@@ -343,7 +345,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       handler: () => {
         playInkSound('inkSuccess', 0.5);
         play();
-        onCreateGame(playerName.trim(), selectedMode.id);
+        onCreateGame(playerName.trim());
       },
       label: 'Lancer la partie',
     },
@@ -371,9 +373,9 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     if (playerName.trim()) {
       play();
       playInkSound('inkSuccess', 0.5);
-      onCreateGame(playerName.trim(), selectedMode.id);
+      onCreateGame(playerName.trim());
     }
-  }, [playerName, selectedMode.id, play, onCreateGame]);
+  }, [playerName, play, onCreateGame]);
 
   const handleJoinGame = useCallback(() => {
     if (playerName.trim() && lobbyCode.trim()) {
@@ -526,7 +528,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
-                Niveau 11
+                Niveau {level}
               </span>
               <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -629,103 +631,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
       {/* ============== MAIN CONTENT ============== */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar gap-4">
-        {/* HERO MODE BANNER */}
-        <AnimatePresence mode="wait" custom={modeDir}>
-          <motion.div
-            key={selectedMode.id}
-            custom={modeDir}
-            variants={{
-              enter: (dir: number) => ({
-                opacity: 0,
-                x: 320 * dir,
-                scale: 0.94,
-                rotate: dir * 1.5,
-              }),
-              center: {
-                opacity: 1,
-                x: 0,
-                scale: 1,
-                rotate: 0,
-              },
-              exit: (dir: number) => ({
-                opacity: 0,
-                x: -320 * dir,
-                scale: 0.94,
-                rotate: -dir * 1.5,
-              }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-            style={{
-              willChange: 'transform, opacity',
-              border: '4px solid #0a0810',
-              boxShadow:
-                '0 12px 0 #0a0810, 0 18px 40px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.08)',
-            }}
-            className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
-          >
-            {/* Custom banner image — falls back to gradient + icon if missing */}
-            <ImageWithFallback
-              src={selectedMode.bannerImageCandidates}
-              alt={selectedMode.name}
-              className="block w-full h-auto select-none"
-              fallback={
-                <div
-                  className="relative w-full p-6 md:p-8 flex items-center gap-5"
-                  style={{
-                    background: `linear-gradient(180deg, #0a0510 0%, #1a0d2e 50%, #0a0510 100%)`,
-                  }}
-                >
-                  {/* Glow halo */}
-                  <div
-                    className="absolute inset-0 opacity-40 pointer-events-none"
-                    style={{
-                      background: `radial-gradient(circle at 30% 50%, ${selectedMode.accent}55, transparent 60%)`,
-                    }}
-                  />
-                  {/* Icon badge */}
-                  <motion.div
-                    animate={{ rotate: [-3, 3, -3] }}
-                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                    className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                      background: selectedMode.fallbackColor,
-                      border: '3px solid #0a0810',
-                      boxShadow: `0 4px 0 #0a0810, 0 8px 20px ${selectedMode.fallbackColor}88`,
-                    }}
-                  >
-                    <span className="text-5xl">{selectedMode.fallbackEmoji}</span>
-                  </motion.div>
-
-                  <div className="relative flex-1 min-w-0">
-                    <h2
-                      className="text-4xl md:text-5xl font-black leading-none tracking-tight text-white"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        textShadow:
-                          '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810, 2px 2px 0 #0a0810',
-                      }}
-                    >
-                      {selectedMode.name.toUpperCase()}
-                    </h2>
-                    <p
-                      className="text-sm md:text-base text-white/85 font-bold mt-2 uppercase tracking-wider"
-                      style={{ fontFamily: "'Caveat', cursive" }}
-                    >
-                      {selectedMode.tagline}
-                    </p>
-                    <p className="text-xs md:text-sm text-white/70 mt-2 font-medium">
-                      {selectedMode.description}
-                    </p>
-                  </div>
-                </div>
-              }
-            />
-          </motion.div>
-        </AnimatePresence>
-
         {/* PSEUDO INPUT — discreet, just above the buttons */}
         <div className="w-full max-w-3xl">
           <div className="relative group">
@@ -862,86 +767,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           </motion.button>
         </div>
 
-        {/* MINI MODE CARDS ROW */}
-        <div className="w-full max-w-3xl">
-          <div className="grid grid-cols-7 gap-2">
-            {GAME_MODES.map((mode, idx) => {
-              const isActive = idx === modeIndex;
-              return (
-                <motion.button
-                  key={mode.id}
-                  onClick={() => {
-                    playInkSound('brushTap', 0.3);
-                    goToMode(idx);
-                  }}
-                  whileHover={{ y: -4, scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  animate={
-                    isActive
-                      ? { y: [0, -3, 0], transition: { duration: 1.6, repeat: Infinity } }
-                      : undefined
-                  }
-                  className="relative aspect-[3/4] rounded-2xl overflow-hidden group"
-                  style={{
-                    border: isActive ? '3.5px solid #fbbf24' : '3px solid #0a0810',
-                    boxShadow: isActive
-                      ? `0 0 24px ${mode.accent}cc, 0 6px 0 #0a0810`
-                      : '0 4px 0 #0a0810',
-                  }}
-                >
-                  {/* Card image with fallback */}
-                  <ImageWithFallback
-                    src={mode.cardImageCandidates}
-                    alt={mode.shortLabel}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    fallback={
-                      <div
-                        className="absolute inset-0 flex flex-col items-center justify-between p-1.5"
-                        style={{
-                          background: `linear-gradient(180deg, ${mode.fallbackColor}, ${mode.fallbackColor}cc)`,
-                        }}
-                      >
-                        <div className="flex-1 flex items-center justify-center">
-                          <span className="text-3xl">{mode.fallbackEmoji}</span>
-                        </div>
-                      </div>
-                    }
-                  />
-                  {/* Bottom label overlay */}
-                  <div
-                    className="absolute bottom-0 inset-x-0 px-1 py-1 text-center"
-                    style={{
-                      background:
-                        'linear-gradient(180deg, transparent, rgba(0,0,0,0.85))',
-                    }}
-                  >
-                    <div
-                      className="text-[10px] font-black text-white uppercase leading-tight tracking-wide"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        textShadow:
-                          '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810',
-                      }}
-                    >
-                      {mode.shortLabel}
-                    </div>
-                  </div>
-                  {/* Active checkmark */}
-                  {isActive && (
-                    <motion.div
-                      initial={{ scale: 0, rotate: -45 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 border-[3px] border-[#0a0810] flex items-center justify-center z-10"
-                      style={{ boxShadow: '0 3px 0 #0a0810' }}
-                    >
-                      <Check className="w-3 h-3 text-[#0a0810]" strokeWidth={4} />
-                    </motion.div>
-                  )}
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Mode selection removed — the host picks the mode in the lobby */}
       </main>
 
       {/* ============== BOTTOM UTILITY BAR ============== */}
