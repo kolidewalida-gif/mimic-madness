@@ -659,7 +659,16 @@ export const useUndercoverGame = (
     const currentTurnId = aliveOrder[game.current_player_index];
     const currentTurnPlayer = alivePlayers.find((player) => player.player_id === currentTurnId);
 
-    if (!currentTurnPlayer?.current_clue) {
+    // A player has spoken *for the current pass* only when they have a clue
+    // AND their archived history matches the current pass. This guards against
+    // a realtime race where the pass/index update lands before the previous
+    // pass's clues are cleared — which used to skip the first (left-most)
+    // player on pass 2.
+    const cluePass = (game as any).clue_pass ?? 0;
+    const histLen = currentTurnPlayer?.clue_history?.length ?? 0;
+    const spokenThisPass = Boolean(currentTurnPlayer?.current_clue) && histLen >= cluePass;
+
+    if (!spokenThisPass) {
       turnAdvanceLockRef.current = null;
       return;
     }
