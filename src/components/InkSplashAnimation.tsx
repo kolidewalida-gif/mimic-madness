@@ -32,26 +32,24 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
   /**
    * Schedule of SFX synced to the Remotion-rendered intro (195 frames @ 30fps ≈ 6.5s).
    * Scenes:
-   *   0.0–1.5s  → ink drop + SPLAT
-   *   1.5–2.8s  → masks slide in + face-swap pop
-   *   2.8–4.2s  → slash + ZAP + POW
-   *   4.2–6.5s  → page-slam title reveal + BAM + sparkles
+   *   0.0–2.3s  → slow-mo ink drop + impact SPLAT + shockwave
+   *   2.3–4.3s  → brush strokes wipe + mask glyph + "Who is the MIMIC?"
+   *   4.3–8.0s  → BOOM slam title "MIMIC MASTER" + plate + signature
    */
   const SFX_SCHEDULE: Array<{ t: number; sound: InkSoundType; volume: number }> = [
-    { t: 200,  sound: 'cartoonSwoosh', volume: 0.35 }, // ink drop falling
-    { t: 700,  sound: 'inkSplash',     volume: 0.6  }, // SPLAT!
-    { t: 900,  sound: 'cartoonPop',    volume: 0.4  }, // splat accent
-    { t: 1600, sound: 'cartoonSwoosh', volume: 0.4  }, // masks slide in
-    { t: 2200, sound: 'cartoonBoing',  volume: 0.45 }, // mask face-swap bounce
-    { t: 2500, sound: 'cartoonPop',    volume: 0.4  }, // mask snap
-    { t: 3200, sound: 'brushSwipe',    volume: 0.45 }, // slash
-    { t: 3500, sound: 'cartoonZap',    volume: 0.55 }, // ZAP!
-    { t: 3800, sound: 'cartoonPop',    volume: 0.5  }, // POW stamp
-    { t: 4400, sound: 'cartoonSwoosh', volume: 0.5  }, // page-slam incoming
-    { t: 4700, sound: 'cartoonBoing',  volume: 0.55 }, // title slam
-    { t: 4750, sound: 'inkSplash',     volume: 0.35 }, // BAM impact
-    { t: 5100, sound: 'cartoonFanfare',volume: 0.5  }, // title fanfare
-    { t: 5900, sound: 'cartoonDing',   volume: 0.4  }, // sparkle shimmer
+    { t: 100,  sound: 'cartoonSwoosh', volume: 0.4  }, // slow-mo drop falling
+    { t: 1050, sound: 'inkSplash',     volume: 0.7  }, // SPLAT impact
+    { t: 1100, sound: 'cartoonPop',    volume: 0.45 }, // shockwave accent
+    { t: 2350, sound: 'brushSwipe',    volume: 0.5  }, // brush stroke 1
+    { t: 2550, sound: 'brushSwipe',    volume: 0.45 }, // brush stroke 2
+    { t: 2750, sound: 'brushSwipe',    volume: 0.4  }, // brush stroke 3
+    { t: 3000, sound: 'cartoonBoing',  volume: 0.45 }, // mask reveal
+    { t: 3300, sound: 'cartoonPop',    volume: 0.45 }, // "MIMIC?" stamp
+    { t: 4350, sound: 'inkSplash',     volume: 0.55 }, // title slam BAM
+    { t: 4400, sound: 'cartoonBoing',  volume: 0.5  }, // letters bounce
+    { t: 5200, sound: 'cartoonPop',    volume: 0.45 }, // plate land
+    { t: 5300, sound: 'cartoonFanfare',volume: 0.5  }, // fanfare
+    { t: 6000, sound: 'cartoonDing',   volume: 0.4  }, // BOOM tag sparkle
   ];
 
   const scheduleSfx = () => {
