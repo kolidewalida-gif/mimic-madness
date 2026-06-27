@@ -150,7 +150,11 @@ const Scene1: React.FC = () => {
   const zoom = interpolate(frame, [40, 70], [1, 1.25], { extrapolateRight: "clamp" });
 
   return (
-    <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 70%, #1a0306 0%, ${BG} 60%)` }}>
+    <AbsoluteFill
+      style={{
+        background: `radial-gradient(ellipse 70% 55% at 50% 70%, ${PURPLE} 0%, ${NIGHT} 45%, ${VOID} 100%)`,
+      }}
+    >
       <Halftone opacity={0.05} />
       <InkParticles count={20} />
 
@@ -403,7 +407,11 @@ const Scene3: React.FC = () => {
 
   // Floating embers in red
   return (
-    <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 55%, #1a0205 0%, ${BG} 70%)` }}>
+    <AbsoluteFill
+      style={{
+        background: `radial-gradient(circle at 50% 55%, ${PURPLE} 0%, ${NIGHT} 40%, ${VOID} 80%)`,
+      }}
+    >
       <Halftone opacity={0.05} />
       <InkParticles count={30} />
 
