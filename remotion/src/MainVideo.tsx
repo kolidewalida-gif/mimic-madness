@@ -11,9 +11,11 @@ import {
 } from "remotion";
 import { loadFont as loadCinzel } from "@remotion/google-fonts/Cinzel";
 import { loadFont as loadAnton } from "@remotion/google-fonts/Anton";
+import { loadFont as loadBangers } from "@remotion/google-fonts/Bangers";
 
 const { fontFamily: CINZEL } = loadCinzel("normal", { weights: ["900"], subsets: ["latin"] });
 const { fontFamily: ANTON } = loadAnton("normal", { weights: ["400"], subsets: ["latin"] });
+const { fontFamily: BANGERS } = loadBangers("normal", { weights: ["400"], subsets: ["latin"] });
 
 // ─────────── Palette — Ink Mode: VIOLET / NOIR édition premium ───────────
 const VOID    = "#05010d"; // near-black with a violet undertone
