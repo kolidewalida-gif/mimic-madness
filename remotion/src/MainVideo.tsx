@@ -12,6 +12,7 @@ import {
 import { loadFont as loadCinzel } from "@remotion/google-fonts/Cinzel";
 import { loadFont as loadAnton } from "@remotion/google-fonts/Anton";
 import { loadFont as loadBangers } from "@remotion/google-fonts/Bangers";
+import { NebulaShader, ChromaShader } from "./ShaderLayer";
 
 const { fontFamily: CINZEL } = loadCinzel("normal", { weights: ["900"], subsets: ["latin"] });
 const { fontFamily: ANTON } = loadAnton("normal", { weights: ["400"], subsets: ["latin"] });
@@ -583,6 +584,8 @@ const Scene3: React.FC = () => {
 export const MainVideo: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: BG }}>
+      {/* WebGL shader backdrop — violet ink nebula across the whole intro */}
+      <NebulaShader opacity={0.55} intensity={1} />
       <Sequence durationInFrames={70}>
         <Scene1 />
       </Sequence>
@@ -592,6 +595,8 @@ export const MainVideo: React.FC = () => {
       <Sequence from={130} durationInFrames={110}>
         <Scene3 />
       </Sequence>
+      {/* WebGL shader overlay — chromatic streaks + grain bloom */}
+      <ChromaShader opacity={0.35} />
       <Vignette />
       <Grain />
     </AbsoluteFill>
