@@ -48,13 +48,13 @@ interface RoundInsight {
   fastestCorrectAnswer: QuizAnswer | null;
 }
 
-const COUNTDOWN_MS = 3500;
+const COUNTDOWN_MS = 3000;
 // Bug fix #5: max time to spend in countdown before fallback
-const COUNTDOWN_MAX_MS = 6000;
-const REVEAL_AUTO_ADVANCE_MS = 3500;
-const SCORES_AUTO_ADVANCE_MS = 4500;
-const REVEAL_WATCHDOG_MS = 6000;
-const SCORES_WATCHDOG_MS = 7000;
+const COUNTDOWN_MAX_MS = 5500;
+const REVEAL_AUTO_ADVANCE_MS = 2800;
+const SCORES_AUTO_ADVANCE_MS = 3500;
+const REVEAL_WATCHDOG_MS = 5500;
+const SCORES_WATCHDOG_MS = 6000;
 const HOST_FALLBACK_GRACE_MS = 1500;
 
 // Calculate points proportionally to total duration (max 10 base points)
@@ -132,6 +132,8 @@ export const useQuizGame = (
   const submittingRef = useRef(false);
   const startQuizLockRef = useRef(false);
   const startRoundLockRef = useRef(false);
+  // Prefetched next question so rounds 2+ start instantly (no AI wait).
+  const nextQuestionRef = useRef<QuizQuestion | null>(null);
   const countdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Bug fix #8: stable session ID for unique channel naming
   const sessionIdRef = useRef<string>(
@@ -502,12 +504,13 @@ export const useQuizGame = (
         return;
       }
 
-      const question = await generateQuestion(category);
+      // Use the prefetched question if we have one (instant), else generate now.
+      const question = nextQuestionRef.current ?? await generateQuestion(category);
+      nextQuestionRef.current = null;
       if (!question) return;
 
       // Insert new round (countdown phase)
-      const { error: insertError } = await supabase.from('quiz_rounds').insert({
-        lobby_id: lobbyId,
+      const { error: insertError } = await supabase.from('quiz_rounds').insert({        lobby_id: lobbyId,
         round_number: roundNum,
         question_text: question.question,
         correct_answer: question.answer,
@@ -526,6 +529,14 @@ export const useQuizGame = (
       if (insertError) {
         console.error('[Quiz] Failed to insert round:', insertError);
         return;
+      }
+
+      // Prefetch the next question in the background so the following round
+      // starts instantly (no AI generation wait between rounds).
+      if (roundNum < hostSettings.totalRounds) {
+        void generateQuestion(category).then((q) => {
+          if (q) nextQuestionRef.current = q;
+        });
       }
 
       // Bug fix #7: store the timeout ref so we can cancel on unmount
@@ -666,6 +677,7 @@ export const useQuizGame = (
 
       setCurrentRound(1);
       setPreviousQuestions([]);
+      nextQuestionRef.current = null;
       setCurrentStreak(0);
       setBestStreak(0);
       setScores(players.map(p => ({
