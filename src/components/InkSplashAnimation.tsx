@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import introVideo from '../../public/intro/ink-mode-intro.mp4.asset.json';
 
 interface InkSplashAnimationProps {
   onComplete: () => void;
@@ -17,6 +18,8 @@ interface InkSplashAnimationProps {
 export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
   const doneRef = useRef(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [videoEnded, setVideoEnded] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const reducedMotion =
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -48,17 +51,27 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
       tabIndex={0}
       aria-label="Appuie sur une touche pour continuer"
     >
-      {/* Intro artwork */}
-      <motion.img
-        src="/intro/ink-intro.png"
-        alt="Mimic Master"
-        onLoad={() => setImgLoaded(true)}
-        initial={{ opacity: 0, scale: 1.04 }}
-        animate={{ opacity: imgLoaded ? 1 : 0, scale: imgLoaded ? 1 : 1.04 }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
+      {/* Cinematic intro video */}
+      <video
+        ref={videoRef}
+        src={introVideo.url}
+        autoPlay
+        muted
+        playsInline
+        onLoadedData={() => setImgLoaded(true)}
+        onEnded={() => setVideoEnded(true)}
         className="absolute inset-0 h-full w-full object-cover"
-        draggable={false}
       />
+
+      {/* Final still — shown after video ends so the prompt has a clean backdrop */}
+      {videoEnded && (
+        <img
+          src="/intro/ink-intro.png"
+          alt="Mimic Master"
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+      )}
 
       {/* Subtle bottom gradient for text legibility */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -66,8 +79,8 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
       {/* Pulsing "press any key" prompt */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: imgLoaded ? 1 : 0, y: imgLoaded ? 0 : 16 }}
-        transition={{ delay: 0.6, duration: 0.5 }}
+        animate={{ opacity: videoEnded ? 1 : 0, y: videoEnded ? 0 : 16 }}
+        transition={{ duration: 0.5 }}
         className="relative z-10 mb-12 md:mb-16 text-center"
       >
         <motion.p
