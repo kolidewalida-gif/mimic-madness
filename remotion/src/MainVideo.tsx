@@ -7,6 +7,8 @@ import {
   useCurrentFrame,
   useVideoConfig,
   random,
+  Img,
+  staticFile,
 } from "remotion";
 import { loadFont as loadCinzel } from "@remotion/google-fonts/Cinzel";
 
