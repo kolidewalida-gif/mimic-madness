@@ -75,10 +75,10 @@ const difficultyConfig: Record<string, { color: string; bg: string; border: stri
 };
 
 const optionStyles = [
-  { bg: 'bg-gradient-to-br from-rose-600/40 to-rose-700/30', border: 'border-rose-500/60', hover: 'hover:from-rose-500/50 hover:to-rose-600/40 hover:border-rose-400', glow: 'shadow-rose-500/30', letter: 'A' },
-  { bg: 'bg-gradient-to-br from-sky-600/40 to-sky-700/30', border: 'border-sky-500/60', hover: 'hover:from-sky-500/50 hover:to-sky-600/40 hover:border-sky-400', glow: 'shadow-sky-500/30', letter: 'B' },
-  { bg: 'bg-gradient-to-br from-amber-600/40 to-amber-700/30', border: 'border-amber-500/60', hover: 'hover:from-amber-500/50 hover:to-amber-600/40 hover:border-amber-400', glow: 'shadow-amber-500/30', letter: 'C' },
-  { bg: 'bg-gradient-to-br from-emerald-600/40 to-emerald-700/30', border: 'border-emerald-500/60', hover: 'hover:from-emerald-500/50 hover:to-emerald-600/40 hover:border-emerald-400', glow: 'shadow-emerald-500/30', letter: 'D' }
+  { grad: 'linear-gradient(180deg, #f43f5e, #e11d48)', letter: 'A' },
+  { grad: 'linear-gradient(180deg, #0ea5e9, #0284c7)', letter: 'B' },
+  { grad: 'linear-gradient(180deg, #f59e0b, #d97706)', letter: 'C' },
+  { grad: 'linear-gradient(180deg, #10b981, #059669)', letter: 'D' },
 ];
 
 export const QuizQuestion = ({
@@ -201,15 +201,28 @@ export const QuizQuestion = ({
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-5 max-w-3xl mx-auto relative z-10">
         {/* Header with meta info */}
-        <div className="w-full flex items-center justify-between glass-ultra rounded-2xl px-5 py-3 animate-fadeInDown">
+        <div
+          className="w-full flex items-center justify-between rounded-2xl px-5 py-3 animate-fadeInDown"
+          style={{
+            background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
+            border: '3px solid #0a0810',
+            boxShadow: '0 4px 0 #0a0810',
+          }}
+        >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
-              <Brain className="h-5 w-5 text-primary" />
+            <div
+              className="p-2 rounded-xl"
+              style={{ background: 'linear-gradient(135deg, #84cc16, #65a30d)', border: '2.5px solid #0a0810' }}
+            >
+              <Brain className="h-5 w-5 text-white" strokeWidth={2.5} />
             </div>
             <div>
-              <span className="text-foreground-muted text-xs uppercase tracking-wider">Question</span>
-              <p className="font-display font-bold text-lg text-gradient">
-                {roundNumber}<span className="text-foreground-muted text-base">/{totalRounds}</span>
+              <span className="text-white/50 text-xs uppercase tracking-wider">Question</span>
+              <p
+                className="font-black text-2xl leading-none text-white"
+                style={{ fontFamily: "'Caveat', cursive" }}
+              >
+                {roundNumber}<span className="text-white/40 text-lg">/{totalRounds}</span>
               </p>
             </div>
           </div>
@@ -288,11 +301,18 @@ export const QuizQuestion = ({
         </div>
 
         {/* Question Card */}
-        <div className={cn(
-          "w-full card-premium p-6 text-center transition-all duration-500 animate-zoomInBounce",
-          isCritical && "border-destructive/50 shadow-glow-destructive"
-        )}>
-          <h2 className="text-xl md:text-2xl font-display font-bold leading-relaxed">
+        <div
+          className="w-full p-6 text-center transition-all duration-500 animate-zoomInBounce rounded-3xl"
+          style={{
+            background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 60%, #0f0820 100%)',
+            border: `4px solid ${isCritical ? '#ef4444' : '#0a0810'}`,
+            boxShadow: isCritical ? '0 6px 0 #0a0810, 0 0 24px #ef444466' : '0 6px 0 #0a0810',
+          }}
+        >
+          <h2
+            className="text-2xl md:text-3xl font-black leading-tight text-white"
+            style={{ fontFamily: "'Caveat', cursive", textShadow: '1.5px 1.5px 0 #0a0810' }}
+          >
             {question}
           </h2>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-foreground-secondary">
@@ -357,43 +377,52 @@ export const QuizQuestion = ({
                   onClick={() => handleSelectOption(option)}
                   disabled={hasAnswered || isHidden}
                   className={cn(
-                    "relative h-auto min-h-[90px] p-5 text-left",
-                    "border-2 rounded-2xl backdrop-blur-sm",
+                    "relative h-auto min-h-[90px] p-5 text-left rounded-2xl",
                     "transition-all duration-300 transform",
                     "flex items-center gap-4",
                     "animate-optionAppear",
-                    style.bg, style.border,
-                    !hasAnswered && !isHidden && cn(style.hover, "hover:scale-[1.02] hover:shadow-lg", style.glow, "active:scale-[0.98]"),
-                    isSelected && "ring-4 ring-primary/60 scale-[1.02] shadow-xl shadow-primary/30",
+                    !hasAnswered && !isHidden && "hover:scale-[1.03] active:scale-[0.97]",
+                    isSelected && "scale-[1.03]",
                     hasAnswered && !isSelected && "opacity-40 scale-95",
                     isHidden && "opacity-20 grayscale line-through"
                   )}
-                  style={{ animationDelay: `${index * 80}ms` }}
+                  style={{
+                    background: style.grad,
+                    border: `4px solid #0a0810`,
+                    boxShadow: isSelected
+                      ? '0 6px 0 #0a0810, 0 0 0 4px rgba(255,255,255,0.5)'
+                      : '0 5px 0 #0a0810',
+                    animationDelay: `${index * 80}ms`,
+                  }}
                 >
                   {/* Letter badge */}
-                  <div className={cn(
-                    "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
-                    "font-display font-black text-lg",
-                    "bg-white/10 border border-white/20"
-                  )}>
+                  <div
+                    className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-black text-xl text-white"
+                    style={{
+                      background: 'rgba(0,0,0,0.25)',
+                      border: '2.5px solid #0a0810',
+                      fontFamily: "'Caveat', cursive",
+                      textShadow: '1.5px 1.5px 0 #0a0810',
+                    }}
+                  >
                     {style.letter}
                   </div>
                   
                   {/* Option text */}
-                  <span className="text-base md:text-lg font-semibold line-clamp-3 flex-1">
+                  <span
+                    className="text-lg md:text-xl font-black line-clamp-3 flex-1 text-white"
+                    style={{ fontFamily: "'Caveat', cursive", textShadow: '1.5px 1.5px 0 #0a0810' }}
+                  >
                     {option}
                   </span>
-
-                  {!isSelected && !hasAnswered && !isHidden && (
-                    <div className="absolute top-2 right-2 rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-                      {style.letter}
-                    </div>
-                  )}
                   
                   {/* Selected checkmark */}
                   {isSelected && (
-                    <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-scaleIn">
-                      <Check className="h-4 w-4 text-white" />
+                    <div
+                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center animate-scaleIn"
+                      style={{ background: '#84cc16', border: '2.5px solid #0a0810', boxShadow: '0 2px 0 #0a0810' }}
+                    >
+                      <Check className="h-4 w-4 text-white" strokeWidth={3} />
                     </div>
                   )}
                 </button>
