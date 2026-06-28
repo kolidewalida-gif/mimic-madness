@@ -309,34 +309,136 @@ const Scene3: React.FC = () => {
 
 export const MainVideo: React.FC = () => {
   const frame = useCurrentFrame();
-  const outro = interpolate(frame, [255, 270], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const { fps } = useVideoConfig();
+  const outro = interpolate(frame, [195, 210], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // Hero image animations
+  const imgIn = interpolate(frame, [0, 35], [0, 1], { extrapolateRight: "clamp" });
+  const zoom = interpolate(frame, [0, 210], [1.18, 1.04]);
+  const pan = Math.sin(frame * 0.012) * 6;
+
+  // Light sweep across the artwork
+  const sweep = interpolate(frame, [40, 90], [-40, 140], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const sweepA = interpolate(frame, [40, 65, 90], [0, 0.55, 0]);
+
+  // Title reveal
+  const titleSpring = spring({ frame: frame - 95, fps, config: { damping: 14, stiffness: 110 } });
+  const titleY = interpolate(titleSpring, [0, 1], [60, 0]);
+  const titleA = interpolate(frame, [95, 115], [0, 1], { extrapolateRight: "clamp" });
+  const titleClip = interpolate(frame, [100, 140], [100, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // Ink splatter accents around title (delayed)
+  const splatA = interpolate(frame, [108, 130], [0, 1], { extrapolateRight: "clamp" });
+
+  // Subtitle plate
+  const subSpring = spring({ frame: frame - 140, fps, config: { damping: 16, stiffness: 130 } });
+  const subScale = interpolate(subSpring, [0, 1], [1.3, 1]);
+  const subA = interpolate(frame, [140, 158], [0, 1], { extrapolateRight: "clamp" });
+
+  // Flash on title slam
+  const flash = interpolate(frame, [95, 100, 110], [0, 0.7, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   return (
-    <AbsoluteFill style={{ background: VOID, overflow: "hidden", opacity: outro }}>
+    <AbsoluteFill style={{ background: "#000", overflow: "hidden", opacity: outro }}>
       <RoughInkDefs />
-      <BlackStage />
 
-      <Drift amount={0.7}>
-        <Dust />
+      {/* Hero artwork with Ken Burns */}
+      <AbsoluteFill
+        style={{
+          opacity: imgIn,
+          transform: `scale(${zoom}) translate(${pan}px, ${-pan * 0.6}px)`,
+        }}
+      >
+        <Img
+          src={staticFile("ink-intro.png")}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      </AbsoluteFill>
 
-        <Sequence from={0} durationInFrames={130}>
-          <Scene1 />
-        </Sequence>
+      {/* Atmospheric cover */}
+      <AbsoluteFill
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.9) 100%)",
+          pointerEvents: "none",
+        }}
+      />
 
-        <Sequence from={60} durationInFrames={210}>
-          <Scene2 />
-        </Sequence>
+      <Dust />
 
-        <Sequence from={180} durationInFrames={90}>
-          <Scene3 />
-        </Sequence>
-      </Drift>
+      {/* Diagonal light sweep */}
+      <AbsoluteFill style={{ pointerEvents: "none", opacity: sweepA, mixBlendMode: "screen" }}>
+        <div
+          style={{
+            position: "absolute",
+            top: "-30%",
+            left: `${sweep}%`,
+            width: "30%",
+            height: "160%",
+            background:
+              "linear-gradient(100deg, transparent 35%, rgba(255,235,200,0.85) 50%, transparent 65%)",
+            transform: "rotate(12deg)",
+            filter: "blur(20px)",
+          }}
+        />
+      </AbsoluteFill>
 
+      {/* Ink splatters flanking the title */}
+      <AbsoluteFill style={{ opacity: splatA }}>
+        <InkSplatter x={360} y={720} scale={0.65} delay={108} rot={-22} />
+        <InkSplatter x={1580} y={760} scale={0.6} delay={114} rot={38} />
+      </AbsoluteFill>
+
+      {/* Flash */}
+      <AbsoluteFill style={{ background: "rgba(255,240,210,1)", opacity: flash, mixBlendMode: "screen", pointerEvents: "none" }} />
+
+      {/* Title block */}
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-end", paddingBottom: 200 }}>
+        <div
+          style={{
+            transform: `translateY(${titleY}px)`,
+            opacity: titleA,
+            clipPath: `inset(0 ${titleClip}% 0 0)`,
+            fontFamily: CINZEL,
+            fontWeight: 900,
+            color: INK,
+            fontSize: 168,
+            letterSpacing: "0.06em",
+            textShadow: "0 6px 40px rgba(0,0,0,0.85), 0 0 30px rgba(255,220,180,0.25)",
+            filter: "url(#brushRough)",
+            lineHeight: 1,
+          }}
+        >
+          MIMIC MASTER
+        </div>
+
+        <div
+          style={{
+            marginTop: 28,
+            transform: `scale(${subScale}) rotate(-1deg)`,
+            opacity: subA,
+            padding: "10px 32px",
+            border: `3px solid ${RED}`,
+            background: "rgba(0,0,0,0.55)",
+            color: RED,
+            fontFamily: CINZEL,
+            fontWeight: 900,
+            fontSize: 30,
+            letterSpacing: "0.42em",
+            filter: "url(#brushRough)",
+            boxShadow: "0 0 60px rgba(179,37,37,0.4)",
+          }}
+        >
+          INK MODE · CHAPTER ONE
+        </div>
+      </AbsoluteFill>
+
+      {/* Persistent finishing layers */}
       <Halftone />
       <Chroma />
       <Vignette />
       <Flicker />
-      <Grain opacity={0.32} />
+      <Grain opacity={0.3} />
     </AbsoluteFill>
   );
 };
