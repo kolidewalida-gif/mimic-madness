@@ -463,16 +463,24 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           </div>
           <div className="text-left">
             <div className="flex items-center gap-1">
-              <span
-                className="text-lg font-black text-white leading-none truncate max-w-[110px]"
-                style={{
-                  fontFamily: "'Caveat', cursive",
-                  textShadow:
-                    '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-                }}
-              >
-                {profile?.display_name || 'Joueur'}
-              </span>
+              <ImageWithFallback
+                src={['/home/buttons/profil.png']}
+                alt="Profil"
+                className="h-6 w-auto select-none"
+                style={{ filter: 'drop-shadow(1px 2px 0 #0a0810)' }}
+                fallback={
+                  <span
+                    className="text-lg font-black text-white leading-none truncate max-w-[110px]"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                    }}
+                  >
+                    {profile?.display_name || 'Joueur'}
+                  </span>
+                }
+              />
               <Crown className="w-3.5 h-3.5 text-amber-400" fill="currentColor" />
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -529,51 +537,111 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           />
         </div>
 
-        {/* RIGHT — MES AMIS + SETTINGS */}
-        <div className="flex items-center gap-2">
+        {/* RIGHT — NAV BUTTONS (amis / social / paramètres) */}
+        <div className="flex items-center gap-2.5">
+          {/* MES AMIS */}
           <motion.button
             onClick={() => {
               playInkSound('inkClick', 0.3);
               setShowFriendsDrawer(true);
             }}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl"
-            style={{
-              background:
-                'linear-gradient(180deg, rgba(168,85,247,0.25), rgba(126,34,206,0.25))',
-              border: '2.5px solid #0a0810',
-              boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.1)',
-            }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative h-12 flex items-center"
+            style={{ filter: 'drop-shadow(0 4px 10px rgba(168,85,247,0.35))' }}
+            aria-label="Mes amis"
           >
-            <UsersRound className="w-4 h-4 text-white" />
-            <span
-              className="text-base font-black text-white uppercase tracking-wider"
-              style={{
-                fontFamily: "'Caveat', cursive",
-                textShadow:
-                  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-              }}
-            >
-              MES AMIS
-            </span>
+            <ImageWithFallback
+              src={['/home/buttons/friends.png']}
+              alt="Mes amis"
+              className="h-12 w-auto select-none"
+              fallback={
+                <div
+                  className="h-12 flex items-center gap-2 px-4 rounded-2xl"
+                  style={{
+                    background:
+                      'linear-gradient(180deg, rgba(168,85,247,0.25), rgba(126,34,206,0.25))',
+                    border: '2.5px solid #0a0810',
+                    boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <UsersRound className="w-4 h-4 text-white" />
+                  <span
+                    className="text-base font-black text-white uppercase tracking-wider"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow:
+                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                    }}
+                  >
+                    MES AMIS
+                  </span>
+                </div>
+              }
+            />
           </motion.button>
+
+          {/* SOCIAL */}
+          <motion.button
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              window.dispatchEvent(new CustomEvent('mimic:open-social'));
+            }}
+            whileHover={{ scale: 1.08, y: -2 }}
+            whileTap={{ scale: 0.94 }}
+            className="relative h-12 flex items-center"
+            style={{ filter: 'drop-shadow(0 4px 10px rgba(236,72,153,0.35))' }}
+            aria-label="Social"
+          >
+            <ImageWithFallback
+              src={['/home/buttons/social.png']}
+              alt="Social"
+              className="h-12 w-auto select-none"
+              fallback={
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
+                  style={{
+                    background:
+                      'linear-gradient(180deg, rgba(236,72,153,0.3), rgba(190,24,93,0.3))',
+                    border: '2.5px solid #0a0810',
+                    boxShadow: '0 4px 0 #0a0810',
+                  }}
+                >
+                  <Sparkles className="w-5 h-5" />
+                </div>
+              }
+            />
+          </motion.button>
+
+          {/* PARAMÈTRES */}
           <motion.button
             onClick={() => {
               playInkSound('inkClick', 0.3);
               setShowSettings(true);
             }}
-            whileHover={{ scale: 1.06, rotate: 90 }}
+            whileHover={{ scale: 1.08, rotate: 12 }}
             whileTap={{ scale: 0.94 }}
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-white"
-            style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: '2.5px solid #0a0810',
-              boxShadow: '0 4px 0 #0a0810',
-            }}
+            className="relative h-12 flex items-center"
+            style={{ filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.4))' }}
             aria-label="Paramètres"
           >
-            <Settings className="w-4.5 h-4.5" />
+            <ImageWithFallback
+              src={['/home/buttons/setting.png']}
+              alt="Paramètres"
+              className="h-12 w-auto select-none"
+              fallback={
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '2.5px solid #0a0810',
+                    boxShadow: '0 4px 0 #0a0810',
+                  }}
+                >
+                  <Settings className="w-5 h-5" />
+                </div>
+              }
+            />
           </motion.button>
         </div>
       </header>
@@ -724,7 +792,11 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         <div
           className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-2xl"
           style={{
-            background: 'rgba(0,0,0,0.6)',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            backgroundImage:
+              'linear-gradient(rgba(10,5,16,0.62), rgba(10,5,16,0.62)), url(/home/musiclecteurandfriendcode.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             backdropFilter: 'blur(8px)',
             border: '2.5px solid #0a0810',
             boxShadow: '0 4px 0 #0a0810',

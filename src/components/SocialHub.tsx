@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,16 @@ const SocialHubComponent = ({
   const { pendingInvitations } = useGameInvitations();
   const unreadCounts = useUnreadCounts();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Allow other screens (e.g. the Ink home "SOCIAL" button) to open the hub.
+  useEffect(() => {
+    const open = () => {
+      playInkSound('brushTap', 0.4);
+      setIsOpen(true);
+    };
+    window.addEventListener('mimic:open-social', open);
+    return () => window.removeEventListener('mimic:open-social', open);
+  }, []);
 
   const totalUnreadMessages = Object.values(unreadCounts).reduce(
     (sum, count) => sum + count,
