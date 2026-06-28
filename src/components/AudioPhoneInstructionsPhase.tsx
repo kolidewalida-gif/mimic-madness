@@ -8,19 +8,19 @@ import {
   ArrowRight,
   Users,
   Phone,
-  Sparkles,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
 import {
-  InkGameStage,
-  InkPhasePill,
-  InkButton,
-  InkTitle,
-  GRAFFITI_TEXT_SHADOW,
-  GRAFFITI_TEXT_SHADOW_SM,
-} from "@/components/ink/InkPrimitives";
+  PulpStage,
+  PulpPanel,
+  PulpTitle,
+  PulpButton,
+  PulpTag,
+  PULP,
+  PULP_FONT,
+} from "@/components/audiophone/PulpComic";
 
 interface AudioPhoneInstructionsPhaseProps {
   isHost: boolean;
@@ -28,33 +28,11 @@ interface AudioPhoneInstructionsPhaseProps {
   onStart: () => void;
 }
 
-const ACCENT = "#f59e0b"; // amber/orange — matches AudioPhone card
-
 const STEPS = [
-  {
-    icon: Mic,
-    title: "Enregistre",
-    desc: "Une phrase claire et fun",
-    color: "#34d399",
-  },
-  {
-    icon: RotateCcw,
-    title: "Inversion",
-    desc: "L'audio est joué à l'envers",
-    color: "#a855f7",
-  },
-  {
-    icon: Headphones,
-    title: "Écoute",
-    desc: "Tente de comprendre",
-    color: "#06b6d4",
-  },
-  {
-    icon: MessageSquare,
-    title: "Imite",
-    desc: "Reproduis ce que tu entends",
-    color: "#fbbf24",
-  },
+  { icon: Mic, title: "Enregistre", desc: "Une phrase claire et fun", color: PULP.red },
+  { icon: RotateCcw, title: "Inversion", desc: "L'audio est joué à l'envers", color: PULP.purple },
+  { icon: Headphones, title: "Écoute", desc: "Tente de comprendre", color: PULP.blue },
+  { icon: MessageSquare, title: "Imite", desc: "Reproduis ce que tu entends", color: PULP.yellow },
 ];
 
 export const AudioPhoneInstructionsPhase = memo(
@@ -77,29 +55,26 @@ export const AudioPhoneInstructionsPhase = memo(
     };
 
     return (
-      <InkGameStage accent={ACCENT}>
+      <PulpStage accent={PULP.red} accent2={PULP.blue}>
         <div className="min-h-screen flex flex-col items-center justify-center px-5 py-8 pb-[200px]">
           {/* TITLE */}
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-6 space-y-3"
+            initial={{ opacity: 0, y: -16, filter: "blur(6px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="text-center mb-7 space-y-4"
           >
-            <InkPhasePill icon={Phone} label="Mode Audio Phone" accent={ACCENT} />
-            <InkTitle size="xxl">Audio Phone</InkTitle>
+            <PulpTag color={PULP.yellow} rotate={-2}>
+              <Phone className="w-3.5 h-3.5" /> Mode Audio Phone
+            </PulpTag>
+            <PulpTitle size="xl">Audio Phone</PulpTitle>
             <p
-              className="text-base text-white/70 max-w-md mx-auto font-bold"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              className="text-lg text-[color:var(--pulp-paper)]/70 max-w-md mx-auto"
+              style={{ fontFamily: PULP_FONT, letterSpacing: "0.04em" }}
             >
-              Téléphone arabe version{" "}
-              <span
-                className="text-amber-300"
-                style={{ textShadow: `0 2px 8px ${ACCENT}88` }}
-              >
-                audio inversé
-              </span>
-              . Saurez-vous décoder le chaos ?
+              TÉLÉPHONE ARABE VERSION{" "}
+              <span style={{ color: PULP.yellow }}>AUDIO INVERSÉ</span>. SAUREZ-VOUS
+              DÉCODER LE CHAOS ?
             </p>
           </motion.div>
 
@@ -108,164 +83,113 @@ export const AudioPhoneInstructionsPhase = memo(
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.15 }}
-            className="flex items-center gap-2 mb-6 px-4 py-2 rounded-2xl"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))",
-              border: "2.5px solid #0a0810",
-              boxShadow: "0 3px 0 #0a0810",
-            }}
+            className="mb-7"
           >
-            <Users className="w-4 h-4 text-white/70" />
-            <span
-              className="text-base font-black text-white leading-none"
-              style={{
-                fontFamily: "'Caveat', cursive",
-                textShadow: GRAFFITI_TEXT_SHADOW_SM,
-              }}
-            >
-              {playerCount} joueur{playerCount > 1 ? "s" : ""} connecté
-              {playerCount > 1 ? "s" : ""}
-            </span>
+            <PulpTag color={PULP.blue} rotate={2}>
+              <Users className="w-3.5 h-3.5" /> {playerCount} joueur
+              {playerCount > 1 ? "s" : ""} connecté{playerCount > 1 ? "s" : ""}
+            </PulpTag>
           </motion.div>
 
-          {/* STEPS — relay layout */}
+          {/* STEPS — comic strip panels */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            className="w-full max-w-5xl mb-8"
+            className="w-full max-w-5xl mb-9"
           >
-            <div className="flex items-center justify-center gap-3 md:gap-4 flex-wrap md:flex-nowrap">
+            <div className="flex items-stretch justify-center gap-3 md:gap-4 flex-wrap md:flex-nowrap">
               {STEPS.map((step, idx) => {
                 const Icon = step.icon;
                 const isActive = activeStep === idx;
                 return (
-                  <div
-                    key={step.title}
-                    className="flex items-center gap-2 md:gap-3"
-                  >
+                  <div key={step.title} className="flex items-center gap-2 md:gap-3">
                     <motion.button
                       type="button"
                       onClick={() => setActiveStep(idx)}
-                      whileHover={{ y: -3, scale: 1.04, rotate: 0 }}
-                      whileTap={{ scale: 0.97 }}
+                      whileHover={{ y: -4, scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
                       animate={
                         isActive
-                          ? { y: [0, -4, 0], rotate: idx % 2 === 0 ? -2 : 2 }
+                          ? { y: [0, -5, 0], rotate: idx % 2 === 0 ? -1.5 : 1.5 }
                           : { rotate: idx % 2 === 0 ? -1 : 1 }
                       }
                       transition={
                         isActive
-                          ? {
-                              duration: 1.6,
-                              repeat: Infinity,
-                              ease: "easeInOut",
-                            }
+                          ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" }
                           : undefined
                       }
-                      className="relative w-[150px] md:w-[170px] aspect-[4/5] rounded-2xl flex flex-col items-center justify-center gap-2 px-3"
-                      style={{
-                        background: isActive
-                          ? `linear-gradient(180deg, ${step.color}, ${step.color}cc)`
-                          : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-                        border: "3px solid #0a0810",
-                        boxShadow: isActive
-                          ? `0 5px 0 #0a0810, 0 10px 24px ${step.color}66`
-                          : "0 4px 0 #0a0810",
-                      }}
+                      className="relative w-[150px] md:w-[172px] aspect-[4/5]"
                     >
-                      {/* Step number stamp */}
-                      <div
-                        className="absolute -top-3 -left-3 w-9 h-9 rounded-full flex items-center justify-center"
-                        style={{
-                          background: isActive
-                            ? "linear-gradient(180deg, #fbbf24, #d97706)"
-                            : "rgba(255,255,255,0.08)",
-                          border: "2.5px solid #0a0810",
-                          boxShadow: "0 3px 0 #0a0810",
-                          transform: `rotate(${idx % 2 === 0 ? -10 : 10}deg)`,
-                        }}
-                      >
-                        <span
-                          className="text-xl font-black text-white leading-none"
-                          style={{
-                            fontFamily: "'Caveat', cursive",
-                            textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                          }}
-                        >
-                          {idx + 1}
-                        </span>
-                      </div>
+                      <PulpPanel accent={isActive ? step.color : "rgba(243,237,224,0.25)"}>
+                        <div className="flex h-full flex-col items-center justify-center gap-2.5 px-3 py-4 aspect-[4/5]">
+                          {/* panel number */}
+                          <span
+                            className="absolute -top-3 -left-2 px-2 leading-none"
+                            style={{
+                              fontFamily: PULP_FONT,
+                              fontSize: "1.6rem",
+                              color: PULP.paper,
+                              background: step.color,
+                              border: `2.5px solid ${PULP.ink}`,
+                              transform: `rotate(${idx % 2 === 0 ? -8 : 8}deg)`,
+                              boxShadow: `2px 2px 0 ${PULP.ink}`,
+                            }}
+                          >
+                            {idx + 1}
+                          </span>
 
-                      {/* Icon */}
-                      <div
-                        className="relative w-14 h-14 rounded-2xl flex items-center justify-center"
-                        style={{
-                          background: `linear-gradient(135deg, ${step.color}, ${step.color}cc)`,
-                          border: "3px solid #0a0810",
-                          boxShadow: "0 3px 0 #0a0810",
-                        }}
-                      >
-                        <Icon
-                          className="w-6 h-6 text-white"
-                          strokeWidth={2.5}
-                        />
-                      </div>
+                          <div
+                            className="flex h-14 w-14 items-center justify-center rounded-full"
+                            style={{
+                              background: `radial-gradient(circle at 35% 30%, ${step.color}, ${step.color}99)`,
+                              border: `3px solid ${PULP.ink}`,
+                              boxShadow: isActive ? `0 0 22px ${step.color}aa` : "none",
+                            }}
+                          >
+                            <Icon className="h-7 w-7" style={{ color: PULP.paper }} strokeWidth={2.5} />
+                          </div>
 
-                      <h3
-                        className="text-2xl font-black leading-none text-white"
-                        style={{
-                          fontFamily: "'Caveat', cursive",
-                          textShadow: GRAFFITI_TEXT_SHADOW,
-                        }}
-                      >
-                        {step.title}
-                      </h3>
-                      <p
-                        className={cn(
-                          "text-xs text-center leading-tight px-1 font-bold",
-                          isActive ? "text-white/85" : "text-white/55",
-                        )}
-                        style={{ fontFamily: "'Caveat', cursive" }}
-                      >
-                        {step.desc}
-                      </p>
+                          <h3
+                            className="uppercase leading-none"
+                            style={{
+                              fontFamily: PULP_FONT,
+                              fontSize: "1.7rem",
+                              color: PULP.paper,
+                              letterSpacing: "0.03em",
+                              textShadow: isActive
+                                ? `1.5px 0 0 ${step.color}`
+                                : undefined,
+                            }}
+                          >
+                            {step.title}
+                          </h3>
+                          <p
+                            className={cn(
+                              "text-center text-xs leading-tight px-1",
+                              isActive
+                                ? "text-[color:var(--pulp-paper)]/85"
+                                : "text-[color:var(--pulp-paper)]/45",
+                            )}
+                            style={{ fontFamily: PULP_FONT, letterSpacing: "0.04em" }}
+                          >
+                            {step.desc}
+                          </p>
+                        </div>
+                      </PulpPanel>
                     </motion.button>
 
                     {idx < STEPS.length - 1 && (
-                      <svg
-                        className="hidden md:block w-8 h-10 flex-shrink-0"
-                        viewBox="0 0 40 40"
-                        fill="none"
+                      <ArrowRight
+                        className="hidden md:block w-7 h-7 flex-shrink-0"
                         style={{
-                          filter:
+                          color:
                             activeStep === idx || activeStep === idx + 1
-                              ? `drop-shadow(0 0 6px ${ACCENT})`
-                              : undefined,
+                              ? PULP.yellow
+                              : "rgba(243,237,224,0.18)",
                         }}
-                      >
-                        <path
-                          d="M4,20 Q12,18 24,20 Q30,21 33,20"
-                          stroke={
-                            activeStep === idx || activeStep === idx + 1
-                              ? ACCENT
-                              : "rgba(255,255,255,0.18)"
-                          }
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M27,13 L34,20 L27,27"
-                          stroke={
-                            activeStep === idx || activeStep === idx + 1
-                              ? ACCENT
-                              : "rgba(255,255,255,0.18)"
-                          }
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                        />
-                      </svg>
+                        strokeWidth={3}
+                      />
                     )}
                   </div>
                 );
@@ -278,13 +202,13 @@ export const AudioPhoneInstructionsPhase = memo(
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="w-full max-w-md space-y-3"
+            className="w-full max-w-md flex flex-col items-center gap-4"
           >
             {isHost ? (
-              <InkButton
+              <PulpButton
                 onClick={handleStart}
                 disabled={isStarting}
-                color={ACCENT}
+                color={PULP.red}
                 size="lg"
                 className="w-full"
               >
@@ -295,28 +219,21 @@ export const AudioPhoneInstructionsPhase = memo(
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-6 h-6" strokeWidth={2.5} />
                     C'est parti !
-                    <ArrowRight className="w-6 h-6" strokeWidth={2.5} />
+                    <ArrowRight className="w-6 h-6" strokeWidth={3} />
                   </>
                 )}
-              </InkButton>
+              </PulpButton>
             ) : (
-              <div
-                className="w-full py-4 rounded-2xl flex items-center justify-center gap-2"
-                style={{
-                  background:
-                    "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-                  border: "3px solid #0a0810",
-                  boxShadow: "0 4px 0 #0a0810",
-                }}
-              >
-                <Loader2 className="w-4 h-4 animate-spin text-white/60" />
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-[color:var(--pulp-paper)]/60" />
                 <span
-                  className="text-xl font-black text-white/75 leading-none"
+                  className="uppercase"
                   style={{
-                    fontFamily: "'Caveat', cursive",
-                    textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                    fontFamily: PULP_FONT,
+                    fontSize: "1.5rem",
+                    letterSpacing: "0.05em",
+                    color: "rgba(243,237,224,0.75)",
                   }}
                 >
                   En attente de l'hôte…
@@ -325,14 +242,14 @@ export const AudioPhoneInstructionsPhase = memo(
             )}
 
             <p
-              className="text-center text-sm text-white/40 italic font-bold leading-relaxed"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              className="text-center text-sm text-[color:var(--pulp-paper)]/40 uppercase"
+              style={{ fontFamily: PULP_FONT, letterSpacing: "0.08em" }}
             >
               Astuce : parle clairement, sois fun, accepte le chaos.
             </p>
           </motion.div>
         </div>
-      </InkGameStage>
+      </PulpStage>
     );
   },
 );

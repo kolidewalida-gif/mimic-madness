@@ -1,6 +1,14 @@
 import { motion } from 'framer-motion';
-import { Play, Sparkles, PartyPopper } from 'lucide-react';
-import { DoodleBorder, DoodleStage, DoodleWobble } from '@/components/doodle/Doodle';
+import { Play, PartyPopper } from 'lucide-react';
+import {
+  PulpStage,
+  PulpPanel,
+  PulpTitle,
+  PulpButton,
+  PulpTag,
+  PULP,
+  PULP_FONT,
+} from '@/components/audiophone/PulpComic';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 
 interface AudioPhoneWaitingRevealPhaseProps {
@@ -8,105 +16,84 @@ interface AudioPhoneWaitingRevealPhaseProps {
   onStartReveal: () => void;
 }
 
-const ACCENT = '#c084fc';
-
 export const AudioPhoneWaitingRevealPhase = ({
   isHost,
   onStartReveal,
 }: AudioPhoneWaitingRevealPhaseProps) => {
   return (
-    <DoodleStage accent={ACCENT}>
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-5 pb-[120px]">
+    <PulpStage accent={PULP.yellow} accent2={PULP.red}>
+      <div className="relative min-h-screen flex items-center justify-center p-5 pb-[120px]">
         <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: 'spring', damping: 18, stiffness: 220 }}
-          className="relative w-full max-w-lg px-6 py-8"
+          initial={{ opacity: 0, scale: 0.9, y: 16, filter: 'blur(6px)' }}
+          animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+          className="w-full max-w-lg"
         >
-          <DoodleBorder color={ACCENT} filled rotation={1} thick />
-          <div className="relative text-center space-y-5">
-            <div className="relative w-24 h-24 mx-auto">
-              <DoodleWobble>
-                <PartyPopper className="w-16 h-16 mx-auto" style={{ color: ACCENT }} />
-              </DoodleWobble>
-              <Sparkles
-                className="absolute -top-1 -right-1 w-5 h-5 text-amber-300"
-                style={{ transform: 'rotate(-20deg)' }}
-              />
-              <Sparkles
-                className="absolute -bottom-1 -left-1 w-4 h-4"
-                style={{ color: '#f472b6', transform: 'rotate(20deg)' }}
-              />
-            </div>
-
-            <div>
-              <h2
-                className="text-2xl md:text-3xl font-black mb-1 text-white leading-tight"
+          <PulpPanel accent={PULP.yellow}>
+            <div className="px-7 py-9 text-center space-y-6">
+              <motion.div
+                animate={{ rotate: [-8, 8, -8], y: [0, -6, 0] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                className="mx-auto flex h-24 w-24 items-center justify-center rounded-full"
                 style={{
-                  fontFamily: "'Caveat', cursive",
-                  textShadow: `0 0 18px ${ACCENT}33`,
+                  background: `radial-gradient(circle at 35% 30%, ${PULP.yellow}, ${PULP.red}aa)`,
+                  border: `4px solid ${PULP.ink}`,
+                  boxShadow: `0 0 30px ${PULP.yellow}88`,
                 }}
               >
-                Toutes les imitations sont prêtes !
-              </h2>
-              <p className="text-sm text-white/55">
-                {isHost
-                  ? 'Lance la révélation pour découvrir les résultats !'
-                  : "En attente de l'hôte pour la révélation…"}
-              </p>
-            </div>
+                <PartyPopper className="h-11 w-11" style={{ color: PULP.ink }} strokeWidth={2.5} />
+              </motion.div>
 
-            {isHost ? (
-              <motion.button
-                type="button"
-                onClick={() => {
-                  playInkSound('cartoonFanfare', 0.5);
-                  onStartReveal();
-                }}
-                whileHover={{ scale: 1.04, y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                animate={{
-                  boxShadow: [
-                    `0 4px 20px ${ACCENT}55`,
-                    `0 4px 30px ${ACCENT}99`,
-                    `0 4px 20px ${ACCENT}55`,
-                  ],
-                }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-                className="relative w-full px-6 py-4"
-              >
-                <DoodleBorder color={ACCENT} filled rotation={-1} thick />
-                <div className="relative flex items-center justify-center gap-3">
-                  <Play className="w-5 h-5" style={{ color: ACCENT }} />
-                  <span
-                    className="text-2xl font-black"
-                    style={{ fontFamily: "'Caveat', cursive", color: ACCENT }}
-                  >
-                    Lancer la révélation !
-                  </span>
-                </div>
-              </motion.button>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                {[0, 0.2, 0.4].map((delay, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ background: ACCENT }}
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{
-                      duration: 0.8,
-                      repeat: Infinity,
-                      delay,
-                      ease: 'easeInOut',
-                    }}
-                  />
-                ))}
+              <div className="space-y-3">
+                <PulpTitle size="md" accent={PULP.red} accent2={PULP.blue}>
+                  Toutes les imitations sont prêtes !
+                </PulpTitle>
+                <p
+                  className="text-base uppercase text-[color:var(--pulp-paper)]/60"
+                  style={{ fontFamily: PULP_FONT, letterSpacing: '0.05em' }}
+                >
+                  {isHost
+                    ? 'Lance la révélation pour découvrir les résultats'
+                    : "En attente de l'hôte pour la révélation…"}
+                </p>
               </div>
-            )}
-          </div>
+
+              {isHost ? (
+                <PulpButton
+                  onClick={() => {
+                    playInkSound('cartoonFanfare', 0.5);
+                    onStartReveal();
+                  }}
+                  color={PULP.red}
+                  size="lg"
+                  className="w-full"
+                >
+                  <Play className="w-6 h-6" strokeWidth={3} />
+                  Lancer la révélation
+                </PulpButton>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  {[0, 0.2, 0.4].map((delay, i) => (
+                    <motion.div
+                      key={i}
+                      className="h-3 w-3 rounded-full"
+                      style={{ background: i === 1 ? PULP.red : PULP.yellow }}
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ duration: 0.8, repeat: Infinity, delay, ease: 'easeInOut' }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-center">
+                <PulpTag color={PULP.blue} rotate={-2}>
+                  Le générique arrive
+                </PulpTag>
+              </div>
+            </div>
+          </PulpPanel>
         </motion.div>
       </div>
-    </DoodleStage>
+    </PulpStage>
   );
 };

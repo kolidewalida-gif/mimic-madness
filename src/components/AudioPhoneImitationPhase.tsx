@@ -1,8 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Check, Play, Pause, Volume2, Loader2, ChevronRight, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { DoodleBorder, DoodleStage } from '@/components/doodle/Doodle';
+import {
+  PulpStage,
+  PulpPanel,
+  PulpTitle,
+  PulpButton,
+  PulpTag,
+  PulpRule,
+  PULP,
+  PULP_FONT,
+} from '@/components/audiophone/PulpComic';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { processStreamWithNoiseReduction } from '@/hooks/useNoiseReduction';
 
@@ -24,6 +32,53 @@ interface AudioPhoneImitationPhaseProps {
   onSubmitImitation: (audioBlob: Blob) => Promise<boolean>;
   onNextPhrase: () => void;
 }
+
+const BLUE = PULP.blue;
+const YELLOW = PULP.yellow;
+const GREEN = PULP.green;
+
+/* Progress bar shared block */
+const ProgressBlock = ({
+  label,
+  completed,
+  total,
+  pending,
+  color,
+}: {
+  label: React.ReactNode;
+  completed: number;
+  total: number;
+  pending: string[];
+  color: string;
+}) => {
+  const pct = total > 0 ? (completed / total) * 100 : 0;
+  return (
+    <div
+      className="px-4 py-3 text-left"
+      style={{ background: 'rgba(8,7,10,0.45)', border: `2px solid ${PULP.ink}` }}
+    >
+      <div className="flex items-center justify-between">
+        <span
+          className="uppercase text-[color:var(--pulp-paper)]/60 text-xs"
+          style={{ fontFamily: PULP_FONT, letterSpacing: '0.06em' }}
+        >
+          {label}
+        </span>
+        <span style={{ fontFamily: PULP_FONT, fontSize: '1.3rem', color }}>
+          {completed}/{total}
+        </span>
+      </div>
+      <div className="mt-2 h-2.5 w-full overflow-hidden" style={{ background: 'rgba(8,7,10,0.7)' }}>
+        <motion.div animate={{ width: `${pct}%` }} className="h-full" style={{ background: color }} />
+      </div>
+      {pending.length > 0 && (
+        <p className="mt-2 text-xs text-[color:var(--pulp-paper)]/45" style={{ fontFamily: PULP_FONT, letterSpacing: '0.04em' }}>
+          ENCORE ATTENDUS : <span className="text-[color:var(--pulp-paper)]">{pending.join(', ')}</span>
+        </p>
+      )}
+    </div>
+  );
+};
 
 export const AudioPhoneImitationPhase = ({
   currentPhraseIndex,
@@ -95,7 +150,6 @@ export const AudioPhoneImitationPhase = ({
       const rawStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       rawStreamRef.current = rawStream;
 
-      // Apply noise reduction (RNNoise) — falls back to raw stream if disabled or fails
       const { stream, cleanup } = await processStreamWithNoiseReduction(rawStream);
       noiseReductionCleanupRef.current = cleanup;
 
@@ -126,10 +180,8 @@ export const AudioPhoneImitationPhase = ({
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: selectedMimeType || 'audio/webm' });
         setRecordedBlob(blob);
-        // Stop both raw and processed streams
         rawStream.getTracks().forEach((track) => track.stop());
         stream.getTracks().forEach((track) => track.stop());
-        // Release RNNoise resources
         if (noiseReductionCleanupRef.current) {
           noiseReductionCleanupRef.current();
           noiseReductionCleanupRef.current = null;
@@ -193,426 +245,258 @@ export const AudioPhoneImitationPhase = ({
     setIsPlaying(false);
   }, [currentPhraseIndex]);
 
-  const progressPercent = totalImitations > 0 ? (completedImitations / totalImitations) * 100 : 0;
+  const nextPhraseButton = allImitationsDone && isHost && (
+    <PulpButton
+      onClick={() => {
+        playInkSound('cartoonSwoosh', 0.4);
+        onNextPhrase();
+      }}
+      color={PULP.red}
+      size="md"
+      className="w-full"
+    >
+      <ChevronRight className="w-5 h-5" strokeWidth={3} />
+      Phrase suivante
+    </PulpButton>
+  );
 
+  /* ---------- AUTHOR (watching) ---------- */
   if (isAuthor) {
     return (
-      <DoodleStage accent="#fbbf24">
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-5 pb-[120px]">
+      <PulpStage accent={YELLOW} accent2={PULP.red}>
+        <div className="relative min-h-screen flex items-center justify-center p-5 pb-[120px]">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="relative w-full max-w-xl px-6 py-8"
+            initial={{ opacity: 0, scale: 0.95, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+            className="w-full max-w-xl"
           >
-            <DoodleBorder color="#fbbf24" filled rotation={1} thick />
-            <div className="relative text-center space-y-5">
-              <motion.div
-                animate={{ scale: [1, 1.06, 1], rotate: [-3, 3, -3] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-                className="relative w-20 h-20 mx-auto flex items-center justify-center"
-              >
-                <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
-                  <path
-                    d="M50,8 Q70,7 82,18 Q94,32 92,52 Q90,72 76,86 Q60,96 42,92 Q24,90 12,76 Q4,60 8,40 Q14,20 30,12 Q40,8 50,8 Z"
-                    fill="#fbbf24"
-                    fillOpacity="0.2"
-                    stroke="#fbbf24"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <Volume2 className="relative w-9 h-9" style={{ color: '#fbbf24' }} />
-              </motion.div>
-
-              <div>
-                <h2
-                  className="text-3xl font-black mb-1"
-                  style={{ fontFamily: "'Caveat', cursive", color: '#fbbf24' }}
-                >
-                  C'est ta phrase
-                </h2>
-                <p className="text-sm text-white/55">
-                  Observe comment les autres la réinterprètent.
-                </p>
-              </div>
-
-              <div className="relative px-3 py-3 text-left">
-                <DoodleBorder color="rgba(255,255,255,0.18)" rotation={-1} />
-                <div className="relative">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/55">
-                      Phrase {currentPhraseIndex + 1} / {totalPhrases}
-                    </span>
-                    <span
-                      className="font-black"
-                      style={{ fontFamily: "'Caveat', cursive", color: '#fbbf24' }}
-                    >
-                      {completedImitations}/{totalImitations}
-                    </span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/8">
-                    <motion.div
-                      animate={{ width: `${progressPercent}%` }}
-                      className="h-full rounded-full"
-                      style={{ background: '#fbbf24' }}
-                    />
-                  </div>
-                  {pendingPlayerNames.length > 0 && (
-                    <p className="mt-2 text-xs text-white/45">
-                      Encore attendus :{' '}
-                      <span className="text-white font-bold">{pendingPlayerNames.join(', ')}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {allImitationsDone && isHost && (
-                <motion.button
-                  type="button"
-                  onClick={() => {
-                    playInkSound('cartoonSwoosh', 0.4);
-                    onNextPhrase();
+            <PulpPanel accent={YELLOW}>
+              <div className="px-7 py-9 text-center space-y-5">
+                <motion.div
+                  animate={{ scale: [1, 1.06, 1], rotate: [-4, 4, -4] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                  className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
+                  style={{
+                    background: `radial-gradient(circle at 35% 30%, ${YELLOW}, ${YELLOW}aa)`,
+                    border: `4px solid ${PULP.ink}`,
+                    boxShadow: `0 0 24px ${YELLOW}88`,
                   }}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="relative w-full px-6 py-3"
                 >
-                  <DoodleBorder color="#c084fc" filled rotation={-1} thick />
-                  <div className="relative flex items-center justify-center gap-2">
-                    <ChevronRight className="w-4 h-4" style={{ color: '#c084fc' }} />
-                    <span
-                      className="text-lg font-black"
-                      style={{ fontFamily: "'Caveat', cursive", color: '#c084fc' }}
-                    >
-                      Phrase suivante
-                    </span>
-                  </div>
-                </motion.button>
-              )}
-            </div>
+                  <Volume2 className="h-10 w-10" style={{ color: PULP.ink }} strokeWidth={2.5} />
+                </motion.div>
+
+                <PulpTitle size="md" accent={PULP.red} accent2={PULP.blue}>
+                  C'est ta phrase
+                </PulpTitle>
+                <p className="text-sm uppercase text-[color:var(--pulp-paper)]/55" style={{ fontFamily: PULP_FONT, letterSpacing: '0.05em' }}>
+                  Observe comment les autres la réinterprètent
+                </p>
+
+                <ProgressBlock
+                  label={`Phrase ${currentPhraseIndex + 1} / ${totalPhrases}`}
+                  completed={completedImitations}
+                  total={totalImitations}
+                  pending={pendingPlayerNames}
+                  color={YELLOW}
+                />
+
+                {nextPhraseButton}
+              </div>
+            </PulpPanel>
           </motion.div>
         </div>
-      </DoodleStage>
+      </PulpStage>
     );
   }
 
+  /* ---------- DONE ---------- */
   if (hasImitated) {
     return (
-      <DoodleStage accent="#34d399">
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-5 pb-[120px]">
+      <PulpStage accent={GREEN} accent2={PULP.blue}>
+        <div className="relative min-h-screen flex items-center justify-center p-5 pb-[120px]">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, rotate: -2 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            transition={{ type: 'spring', damping: 18, stiffness: 220 }}
-            className="relative w-full max-w-xl px-6 py-8"
+            initial={{ opacity: 0, scale: 0.95, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+            transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+            className="w-full max-w-xl"
           >
-            <DoodleBorder color="#34d399" filled rotation={-1} thick />
-            <div className="relative text-center space-y-5">
-              <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', damping: 14, stiffness: 200 }}
-                className="relative w-20 h-20 mx-auto flex items-center justify-center"
-              >
-                <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
-                  <path
-                    d="M50,8 Q70,7 82,18 Q94,32 92,52 Q90,72 76,86 Q60,96 42,92 Q24,90 12,76 Q4,60 8,40 Q14,20 30,12 Q40,8 50,8 Z"
-                    fill="#34d399"
-                    fillOpacity="0.18"
-                    stroke="#34d399"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <Check className="relative w-9 h-9" style={{ color: '#34d399' }} />
-              </motion.div>
-
-              <div>
-                <h2
-                  className="text-3xl font-black mb-1"
-                  style={{ fontFamily: "'Caveat', cursive", color: '#34d399' }}
-                >
-                  Imitation envoyée !
-                </h2>
-                <p className="text-sm text-white/55">
-                  Le plateau attend encore quelques performances.
-                </p>
-              </div>
-
-              <div className="relative px-3 py-3 text-left">
-                <DoodleBorder color="rgba(255,255,255,0.18)" rotation={1} />
-                <div className="relative">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/55">
-                      Phrase de{' '}
-                      <span className="font-bold text-white">{authorName}</span>
-                    </span>
-                    <span
-                      className="font-black"
-                      style={{ fontFamily: "'Caveat', cursive", color: '#34d399' }}
-                    >
-                      {completedImitations}/{totalImitations}
-                    </span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/8">
-                    <motion.div
-                      animate={{ width: `${progressPercent}%` }}
-                      className="h-full rounded-full"
-                      style={{ background: '#34d399' }}
-                    />
-                  </div>
-                  {pendingPlayerNames.length > 0 && (
-                    <p className="mt-2 text-xs text-white/45">
-                      En attente :{' '}
-                      <span className="text-white font-bold">{pendingPlayerNames.join(', ')}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {allImitationsDone && isHost && (
-                <motion.button
-                  type="button"
-                  onClick={() => {
-                    playInkSound('cartoonSwoosh', 0.4);
-                    onNextPhrase();
+            <PulpPanel accent={GREEN}>
+              <div className="px-7 py-9 text-center space-y-5">
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', damping: 13, stiffness: 200 }}
+                  className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
+                  style={{
+                    background: `radial-gradient(circle at 35% 30%, ${GREEN}, ${GREEN}aa)`,
+                    border: `4px solid ${PULP.ink}`,
+                    boxShadow: `0 0 24px ${GREEN}88`,
                   }}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="relative w-full px-6 py-3"
                 >
-                  <DoodleBorder color="#c084fc" filled rotation={-1} thick />
-                  <div className="relative flex items-center justify-center gap-2">
-                    <ChevronRight className="w-4 h-4" style={{ color: '#c084fc' }} />
-                    <span
-                      className="text-lg font-black"
-                      style={{ fontFamily: "'Caveat', cursive", color: '#c084fc' }}
-                    >
-                      Phrase suivante
-                    </span>
-                  </div>
-                </motion.button>
-              )}
-            </div>
+                  <Check className="h-10 w-10" style={{ color: PULP.ink }} strokeWidth={3} />
+                </motion.div>
+
+                <PulpTitle size="md" accent={PULP.red} accent2={PULP.blue}>
+                  Imitation envoyée !
+                </PulpTitle>
+                <p className="text-sm uppercase text-[color:var(--pulp-paper)]/55" style={{ fontFamily: PULP_FONT, letterSpacing: '0.05em' }}>
+                  Le plateau attend encore quelques performances
+                </p>
+
+                <ProgressBlock
+                  label={<>Phrase de {authorName}</>}
+                  completed={completedImitations}
+                  total={totalImitations}
+                  pending={pendingPlayerNames}
+                  color={GREEN}
+                />
+
+                {nextPhraseButton}
+              </div>
+            </PulpPanel>
           </motion.div>
         </div>
-      </DoodleStage>
+      </PulpStage>
     );
   }
 
+  /* ---------- LISTEN + IMITATE ---------- */
   return (
-    <DoodleStage accent="#38bdf8">
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-5 pb-[120px]">
+    <PulpStage accent={BLUE} accent2={PULP.red}>
+      <div className="relative min-h-screen flex items-center justify-center p-5 pb-[120px]">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative w-full max-w-xl px-6 py-8"
+          initial={{ opacity: 0, scale: 0.95, y: 12, filter: 'blur(6px)' }}
+          animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-xl"
         >
-          <DoodleBorder color="#38bdf8" filled rotation={1} thick />
-          <div className="relative text-center space-y-5">
-            {reversedAudioUrl && (
-              <audio
-                ref={audioRef}
-                src={reversedAudioUrl}
-                onEnded={() => {
-                  setIsPlaying(false);
-                  setHasListened(true);
-                }}
-              />
-            )}
-
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 relative">
-                <DoodleBorder color="#38bdf8" filled />
-                <span
-                  className="relative text-xs font-bold uppercase tracking-[0.2em]"
-                  style={{ color: '#38bdf8', fontFamily: "'Caveat', cursive" }}
-                >
-                  Phrase {currentPhraseIndex + 1} / {totalPhrases}
-                </span>
-              </div>
-              <h2
-                className="text-2xl md:text-3xl font-black mb-1 text-white"
-                style={{ fontFamily: "'Caveat', cursive" }}
-              >
-                Phrase de{' '}
-                <span style={{ color: '#38bdf8' }}>{authorName}</span>
-              </h2>
-              <p className="text-sm text-white/55">
-                Écoute l'audio inversé, capte son rythme, puis rejoue-le.
-              </p>
-            </div>
-
-            <div className="relative px-3 py-3 text-left">
-              <DoodleBorder color="rgba(255,255,255,0.18)" rotation={-1} />
-              <div className="relative">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="inline-flex items-center gap-2 text-white/55">
-                    <Users className="w-3.5 h-3.5" />
-                    Avancement
-                  </span>
-                  <span
-                    className="font-black"
-                    style={{ fontFamily: "'Caveat', cursive", color: '#38bdf8' }}
-                  >
-                    {completedImitations}/{totalImitations}
-                  </span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/8">
-                  <motion.div
-                    animate={{ width: `${progressPercent}%` }}
-                    className="h-full rounded-full"
-                    style={{ background: '#38bdf8' }}
-                  />
-                </div>
-                {pendingPlayerNames.length > 0 && (
-                  <p className="mt-2 text-xs text-white/45">
-                    Encore attendus :{' '}
-                    <span className="text-white font-bold">{pendingPlayerNames.join(', ')}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <motion.button
-                type="button"
-                onClick={() => {
-                  playInkSound('cartoonPop', 0.3);
-                  isPlaying ? pauseAudio() : playReversedAudio();
-                }}
-                disabled={!reversedAudioUrl}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="relative w-full px-6 py-3 disabled:opacity-50"
-              >
-                <DoodleBorder color="#38bdf8" filled rotation={-1} thick />
-                <div className="relative flex items-center justify-center gap-2">
-                  {isPlaying ? (
-                    <Pause className="w-5 h-5" style={{ color: '#38bdf8' }} />
-                  ) : (
-                    <Play className="w-5 h-5" style={{ color: '#38bdf8' }} />
-                  )}
-                  <span
-                    className="text-lg font-black"
-                    style={{ fontFamily: "'Caveat', cursive", color: '#38bdf8' }}
-                  >
-                    {isPlaying ? 'Pause' : 'Écouter l\'audio inversé'}
-                  </span>
-                </div>
-              </motion.button>
-
-              {hasListened && (
-                <div
-                  className="flex items-center justify-center gap-2 text-sm font-bold"
-                  style={{ color: '#34d399', fontFamily: "'Caveat', cursive" }}
-                >
-                  <Check className="w-4 h-4" />
-                  Écoute terminée. Tu peux enregistrer.
-                </div>
+          <PulpPanel accent={BLUE}>
+            <div className="px-7 py-9 text-center space-y-5">
+              {reversedAudioUrl && (
+                <audio
+                  ref={audioRef}
+                  src={reversedAudioUrl}
+                  onEnded={() => {
+                    setIsPlaying(false);
+                    setHasListened(true);
+                  }}
+                />
               )}
-            </div>
 
-            {hasListened && !recordedBlob && (
-              <div className="space-y-3 pt-3 border-t border-white/10">
-                <p className="text-xs text-white/50 italic">
-                  Reproduis le groove. Le naturel vaut mieux qu'un volume trop fort.
-                </p>
-
-                <div className="relative flex justify-center">
-                  <motion.button
-                    type="button"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    disabled={isSubmitting}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    animate={isRecording ? { scale: [1, 1.04, 1] } : { y: [0, -3, 0] }}
-                    transition={
-                      isRecording
-                        ? { duration: 0.5, repeat: Infinity }
-                        : { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
-                    }
-                    className={cn('w-24 h-24 rounded-full flex items-center justify-center')}
-                    style={{
-                      background: isRecording
-                        ? '#f87171'
-                        : `linear-gradient(135deg, #38bdf8, #38bdf8cc)`,
-                      boxShadow: isRecording
-                        ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px rgba(248,113,113,0.45)`
-                        : `0 8px 24px rgba(56,189,248,0.4)`,
-                    }}
-                  >
-                    {isRecording ? (
-                      <MicOff className="w-10 h-10 text-white" />
-                    ) : (
-                      <Mic className="w-10 h-10 text-white" />
-                    )}
-                  </motion.button>
+              <div className="space-y-3">
+                <div className="flex justify-center">
+                  <PulpTag color={BLUE} rotate={-3}>
+                    Phrase {currentPhraseIndex + 1} / {totalPhrases}
+                  </PulpTag>
                 </div>
+                <PulpTitle size="md" accent={BLUE} accent2={PULP.red}>
+                  Phrase de {authorName}
+                </PulpTitle>
+                <p className="text-sm uppercase text-[color:var(--pulp-paper)]/55" style={{ fontFamily: PULP_FONT, letterSpacing: '0.05em' }}>
+                  Écoute l'audio inversé, capte son rythme, puis rejoue-le
+                </p>
+              </div>
 
-                {isRecording && (
+              <ProgressBlock
+                label={<><Users className="mr-1 inline h-3.5 w-3.5" />Avancement</>}
+                completed={completedImitations}
+                total={totalImitations}
+                pending={pendingPlayerNames}
+                color={BLUE}
+              />
+
+              <div className="space-y-3">
+                <PulpButton
+                  onClick={() => {
+                    playInkSound('cartoonPop', 0.3);
+                    isPlaying ? pauseAudio() : playReversedAudio();
+                  }}
+                  disabled={!reversedAudioUrl}
+                  color={BLUE}
+                  size="md"
+                  className="w-full"
+                >
+                  {isPlaying ? <Pause className="w-5 h-5" strokeWidth={3} /> : <Play className="w-5 h-5" strokeWidth={3} />}
+                  {isPlaying ? 'Pause' : "Écouter l'audio inversé"}
+                </PulpButton>
+
+                {hasListened && (
                   <div
-                    className="text-2xl font-black"
-                    style={{ fontFamily: "'Caveat', cursive", color: '#f87171' }}
+                    className="flex items-center justify-center gap-2 uppercase"
+                    style={{ color: GREEN, fontFamily: PULP_FONT, letterSpacing: '0.05em' }}
                   >
-                    {recordingTime.toFixed(1)}s / {maxSeconds}s
+                    <Check className="w-4 h-4" strokeWidth={3} />
+                    Écoute terminée. Tu peux enregistrer.
                   </div>
                 )}
               </div>
-            )}
 
-            {recordedBlob && (
-              <div className="space-y-3 pt-3 border-t border-white/10">
-                <audio
-                  src={URL.createObjectURL(recordedBlob)}
-                  controls
-                  className="w-full"
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={startRecording}
-                    className="relative flex-1 py-3 group"
-                  >
-                    <DoodleBorder color="rgba(255,255,255,0.2)" />
-                    <span
-                      className="relative text-base font-black text-white/70 group-hover:text-white transition-colors"
-                      style={{ fontFamily: "'Caveat', cursive" }}
+              {hasListened && !recordedBlob && (
+                <div className="space-y-3 pt-3">
+                  <PulpRule />
+                  <p className="text-xs text-[color:var(--pulp-paper)]/50 uppercase" style={{ fontFamily: PULP_FONT, letterSpacing: '0.06em' }}>
+                    Reproduis le groove. Le naturel vaut mieux qu'un volume trop fort.
+                  </p>
+
+                  <div className="flex justify-center">
+                    <motion.button
+                      type="button"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={isSubmitting}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.94 }}
+                      animate={isRecording ? { scale: [1, 1.04, 1] } : { y: [0, -3, 0] }}
+                      transition={
+                        isRecording
+                          ? { duration: 0.5, repeat: Infinity }
+                          : { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+                      }
+                      className="flex h-24 w-24 items-center justify-center rounded-full"
+                      style={{
+                        background: isRecording
+                          ? `radial-gradient(circle at 35% 30%, ${PULP.red}, #b3121f)`
+                          : `radial-gradient(circle at 35% 30%, ${BLUE}, ${BLUE}bb)`,
+                        border: `4px solid ${PULP.ink}`,
+                        boxShadow: isRecording
+                          ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px ${PULP.red}77`
+                          : `0 6px 0 ${PULP.ink}, 0 12px 24px ${BLUE}55`,
+                      }}
                     >
-                      Recommencer
-                    </span>
-                  </button>
-                  <motion.button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    whileHover={!isSubmitting ? { scale: 1.02, y: -1 } : undefined}
-                    whileTap={!isSubmitting ? { scale: 0.98 } : undefined}
-                    className="relative flex-1 py-3 disabled:opacity-50"
-                  >
-                    <DoodleBorder color="#34d399" filled rotation={-1} thick />
-                    <div className="relative flex items-center justify-center gap-1.5">
-                      {isSubmitting ? (
-                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#34d399' }} />
+                      {isRecording ? (
+                        <MicOff className="h-10 w-10" style={{ color: PULP.paper }} />
                       ) : (
-                        <Check className="w-4 h-4" style={{ color: '#34d399' }} />
+                        <Mic className="h-10 w-10" style={{ color: PULP.paper }} />
                       )}
-                      <span
-                        className="text-base font-black"
-                        style={{ fontFamily: "'Caveat', cursive", color: '#34d399' }}
-                      >
-                        Envoyer
-                      </span>
+                    </motion.button>
+                  </div>
+
+                  {isRecording && (
+                    <div className="uppercase" style={{ fontFamily: PULP_FONT, fontSize: '1.6rem', color: PULP.red, letterSpacing: '0.04em' }}>
+                      {recordingTime.toFixed(1)}s / {maxSeconds}s
                     </div>
-                  </motion.button>
+                  )}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+
+              {recordedBlob && (
+                <div className="space-y-3 pt-3">
+                  <PulpRule />
+                  <audio src={URL.createObjectURL(recordedBlob)} controls className="w-full" />
+                  <div className="flex gap-3">
+                    <PulpButton onClick={startRecording} color={PULP.paperDim} variant="ghost" size="sm" className="flex-1">
+                      Recommencer
+                    </PulpButton>
+                    <PulpButton onClick={handleSubmit} disabled={isSubmitting} color={GREEN} size="sm" className="flex-1">
+                      {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" strokeWidth={3} />}
+                      Envoyer
+                    </PulpButton>
+                  </div>
+                </div>
+              )}
+            </div>
+          </PulpPanel>
         </motion.div>
       </div>
-    </DoodleStage>
+    </PulpStage>
   );
 };
