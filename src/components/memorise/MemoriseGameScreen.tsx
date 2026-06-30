@@ -95,6 +95,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const [myChoice, setMyChoice] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
+  const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [volume, setVolume] = useState<number>(() => {
     try { const s = Number(localStorage.getItem('mimic.blindtest.volume')); if (Number.isFinite(s) && s >= 0 && s <= 100) return s; } catch { /* noop */ }
     return 70;
@@ -207,7 +208,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     setAnswerIndex(p.answerIndex ?? null);
 
     if (p.phase === 'listen') {
-      setMyChoice(null); setAnsweredCount(0); answersRef.current = {}; tickRef.current = 0;
+      setMyChoice(null); setAnsweredCount(0); setAnsweredIds(new Set()); answersRef.current = {}; tickRef.current = 0;
       // host plays directly from its loop (inside the click activation window);
       // clients auto-play here (and fall back to the "Activer le son" tap if blocked).
       if (p.track) { playSoundEffect('quizReveal', 0.3); if (!isHost) playTrack(p.track); }
@@ -228,6 +229,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         if (!answersRef.current[a.playerId]) {
           answersRef.current[a.playerId] = { choice: a.choice, elapsed: a.elapsed };
           setAnsweredCount(Object.keys(answersRef.current).length);
+          setAnsweredIds(new Set(Object.keys(answersRef.current)));
         }
       })
       .subscribe((status) => { if (status === 'SUBSCRIBED') setChannelReady(true); });
@@ -380,6 +382,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     [scoreboard, namesById],
   );
 
+  // Every participant (incl. 0 pts) for the live left scoreboard.
+  const standings = useMemo(
+    () => players
+      .map((p) => ({ id: p.id, name: p.name, pts: scoreboard[p.id] || 0, isMe: p.id === currentPlayer.id }))
+      .sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name)),
+    [players, scoreboard, currentPlayer.id],
+  );
+
   const progress = phase === 'listen' && deadline
     ? Math.max(0, Math.min(1, (deadline - Date.now()) / BLINDTEST_LISTEN_MS)) : 0;
   const urgent = phase === 'listen' && secondsLeft <= 5 && secondsLeft > 0 && myChoice == null;
@@ -512,7 +522,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
           {/* REVEAL */}
           {phase === 'reveal' && track && (
-            <motion.div key={`r-${roundIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full max-w-lg flex flex-col items-center gap-5">
+            <motion.div key={`r-${roundIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full max-w-2xl flex flex-col items-center gap-5">
               <motion.div
                 initial={{ scale: 0.5, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -520,10 +530,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 className="flex flex-col items-center gap-4"
               >
                 <div
-                  className="relative w-60 h-60 md:w-72 md:h-72 rounded-[2rem] overflow-hidden flex items-center justify-center"
-                  style={{ border: '4px solid rgba(217,70,239,0.6)', boxShadow: '0 26px 80px rgba(217,70,239,0.55)' }}
+                  className="relative rounded-[2rem] overflow-hidden flex items-center justify-center"
+                  style={{ width: 'min(86vw, 34rem)', height: 'min(86vw, 34rem)', border: '5px solid rgba(217,70,239,0.6)', boxShadow: '0 30px 90px rgba(217,70,239,0.6)' }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center text-8xl" style={{ background: catMeta ? `radial-gradient(circle, ${catMeta.color}44, #120a20)` : '#120a20' }}>{catMeta?.emoji ?? '🎵'}</div>
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 'min(40vw,16rem)', background: catMeta ? `radial-gradient(circle, ${catMeta.color}44, #120a20)` : '#120a20' }}>{catMeta?.emoji ?? '🎵'}</div>
                   {track.artwork && (
                     <motion.img
                       src={track.artwork}
@@ -609,6 +619,33 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         </AnimatePresence>
       </div>
 
+      {/* left live scoreboard (real-time) */}
+      {(phase === 'listen' || phase === 'reveal') && standings.length > 0 && (
+        <div className="hidden md:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md">
+          <div className="flex items-center gap-2 px-1 pb-1.5 mb-0.5 border-b border-white/10">
+            <Trophy className="w-4 h-4 text-amber-400" />
+            <span className="text-sm font-black text-white/80 uppercase tracking-wide">Scores</span>
+            <span className="ml-auto text-[11px] text-white/40 font-bold">{answeredCount}/{connectedCount}</span>
+          </div>
+          {standings.map((p, i) => {
+            const answered = phase === 'listen' && answeredIds.has(p.id);
+            return (
+              <motion.div
+                layout
+                key={p.id}
+                transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+                className={cn('flex items-center gap-2 px-2.5 py-2 rounded-xl border', p.isMe ? 'border-fuchsia-400/60 bg-fuchsia-500/15' : 'border-white/10 bg-white/[0.04]')}
+              >
+                <span className="w-6 text-center text-sm font-black flex-shrink-0">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                <span className={cn('flex-1 truncate text-sm font-bold', p.isMe ? 'text-fuchsia-200' : 'text-white/85')}>{p.name}{p.isMe ? ' (toi)' : ''}</span>
+                {answered && <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
+                <span className="text-sm font-black text-fuchsia-300 tabular-nums flex-shrink-0">{p.pts}</span>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
       {/* vertical volume bar (persisted) */}
       {(phase === 'listen' || phase === 'reveal') && (
         <div className="fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md">
@@ -620,9 +657,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         </div>
       )}
 
-      {/* live scoreboard strip */}
+      {/* live scoreboard strip (mobile only — desktop uses the left panel) */}
       {(phase === 'listen' || phase === 'reveal') && ranked.length > 0 && (
-        <div className="relative z-10 w-full max-w-2xl px-4 pb-4">
+        <div className="relative z-10 w-full max-w-2xl px-4 pb-4 md:hidden">
           <div className="flex gap-2 overflow-x-auto custom-scrollbar">
             {ranked.slice(0, 6).map((p, i) => (
               <div key={p.id} className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
