@@ -63,14 +63,22 @@ export function itunesSearch(term: string, limit = 12): Promise<ItunesTrack[]> {
 
 /** Pick the most relevant track with a preview for a query. */
 export function pickBestPreview(tracks: ItunesTrack[], hint?: string): ItunesTrack | null {
+  const BAD = /karaoke|tribute|cover|made famous|instrumental|in the style|originally performed|8-bit|8 bit|lullaby|piano version|music box|ringtone|remix/i;
   const withPreview = tracks.filter((t) => t.previewUrl);
   if (!withPreview.length) return null;
+
+  // Prefer "clean" official-ish versions (no karaoke/cover/etc).
+  const clean = withPreview.filter(
+    (t) => !BAD.test(t.trackName) && !BAD.test(t.artistName) && !BAD.test(t.collectionName ?? ''),
+  );
+  const pool = clean.length ? clean : withPreview;
+
   if (hint) {
     const h = hint.toLowerCase();
-    const match = withPreview.find(
+    const match = pool.find(
       (t) => t.trackName.toLowerCase().includes(h) || (t.collectionName ?? '').toLowerCase().includes(h),
     );
     if (match) return match;
   }
-  return withPreview[0];
+  return pool[0];
 }

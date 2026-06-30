@@ -115,6 +115,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const cleanups = useRef<Array<() => void>>([]);
   const mediaRef = useRef<HTMLAudioElement | null>(null);
   const tickRef = useRef(0);
+  const hostPlayingRef = useRef(false);
 
   useEffect(() => { playersRef.current = players; }, [players]);
 
@@ -232,8 +233,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const waitListen = (target: number, ms: number) => new Promise<'done' | 'error'>((resolve) => {
     const start = Date.now();
     const iv = setInterval(() => {
+      const elapsed = Date.now() - start;
       if (errorFlagRef.current) { clearInterval(iv); resolve('error'); }
-      else if (Object.keys(answersRef.current).length >= target || Date.now() - start >= ms) {
+      // host playback watchdog: if the clip never starts, treat it as a dud
+      else if (!hostPlayingRef.current && elapsed > 5000) { clearInterval(iv); resolve('error'); }
+      else if (Object.keys(answersRef.current).length >= target || elapsed >= ms) {
         clearInterval(iv); resolve('done');
       }
     }, 200);
@@ -265,10 +269,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   }, []);
 
   /* ---------- host loop ---------- */
-  const runRound = useCallback(async (i: number, total: number) => {
+  const runRound = useCallback(async (i: number, total: number, pre?: { entry: BlindtestEntry; track: RoundTrack } | null) => {
     if (!mountedRef.current) return;
 
-    const next = await fetchNextTrack();
+    const next = pre ?? await fetchNextTrack();
     if (!mountedRef.current) return;
     if (!next) { broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current } }); return; }
 
@@ -280,6 +284,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
     answersRef.current = {};
     errorFlagRef.current = false;
+    hostPlayingRef.current = false;
     broadcastPhase({ phase: 'listen', roundIndex: i, totalRounds: total, track: next.track, options: opts, deadline: Date.now() + BLINDTEST_LISTEN_MS });
 
     const connected = playersRef.current.filter((p) => !p.isDisconnected).length || 1;
@@ -306,10 +311,12 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     });
 
     broadcastPhase({ phase: 'reveal', roundIndex: i, totalRounds: total, track: next.track, options: opts, scoreboard: { ...scoreRef.current }, roundPoints: rp, answerIndex: ansIdx });
+    // prefetch the next track during the reveal (smooth + drops dead clips early)
+    const prefetch = i + 1 < total ? fetchNextTrack() : Promise.resolve(null);
     await wait(BLINDTEST_REVEAL_MS);
     if (!mountedRef.current) return;
 
-    if (i + 1 < total) runRound(i + 1, total);
+    if (i + 1 < total) { const nt = await prefetch; runRound(i + 1, total, nt); }
     else broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [broadcastPhase, fetchNextTrack]);
@@ -360,8 +367,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         ref={mediaRef}
         className="hidden"
         preload="auto"
-        onPlaying={() => { setNeedsSoundUnlock(false); setMediaError(false); }}
-        onError={() => { setMediaError(true); if (isHost && phase === 'listen') errorFlagRef.current = true; }}
+        onPlaying={() => { hostPlayingRef.current = true; setNeedsSoundUnlock(false); setMediaError(false); }}
+        onTimeUpdate={() => { hostPlayingRef.current = true; }}
+        onError={() => { setMediaError(true); if (isHost) errorFlagRef.current = true; }}
       />
 
       <div className="absolute -top-1/4 left-1/4 w-[55vw] h-[55vw] rounded-full bg-fuchsia-600/20 blur-[120px] pointer-events-none" />
@@ -382,13 +390,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           {phase !== 'final' && phase !== 'intro' && (
             <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm font-bold">{roundIndex + 1}/{totalRounds}</div>
           )}
-          <div className="hidden sm:flex items-center gap-1.5 px-2 py-1.5 rounded-full bg-white/5 border border-white/10">
-            <button onClick={() => setVolume((v) => (v === 0 ? 70 : 0))} className="text-white/70 hover:text-white" aria-label="Son">
-              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-            <input type="range" min={0} max={100} value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-20 accent-fuchsia-400 cursor-pointer" aria-label="Volume" />
-          </div>
-          <button onClick={() => setVolume((v) => (v === 0 ? 70 : 0))} className="sm:hidden w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-white/70" aria-label="Son">
+          <button onClick={() => setVolume((v) => (v === 0 ? 70 : 0))} className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-white/70 hover:text-white" aria-label="Son">
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           <button onClick={onEndGame} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-rose-500/15">
@@ -542,6 +544,26 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           )}
         </AnimatePresence>
       </div>
+
+      {/* vertical volume bar */}
+      {(phase === 'listen' || phase === 'reveal') && (
+        <div className="fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 px-2.5 py-3 rounded-2xl bg-black/45 border border-white/10 backdrop-blur-sm">
+          <button onClick={() => setVolume((v) => (v === 0 ? 70 : 0))} className="text-white/70 hover:text-white" aria-label="Son">
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            aria-label="Volume"
+            className="cursor-pointer accent-fuchsia-400"
+            style={{ writingMode: 'vertical-lr', direction: 'rtl', width: 8, height: 130, WebkitAppearance: 'slider-vertical' } as React.CSSProperties}
+          />
+          <span className="text-[10px] font-bold text-white/60 tabular-nums">{volume}</span>
+        </div>
+      )}
 
       {/* live scoreboard strip */}
       {(phase === 'listen' || phase === 'reveal') && ranked.length > 0 && (
