@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Clock, Trophy, Check, X, Crown, Loader2, LogOut, Volume2, VolumeX, Disc3, Flame, AlertTriangle } from 'lucide-react';
+import { Music, Clock, Trophy, Check, X, Crown, LogOut, Volume2, VolumeX, Disc3, Flame, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
 import {
-  BLINDTEST_TRACKS, CATEGORY_META, scoreFor,
+  BLINDTEST_ENTRIES, CATEGORY_META, scoreFor,
   BLINDTEST_ROUNDS, BLINDTEST_LISTEN_MS, BLINDTEST_REVEAL_MS,
-  type BlindtestCategory,
+  type BlindtestCategory, type BlindtestEntry,
 } from '@/lib/blindtestTracks';
-import { type CustomTrack } from '@/lib/blindtestPlaylist';
-import { parseYouTubeId, youtubeThumb } from '@/lib/youtube';
-import { YouTubeBlindtestPlayer, type YTBlindtestHandle } from './YouTubeBlindtestPlayer';
+import { itunesSearch, pickBestPreview } from '@/lib/itunes';
 import { BlindtestSetup } from './BlindtestSetup';
 
 interface Player {
@@ -30,12 +28,11 @@ interface MemoriseGameScreenProps {
 type Phase = 'intro' | 'listen' | 'reveal' | 'final';
 
 interface RoundTrack {
-  title: string;
-  subtitle?: string;
+  title: string;          // the answer
+  subtitle?: string;      // "Song – Artist"
   category: BlindtestCategory;
-  youtubeId?: string;
-  src?: string;
-  cover?: string;
+  previewUrl?: string;
+  artwork?: string;
 }
 
 interface PhasePayload {
@@ -50,7 +47,7 @@ interface PhasePayload {
   answerIndex?: number;
 }
 
-/* ---------- deterministic helpers for option building ---------- */
+/* deterministic helpers */
 function mulberry(seed: number) {
   let a = seed >>> 0;
   return () => {
@@ -69,15 +66,15 @@ function shuffle<T>(arr: T[], rnd: () => number): T[] {
   return a;
 }
 function buildOptions(
-  correct: RoundTrack,
+  correct: { title: string; category: BlindtestCategory },
   pool: { title: string; category: BlindtestCategory }[],
   seed: number,
 ): { options: string[]; answerIndex: number } {
   const rnd = mulberry(seed);
-  const uniq = Array.from(new Set(pool.map((t) => t.title))).filter((t) => t !== correct.title);
   const same = Array.from(new Set(pool.filter((t) => t.category === correct.category).map((t) => t.title)))
     .filter((t) => t !== correct.title);
-  const others = uniq.filter((t) => !same.includes(t));
+  const others = Array.from(new Set(pool.map((t) => t.title)))
+    .filter((t) => t !== correct.title && !same.includes(t));
   const distractors = [...shuffle(same, rnd), ...shuffle(others, rnd)].slice(0, 3);
   const options = shuffle([correct.title, ...distractors], rnd);
   return { options, answerIndex: options.indexOf(correct.title) };
@@ -103,6 +100,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const [mediaError, setMediaError] = useState(false);
   const [myStreak, setMyStreak] = useState(0);
   const [channelReady, setChannelReady] = useState(false);
+  const [starting, setStarting] = useState(false);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const answersRef = useRef<Record<string, { choice: number; elapsed: number }>>({});
@@ -111,14 +109,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const playersRef = useRef<Player[]>(players);
   const mountedRef = useRef(true);
   const startedRef = useRef(false);
-  const queueRef = useRef<RoundTrack[]>([]);
+  const queueRef = useRef<BlindtestEntry[]>([]);
   const poolRef = useRef<{ title: string; category: BlindtestCategory }[]>([]);
-  const badRef = useRef<Set<string>>(new Set());
   const errorFlagRef = useRef(false);
-  const saltRef = useRef(0);
   const cleanups = useRef<Array<() => void>>([]);
-  const mediaRef = useRef<HTMLVideoElement | null>(null);
-  const ytRef = useRef<YTBlindtestHandle | null>(null);
+  const mediaRef = useRef<HTMLAudioElement | null>(null);
   const tickRef = useRef(0);
 
   useEffect(() => { playersRef.current = players; }, [players]);
@@ -132,27 +127,20 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     return m;
   }, [players]);
 
-  /* ---------- media playback ---------- */
+  /* ---------- audio playback ---------- */
   const stopMedia = useCallback(() => {
     try { mediaRef.current?.pause(); } catch { /* noop */ }
-    try { ytRef.current?.stop(); } catch { /* noop */ }
   }, []);
 
   const playTrack = useCallback((t: RoundTrack) => {
     setMediaError(false);
-    const ytId = t.youtubeId ? parseYouTubeId(t.youtubeId) : null;
-    if (ytId) {
-      try { mediaRef.current?.pause(); } catch { /* noop */ }
-      setNeedsSoundUnlock(true);
-      ytRef.current?.setVolume(volume);
-      ytRef.current?.load(ytId, t.clipStart ?? 0);
-      return;
-    }
     const v = mediaRef.current;
-    if (!v || !t.src) return;
-    try { ytRef.current?.stop(); } catch { /* noop */ }
+    if (!v || !t.previewUrl) { setNeedsSoundUnlock(false); return; }
     try {
-      v.src = t.src; v.currentTime = 0; v.muted = muted; v.volume = volume / 100;
+      v.src = t.previewUrl;
+      v.currentTime = 0;
+      v.muted = muted;
+      v.volume = volume / 100;
       const p = v.play();
       if (p && typeof p.then === 'function') {
         p.then(() => setNeedsSoundUnlock(false)).catch(() => setNeedsSoundUnlock(true));
@@ -161,15 +149,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   }, [volume, muted]);
 
   const resumeSound = useCallback(() => {
-    if (!track) return;
-    const ytId = track.youtubeId ? parseYouTubeId(track.youtubeId) : null;
-    if (ytId) { ytRef.current?.setVolume(volume > 0 ? volume : 70); ytRef.current?.play(); }
-    else playTrack(track);
-  }, [track, volume, playTrack]);
+    if (track) playTrack(track);
+  }, [track, playTrack]);
 
   useEffect(() => {
     if (mediaRef.current) { mediaRef.current.muted = muted; mediaRef.current.volume = volume / 100; }
-    ytRef.current?.setVolume(volume);
   }, [volume, muted]);
 
   /* ---------- countdown + urgency tick ---------- */
@@ -256,32 +240,54 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     cleanups.current.push(() => clearInterval(iv));
   });
 
+  /** Fetch the next playable track (skips entries with no iTunes preview). */
+  const fetchNextTrack = useCallback(async (): Promise<{ entry: BlindtestEntry; track: RoundTrack } | null> => {
+    let safety = 0;
+    while (queueRef.current.length && safety < 12) {
+      safety += 1;
+      const entry = queueRef.current.shift()!;
+      const results = await itunesSearch(entry.query);
+      const best = pickBestPreview(results, entry.hint);
+      if (best) {
+        return {
+          entry,
+          track: {
+            title: entry.answer,
+            subtitle: `${best.trackName} – ${best.artistName}`,
+            category: entry.category,
+            previewUrl: best.previewUrl,
+            artwork: best.artworkUrl,
+          },
+        };
+      }
+    }
+    return null;
+  }, []);
+
   /* ---------- host loop ---------- */
   const runRound = useCallback(async (i: number, total: number) => {
     if (!mountedRef.current) return;
 
-    let t: RoundTrack | undefined;
-    while (queueRef.current.length) {
-      const cand = queueRef.current.shift()!;
-      if (cand.youtubeId && badRef.current.has(cand.youtubeId)) continue;
-      t = cand; break;
-    }
-    if (!t) { broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current } }); return; }
+    const next = await fetchNextTrack();
+    if (!mountedRef.current) return;
+    if (!next) { broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current } }); return; }
 
-    const { options: opts, answerIndex: ansIdx } = buildOptions(t, poolRef.current, (i + 1) * 7919 + saltRef.current);
+    const { options: opts, answerIndex: ansIdx } = buildOptions(
+      { title: next.track.title, category: next.track.category },
+      poolRef.current,
+      (i + 1) * 7919 + Math.floor(Math.random() * 1000),
+    );
 
     answersRef.current = {};
     errorFlagRef.current = false;
-    broadcastPhase({ phase: 'listen', roundIndex: i, totalRounds: total, track: t, options: opts, deadline: Date.now() + BLINDTEST_LISTEN_MS });
+    broadcastPhase({ phase: 'listen', roundIndex: i, totalRounds: total, track: next.track, options: opts, deadline: Date.now() + BLINDTEST_LISTEN_MS });
 
     const connected = playersRef.current.filter((p) => !p.isDisconnected).length || 1;
     const reason = await waitListen(connected, BLINDTEST_LISTEN_MS);
     if (!mountedRef.current) return;
 
     if (reason === 'error') {
-      if (t.youtubeId) badRef.current.add(t.youtubeId);
-      saltRef.current += 101;
-      await wait(300);
+      await wait(250);
       runRound(i, total);
       return;
     }
@@ -299,49 +305,32 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       scoreRef.current[pid] = (scoreRef.current[pid] || 0) + rp[pid];
     });
 
-    broadcastPhase({ phase: 'reveal', roundIndex: i, totalRounds: total, track: t, options: opts, scoreboard: { ...scoreRef.current }, roundPoints: rp, answerIndex: ansIdx });
+    broadcastPhase({ phase: 'reveal', roundIndex: i, totalRounds: total, track: next.track, options: opts, scoreboard: { ...scoreRef.current }, roundPoints: rp, answerIndex: ansIdx });
     await wait(BLINDTEST_REVEAL_MS);
     if (!mountedRef.current) return;
 
     if (i + 1 < total) runRound(i + 1, total);
     else broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [broadcastPhase]);
+  }, [broadcastPhase, fetchNextTrack]);
 
-  /* ---------- host starts (also unlocks audio via the click) ---------- */
-  const startGame = useCallback((custom: CustomTrack[]) => {
+  /* ---------- host starts (also unlocks audio via the click gesture) ---------- */
+  const startGame = useCallback((cats: BlindtestCategory[]) => {
     if (startedRef.current) return;
     startedRef.current = true;
+    setStarting(true);
 
-    const playable: RoundTrack[] = custom.length
-      ? custom.map((c) => ({ title: c.title, subtitle: c.subtitle, category: c.category, youtubeId: c.youtubeId }))
-      : BLINDTEST_TRACKS.filter((t) => t.youtubeId || t.src).map((t) => ({
-          title: t.title, subtitle: t.subtitle, category: t.category, youtubeId: t.youtubeId, src: t.src, cover: t.cover,
-        }));
-
-    // distractor pool = all known titles (custom + built-in)
-    poolRef.current = [
-      ...playable.map((t) => ({ title: t.title, category: t.category })),
-      ...BLINDTEST_TRACKS.map((t) => ({ title: t.title, category: t.category })),
-    ];
-
+    const entries = BLINDTEST_ENTRIES.filter((e) => cats.includes(e.category));
+    poolRef.current = entries.map((e) => ({ title: e.answer, category: e.category }));
     const rnd = mulberry(Math.floor(Math.random() * 1e9));
-    queueRef.current = shuffle(playable, rnd);
-    const total = Math.max(1, Math.min(BLINDTEST_ROUNDS, playable.length));
+    queueRef.current = shuffle(entries, rnd);
+    const total = Math.max(1, Math.min(BLINDTEST_ROUNDS, entries.length));
 
-    // prime the YouTube player with the host click (audio gesture)
-    ytRef.current?.setVolume(volume);
-    setTimeout(() => runRound(0, total), 400);
-  }, [runRound, volume]);
+    // prime audio with the host gesture
+    try { mediaRef.current?.play().then(() => mediaRef.current?.pause()).catch(() => {}); } catch { /* noop */ }
 
-  /* ---------- YouTube events ---------- */
-  const handleYtPlaying = useCallback((playing: boolean) => {
-    if (playing) { setNeedsSoundUnlock(false); setMediaError(false); }
-  }, []);
-  const handleYtError = useCallback(() => {
-    setMediaError(true);
-    if (isHost) errorFlagRef.current = true;
-  }, [isHost]);
+    runRound(0, total);
+  }, [runRound]);
 
   /* ---------- answering ---------- */
   const answer = (choice: number) => {
@@ -363,14 +352,17 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     ? Math.max(0, Math.min(1, (deadline - Date.now()) / BLINDTEST_LISTEN_MS)) : 0;
   const urgent = phase === 'listen' && secondsLeft <= 5 && secondsLeft > 0 && myChoice == null;
   const connectedCount = players.filter((p) => !p.isDisconnected).length || players.length;
-  const revealYtId = track?.youtubeId ? parseYouTubeId(track.youtubeId) : null;
-  const coverUrl = track?.cover || (revealYtId ? youtubeThumb(revealYtId) : undefined);
 
   /* ============================================================ */
   return (
     <div className="h-screen w-full flex flex-col items-center text-white relative overflow-hidden bg-gradient-to-b from-[#1a0d2e] via-[#140a24] to-[#0c0618]">
-      <video ref={mediaRef} className="hidden" playsInline preload="auto" />
-      <YouTubeBlindtestPlayer ref={ytRef} defaultVolume={volume} onPlayingChange={handleYtPlaying} onError={handleYtError} />
+      <audio
+        ref={mediaRef}
+        className="hidden"
+        preload="auto"
+        onPlaying={() => { setNeedsSoundUnlock(false); setMediaError(false); }}
+        onError={() => { setMediaError(true); if (isHost && phase === 'listen') errorFlagRef.current = true; }}
+      />
 
       <div className="absolute -top-1/4 left-1/4 w-[55vw] h-[55vw] rounded-full bg-fuchsia-600/20 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[45vw] h-[45vw] rounded-full bg-cyan-500/15 blur-[120px] pointer-events-none" />
@@ -408,10 +400,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       {/* body */}
       <div className="relative z-10 flex-1 w-full flex flex-col items-center justify-center px-4 min-h-0 overflow-y-auto custom-scrollbar py-4">
         <AnimatePresence mode="wait">
-          {/* INTRO — host setup */}
+          {/* INTRO — host category chooser */}
           {phase === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center">
-              <BlindtestSetup isHost={isHost} canStart={channelReady} onStart={startGame} />
+              <BlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} onStart={startGame} />
             </motion.div>
           )}
 
@@ -452,7 +444,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
               {mediaError ? (
                 <p className="flex items-center gap-2 text-sm text-amber-300/90">
-                  <AlertTriangle className="w-4 h-4" /> Vidéo indisponible… {isHost ? 'on passe à la suivante' : "l'hôte change de piste"}
+                  <AlertTriangle className="w-4 h-4" /> Extrait indisponible… {isHost ? 'on passe à la suivante' : "l'hôte change de piste"}
                 </p>
               ) : needsSoundUnlock ? (
                 <motion.button onClick={resumeSound} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-fuchsia-500 text-white font-black shadow-lg shadow-fuchsia-500/40">
@@ -497,7 +489,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
               <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} transition={{ type: 'spring', damping: 14 }} className="flex flex-col items-center gap-3">
                 <div className="relative w-40 h-40 rounded-3xl overflow-hidden flex items-center justify-center" style={{ border: '3px solid rgba(217,70,239,0.5)', boxShadow: '0 16px 50px rgba(217,70,239,0.4)' }}>
                   <div className="absolute inset-0 flex items-center justify-center text-6xl" style={{ background: catMeta ? `radial-gradient(circle, ${catMeta.color}33, #120a20)` : '#120a20' }}>{catMeta?.emoji ?? '🎵'}</div>
-                  {coverUrl && <img src={coverUrl} alt={track.title} className="relative w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />}
+                  {track.artwork && <img src={track.artwork} alt={track.title} className="relative w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />}
                 </div>
                 <div className="text-center">
                   <h2 className="text-3xl font-black">{track.title}</h2>
