@@ -273,7 +273,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       safety += 1;
       const entry = queueRef.current.shift()!;
       const results = await itunesSearch(entry.query);
-      const best = pickBestPreview(results, { answer: entry.answer, hint: entry.hint, category: entry.category });
+      const best = pickBestPreview(results, { answer: entry.answer, hint: entry.hint, category: entry.category, query: entry.query });
       if (best) {
         return {
           entry,
