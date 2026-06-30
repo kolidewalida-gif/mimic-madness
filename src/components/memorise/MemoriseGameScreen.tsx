@@ -134,19 +134,6 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   }, [players]);
 
   /* ---------- audio playback ---------- */
-  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-  const unlockAudio = useCallback(() => {
-    const v = mediaRef.current;
-    if (!v) return;
-    try {
-      v.src = SILENT_WAV;
-      v.muted = false;
-      v.volume = 0;
-      const p = v.play();
-      if (p && typeof p.then === 'function') p.then(() => { try { v.pause(); } catch { /* noop */ } }).catch(() => {});
-    } catch { /* noop */ }
-  }, []);
-
   const stopMedia = useCallback(() => {
     try { mediaRef.current?.pause(); } catch { /* noop */ }
   }, []);
@@ -219,11 +206,13 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
     if (p.phase === 'listen') {
       setMyChoice(null); setAnsweredCount(0); answersRef.current = {}; tickRef.current = 0;
-      if (p.track) { playSoundEffect('quizReveal', 0.3); playTrack(p.track); }
+      // host plays directly from its loop (inside the click activation window);
+      // clients auto-play here (and fall back to the "Activer le son" tap if blocked).
+      if (p.track) { playSoundEffect('quizReveal', 0.3); if (!isHost) playTrack(p.track); }
     }
     if (p.phase === 'reveal') playSoundEffect('start', 0.35);
     if (p.phase === 'final') stopMedia();
-  }, [playTrack, stopMedia, currentPlayer.id]);
+  }, [playTrack, stopMedia, currentPlayer.id, isHost]);
 
   /* ---------- channel ---------- */
   useEffect(() => {
@@ -315,6 +304,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     errorFlagRef.current = false;
     hostPlayingRef.current = false;
     broadcastPhase({ phase: 'listen', roundIndex: i, totalRounds: total, track: next.track, options: opts, deadline: Date.now() + BLINDTEST_LISTEN_MS });
+    // Host plays here: on round 1 this runs inside the "Lancer" click activation
+    // window (which unlocks the <audio> element for the rest of the game).
+    playTrack(next.track);
 
     const connected = playersRef.current.filter((p) => !p.isDisconnected).length || 1;
     const reason = await waitListen(connected, BLINDTEST_LISTEN_MS);
@@ -348,10 +340,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     if (i + 1 < total) { const nt = await prefetch; runRound(i + 1, total, nt); }
     else broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [broadcastPhase, fetchNextTrack]);
+  }, [broadcastPhase, fetchNextTrack, playTrack]);
 
-  /* ---------- host starts (also unlocks audio via the click gesture) ---------- */
-  const startGame = useCallback((cats: BlindtestCategory[]) => {
+  /* ---------- host starts (the click unlocks audio for the whole game) ---------- */
+  const startGame = useCallback(async (cats: BlindtestCategory[]) => {
     if (startedRef.current) return;
     startedRef.current = true;
     setStarting(true);
@@ -362,10 +354,13 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     queueRef.current = shuffle(entries, rnd);
     const total = Math.max(1, Math.min(BLINDTEST_ROUNDS, entries.length));
 
-    // unlock the audio element with the host's click so the FIRST clip plays
-    unlockAudio();
-    runRound(0, total);
-  }, [runRound, unlockAudio]);
+    // Fetch the first track now — still inside the click's activation window —
+    // so the host's first playTrack() is allowed to play with sound.
+    const first = await fetchNextTrack();
+    if (!mountedRef.current) return;
+    if (!first) { broadcastPhase({ phase: 'final', roundIndex: 0, scoreboard: {} }); return; }
+    runRound(0, total, first);
+  }, [runRound, fetchNextTrack, broadcastPhase]);
 
   /* ---------- answering ---------- */
   const answer = (choice: number) => {
