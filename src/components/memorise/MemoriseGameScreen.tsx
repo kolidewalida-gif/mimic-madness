@@ -9,6 +9,7 @@ import {
   BLINDTEST_ROUNDS, BLINDTEST_LISTEN_MS, BLINDTEST_REVEAL_MS,
   type BlindtestRound,
 } from '@/lib/blindtestTracks';
+import { YouTubeBlindtestPlayer, type YTBlindtestHandle } from './YouTubeBlindtestPlayer';
 
 interface Player {
   id: string;
@@ -63,6 +64,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const playlistRef = useRef<string[]>([]);
   const cleanups = useRef<Array<() => void>>([]);
   const mediaRef = useRef<HTMLVideoElement | null>(null);
+  const ytRef = useRef<YTBlindtestHandle | null>(null);
 
   useEffect(() => { playersRef.current = players; }, [players]);
 
@@ -77,14 +79,27 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
   /* ---------- media playback ---------- */
   const stopMedia = useCallback(() => {
-    const v = mediaRef.current;
-    if (v) { try { v.pause(); } catch { /* noop */ } }
+    try { mediaRef.current?.pause(); } catch { /* noop */ }
+    try { ytRef.current?.stop(); } catch { /* noop */ }
   }, []);
 
   const playTrack = useCallback((tid: string) => {
     const t = trackById(tid);
+    if (!t) return;
+
+    // YouTube source (preferred)
+    if (t.youtubeId) {
+      try { mediaRef.current?.pause(); } catch { /* noop */ }
+      setNeedsSoundUnlock(true); // cleared by onPlayingChange once it really plays
+      ytRef.current?.setMuted(muted);
+      ytRef.current?.load(t.youtubeId, t.clipStart ?? 0);
+      return;
+    }
+
+    // Local file source
     const v = mediaRef.current;
-    if (!t || !v) return;
+    if (!v || !t.src) return;
+    try { ytRef.current?.stop(); } catch { /* noop */ }
     try {
       v.src = t.src;
       v.currentTime = 0;
@@ -102,8 +117,21 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     }
   }, [muted]);
 
+  const resumeSound = useCallback(() => {
+    const t = trackId ? trackById(trackId) : null;
+    if (!t) return;
+    setMuted(false);
+    if (t.youtubeId) {
+      ytRef.current?.setMuted(false);
+      ytRef.current?.play();
+    } else {
+      playTrack(t.id);
+    }
+  }, [trackId, playTrack]);
+
   useEffect(() => {
     if (mediaRef.current) mediaRef.current.muted = muted;
+    ytRef.current?.setMuted(muted);
   }, [muted]);
 
   /* ---------- countdown ticker ---------- */
@@ -266,8 +294,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   /* ============================================================ */
   return (
     <div className="h-screen w-full flex flex-col items-center text-white relative overflow-hidden bg-gradient-to-b from-[#1a0d2e] via-[#140a24] to-[#0c0618]">
-      {/* hidden media element (audio for mp3, audio+video for mp4) */}
+      {/* hidden media element (local mp3/mp4 fallback) */}
       <video ref={mediaRef} className="hidden" playsInline preload="auto" />
+      {/* hidden YouTube player (primary audio source) */}
+      <YouTubeBlindtestPlayer
+        ref={ytRef}
+        onPlayingChange={(playing) => { if (playing) setNeedsSoundUnlock(false); }}
+      />
+
 
       {/* glow */}
       <div className="absolute -top-1/4 left-1/4 w-[55vw] h-[55vw] rounded-full bg-purple-600/20 blur-[120px] pointer-events-none" />
@@ -360,7 +394,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
               {needsSoundUnlock ? (
                 <button
-                  onClick={() => { if (trackId) playTrack(trackId); }}
+                  onClick={resumeSound}
                   className="flex items-center gap-2 px-4 py-2 rounded-full bg-fuchsia-500/20 border border-fuchsia-400/50 text-fuchsia-200 font-bold"
                 >
                   <Play className="w-4 h-4" /> Activer le son

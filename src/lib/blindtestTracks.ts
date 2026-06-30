@@ -7,13 +7,14 @@
  *
  * 🎵 Adding tracks
  * ----------------
- * Drop your media files in `public/blindtest/` and add an entry below.
- *  - `src` accepts BOTH `.mp3` (audio only) and `.mp4` (the audio is used,
- *    the video stays hidden until the reveal).
- *  - `cover` (optional) is shown on the reveal card.
- *  - `clipStart` (optional, seconds) lets you start mid-track on the chorus.
- * Missing files degrade gracefully (the round still runs, just без sound),
- * so you can wire the art first and add media later.
+ * Two ways to give a track its sound:
+ *  1. YouTube (easiest, no upload): set `youtubeId` to a video id or paste a
+ *     full link, e.g. "https://www.youtube.com/watch?v=Bi7WveYKHvU".
+ *  2. Local file: drop a `.mp3`/`.mp4` in `public/blindtest/` and set `src`.
+ *
+ * When `youtubeId` is set it takes priority. The playlist automatically
+ * prefers YouTube-backed tracks so the game always has sound out of the box.
+ * Missing media degrades gracefully (the round still runs + reveals the title).
  */
 
 export type BlindtestCategory = 'anime' | 'cartoon' | 'music' | 'film';
@@ -25,8 +26,14 @@ export interface BlindtestTrack {
   /** Extra detail shown only on the reveal (song name, artist…). */
   subtitle?: string;
   category: BlindtestCategory;
-  /** Path under /public, e.g. "/blindtest/anime/naruto.mp3" (mp3 or mp4). */
-  src: string;
+  /**
+   * YouTube video id OR full link — easiest source, no upload needed.
+   * e.g. "Bi7WveYKHvU" or "https://www.youtube.com/watch?v=Bi7WveYKHvU".
+   * (When set, this takes priority over `src`.)
+   */
+  youtubeId?: string;
+  /** Local file under /public, e.g. "/blindtest/anime/naruto.mp3" (mp3 or mp4). */
+  src?: string;
   /** Optional cover art shown on the reveal card. */
   cover?: string;
   /** Optional start offset in seconds (jump to the chorus). */
@@ -48,6 +55,19 @@ export const CATEGORY_META: Record<
  * `public/blindtest/`. These reference the recommended folder layout.
  */
 export const BLINDTEST_TRACKS: BlindtestTrack[] = [
+  // ═══════════════════════════════════════════════════════════
+  // 🎬 YOUTUBE TRACKS — easiest: just paste a youtube id / link.
+  // Add as many as you want here; the playlist prefers these.
+  //   { id, title (the answer), subtitle?, category, youtubeId }
+  // ═══════════════════════════════════════════════════════════
+  {
+    id: 'yt-bi7',
+    title: 'Ma musique',          // ⚠️ renomme avec le vrai titre (= la bonne réponse)
+    subtitle: 'Ajoutée via YouTube',
+    category: 'music',
+    youtubeId: 'Bi7WveYKHvU',     // https://www.youtube.com/watch?v=Bi7WveYKHvU
+  },
+
   // ——— ANIME ———
   { id: 'naruto', title: 'Naruto', subtitle: 'Blue Bird', category: 'anime', src: '/blindtest/anime/naruto.mp3', cover: '/blindtest/covers/naruto.jpg' },
   { id: 'aot', title: "L'Attaque des Titans", subtitle: 'Guren no Yumiya', category: 'anime', src: '/blindtest/anime/aot.mp3', cover: '/blindtest/covers/aot.jpg' },
@@ -98,7 +118,12 @@ function shuffle<T>(arr: T[], rnd: () => number): T[] {
 /** Ordered playlist of track ids for the whole game (same on every client). */
 export function makePlaylist(masterSeed: number, count: number): string[] {
   const rnd = rngFactory(masterSeed);
-  const ids = shuffle(BLINDTEST_TRACKS.map((t) => t.id), rnd);
+  // Prefer YouTube-backed tracks (guaranteed sound). Fall back to any track
+  // with a source, then to the full list (titles still work as choices).
+  const yt = BLINDTEST_TRACKS.filter((t) => t.youtubeId);
+  const withSrc = BLINDTEST_TRACKS.filter((t) => t.youtubeId || t.src);
+  const pool = yt.length ? yt : withSrc.length ? withSrc : BLINDTEST_TRACKS;
+  const ids = shuffle(pool.map((t) => t.id), rnd);
   return ids.slice(0, Math.min(count, ids.length));
 }
 
