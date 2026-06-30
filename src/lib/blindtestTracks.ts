@@ -68,31 +68,61 @@ export const BLINDTEST_TRACKS: BlindtestTrack[] = [
     youtubeId: 'Bi7WveYKHvU',     // https://www.youtube.com/watch?v=Bi7WveYKHvU
   },
 
-  // ——— ANIME ———
-  { id: 'naruto', title: 'Naruto', subtitle: 'Blue Bird', category: 'anime', src: '/blindtest/anime/naruto.mp3', cover: '/blindtest/covers/naruto.jpg' },
-  { id: 'aot', title: "L'Attaque des Titans", subtitle: 'Guren no Yumiya', category: 'anime', src: '/blindtest/anime/aot.mp3', cover: '/blindtest/covers/aot.jpg' },
-  { id: 'onepiece', title: 'One Piece', subtitle: 'We Are!', category: 'anime', src: '/blindtest/anime/onepiece.mp3', cover: '/blindtest/covers/onepiece.jpg' },
-  { id: 'dbz', title: 'Dragon Ball Z', subtitle: 'Cha-La Head-Cha-La', category: 'anime', src: '/blindtest/anime/dbz.mp3', cover: '/blindtest/covers/dbz.jpg' },
-  { id: 'demonslayer', title: 'Demon Slayer', subtitle: 'Gurenge', category: 'anime', src: '/blindtest/anime/demonslayer.mp3', cover: '/blindtest/covers/demonslayer.jpg' },
-  { id: 'jjk', title: 'Jujutsu Kaisen', subtitle: 'Kaikai Kitan', category: 'anime', src: '/blindtest/anime/jjk.mp3', cover: '/blindtest/covers/jjk.jpg' },
-  { id: 'mha', title: 'My Hero Academia', subtitle: 'Peace Sign', category: 'anime', src: '/blindtest/anime/mha.mp3', cover: '/blindtest/covers/mha.jpg' },
-  { id: 'deathnote', title: 'Death Note', subtitle: 'The WORLD', category: 'anime', src: '/blindtest/anime/deathnote.mp3', cover: '/blindtest/covers/deathnote.jpg' },
+  // ═══════════════════════════════════════════════════════════
+  // ——— ANIME (chaînes officielles : Sony Music, labels) ———
+  // ═══════════════════════════════════════════════════════════
+  { id: 'demon-slayer-op1', title: 'Demon Slayer', subtitle: 'Gurenge — LiSA', category: 'anime', youtubeId: 'CwkzK-F0Y00' },
+  { id: 'jjk-op1', title: 'Jujutsu Kaisen', subtitle: 'Kaikai Kitan — Eve', category: 'anime', youtubeId: 'jLDLs2D-h7Q' },
+  { id: 'aot-op1', title: "L'Attaque des Titans", subtitle: 'Guren no Yumiya — Linked Horizon', category: 'anime', youtubeId: 'AqaCwUgZAMI' },
+  { id: 'aot-op2', title: "L'Attaque des Titans", subtitle: 'Shinzou wo Sasageyo — Linked Horizon', category: 'anime', youtubeId: 'zPzxdjpJUHQ' },
+  { id: 'naruto-shippuden-op1', title: 'Naruto Shippuden', subtitle: 'Hero’s Come Back!! — Nobodyknows+', category: 'anime', youtubeId: 'tDP2VPpC0WU' },
+  { id: 'naruto-blue-bird', title: 'Naruto Shippuden', subtitle: 'Blue Bird — Ikimono-gakari', category: 'anime', youtubeId: 'NA8Fdc7Rp_8' },
+  { id: 'one-piece-we-are', title: 'One Piece', subtitle: 'We Are! — Hiroshi Kitadani', category: 'anime', youtubeId: 'lJjqlmnPV5k' },
+  { id: 'dbz-cha-la', title: 'Dragon Ball Z', subtitle: 'Cha-La Head-Cha-La — Hironobu Kageyama', category: 'anime', youtubeId: 'lwSeP1UmKHc' },
+  { id: 'mha-peace-sign', title: 'My Hero Academia', subtitle: 'Peace Sign — Kenshi Yonezu', category: 'anime', youtubeId: 'q0Bc1y0bFTM' },
+  { id: 'death-note-the-world', title: 'Death Note', subtitle: 'The WORLD — Nightmare', category: 'anime', youtubeId: 'NQHKsTAjqMs' },
+  { id: 'tokyo-ghoul-unravel', title: 'Tokyo Ghoul', subtitle: 'Unravel — TK from Ling Tosite Sigure', category: 'anime', youtubeId: 'gQDcL9wnQ-c' },
+  { id: 'fma-brotherhood-again', title: 'Fullmetal Alchemist: Brotherhood', subtitle: 'Again — YUI', category: 'anime', youtubeId: '--IcUmcStrM' },
+  { id: 'bleach-number-one', title: 'Bleach', subtitle: 'Number One — Hazel Fernandes', category: 'anime', youtubeId: 'pdLAhMjITJI' },
+  { id: 'hxh-departure', title: 'Hunter x Hunter', subtitle: 'Departure! — Masatoshi Ono', category: 'anime', youtubeId: 'd6kBeJjTGnY' },
+  { id: 'sao-crossing-field', title: 'Sword Art Online', subtitle: 'Crossing Field — LiSA', category: 'anime', youtubeId: '6bdz98Ojf4o' },
+  { id: 'evangelion-cruel-angel', title: 'Neon Genesis Evangelion', subtitle: 'A Cruel Angel’s Thesis — Yoko Takahashi', category: 'anime', youtubeId: 'o6wtDPVkKqI' },
+  { id: 'chainsaw-man-kick-back', title: 'Chainsaw Man', subtitle: 'KICK BACK — Kenshi Yonezu', category: 'anime', youtubeId: 'gpTQbN3fzGo' },
+  { id: 'spy-x-family-mixed-nuts', title: 'Spy x Family', subtitle: 'Mixed Nuts — Official HIGE DANdism', category: 'anime', youtubeId: 'LX17gBlxqAQ' },
 
+  // ═══════════════════════════════════════════════════════════
   // ——— DESSIN ANIMÉ / CARTOON ———
-  { id: 'pokemon', title: 'Pokémon', subtitle: 'Générique FR', category: 'cartoon', src: '/blindtest/cartoon/pokemon.mp3', cover: '/blindtest/covers/pokemon.jpg' },
-  { id: 'spongebob', title: 'Bob l’éponge', category: 'cartoon', src: '/blindtest/cartoon/spongebob.mp3', cover: '/blindtest/covers/spongebob.jpg' },
-  { id: 'gravityfalls', title: 'Souvenirs de Gravity Falls', category: 'cartoon', src: '/blindtest/cartoon/gravityfalls.mp3', cover: '/blindtest/covers/gravityfalls.jpg' },
-  { id: 'avatar', title: 'Avatar le dernier maître de l’air', category: 'cartoon', src: '/blindtest/cartoon/avatar.mp3', cover: '/blindtest/covers/avatar.jpg' },
-  { id: 'adventuretime', title: 'Adventure Time', category: 'cartoon', src: '/blindtest/cartoon/adventuretime.mp3', cover: '/blindtest/covers/adventuretime.jpg' },
-  { id: 'simpsons', title: 'Les Simpson', category: 'cartoon', src: '/blindtest/cartoon/simpsons.mp3', cover: '/blindtest/covers/simpsons.jpg' },
+  // ═══════════════════════════════════════════════════════════
+  { id: 'pokemon-fr', title: 'Pokémon', subtitle: 'Générique français', category: 'cartoon', youtubeId: 'rg6CiPI6h2g' },
+  { id: 'spongebob-theme', title: 'Bob l’éponge', subtitle: 'SpongeBob SquarePants Theme', category: 'cartoon', youtubeId: 'BPFc3SVPSeg' },
+  { id: 'gravity-falls-theme', title: 'Souvenirs de Gravity Falls', subtitle: 'Main Theme', category: 'cartoon', youtubeId: 'AVi6c9G6Cag' },
+  { id: 'avatar-last-airbender', title: 'Avatar, le dernier maître de l’air', subtitle: 'Opening Theme', category: 'cartoon', youtubeId: 'GsuT2UEnoEw' },
+  { id: 'adventure-time-theme', title: 'Adventure Time', subtitle: 'Main Title', category: 'cartoon', youtubeId: 'lLB6QGVtv-A' },
+  { id: 'simpsons-theme', title: 'Les Simpson', subtitle: 'Main Theme — Danny Elfman', category: 'cartoon', youtubeId: 'Xqog63KOANc' },
+  { id: 'rick-and-morty-theme', title: 'Rick et Morty', subtitle: 'Opening Theme', category: 'cartoon', youtubeId: 'Jh4QFaPmdss' },
+  { id: 'powerpuff-girls-theme', title: 'Les Super Nanas', subtitle: 'Opening Theme', category: 'cartoon', youtubeId: 'cu_LBNcLFMo' },
+  { id: 'scooby-doo-theme', title: 'Scooby-Doo', subtitle: 'Where Are You! Theme', category: 'cartoon', youtubeId: 'OFqL5o4tQUQ' },
+  { id: 'tom-jerry-theme', title: 'Tom et Jerry', subtitle: 'Main Theme', category: 'cartoon', youtubeId: 'r323XGZuTLo' },
 
-  // ——— MUSIQUE ———
-  { id: 'music1', title: 'Musique 1', category: 'music', src: '/blindtest/music/track1.mp3' },
-  { id: 'music2', title: 'Musique 2', category: 'music', src: '/blindtest/music/track2.mp3' },
+  // ═══════════════════════════════════════════════════════════
+  // ——— MUSIQUE (clips officiels) ———
+  // ═══════════════════════════════════════════════════════════
+  { id: 'queen-bohemian', title: 'Bohemian Rhapsody', subtitle: 'Queen', category: 'music', youtubeId: 'fJ9rUzIMcZQ', clipStart: 60 },
+  { id: 'michael-jackson-billie-jean', title: 'Billie Jean', subtitle: 'Michael Jackson', category: 'music', youtubeId: 'Zi_XLOBDo_Y', clipStart: 30 },
+  { id: 'daft-punk-get-lucky', title: 'Get Lucky', subtitle: 'Daft Punk ft. Pharrell Williams', category: 'music', youtubeId: '5NV6Rdv1a3I' },
+  { id: 'adele-rolling-in-the-deep', title: 'Rolling in the Deep', subtitle: 'Adele', category: 'music', youtubeId: 'rYEDA3JcQqw' },
+  { id: 'ed-sheeran-shape-of-you', title: 'Shape of You', subtitle: 'Ed Sheeran', category: 'music', youtubeId: 'JGwWNGJdvx8' },
+  { id: 'gangnam-style', title: 'Gangnam Style', subtitle: 'PSY', category: 'music', youtubeId: '9bZkp7q19f0' },
+  { id: 'rick-astley-never-gonna', title: 'Never Gonna Give You Up', subtitle: 'Rick Astley', category: 'music', youtubeId: 'dQw4w9WgXcQ' },
+  { id: 'stromae-alors-on-danse', title: 'Alors on danse', subtitle: 'Stromae', category: 'music', youtubeId: 'VHoT4N43jK8' },
 
-  // ——— FILM ———
-  { id: 'starwars', title: 'Star Wars', subtitle: 'Main Theme', category: 'film', src: '/blindtest/film/starwars.mp3', cover: '/blindtest/covers/starwars.jpg' },
-  { id: 'pirates', title: 'Pirates des Caraïbes', subtitle: "He's a Pirate", category: 'film', src: '/blindtest/film/pirates.mp3', cover: '/blindtest/covers/pirates.jpg' },
+  // ═══════════════════════════════════════════════════════════
+  // ——— FILM (bandes originales) ———
+  // ═══════════════════════════════════════════════════════════
+  { id: 'star-wars-main-theme', title: 'Star Wars', subtitle: 'Main Theme — John Williams', category: 'film', youtubeId: '_D0ZQPqeJkk' },
+  { id: 'pirates-hes-a-pirate', title: 'Pirates des Caraïbes', subtitle: "He's a Pirate — Klaus Badelt", category: 'film', youtubeId: '6Vv6sk-RWxA' },
+  { id: 'harry-potter-hedwig', title: 'Harry Potter', subtitle: 'Hedwig’s Theme — John Williams', category: 'film', youtubeId: 'wKi4U7BIQbE' },
+  { id: 'jurassic-park-theme', title: 'Jurassic Park', subtitle: 'Main Theme — John Williams', category: 'film', youtubeId: '-b3MM1mlPoI' },
 ];
 
 export const BLINDTEST_ROUNDS = 8;
