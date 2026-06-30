@@ -95,7 +95,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const [myChoice, setMyChoice] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
-  const [volume, setVolume] = useState(70);
+  const [volume, setVolume] = useState<number>(() => {
+    try { const s = Number(localStorage.getItem('mimic.blindtest.volume')); if (Number.isFinite(s) && s >= 0 && s <= 100) return s; } catch { /* noop */ }
+    return 70;
+  });
   const [needsSoundUnlock, setNeedsSoundUnlock] = useState(true);
   const [mediaError, setMediaError] = useState(false);
   const [myStreak, setMyStreak] = useState(0);
@@ -116,6 +119,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const mediaRef = useRef<HTMLAudioElement | null>(null);
   const tickRef = useRef(0);
   const hostPlayingRef = useRef(false);
+  const blockedRef = useRef(false);
+  const lastVolRef = useRef(70);
 
   useEffect(() => { playersRef.current = players; }, [players]);
 
@@ -129,12 +134,26 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   }, [players]);
 
   /* ---------- audio playback ---------- */
+  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  const unlockAudio = useCallback(() => {
+    const v = mediaRef.current;
+    if (!v) return;
+    try {
+      v.src = SILENT_WAV;
+      v.muted = false;
+      v.volume = 0;
+      const p = v.play();
+      if (p && typeof p.then === 'function') p.then(() => { try { v.pause(); } catch { /* noop */ } }).catch(() => {});
+    } catch { /* noop */ }
+  }, []);
+
   const stopMedia = useCallback(() => {
     try { mediaRef.current?.pause(); } catch { /* noop */ }
   }, []);
 
   const playTrack = useCallback((t: RoundTrack) => {
     setMediaError(false);
+    blockedRef.current = false;
     const v = mediaRef.current;
     if (!v || !t.previewUrl) { setNeedsSoundUnlock(false); return; }
     try {
@@ -144,17 +163,27 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       v.volume = volume / 100;
       const p = v.play();
       if (p && typeof p.then === 'function') {
-        p.then(() => setNeedsSoundUnlock(false)).catch(() => setNeedsSoundUnlock(true));
+        p.then(() => { hostPlayingRef.current = true; setNeedsSoundUnlock(false); })
+          .catch((err: any) => {
+            if (err && err.name === 'NotAllowedError') { blockedRef.current = true; setNeedsSoundUnlock(true); }
+            else { setMediaError(true); if (isHost) errorFlagRef.current = true; }
+          });
       }
     } catch { setNeedsSoundUnlock(true); }
-  }, [volume, muted]);
+  }, [volume, muted, isHost]);
 
   const resumeSound = useCallback(() => {
     if (track) playTrack(track);
   }, [track, playTrack]);
 
+  const toggleMute = useCallback(() => {
+    setVolume((v) => (v === 0 ? (lastVolRef.current || 70) : 0));
+  }, []);
+
   useEffect(() => {
     if (mediaRef.current) { mediaRef.current.muted = muted; mediaRef.current.volume = volume / 100; }
+    if (volume > 0) lastVolRef.current = volume;
+    try { localStorage.setItem('mimic.blindtest.volume', String(volume)); } catch { /* noop */ }
   }, [volume, muted]);
 
   /* ---------- countdown + urgency tick ---------- */
@@ -235,8 +264,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     const iv = setInterval(() => {
       const elapsed = Date.now() - start;
       if (errorFlagRef.current) { clearInterval(iv); resolve('error'); }
-      // host playback watchdog: if the clip never starts, treat it as a dud
-      else if (!hostPlayingRef.current && elapsed > 5000) { clearInterval(iv); resolve('error'); }
+      // host playback watchdog: skip a clip only if it errored (not when merely blocked by autoplay)
+      else if (!hostPlayingRef.current && !blockedRef.current && elapsed > 6000) { clearInterval(iv); resolve('error'); }
       else if (Object.keys(answersRef.current).length >= target || elapsed >= ms) {
         clearInterval(iv); resolve('done');
       }
@@ -333,11 +362,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     queueRef.current = shuffle(entries, rnd);
     const total = Math.max(1, Math.min(BLINDTEST_ROUNDS, entries.length));
 
-    // prime audio with the host gesture
-    try { mediaRef.current?.play().then(() => mediaRef.current?.pause()).catch(() => {}); } catch { /* noop */ }
-
+    // unlock the audio element with the host's click so the FIRST clip plays
+    unlockAudio();
     runRound(0, total);
-  }, [runRound]);
+  }, [runRound, unlockAudio]);
 
   /* ---------- answering ---------- */
   const answer = (choice: number) => {
@@ -390,7 +418,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           {phase !== 'final' && phase !== 'intro' && (
             <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm font-bold">{roundIndex + 1}/{totalRounds}</div>
           )}
-          <button onClick={() => setVolume((v) => (v === 0 ? 70 : 0))} className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-white/70 hover:text-white" aria-label="Son">
+          <button onClick={toggleMute} className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-white/70 hover:text-white" aria-label="Son">
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           <button onClick={onEndGame} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-rose-500/15">
@@ -545,23 +573,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         </AnimatePresence>
       </div>
 
-      {/* vertical volume bar */}
+      {/* vertical volume bar (persisted) */}
       {(phase === 'listen' || phase === 'reveal') && (
-        <div className="fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 px-2.5 py-3 rounded-2xl bg-black/45 border border-white/10 backdrop-blur-sm">
-          <button onClick={() => setVolume((v) => (v === 0 ? 70 : 0))} className="text-white/70 hover:text-white" aria-label="Son">
-            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        <div className="fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md">
+          <button onClick={toggleMute} className="text-white/70 hover:text-white" aria-label="Son">
+            {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            aria-label="Volume"
-            className="cursor-pointer accent-fuchsia-400"
-            style={{ writingMode: 'vertical-lr', direction: 'rtl', width: 8, height: 130, WebkitAppearance: 'slider-vertical' } as React.CSSProperties}
-          />
-          <span className="text-[10px] font-bold text-white/60 tabular-nums">{volume}</span>
+          <VerticalVolume value={volume} onChange={setVolume} />
+          <span className="text-[11px] font-black text-white/70 tabular-nums">{volume}</span>
         </div>
       )}
 
@@ -579,6 +598,46 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+/* ---------- custom vertical volume slider (robust cross-browser) ---------- */
+const VerticalVolume = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const setFromY = (clientY: number) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const pct = 1 - (clientY - r.top) / r.height;
+    onChange(Math.round(Math.max(0, Math.min(1, pct)) * 100));
+  };
+
+  return (
+    <div
+      ref={trackRef}
+      onPointerDown={(e) => { dragging.current = true; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); setFromY(e.clientY); }}
+      onPointerMove={(e) => { if (dragging.current) setFromY(e.clientY); }}
+      onPointerUp={() => { dragging.current = false; }}
+      onPointerCancel={() => { dragging.current = false; }}
+      className="relative w-3 rounded-full cursor-pointer touch-none"
+      style={{ height: 150, background: 'rgba(255,255,255,0.15)' }}
+      role="slider"
+      aria-valuenow={value}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label="Volume de la musique"
+    >
+      <div
+        className="absolute bottom-0 left-0 right-0 rounded-full"
+        style={{ height: `${value}%`, background: 'linear-gradient(180deg, #e879f9, #a855f7)' }}
+      />
+      <div
+        className="absolute left-1/2 w-5 h-5 rounded-full bg-white shadow-lg"
+        style={{ bottom: `calc(${value}% - 10px)`, transform: 'translateX(-50%)', boxShadow: '0 2px 8px rgba(217,70,239,0.6)' }}
+      />
     </div>
   );
 };
