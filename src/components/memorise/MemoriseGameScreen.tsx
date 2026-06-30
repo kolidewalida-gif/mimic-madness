@@ -9,7 +9,7 @@ import {
   BLINDTEST_ROUNDS, BLINDTEST_LISTEN_MS, BLINDTEST_REVEAL_MS,
   type BlindtestCategory, type BlindtestEntry,
 } from '@/lib/blindtestTracks';
-import { itunesSearch, itunesPoster, pickBestPreview } from '@/lib/itunes';
+import { itunesSearch, pickBestPreview } from '@/lib/itunes';
 import { BlindtestSetup } from './BlindtestSetup';
 
 interface Player {
@@ -272,11 +272,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     while (queueRef.current.length && safety < 12) {
       safety += 1;
       const entry = queueRef.current.shift()!;
-      const [results, poster] = await Promise.all([
-        itunesSearch(entry.query),
-        itunesPoster(entry.answer, entry.category),
-      ]);
-      const best = pickBestPreview(results, entry.hint);
+      const results = await itunesSearch(entry.query);
+      const best = pickBestPreview(results, { answer: entry.answer, hint: entry.hint, category: entry.category });
       if (best) {
         return {
           entry,
@@ -285,7 +282,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
             subtitle: `${best.trackName} – ${best.artistName}`,
             category: entry.category,
             previewUrl: best.previewUrl,
-            artwork: poster || best.artworkUrl, // real jaquette first, album art as fallback
+            artwork: best.artworkUrl, // album art always matches the playing clip
           },
         };
       }

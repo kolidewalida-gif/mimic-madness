@@ -93,8 +93,17 @@ export async function itunesPoster(term: string, category: string): Promise<stri
   return null;
 }
 
-/** Pick the most relevant track with a preview for a query. */
-export function pickBestPreview(tracks: ItunesTrack[], hint?: string): ItunesTrack | null {
+/** Pick the most relevant track with a preview for an entry. */
+const NORM = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const STOP = new Set(['les', 'la', 'le', 'des', 'du', 'de', 'et', 'un', 'une', 'the', 'of', 'and', 'generique', 'francais', 'theme', 'version', 'vf', 'original']);
+function answerTokens(answer: string): string[] {
+  return NORM(answer).split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !STOP.has(w));
+}
+
+export function pickBestPreview(
+  tracks: ItunesTrack[],
+  opts: { answer: string; hint?: string; category: string },
+): ItunesTrack | null {
   const BAD = /karaoke|tribute|cover|made famous|instrumental|in the style|originally performed|8-bit|8 bit|lullaby|piano version|music box|ringtone|remix/i;
   const withPreview = tracks.filter((t) => t.previewUrl);
   if (!withPreview.length) return null;
@@ -104,12 +113,22 @@ export function pickBestPreview(tracks: ItunesTrack[], hint?: string): ItunesTra
   );
   const pool = clean.length ? clean : withPreview;
 
-  if (hint) {
-    const h = hint.toLowerCase();
-    const match = pool.find(
-      (t) => t.trackName.toLowerCase().includes(h) || (t.collectionName ?? '').toLowerCase().includes(h),
-    );
-    if (match) return match;
+  const haystack = (t: ItunesTrack) => `${NORM(t.trackName)} ${NORM(t.collectionName ?? '')} ${NORM(t.artistName)}`;
+  const contains = (t: ItunesTrack, s: string) => haystack(t).includes(NORM(s));
+
+  // Prefer a hint match when provided (e.g. the exact song name for anime).
+  if (opts.hint) {
+    const m = pool.find((t) => contains(t, opts.hint!));
+    if (m) return m;
   }
+
+  // Cartoon generics on iTunes FR are noisy → require the result to actually
+  // relate to the show name, otherwise skip (no wrong "Sous l'océan" for Bob).
+  if (opts.category === 'cartoon') {
+    const toks = answerTokens(opts.answer);
+    const m = pool.find((t) => toks.some((tok) => contains(t, tok)));
+    return m ?? null;
+  }
+
   return pool[0];
 }
