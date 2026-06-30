@@ -95,14 +95,14 @@ export async function itunesPoster(term: string, category: string): Promise<stri
 
 /** Pick the most relevant track with a preview for an entry. */
 const NORM = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-const STOP = new Set(['les', 'la', 'le', 'des', 'du', 'de', 'et', 'un', 'une', 'the', 'of', 'and', 'generique', 'francais', 'theme', 'version', 'vf', 'original']);
+const STOP = new Set(['les', 'la', 'le', 'des', 'du', 'de', 'et', 'un', 'une', 'the', 'of', 'and', 'generique', 'generiques', 'francais', 'francaise', 'theme', 'version', 'serie', 'tv', 'dessin', 'anime', 'animee', 'animated', 'opening', 'main', 'title']);
 function answerTokens(answer: string): string[] {
   return NORM(answer).split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !STOP.has(w));
 }
 
 export function pickBestPreview(
   tracks: ItunesTrack[],
-  opts: { answer: string; hint?: string; category: string },
+  opts: { answer: string; hint?: string; category: string; query?: string },
 ): ItunesTrack | null {
   const BAD = /karaoke|tribute|cover|made famous|instrumental|in the style|originally performed|8-bit|8 bit|lullaby|piano version|music box|ringtone|remix/i;
   const withPreview = tracks.filter((t) => t.previewUrl);
@@ -123,9 +123,10 @@ export function pickBestPreview(
   }
 
   // Cartoon generics on iTunes FR are noisy → require the result to actually
-  // relate to the show name, otherwise skip (no wrong "Sous l'océan" for Bob).
+  // relate to the show (using the show-name words from the query), otherwise
+  // skip — so no wrong "Sous l'océan" for "Bob l'éponge".
   if (opts.category === 'cartoon') {
-    const toks = answerTokens(opts.answer);
+    const toks = answerTokens(opts.query || opts.answer);
     const m = pool.find((t) => toks.some((tok) => contains(t, tok)));
     return m ?? null;
   }
