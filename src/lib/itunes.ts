@@ -53,7 +53,7 @@ export function itunesSearch(term: string, limit = 12): Promise<ItunesTrack[]> {
 
     const url =
       `https://itunes.apple.com/search?term=${encodeURIComponent(term)}` +
-      `&media=music&entity=song&limit=${limit}&callback=${cb}`;
+      `&media=music&entity=song&country=FR&limit=${limit}&callback=${cb}`;
     script.src = url;
     script.async = true;
     script.onerror = () => { if (!done) { cleanup(); resolve([]); } };
