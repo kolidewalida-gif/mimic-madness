@@ -1,12 +1,10 @@
 /**
- * iTunes Search API — free, no key, 30s audio previews.
+ * iTunes Search API — free, no key, 30s audio previews + real cover/poster art.
  *
- * We call it via JSONP (the API supports a `callback` param) so it works
- * straight from the browser with no CORS issues. The returned `previewUrl`
- * is a 30-second clip that plays in a plain <audio> element, and
- * `artworkUrl` gives cover art for the reveal.
- *
- * Docs: https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/
+ * Called via JSONP (the API supports a `callback` param) so it works straight
+ * from the browser with no CORS issues. We query the FR store so French (VF)
+ * content and titles come back. For the reveal we also fetch the real TV/movie
+ * poster ("jaquette") when possible, instead of just the soundtrack album art.
  */
 
 export interface ItunesTrack {
@@ -19,10 +17,17 @@ export interface ItunesTrack {
 
 let jsonpSeq = 0;
 
-/** Search songs on iTunes (JSONP). Resolves [] on any failure/timeout. */
-export function itunesSearch(term: string, limit = 12): Promise<ItunesTrack[]> {
+/** Largest artwork URL from an iTunes result. */
+function bigArt(r: any): string | undefined {
+  const a = r?.artworkUrl100 || r?.artworkUrl60 || r?.artworkUrl30 || '';
+  if (!a) return undefined;
+  return a.replace('100x100', '600x600').replace('60x60', '600x600').replace('30x30', '600x600');
+}
+
+/** Core JSONP request to the iTunes Search API. Resolves [] on failure/timeout. */
+function jsonpItunes(params: Record<string, string | number>): Promise<any[]> {
   return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !term.trim()) { resolve([]); return; }
+    if (typeof window === 'undefined' || !String(params.term ?? '').trim()) { resolve([]); return; }
 
     const cb = `__itunesCb_${Date.now()}_${jsonpSeq++}`;
     const script = document.createElement('script');
@@ -39,26 +44,53 @@ export function itunesSearch(term: string, limit = 12): Promise<ItunesTrack[]> {
     (window as any)[cb] = (data: any) => {
       if (done) return;
       cleanup();
-      const out: ItunesTrack[] = (data?.results ?? [])
-        .filter((r: any) => r && r.previewUrl)
-        .map((r: any) => ({
-          trackName: r.trackName ?? '',
-          artistName: r.artistName ?? '',
-          collectionName: r.collectionName,
-          previewUrl: r.previewUrl,
-          artworkUrl: (r.artworkUrl100 || r.artworkUrl60 || '')?.replace('100x100', '600x600').replace('60x60', '600x600') || undefined,
-        }));
-      resolve(out);
+      resolve(Array.isArray(data?.results) ? data.results : []);
     };
 
-    const url =
-      `https://itunes.apple.com/search?term=${encodeURIComponent(term)}` +
-      `&media=music&entity=song&country=FR&limit=${limit}&callback=${cb}`;
-    script.src = url;
+    const qs = Object.entries({ ...params, callback: cb })
+      .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
+      .join('&');
+    script.src = `https://itunes.apple.com/search?${qs}`;
     script.async = true;
     script.onerror = () => { if (!done) { cleanup(); resolve([]); } };
     document.head.appendChild(script);
   });
+}
+
+/** Search songs (with 30s preview). */
+export async function itunesSearch(term: string, limit = 12): Promise<ItunesTrack[]> {
+  const results = await jsonpItunes({ term, media: 'music', entity: 'song', country: 'FR', limit });
+  return results
+    .filter((r: any) => r && r.previewUrl)
+    .map((r: any) => ({
+      trackName: r.trackName ?? '',
+      artistName: r.artistName ?? '',
+      collectionName: r.collectionName,
+      previewUrl: r.previewUrl,
+      artworkUrl: bigArt(r),
+    }));
+}
+
+/**
+ * Fetch the real "jaquette" (poster/cover) for an answer:
+ *  - film / disney  → movie poster
+ *  - anime / cartoon → TV show poster (falls back to movie for anime films)
+ *  - music / jeuxvideo → null (use the song's album art instead)
+ */
+export async function itunesPoster(term: string, category: string): Promise<string | null> {
+  const tries: Array<{ media: string; entity: string }> =
+    category === 'film' || category === 'disney'
+      ? [{ media: 'movie', entity: 'movie' }]
+      : category === 'anime' || category === 'cartoon'
+        ? [{ media: 'tvShow', entity: 'tvSeason' }, { media: 'movie', entity: 'movie' }]
+        : [];
+
+  for (const t of tries) {
+    const results = await jsonpItunes({ term, media: t.media, entity: t.entity, country: 'FR', limit: 6 });
+    const art = results.map(bigArt).find(Boolean);
+    if (art) return art;
+  }
+  return null;
 }
 
 /** Pick the most relevant track with a preview for a query. */
@@ -67,7 +99,6 @@ export function pickBestPreview(tracks: ItunesTrack[], hint?: string): ItunesTra
   const withPreview = tracks.filter((t) => t.previewUrl);
   if (!withPreview.length) return null;
 
-  // Prefer "clean" official-ish versions (no karaoke/cover/etc).
   const clean = withPreview.filter(
     (t) => !BAD.test(t.trackName) && !BAD.test(t.artistName) && !BAD.test(t.collectionName ?? ''),
   );
