@@ -58,3 +58,8 @@ export function parseYouTubeId(input: string): string | null {
   }
   return null;
 }
+
+/** Real YouTube thumbnail URL for a video id (no API key needed). */
+export function youtubeThumb(id: string): string {
+  return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+}
