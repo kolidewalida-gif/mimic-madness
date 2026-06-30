@@ -125,12 +125,12 @@ const MODE_CARDS: ModeCard[] = [
   },
   {
     id: 'memorise',
-    label: 'MEMORISE',
-    tagline: 'Mémorise puis réponds vite !',
-    imageCandidates: ['/lobby/cards/memorise.png', '/lobby/cards/memorise.jpg'],
-    fallbackEmoji: '🧠',
-    fallbackColor: '#8b5cf6',
-    glowColor: '#a78bfa',
+    label: 'BLINDTEST',
+    tagline: 'Devine la musique, anime ou dessin animé !',
+    imageCandidates: ['/lobby/cards/blindtest.png', '/lobby/cards/blindtest.jpg', '/lobby/cards/memorise.png'],
+    fallbackEmoji: '🎵',
+    fallbackColor: '#d946ef',
+    glowColor: '#e879f9',
   },
 ];
 

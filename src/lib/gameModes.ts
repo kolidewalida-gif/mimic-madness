@@ -44,8 +44,8 @@ export const GAME_MODE_META: Record<
     minPlayers: 3,
   },
   memorise: {
-    label: 'Memorise',
-    emojiLabel: '🧠 Memorise',
+    label: 'Blindtest Musical',
+    emojiLabel: '🎵 Blindtest Musical',
     minPlayers: 2,
   },
 };

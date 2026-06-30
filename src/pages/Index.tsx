@@ -394,8 +394,8 @@ const Index = () => {
             playSoundEffect('quizReveal', 0.5);
             setGameState('memorise');
             toast({
-              title: "🧠 Memorise !",
-              description: "Mémorise l'image puis réponds le plus vite !",
+              title: "🎵 Blindtest Musical !",
+              description: "Devine l'anime, le dessin animé ou la musique le plus vite !",
             });
           } else if (newPhase === 'playing' && newMode === 'memorise' && gameState !== 'memorise') {
             // Memorise piggybacks on the allowed 'playing' phase (avoids a DB
@@ -403,8 +403,8 @@ const Index = () => {
             playSoundEffect('quizReveal', 0.5);
             setGameState('memorise');
             toast({
-              title: "🧠 Memorise !",
-              description: "Mémorise l'image puis réponds le plus vite !",
+              title: "🎵 Blindtest Musical !",
+              description: "Devine l'anime, le dessin animé ou la musique le plus vite !",
             });
           } else if (newPhase === 'playing' && gameState !== 'playing' && gameState !== 'memorise') {
             playSoundEffect('start', 0.5);

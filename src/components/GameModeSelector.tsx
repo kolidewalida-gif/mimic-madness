@@ -1,4 +1,4 @@
-import { Users, Swords, Brain, Check, Phone, Image, Landmark, UserX } from "lucide-react";
+import { Users, Swords, Brain, Check, Phone, Image, Landmark, UserX, Music } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInkMode } from "@/hooks/useInkMode";
 import { LobbyGameMode } from "@/lib/gameModes";
@@ -100,12 +100,12 @@ export const GameModeSelector = ({
     },
     {
       id: 'memorise' as const,
-      name: 'Memorise',
-      subtitle: canPlayMemorise ? 'Mémorise !' : 'Min. 2',
-      icon: Brain,
+      name: 'Blindtest',
+      subtitle: canPlayMemorise ? 'Devine la musique !' : 'Min. 2',
+      icon: Music,
       canPlay: canPlayMemorise,
-      color: 'from-violet-500 to-purple-600',
-      bgColor: 'bg-violet-500',
+      color: 'from-fuchsia-500 to-purple-600',
+      bgColor: 'bg-fuchsia-500',
       inkColor: 'border-primary bg-primary text-primary-foreground',
     },
   ];
