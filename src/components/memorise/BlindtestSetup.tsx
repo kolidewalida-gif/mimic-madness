@@ -11,7 +11,7 @@ interface BlindtestSetupProps {
   onStart: (categories: BlindtestCategory[]) => void;
 }
 
-const CATS: BlindtestCategory[] = ['anime', 'cartoon', 'music', 'film'];
+const CATS: BlindtestCategory[] = ['anime', 'cartoon', 'music', 'film', 'jeuxvideo', 'disney'];
 
 /* spinning vinyl + tonearm */
 const Turntable = ({ size = 120, spin = true }: { size?: number; spin?: boolean }) => (

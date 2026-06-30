@@ -512,15 +512,54 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
           {/* REVEAL */}
           {phase === 'reveal' && track && (
-            <motion.div key={`r-${roundIndex}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full max-w-lg flex flex-col items-center gap-4">
-              <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} transition={{ type: 'spring', damping: 14 }} className="flex flex-col items-center gap-3">
-                <div className="relative w-40 h-40 rounded-3xl overflow-hidden flex items-center justify-center" style={{ border: '3px solid rgba(217,70,239,0.5)', boxShadow: '0 16px 50px rgba(217,70,239,0.4)' }}>
-                  <div className="absolute inset-0 flex items-center justify-center text-6xl" style={{ background: catMeta ? `radial-gradient(circle, ${catMeta.color}33, #120a20)` : '#120a20' }}>{catMeta?.emoji ?? '🎵'}</div>
-                  {track.artwork && <img src={track.artwork} alt={track.title} className="relative w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />}
+            <motion.div key={`r-${roundIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full max-w-lg flex flex-col items-center gap-5">
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ type: 'spring', damping: 13, stiffness: 200 }}
+                className="flex flex-col items-center gap-4"
+              >
+                <div
+                  className="relative w-60 h-60 md:w-72 md:h-72 rounded-[2rem] overflow-hidden flex items-center justify-center"
+                  style={{ border: '4px solid rgba(217,70,239,0.6)', boxShadow: '0 26px 80px rgba(217,70,239,0.55)' }}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center text-8xl" style={{ background: catMeta ? `radial-gradient(circle, ${catMeta.color}44, #120a20)` : '#120a20' }}>{catMeta?.emoji ?? '🎵'}</div>
+                  {track.artwork && (
+                    <motion.img
+                      src={track.artwork}
+                      alt={track.title}
+                      initial={{ scale: 1.15 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.6, ease: 'easeOut' }}
+                      className="relative w-full h-full object-cover"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
+                  {/* shine sweep */}
+                  <motion.div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ background: 'linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.35) 50%, transparent 60%)' }}
+                    initial={{ x: '-120%' }}
+                    animate={{ x: '120%' }}
+                    transition={{ duration: 0.9, delay: 0.25 }}
+                  />
+                  {catMeta && (
+                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-black" style={{ background: `${catMeta.color}cc`, color: '#0a0510' }}>
+                      {catMeta.emoji} {catMeta.label}
+                    </span>
+                  )}
                 </div>
-                <div className="text-center">
-                  <h2 className="text-3xl font-black">{track.title}</h2>
-                  {track.subtitle && <p className="text-sm text-white/55 mt-0.5">{track.subtitle}</p>}
+                <div className="text-center px-3">
+                  <motion.h2
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-4xl md:text-5xl font-black leading-tight"
+                    style={{ textShadow: '0 4px 18px rgba(217,70,239,0.5)' }}
+                  >
+                    {track.title}
+                  </motion.h2>
+                  {track.subtitle && <p className="text-sm md:text-base text-white/55 mt-1">{track.subtitle}</p>}
                 </div>
               </motion.div>
 
