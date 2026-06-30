@@ -121,6 +121,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const hostPlayingRef = useRef(false);
   const blockedRef = useRef(false);
   const lastVolRef = useRef(70);
+  const volumeRef = useRef(70);
 
   useEffect(() => { playersRef.current = players; }, [players]);
 
@@ -146,8 +147,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     try {
       v.src = t.previewUrl;
       v.currentTime = 0;
-      v.muted = muted;
-      v.volume = volume / 100;
+      v.muted = volumeRef.current === 0;
+      v.volume = volumeRef.current / 100;
       const p = v.play();
       if (p && typeof p.then === 'function') {
         p.then(() => { hostPlayingRef.current = true; setNeedsSoundUnlock(false); })
@@ -157,7 +158,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           });
       }
     } catch { setNeedsSoundUnlock(true); }
-  }, [volume, muted, isHost]);
+  }, [isHost]);
 
   const resumeSound = useCallback(() => {
     if (track) playTrack(track);
@@ -168,6 +169,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   }, []);
 
   useEffect(() => {
+    volumeRef.current = volume;
     if (mediaRef.current) { mediaRef.current.muted = muted; mediaRef.current.volume = volume / 100; }
     if (volume > 0) lastVolRef.current = volume;
     try { localStorage.setItem('mimic.blindtest.volume', String(volume)); } catch { /* noop */ }
