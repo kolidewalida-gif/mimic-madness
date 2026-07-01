@@ -123,6 +123,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const blockedRef = useRef(false);
   const lastVolRef = useRef(70);
   const volumeRef = useRef(70);
+  const listenStartRef = useRef<number>(0);
 
   useEffect(() => { playersRef.current = players; }, [players]);
 
@@ -209,6 +210,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
     if (p.phase === 'listen') {
       setMyChoice(null); setAnsweredCount(0); setAnsweredIds(new Set()); answersRef.current = {}; tickRef.current = 0;
+      // Measure elapsed against local receipt time so clock skew between
+      // host and clients doesn't unfairly inflate non-host response times.
+      listenStartRef.current = Date.now();
       // host plays directly from its loop (inside the click activation window);
       // clients auto-play here (and fall back to the "Activer le son" tap if blocked).
       if (p.track) { playSoundEffect('quizReveal', 0.3); if (!isHost) playTrack(p.track); }
@@ -371,7 +375,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     if (phase !== 'listen' || myChoice != null || !deadline) return;
     playSoundEffect('click', 0.3);
     setMyChoice(choice);
-    const elapsed = Date.now() - (deadline - BLINDTEST_LISTEN_MS);
+    const start = listenStartRef.current || (deadline - BLINDTEST_LISTEN_MS);
+    const elapsed = Math.max(0, Math.min(BLINDTEST_LISTEN_MS, Date.now() - start));
     channelRef.current?.send({ type: 'broadcast', event: 'answer', payload: { playerId: currentPlayer.id, choice, elapsed } });
   };
 
