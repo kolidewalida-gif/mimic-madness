@@ -42,10 +42,15 @@ interface PhasePayload {
   track?: RoundTrack;
   options?: string[];
   deadline?: number;
+  /** Host clock timestamp at which the listen phase should actually start. */
+  startAt?: number;
   scoreboard?: Record<string, number>;
   roundPoints?: Record<string, number>;
   answerIndex?: number;
 }
+
+/** Buffer used by the host to schedule a synchronized listen start on all clients. */
+const LISTEN_SYNC_BUFFER_MS = 500;
 
 /* deterministic helpers */
 function mulberry(seed: number) {
