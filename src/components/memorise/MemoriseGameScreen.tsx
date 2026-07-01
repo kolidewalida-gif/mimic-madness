@@ -235,7 +235,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         listenStartRef.current = Date.now();
         // Local deadline is derived from local start for a fair per-client countdown.
         setDeadline(listenStartRef.current + BLINDTEST_LISTEN_MS);
-        if (p.track) { playSoundEffect('quizReveal', 0.3); if (!isHost) playTrack(p.track); }
+        if (p.track) { playSoundEffect('quizReveal', 0.3); playTrack(p.track); }
       };
       if (delay <= 0) beginListen();
       else listenTimerRef.current = setTimeout(beginListen, delay);
