@@ -129,6 +129,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const lastVolRef = useRef(70);
   const volumeRef = useRef(70);
   const listenStartRef = useRef<number>(0);
+  /** Estimated host clock offset in ms: hostNow ≈ Date.now() + clockOffsetRef.current. */
+  const clockOffsetRef = useRef<number>(0);
+  const bestRttRef = useRef<number>(Number.POSITIVE_INFINITY);
+  const listenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingListenRef = useRef<PhasePayload | null>(null);
 
   useEffect(() => { playersRef.current = players; }, [players]);
 
