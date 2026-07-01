@@ -209,7 +209,6 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     if (p.totalRounds != null) setTotalRounds(p.totalRounds);
     if (p.track) setTrack(p.track);
     if (p.options) setOptions(p.options);
-    setDeadline(p.deadline ?? null);
     if (p.scoreboard) { setScoreboard(p.scoreboard); scoreRef.current = p.scoreboard; }
     if (p.roundPoints) {
       setRoundPoints(p.roundPoints);
@@ -220,12 +219,32 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
     if (p.phase === 'listen') {
       setMyChoice(null); setAnsweredCount(0); setAnsweredIds(new Set()); answersRef.current = {}; tickRef.current = 0;
-      // Measure elapsed against local receipt time so clock skew between
-      // host and clients doesn't unfairly inflate non-host response times.
-      listenStartRef.current = Date.now();
-      // host plays directly from its loop (inside the click activation window);
-      // clients auto-play here (and fall back to the "Activer le son" tap if blocked).
-      if (p.track) { playSoundEffect('quizReveal', 0.3); if (!isHost) playTrack(p.track); }
+      // Schedule the actual listen start using the host-provided `startAt` timestamp
+      // corrected by our estimated clock offset. This guarantees every player
+      // (including the host, which also waits the same buffer) starts the round
+      // at the exact same wall-clock moment.
+      if (listenTimerRef.current) { clearTimeout(listenTimerRef.current); listenTimerRef.current = null; }
+      pendingListenRef.current = p;
+      const hostStartAt = p.startAt ?? (p.deadline ? p.deadline - BLINDTEST_LISTEN_MS : Date.now());
+      // Convert host clock -> local clock: localStartAt = hostStartAt - clockOffset.
+      const localStartAt = hostStartAt - clockOffsetRef.current;
+      const delay = Math.max(0, localStartAt - Date.now());
+      const beginListen = () => {
+        listenTimerRef.current = null;
+        if (!mountedRef.current) return;
+        listenStartRef.current = Date.now();
+        // Local deadline is derived from local start for a fair per-client countdown.
+        setDeadline(listenStartRef.current + BLINDTEST_LISTEN_MS);
+        if (p.track) { playSoundEffect('quizReveal', 0.3); if (!isHost) playTrack(p.track); }
+      };
+      if (delay <= 0) beginListen();
+      else listenTimerRef.current = setTimeout(beginListen, delay);
+      return;
+    } else {
+      // Any non-listen phase cancels a pending scheduled listen start.
+      if (listenTimerRef.current) { clearTimeout(listenTimerRef.current); listenTimerRef.current = null; }
+      pendingListenRef.current = null;
+      setDeadline(p.deadline ?? null);
     }
     if (p.phase === 'reveal') playSoundEffect('start', 0.35);
     if (p.phase === 'final') stopMedia();
@@ -246,11 +265,50 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           setAnsweredIds(new Set(Object.keys(answersRef.current)));
         }
       })
+      // ---- clock sync handshake (NTP-lite) ----
+      .on('broadcast', { event: 'sync-req' }, ({ payload }) => {
+        if (!isHost) return;
+        const q = payload as { clientId: string; clientNow: number };
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'sync-res',
+          payload: { clientId: q.clientId, clientNow: q.clientNow, hostNow: Date.now() },
+        });
+      })
+      .on('broadcast', { event: 'sync-res' }, ({ payload }) => {
+        const r = payload as { clientId: string; clientNow: number; hostNow: number };
+        if (r.clientId !== currentPlayer.id) return;
+        const now = Date.now();
+        const rtt = now - r.clientNow;
+        if (rtt < 0 || rtt > 5000) return;
+        if (rtt < bestRttRef.current) {
+          bestRttRef.current = rtt;
+          // Best estimate of hostNow at *this* moment = hostNow + rtt/2.
+          clockOffsetRef.current = (r.hostNow + rtt / 2) - now;
+        }
+      })
       .subscribe((status) => { if (status === 'SUBSCRIBED') setChannelReady(true); });
+
+    // Non-host: periodically ping the host to keep the clock offset fresh.
+    let syncIv: ReturnType<typeof setInterval> | null = null;
+    if (!isHost) {
+      const ping = () => {
+        channel.send({
+          type: 'broadcast',
+          event: 'sync-req',
+          payload: { clientId: currentPlayer.id, clientNow: Date.now() },
+        });
+      };
+      // Fire a few quick pings on start to converge fast, then a slow heartbeat.
+      const quick = [200, 500, 1000, 2000].map((t) => setTimeout(ping, t));
+      syncIv = setInterval(ping, 5000);
+      cleanups.current.push(() => { quick.forEach(clearTimeout); if (syncIv) clearInterval(syncIv); });
+    }
 
     return () => {
       mountedRef.current = false;
       cleanups.current.forEach((fn) => fn());
+      if (listenTimerRef.current) clearTimeout(listenTimerRef.current);
       stopMedia();
       supabase.removeChannel(channel);
     };
