@@ -379,10 +379,21 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     answersRef.current = {};
     errorFlagRef.current = false;
     hostPlayingRef.current = false;
-    broadcastPhase({ phase: 'listen', roundIndex: i, totalRounds: total, track: next.track, options: opts, deadline: Date.now() + BLINDTEST_LISTEN_MS });
-    // Host plays here: on round 1 this runs inside the "Lancer" click activation
-    // window (which unlocks the <audio> element for the rest of the game).
-    playTrack(next.track);
+    // Schedule a synchronized listen start: everyone (host + clients) waits
+    // until `startAt` on the host clock before actually playing the track.
+    const startAt = Date.now() + LISTEN_SYNC_BUFFER_MS;
+    broadcastPhase({
+      phase: 'listen',
+      roundIndex: i,
+      totalRounds: total,
+      track: next.track,
+      options: opts,
+      startAt,
+      deadline: startAt + BLINDTEST_LISTEN_MS,
+    });
+    // Host also waits the same buffer so its own audio starts in sync with clients.
+    // (applyPhase runs via `broadcast.self: true` and schedules the local start;
+    // that path handles playTrack for the host too since we route through applyPhase.)
 
     const connected = playersRef.current.filter((p) => !p.isDisconnected).length || 1;
     const reason = await waitListen(connected, BLINDTEST_LISTEN_MS);
