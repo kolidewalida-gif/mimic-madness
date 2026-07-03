@@ -402,17 +402,21 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         {/* Static background image */}
         <div className="absolute inset-0">
           <ImageWithFallback
-            src={[
-              '/home/superman-sky.jpg',
-              '/home/superman-sky.png',
-              '/home/background.png',
-              '/home/background.jpg',
-              '/home/background.jpeg',
-            ]}
+            src={['/home/superman-sky.jpg', '/home/superman-sky.png']}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
             fallback={
-              <div className="absolute inset-0 bg-gradient-to-br from-[#071634] via-[#050d1e] to-[#0b2148]" />
+              <div className="absolute inset-0">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#3f78c8] via-[#153a78] to-[#050d1e]" />
+                <div
+                  className="absolute top-[10%] left-[5%] w-[48%] h-[40%] rounded-full opacity-25"
+                  style={{ background: 'radial-gradient(ellipse, #ffffff, transparent 70%)', filter: 'blur(60px)' }}
+                />
+                <div
+                  className="absolute bottom-[14%] right-[7%] w-[52%] h-[42%] rounded-full opacity-20"
+                  style={{ background: 'radial-gradient(ellipse, #cfe0ff, transparent 70%)', filter: 'blur(70px)' }}
+                />
+              </div>
             }
           />
         </div>
@@ -475,7 +479,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           <div className="text-left">
             <div className="flex items-center gap-1">
               <ImageWithFallback
-                src={['/home/buttons/profil.png']}
+                src={['/home/buttons/profil-superman.png']}
                 alt="Profil"
                 className="h-6 w-auto select-none"
                 style={{ filter: 'drop-shadow(1px 2px 0 #08132b)' }}
@@ -509,8 +513,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         {/* CENTER LOGO */}
         <div className="flex flex-col items-center pointer-events-none">
           <ImageWithFallback
-            src={['/home/logo.png', '/lobby/logo.png']}
-            alt="C2TV MIMIC MASTER"
+            src={['/home/logo-superman.png']}
+            alt="MIMIC MASTER"
             className="h-20 md:h-24 w-auto select-none"
             style={{ filter: 'drop-shadow(0 4px 12px rgba(43,108,246,0.5))' }}
             fallback={
@@ -563,7 +567,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             aria-label="Mes amis"
           >
             <ImageWithFallback
-              src={['/home/buttons/friends.png']}
+              src={['/home/buttons/friends-superman.png']}
               alt="Mes amis"
               className="h-12 w-auto select-none"
               fallback={
@@ -605,7 +609,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             aria-label="Social"
           >
             <ImageWithFallback
-              src={['/home/buttons/social.png']}
+              src={['/home/buttons/social-superman.png']}
               alt="Social"
               className="h-12 w-auto select-none"
               fallback={
@@ -637,7 +641,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             aria-label="Paramètres"
           >
             <ImageWithFallback
-              src={['/home/buttons/setting.png']}
+              src={['/home/buttons/setting-superman.png']}
               alt="Paramètres"
               className="h-12 w-auto select-none"
               fallback={
@@ -692,7 +696,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             }}
           >
             <ImageWithFallback
-              src={['/home/buttons/jouer.png', '/home/buttons/jouer.jpg']}
+              src={['/home/buttons/jouer-superman.png']}
               alt="JOUER"
               className="absolute inset-0 w-full h-full object-cover"
               fallback={
@@ -756,7 +760,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             }}
           >
             <ImageWithFallback
-              src={['/home/buttons/rejoindre.png', '/home/buttons/rejoindre.jpg']}
+              src={['/home/buttons/rejoindre-superman.png']}
               alt="REJOINDRE UN LOBBY"
               className="absolute inset-0 w-full h-full object-cover"
               fallback={
