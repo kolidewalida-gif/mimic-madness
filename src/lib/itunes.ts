@@ -106,7 +106,16 @@ export async function itunesPoster(term: string, category: string): Promise<stri
 
 /** Pick the most relevant track with a preview for an entry. */
 const NORM = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-const STOP = new Set(['les', 'la', 'le', 'des', 'du', 'de', 'et', 'un', 'une', 'the', 'of', 'and', 'generique', 'generiques', 'francais', 'francaise', 'theme', 'version', 'serie', 'tv', 'dessin', 'anime', 'animee', 'animated', 'opening', 'main', 'title']);
+const STOP = new Set([
+  'les', 'la', 'le', 'des', 'du', 'de', 'et', 'un', 'une', 'the', 'of', 'and', 'for',
+  'generique', 'generiques', 'francais', 'francaise', 'theme', 'version', 'serie', 'tv',
+  'dessin', 'anime', 'animee', 'animated', 'opening', 'main', 'title',
+  // generic soundtrack/album words — these appear in almost every OST album name
+  // and must NOT count as a relevance match (else a same-composer wrong track passes).
+  'soundtrack', 'score', 'motion', 'picture', 'original', 'originale', 'expanded',
+  'edition', 'deluxe', 'ost', 'music', 'musique', 'movie', 'film', 'bande', 'feat',
+  'remastered', 'remaster', 'suite', 'credits', 'ending', 'album', 'from', 'song', 'songs',
+]);
 function answerTokens(answer: string): string[] {
   return NORM(answer).split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !STOP.has(w));
 }
