@@ -165,6 +165,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   /** playerId -> chosen option index, updated live during the listen phase
    *  (used to show a teammate's vote in team mode). */
   const [liveVotes, setLiveVotes] = useState<Record<string, number>>({});
+  /** True when the reveal artwork is missing or fails to load → show a clean
+   *  white title card instead of a wrong/blank cover. */
+  const [artFailed, setArtFailed] = useState(false);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const answersRef = useRef<Record<string, { choice: number; elapsed: number }>>({});
@@ -195,6 +198,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const configRef = useRef<BlindtestConfig>({ rounds: BLINDTEST_ROUNDS, listenMs: BLINDTEST_LISTEN_MS, teams: false, hints: true, doublePoints: false });
 
   useEffect(() => { playersRef.current = players; }, [players]);
+  // Reset the artwork-failed flag whenever the round's track changes.
+  useEffect(() => { setArtFailed(false); }, [track?.previewUrl]);
 
   const catMeta = track ? CATEGORY_META[track.category] : null;
   const muted = volume === 0;
@@ -853,26 +858,37 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                   className="relative rounded-[1.8rem] overflow-hidden flex items-center justify-center"
                   style={{ width: 'min(86vw, 34rem)', height: 'min(86vw, 34rem)', border: `1px solid ${accent}66`, boxShadow: `0 30px 90px ${accent}55, 0 0 0 1px rgba(255,255,255,0.05), ${glow(accent, 0.4)}` }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 'min(40vw,16rem)', background: catMeta ? `radial-gradient(circle, ${catMeta.color}44, ${BT.bgSoft})` : BT.bgSoft }}>{catMeta?.emoji ?? '🎵'}</div>
-                  {track.artwork && (
-                    <motion.img
-                      src={track.artwork}
-                      alt={track.title}
-                      initial={{ scale: 1.15 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
-                      className="relative w-full h-full object-cover"
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                    />
+                  {(!track.artwork || artFailed) ? (
+                    // Clean white "title card" fallback — no cover, or it failed
+                    // to load: never show a wrong/blank image, show the title.
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6" style={{ background: 'linear-gradient(180deg, #ffffff, #eef0f4)' }}>
+                      <span className="text-xs md:text-sm font-black uppercase tracking-[0.25em] mb-3" style={{ color: catMeta?.color ?? '#888' }}>
+                        {catMeta ? `${catMeta.emoji} ${catMeta.label}` : '🎵'}
+                      </span>
+                      <span className="font-black leading-tight" style={{ color: '#0d0d14', fontSize: 'clamp(1.6rem, 6vw, 3.2rem)' }}>{track.title}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 'min(40vw,16rem)', background: catMeta ? `radial-gradient(circle, ${catMeta.color}44, ${BT.bgSoft})` : BT.bgSoft }}>{catMeta?.emoji ?? '🎵'}</div>
+                      <motion.img
+                        src={track.artwork}
+                        alt={track.title}
+                        initial={{ scale: 1.15 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                        className="relative w-full h-full object-cover"
+                        onError={() => setArtFailed(true)}
+                      />
+                      {/* shine sweep */}
+                      <motion.div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{ background: 'linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.35) 50%, transparent 60%)' }}
+                        initial={{ x: '-120%' }}
+                        animate={{ x: '120%' }}
+                        transition={{ duration: 0.9, delay: 0.25 }}
+                      />
+                    </>
                   )}
-                  {/* shine sweep */}
-                  <motion.div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{ background: 'linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.35) 50%, transparent 60%)' }}
-                    initial={{ x: '-120%' }}
-                    animate={{ x: '120%' }}
-                    transition={{ duration: 0.9, delay: 0.25 }}
-                  />
                   {catMeta && (
                     <span className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-black text-white flex items-center gap-1.5 backdrop-blur-md" style={{ background: `${catMeta.color}cc`, boxShadow: glow(catMeta.color, 0.4) }}>
                       {catMeta.emoji} {catMeta.label}
