@@ -1043,11 +1043,49 @@ const FILM3: BlindtestEntry[] = [
   { answer: 'Le Roi Lion (film)', category: 'film', query: 'The Lion King Circle of Life Hans Zimmer' },
 ];
 
+// ── Sorties récentes 2024-2026 (super-héros DC/Marvel + blockbusters). BO
+//    disponibles sur iTunes ; le nom du film est dans la requête pour la garde
+//    de pertinence + la résolution de l'affiche. ──
+const FILM4: BlindtestEntry[] = [
+  { answer: 'Superman (2025)', category: 'film', query: 'Superman John Murphy David Fleming soundtrack' },
+  { answer: 'Supergirl (2026)', category: 'film', query: 'Supergirl Claudia Sarne soundtrack' },
+  { answer: 'Deadpool & Wolverine', category: 'film', query: 'Deadpool Wolverine Rob Simonsen score' },
+  { answer: 'Gladiator II', category: 'film', query: 'Gladiator II Harry Gregson-Williams' },
+  { answer: 'Furiosa', category: 'film', query: 'Furiosa Mad Max Junkie XL' },
+  { answer: 'Godzilla x Kong', category: 'film', query: 'Godzilla x Kong The New Empire Junkie XL' },
+  { answer: 'Joker: Folie à Deux', category: 'film', query: 'Joker Folie à Deux Hildur Gudnadottir' },
+  { answer: 'Venom: The Last Dance', category: 'film', query: 'Venom The Last Dance soundtrack' },
+  { answer: 'Alien: Romulus', category: 'film', query: 'Alien Romulus Benjamin Wallfisch' },
+  { answer: 'Twisters', category: 'film', query: 'Twisters Benjamin Wallfisch score' },
+  { answer: 'Wicked', category: 'film', query: 'Defying Gravity Wicked Cynthia Erivo' },
+  { answer: 'Mufasa', category: 'film', query: 'Mufasa The Lion King Dave Metzger' },
+  { answer: 'Vaiana 2', category: 'film', query: 'Moana 2 soundtrack Beyond' },
+  { answer: 'Vice-versa 2', category: 'film', query: 'Inside Out 2 Andrea Datzman' },
+  { answer: 'Sonic 3', category: 'film', query: 'Sonic the Hedgehog 3 Tom Holkenborg' },
+  { answer: 'Beetlejuice Beetlejuice', category: 'film', query: 'Beetlejuice Beetlejuice Danny Elfman 2024' },
+  { answer: 'Nosferatu', category: 'film', query: 'Nosferatu Robin Carolan 2024' },
+  { answer: 'The Fantastic Four: First Steps', category: 'film', query: 'Fantastic Four First Steps Michael Giacchino' },
+  { answer: 'Thunderbolts', category: 'film', query: 'Thunderbolts Son Lux Marvel' },
+  { answer: 'Captain America: Brave New World', category: 'film', query: 'Captain America Brave New World Laura Karpman' },
+  { answer: 'Jurassic World: Rebirth', category: 'film', query: 'Jurassic World Rebirth Alexandre Desplat' },
+  { answer: 'Mission: Impossible – The Final Reckoning', category: 'film', query: 'Mission Impossible The Final Reckoning Max Aruj' },
+  { answer: 'F1', category: 'film', query: 'F1 The Movie Hans Zimmer' },
+  { answer: 'Tron: Ares', category: 'film', query: 'Tron Ares Nine Inch Nails' },
+  { answer: 'Avatar: Fire and Ash', category: 'film', query: 'Avatar Fire and Ash Simon Franglen' },
+  { answer: 'Zootopie 2', category: 'film', query: 'Zootopia 2 Michael Giacchino soundtrack' },
+  { answer: 'Sinners', category: 'film', query: 'Sinners Ludwig Goransson 2025' },
+  { answer: '28 Years Later', category: 'film', query: '28 Years Later Young Fathers' },
+  { answer: 'Lilo & Stitch (2025)', category: 'film', query: 'Lilo Stitch 2025 soundtrack' },
+  { answer: 'Wicked: For Good', category: 'film', query: 'Wicked For Good soundtrack' },
+  { answer: 'A Minecraft Movie', category: 'film', query: 'A Minecraft Movie Mark Mothersbaugh' },
+  { answer: 'Karate Kid: Legends', category: 'film', query: 'Karate Kid Legends soundtrack' },
+];
+
 const RAW_ENTRIES: BlindtestEntry[] = [
   ...ANIME, ...ANIME2,
   ...CARTOON, ...CARTOON2,
   ...MUSIC, ...MUSIC2,
-  ...FILM, ...FILM2, ...FILM3,
+  ...FILM, ...FILM2, ...FILM3, ...FILM4,
   ...JEUXVIDEO, ...JEUXVIDEO2,
   ...DISNEY, ...DISNEY2,
   ...KPOP, ...RETRO, ...SERIES, ...RAPFR,
