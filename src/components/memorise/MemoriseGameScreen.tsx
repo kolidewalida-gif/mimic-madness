@@ -625,6 +625,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         ref={mediaRef}
         className="hidden"
         preload="auto"
+        loop
         onPlaying={() => {
           hostPlayingRef.current = true; setNeedsSoundUnlock(false); setMediaError(false);
           // Fair scoring: reaction time is measured from the REAL audio onset

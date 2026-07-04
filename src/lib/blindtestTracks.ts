@@ -1107,9 +1107,9 @@ export const BLINDTEST_LISTEN_MS = 20000;
 export const BLINDTEST_REVEAL_MS = 6500;
 
 /** Round-length options (ms) selectable by the host. */
-export const BLINDTEST_LISTEN_OPTIONS = [10000, 20000, 30000] as const;
+export const BLINDTEST_LISTEN_OPTIONS = [10000, 20000, 30000, 45000] as const;
 /** Round-count options selectable by the host. */
-export const BLINDTEST_ROUND_OPTIONS = [5, 10, 15] as const;
+export const BLINDTEST_ROUND_OPTIONS = [5, 10, 15, 20, 30, 40] as const;
 
 /**
  * Points for a correct answer, rewarding speed (≈100 slow → 1100 instant).

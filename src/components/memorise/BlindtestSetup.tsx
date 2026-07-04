@@ -51,7 +51,7 @@ const Segmented = <T extends string | number>({ value, options, onChange, format
         <button
           key={String(o)}
           onClick={() => onChange(o)}
-          className="flex-1 px-3 py-1.5 rounded-lg text-sm font-black transition-colors"
+          className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-sm font-black transition-colors"
           style={{ background: active ? BT_SPECTRUM : 'transparent', color: active ? '#fff' : BT.sub }}
         >
           {format ? format(o) : String(o)}
