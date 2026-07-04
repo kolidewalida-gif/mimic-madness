@@ -10,6 +10,7 @@ import {
   type BlindtestCategory, type BlindtestEntry,
 } from '@/lib/blindtestTracks';
 import { itunesSearch, pickBestPreview } from '@/lib/itunes';
+import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { BlindtestSetup } from './BlindtestSetup';
 
 interface Player {
@@ -47,6 +48,8 @@ interface PhasePayload {
   scoreboard?: Record<string, number>;
   roundPoints?: Record<string, number>;
   answerIndex?: number;
+  /** playerId -> chosen option index, for showing voters under each answer. */
+  answers?: Record<string, number>;
 }
 
 /** Buffer used by the host to schedule a synchronized listen start on all clients. */
@@ -110,6 +113,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const [myStreak, setMyStreak] = useState(0);
   const [channelReady, setChannelReady] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [revealVotes, setRevealVotes] = useState<Record<string, number>>({});
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const answersRef = useRef<Record<string, { choice: number; elapsed: number }>>({});
@@ -134,11 +138,16 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const bestRttRef = useRef<number>(Number.POSITIVE_INFINITY);
   const listenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingListenRef = useRef<PhasePayload | null>(null);
+  /** Set true once the clip actually starts playing this round (real audio onset). */
+  const roundAudioStartedRef = useRef(false);
 
   useEffect(() => { playersRef.current = players; }, [players]);
 
   const catMeta = track ? CATEGORY_META[track.category] : null;
   const muted = volume === 0;
+
+  const playerIds = useMemo(() => players.map((p) => p.id), [players]);
+  const { getAvatar } = useMultiplePlayerAvatars(playerIds);
 
   const namesById = useMemo(() => {
     const m: Record<string, string> = {};
@@ -218,9 +227,12 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       setMyStreak((s) => (got ? s + 1 : 0));
     }
     setAnswerIndex(p.answerIndex ?? null);
+    if (p.answers) setRevealVotes(p.answers);
 
     if (p.phase === 'listen') {
       setMyChoice(null); setAnsweredCount(0); setAnsweredIds(new Set()); answersRef.current = {}; tickRef.current = 0;
+      setRevealVotes({});
+      roundAudioStartedRef.current = false;
       // Schedule the actual listen start using the host-provided `startAt` timestamp
       // corrected by our estimated clock offset. This guarantees every player
       // (including the host, which also waits the same buffer) starts the round
@@ -424,7 +436,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       scoreRef.current[pid] = (scoreRef.current[pid] || 0) + rp[pid];
     });
 
-    broadcastPhase({ phase: 'reveal', roundIndex: i, totalRounds: total, track: next.track, options: opts, scoreboard: { ...scoreRef.current }, roundPoints: rp, answerIndex: ansIdx });
+    const votes: Record<string, number> = {};
+    Object.entries(answersRef.current).forEach(([pid, a]) => { votes[pid] = a.choice; });
+    broadcastPhase({ phase: 'reveal', roundIndex: i, totalRounds: total, track: next.track, options: opts, scoreboard: { ...scoreRef.current }, roundPoints: rp, answerIndex: ansIdx, answers: votes });
     // prefetch the next track during the reveal (smooth + drops dead clips early)
     const prefetch = i + 1 < total ? fetchNextTrack() : Promise.resolve(null);
     await wait(BLINDTEST_REVEAL_MS);
@@ -493,7 +507,13 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         ref={mediaRef}
         className="hidden"
         preload="auto"
-        onPlaying={() => { hostPlayingRef.current = true; setNeedsSoundUnlock(false); setMediaError(false); }}
+        onPlaying={() => {
+          hostPlayingRef.current = true; setNeedsSoundUnlock(false); setMediaError(false);
+          // Fair scoring: reaction time is measured from the REAL audio onset
+          // for each player (neutralizes clip load / autoplay-unlock latency),
+          // so the host no longer systematically wins.
+          if (!roundAudioStartedRef.current) { roundAudioStartedRef.current = true; listenStartRef.current = Date.now(); }
+        }}
         onTimeUpdate={() => { hostPlayingRef.current = true; }}
         onError={() => { setMediaError(true); if (isHost) errorFlagRef.current = true; }}
       />
@@ -668,11 +688,33 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 {options.map((opt, i) => {
                   const correct = i === answerIndex;
                   const mine = i === myChoice;
+                  const voters = players.filter((p) => revealVotes[p.id] === i);
                   return (
-                    <div key={i} className={cn('relative py-3 px-4 rounded-2xl text-base font-black border-2 text-center leading-tight', correct ? 'border-emerald-400 bg-emerald-500/25' : mine ? 'border-rose-400 bg-rose-500/20' : 'border-white/10 bg-white/[0.03] opacity-60')}>
-                      {opt}
+                    <div key={i} className={cn('relative py-3 px-4 rounded-2xl border-2 leading-tight', correct ? 'border-emerald-400 bg-emerald-500/25' : mine ? 'border-rose-400 bg-rose-500/20' : 'border-white/10 bg-white/[0.03] opacity-70')}>
+                      <div className="text-base font-black text-center">{opt}</div>
                       {correct && <Check className="absolute top-2 right-2 w-5 h-5 text-emerald-300" />}
                       {mine && !correct && <X className="absolute top-2 right-2 w-5 h-5 text-rose-300" />}
+                      {voters.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                          {voters.map((p) => {
+                            const av = getAvatar(p.id);
+                            const img = av?.type === 'image' && av.imageUrl ? av.imageUrl : null;
+                            return (
+                              <div
+                                key={p.id}
+                                title={p.name}
+                                className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-black border border-white/40 bg-white/15"
+                              >
+                                {img ? (
+                                  <img src={img} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  (p.name[0] || '?').toUpperCase()
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
