@@ -9,7 +9,7 @@ import {
   BLINDTEST_ROUNDS, BLINDTEST_LISTEN_MS, BLINDTEST_REVEAL_MS,
   type BlindtestCategory, type BlindtestEntry,
 } from '@/lib/blindtestTracks';
-import { itunesSearch, pickBestPreview } from '@/lib/itunes';
+import { itunesSearch, pickBestPreview, itunesPoster } from '@/lib/itunes';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { BlindtestSetup } from './BlindtestSetup';
 import { BT, BT_SPECTRUM, glow } from './blindtestTheme';
@@ -426,6 +426,16 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       const results = await itunesSearch(entry.query);
       const best = pickBestPreview(results, { answer: entry.answer, hint: entry.hint, category: entry.category, query: entry.query });
       if (best) {
+        // For visual categories, fetch the real poster/jaquette (movie poster,
+        // TV-show cover) so the reveal shows the actual artwork of the answer
+        // instead of a plain soundtrack album cover. Falls back to album art.
+        let artwork = best.artworkUrl;
+        if (['film', 'disney', 'anime', 'cartoon', 'series'].includes(entry.category)) {
+          try {
+            const poster = await itunesPoster(entry.answer, entry.category);
+            if (poster) artwork = poster;
+          } catch { /* keep album art */ }
+        }
         return {
           entry,
           track: {
@@ -433,7 +443,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
             subtitle: `${best.trackName} – ${best.artistName}`,
             category: entry.category,
             previewUrl: best.previewUrl,
-            artwork: best.artworkUrl, // album art always matches the playing clip
+            artwork,
           },
         };
       }

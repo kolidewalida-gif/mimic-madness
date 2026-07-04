@@ -83,11 +83,22 @@ export async function itunesPoster(term: string, category: string): Promise<stri
       ? [{ media: 'movie', entity: 'movie' }]
       : category === 'anime' || category === 'cartoon'
         ? [{ media: 'tvShow', entity: 'tvSeason' }, { media: 'movie', entity: 'movie' }]
-        : [];
+        : category === 'series'
+          ? [{ media: 'tvShow', entity: 'tvSeason' }, { media: 'movie', entity: 'movie' }]
+          : [];
 
+  const toks = answerTokens(term);
+  const titleOf = (r: any) => NORM(`${r?.trackName ?? ''} ${r?.trackCensoredName ?? ''} ${r?.collectionName ?? ''}`);
   for (const t of tries) {
-    const results = await jsonpItunes({ term, media: t.media, entity: t.entity, country: 'FR', limit: 6 });
-    const art = results.map(bigArt).find(Boolean);
+    const results = await jsonpItunes({ term, media: t.media, entity: t.entity, country: 'FR', limit: 8 });
+    if (!results.length) continue;
+    // Prefer the poster whose title matches the searched name (avoids grabbing
+    // an unrelated movie that merely shares the composer/franchise).
+    const pick =
+      (toks.length && results.find((r: any) => bigArt(r) && toks.every((tk) => titleOf(r).includes(tk)))) ||
+      (toks.length && results.find((r: any) => bigArt(r) && toks.some((tk) => titleOf(r).includes(tk)))) ||
+      results.find((r: any) => bigArt(r));
+    const art = pick ? bigArt(pick) : undefined;
     if (art) return art;
   }
   return null;
