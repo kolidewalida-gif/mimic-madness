@@ -189,7 +189,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
   /* ---------- countdown + urgency tick ---------- */
   useEffect(() => {
-    if (phase !== 'listen' || !deadline) { setSecondsLeft(0); return; }
+    if (phase !== 'listen') { setSecondsLeft(0); return; }
+    // During the short sync buffer (deadline not set yet) show the full time.
+    if (!deadline) { setSecondsLeft(Math.ceil(BLINDTEST_LISTEN_MS / 1000)); return; }
     const tick = () => {
       const s = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       setSecondsLeft(s);
@@ -396,7 +398,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     // that path handles playTrack for the host too since we route through applyPhase.)
 
     const connected = playersRef.current.filter((p) => !p.isDisconnected).length || 1;
-    const reason = await waitListen(connected, BLINDTEST_LISTEN_MS);
+    // The host's collection window must END at the same moment every client's
+    // countdown does: clients start after LISTEN_SYNC_BUFFER_MS, so the host
+    // waits buffer + full listen time (+ a grace for network latency) so that
+    // last-second correct answers are still counted and scored.
+    const reason = await waitListen(connected, LISTEN_SYNC_BUFFER_MS + BLINDTEST_LISTEN_MS + 700);
     if (!mountedRef.current) return;
 
     if (reason === 'error') {
@@ -452,10 +458,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   /* ---------- answering ---------- */
   const answer = (choice: number) => {
     if (phase !== 'listen' || myChoice != null || !deadline) return;
+    // Round not actually started yet (still in the sync buffer) or already over.
+    if (!listenStartRef.current || Date.now() > deadline) return;
     playSoundEffect('click', 0.3);
     setMyChoice(choice);
-    const start = listenStartRef.current || (deadline - BLINDTEST_LISTEN_MS);
-    const elapsed = Math.max(0, Math.min(BLINDTEST_LISTEN_MS, Date.now() - start));
+    const elapsed = Math.max(0, Math.min(BLINDTEST_LISTEN_MS, Date.now() - listenStartRef.current));
     channelRef.current?.send({ type: 'broadcast', event: 'answer', payload: { playerId: currentPlayer.id, choice, elapsed } });
   };
 
@@ -671,12 +678,29 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 })}
               </div>
 
-              {roundPoints[currentPlayer.id] != null && (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 12 }}
-                  className={cn('px-4 py-2 rounded-full font-black text-lg', roundPoints[currentPlayer.id] > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-white/50')}>
-                  {roundPoints[currentPlayer.id] > 0 ? `+${roundPoints[currentPlayer.id]} pts !` : 'Pas de points'}
-                </motion.div>
-              )}
+              {(() => {
+                const myPts = roundPoints[currentPlayer.id];
+                const gotPts = (myPts ?? 0) > 0;
+                const answered = myChoice != null;
+                const label = gotPts
+                  ? `+${myPts} pts !`
+                  : answered
+                    ? 'Mauvaise réponse'
+                    : 'Pas de réponse';
+                return (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', damping: 12 }}
+                    className={cn(
+                      'px-4 py-2 rounded-full font-black text-lg',
+                      gotPts ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-white/50',
+                    )}
+                  >
+                    {label}
+                  </motion.div>
+                );
+              })()}
             </motion.div>
           )}
 
