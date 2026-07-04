@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Disc3, Check, Loader2, Radio, Headphones, Users, Zap, Lightbulb, Clock } from 'lucide-react';
-import { CATEGORY_META, BLINDTEST_ENTRIES, BLINDTEST_ROUND_OPTIONS, BLINDTEST_LISTEN_OPTIONS, type BlindtestCategory } from '@/lib/blindtestTracks';
+import { CATEGORY_META, BLINDTEST_ENTRIES_UNIQUE, BLINDTEST_ROUND_OPTIONS, BLINDTEST_LISTEN_OPTIONS, type BlindtestCategory } from '@/lib/blindtestTracks';
 import { BT, BT_SPECTRUM, glow } from './blindtestTheme';
 import type { BlindtestConfig } from './MemoriseGameScreen';
 
@@ -96,7 +96,7 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
     });
   };
 
-  const count = BLINDTEST_ENTRIES.filter((e) => selected.has(e.category)).length;
+  const count = BLINDTEST_ENTRIES_UNIQUE.filter((e) => selected.has(e.category)).length;
   const rounds = Math.min(roundsSel, count);
   const config: BlindtestConfig = { rounds: roundsSel, listenMs: listenSel, teams, hints, doublePoints };
 
@@ -153,7 +153,7 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
         {CATS.map((c) => {
           const meta = CATEGORY_META[c];
           const active = selected.has(c);
-          const n = BLINDTEST_ENTRIES.filter((e) => e.category === c).length;
+          const n = BLINDTEST_ENTRIES_UNIQUE.filter((e) => e.category === c).length;
           return (
             <motion.button
               key={c}

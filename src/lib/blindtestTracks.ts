@@ -32,6 +32,13 @@ export interface BlindtestEntry {
   category: BlindtestCategory;
   query: string;
   hint?: string;
+  /**
+   * Optional draw weight (default 1). Entries with weight > 1 are duplicated
+   * internally so they get picked more often when the round queue is shuffled
+   * — useful to feature timely/trending answers (e.g. brand-new releases)
+   * without touching the shuffle algorithm itself.
+   */
+  weight?: number;
 }
 
 const ANIME: BlindtestEntry[] = [
@@ -1047,8 +1054,8 @@ const FILM3: BlindtestEntry[] = [
 //    disponibles sur iTunes ; le nom du film est dans la requête pour la garde
 //    de pertinence + la résolution de l'affiche. ──
 const FILM4: BlindtestEntry[] = [
-  { answer: 'Superman (2025)', category: 'film', query: 'Superman John Murphy David Fleming soundtrack' },
-  { answer: 'Supergirl (2026)', category: 'film', query: 'Supergirl Claudia Sarne soundtrack' },
+  { answer: 'Superman (2025)', category: 'film', query: 'Superman John Murphy David Fleming soundtrack', weight: 4 },
+  { answer: 'Supergirl (2026)', category: 'film', query: 'Supergirl Claudia Sarne soundtrack', weight: 4 },
   { answer: 'Deadpool & Wolverine', category: 'film', query: 'Deadpool Wolverine Rob Simonsen score' },
   { answer: 'Gladiator II', category: 'film', query: 'Gladiator II Harry Gregson-Williams' },
   { answer: 'Furiosa', category: 'film', query: 'Furiosa Mad Max Junkie XL' },
@@ -1271,12 +1278,25 @@ const RAW_ENTRIES: BlindtestEntry[] = [
 // (they can generate two identical options or a wrong answerIndex).
 // Keep the first occurrence of each (category, answer) pair.
 const _seenEntries = new Set<string>();
-export const BLINDTEST_ENTRIES: BlindtestEntry[] = RAW_ENTRIES.filter((e) => {
+const DEDUPED_ENTRIES: BlindtestEntry[] = RAW_ENTRIES.filter((e) => {
   const key = e.category + '|' + e.answer.toLowerCase();
   if (_seenEntries.has(key)) return false;
   _seenEntries.add(key);
   return true;
 });
+
+/**
+ * Weighted pool used for the round queue: entries with `weight > 1` are
+ * duplicated N times so they're more likely to be drawn when the queue is
+ * shuffled, without affecting `buildOptions`'s distractor pool (which stays
+ * deduped — see `BLINDTEST_ENTRIES_UNIQUE`).
+ */
+export const BLINDTEST_ENTRIES: BlindtestEntry[] = DEDUPED_ENTRIES.flatMap((e) =>
+  Array.from({ length: Math.max(1, Math.round(e.weight ?? 1)) }, () => e),
+);
+
+/** Deduplicated, unweighted list — use for building distractor pools / counts. */
+export const BLINDTEST_ENTRIES_UNIQUE: BlindtestEntry[] = DEDUPED_ENTRIES;
 
 export const BLINDTEST_ROUNDS = 10;
 export const BLINDTEST_LISTEN_MS = 20000;

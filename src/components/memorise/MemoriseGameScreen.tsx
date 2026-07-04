@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
 import {
-  BLINDTEST_ENTRIES, CATEGORY_META, scoreFor,
+  BLINDTEST_ENTRIES, BLINDTEST_ENTRIES_UNIQUE, CATEGORY_META, scoreFor,
   BLINDTEST_ROUNDS, BLINDTEST_LISTEN_MS, BLINDTEST_REVEAL_MS,
   type BlindtestCategory, type BlindtestEntry,
 } from '@/lib/blindtestTracks';
@@ -555,11 +555,22 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     setTeamsEnabled(config.teams);
     setHintsEnabled(config.hints);
 
-    const entries = BLINDTEST_ENTRIES.filter((e) => cats.includes(e.category));
-    poolRef.current = entries.map((e) => ({ title: e.answer, category: e.category }));
+    // `BLINDTEST_ENTRIES` contains weighted duplicates (featured/new answers
+    // appear more than once) so they're more likely to be drawn — but each
+    // answer must still only be asked ONCE per game, so we shuffle the
+    // weighted pool then dedupe, keeping the first (weighted-biased) occurrence.
+    const weighted = BLINDTEST_ENTRIES.filter((e) => cats.includes(e.category));
+    const uniqueEntries = BLINDTEST_ENTRIES_UNIQUE.filter((e) => cats.includes(e.category));
+    poolRef.current = uniqueEntries.map((e) => ({ title: e.answer, category: e.category }));
     const rnd = mulberry(Math.floor(Math.random() * 1e9));
-    queueRef.current = shuffle(entries, rnd);
-    const total = Math.max(1, Math.min(config.rounds, entries.length));
+    const seenKeys = new Set<string>();
+    queueRef.current = shuffle(weighted, rnd).filter((e) => {
+      const key = e.category + '|' + e.answer.toLowerCase();
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
+    const total = Math.max(1, Math.min(config.rounds, uniqueEntries.length));
 
     // Fetch the first track now — still inside the click's activation window —
     // so the host's first playTrack() is allowed to play with sound.
