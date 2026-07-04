@@ -162,6 +162,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const [hintsEnabled, setHintsEnabled] = useState(true);
   const [roundDouble, setRoundDouble] = useState(false);
   const [myElapsed, setMyElapsed] = useState<number | null>(null);
+  /** playerId -> chosen option index, updated live during the listen phase
+   *  (used to show a teammate's vote in team mode). */
+  const [liveVotes, setLiveVotes] = useState<Record<string, number>>({});
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const answersRef = useRef<Record<string, { choice: number; elapsed: number }>>({});
@@ -295,7 +298,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
     if (p.phase === 'listen') {
       setMyChoice(null); setMyElapsed(null); setAnsweredCount(0); setAnsweredIds(new Set()); answersRef.current = {}; tickRef.current = 0;
-      setRevealVotes({});
+      setRevealVotes({}); setLiveVotes({});
       roundAudioStartedRef.current = false;
       // Schedule the actual listen start using the host-provided `startAt` timestamp
       // corrected by our estimated clock offset. This guarantees every player
@@ -342,6 +345,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           answersRef.current[a.playerId] = { choice: a.choice, elapsed: a.elapsed };
           setAnsweredCount(Object.keys(answersRef.current).length);
           setAnsweredIds(new Set(Object.keys(answersRef.current)));
+          setLiveVotes((prev) => ({ ...prev, [a.playerId]: a.choice }));
         }
       })
       // ---- clock sync handshake (NTP-lite) ----
@@ -771,6 +775,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                 {options.map((opt, i) => {
                   const selected = myChoice === i;
+                  // Team mode: show teammates (my team, excluding me) who already
+                  // voted this option — so you can see your coéquipier's pick live.
+                  const mates = teamsEnabled
+                    ? players.filter((p) => p.id !== currentPlayer.id && (teamOf[p.id] ?? 0) === myTeam && liveVotes[p.id] === i)
+                    : [];
                   return (
                     <motion.button
                       key={i}
@@ -780,13 +789,34 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                       disabled={myChoice != null}
                       className="relative py-4 px-4 rounded-2xl text-base sm:text-lg font-bold text-center leading-tight text-white overflow-hidden transition-colors"
                       style={{
-                        border: `1px solid ${selected ? 'transparent' : BT.hair}`,
+                        border: `1px solid ${selected ? 'transparent' : mates.length ? TEAM_META[myTeam].color : BT.hair}`,
                         background: selected ? BT_SPECTRUM : 'rgba(255,255,255,0.04)',
-                        boxShadow: selected ? `0 10px 30px ${BT.magenta}44` : 'none',
+                        boxShadow: selected ? `0 10px 30px ${BT.magenta}44` : mates.length ? `inset 0 0 0 1px ${TEAM_META[myTeam].color}55` : 'none',
                         opacity: myChoice != null && !selected ? 0.45 : 1,
                       }}
                     >
                       {opt}
+                      {mates.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                          {mates.map((p) => {
+                            const av = getAvatar(p.id);
+                            const img = av?.type === 'image' && av.imageUrl ? av.imageUrl : null;
+                            return (
+                              <div
+                                key={p.id}
+                                title={`${p.name} (coéquipier)`}
+                                className="flex items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-full"
+                                style={{ background: `${TEAM_META[myTeam].color}26`, border: `1px solid ${TEAM_META[myTeam].color}66` }}
+                              >
+                                <span className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-black text-white" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                                  {img ? <img src={img} alt={p.name} className="w-full h-full object-cover" /> : (p.name[0] || '?').toUpperCase()}
+                                </span>
+                                <span className="text-[10px] font-bold" style={{ color: TEAM_META[myTeam].color }}>{p.name}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </motion.button>
                   );
                 })}
