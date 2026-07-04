@@ -12,6 +12,7 @@ import {
 import { itunesSearch, pickBestPreview } from '@/lib/itunes';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { BlindtestSetup } from './BlindtestSetup';
+import { HERO, GRAFFITI_TEXT_SHADOW, GRAFFITI_TEXT_SHADOW_SM } from '@/components/ink/InkPrimitives';
 
 interface Player {
   id: string;
@@ -501,8 +502,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const connectedCount = players.filter((p) => !p.isDisconnected).length || players.length;
 
   /* ============================================================ */
+  const accent = catMeta?.color ?? HERO.blue;
   return (
-    <div className="h-screen w-full flex flex-col items-center text-white relative overflow-hidden bg-gradient-to-b from-[#1a0d2e] via-[#140a24] to-[#0c0618]">
+    <div className="h-screen w-full flex flex-col items-center text-white relative overflow-hidden bg-[#050f24]">
       <audio
         ref={mediaRef}
         className="hidden"
@@ -518,29 +520,44 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         onError={() => { setMediaError(true); if (isHost) errorFlagRef.current = true; }}
       />
 
-      <div className="absolute -top-1/4 left-1/4 w-[55vw] h-[55vw] rounded-full bg-fuchsia-600/20 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[45vw] h-[45vw] rounded-full bg-cyan-500/15 blur-[120px] pointer-events-none" />
+      {/* Superman sky background */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#12356e] via-[#0a1f45] to-[#050d1e]" />
+        <div
+          className="absolute -top-24 left-1/2 -translate-x-1/2 w-[900px] h-[520px] rounded-full opacity-45"
+          style={{ background: 'radial-gradient(ellipse, rgba(255,224,140,0.55), rgba(247,183,51,0.28) 45%, transparent 72%)', filter: 'blur(70px)' }}
+        />
+        <div className="absolute top-[18%] left-[8%] w-[420px] h-[220px] rounded-full opacity-[0.12]" style={{ background: 'radial-gradient(ellipse, #ffffff, transparent 70%)', filter: 'blur(50px)' }} />
+        <div className="absolute bottom-[12%] right-[6%] w-[520px] h-[260px] rounded-full opacity-[0.1]" style={{ background: 'radial-gradient(ellipse, #cfe0ff, transparent 70%)', filter: 'blur(60px)' }} />
+        <div className="absolute bottom-0 right-1/4 w-[520px] h-[300px] rounded-full opacity-20 transition-colors duration-700" style={{ background: `radial-gradient(ellipse, ${accent}66, transparent 70%)`, filter: 'blur(90px)' }} />
+        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'repeating-linear-gradient(100deg, transparent 0 26px, rgba(255,255,255,0.6) 26px 27px)' }} />
+      </div>
 
       {/* header */}
       <div className="relative z-10 w-full flex items-center justify-between px-5 py-4 gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-fuchsia-500 to-purple-700 flex-shrink-0" style={{ boxShadow: '0 0 18px rgba(217,70,239,0.5)' }}>
-            <Music className="w-5 h-5 text-white" />
-          </div>
+          <motion.div
+            animate={{ rotate: [-5, 5, -5] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: `linear-gradient(135deg, ${HERO.gold}, #d99a12)`, border: `3px solid ${HERO.ink}`, boxShadow: `0 4px 0 ${HERO.ink}, inset 0 2px 0 rgba(255,255,255,0.25)` }}
+          >
+            <Music className="w-5 h-5 text-white" strokeWidth={2.5} />
+          </motion.div>
           <div className="min-w-0">
-            <h1 className="text-2xl font-black leading-none truncate">Blindtest Musical</h1>
-            <p className="text-xs text-white/50 truncate">Devine l’anime, le dessin animé ou la musique !</p>
+            <h1 className="text-3xl font-black leading-none truncate" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>Blindtest Musical</h1>
+            <p className="text-sm text-white/60 truncate font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Devine l'anime, le dessin animé ou la musique !</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {phase !== 'final' && phase !== 'intro' && (
-            <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm font-bold">{roundIndex + 1}/{totalRounds}</div>
+            <div className="px-3 py-1.5 rounded-full text-base font-black text-white" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${HERO.blue}44, ${HERO.blue}18)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }}>{roundIndex + 1}/{totalRounds}</div>
           )}
-          <button onClick={toggleMute} className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-white/70 hover:text-white" aria-label="Son">
+          <button onClick={toggleMute} className="w-10 h-10 rounded-xl flex items-center justify-center text-white/80 hover:text-white" style={{ background: '#0f2c5e', border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }} aria-label="Son">
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
-          <button onClick={onEndGame} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-rose-500/15">
-            <LogOut className="w-4 h-4" /><span className="text-sm font-bold hidden sm:inline">Quitter</span>
+          <button onClick={onEndGame} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/90 hover:text-white" style={{ background: `linear-gradient(180deg, ${HERO.red}, #b3241f)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }}>
+            <LogOut className="w-4 h-4" /><span className="text-base font-black hidden sm:inline" style={{ fontFamily: "'Caveat', cursive" }}>Quitter</span>
           </button>
         </div>
       </div>
@@ -558,52 +575,54 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           {/* LISTEN */}
           {phase === 'listen' && track && (
             <motion.div key={`listen-${roundIndex}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="w-full max-w-lg flex flex-col items-center gap-5">
-              <div className="flex items-center gap-3 flex-wrap justify-center">
-                <div className={cn('flex items-center gap-2 font-black text-lg', urgent ? 'text-rose-400' : 'text-cyan-300')}>
+              <div className="flex items-center gap-2.5 flex-wrap justify-center">
+                <div className="flex items-center gap-2 font-black text-xl px-3 py-1 rounded-full text-white" style={{ fontFamily: "'Caveat', cursive", background: urgent ? `linear-gradient(180deg, ${HERO.red}, #b3241f)` : `linear-gradient(180deg, ${HERO.blue}, ${HERO.blue}cc)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
                   <Clock className="w-5 h-5" /> {secondsLeft}s
                 </div>
                 {catMeta && (
-                  <span className="px-3 py-1 rounded-full text-sm font-bold border" style={{ borderColor: `${catMeta.color}66`, background: `${catMeta.color}1f`, color: catMeta.color }}>
+                  <span className="px-3 py-1 rounded-full text-base font-black text-white" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${catMeta.color}, ${catMeta.color}cc)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
                     {catMeta.emoji} {catMeta.label}
                   </span>
                 )}
-                <span className="px-3 py-1 rounded-full text-sm font-bold bg-white/5 border border-white/10 text-white/70">{answeredCount}/{connectedCount} ont répondu</span>
+                <span className="px-3 py-1 rounded-full text-base font-black text-white/80" style={{ fontFamily: "'Caveat', cursive", background: '#0f2c5e', border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }}>{answeredCount}/{connectedCount} ont répondu</span>
               </div>
 
               <div className="relative w-48 h-48 flex items-center justify-center">
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="5" />
-                  <circle cx="50" cy="50" r="46" fill="none" stroke={urgent ? '#fb7185' : '#d946ef'} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${progress * 289} 289`} style={{ transition: 'stroke-dasharray 0.2s linear' }} />
+                  <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(8,19,43,0.6)" strokeWidth="7" />
+                  <circle cx="50" cy="50" r="46" fill="none" stroke={urgent ? HERO.red : HERO.gold} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${progress * 289} 289`} style={{ transition: 'stroke-dasharray 0.2s linear', filter: `drop-shadow(0 0 4px ${urgent ? HERO.red : HERO.gold}aa)` }} />
                 </svg>
                 <motion.div
                   animate={{ rotate: 360, scale: urgent ? [1, 1.05, 1] : 1 }}
                   transition={{ rotate: { duration: 3, repeat: Infinity, ease: 'linear' }, scale: { duration: 0.5, repeat: urgent ? Infinity : 0 } }}
                   className="w-32 h-32 rounded-full flex items-center justify-center"
-                  style={{ background: 'radial-gradient(circle at 50% 50%, #2a1740 0%, #120a20 60%, #0a0510 100%)', border: `3px solid ${urgent ? 'rgba(251,113,133,0.6)' : 'rgba(217,70,239,0.4)'}`, boxShadow: `0 12px 40px ${urgent ? 'rgba(251,113,133,0.4)' : 'rgba(217,70,239,0.35)'}` }}
+                  style={{ background: 'repeating-radial-gradient(circle at 50% 50%, #071634 0 3px, #0f2c5e 3px 6px)', border: `4px solid ${HERO.ink}`, boxShadow: `0 12px 40px ${urgent ? HERO.red : HERO.blue}55, inset 0 0 24px rgba(0,0,0,0.6)` }}
                 >
-                  <Disc3 className={cn('w-12 h-12', urgent ? 'text-rose-300/80' : 'text-fuchsia-300/80')} />
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: `radial-gradient(circle, ${HERO.gold}, #d99a12)`, border: `3px solid ${HERO.ink}` }}>
+                    <Disc3 className="w-6 h-6 text-white/90" />
+                  </div>
                 </motion.div>
                 <div className="absolute -bottom-2 flex items-end gap-1 h-6">
                   {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                    <motion.span key={i} className={cn('w-1.5 rounded-full', urgent ? 'bg-rose-400' : 'bg-fuchsia-400')} animate={{ height: ['30%', '100%', '45%', '90%', '30%'] }} transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: i * 0.08 }} style={{ height: '40%' }} />
+                    <motion.span key={i} className="w-1.5 rounded-full" style={{ background: urgent ? HERO.red : HERO.gold, height: '40%', border: `1px solid ${HERO.ink}` }} animate={{ height: ['30%', '100%', '45%', '90%', '30%'] }} transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: i * 0.08 }} />
                   ))}
                 </div>
               </div>
 
               {mediaError ? (
-                <p className="flex items-center gap-2 text-sm text-amber-300/90">
+                <p className="flex items-center gap-2 text-base font-bold text-amber-300" style={{ fontFamily: "'Caveat', cursive" }}>
                   <AlertTriangle className="w-4 h-4" /> Extrait indisponible… {isHost ? 'on passe à la suivante' : "l'hôte change de piste"}
                 </p>
               ) : needsSoundUnlock ? (
-                <motion.button onClick={resumeSound} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-fuchsia-500 text-white font-black shadow-lg shadow-fuchsia-500/40">
+                <motion.button onClick={resumeSound} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-black text-xl" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${HERO.red}, #b3241f)`, border: `3px solid ${HERO.ink}`, boxShadow: `0 4px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
                   <Volume2 className="w-5 h-5" /> Activer le son 🔊
                 </motion.button>
               ) : (
-                <p className="text-sm text-white/45 -mt-1">Écoute bien… c’est quoi ce son ? 🎧</p>
+                <p className="text-lg text-white/55 -mt-1 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Écoute bien… c'est quoi ce son ? 🎧</p>
               )}
 
               {myStreak >= 2 && (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-400/40 text-orange-300 text-sm font-black">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-white text-base font-black" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${HERO.gold}, #d99a12)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
                   <Flame className="w-4 h-4" /> Série x{myStreak}
                 </div>
               )}
@@ -614,20 +633,26 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                   return (
                     <motion.button
                       key={i}
-                      whileHover={myChoice == null ? { scale: 1.02 } : undefined}
+                      whileHover={myChoice == null ? { scale: 1.03, rotate: -1 } : undefined}
                       whileTap={myChoice == null ? { scale: 0.97 } : undefined}
                       onClick={() => answer(i)}
                       disabled={myChoice != null}
-                      className={cn('py-4 px-4 rounded-2xl text-base sm:text-lg font-black border-2 transition-all text-center leading-tight',
-                        selected ? 'border-fuchsia-400 bg-fuchsia-500/30' : 'border-white/10 bg-white/[0.04] hover:border-fuchsia-400/40',
-                        myChoice != null && !selected && 'opacity-50')}
+                      className="py-4 px-4 rounded-2xl text-lg sm:text-xl font-black text-center leading-tight text-white"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                        border: `3px solid ${HERO.ink}`,
+                        background: selected ? `linear-gradient(180deg, ${HERO.gold}, #d99a12)` : 'linear-gradient(180deg, #123163, #0a1f45)',
+                        boxShadow: `0 4px 0 ${HERO.ink}`,
+                        opacity: myChoice != null && !selected ? 0.5 : 1,
+                      }}
                     >
                       {opt}
                     </motion.button>
                   );
                 })}
               </div>
-              {myChoice != null && <p className="text-sm text-white/50">Réponse envoyée ! En attente des autres…</p>}
+              {myChoice != null && <p className="text-lg text-white/60 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Réponse envoyée ! En attente des autres…</p>}
             </motion.div>
           )}
 
@@ -642,9 +667,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
               >
                 <div
                   className="relative rounded-[2rem] overflow-hidden flex items-center justify-center"
-                  style={{ width: 'min(86vw, 34rem)', height: 'min(86vw, 34rem)', border: '5px solid rgba(217,70,239,0.6)', boxShadow: '0 30px 90px rgba(217,70,239,0.6)' }}
+                  style={{ width: 'min(86vw, 34rem)', height: 'min(86vw, 34rem)', border: `6px solid ${HERO.ink}`, boxShadow: `0 10px 0 ${HERO.ink}, 0 34px 90px ${accent}66` }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 'min(40vw,16rem)', background: catMeta ? `radial-gradient(circle, ${catMeta.color}44, #120a20)` : '#120a20' }}>{catMeta?.emoji ?? '🎵'}</div>
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 'min(40vw,16rem)', background: catMeta ? `radial-gradient(circle, ${catMeta.color}55, #071634)` : '#071634' }}>{catMeta?.emoji ?? '🎵'}</div>
                   {track.artwork && (
                     <motion.img
                       src={track.artwork}
@@ -665,7 +690,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     transition={{ duration: 0.9, delay: 0.25 }}
                   />
                   {catMeta && (
-                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-black" style={{ background: `${catMeta.color}cc`, color: '#0a0510' }}>
+                    <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-sm font-black text-white" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${catMeta.color}, ${catMeta.color}cc)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
                       {catMeta.emoji} {catMeta.label}
                     </span>
                   )}
@@ -675,12 +700,12 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     initial={{ y: 10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="text-4xl md:text-5xl font-black leading-tight"
-                    style={{ textShadow: '0 4px 18px rgba(217,70,239,0.5)' }}
+                    className="text-5xl md:text-6xl font-black leading-tight text-white"
+                    style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}
                   >
                     {track.title}
                   </motion.h2>
-                  {track.subtitle && <p className="text-sm md:text-base text-white/55 mt-1">{track.subtitle}</p>}
+                  {track.subtitle && <p className="text-lg md:text-xl text-white/60 mt-1 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>{track.subtitle}</p>}
                 </div>
               </motion.div>
 
@@ -690,10 +715,19 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                   const mine = i === myChoice;
                   const voters = players.filter((p) => revealVotes[p.id] === i);
                   return (
-                    <div key={i} className={cn('relative py-3 px-4 rounded-2xl border-2 leading-tight', correct ? 'border-emerald-400 bg-emerald-500/25' : mine ? 'border-rose-400 bg-rose-500/20' : 'border-white/10 bg-white/[0.03] opacity-70')}>
-                      <div className="text-base font-black text-center">{opt}</div>
-                      {correct && <Check className="absolute top-2 right-2 w-5 h-5 text-emerald-300" />}
-                      {mine && !correct && <X className="absolute top-2 right-2 w-5 h-5 text-rose-300" />}
+                    <div
+                      key={i}
+                      className="relative py-3 px-4 rounded-2xl leading-tight text-white"
+                      style={{
+                        border: `3px solid ${HERO.ink}`,
+                        background: correct ? 'linear-gradient(180deg, #22c07a, #159a5c)' : mine ? `linear-gradient(180deg, ${HERO.red}, #b3241f)` : 'linear-gradient(180deg, #123163, #0a1f45)',
+                        boxShadow: `0 4px 0 ${HERO.ink}`,
+                        opacity: !correct && !mine ? 0.65 : 1,
+                      }}
+                    >
+                      <div className="text-lg font-black text-center" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>{opt}</div>
+                      {correct && <Check className="absolute top-2 right-2 w-5 h-5 text-white" strokeWidth={3} />}
+                      {mine && !correct && <X className="absolute top-2 right-2 w-5 h-5 text-white" strokeWidth={3} />}
                       {voters.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1 justify-center">
                           {voters.map((p) => {
@@ -703,7 +737,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                               <div
                                 key={p.id}
                                 title={p.name}
-                                className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-black border border-white/40 bg-white/15"
+                                className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[11px] font-black text-white"
+                                style={{ border: `2px solid ${HERO.ink}`, background: 'rgba(255,255,255,0.2)' }}
                               >
                                 {img ? (
                                   <img src={img} alt={p.name} className="w-full h-full object-cover" />
@@ -731,13 +766,17 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     : 'Pas de réponse';
                 return (
                   <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
+                    initial={{ scale: 0, rotate: -8 }}
+                    animate={{ scale: 1, rotate: -2 }}
                     transition={{ type: 'spring', damping: 12 }}
-                    className={cn(
-                      'px-4 py-2 rounded-full font-black text-lg',
-                      gotPts ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-white/50',
-                    )}
+                    className="px-5 py-2 rounded-2xl font-black text-2xl text-white"
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                      background: gotPts ? 'linear-gradient(180deg, #22c07a, #159a5c)' : '#0f2c5e',
+                      border: `3px solid ${HERO.ink}`,
+                      boxShadow: `0 4px 0 ${HERO.ink}`,
+                    }}
                   >
                     {label}
                   </motion.div>
@@ -749,21 +788,40 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           {/* FINAL */}
           {phase === 'final' && (
             <motion.div key="final" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md flex flex-col items-center gap-5">
-              <Trophy className="w-14 h-14 text-amber-400" />
-              <h2 className="text-4xl font-black">Classement final</h2>
-              <div className="w-full space-y-2">
+              <motion.div animate={{ rotate: [-6, 6, -6] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+                <Trophy className="w-16 h-16" style={{ color: HERO.gold, filter: `drop-shadow(2px 2px 0 ${HERO.ink})` }} />
+              </motion.div>
+              <h2 className="text-5xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}>Classement final</h2>
+              <div className="w-full space-y-2.5">
                 {ranked.map((p, i) => (
-                  <div key={p.id} className={cn('flex items-center gap-3 px-4 py-3 rounded-2xl border', i === 0 ? 'border-amber-400/60 bg-amber-500/15' : 'border-white/10 bg-white/[0.04]')}>
-                    <span className="text-xl font-black w-7 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
-                    <span className="flex-1 font-bold truncate">{p.name}{p.id === currentPlayer.id ? ' (toi)' : ''}</span>
-                    <span className="font-black text-fuchsia-300">{p.pts} pts</span>
-                  </div>
+                  <motion.div
+                    key={p.id}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: i * 0.08 }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-2xl text-white"
+                    style={{
+                      border: `3px solid ${HERO.ink}`,
+                      background: i === 0 ? `linear-gradient(180deg, ${HERO.gold}, #d99a12)` : 'linear-gradient(180deg, #123163, #0a1f45)',
+                      boxShadow: `0 4px 0 ${HERO.ink}`,
+                    }}
+                  >
+                    <span className="text-2xl font-black w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                    <span className="flex-1 font-black truncate text-xl" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>{p.name}{p.id === currentPlayer.id ? ' (toi)' : ''}</span>
+                    <span className="font-black text-xl" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>{p.pts} pts</span>
+                  </motion.div>
                 ))}
-                {ranked.length === 0 && <p className="text-center text-white/50">Aucun score</p>}
+                {ranked.length === 0 && <p className="text-center text-white/60 text-lg font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Aucun score</p>}
               </div>
-              <button onClick={onEndGame} className="mt-2 px-8 py-3 rounded-2xl font-black text-lg bg-gradient-to-r from-fuchsia-500 to-purple-700 hover:brightness-110" style={{ boxShadow: '0 8px 24px rgba(217,70,239,0.5)' }}>
+              <motion.button
+                onClick={onEndGame}
+                whileHover={{ scale: 1.04, rotate: -1.5 }}
+                whileTap={{ scale: 0.96 }}
+                className="mt-2 px-8 py-3.5 rounded-2xl font-black text-2xl text-white"
+                style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM, background: `linear-gradient(180deg, ${HERO.red}, #b3241f)`, border: `3px solid ${HERO.ink}`, boxShadow: `0 5px 0 ${HERO.ink}` }}
+              >
                 Retour au lobby
-              </button>
+              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -771,11 +829,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
       {/* left live scoreboard (real-time) */}
       {(phase === 'listen' || phase === 'reveal') && standings.length > 0 && (
-        <div className="hidden md:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md">
-          <div className="flex items-center gap-2 px-1 pb-1.5 mb-0.5 border-b border-white/10">
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-black text-white/80 uppercase tracking-wide">Scores</span>
-            <span className="ml-auto text-[11px] text-white/40 font-bold">{answeredCount}/{connectedCount}</span>
+        <div className="hidden md:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl" style={{ background: 'linear-gradient(180deg, #0f2c5e, #071634)', border: `4px solid ${HERO.ink}`, boxShadow: `0 6px 0 ${HERO.ink}` }}>
+          <div className="flex items-center gap-2 px-1 pb-1.5 mb-0.5" style={{ borderBottom: `2px solid ${HERO.ink}` }}>
+            <Trophy className="w-4 h-4" style={{ color: HERO.gold }} />
+            <span className="text-lg font-black text-white uppercase tracking-wide" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>Scores</span>
+            <span className="ml-auto text-[12px] text-white/60 font-black">{answeredCount}/{connectedCount}</span>
           </div>
           {standings.map((p, i) => {
             const answered = phase === 'listen' && answeredIds.has(p.id);
@@ -784,12 +842,17 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 layout
                 key={p.id}
                 transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-                className={cn('flex items-center gap-2 px-2.5 py-2 rounded-xl border', p.isMe ? 'border-fuchsia-400/60 bg-fuchsia-500/15' : 'border-white/10 bg-white/[0.04]')}
+                className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-white"
+                style={{
+                  border: `2.5px solid ${HERO.ink}`,
+                  background: p.isMe ? `linear-gradient(180deg, ${HERO.gold}, #d99a12)` : 'linear-gradient(180deg, #123163, #0a1f45)',
+                  boxShadow: `0 3px 0 ${HERO.ink}`,
+                }}
               >
-                <span className="w-6 text-center text-sm font-black flex-shrink-0">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
-                <span className={cn('flex-1 truncate text-sm font-bold', p.isMe ? 'text-fuchsia-200' : 'text-white/85')}>{p.name}{p.isMe ? ' (toi)' : ''}</span>
-                {answered && <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
-                <span className="text-sm font-black text-fuchsia-300 tabular-nums flex-shrink-0">{p.pts}</span>
+                <span className="w-6 text-center text-base font-black flex-shrink-0">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                <span className="flex-1 truncate text-base font-black" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>{p.name}{p.isMe ? ' (toi)' : ''}</span>
+                {answered && <Check className="w-4 h-4 flex-shrink-0" style={{ color: p.isMe ? HERO.ink : '#22c07a' }} strokeWidth={3} />}
+                <span className="text-base font-black tabular-nums flex-shrink-0" style={{ fontFamily: "'Caveat', cursive" }}>{p.pts}</span>
               </motion.div>
             );
           })}
@@ -798,12 +861,12 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
       {/* vertical volume bar (persisted) */}
       {(phase === 'listen' || phase === 'reveal') && (
-        <div className="fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md">
-          <button onClick={toggleMute} className="text-white/70 hover:text-white" aria-label="Son">
+        <div className="fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl" style={{ background: 'linear-gradient(180deg, #0f2c5e, #071634)', border: `4px solid ${HERO.ink}`, boxShadow: `0 6px 0 ${HERO.ink}` }}>
+          <button onClick={toggleMute} className="text-white/80 hover:text-white" aria-label="Son">
             {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
           <VerticalVolume value={volume} onChange={setVolume} />
-          <span className="text-[11px] font-black text-white/70 tabular-nums">{volume}</span>
+          <span className="text-sm font-black text-white/80 tabular-nums" style={{ fontFamily: "'Caveat', cursive" }}>{volume}</span>
         </div>
       )}
 
@@ -812,10 +875,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         <div className="relative z-10 w-full max-w-2xl px-4 pb-4 md:hidden">
           <div className="flex gap-2 overflow-x-auto custom-scrollbar">
             {ranked.slice(0, 6).map((p, i) => (
-              <div key={p.id} className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                {i === 0 && <Crown className="w-3.5 h-3.5 text-amber-400" fill="currentColor" />}
-                <span className="text-sm font-bold truncate max-w-[90px]">{p.name}</span>
-                <span className="text-sm font-black text-fuchsia-300">{p.pts}</span>
+              <div key={p.id} className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-white" style={{ background: i === 0 ? `linear-gradient(180deg, ${HERO.gold}, #d99a12)` : 'linear-gradient(180deg, #123163, #0a1f45)', border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }}>
+                {i === 0 && <Crown className="w-3.5 h-3.5" style={{ color: HERO.ink }} fill="currentColor" />}
+                <span className="text-base font-black truncate max-w-[90px]" style={{ fontFamily: "'Caveat', cursive" }}>{p.name}</span>
+                <span className="text-base font-black" style={{ fontFamily: "'Caveat', cursive" }}>{p.pts}</span>
               </div>
             ))}
           </div>
@@ -845,8 +908,8 @@ const VerticalVolume = ({ value, onChange }: { value: number; onChange: (v: numb
       onPointerMove={(e) => { if (dragging.current) setFromY(e.clientY); }}
       onPointerUp={() => { dragging.current = false; }}
       onPointerCancel={() => { dragging.current = false; }}
-      className="relative w-3 rounded-full cursor-pointer touch-none"
-      style={{ height: 150, background: 'rgba(255,255,255,0.15)' }}
+      className="relative w-3.5 rounded-full cursor-pointer touch-none"
+      style={{ height: 150, background: 'rgba(0,0,0,0.4)', border: `2px solid ${HERO.ink}` }}
       role="slider"
       aria-valuenow={value}
       aria-valuemin={0}
@@ -855,11 +918,11 @@ const VerticalVolume = ({ value, onChange }: { value: number; onChange: (v: numb
     >
       <div
         className="absolute bottom-0 left-0 right-0 rounded-full"
-        style={{ height: `${value}%`, background: 'linear-gradient(180deg, #e879f9, #a855f7)' }}
+        style={{ height: `${value}%`, background: `linear-gradient(180deg, ${HERO.gold}, ${HERO.blue})` }}
       />
       <div
-        className="absolute left-1/2 w-5 h-5 rounded-full bg-white shadow-lg"
-        style={{ bottom: `calc(${value}% - 10px)`, transform: 'translateX(-50%)', boxShadow: '0 2px 8px rgba(217,70,239,0.6)' }}
+        className="absolute left-1/2 w-5 h-5 rounded-full bg-white"
+        style={{ bottom: `calc(${value}% - 10px)`, transform: 'translateX(-50%)', border: `2px solid ${HERO.ink}`, boxShadow: `0 2px 6px rgba(0,0,0,0.5)` }}
       />
     </div>
   );
