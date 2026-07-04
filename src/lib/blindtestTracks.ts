@@ -599,7 +599,7 @@ const FILM2: BlindtestEntry[] = [
   { answer: 'La Môme', category: 'film', query: 'La Vie en rose Marion Cotillard La Môme' },
   { answer: 'Batman Begins', category: 'film', query: 'Batman Begins Hans Zimmer' },
   { answer: 'Man of Steel', category: 'film', query: 'Man of Steel Hans Zimmer' },
-  { answer: 'Wonder Woman', category: 'film', query: 'Wonder Woman Theme Hans Zimmer' },
+  { answer: 'Wonder Woman', category: 'film', query: 'Wonder Woman Rupert Gregson-Williams Soundtrack' },
   { answer: 'Black Panther', category: 'film', query: 'Black Panther Ludwig Goransson' },
   { answer: 'Dune', category: 'film', query: 'Dune Hans Zimmer Paul Dream' },
   { answer: 'Le Livre de la jungle', category: 'film', query: 'The Jungle Book 2016 score' },

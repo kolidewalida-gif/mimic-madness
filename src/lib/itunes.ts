@@ -131,5 +131,20 @@ export function pickBestPreview(
     return m ?? null;
   }
 
+  // Film / series scores: the track title differs from the movie/series name,
+  // but iTunes happily fuzzy-matches to another famous track by the SAME
+  // composer (e.g. "Wonder Woman … Hans Zimmer" → Inception's "Time").
+  // Require the picked result's track OR album name to share a word with the
+  // query — the composer name in the artist field alone is NOT enough — else
+  // skip so we never show a mismatched cover.
+  if (opts.category === 'film' || opts.category === 'series') {
+    const toks = answerTokens(opts.query || opts.answer);
+    if (toks.length) {
+      const titleHay = (t: ItunesTrack) => `${NORM(t.trackName)} ${NORM(t.collectionName ?? '')}`;
+      const m = pool.find((t) => toks.some((tok) => titleHay(t).includes(tok)));
+      return m ?? null;
+    }
+  }
+
   return pool[0];
 }
