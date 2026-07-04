@@ -1,38 +1,23 @@
 /**
- * Reusable "Superman" comic primitives for the Ink game screens.
- * All ink-mode game screens import these to keep a uniform DA:
- * deep sky-blue backgrounds, a soft golden sun bloom, red/gold/blue accents,
- * dark comic ink borders, 3D shadows, Caveat font with comic text-shadow.
- *
- * Tasteful, not garish — blue dominates, gold is a sparing highlight.
+ * Reusable cartoon graffiti primitives for the Ink game screens.
+ * All ink-mode game screens import these to keep a perfectly
+ * uniform DA (purple/cyan/yellow/red palette, 4px black borders,
+ * 3D shadows, Caveat font with graffiti text-shadow).
  */
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/* ============================================================
-   PALETTE (Superman)
-============================================================ */
-export const HERO = {
-  ink: '#08132b', // dark comic outline (deep navy, softer than pure black)
-  skyDeep: '#061a3d',
-  blue: '#2b6cf6', // Superman royal/sky blue — primary
-  blueSoft: '#5b96ff',
-  gold: '#f5c518', // print gold — highlight
-  red: '#e0332e', // Superman red — accent / CTA
-  paper: '#eef4ff', // cloud off-white
-};
-
 export const GRAFFITI_TEXT_SHADOW =
-  '2px 2px 0 #08132b, -1.5px -1.5px 0 #08132b, 1.5px -1.5px 0 #08132b, -1.5px 1.5px 0 #08132b, 1.5px 1.5px 0 #08132b';
+  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
 export const GRAFFITI_TEXT_SHADOW_SM =
-  '1.5px 1.5px 0 #08132b, -1px -1px 0 #08132b, 1px -1px 0 #08132b, -1px 1px 0 #08132b, 1px 1px 0 #08132b';
+  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
 
 /* ============================================================
-   Game stage — full-screen Superman sky with sun bloom
+   Game stage — full-screen background with phase-aware halos
 ============================================================ */
 export const InkGameStage = ({
-  accent = HERO.blue,
+  accent = '#a855f7',
   children,
   className,
 }: {
@@ -42,40 +27,25 @@ export const InkGameStage = ({
 }) => (
   <div
     className={cn(
-      'min-h-screen bg-[#050f24] text-white relative overflow-hidden',
+      'min-h-screen bg-[#0a0510] text-white relative overflow-hidden',
       className,
     )}
   >
     <div className="fixed inset-0 pointer-events-none">
-      {/* deep sky gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#12356e] via-[#0a1f45] to-[#050d1e]" />
-      {/* warm golden sun bloom (top center) */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0f0820] via-[#0a0510] to-[#160a26]" />
       <div
-        className="absolute -top-24 left-1/2 -translate-x-1/2 w-[900px] h-[520px] rounded-full opacity-45"
+        className="absolute top-0 left-1/3 w-[700px] h-[400px] rounded-full opacity-30"
         style={{
-          background:
-            'radial-gradient(ellipse, rgba(255,224,140,0.55), rgba(247,183,51,0.28) 45%, transparent 72%)',
-          filter: 'blur(70px)',
+          background: `radial-gradient(ellipse, ${accent}66, transparent 70%)`,
+          filter: 'blur(100px)',
         }}
       />
-      {/* soft cloud puffs */}
       <div
-        className="absolute top-[18%] left-[8%] w-[420px] h-[220px] rounded-full opacity-[0.12]"
-        style={{ background: 'radial-gradient(ellipse, #ffffff, transparent 70%)', filter: 'blur(50px)' }}
-      />
-      <div
-        className="absolute bottom-[12%] right-[6%] w-[520px] h-[260px] rounded-full opacity-[0.1]"
-        style={{ background: 'radial-gradient(ellipse, #cfe0ff, transparent 70%)', filter: 'blur(60px)' }}
-      />
-      {/* accent halo (mode-tinted) */}
-      <div
-        className="absolute bottom-0 right-1/4 w-[520px] h-[300px] rounded-full opacity-20"
-        style={{ background: `radial-gradient(ellipse, ${accent}66, transparent 70%)`, filter: 'blur(90px)' }}
-      />
-      {/* subtle top light rays */}
-      <div
-        className="absolute inset-0 opacity-[0.06]"
-        style={{ backgroundImage: 'repeating-linear-gradient(100deg, transparent 0 26px, rgba(255,255,255,0.6) 26px 27px)' }}
+        className="absolute bottom-0 right-1/4 w-[500px] h-[300px] rounded-full opacity-20"
+        style={{
+          background: `radial-gradient(ellipse, ${accent}55, transparent 70%)`,
+          filter: 'blur(80px)',
+        }}
       />
     </div>
     <div className="relative z-10">{children}</div>
@@ -83,7 +53,7 @@ export const InkGameStage = ({
 );
 
 /* ============================================================
-   Comic card (bordered + shadowed)
+   Cartoon card (bordered + shadowed)
 ============================================================ */
 export const InkCard = ({
   accent,
@@ -104,11 +74,11 @@ export const InkCard = ({
     className={cn('relative rounded-3xl overflow-hidden', className)}
     style={{
       background:
-        'linear-gradient(180deg, #0f2c5e 0%, #0b2148 50%, #071634 100%)',
-      border: '4px solid #08132b',
+        'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+      border: '4px solid #0a0810',
       boxShadow: highlighted
-        ? `0 8px 0 #08132b, 0 14px 30px ${accent ?? HERO.blue}55, inset 0 2px 0 rgba(255,255,255,0.1)`
-        : '0 6px 0 #08132b, inset 0 1px 0 rgba(255,255,255,0.08)',
+        ? `0 8px 0 #0a0810, 0 14px 30px ${accent ?? '#a855f7'}55, inset 0 2px 0 rgba(255,255,255,0.08)`
+        : '0 6px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.06)',
     }}
   >
     {innerAccent && accent && (
@@ -120,7 +90,10 @@ export const InkCard = ({
     {showSparkles && accent && (
       <Sparkles
         className="absolute top-3 right-3 w-4 h-4 z-10"
-        style={{ color: accent, filter: 'drop-shadow(1px 1px 0 #08132b)' }}
+        style={{
+          color: accent,
+          filter: 'drop-shadow(1px 1px 0 #0a0810)',
+        }}
       />
     )}
     <div className="relative">{children}</div>
@@ -128,12 +101,12 @@ export const InkCard = ({
 );
 
 /* ============================================================
-   Comic button — heroic CTA with 3D shadow
+   Cartoon button — graffiti CTA with 3D shadow
 ============================================================ */
 export const InkButton = ({
   children,
   onClick,
-  color = HERO.blue,
+  color = '#a855f7',
   disabled = false,
   variant = 'filled',
   size = 'md',
@@ -173,10 +146,10 @@ export const InkButton = ({
           variant === 'filled'
             ? `linear-gradient(180deg, ${color}, ${color}cc)`
             : 'transparent',
-        border: variant === 'filled' ? '3px solid #08132b' : `3px solid ${color}`,
+        border: variant === 'filled' ? '3px solid #0a0810' : `3px solid ${color}`,
         boxShadow:
           variant === 'filled'
-            ? '0 4px 0 #08132b, inset 0 1px 0 rgba(255,255,255,0.3)'
+            ? '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)'
             : 'none',
         color: 'white',
         fontFamily: "'Caveat', cursive",
@@ -189,12 +162,12 @@ export const InkButton = ({
 };
 
 /* ============================================================
-   Comic header pill — phase indicator at top of screen
+   Cartoon header pill — phase indicator at top of screen
 ============================================================ */
 export const InkPhasePill = ({
   icon: Icon,
   label,
-  accent = HERO.blue,
+  accent = '#a855f7',
 }: {
   icon: any;
   label: string;
@@ -207,14 +180,17 @@ export const InkPhasePill = ({
     className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
     style={{
       background: `linear-gradient(180deg, ${accent}, ${accent}cc)`,
-      border: '3px solid #08132b',
-      boxShadow: '0 4px 0 #08132b',
+      border: '3px solid #0a0810',
+      boxShadow: '0 4px 0 #0a0810',
     }}
   >
     <Icon className="w-4 h-4 text-white" strokeWidth={2.5} />
     <span
       className="text-sm font-black uppercase tracking-wider text-white leading-none"
-      style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+      style={{
+        fontFamily: "'Caveat', cursive",
+        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+      }}
     >
       {label}
     </span>
@@ -222,7 +198,7 @@ export const InkPhasePill = ({
 );
 
 /* ============================================================
-   Comic title — heroic XL
+   Cartoon title — graffiti XL
 ============================================================ */
 export const InkTitle = ({
   children,
@@ -241,8 +217,15 @@ export const InkTitle = ({
         : 'text-4xl md:text-5xl';
   return (
     <h1
-      className={cn('font-black tracking-tight leading-none text-white', sizeClass, className)}
-      style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}
+      className={cn(
+        'font-black tracking-tight leading-none text-white',
+        sizeClass,
+        className,
+      )}
+      style={{
+        fontFamily: "'Caveat', cursive",
+        textShadow: GRAFFITI_TEXT_SHADOW,
+      }}
     >
       {children}
     </h1>
@@ -250,11 +233,11 @@ export const InkTitle = ({
 };
 
 /* ============================================================
-   Comic icon badge (wobble animated)
+   Cartoon icon badge (wobble animated)
 ============================================================ */
 export const InkIconBadge = ({
   icon: Icon,
-  color = HERO.blue,
+  color = '#a855f7',
   size = 'md',
   wobble = true,
 }: {
@@ -275,23 +258,29 @@ export const InkIconBadge = ({
   return (
     <Wrapper
       {...(wobbleProps as object)}
-      className={cn('rounded-2xl flex items-center justify-center flex-shrink-0', sizeMap[size])}
+      className={cn(
+        'rounded-2xl flex items-center justify-center flex-shrink-0',
+        sizeMap[size],
+      )}
       style={{
         background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-        border: '3px solid #08132b',
-        boxShadow: '0 4px 0 #08132b, inset 0 2px 0 rgba(255,255,255,0.25)',
+        border: '3px solid #0a0810',
+        boxShadow: '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
       }}
     >
-      <Icon className={cn(iconSizeMap[size], 'text-white')} strokeWidth={2.5} />
+      <Icon
+        className={cn(iconSizeMap[size], 'text-white')}
+        strokeWidth={2.5}
+      />
     </Wrapper>
   );
 };
 
 /* ============================================================
-   Comic stamp badge (e.g. "À TOI", "Suspect")
+   Cartoon stamp badge (e.g. "À TOI", "Suspect")
 ============================================================ */
 export const InkStamp = ({
-  color = HERO.gold,
+  color = '#fbbf24',
   rotate = -8,
   children,
 }: {
@@ -303,14 +292,17 @@ export const InkStamp = ({
     className="relative px-2.5 py-1 inline-flex items-center justify-center rounded-lg"
     style={{
       background: `linear-gradient(180deg, ${color}, ${color}cc)`,
-      border: '2.5px solid #08132b',
-      boxShadow: '0 3px 0 #08132b',
+      border: '2.5px solid #0a0810',
+      boxShadow: '0 3px 0 #0a0810',
       transform: `rotate(${rotate}deg)`,
     }}
   >
     <span
       className="text-xs font-black uppercase tracking-wider text-white leading-none"
-      style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+      style={{
+        fontFamily: "'Caveat', cursive",
+        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+      }}
     >
       {children}
     </span>
@@ -318,14 +310,15 @@ export const InkStamp = ({
 );
 
 /* ============================================================
-   Comic timer bar (gold→red urgent)
+   Cartoon timer bar (rainbow gradient + urgent pulse)
 ============================================================ */
 export const InkTimerBar = ({
   progress,
   urgent = false,
-  accent = HERO.blue,
+  accent = '#a855f7',
   className,
 }: {
+  /** 0-100 */
   progress: number;
   urgent?: boolean;
   accent?: string;
@@ -335,7 +328,7 @@ export const InkTimerBar = ({
     className={cn('relative h-3 rounded-full overflow-hidden', className)}
     style={{
       background: 'rgba(0,0,0,0.5)',
-      border: '2px solid #08132b',
+      border: '2px solid #0a0810',
       boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
     }}
   >
@@ -345,9 +338,9 @@ export const InkTimerBar = ({
       transition={{ duration: 0.4, ease: 'linear' }}
       style={{
         background: urgent
-          ? 'linear-gradient(90deg, #f5c518, #e0332e)'
+          ? 'linear-gradient(90deg, #fbbf24, #ef4444)'
           : `linear-gradient(90deg, ${accent}, ${accent}cc)`,
-        boxShadow: `0 0 8px ${urgent ? '#e0332e' : accent}88`,
+        boxShadow: `0 0 8px ${urgent ? '#ef4444' : accent}88`,
       }}
     />
   </div>
@@ -359,7 +352,7 @@ export const InkTimerBar = ({
 export const InkPill = ({
   label,
   value,
-  color = HERO.blue,
+  color = '#a855f7',
 }: {
   label: string;
   value: string | number;
@@ -369,8 +362,8 @@ export const InkPill = ({
     className="px-3 py-1.5 rounded-2xl flex items-center gap-2"
     style={{
       background: `linear-gradient(180deg, ${color}33, ${color}10)`,
-      border: '2.5px solid #08132b',
-      boxShadow: '0 3px 0 #08132b',
+      border: '2.5px solid #0a0810',
+      boxShadow: '0 3px 0 #0a0810',
     }}
   >
     <span
@@ -381,7 +374,11 @@ export const InkPill = ({
     </span>
     <span
       className="text-base font-black leading-none"
-      style={{ fontFamily: "'Caveat', cursive", color, textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+      style={{
+        fontFamily: "'Caveat', cursive",
+        color,
+        textShadow: GRAFFITI_TEXT_SHADOW_SM,
+      }}
     >
       {value}
     </span>

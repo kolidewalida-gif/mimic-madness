@@ -114,22 +114,22 @@ export const themeConfig: Record<ThemeType, {
     },
   },
   ink: {
-    name: 'Superman',
-    emoji: '🦸',
-    description: 'Ciel héroïque — bleu, or & rouge',
+    name: 'Ink',
+    emoji: '🖤',
+    description: 'Noir & Rouge minimaliste',
     colors: {
-      primary: '219 91% 57%',       // Superman royal blue
-      secondary: '46 91% 53%',      // print gold
-      accent: '2 76% 53%',          // Superman red
-      background: '219 55% 7%',     // deep sky navy
-      foreground: '210 40% 97%',    // cloud white
-      card: '219 46% 12%',
-      cardForeground: '210 40% 97%',
-      muted: '219 32% 18%',
-      mutedForeground: '215 25% 72%',
-      border: '219 46% 22%',
-      glow: '219 91% 57%',
-      glowSecondary: '46 91% 53%',
+      primary: '0 85% 55%',
+      secondary: '0 0% 14%',
+      accent: '0 75% 45%',
+      background: '0 0% 4%',
+      foreground: '0 0% 96%',
+      card: '0 0% 7%',
+      cardForeground: '0 0% 96%',
+      muted: '0 0% 12%',
+      mutedForeground: '0 0% 65%',
+      border: '0 0% 14%',
+      glow: '0 85% 55%',
+      glowSecondary: '0 75% 45%',
     },
   },
   cartoon: {
