@@ -7,7 +7,9 @@
  * so a few misses never block a party.
  */
 
-export type BlindtestCategory = 'anime' | 'cartoon' | 'music' | 'film' | 'jeuxvideo' | 'disney';
+export type BlindtestCategory =
+  | 'anime' | 'cartoon' | 'music' | 'film' | 'jeuxvideo' | 'disney'
+  | 'kpop' | 'retro' | 'series' | 'rapfr';
 
 export const CATEGORY_META: Record<
   BlindtestCategory,
@@ -19,6 +21,10 @@ export const CATEGORY_META: Record<
   film: { label: 'Film', emoji: '🎬', color: '#fbbf24' },
   jeuxvideo: { label: 'Jeux Vidéo', emoji: '🎮', color: '#34d399' },
   disney: { label: 'Disney', emoji: '🏰', color: '#38bdf8' },
+  kpop: { label: 'K-Pop', emoji: '🇰🇷', color: '#f472b6' },
+  retro: { label: 'Années 80-90', emoji: '📼', color: '#fb923c' },
+  series: { label: 'Séries TV', emoji: '🎞️', color: '#60a5fa' },
+  rapfr: { label: 'Rap FR', emoji: '🎤', color: '#a3e635' },
 };
 
 export interface BlindtestEntry {
@@ -715,6 +721,151 @@ const JEUXVIDEO2: BlindtestEntry[] = [
   { answer: 'Stardew Valley', category: 'jeuxvideo', query: 'Stardew Valley Overture' },
 ];
 
+const KPOP: BlindtestEntry[] = [
+  { answer: 'Butter', category: 'kpop', query: 'Butter BTS' },
+  { answer: 'Boy With Luv', category: 'kpop', query: 'Boy With Luv BTS' },
+  { answer: 'Fake Love', category: 'kpop', query: 'Fake Love BTS' },
+  { answer: 'DNA', category: 'kpop', query: 'DNA BTS' },
+  { answer: 'Idol', category: 'kpop', query: 'Idol BTS' },
+  { answer: 'Spring Day', category: 'kpop', query: 'Spring Day BTS' },
+  { answer: 'Blood Sweat & Tears', category: 'kpop', query: 'Blood Sweat Tears BTS' },
+  { answer: 'DDU-DU DDU-DU', category: 'kpop', query: 'DDU-DU DDU-DU BLACKPINK' },
+  { answer: 'Kill This Love', category: 'kpop', query: 'Kill This Love BLACKPINK' },
+  { answer: 'How You Like That', category: 'kpop', query: 'How You Like That BLACKPINK' },
+  { answer: 'Pink Venom', category: 'kpop', query: 'Pink Venom BLACKPINK' },
+  { answer: 'Boombayah', category: 'kpop', query: 'BOOMBAYAH BLACKPINK' },
+  { answer: 'Shut Down', category: 'kpop', query: 'Shut Down BLACKPINK' },
+  { answer: 'Lovesick Girls', category: 'kpop', query: 'Lovesick Girls BLACKPINK' },
+  { answer: 'Fancy', category: 'kpop', query: 'Fancy TWICE' },
+  { answer: 'What Is Love?', category: 'kpop', query: 'What Is Love TWICE' },
+  { answer: 'TT', category: 'kpop', query: 'TT TWICE' },
+  { answer: 'Feel Special', category: 'kpop', query: 'Feel Special TWICE' },
+  { answer: 'Cheer Up', category: 'kpop', query: 'Cheer Up TWICE' },
+  { answer: 'Growl', category: 'kpop', query: 'Growl EXO' },
+  { answer: 'Love Shot', category: 'kpop', query: 'Love Shot EXO' },
+  { answer: 'Psycho', category: 'kpop', query: 'Psycho Red Velvet' },
+  { answer: 'Bad Boy', category: 'kpop', query: 'Bad Boy Red Velvet' },
+  { answer: "God's Menu", category: 'kpop', query: 'Gods Menu Stray Kids' },
+  { answer: 'Thunderous', category: 'kpop', query: 'Thunderous Stray Kids' },
+  { answer: 'Ditto', category: 'kpop', query: 'Ditto NewJeans' },
+  { answer: 'Hype Boy', category: 'kpop', query: 'Hype Boy NewJeans' },
+  { answer: 'Super Shy', category: 'kpop', query: 'Super Shy NewJeans' },
+  { answer: 'OMG', category: 'kpop', query: 'OMG NewJeans' },
+  { answer: 'Tomboy', category: 'kpop', query: 'Tomboy GIDLE' },
+  { answer: 'Next Level', category: 'kpop', query: 'Next Level aespa' },
+  { answer: 'Savage', category: 'kpop', query: 'Savage aespa' },
+  { answer: 'Spicy', category: 'kpop', query: 'Spicy aespa' },
+  { answer: 'Antifragile', category: 'kpop', query: 'Antifragile LE SSERAFIM' },
+  { answer: 'Fantastic Baby', category: 'kpop', query: 'Fantastic Baby BIGBANG' },
+  { answer: 'Gee', category: 'kpop', query: "Gee Girls' Generation" },
+];
+
+const RETRO: BlindtestEntry[] = [
+  { answer: 'Beat It', category: 'retro', query: 'Beat It Michael Jackson' },
+  { answer: 'Wake Me Up Before You Go-Go', category: 'retro', query: 'Wake Me Up Before You Go-Go Wham' },
+  { answer: 'Careless Whisper', category: 'retro', query: 'Careless Whisper George Michael' },
+  { answer: 'Every Breath You Take', category: 'retro', query: 'Every Breath You Take The Police' },
+  { answer: 'Girls Just Want to Have Fun', category: 'retro', query: 'Girls Just Want to Have Fun Cyndi Lauper' },
+  { answer: 'Time After Time', category: 'retro', query: 'Time After Time Cyndi Lauper' },
+  { answer: 'I Wanna Dance with Somebody', category: 'retro', query: 'I Wanna Dance with Somebody Whitney Houston' },
+  { answer: 'Like a Prayer', category: 'retro', query: 'Like a Prayer Madonna' },
+  { answer: 'Material Girl', category: 'retro', query: 'Material Girl Madonna' },
+  { answer: 'Like a Virgin', category: 'retro', query: 'Like a Virgin Madonna' },
+  { answer: 'Tainted Love', category: 'retro', query: 'Tainted Love Soft Cell' },
+  { answer: "Don't You (Forget About Me)", category: 'retro', query: 'Dont You Forget About Me Simple Minds' },
+  { answer: 'Never Gonna Give You Up', category: 'retro', query: 'Never Gonna Give You Up Rick Astley' },
+  { answer: 'The Final Countdown', category: 'retro', query: 'The Final Countdown Europe' },
+  { answer: 'Eye of the Tiger', category: 'retro', query: 'Eye of the Tiger Survivor' },
+  { answer: 'Enjoy the Silence', category: 'retro', query: 'Enjoy the Silence Depeche Mode' },
+  { answer: 'With or Without You', category: 'retro', query: 'With or Without You U2' },
+  { answer: 'Purple Rain', category: 'retro', query: 'Purple Rain Prince' },
+  { answer: 'When Doves Cry', category: 'retro', query: 'When Doves Cry Prince' },
+  { answer: 'Karma Chameleon', category: 'retro', query: 'Karma Chameleon Culture Club' },
+  { answer: '99 Luftballons', category: 'retro', query: '99 Luftballons Nena' },
+  { answer: 'Self Control', category: 'retro', query: 'Self Control Laura Branigan' },
+  { answer: 'Maniac', category: 'retro', query: 'Maniac Michael Sembello' },
+  { answer: 'No Scrubs', category: 'retro', query: 'No Scrubs TLC' },
+  { answer: 'Waterfalls', category: 'retro', query: 'Waterfalls TLC' },
+  { answer: '...Baby One More Time', category: 'retro', query: 'Baby One More Time Britney Spears' },
+  { answer: 'Believe', category: 'retro', query: 'Believe Cher' },
+  { answer: 'Torn', category: 'retro', query: 'Torn Natalie Imbruglia' },
+  { answer: 'Zombie', category: 'retro', query: 'Zombie The Cranberries' },
+  { answer: 'Barbie Girl', category: 'retro', query: 'Barbie Girl Aqua' },
+  { answer: 'What Is Love', category: 'retro', query: 'What Is Love Haddaway' },
+  { answer: 'Blue (Da Ba Dee)', category: 'retro', query: 'Blue Da Ba Dee Eiffel 65' },
+  { answer: 'Bitter Sweet Symphony', category: 'retro', query: 'Bitter Sweet Symphony The Verve' },
+  { answer: 'Creep', category: 'retro', query: 'Creep Radiohead' },
+  { answer: 'Losing My Religion', category: 'retro', query: 'Losing My Religion R.E.M.' },
+];
+
+const SERIES: BlindtestEntry[] = [
+  { answer: 'Game of Thrones', category: 'series', query: 'Game of Thrones Main Title Ramin Djawadi' },
+  { answer: 'Stranger Things', category: 'series', query: 'Stranger Things Kyle Dixon Michael Stein' },
+  { answer: 'Friends', category: 'series', query: "I'll Be There for You The Rembrandts" },
+  { answer: 'Peaky Blinders', category: 'series', query: 'Red Right Hand Nick Cave' },
+  { answer: 'The Walking Dead', category: 'series', query: 'The Walking Dead Theme Bear McCreary' },
+  { answer: 'Breaking Bad', category: 'series', query: 'Breaking Bad Main Title Dave Porter' },
+  { answer: 'Sherlock', category: 'series', query: 'Sherlock Opening Titles David Arnold' },
+  { answer: 'Doctor Who', category: 'series', query: 'Doctor Who Theme Murray Gold' },
+  { answer: 'Westworld', category: 'series', query: 'Westworld Main Theme Ramin Djawadi' },
+  { answer: 'The Mandalorian', category: 'series', query: 'The Mandalorian Ludwig Goransson' },
+  { answer: 'House of the Dragon', category: 'series', query: 'House of the Dragon Main Title Ramin Djawadi' },
+  { answer: 'The Witcher', category: 'series', query: 'Toss a Coin to Your Witcher' },
+  { answer: 'Squid Game', category: 'series', query: 'Squid Game Way Back Then Jung Jae-il' },
+  { answer: 'Wednesday', category: 'series', query: 'Wednesday Danny Elfman' },
+  { answer: 'La Casa de Papel', category: 'series', query: 'Bella Ciao La Casa de Papel' },
+  { answer: 'Dexter', category: 'series', query: 'Dexter Main Title Theme Rolfe Kent' },
+  { answer: 'Lost', category: 'series', query: 'Lost Life and Death Michael Giacchino' },
+  { answer: 'Twin Peaks', category: 'series', query: 'Twin Peaks Theme Angelo Badalamenti' },
+  { answer: 'The X-Files', category: 'series', query: 'X-Files Theme Mark Snow' },
+  { answer: 'The Simpsons', category: 'series', query: 'The Simpsons Main Title Theme Danny Elfman' },
+  { answer: 'Succession', category: 'series', query: 'Succession Main Title Theme Nicholas Britell' },
+  { answer: 'The Crown', category: 'series', query: 'The Crown Main Title Hans Zimmer' },
+  { answer: 'Vikings', category: 'series', query: 'If I Had a Heart Fever Ray' },
+  { answer: 'Narcos', category: 'series', query: 'Tuyo Rodrigo Amarante' },
+  { answer: 'Better Call Saul', category: 'series', query: 'Better Call Saul Main Title Theme' },
+  { answer: 'The Last of Us', category: 'series', query: 'The Last of Us Gustavo Santaolalla' },
+  { answer: 'Downton Abbey', category: 'series', query: 'Downton Abbey The Suite John Lunn' },
+  { answer: 'True Blood', category: 'series', query: 'Bad Things Jace Everett' },
+  { answer: 'Mad Men', category: 'series', query: 'Mad Men Theme A Beautiful Mine RJD2' },
+  { answer: 'Black Mirror', category: 'series', query: 'Black Mirror Main Title' },
+];
+
+const RAPFR: BlindtestEntry[] = [
+  { answer: 'Bande organisée', category: 'rapfr', query: 'Bande organisée 13 Organisé' },
+  { answer: 'DKR', category: 'rapfr', query: 'DKR Booba' },
+  { answer: 'Au DD', category: 'rapfr', query: 'Au DD PNL' },
+  { answer: 'Blanka', category: 'rapfr', query: 'Blanka PNL' },
+  { answer: "À l'ammoniaque", category: 'rapfr', query: 'A lammoniaque PNL' },
+  { answer: 'Onizuka', category: 'rapfr', query: 'Onizuka PNL' },
+  { answer: 'Tchikita', category: 'rapfr', query: 'Tchikita Jul' },
+  { answer: 'Wesh alors', category: 'rapfr', query: 'Wesh alors Jul' },
+  { answer: 'Ma jolie', category: 'rapfr', query: 'Ma jolie Jul' },
+  { answer: 'Lettre à une femme', category: 'rapfr', query: 'Lettre à une femme Ninho' },
+  { answer: 'Jefe', category: 'rapfr', query: 'Jefe Ninho' },
+  { answer: 'Macarena', category: 'rapfr', query: 'Macarena Damso' },
+  { answer: 'Julien', category: 'rapfr', query: 'Julien Damso' },
+  { answer: '911', category: 'rapfr', query: '911 Damso' },
+  { answer: 'On verra', category: 'rapfr', query: 'On verra Nekfeu' },
+  { answer: 'Égérie', category: 'rapfr', query: 'Égérie Nekfeu' },
+  { answer: 'Basique', category: 'rapfr', query: 'Basique Orelsan' },
+  { answer: 'La quête', category: 'rapfr', query: 'La quête Orelsan' },
+  { answer: 'Tout va bien', category: 'rapfr', query: 'Tout va bien Orelsan' },
+  { answer: "L'odeur de l'essence", category: 'rapfr', query: 'Lodeur de lessence Orelsan' },
+  { answer: 'Bella', category: 'rapfr', query: 'Bella Maître Gims' },
+  { answer: 'Sapés comme jamais', category: 'rapfr', query: 'Sapés comme jamais Maître Gims' },
+  { answer: "Est-ce que tu m'aimes ?", category: 'rapfr', query: 'Est-ce que tu maimes Maître Gims' },
+  { answer: 'Cosmo', category: 'rapfr', query: 'Cosmo Soprano' },
+  { answer: 'Réseaux', category: 'rapfr', query: 'Réseaux Niska' },
+  { answer: 'Copines', category: 'rapfr', query: 'Copines Aya Nakamura' },
+  { answer: 'Pookie', category: 'rapfr', query: 'Pookie Aya Nakamura' },
+  { answer: 'La Kiffance', category: 'rapfr', query: 'La Kiffance Naps' },
+  { answer: 'Dommage', category: 'rapfr', query: 'Dommage Bigflo et Oli' },
+  { answer: 'Petit frère', category: 'rapfr', query: 'Petit frère IAM' },
+  { answer: 'Ma benz', category: 'rapfr', query: 'Ma benz NTM' },
+  { answer: 'Gomorra', category: 'rapfr', query: 'Gomorra SCH' },
+];
+
 const RAW_ENTRIES: BlindtestEntry[] = [
   ...ANIME, ...ANIME2,
   ...CARTOON, ...CARTOON2,
@@ -722,6 +873,7 @@ const RAW_ENTRIES: BlindtestEntry[] = [
   ...FILM, ...FILM2,
   ...JEUXVIDEO, ...JEUXVIDEO2,
   ...DISNEY, ...DISNEY2,
+  ...KPOP, ...RETRO, ...SERIES, ...RAPFR,
 ];
 
 // Runtime dedup: duplicate answers within a category break buildOptions
@@ -739,9 +891,17 @@ export const BLINDTEST_ROUNDS = 10;
 export const BLINDTEST_LISTEN_MS = 20000;
 export const BLINDTEST_REVEAL_MS = 6500;
 
-/** Points for a correct answer, rewarding speed (≈100 slow → 1100 instant). */
-export function scoreFor(correct: boolean, elapsedMs: number): number {
+/** Round-length options (ms) selectable by the host. */
+export const BLINDTEST_LISTEN_OPTIONS = [10000, 20000, 30000] as const;
+/** Round-count options selectable by the host. */
+export const BLINDTEST_ROUND_OPTIONS = [5, 10, 15] as const;
+
+/**
+ * Points for a correct answer, rewarding speed (≈100 slow → 1100 instant).
+ * `listenMs` lets the score scale to the configured round length.
+ */
+export function scoreFor(correct: boolean, elapsedMs: number, listenMs: number = BLINDTEST_LISTEN_MS): number {
   if (!correct) return 0;
-  const frac = Math.max(0, Math.min(1, elapsedMs / BLINDTEST_LISTEN_MS));
+  const frac = Math.max(0, Math.min(1, elapsedMs / listenMs));
   return Math.round(1000 * (1 - frac)) + 100;
 }

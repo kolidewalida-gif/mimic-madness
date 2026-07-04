@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Disc3, Check, Loader2, Radio, Headphones } from 'lucide-react';
-import { CATEGORY_META, BLINDTEST_ENTRIES, type BlindtestCategory } from '@/lib/blindtestTracks';
+import { Play, Disc3, Check, Loader2, Radio, Headphones, Users, Zap, Lightbulb, Clock } from 'lucide-react';
+import { CATEGORY_META, BLINDTEST_ENTRIES, BLINDTEST_ROUND_OPTIONS, BLINDTEST_LISTEN_OPTIONS, type BlindtestCategory } from '@/lib/blindtestTracks';
 import { BT, BT_SPECTRUM, glow } from './blindtestTheme';
+import type { BlindtestConfig } from './MemoriseGameScreen';
 
 interface BlindtestSetupProps {
   isHost: boolean;
   canStart: boolean;
   starting: boolean;
-  onStart: (categories: BlindtestCategory[]) => void;
+  onStart: (categories: BlindtestCategory[], config: BlindtestConfig) => void;
 }
 
-const CATS: BlindtestCategory[] = ['anime', 'cartoon', 'music', 'film', 'jeuxvideo', 'disney'];
+const CATS: BlindtestCategory[] = ['anime', 'cartoon', 'music', 'film', 'jeuxvideo', 'disney', 'kpop', 'retro', 'series', 'rapfr'];
 
 /* Glowing spinning vinyl with grooves + neon rim */
 const Vinyl = ({ size = 132, spin = true, accent = BT.magenta }: { size?: number; spin?: boolean; accent?: string }) => (
@@ -41,8 +42,51 @@ const Vinyl = ({ size = 132, spin = true, accent = BT.magenta }: { size?: number
   </div>
 );
 
+/* segmented pill selector */
+const Segmented = <T extends string | number>({ value, options, onChange, format }: { value: T; options: readonly T[]; onChange: (v: T) => void; format?: (v: T) => string }) => (
+  <div className="flex rounded-xl p-1 gap-1" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BT.hairSoft}` }}>
+    {options.map((o) => {
+      const active = o === value;
+      return (
+        <button
+          key={String(o)}
+          onClick={() => onChange(o)}
+          className="flex-1 px-3 py-1.5 rounded-lg text-sm font-black transition-colors"
+          style={{ background: active ? BT_SPECTRUM : 'transparent', color: active ? '#fff' : BT.sub }}
+        >
+          {format ? format(o) : String(o)}
+        </button>
+      );
+    })}
+  </div>
+);
+
+/* toggle chip */
+const Toggle = ({ icon: Icon, label, on, color, onClick }: { icon: any; label: string; on: boolean; color: string; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors"
+    style={{
+      background: on ? `${color}26` : 'rgba(255,255,255,0.04)',
+      border: `1px solid ${on ? color : BT.hairSoft}`,
+      boxShadow: on ? glow(color, 0.3) : 'none',
+    }}
+  >
+    <Icon className="w-4 h-4 flex-shrink-0" style={{ color: on ? color : BT.sub }} />
+    <span className="text-sm font-bold flex-1 text-left" style={{ color: on ? '#fff' : BT.sub }}>{label}</span>
+    <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: on ? color : 'transparent', border: on ? 'none' : `1.5px solid ${BT.hair}` }}>
+      {on && <Check className="w-2.5 h-2.5 text-black/85" strokeWidth={4} />}
+    </span>
+  </button>
+);
+
 export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: BlindtestSetupProps) => {
   const [selected, setSelected] = useState<Set<BlindtestCategory>>(new Set(CATS));
+  const [roundsSel, setRoundsSel] = useState<number>(10);
+  const [listenSel, setListenSel] = useState<number>(20000);
+  const [teams, setTeams] = useState(false);
+  const [hints, setHints] = useState(true);
+  const [doublePoints, setDoublePoints] = useState(true);
 
   const toggle = (c: BlindtestCategory) => {
     setSelected((prev) => {
@@ -53,7 +97,8 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
   };
 
   const count = BLINDTEST_ENTRIES.filter((e) => selected.has(e.category)).length;
-  const rounds = Math.min(8, count);
+  const rounds = Math.min(roundsSel, count);
+  const config: BlindtestConfig = { rounds: roundsSel, listenMs: listenSel, teams, hints, doublePoints };
 
   if (!isHost) {
     return (
@@ -142,7 +187,31 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
         })}
       </div>
 
-      {/* rounds pill */}
+      {/* game options */}
+      <div className="relative w-full flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Disc3 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: BT.sub }} />
+          <span className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: BT.sub }}>Manches</span>
+          <div className="flex-1" />
+        </div>
+        <Segmented value={roundsSel} options={BLINDTEST_ROUND_OPTIONS} onChange={setRoundsSel} />
+
+        <div className="flex items-center gap-2 mt-1">
+          <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: BT.sub }} />
+          <span className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: BT.sub }}>Durée d'écoute</span>
+        </div>
+        <Segmented value={listenSel} options={BLINDTEST_LISTEN_OPTIONS} onChange={setListenSel} format={(v) => `${Math.round(v / 1000)}s`} />
+
+        <div className="grid grid-cols-1 gap-2 mt-1">
+          <Toggle icon={Users} label="Mode équipes (2 équipes)" on={teams} color={BT.cyan} onClick={() => setTeams((v) => !v)} />
+          <div className="grid grid-cols-2 gap-2">
+            <Toggle icon={Lightbulb} label="Indices" on={hints} color={BT.gold} onClick={() => setHints((v) => !v)} />
+            <Toggle icon={Zap} label="Manches ×2" on={doublePoints} color={BT.magenta} onClick={() => setDoublePoints((v) => !v)} />
+          </div>
+        </div>
+      </div>
+
+      {/* rounds summary pill */}
       <div className="relative flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BT.hair}` }}>
         <Disc3 className="w-4 h-4" style={{ color: BT.gold }} />
         <span className="font-bold text-white/85 text-sm">{rounds} manche{rounds > 1 ? 's' : ''}</span>
@@ -151,7 +220,7 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
 
       {/* CTA */}
       <motion.button
-        onClick={() => onStart(Array.from(selected))}
+        onClick={() => onStart(Array.from(selected), config)}
         disabled={!canStart || starting}
         whileHover={canStart && !starting ? { scale: 1.03 } : undefined}
         whileTap={canStart && !starting ? { scale: 0.97 } : undefined}

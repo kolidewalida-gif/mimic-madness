@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Clock, Trophy, Check, X, Crown, LogOut, Volume2, VolumeX, Disc3, Flame, AlertTriangle } from 'lucide-react';
+import { Music, Clock, Trophy, Check, X, Crown, LogOut, Volume2, VolumeX, Disc3, Flame, AlertTriangle, Users, Zap, Lightbulb } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,38 @@ interface MemoriseGameScreenProps {
 
 type Phase = 'intro' | 'listen' | 'reveal' | 'final';
 
+export interface BlindtestConfig {
+  rounds: number;
+  listenMs: number;
+  teams: boolean;
+  hints: boolean;
+  doublePoints: boolean;
+}
+
+/** Two-team palette (used in team mode). */
+const TEAM_META = [
+  { name: 'Équipe Cyan', short: 'Cyan', color: BT.cyan },
+  { name: 'Équipe Rose', short: 'Rose', color: BT.magenta },
+] as const;
+
+/** Progressive masked-title hint: reveals more letters as the round elapses. */
+function buildHint(title: string, elapsedFrac: number): string {
+  return title
+    .split(' ')
+    .map((w) =>
+      w
+        .split('')
+        .map((ch, i) => {
+          if (!/[a-zA-Z0-9À-ÿ]/.test(ch)) return ch;
+          if (elapsedFrac >= 0.7) return i === 0 || i % 2 === 0 ? ch : '•';
+          if (elapsedFrac >= 0.45) return i === 0 ? ch : '•';
+          return '•';
+        })
+        .join(''),
+    )
+    .join('  ');
+}
+
 interface RoundTrack {
   title: string;          // the answer
   subtitle?: string;      // "Song – Artist"
@@ -52,6 +84,14 @@ interface PhasePayload {
   answerIndex?: number;
   /** playerId -> chosen option index, for showing voters under each answer. */
   answers?: Record<string, number>;
+  /** Configured listen window (ms) for this game. */
+  listenMs?: number;
+  /** Whether 2-team mode is on. */
+  teamsEnabled?: boolean;
+  /** Whether progressive hints are on. */
+  hintsEnabled?: boolean;
+  /** Whether THIS round is a double-points round. */
+  doublePoints?: boolean;
 }
 
 /** Buffer used by the host to schedule a synchronized listen start on all clients. */
@@ -116,6 +156,12 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const [channelReady, setChannelReady] = useState(false);
   const [starting, setStarting] = useState(false);
   const [revealVotes, setRevealVotes] = useState<Record<string, number>>({});
+  // ── new game options ──
+  const [listenMs, setListenMs] = useState<number>(BLINDTEST_LISTEN_MS);
+  const [teamsEnabled, setTeamsEnabled] = useState(false);
+  const [hintsEnabled, setHintsEnabled] = useState(true);
+  const [roundDouble, setRoundDouble] = useState(false);
+  const [myElapsed, setMyElapsed] = useState<number | null>(null);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const answersRef = useRef<Record<string, { choice: number; elapsed: number }>>({});
@@ -142,6 +188,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const pendingListenRef = useRef<PhasePayload | null>(null);
   /** Set true once the clip actually starts playing this round (real audio onset). */
   const roundAudioStartedRef = useRef(false);
+  const listenMsRef = useRef<number>(BLINDTEST_LISTEN_MS);
+  const configRef = useRef<BlindtestConfig>({ rounds: BLINDTEST_ROUNDS, listenMs: BLINDTEST_LISTEN_MS, teams: false, hints: true, doublePoints: false });
 
   useEffect(() => { playersRef.current = players; }, [players]);
 
@@ -155,6 +203,15 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     const m: Record<string, string> = {};
     players.forEach((p) => { m[p.id] = p.name; });
     return m;
+  }, [players]);
+
+  // Deterministic 2-team split (same on every client regardless of array order):
+  // sort by id, alternate assignment.
+  const teamOf = useMemo(() => {
+    const sorted = [...players].sort((a, b) => a.id.localeCompare(b.id));
+    const map: Record<string, 0 | 1> = {};
+    sorted.forEach((p, i) => { map[p.id] = (i % 2) as 0 | 1; });
+    return map;
   }, [players]);
 
   /* ---------- audio playback ---------- */
@@ -202,7 +259,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   useEffect(() => {
     if (phase !== 'listen') { setSecondsLeft(0); return; }
     // During the short sync buffer (deadline not set yet) show the full time.
-    if (!deadline) { setSecondsLeft(Math.ceil(BLINDTEST_LISTEN_MS / 1000)); return; }
+    if (!deadline) { setSecondsLeft(Math.ceil(listenMs / 1000)); return; }
     const tick = () => {
       const s = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       setSecondsLeft(s);
@@ -213,7 +270,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     tick();
     const iv = setInterval(tick, 200);
     return () => clearInterval(iv);
-  }, [phase, deadline, myChoice]);
+  }, [phase, deadline, myChoice, listenMs]);
 
   /* ---------- apply phase (everyone) ---------- */
   const applyPhase = useCallback((p: PhasePayload) => {
@@ -230,9 +287,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     }
     setAnswerIndex(p.answerIndex ?? null);
     if (p.answers) setRevealVotes(p.answers);
+    // apply broadcast game options
+    if (p.listenMs != null) { setListenMs(p.listenMs); listenMsRef.current = p.listenMs; }
+    if (p.teamsEnabled != null) setTeamsEnabled(p.teamsEnabled);
+    if (p.hintsEnabled != null) setHintsEnabled(p.hintsEnabled);
+    if (p.phase === 'listen' || p.phase === 'reveal') setRoundDouble(!!p.doublePoints);
 
     if (p.phase === 'listen') {
-      setMyChoice(null); setAnsweredCount(0); setAnsweredIds(new Set()); answersRef.current = {}; tickRef.current = 0;
+      setMyChoice(null); setMyElapsed(null); setAnsweredCount(0); setAnsweredIds(new Set()); answersRef.current = {}; tickRef.current = 0;
       setRevealVotes({});
       roundAudioStartedRef.current = false;
       // Schedule the actual listen start using the host-provided `startAt` timestamp
@@ -241,7 +303,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       // at the exact same wall-clock moment.
       if (listenTimerRef.current) { clearTimeout(listenTimerRef.current); listenTimerRef.current = null; }
       pendingListenRef.current = p;
-      const hostStartAt = p.startAt ?? (p.deadline ? p.deadline - BLINDTEST_LISTEN_MS : Date.now());
+      const lm = p.listenMs ?? listenMsRef.current;
+      const hostStartAt = p.startAt ?? (p.deadline ? p.deadline - lm : Date.now());
       // Convert host clock -> local clock: localStartAt = hostStartAt - clockOffset.
       const localStartAt = hostStartAt - clockOffsetRef.current;
       const delay = Math.max(0, localStartAt - Date.now());
@@ -250,7 +313,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         if (!mountedRef.current) return;
         listenStartRef.current = Date.now();
         // Local deadline is derived from local start for a fair per-client countdown.
-        setDeadline(listenStartRef.current + BLINDTEST_LISTEN_MS);
+        setDeadline(listenStartRef.current + lm);
         if (p.track) { playSoundEffect('quizReveal', 0.3); playTrack(p.track); }
       };
       if (delay <= 0) beginListen();
@@ -395,6 +458,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     answersRef.current = {};
     errorFlagRef.current = false;
     hostPlayingRef.current = false;
+    const cfg = configRef.current;
+    const lm = cfg.listenMs;
+    // Double-points rounds: always the final round, plus a ~20% chance elsewhere.
+    const isDouble = cfg.doublePoints && (i === total - 1 || Math.random() < 0.2);
     // Schedule a synchronized listen start: everyone (host + clients) waits
     // until `startAt` on the host clock before actually playing the track.
     const startAt = Date.now() + LISTEN_SYNC_BUFFER_MS;
@@ -405,7 +472,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       track: next.track,
       options: opts,
       startAt,
-      deadline: startAt + BLINDTEST_LISTEN_MS,
+      deadline: startAt + lm,
+      listenMs: lm,
+      teamsEnabled: cfg.teams,
+      hintsEnabled: cfg.hints,
+      doublePoints: isDouble,
     });
     // Host also waits the same buffer so its own audio starts in sync with clients.
     // (applyPhase runs via `broadcast.self: true` and schedules the local start;
@@ -416,7 +487,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     // countdown does: clients start after LISTEN_SYNC_BUFFER_MS, so the host
     // waits buffer + full listen time (+ a grace for network latency) so that
     // last-second correct answers are still counted and scored.
-    const reason = await waitListen(connected, LISTEN_SYNC_BUFFER_MS + BLINDTEST_LISTEN_MS + 700);
+    const reason = await waitListen(connected, LISTEN_SYNC_BUFFER_MS + lm + 700);
     if (!mountedRef.current) return;
 
     if (reason === 'error') {
@@ -425,13 +496,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       return;
     }
 
+    const mult = isDouble ? 2 : 1;
     const rp: Record<string, number> = {};
     Object.entries(answersRef.current).forEach(([pid, a]) => {
       const correct = a.choice === ansIdx;
       if (correct) {
         streakRef.current[pid] = (streakRef.current[pid] || 0) + 1;
         const bonus = streakRef.current[pid] >= 2 ? Math.min(streakRef.current[pid], 6) * 40 : 0;
-        rp[pid] = scoreFor(true, a.elapsed) + bonus;
+        rp[pid] = (scoreFor(true, a.elapsed, lm) + bonus) * mult;
       } else {
         streakRef.current[pid] = 0; rp[pid] = 0;
       }
@@ -440,7 +512,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
     const votes: Record<string, number> = {};
     Object.entries(answersRef.current).forEach(([pid, a]) => { votes[pid] = a.choice; });
-    broadcastPhase({ phase: 'reveal', roundIndex: i, totalRounds: total, track: next.track, options: opts, scoreboard: { ...scoreRef.current }, roundPoints: rp, answerIndex: ansIdx, answers: votes });
+    broadcastPhase({ phase: 'reveal', roundIndex: i, totalRounds: total, track: next.track, options: opts, scoreboard: { ...scoreRef.current }, roundPoints: rp, answerIndex: ansIdx, answers: votes, listenMs: lm, teamsEnabled: cfg.teams, hintsEnabled: cfg.hints, doublePoints: isDouble });
     // prefetch the next track during the reveal (smooth + drops dead clips early)
     const prefetch = i + 1 < total ? fetchNextTrack() : Promise.resolve(null);
     await wait(BLINDTEST_REVEAL_MS);
@@ -452,16 +524,23 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   }, [broadcastPhase, fetchNextTrack, playTrack]);
 
   /* ---------- host starts (the click unlocks audio for the whole game) ---------- */
-  const startGame = useCallback(async (cats: BlindtestCategory[]) => {
+  const startGame = useCallback(async (cats: BlindtestCategory[], config: BlindtestConfig) => {
     if (startedRef.current) return;
     startedRef.current = true;
     setStarting(true);
+
+    // lock in the chosen options for the whole game
+    configRef.current = config;
+    listenMsRef.current = config.listenMs;
+    setListenMs(config.listenMs);
+    setTeamsEnabled(config.teams);
+    setHintsEnabled(config.hints);
 
     const entries = BLINDTEST_ENTRIES.filter((e) => cats.includes(e.category));
     poolRef.current = entries.map((e) => ({ title: e.answer, category: e.category }));
     const rnd = mulberry(Math.floor(Math.random() * 1e9));
     queueRef.current = shuffle(entries, rnd);
-    const total = Math.max(1, Math.min(BLINDTEST_ROUNDS, entries.length));
+    const total = Math.max(1, Math.min(config.rounds, entries.length));
 
     // Fetch the first track now — still inside the click's activation window —
     // so the host's first playTrack() is allowed to play with sound.
@@ -478,7 +557,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     if (!listenStartRef.current || Date.now() > deadline) return;
     playSoundEffect('click', 0.3);
     setMyChoice(choice);
-    const elapsed = Math.max(0, Math.min(BLINDTEST_LISTEN_MS, Date.now() - listenStartRef.current));
+    const elapsed = Math.max(0, Math.min(listenMsRef.current, Date.now() - listenStartRef.current));
+    setMyElapsed(elapsed);
     channelRef.current?.send({ type: 'broadcast', event: 'answer', payload: { playerId: currentPlayer.id, choice, elapsed } });
   };
 
@@ -498,9 +578,30 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   );
 
   const progress = phase === 'listen' && deadline
-    ? Math.max(0, Math.min(1, (deadline - Date.now()) / BLINDTEST_LISTEN_MS)) : 0;
+    ? Math.max(0, Math.min(1, (deadline - Date.now()) / listenMs)) : 0;
   const urgent = phase === 'listen' && secondsLeft <= 5 && secondsLeft > 0 && myChoice == null;
   const connectedCount = players.filter((p) => !p.isDisconnected).length || players.length;
+
+  // Team aggregates (team mode).
+  const teamScores = useMemo(() => {
+    const t: [number, number] = [0, 0];
+    players.forEach((p) => { t[teamOf[p.id] ?? 0] += scoreboard[p.id] || 0; });
+    return t;
+  }, [players, scoreboard, teamOf]);
+  const myTeam = teamOf[currentPlayer.id] ?? 0;
+
+  // Progressive hint text during the listen phase.
+  const elapsedFrac = phase === 'listen' && deadline ? 1 - progress : 0;
+  const hintText = hintsEnabled && track && elapsedFrac >= 0.35 ? buildHint(track.title, elapsedFrac) : null;
+
+  // My reaction-speed tier (visible speed bonus).
+  const speedTier = (() => {
+    if (myElapsed == null) return null;
+    const f = myElapsed / (listenMs || 1);
+    if (f < 0.2) return { label: '⚡ Éclair', color: BT.cyan };
+    if (f < 0.45) return { label: '🔥 Rapide', color: BT.gold };
+    return { label: '✓ Dans les temps', color: BT.sub };
+  })();
 
   /* ============================================================ */
   const accent = catMeta?.color ?? BT.violet;
@@ -578,7 +679,24 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                   </span>
                 )}
                 <span className="px-3.5 py-1.5 rounded-full text-sm font-bold" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BT.hair}`, color: BT.sub }}>{answeredCount}/{connectedCount} ont répondu</span>
+                {teamsEnabled && (
+                  <span className="px-3.5 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5" style={{ background: `${TEAM_META[myTeam].color}22`, border: `1px solid ${TEAM_META[myTeam].color}66`, color: TEAM_META[myTeam].color }}>
+                    <Users className="w-3.5 h-3.5" /> {TEAM_META[myTeam].short}
+                  </span>
+                )}
               </div>
+
+              {roundDouble && (
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1, boxShadow: [`0 0 20px ${BT.gold}66`, `0 0 34px ${BT.gold}aa`, `0 0 20px ${BT.gold}66`] }}
+                  transition={{ boxShadow: { duration: 1.3, repeat: Infinity } }}
+                  className="flex items-center gap-2 px-4 py-1.5 rounded-full text-black font-black text-sm -mb-1"
+                  style={{ background: `linear-gradient(90deg, ${BT.gold}, #ff9a3d)` }}
+                >
+                  <Zap className="w-4 h-4" fill="currentColor" /> MANCHE DOUBLE ×2
+                </motion.div>
+              )}
 
               <div className="relative w-52 h-52 flex items-center justify-center">
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
@@ -628,6 +746,18 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 </div>
               )}
 
+              {hintText && myChoice == null && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-2xl"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BT.hair}` }}
+                >
+                  <Lightbulb className="w-4 h-4 flex-shrink-0" style={{ color: BT.gold }} />
+                  <span className="font-black tracking-[0.15em] text-lg" style={{ color: '#fff' }}>{hintText}</span>
+                </motion.div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                 {options.map((opt, i) => {
                   const selected = myChoice === i;
@@ -651,7 +781,21 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                   );
                 })}
               </div>
-              {myChoice != null && <p className="text-sm font-medium" style={{ color: BT.sub }}>Réponse envoyée ! En attente des autres…</p>}
+              {myChoice != null && (
+                <div className="flex flex-col items-center gap-1.5">
+                  {speedTier && myElapsed != null && (
+                    <motion.div
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="flex items-center gap-2 px-4 py-1.5 rounded-full font-black text-sm"
+                      style={{ background: `${speedTier.color}22`, border: `1px solid ${speedTier.color}66`, color: speedTier.color }}
+                    >
+                      {speedTier.label} · {(myElapsed / 1000).toFixed(1)}s
+                    </motion.div>
+                  )}
+                  <p className="text-sm font-medium" style={{ color: BT.sub }}>Réponse envoyée ! En attente des autres…</p>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -764,20 +908,30 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     ? 'Mauvaise réponse'
                     : 'Pas de réponse';
                 return (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', damping: 12 }}
-                    className="px-5 py-2 rounded-full font-black text-lg text-white"
-                    style={{
-                      background: gotPts ? `linear-gradient(90deg, ${BT.emerald}, #12b47a)` : 'rgba(255,255,255,0.06)',
-                      border: `1px solid ${gotPts ? 'transparent' : BT.hair}`,
-                      boxShadow: gotPts ? glow(BT.emerald, 0.4) : 'none',
-                      color: gotPts ? '#fff' : BT.sub,
-                    }}
-                  >
-                    {label}
-                  </motion.div>
+                  <div className="flex flex-col items-center gap-2">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', damping: 12 }}
+                      className="flex items-center gap-2 px-5 py-2 rounded-full font-black text-lg text-white"
+                      style={{
+                        background: gotPts ? `linear-gradient(90deg, ${BT.emerald}, #12b47a)` : 'rgba(255,255,255,0.06)',
+                        border: `1px solid ${gotPts ? 'transparent' : BT.hair}`,
+                        boxShadow: gotPts ? glow(BT.emerald, 0.4) : 'none',
+                        color: gotPts ? '#fff' : BT.sub,
+                      }}
+                    >
+                      {label}
+                      {gotPts && roundDouble && (
+                        <span className="flex items-center gap-0.5 text-black rounded-full px-2 py-0.5 text-xs" style={{ background: BT.gold }}>
+                          <Zap className="w-3 h-3" fill="currentColor" /> ×2
+                        </span>
+                      )}
+                    </motion.div>
+                    {gotPts && speedTier && (
+                      <span className="text-xs font-bold" style={{ color: speedTier.color }}>{speedTier.label}</span>
+                    )}
+                  </div>
                 );
               })()}
             </motion.div>
@@ -790,6 +944,40 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 <Trophy className="w-16 h-16" style={{ color: BT.gold, filter: `drop-shadow(0 6px 22px ${BT.gold}88)` }} />
               </motion.div>
               <h2 className="text-4xl font-black tracking-tight" style={{ background: BT_SPECTRUM, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Classement final</h2>
+
+              {teamsEnabled && (
+                <div className="w-full">
+                  {(() => {
+                    const winner = teamScores[0] === teamScores[1] ? -1 : (teamScores[0] > teamScores[1] ? 0 : 1);
+                    return (
+                      <>
+                        <p className="text-center text-sm font-black mb-2" style={{ color: BT.sub }}>
+                          {winner === -1 ? '🤝 Égalité !' : `🏆 ${TEAM_META[winner].name} gagne !`}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {[0, 1].map((t) => (
+                            <div
+                              key={t}
+                              className="flex flex-col items-center py-3 rounded-2xl"
+                              style={{
+                                border: `1px solid ${winner === t ? TEAM_META[t].color : BT.hair}`,
+                                background: `${TEAM_META[t].color}${winner === t ? '2e' : '14'}`,
+                                boxShadow: winner === t ? glow(TEAM_META[t].color, 0.35) : 'none',
+                              }}
+                            >
+                              <span className="flex items-center gap-1.5 text-sm font-black" style={{ color: TEAM_META[t].color }}>
+                                <Users className="w-4 h-4" /> {TEAM_META[t].short}
+                              </span>
+                              <span className="text-3xl font-black tabular-nums text-white">{teamScores[t]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
               <div className="w-full space-y-2.5">
                 {ranked.map((p, i) => (
                   <motion.div
@@ -805,6 +993,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     }}
                   >
                     <span className="text-2xl font-black w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                    {teamsEnabled && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: TEAM_META[teamOf[p.id] ?? 0].color }} />}
                     <span className="flex-1 font-bold truncate text-base">{p.name}{p.id === currentPlayer.id ? ' (toi)' : ''}</span>
                     <span className="font-black text-lg tabular-nums" style={{ color: i === 0 ? BT.gold : BT.cyan }}>{p.pts}</span>
                   </motion.div>
@@ -833,8 +1022,23 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
             <span className="text-sm font-black text-white uppercase tracking-[0.15em]">Scores</span>
             <span className="ml-auto text-[11px] font-bold" style={{ color: BT.sub }}>{answeredCount}/{connectedCount}</span>
           </div>
+
+          {teamsEnabled && (
+            <div className="grid grid-cols-2 gap-1.5 mb-1">
+              {[0, 1].map((t) => (
+                <div key={t} className="flex flex-col items-center py-1.5 rounded-lg" style={{ background: `${TEAM_META[t].color}1f`, border: `1px solid ${TEAM_META[t].color}55` }}>
+                  <span className="text-[10px] font-black uppercase tracking-wide flex items-center gap-1" style={{ color: TEAM_META[t].color }}>
+                    <Users className="w-3 h-3" /> {TEAM_META[t].short}
+                  </span>
+                  <span className="text-lg font-black tabular-nums text-white leading-none">{teamScores[t]}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {standings.map((p, i) => {
             const answered = phase === 'listen' && answeredIds.has(p.id);
+            const tColor = teamsEnabled ? TEAM_META[teamOf[p.id] ?? 0].color : (p.isMe ? BT.violet : null);
             return (
               <motion.div
                 layout
@@ -842,15 +1046,16 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 transition={{ type: 'spring', damping: 24, stiffness: 280 }}
                 className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-white"
                 style={{
-                  border: `1px solid ${p.isMe ? BT.violet : BT.hairSoft}`,
-                  background: p.isMe ? `linear-gradient(90deg, ${BT.violet}2e, rgba(255,255,255,0.02))` : 'rgba(255,255,255,0.03)',
-                  boxShadow: p.isMe ? `inset 0 0 0 1px ${BT.violet}33` : 'none',
+                  border: `1px solid ${tColor ? `${tColor}66` : BT.hairSoft}`,
+                  background: p.isMe ? `linear-gradient(90deg, ${tColor ?? BT.violet}2e, rgba(255,255,255,0.02))` : (teamsEnabled ? `${tColor}12` : 'rgba(255,255,255,0.03)'),
+                  boxShadow: p.isMe ? `inset 0 0 0 1px ${tColor ?? BT.violet}33` : 'none',
                 }}
               >
                 <span className="w-6 text-center text-sm font-black flex-shrink-0">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                {teamsEnabled && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: TEAM_META[teamOf[p.id] ?? 0].color }} />}
                 <span className={cn('flex-1 truncate text-sm font-bold', p.isMe ? 'text-white' : 'text-white/85')}>{p.name}{p.isMe ? ' (toi)' : ''}</span>
                 {answered && <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: BT.emerald }} strokeWidth={3} />}
-                <span className="text-sm font-black tabular-nums flex-shrink-0" style={{ color: p.isMe ? BT.violet : BT.cyan }}>{p.pts}</span>
+                <span className="text-sm font-black tabular-nums flex-shrink-0" style={{ color: p.isMe ? (tColor ?? BT.violet) : BT.cyan }}>{p.pts}</span>
               </motion.div>
             );
           })}
