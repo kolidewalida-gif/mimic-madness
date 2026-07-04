@@ -12,7 +12,8 @@ import {
 import { itunesSearch, pickBestPreview } from '@/lib/itunes';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { BlindtestSetup } from './BlindtestSetup';
-import { HERO, GRAFFITI_TEXT_SHADOW, GRAFFITI_TEXT_SHADOW_SM } from '@/components/ink/InkPrimitives';
+import { BT, BT_SPECTRUM, glow } from './blindtestTheme';
+import { BlindtestBackground } from './BlindtestBackground';
 
 interface Player {
   id: string;
@@ -502,9 +503,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const connectedCount = players.filter((p) => !p.isDisconnected).length || players.length;
 
   /* ============================================================ */
-  const accent = catMeta?.color ?? HERO.blue;
+  const accent = catMeta?.color ?? BT.violet;
   return (
-    <div className="h-screen w-full flex flex-col items-center text-white relative overflow-hidden bg-[#050f24]">
+    <div className="h-screen w-full flex flex-col items-center text-white relative overflow-hidden" style={{ background: BT.bg }}>
       <audio
         ref={mediaRef}
         className="hidden"
@@ -520,44 +521,36 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         onError={() => { setMediaError(true); if (isHost) errorFlagRef.current = true; }}
       />
 
-      {/* Superman sky background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#12356e] via-[#0a1f45] to-[#050d1e]" />
-        <div
-          className="absolute -top-24 left-1/2 -translate-x-1/2 w-[900px] h-[520px] rounded-full opacity-45"
-          style={{ background: 'radial-gradient(ellipse, rgba(255,224,140,0.55), rgba(247,183,51,0.28) 45%, transparent 72%)', filter: 'blur(70px)' }}
-        />
-        <div className="absolute top-[18%] left-[8%] w-[420px] h-[220px] rounded-full opacity-[0.12]" style={{ background: 'radial-gradient(ellipse, #ffffff, transparent 70%)', filter: 'blur(50px)' }} />
-        <div className="absolute bottom-[12%] right-[6%] w-[520px] h-[260px] rounded-full opacity-[0.1]" style={{ background: 'radial-gradient(ellipse, #cfe0ff, transparent 70%)', filter: 'blur(60px)' }} />
-        <div className="absolute bottom-0 right-1/4 w-[520px] h-[300px] rounded-full opacity-20 transition-colors duration-700" style={{ background: `radial-gradient(ellipse, ${accent}66, transparent 70%)`, filter: 'blur(90px)' }} />
-        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'repeating-linear-gradient(100deg, transparent 0 26px, rgba(255,255,255,0.6) 26px 27px)' }} />
-      </div>
+      {/* neon lounge background */}
+      <BlindtestBackground accent={accent} />
 
       {/* header */}
       <div className="relative z-10 w-full flex items-center justify-between px-5 py-4 gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <motion.div
-            animate={{ rotate: [-5, 5, -5] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: `linear-gradient(135deg, ${HERO.gold}, #d99a12)`, border: `3px solid ${HERO.ink}`, boxShadow: `0 4px 0 ${HERO.ink}, inset 0 2px 0 rgba(255,255,255,0.25)` }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 relative"
+            style={{ background: 'repeating-radial-gradient(circle at 50% 50%, #050509 0 1.5px, #17172a 1.5px 3px)', border: '1px solid rgba(255,255,255,0.14)', boxShadow: glow(BT.magenta, 0.4) }}
           >
-            <Music className="w-5 h-5 text-white" strokeWidth={2.5} />
+            <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ background: BT_SPECTRUM }}>
+              <Music className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+            </div>
           </motion.div>
           <div className="min-w-0">
-            <h1 className="text-3xl font-black leading-none truncate" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>Blindtest Musical</h1>
-            <p className="text-sm text-white/60 truncate font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Devine l'anime, le dessin animé ou la musique !</p>
+            <h1 className="text-2xl font-black leading-none truncate tracking-tight" style={{ background: BT_SPECTRUM, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>BLINDTEST</h1>
+            <p className="text-[11px] truncate font-medium tracking-wide" style={{ color: BT.sub }}>Devine le son le plus vite possible</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {phase !== 'final' && phase !== 'intro' && (
-            <div className="px-3 py-1.5 rounded-full text-base font-black text-white" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${HERO.blue}44, ${HERO.blue}18)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }}>{roundIndex + 1}/{totalRounds}</div>
+            <div className="px-3 py-1.5 rounded-full text-sm font-black tabular-nums" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BT.hair}`, color: '#fff' }}>{roundIndex + 1}/{totalRounds}</div>
           )}
-          <button onClick={toggleMute} className="w-10 h-10 rounded-xl flex items-center justify-center text-white/80 hover:text-white" style={{ background: '#0f2c5e', border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }} aria-label="Son">
+          <button onClick={toggleMute} className="w-9 h-9 rounded-xl flex items-center justify-center text-white/70 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BT.hair}` }} aria-label="Son">
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
-          <button onClick={onEndGame} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/90 hover:text-white" style={{ background: `linear-gradient(180deg, ${HERO.red}, #b3241f)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }}>
-            <LogOut className="w-4 h-4" /><span className="text-base font-black hidden sm:inline" style={{ fontFamily: "'Caveat', cursive" }}>Quitter</span>
+          <button onClick={onEndGame} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/80 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BT.hair}` }}>
+            <LogOut className="w-4 h-4" /><span className="text-sm font-bold hidden sm:inline">Quitter</span>
           </button>
         </div>
       </div>
@@ -575,54 +568,62 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           {/* LISTEN */}
           {phase === 'listen' && track && (
             <motion.div key={`listen-${roundIndex}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="w-full max-w-lg flex flex-col items-center gap-5">
-              <div className="flex items-center gap-2.5 flex-wrap justify-center">
-                <div className="flex items-center gap-2 font-black text-xl px-3 py-1 rounded-full text-white" style={{ fontFamily: "'Caveat', cursive", background: urgent ? `linear-gradient(180deg, ${HERO.red}, #b3241f)` : `linear-gradient(180deg, ${HERO.blue}, ${HERO.blue}cc)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
-                  <Clock className="w-5 h-5" /> {secondsLeft}s
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <div className="flex items-center gap-1.5 font-black text-lg px-3.5 py-1.5 rounded-full text-white tabular-nums" style={{ background: urgent ? BT.rose : 'rgba(255,255,255,0.06)', border: `1px solid ${urgent ? BT.rose : BT.hair}`, boxShadow: urgent ? glow(BT.rose, 0.5) : 'none' }}>
+                  <Clock className="w-4 h-4" /> {secondsLeft}s
                 </div>
                 {catMeta && (
-                  <span className="px-3 py-1 rounded-full text-base font-black text-white" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${catMeta.color}, ${catMeta.color}cc)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
-                    {catMeta.emoji} {catMeta.label}
+                  <span className="px-3.5 py-1.5 rounded-full text-sm font-bold text-white flex items-center gap-1.5" style={{ background: `${catMeta.color}22`, border: `1px solid ${catMeta.color}66`, color: catMeta.color }}>
+                    <span>{catMeta.emoji}</span> {catMeta.label}
                   </span>
                 )}
-                <span className="px-3 py-1 rounded-full text-base font-black text-white/80" style={{ fontFamily: "'Caveat', cursive", background: '#0f2c5e', border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }}>{answeredCount}/{connectedCount} ont répondu</span>
+                <span className="px-3.5 py-1.5 rounded-full text-sm font-bold" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BT.hair}`, color: BT.sub }}>{answeredCount}/{connectedCount} ont répondu</span>
               </div>
 
-              <div className="relative w-48 h-48 flex items-center justify-center">
+              <div className="relative w-52 h-52 flex items-center justify-center">
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(8,19,43,0.6)" strokeWidth="7" />
-                  <circle cx="50" cy="50" r="46" fill="none" stroke={urgent ? HERO.red : HERO.gold} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${progress * 289} 289`} style={{ transition: 'stroke-dasharray 0.2s linear', filter: `drop-shadow(0 0 4px ${urgent ? HERO.red : HERO.gold}aa)` }} />
+                  <defs>
+                    <linearGradient id="btRing" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#ff2e97" />
+                      <stop offset="50%" stopColor="#8b5cf6" />
+                      <stop offset="100%" stopColor="#22e0ff" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
+                  <circle cx="50" cy="50" r="46" fill="none" stroke={urgent ? BT.rose : 'url(#btRing)'} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${progress * 289} 289`} style={{ transition: 'stroke-dasharray 0.2s linear', filter: `drop-shadow(0 0 6px ${urgent ? BT.rose : BT.violet}cc)` }} />
                 </svg>
                 <motion.div
                   animate={{ rotate: 360, scale: urgent ? [1, 1.05, 1] : 1 }}
-                  transition={{ rotate: { duration: 3, repeat: Infinity, ease: 'linear' }, scale: { duration: 0.5, repeat: urgent ? Infinity : 0 } }}
-                  className="w-32 h-32 rounded-full flex items-center justify-center"
-                  style={{ background: 'repeating-radial-gradient(circle at 50% 50%, #071634 0 3px, #0f2c5e 3px 6px)', border: `4px solid ${HERO.ink}`, boxShadow: `0 12px 40px ${urgent ? HERO.red : HERO.blue}55, inset 0 0 24px rgba(0,0,0,0.6)` }}
+                  transition={{ rotate: { duration: 3.5, repeat: Infinity, ease: 'linear' }, scale: { duration: 0.5, repeat: urgent ? Infinity : 0 } }}
+                  className="w-36 h-36 rounded-full flex items-center justify-center relative"
+                  style={{ background: 'repeating-radial-gradient(circle at 50% 50%, #050509 0 2px, #17172a 2px 4px)', border: '2px solid rgba(255,255,255,0.14)', boxShadow: `${glow(urgent ? BT.rose : BT.violet, 0.5)}, inset 0 0 34px rgba(0,0,0,0.8)` }}
                 >
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: `radial-gradient(circle, ${HERO.gold}, #d99a12)`, border: `3px solid ${HERO.ink}` }}>
-                    <Disc3 className="w-6 h-6 text-white/90" />
+                  <div className="absolute inset-0 rounded-full" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.14), transparent 45%)' }} />
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center relative" style={{ background: urgent ? `linear-gradient(135deg, ${BT.rose}, ${BT.magenta})` : BT_SPECTRUM, boxShadow: glow(urgent ? BT.rose : BT.violet, 0.5) }}>
+                    <Disc3 className="w-6 h-6 text-white" />
                   </div>
                 </motion.div>
-                <div className="absolute -bottom-2 flex items-end gap-1 h-6">
+                <div className="absolute -bottom-1 flex items-end gap-1 h-6">
                   {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                    <motion.span key={i} className="w-1.5 rounded-full" style={{ background: urgent ? HERO.red : HERO.gold, height: '40%', border: `1px solid ${HERO.ink}` }} animate={{ height: ['30%', '100%', '45%', '90%', '30%'] }} transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: i * 0.08 }} />
+                    <motion.span key={i} className="w-1.5 rounded-full" style={{ background: urgent ? BT.rose : BT_SPECTRUM, height: '40%', boxShadow: glow(urgent ? BT.rose : BT.violet, 0.35) }} animate={{ height: ['30%', '100%', '45%', '90%', '30%'] }} transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: i * 0.08 }} />
                   ))}
                 </div>
               </div>
 
               {mediaError ? (
-                <p className="flex items-center gap-2 text-base font-bold text-amber-300" style={{ fontFamily: "'Caveat', cursive" }}>
+                <p className="flex items-center gap-2 text-sm font-medium" style={{ color: BT.gold }}>
                   <AlertTriangle className="w-4 h-4" /> Extrait indisponible… {isHost ? 'on passe à la suivante' : "l'hôte change de piste"}
                 </p>
               ) : needsSoundUnlock ? (
-                <motion.button onClick={resumeSound} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-black text-xl" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${HERO.red}, #b3241f)`, border: `3px solid ${HERO.ink}`, boxShadow: `0 4px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
+                <motion.button onClick={resumeSound} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-black text-lg" style={{ background: BT_SPECTRUM, boxShadow: `0 10px 34px ${BT.magenta}55` }}>
                   <Volume2 className="w-5 h-5" /> Activer le son 🔊
                 </motion.button>
               ) : (
-                <p className="text-lg text-white/55 -mt-1 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Écoute bien… c'est quoi ce son ? 🎧</p>
+                <p className="text-sm -mt-1 font-medium" style={{ color: BT.sub }}>Écoute bien… c'est quoi ce son ? 🎧</p>
               )}
 
               {myStreak >= 2 && (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-white text-base font-black" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${HERO.gold}, #d99a12)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
+                <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-white text-sm font-black" style={{ background: `linear-gradient(90deg, ${BT.gold}, #ff9a3d)`, boxShadow: glow(BT.gold, 0.4) }}>
                   <Flame className="w-4 h-4" /> Série x{myStreak}
                 </div>
               )}
@@ -637,14 +638,12 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                       whileTap={myChoice == null ? { scale: 0.97 } : undefined}
                       onClick={() => answer(i)}
                       disabled={myChoice != null}
-                      className="py-4 px-4 rounded-2xl text-lg sm:text-xl font-black text-center leading-tight text-white"
+                      className="relative py-4 px-4 rounded-2xl text-base sm:text-lg font-bold text-center leading-tight text-white overflow-hidden transition-colors"
                       style={{
-                        fontFamily: "'Caveat', cursive",
-                        textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                        border: `3px solid ${HERO.ink}`,
-                        background: selected ? `linear-gradient(180deg, ${HERO.gold}, #d99a12)` : 'linear-gradient(180deg, #123163, #0a1f45)',
-                        boxShadow: `0 4px 0 ${HERO.ink}`,
-                        opacity: myChoice != null && !selected ? 0.5 : 1,
+                        border: `1px solid ${selected ? 'transparent' : BT.hair}`,
+                        background: selected ? BT_SPECTRUM : 'rgba(255,255,255,0.04)',
+                        boxShadow: selected ? `0 10px 30px ${BT.magenta}44` : 'none',
+                        opacity: myChoice != null && !selected ? 0.45 : 1,
                       }}
                     >
                       {opt}
@@ -652,7 +651,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                   );
                 })}
               </div>
-              {myChoice != null && <p className="text-lg text-white/60 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Réponse envoyée ! En attente des autres…</p>}
+              {myChoice != null && <p className="text-sm font-medium" style={{ color: BT.sub }}>Réponse envoyée ! En attente des autres…</p>}
             </motion.div>
           )}
 
@@ -666,10 +665,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 className="flex flex-col items-center gap-4"
               >
                 <div
-                  className="relative rounded-[2rem] overflow-hidden flex items-center justify-center"
-                  style={{ width: 'min(86vw, 34rem)', height: 'min(86vw, 34rem)', border: `6px solid ${HERO.ink}`, boxShadow: `0 10px 0 ${HERO.ink}, 0 34px 90px ${accent}66` }}
+                  className="relative rounded-[1.8rem] overflow-hidden flex items-center justify-center"
+                  style={{ width: 'min(86vw, 34rem)', height: 'min(86vw, 34rem)', border: `1px solid ${accent}66`, boxShadow: `0 30px 90px ${accent}55, 0 0 0 1px rgba(255,255,255,0.05), ${glow(accent, 0.4)}` }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 'min(40vw,16rem)', background: catMeta ? `radial-gradient(circle, ${catMeta.color}55, #071634)` : '#071634' }}>{catMeta?.emoji ?? '🎵'}</div>
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 'min(40vw,16rem)', background: catMeta ? `radial-gradient(circle, ${catMeta.color}44, ${BT.bgSoft})` : BT.bgSoft }}>{catMeta?.emoji ?? '🎵'}</div>
                   {track.artwork && (
                     <motion.img
                       src={track.artwork}
@@ -690,7 +689,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     transition={{ duration: 0.9, delay: 0.25 }}
                   />
                   {catMeta && (
-                    <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-sm font-black text-white" style={{ fontFamily: "'Caveat', cursive", background: `linear-gradient(180deg, ${catMeta.color}, ${catMeta.color}cc)`, border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}`, textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
+                    <span className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-black text-white flex items-center gap-1.5 backdrop-blur-md" style={{ background: `${catMeta.color}cc`, boxShadow: glow(catMeta.color, 0.4) }}>
                       {catMeta.emoji} {catMeta.label}
                     </span>
                   )}
@@ -700,12 +699,12 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     initial={{ y: 10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="text-5xl md:text-6xl font-black leading-tight text-white"
-                    style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}
+                    className="text-4xl md:text-5xl font-black leading-tight tracking-tight text-white"
+                    style={{ textShadow: `0 4px 30px ${accent}66` }}
                   >
                     {track.title}
                   </motion.h2>
-                  {track.subtitle && <p className="text-lg md:text-xl text-white/60 mt-1 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>{track.subtitle}</p>}
+                  {track.subtitle && <p className="text-sm md:text-base mt-1.5 font-medium" style={{ color: BT.sub }}>{track.subtitle}</p>}
                 </div>
               </motion.div>
 
@@ -719,15 +718,15 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                       key={i}
                       className="relative py-3 px-4 rounded-2xl leading-tight text-white"
                       style={{
-                        border: `3px solid ${HERO.ink}`,
-                        background: correct ? 'linear-gradient(180deg, #22c07a, #159a5c)' : mine ? `linear-gradient(180deg, ${HERO.red}, #b3241f)` : 'linear-gradient(180deg, #123163, #0a1f45)',
-                        boxShadow: `0 4px 0 ${HERO.ink}`,
-                        opacity: !correct && !mine ? 0.65 : 1,
+                        border: `1px solid ${correct ? BT.emerald : mine ? BT.rose : BT.hair}`,
+                        background: correct ? `${BT.emerald}22` : mine ? `${BT.rose}22` : 'rgba(255,255,255,0.03)',
+                        boxShadow: correct ? glow(BT.emerald, 0.35) : mine ? glow(BT.rose, 0.3) : 'none',
+                        opacity: !correct && !mine ? 0.6 : 1,
                       }}
                     >
-                      <div className="text-lg font-black text-center" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>{opt}</div>
-                      {correct && <Check className="absolute top-2 right-2 w-5 h-5 text-white" strokeWidth={3} />}
-                      {mine && !correct && <X className="absolute top-2 right-2 w-5 h-5 text-white" strokeWidth={3} />}
+                      <div className="text-base font-bold text-center">{opt}</div>
+                      {correct && <Check className="absolute top-2 right-2 w-5 h-5" style={{ color: BT.emerald }} strokeWidth={3} />}
+                      {mine && !correct && <X className="absolute top-2 right-2 w-5 h-5" style={{ color: BT.rose }} strokeWidth={3} />}
                       {voters.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1 justify-center">
                           {voters.map((p) => {
@@ -738,7 +737,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                                 key={p.id}
                                 title={p.name}
                                 className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[11px] font-black text-white"
-                                style={{ border: `2px solid ${HERO.ink}`, background: 'rgba(255,255,255,0.2)' }}
+                                style={{ border: '2px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.12)' }}
                               >
                                 {img ? (
                                   <img src={img} alt={p.name} className="w-full h-full object-cover" />
@@ -766,16 +765,15 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     : 'Pas de réponse';
                 return (
                   <motion.div
-                    initial={{ scale: 0, rotate: -8 }}
-                    animate={{ scale: 1, rotate: -2 }}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
                     transition={{ type: 'spring', damping: 12 }}
-                    className="px-5 py-2 rounded-2xl font-black text-2xl text-white"
+                    className="px-5 py-2 rounded-full font-black text-lg text-white"
                     style={{
-                      fontFamily: "'Caveat', cursive",
-                      textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                      background: gotPts ? 'linear-gradient(180deg, #22c07a, #159a5c)' : '#0f2c5e',
-                      border: `3px solid ${HERO.ink}`,
-                      boxShadow: `0 4px 0 ${HERO.ink}`,
+                      background: gotPts ? `linear-gradient(90deg, ${BT.emerald}, #12b47a)` : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${gotPts ? 'transparent' : BT.hair}`,
+                      boxShadow: gotPts ? glow(BT.emerald, 0.4) : 'none',
+                      color: gotPts ? '#fff' : BT.sub,
                     }}
                   >
                     {label}
@@ -788,10 +786,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           {/* FINAL */}
           {phase === 'final' && (
             <motion.div key="final" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md flex flex-col items-center gap-5">
-              <motion.div animate={{ rotate: [-6, 6, -6] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
-                <Trophy className="w-16 h-16" style={{ color: HERO.gold, filter: `drop-shadow(2px 2px 0 ${HERO.ink})` }} />
+              <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}>
+                <Trophy className="w-16 h-16" style={{ color: BT.gold, filter: `drop-shadow(0 6px 22px ${BT.gold}88)` }} />
               </motion.div>
-              <h2 className="text-5xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}>Classement final</h2>
+              <h2 className="text-4xl font-black tracking-tight" style={{ background: BT_SPECTRUM, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Classement final</h2>
               <div className="w-full space-y-2.5">
                 {ranked.map((p, i) => (
                   <motion.div
@@ -799,26 +797,26 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: i * 0.08 }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-2xl text-white"
+                    className="flex items-center gap-3 px-4 py-3 rounded-2xl text-white relative overflow-hidden"
                     style={{
-                      border: `3px solid ${HERO.ink}`,
-                      background: i === 0 ? `linear-gradient(180deg, ${HERO.gold}, #d99a12)` : 'linear-gradient(180deg, #123163, #0a1f45)',
-                      boxShadow: `0 4px 0 ${HERO.ink}`,
+                      border: `1px solid ${i === 0 ? BT.gold : BT.hair}`,
+                      background: i === 0 ? `linear-gradient(90deg, ${BT.gold}22, rgba(255,255,255,0.02))` : 'rgba(255,255,255,0.03)',
+                      boxShadow: i === 0 ? glow(BT.gold, 0.3) : 'none',
                     }}
                   >
                     <span className="text-2xl font-black w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
-                    <span className="flex-1 font-black truncate text-xl" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>{p.name}{p.id === currentPlayer.id ? ' (toi)' : ''}</span>
-                    <span className="font-black text-xl" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>{p.pts} pts</span>
+                    <span className="flex-1 font-bold truncate text-base">{p.name}{p.id === currentPlayer.id ? ' (toi)' : ''}</span>
+                    <span className="font-black text-lg tabular-nums" style={{ color: i === 0 ? BT.gold : BT.cyan }}>{p.pts}</span>
                   </motion.div>
                 ))}
-                {ranked.length === 0 && <p className="text-center text-white/60 text-lg font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Aucun score</p>}
+                {ranked.length === 0 && <p className="text-center text-base font-medium" style={{ color: BT.sub }}>Aucun score</p>}
               </div>
               <motion.button
                 onClick={onEndGame}
-                whileHover={{ scale: 1.04, rotate: -1.5 }}
+                whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
-                className="mt-2 px-8 py-3.5 rounded-2xl font-black text-2xl text-white"
-                style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM, background: `linear-gradient(180deg, ${HERO.red}, #b3241f)`, border: `3px solid ${HERO.ink}`, boxShadow: `0 5px 0 ${HERO.ink}` }}
+                className="mt-2 px-8 py-3.5 rounded-2xl font-black text-xl text-white"
+                style={{ background: BT_SPECTRUM, boxShadow: `0 12px 40px ${BT.magenta}55` }}
               >
                 Retour au lobby
               </motion.button>
@@ -829,11 +827,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
       {/* left live scoreboard (real-time) */}
       {(phase === 'listen' || phase === 'reveal') && standings.length > 0 && (
-        <div className="hidden md:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl" style={{ background: 'linear-gradient(180deg, #0f2c5e, #071634)', border: `4px solid ${HERO.ink}`, boxShadow: `0 6px 0 ${HERO.ink}` }}>
-          <div className="flex items-center gap-2 px-1 pb-1.5 mb-0.5" style={{ borderBottom: `2px solid ${HERO.ink}` }}>
-            <Trophy className="w-4 h-4" style={{ color: HERO.gold }} />
-            <span className="text-lg font-black text-white uppercase tracking-wide" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>Scores</span>
-            <span className="ml-auto text-[12px] text-white/60 font-black">{answeredCount}/{connectedCount}</span>
+        <div className="hidden md:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl" style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
+          <div className="flex items-center gap-2 px-1 pb-2 mb-0.5" style={{ borderBottom: `1px solid ${BT.hair}` }}>
+            <Trophy className="w-4 h-4" style={{ color: BT.gold }} />
+            <span className="text-sm font-black text-white uppercase tracking-[0.15em]">Scores</span>
+            <span className="ml-auto text-[11px] font-bold" style={{ color: BT.sub }}>{answeredCount}/{connectedCount}</span>
           </div>
           {standings.map((p, i) => {
             const answered = phase === 'listen' && answeredIds.has(p.id);
@@ -844,15 +842,15 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 transition={{ type: 'spring', damping: 24, stiffness: 280 }}
                 className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-white"
                 style={{
-                  border: `2.5px solid ${HERO.ink}`,
-                  background: p.isMe ? `linear-gradient(180deg, ${HERO.gold}, #d99a12)` : 'linear-gradient(180deg, #123163, #0a1f45)',
-                  boxShadow: `0 3px 0 ${HERO.ink}`,
+                  border: `1px solid ${p.isMe ? BT.violet : BT.hairSoft}`,
+                  background: p.isMe ? `linear-gradient(90deg, ${BT.violet}2e, rgba(255,255,255,0.02))` : 'rgba(255,255,255,0.03)',
+                  boxShadow: p.isMe ? `inset 0 0 0 1px ${BT.violet}33` : 'none',
                 }}
               >
-                <span className="w-6 text-center text-base font-black flex-shrink-0">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
-                <span className="flex-1 truncate text-base font-black" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>{p.name}{p.isMe ? ' (toi)' : ''}</span>
-                {answered && <Check className="w-4 h-4 flex-shrink-0" style={{ color: p.isMe ? HERO.ink : '#22c07a' }} strokeWidth={3} />}
-                <span className="text-base font-black tabular-nums flex-shrink-0" style={{ fontFamily: "'Caveat', cursive" }}>{p.pts}</span>
+                <span className="w-6 text-center text-sm font-black flex-shrink-0">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                <span className={cn('flex-1 truncate text-sm font-bold', p.isMe ? 'text-white' : 'text-white/85')}>{p.name}{p.isMe ? ' (toi)' : ''}</span>
+                {answered && <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: BT.emerald }} strokeWidth={3} />}
+                <span className="text-sm font-black tabular-nums flex-shrink-0" style={{ color: p.isMe ? BT.violet : BT.cyan }}>{p.pts}</span>
               </motion.div>
             );
           })}
@@ -861,12 +859,12 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
       {/* vertical volume bar (persisted) */}
       {(phase === 'listen' || phase === 'reveal') && (
-        <div className="fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl" style={{ background: 'linear-gradient(180deg, #0f2c5e, #071634)', border: `4px solid ${HERO.ink}`, boxShadow: `0 6px 0 ${HERO.ink}` }}>
-          <button onClick={toggleMute} className="text-white/80 hover:text-white" aria-label="Son">
+        <div className="fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl" style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
+          <button onClick={toggleMute} className="text-white/70 hover:text-white transition-colors" aria-label="Son">
             {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
           <VerticalVolume value={volume} onChange={setVolume} />
-          <span className="text-sm font-black text-white/80 tabular-nums" style={{ fontFamily: "'Caveat', cursive" }}>{volume}</span>
+          <span className="text-xs font-black tabular-nums" style={{ color: BT.sub }}>{volume}</span>
         </div>
       )}
 
@@ -875,10 +873,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         <div className="relative z-10 w-full max-w-2xl px-4 pb-4 md:hidden">
           <div className="flex gap-2 overflow-x-auto custom-scrollbar">
             {ranked.slice(0, 6).map((p, i) => (
-              <div key={p.id} className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-white" style={{ background: i === 0 ? `linear-gradient(180deg, ${HERO.gold}, #d99a12)` : 'linear-gradient(180deg, #123163, #0a1f45)', border: `2.5px solid ${HERO.ink}`, boxShadow: `0 3px 0 ${HERO.ink}` }}>
-                {i === 0 && <Crown className="w-3.5 h-3.5" style={{ color: HERO.ink }} fill="currentColor" />}
-                <span className="text-base font-black truncate max-w-[90px]" style={{ fontFamily: "'Caveat', cursive" }}>{p.name}</span>
-                <span className="text-base font-black" style={{ fontFamily: "'Caveat', cursive" }}>{p.pts}</span>
+              <div key={p.id} className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-white" style={{ background: i === 0 ? `${BT.gold}22` : 'rgba(255,255,255,0.05)', border: `1px solid ${i === 0 ? BT.gold : BT.hair}` }}>
+                {i === 0 && <Crown className="w-3.5 h-3.5" style={{ color: BT.gold }} fill="currentColor" />}
+                <span className="text-sm font-bold truncate max-w-[90px]">{p.name}</span>
+                <span className="text-sm font-black" style={{ color: i === 0 ? BT.gold : BT.cyan }}>{p.pts}</span>
               </div>
             ))}
           </div>
@@ -908,8 +906,8 @@ const VerticalVolume = ({ value, onChange }: { value: number; onChange: (v: numb
       onPointerMove={(e) => { if (dragging.current) setFromY(e.clientY); }}
       onPointerUp={() => { dragging.current = false; }}
       onPointerCancel={() => { dragging.current = false; }}
-      className="relative w-3.5 rounded-full cursor-pointer touch-none"
-      style={{ height: 150, background: 'rgba(0,0,0,0.4)', border: `2px solid ${HERO.ink}` }}
+      className="relative w-3 rounded-full cursor-pointer touch-none"
+      style={{ height: 150, background: 'rgba(255,255,255,0.08)', border: `1px solid ${BT.hair}` }}
       role="slider"
       aria-valuenow={value}
       aria-valuemin={0}
@@ -918,11 +916,11 @@ const VerticalVolume = ({ value, onChange }: { value: number; onChange: (v: numb
     >
       <div
         className="absolute bottom-0 left-0 right-0 rounded-full"
-        style={{ height: `${value}%`, background: `linear-gradient(180deg, ${HERO.gold}, ${HERO.blue})` }}
+        style={{ height: `${value}%`, background: 'linear-gradient(180deg, #22e0ff, #8b5cf6, #ff2e97)' }}
       />
       <div
         className="absolute left-1/2 w-5 h-5 rounded-full bg-white"
-        style={{ bottom: `calc(${value}% - 10px)`, transform: 'translateX(-50%)', border: `2px solid ${HERO.ink}`, boxShadow: `0 2px 6px rgba(0,0,0,0.5)` }}
+        style={{ bottom: `calc(${value}% - 10px)`, transform: 'translateX(-50%)', boxShadow: `0 0 12px ${BT.violet}aa` }}
       />
     </div>
   );
