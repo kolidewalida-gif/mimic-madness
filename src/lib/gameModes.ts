@@ -1,4 +1,4 @@
-export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly' | 'undercover' | 'memorise';
+export type LobbyGameMode = 'normal' | '2v2' | 'quiz' | 'audiophone' | 'pixoguess' | 'monopoly' | 'undercover' | 'memorise' | 'mimic';
 
 export const GAME_MODE_META: Record<
   LobbyGameMode,
@@ -46,6 +46,11 @@ export const GAME_MODE_META: Record<
   memorise: {
     label: 'Blindtest Musical',
     emojiLabel: '🎵 Blindtest Musical',
+    minPlayers: 2,
+  },
+  mimic: {
+    label: 'Mimic',
+    emojiLabel: '🎤 Mimic',
     minPlayers: 2,
   },
 };

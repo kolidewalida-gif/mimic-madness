@@ -132,6 +132,15 @@ const MODE_CARDS: ModeCard[] = [
     fallbackColor: '#d946ef',
     glowColor: '#e879f9',
   },
+  {
+    id: 'mimic',
+    label: 'MIMIC',
+    tagline: 'Karaoké compétitif — imite la chanson !',
+    imageCandidates: ['/lobby/cards/mimic.png', '/lobby/cards/mimic.jpg'],
+    fallbackEmoji: '🎤',
+    fallbackColor: '#ff2e97',
+    glowColor: '#ffcf4a',
+  },
 ];
 
 /**

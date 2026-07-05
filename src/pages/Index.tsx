@@ -38,6 +38,7 @@ const PixoguessGameScreen = React.lazy(() => import("@/components/PixoguessGameS
 const MonopolyGameScreen = React.lazy(() => import("@/components/monopoly/MonopolyGameScreen").then(m => ({ default: m.MonopolyGameScreen })));
 const UndercoverGameScreen = React.lazy(() => import("@/components/undercover/UndercoverGameScreen").then(m => ({ default: m.UndercoverGameScreen })));
 const MemoriseGameScreen = React.lazy(() => import("@/components/memorise/MemoriseGameScreen").then(m => ({ default: m.MemoriseGameScreen })));
+const MimicGameScreen = React.lazy(() => import("@/components/mimic/MimicGameScreen").then(m => ({ default: m.MimicGameScreen })));
 const NeverLikeThatBackground = React.lazy(() => import("@/components/NeverLikeThatBackground").then(m => ({ default: m.NeverLikeThatBackground })));
 const NeverLikeThatLobbyScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatLobbyScreen").then(m => ({ default: m.NeverLikeThatLobbyScreen })));
 const NeverLikeThatHomeScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatHomeScreen").then(m => ({ default: m.NeverLikeThatHomeScreen })));
@@ -48,8 +49,8 @@ interface Player {
   isHost: boolean;
 }
 
-type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise";
-type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise";
+type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise" | "mimic";
+type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise" | "mimic";
 
 const LoadingFallback = memo(() => (
   <div className="h-screen flex items-center justify-center">
@@ -185,7 +186,7 @@ const Index = () => {
       if (mode) setGameMode(mode as GameMode);
 
       if (phase === 'playing') {
-        setGameState(mode === 'memorise' ? 'memorise' : 'playing');
+        setGameState(mode === 'memorise' ? 'memorise' : mode === 'mimic' ? 'mimic' : 'playing');
       } else if (phase === 'preparation') {
         setGameState('preparation');
       } else if (phase === 'quiz') {
@@ -406,7 +407,15 @@ const Index = () => {
               title: "🎵 Blindtest Musical !",
               description: "Devine l'anime, le dessin animé ou la musique le plus vite !",
             });
-          } else if (newPhase === 'playing' && gameState !== 'playing' && gameState !== 'memorise') {
+          } else if (newPhase === 'playing' && newMode === 'mimic' && gameState !== 'mimic') {
+            // Mimic piggybacks on the allowed 'playing' phase (same trick as memorise).
+            playSoundEffect('quizReveal', 0.5);
+            setGameState('mimic');
+            toast({
+              title: "🎤 Mimic !",
+              description: "Imite la chanson le plus fidèlement possible !",
+            });
+          } else if (newPhase === 'playing' && gameState !== 'playing' && gameState !== 'memorise' && gameState !== 'mimic') {
             playSoundEffect('start', 0.5);
             // Dopamine launch — fires for every client when the game starts
             juice.confetti({ count: 80 });
@@ -535,7 +544,7 @@ const Index = () => {
           console.log(`[Index] Added ${botsToAdd.length} bots for admin solo play`);
         }
 
-        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : mode === 'undercover' ? 'undercover' : mode === 'memorise' ? 'playing' : 'preparation';
+        const gamePhase = mode === 'quiz' ? 'quiz' : mode === 'audiophone' ? 'audiophone' : mode === 'pixoguess' ? 'pixoguess' : mode === 'monopoly' ? 'monopoly' : mode === 'undercover' ? 'undercover' : mode === 'memorise' ? 'playing' : mode === 'mimic' ? 'playing' : 'preparation';
         console.log('[Index] Updating lobby to phase:', gamePhase);
         
         const { error } = await supabase
@@ -572,6 +581,8 @@ const Index = () => {
           setGameState('undercover');
         } else if (mode === 'memorise') {
           setGameState('memorise');
+        } else if (mode === 'mimic') {
+          setGameState('mimic');
         } else {
           setGameState('preparation');
         }
@@ -845,6 +856,15 @@ const Index = () => {
 
         {gameState === "memorise" && currentPlayer && lobby && (
           <MemoriseGameScreen
+            currentPlayer={currentPlayer}
+            players={players}
+            lobbyId={lobby.id}
+            onEndGame={handleEndGame}
+          />
+        )}
+
+        {gameState === "mimic" && currentPlayer && lobby && (
+          <MimicGameScreen
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}
