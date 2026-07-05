@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Clock, Trophy, Check, X, Crown, LogOut, Volume2, VolumeX, Disc3, Flame, AlertTriangle, Users, Zap, Lightbulb } from 'lucide-react';
+import { Music, Clock, Trophy, Check, X, Crown, LogOut, Volume2, VolumeX, Disc3, Flame, AlertTriangle, Users, Zap, Lightbulb, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
@@ -203,6 +203,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   /** playerId -> [sum of reaction times, count] across the whole game (host-tracked). */
   const reactionSumRef = useRef<Record<string, [number, number]>>({});
   const teamAssignRef = useRef<Record<string, 0 | 1>>({});
+  /** Last categories/config used, so "Rejouer" can restart with the same setup. */
+  const lastCatsRef = useRef<BlindtestCategory[]>([]);
+  const lastConfigRef = useRef<BlindtestConfig | null>(null);
   const playersRef = useRef<Player[]>(players);
   const mountedRef = useRef(true);
   const startedRef = useRef(false);
@@ -336,6 +339,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     if (p.phase === 'listen' || p.phase === 'reveal') setRoundDouble(!!p.doublePoints);
 
     if (p.phase === 'listen') {
+      // First round of a (re)started game → wipe last game's scores/stats on
+      // every client so a replay doesn't show stale totals.
+      if (p.roundIndex === 0) { setScoreboard({}); scoreRef.current = {}; setMyStreak(0); setRoundPoints({}); setAvgReaction({}); }
       setMyChoice(null); setMyElapsed(null); setAnsweredCount(0); setAnsweredIds(new Set()); answersRef.current = {}; tickRef.current = 0;
       setRevealVotes({}); setLiveVotes({});
       roundAudioStartedRef.current = false;
@@ -598,10 +604,17 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
     // lock in the chosen options for the whole game
     configRef.current = config;
+    lastCatsRef.current = cats;
+    lastConfigRef.current = config;
     listenMsRef.current = config.listenMs;
     setListenMs(config.listenMs);
     setTeamsEnabled(config.teams);
     setHintsEnabled(config.hints);
+    // Fresh scores every game (so "Rejouer" doesn't keep last game's totals).
+    scoreRef.current = {};
+    streakRef.current = {};
+    setScoreboard({});
+    setMyStreak(0);
 
     // Random 2-team split, drawn ONCE by the host so every client (including
     // the host) shares the exact same random teams for the whole game.
@@ -650,6 +663,15 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     if (!first) { broadcastPhase({ phase: 'final', roundIndex: 0, scoreboard: {} }); return; }
     runRound(0, total, first);
   }, [runRound, fetchNextTrack, broadcastPhase]);
+
+  /* ---------- host replays with the same settings ---------- */
+  const replay = useCallback(() => {
+    if (!isHost || !lastConfigRef.current) return;
+    // Allow startGame to run again and relaunch with the same cats/config.
+    startedRef.current = false;
+    setStarting(false);
+    startGame(lastCatsRef.current, lastConfigRef.current);
+  }, [isHost, startGame]);
 
   /* ---------- answering ---------- */
   const answer = (choice: number) => {
@@ -1156,15 +1178,32 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 })}
                 {ranked.length === 0 && <p className="text-center text-base font-medium" style={{ color: BT.sub }}>Aucun score</p>}
               </div>
-              <motion.button
-                onClick={onEndGame}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                className="mt-2 px-8 py-3.5 rounded-2xl font-black text-xl text-white"
-                style={{ background: BT_SPECTRUM, boxShadow: `0 12px 40px ${BT.magenta}55` }}
-              >
-                Retour au lobby
-              </motion.button>
+              <div className="mt-2 flex flex-col sm:flex-row items-center gap-3">
+                {isHost ? (
+                  <motion.button
+                    onClick={replay}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    className="px-8 py-3.5 rounded-2xl font-black text-xl text-white flex items-center gap-2"
+                    style={{ background: BT_SPECTRUM, boxShadow: `0 12px 40px ${BT.magenta}55` }}
+                  >
+                    <RotateCcw className="w-5 h-5" /> Rejouer
+                  </motion.button>
+                ) : (
+                  <span className="px-5 py-2 rounded-full text-sm font-medium" style={{ color: BT.sub, background: 'rgba(255,255,255,0.05)', border: `1px solid ${BT.hair}` }}>
+                    En attente de l'hôte…
+                  </span>
+                )}
+                <motion.button
+                  onClick={onEndGame}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="px-8 py-3.5 rounded-2xl font-black text-xl"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BT.hair}`, color: '#fff' }}
+                >
+                  Retour au lobby
+                </motion.button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
