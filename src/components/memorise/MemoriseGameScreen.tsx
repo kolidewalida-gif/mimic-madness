@@ -92,6 +92,12 @@ interface PhasePayload {
   hintsEnabled?: boolean;
   /** Whether THIS round is a double-points round. */
   doublePoints?: boolean;
+  /** Random 2-team split (playerId -> 0|1), computed once by the host at game
+   *  start and broadcast so every client agrees on the same random teams. */
+  teamAssign?: Record<string, 0 | 1>;
+  /** playerId -> average reaction time (ms) across all answered rounds,
+   *  sent with the final phase so everyone sees everyone's average speed. */
+  avgReaction?: Record<string, number>;
 }
 
 /** Buffer used by the host to schedule a synchronized listen start on all clients. */
@@ -168,11 +174,18 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   /** True when the reveal artwork is missing or fails to load → show a clean
    *  white title card instead of a wrong/blank cover. */
   const [artFailed, setArtFailed] = useState(false);
+  /** Random 2-team split, broadcast by the host at game start (empty = not team mode / not yet assigned). */
+  const [teamAssign, setTeamAssign] = useState<Record<string, 0 | 1>>({});
+  /** playerId -> average reaction time (ms), broadcast at game end. */
+  const [avgReaction, setAvgReaction] = useState<Record<string, number>>({});
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const answersRef = useRef<Record<string, { choice: number; elapsed: number }>>({});
   const scoreRef = useRef<Record<string, number>>({});
   const streakRef = useRef<Record<string, number>>({});
+  /** playerId -> [sum of reaction times, count] across the whole game (host-tracked). */
+  const reactionSumRef = useRef<Record<string, [number, number]>>({});
+  const teamAssignRef = useRef<Record<string, 0 | 1>>({});
   const playersRef = useRef<Player[]>(players);
   const mountedRef = useRef(true);
   const startedRef = useRef(false);
@@ -213,14 +226,16 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     return m;
   }, [players]);
 
-  // Deterministic 2-team split (same on every client regardless of array order):
-  // sort by id, alternate assignment.
+  // 2-team split: the host draws a RANDOM assignment once at game start and
+  // broadcasts it (`teamAssign`) so every client sees the identical random
+  // teams. Falls back to a deterministic split only before that arrives.
   const teamOf = useMemo(() => {
+    if (Object.keys(teamAssign).length) return teamAssign;
     const sorted = [...players].sort((a, b) => a.id.localeCompare(b.id));
     const map: Record<string, 0 | 1> = {};
     sorted.forEach((p, i) => { map[p.id] = (i % 2) as 0 | 1; });
     return map;
-  }, [players]);
+  }, [players, teamAssign]);
 
   /* ---------- audio playback ---------- */
   const stopMedia = useCallback(() => {
@@ -299,6 +314,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     if (p.listenMs != null) { setListenMs(p.listenMs); listenMsRef.current = p.listenMs; }
     if (p.teamsEnabled != null) setTeamsEnabled(p.teamsEnabled);
     if (p.hintsEnabled != null) setHintsEnabled(p.hintsEnabled);
+    if (p.teamAssign) { setTeamAssign(p.teamAssign); teamAssignRef.current = p.teamAssign; }
+    if (p.avgReaction) setAvgReaction(p.avgReaction);
     if (p.phase === 'listen' || p.phase === 'reveal') setRoundDouble(!!p.doublePoints);
 
     if (p.phase === 'listen') {
@@ -464,9 +481,15 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const runRound = useCallback(async (i: number, total: number, pre?: { entry: BlindtestEntry; track: RoundTrack } | null) => {
     if (!mountedRef.current) return;
 
+    const buildAvgReaction = (): Record<string, number> => {
+      const out: Record<string, number> = {};
+      Object.entries(reactionSumRef.current).forEach(([pid, [sum, count]]) => { if (count > 0) out[pid] = Math.round(sum / count); });
+      return out;
+    };
+
     const next = pre ?? await fetchNextTrack();
     if (!mountedRef.current) return;
-    if (!next) { broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current } }); return; }
+    if (!next) { broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current }, avgReaction: buildAvgReaction() }); return; }
 
     const { options: opts, answerIndex: ansIdx } = buildOptions(
       { title: next.track.title, category: next.track.category },
@@ -496,6 +519,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       teamsEnabled: cfg.teams,
       hintsEnabled: cfg.hints,
       doublePoints: isDouble,
+      // Re-sent every round (cheap) so late joiners / reconnects also get it.
+      teamAssign: cfg.teams ? teamAssignRef.current : undefined,
     });
     // Host also waits the same buffer so its own audio starts in sync with clients.
     // (applyPhase runs via `broadcast.self: true` and schedules the local start;
@@ -519,6 +544,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     const rp: Record<string, number> = {};
     Object.entries(answersRef.current).forEach(([pid, a]) => {
       const correct = a.choice === ansIdx;
+      // Track every answered round's reaction time (correct or not) for the
+      // final "average reaction time" stat, shown per player at game end.
+      const sum = reactionSumRef.current[pid] ?? [0, 0];
+      reactionSumRef.current[pid] = [sum[0] + a.elapsed, sum[1] + 1];
       if (correct) {
         streakRef.current[pid] = (streakRef.current[pid] || 0) + 1;
         const bonus = streakRef.current[pid] >= 2 ? Math.min(streakRef.current[pid], 6) * 40 : 0;
@@ -538,7 +567,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     if (!mountedRef.current) return;
 
     if (i + 1 < total) { const nt = await prefetch; runRound(i + 1, total, nt); }
-    else broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current } });
+    else broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current }, avgReaction: buildAvgReaction() });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [broadcastPhase, fetchNextTrack, playTrack]);
 
@@ -554,6 +583,21 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     setListenMs(config.listenMs);
     setTeamsEnabled(config.teams);
     setHintsEnabled(config.hints);
+
+    // Random 2-team split, drawn ONCE by the host so every client (including
+    // the host) shares the exact same random teams for the whole game.
+    if (config.teams) {
+      const shuffledPlayers = shuffle(playersRef.current, mulberry(Math.floor(Math.random() * 1e9)));
+      const assign: Record<string, 0 | 1> = {};
+      shuffledPlayers.forEach((p, i) => { assign[p.id] = (i % 2) as 0 | 1; });
+      teamAssignRef.current = assign;
+      setTeamAssign(assign);
+    } else {
+      teamAssignRef.current = {};
+      setTeamAssign({});
+    }
+    reactionSumRef.current = {};
+    setAvgReaction({});
 
     // `BLINDTEST_ENTRIES` contains weighted duplicates (featured/new answers
     // appear more than once) so they're more likely to be drawn — but each
@@ -1047,25 +1091,42 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
               )}
 
               <div className="w-full space-y-2.5">
-                {ranked.map((p, i) => (
-                  <motion.div
-                    key={p.id}
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: i * 0.08 }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-2xl text-white relative overflow-hidden"
-                    style={{
-                      border: `1px solid ${i === 0 ? BT.gold : BT.hair}`,
-                      background: i === 0 ? `linear-gradient(90deg, ${BT.gold}22, rgba(255,255,255,0.02))` : 'rgba(255,255,255,0.03)',
-                      boxShadow: i === 0 ? glow(BT.gold, 0.3) : 'none',
-                    }}
-                  >
-                    <span className="text-2xl font-black w-8 text-center">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
-                    {teamsEnabled && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: TEAM_META[teamOf[p.id] ?? 0].color }} />}
-                    <span className="flex-1 font-bold truncate text-base">{p.name}{p.id === currentPlayer.id ? ' (toi)' : ''}</span>
-                    <span className="font-black text-lg tabular-nums" style={{ color: i === 0 ? BT.gold : BT.cyan }}>{p.pts}</span>
-                  </motion.div>
-                ))}
+                {ranked.map((p, i) => {
+                  const av = getAvatar(p.id);
+                  const img = av?.type === 'image' && av.imageUrl ? av.imageUrl : null;
+                  const avg = avgReaction[p.id];
+                  return (
+                    <motion.div
+                      key={p.id}
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: i * 0.08 }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-2xl text-white relative overflow-hidden"
+                      style={{
+                        border: `1px solid ${i === 0 ? BT.gold : BT.hair}`,
+                        background: i === 0 ? `linear-gradient(90deg, ${BT.gold}22, rgba(255,255,255,0.02))` : 'rgba(255,255,255,0.03)',
+                        boxShadow: i === 0 ? glow(BT.gold, 0.3) : 'none',
+                      }}
+                    >
+                      <span className="text-2xl font-black w-8 text-center flex-shrink-0">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                      <div
+                        className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-black text-white flex-shrink-0"
+                        style={{ background: 'rgba(255,255,255,0.12)', border: `2px solid ${teamsEnabled ? TEAM_META[teamOf[p.id] ?? 0].color : (i === 0 ? BT.gold : BT.hair)}` }}
+                      >
+                        {img ? <img src={img} alt={p.name} className="w-full h-full object-cover" /> : (p.name[0] || '?').toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold truncate text-base block">{p.name}{p.id === currentPlayer.id ? ' (toi)' : ''}</span>
+                        {avg != null && (
+                          <span className="text-xs font-medium flex items-center gap-1" style={{ color: BT.sub }}>
+                            <Clock className="w-3 h-3" /> {(avg / 1000).toFixed(1)}s moy.
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-black text-lg tabular-nums flex-shrink-0" style={{ color: i === 0 ? BT.gold : BT.cyan }}>{p.pts}</span>
+                    </motion.div>
+                  );
+                })}
                 {ranked.length === 0 && <p className="text-center text-base font-medium" style={{ color: BT.sub }}>Aucun score</p>}
               </div>
               <motion.button
