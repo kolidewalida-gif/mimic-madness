@@ -103,6 +103,23 @@ interface PhasePayload {
 /** Buffer used by the host to schedule a synchronized listen start on all clients. */
 const LISTEN_SYNC_BUFFER_MS = 500;
 
+/* ---------- recently-played history (anti-repeat across games) ---------- */
+const RECENT_KEY = 'mimic.blindtest.recent';
+const RECENT_CAP = 220;
+const entryKey = (e: { category: string; answer: string }) => `${e.category}|${e.answer.toLowerCase()}`;
+function loadRecent(): Set<string> {
+  try { const a = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); return new Set(Array.isArray(a) ? a : []); }
+  catch { return new Set(); }
+}
+function pushRecent(key: string) {
+  try {
+    const a = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    const arr = (Array.isArray(a) ? a : []).filter((k: string) => k !== key);
+    arr.unshift(key);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(arr.slice(0, RECENT_CAP)));
+  } catch { /* noop */ }
+}
+
 /* deterministic helpers */
 function mulberry(seed: number) {
   let a = seed >>> 0;
@@ -490,6 +507,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     const next = pre ?? await fetchNextTrack();
     if (!mountedRef.current) return;
     if (!next) { broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current }, avgReaction: buildAvgReaction() }); return; }
+    // Remember this title so it's deprioritized in the next few games.
+    pushRecent(entryKey(next.entry));
 
     const { options: opts, answerIndex: ansIdx } = buildOptions(
       { title: next.track.title, category: next.track.category },
@@ -608,12 +627,20 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     poolRef.current = uniqueEntries.map((e) => ({ title: e.answer, category: e.category }));
     const rnd = mulberry(Math.floor(Math.random() * 1e9));
     const seenKeys = new Set<string>();
-    queueRef.current = shuffle(weighted, rnd).filter((e) => {
-      const key = e.category + '|' + e.answer.toLowerCase();
+    const dedupShuffled = shuffle(weighted, rnd).filter((e) => {
+      const key = entryKey(e);
       if (seenKeys.has(key)) return false;
       seenKeys.add(key);
       return true;
     });
+    // Anti-repeat: push titles played in RECENT games to the back of the queue
+    // so fresh songs come first. Featured entries (weight > 1, e.g. Superman
+    // 2025 / Supergirl 2026) are EXEMPT — they keep their full x4 priority.
+    const recent = loadRecent();
+    const isFeatured = (e: BlindtestEntry) => (e.weight ?? 1) > 1;
+    const fresh = dedupShuffled.filter((e) => isFeatured(e) || !recent.has(entryKey(e)));
+    const stale = dedupShuffled.filter((e) => !isFeatured(e) && recent.has(entryKey(e)));
+    queueRef.current = [...fresh, ...stale];
     const total = Math.max(1, Math.min(config.rounds, uniqueEntries.length));
 
     // Fetch the first track now — still inside the click's activation window —
