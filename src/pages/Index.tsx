@@ -110,6 +110,7 @@ const Index = () => {
       monopoly: "monopoly",
       undercover: "undercover",
       memorise: "quiz",
+      mimic: "quiz",
     };
     setSituation(map[gameState] ?? "home");
   }, [gameState, setSituation]);

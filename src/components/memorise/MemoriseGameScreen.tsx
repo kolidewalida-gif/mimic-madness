@@ -1113,10 +1113,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                     return (
                       <>
                         <p className="text-center text-sm font-black mb-2" style={{ color: BT.sub }}>
-                          {winner === -1 ? '🤝 Égalité !' : `🏆 ${TEAM_META[winner].name} gagne !`}
+                          {winner === -1 || winner == null ? '🤝 Égalité !' : `🏆 ${TEAM_META[winner as 0 | 1].name} gagne !`}
                         </p>
                         <div className="grid grid-cols-2 gap-2.5">
-                          {[0, 1].map((t) => (
+                          {([0, 1] as const).map((t) => (
                             <div
                               key={t}
                               className="flex flex-col items-center py-3 rounded-2xl"

@@ -15,7 +15,8 @@ type Signal =
   | { kind: 'answer'; from: string; to: string; sdp: RTCSessionDescriptionInit }
   | { kind: 'ice'; from: string; to: string; candidate: RTCIceCandidateInit };
 
-type SendFn = (kind: Signal['kind'], payload: Omit<Signal, 'kind'>) => void;
+type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
+type SendFn = (kind: Signal['kind'], payload: DistributiveOmit<Signal, 'kind'>) => void;
 
 const ICE: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
