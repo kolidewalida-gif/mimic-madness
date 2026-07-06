@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, memo } from 'react';
 import { useInkMode } from '@/hooks/useInkMode';
+import { isLowPowerDevice } from '@/lib/deviceCapabilities';
 
 interface Trail {
   id: number;
@@ -37,6 +38,8 @@ const InkCursorParticlesComponent = () => {
     // Touch devices have no meaningful cursor — skip the custom pointer + trail
     // entirely (saves listeners/particles on phones & tablets).
     if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) return;
+    // Consoles/TVs (Xbox etc.) choke on the particle trail — skip it there too.
+    if (isLowPowerDevice()) return;
 
     const handleMove = (e: MouseEvent) => {
       const x = e.clientX;

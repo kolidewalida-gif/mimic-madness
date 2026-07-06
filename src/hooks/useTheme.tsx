@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { isConsoleOrTv } from '@/lib/deviceCapabilities';
 
 export type ThemeType = 'neon' | 'cosmic' | 'fire' | 'ice' | 'ink' | 'cartoon' | 'neverlikethat';
 
@@ -176,7 +177,12 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setThemeState] = useState<ThemeType>(() => {
     const saved = localStorage.getItem('game-theme');
     // Ink is the default experience for everyone (unless they picked another theme)
-    return (saved as ThemeType) || 'ink';
+    const initial = (saved as ThemeType) || 'ink';
+    // Consoles / smart-TVs can't handle the heavy 3D Spline theme (react-spline
+    // + three.js + physics) — it crashes/freezes the Xbox browser. Force a
+    // lightweight theme there so the app stays stable.
+    if (initial === 'neverlikethat' && isConsoleOrTv()) return 'ink';
+    return initial;
   });
 
   const [inkModeEnabled, setInkModeEnabledState] = useState<boolean>(() => {
@@ -186,8 +192,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const setTheme = (newTheme: ThemeType) => {
-    setThemeState(newTheme);
-    localStorage.setItem('game-theme', newTheme);
+    // Never allow the heavy 3D Spline theme on consoles/TVs (would crash Xbox).
+    const safe = newTheme === 'neverlikethat' && isConsoleOrTv() ? 'ink' : newTheme;
+    setThemeState(safe);
+    localStorage.setItem('game-theme', safe);
   };
 
   const setInkModeEnabled = (enabled: boolean) => {

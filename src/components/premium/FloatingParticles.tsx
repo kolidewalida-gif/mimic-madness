@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { isLowPowerDevice } from '@/lib/deviceCapabilities';
 
 interface FloatingParticlesProps {
   count?: number;
@@ -32,6 +33,8 @@ export const FloatingParticles = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number>();
+  // Skip the canvas particle loop entirely on consoles/TVs/low-RAM devices.
+  const lowPower = useRef(isLowPowerDevice()).current;
 
   const getColors = () => {
     switch (color) {
@@ -69,6 +72,7 @@ export const FloatingParticles = ({
   };
 
   useEffect(() => {
+    if (lowPower) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -160,7 +164,9 @@ export const FloatingParticles = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [count, color, speed, size, glow]);
+  }, [count, color, speed, size, glow, lowPower]);
+
+  if (lowPower) return null;
 
   return (
     <canvas

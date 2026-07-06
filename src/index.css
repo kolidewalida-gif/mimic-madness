@@ -2198,3 +2198,34 @@ a, button, [role="button"], input, select, textarea, label, summary {
   .blur-3xl { filter: blur(48px); }
   .blur-2xl { filter: blur(30px); }
 }
+
+/* ============================================================
+   LOW-POWER MODE (Xbox / consoles / smart-TV / low-RAM)
+   Applied via <html class="low-power"> (set before first paint).
+   Goal: minimise GPU/CPU cost so the app doesn't stutter or crash.
+   ============================================================ */
+
+/* backdrop-blur is one of the heaviest effects — drop it for an opaque panel. */
+html.low-power .backdrop-blur-sm,
+html.low-power .backdrop-blur,
+html.low-power .backdrop-blur-md,
+html.low-power .backdrop-blur-lg,
+html.low-power .backdrop-blur-xl,
+html.low-power .backdrop-blur-2xl,
+html.low-power .backdrop-blur-3xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(12, 12, 22, 0.85);
+}
+
+/* Cap large decorative blurs (big glow blobs are very fill-rate heavy). */
+html.low-power .blur-3xl { filter: blur(34px) !important; }
+html.low-power .blur-2xl { filter: blur(22px) !important; }
+html.low-power .blur-xl { filter: blur(14px) !important; }
+
+/* Disable the mix-blend / heavy filter utilities that thrash console GPUs. */
+html.low-power .mix-blend-screen,
+html.low-power .mix-blend-overlay,
+html.low-power .mix-blend-plus-lighter {
+  mix-blend-mode: normal !important;
+}

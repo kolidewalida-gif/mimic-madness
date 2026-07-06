@@ -29,6 +29,20 @@
 
   <body>
     <div id="root"></div>
+    <!-- Detect consoles / TVs / low-RAM BEFORE first paint so heavy effects are
+         disabled from the start (avoids Xbox browser stutter & crashes). -->
+    <script>
+      (function () {
+        try {
+          var ua = (navigator.userAgent || '').toLowerCase();
+          var consoleTv = /(xbox|playstation|nintendo|smart-?tv|smarttv|tizen|web0s|webos|netcast|hbbtv|viera|bravia|aquos|googletv|android tv|crkey|dtv)/.test(ua);
+          var lowMem = typeof navigator.deviceMemory === 'number' && navigator.deviceMemory > 0 && navigator.deviceMemory <= 3;
+          var e = document.documentElement;
+          if (consoleTv) { e.classList.add('tv-mode', 'low-power'); }
+          else if (lowMem) { e.classList.add('low-power'); }
+        } catch (_) { /* noop */ }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
