@@ -2076,3 +2076,62 @@ body.game-cursor-effect-glow .game-cursor-nib {
     max-height: calc(100vh - 0.5rem);
   }
 }
+
+/* ============================================================
+   TV / GAMEPAD MODE (console & smart-TV browsers)
+   - Strong, always-visible focus ring when a controller is used
+   - Bigger hit feedback on the focused element
+   - Perf-friendly reductions on slower TV/console GPUs
+   Enabled at runtime via <html class="gamepad-active tv-mode">
+   ============================================================ */
+
+/* Visible focus for controller navigation (mouse users unaffected). */
+html.gamepad-active :focus {
+  outline: none;
+}
+html.gamepad-active a:focus,
+html.gamepad-active button:focus,
+html.gamepad-active input:focus,
+html.gamepad-active select:focus,
+html.gamepad-active textarea:focus,
+html.gamepad-active [role="button"]:focus,
+html.gamepad-active [tabindex]:focus {
+  outline: 3px solid #ffcf4a !important;
+  outline-offset: 3px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px rgba(255, 207, 74, 0.45), 0 0 26px rgba(255, 207, 74, 0.55) !important;
+  z-index: 20;
+  position: relative;
+}
+
+/* A subtle "controller connected" hint could be added by the app; the class
+   itself is the signal. Ensure focused items scroll into a comfortable area. */
+html.gamepad-active {
+  scroll-behavior: smooth;
+}
+
+/* --- TV performance: many console/TV browsers choke on heavy blur/filters. --- */
+html.tv-mode .backdrop-blur-sm,
+html.tv-mode .backdrop-blur,
+html.tv-mode .backdrop-blur-md,
+html.tv-mode .backdrop-blur-lg,
+html.tv-mode .backdrop-blur-xl,
+html.tv-mode .backdrop-blur-2xl,
+html.tv-mode .backdrop-blur-3xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(12, 12, 22, 0.82);
+}
+
+/* Cap the most expensive decorative blurs (big glow blobs) on TV. */
+html.tv-mode .blur-3xl { filter: blur(40px) !important; }
+html.tv-mode .blur-2xl { filter: blur(28px) !important; }
+
+/* Respect players who reduce motion (also helps weak TV hardware). */
+@media (prefers-reduced-motion: reduce) {
+  html.tv-mode * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.08s !important;
+  }
+}
