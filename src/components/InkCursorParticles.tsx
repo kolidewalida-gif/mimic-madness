@@ -34,6 +34,9 @@ const InkCursorParticlesComponent = () => {
 
   useEffect(() => {
     if (!isInkMode) return;
+    // Touch devices have no meaningful cursor — skip the custom pointer + trail
+    // entirely (saves listeners/particles on phones & tablets).
+    if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) return;
 
     const handleMove = (e: MouseEvent) => {
       const x = e.clientX;

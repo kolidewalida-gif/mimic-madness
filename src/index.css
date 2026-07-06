@@ -2135,3 +2135,66 @@ html.tv-mode .blur-2xl { filter: blur(28px) !important; }
     transition-duration: 0.08s !important;
   }
 }
+
+/* ============================================================
+   MOBILE / TABLET OPTIMISATION (global, non-invasive)
+   ============================================================ */
+
+/* 1) Fix the mobile 100vh bug: on phones the URL bar makes 100vh taller than
+   the visible area, cutting off bottom UI. Use the dynamic viewport height so
+   full-screen game layouts fit the actually-visible area. Appended AFTER
+   Tailwind utilities so it wins with equal specificity. */
+@supports (height: 100dvh) {
+  .h-screen { height: 100dvh; }
+  .min-h-screen { min-height: 100dvh; }
+  .max-h-screen { max-height: 100dvh; }
+}
+
+/* 2) Sane mobile document behaviour. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  overflow-x: hidden;             /* kill accidental horizontal scroll */
+  overscroll-behavior-y: none;    /* no pull-to-refresh / rubber-band on the game */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 3) Touch ergonomics: no 300ms delay / double-tap zoom on interactive stuff. */
+a, button, [role="button"], input, select, textarea, label, summary {
+  touch-action: manipulation;
+}
+
+/* 4) iOS zooms the page when focusing an input < 16px. Force 16px on touch so
+   text fields never trigger the auto-zoom. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  /* Comfortable minimum tap size for icon-only controls (gentle, won't distort
+     already-large buttons). */
+  button, [role="button"], a[href] {
+    min-height: 40px;
+  }
+}
+
+/* 5) Smooth momentum scrolling inside scrollable panels on iOS. */
+.custom-scrollbar, .overflow-y-auto, .overflow-auto, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 6) Safe-area (notch / home indicator) helpers — opt-in utility classes. */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.pl-safe { padding-left: env(safe-area-inset-left, 0px); }
+.pr-safe { padding-right: env(safe-area-inset-right, 0px); }
+
+/* 7) Perf on phones: soften the very largest decorative blurs (cheap visual
+   change, big GPU win on mid/low-end mobiles). */
+@media (max-width: 640px) {
+  .blur-3xl { filter: blur(48px); }
+  .blur-2xl { filter: blur(30px); }
+}
