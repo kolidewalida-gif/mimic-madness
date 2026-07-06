@@ -1211,7 +1211,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
       {/* left live scoreboard (real-time) */}
       {(phase === 'listen' || phase === 'reveal') && standings.length > 0 && (
-        <div className="hidden md:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl" style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
+        <div className="hidden lg:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl" style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
           <div className="flex items-center gap-2 px-1 pb-2 mb-0.5" style={{ borderBottom: `1px solid ${BT.hair}` }}>
             <Trophy className="w-4 h-4" style={{ color: BT.gold }} />
             <span className="text-sm font-black text-white uppercase tracking-[0.15em]">Scores</span>
@@ -1268,9 +1268,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         </div>
       )}
 
-      {/* live scoreboard strip (mobile only — desktop uses the left panel) */}
+      {/* live scoreboard strip (phones + portrait tablets — desktop/landscape uses the left panel) */}
       {(phase === 'listen' || phase === 'reveal') && ranked.length > 0 && (
-        <div className="relative z-10 w-full max-w-2xl px-4 pb-4 md:hidden">
+        <div className="relative z-10 w-full max-w-2xl px-4 pb-4 lg:hidden">
           <div className="flex gap-2 overflow-x-auto custom-scrollbar">
             {ranked.slice(0, 6).map((p, i) => (
               <div key={p.id} className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-white" style={{ background: i === 0 ? `${BT.gold}22` : 'rgba(255,255,255,0.05)', border: `1px solid ${i === 0 ? BT.gold : BT.hair}` }}>

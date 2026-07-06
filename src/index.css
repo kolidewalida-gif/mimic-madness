@@ -2229,3 +2229,15 @@ html.low-power .mix-blend-overlay,
 html.low-power .mix-blend-plus-lighter {
   mix-blend-mode: normal !important;
 }
+
+/* ============================================================
+   TABLET / TOUCH tuning (applies to phones + tablets; desktop untouched)
+   Softens only the big decorative glow blobs — glass panels keep their blur
+   so the UI still looks premium on iPad-class hardware, but frame times drop.
+   ============================================================ */
+@media (pointer: coarse) {
+  .blur-3xl { filter: blur(42px); }
+  .blur-2xl { filter: blur(26px); }
+  /* comfortable reading size for lyrics / long text on tablets */
+  .custom-scrollbar { scrollbar-width: thin; }
+}
