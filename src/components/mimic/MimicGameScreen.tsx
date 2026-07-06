@@ -10,6 +10,7 @@ import { MIMIC, MIMIC_SPECTRUM, mglow, scoreColor, grade } from './mimicTheme';
 import { fetchMimicLyrics, pickExtractLines, type LyricLine } from './mimicLyrics';
 import { MimicAnalyzer, detectPitch, mimicComment, type MimicResult } from './mimicScore';
 import { pickRandomSong } from './mimicSongs';
+import { MimicVoiceMesh } from './mimicVoice';
 
 interface Player { id: string; name: string; isHost: boolean; isDisconnected?: boolean; }
 interface Props { currentPlayer: Player; players: Player[]; lobbyId: string; onEndGame: () => void; }
@@ -85,17 +86,56 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
   const micRafRef = useRef<number | null>(null);
   const performEndRef = useRef<number>(0);
   const startAtLocalRef = useRef<number>(0);
+  // live voice (WebRTC mesh)
+  const voiceMeshRef = useRef<MimicVoiceMesh | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playersRef = useRef<Player[]>(players);
 
   const playerIds = useMemo(() => players.map((p) => p.id), [players]);
   const { getAvatar } = useMultiplePlayerAvatars(playerIds);
   const namesById = useMemo(() => { const m: Record<string, string> = {}; players.forEach((p) => { m[p.id] = p.name; }); return m; }, [players]);
   const muted = volume === 0;
 
-  useEffect(() => { volumeRef.current = volume; if (mediaRef.current) { mediaRef.current.muted = muted; mediaRef.current.volume = volume / 100; } try { localStorage.setItem('mimic.karaoke.volume', String(volume)); } catch { /* noop */ } }, [volume, muted]);
+  useEffect(() => { playersRef.current = players; }, [players]);
+  useEffect(() => {
+    volumeRef.current = volume;
+    if (mediaRef.current) { mediaRef.current.muted = muted; mediaRef.current.volume = volume / 100; }
+    if (remoteAudioRef.current) { remoteAudioRef.current.muted = muted; remoteAudioRef.current.volume = volume / 100; }
+    try { localStorage.setItem('mimic.karaoke.volume', String(volume)); } catch { /* noop */ }
+  }, [volume, muted]);
+
+  /* ---------------- live voice mesh helpers ---------------- */
+  const ensureMesh = useCallback(() => {
+    if (voiceMeshRef.current) return voiceMeshRef.current;
+    const send = (kind: string, payload: Record<string, unknown>) =>
+      channelRef.current?.send({ type: 'broadcast', event: 'rtc', payload: { kind, ...payload } });
+    const mesh = new MimicVoiceMesh(currentPlayer.id, send as any, (stream) => {
+      const el = remoteAudioRef.current;
+      if (!el) return;
+      try {
+        (el as HTMLAudioElement).srcObject = stream;
+        el.muted = volumeRef.current === 0;
+        el.volume = volumeRef.current / 100;
+        el.play().catch(() => { /* will unlock on user gesture */ });
+      } catch { /* noop */ }
+    });
+    voiceMeshRef.current = mesh;
+    return mesh;
+  }, [currentPlayer.id]);
+
+  const stopMesh = useCallback(() => {
+    try { voiceMeshRef.current?.stop(); } catch { /* noop */ }
+    voiceMeshRef.current = null;
+    if (remoteAudioRef.current) { try { (remoteAudioRef.current as HTMLAudioElement).srcObject = null; } catch { /* noop */ } }
+  }, []);
 
   /* ---------------- audio ---------------- */
   const stopMedia = useCallback(() => { try { mediaRef.current?.pause(); } catch { /* noop */ } }, []);
   const playFromStart = useCallback(() => {
+    // also (re)start the singer's live voice — this runs on a user gesture so
+    // it unlocks autoplay for the remote audio too.
+    const rem = remoteAudioRef.current;
+    if (rem && (rem as HTMLAudioElement).srcObject) { rem.muted = volumeRef.current === 0; rem.volume = volumeRef.current / 100; rem.play().catch(() => {}); }
     const el = mediaRef.current;
     if (!el || !el.src) return;
     try {
@@ -148,10 +188,17 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
         micRafRef.current = requestAnimationFrame(tick);
       };
       micRafRef.current = requestAnimationFrame(tick);
+
+      // Publish the mic live to all listeners (turn-based: I'm the singer).
+      try {
+        const listeners = playersRef.current.filter((p) => p.id !== currentPlayer.id && !p.isDisconnected).map((p) => p.id);
+        const mesh = ensureMesh();
+        await mesh.startAsSinger(stream, listeners);
+      } catch { /* live voice best-effort */ }
     } catch {
       setMicError(true);
     }
-  }, [currentPlayer.id]);
+  }, [currentPlayer.id, ensureMesh]);
 
   /* ---------------- phase application (everyone) ---------------- */
   const applyPhase = useCallback((p: MimicPayload) => {
@@ -180,6 +227,14 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
       setTurnIndex(p.turnIndex ?? 0);
       setLiveScore(0);
       setLyricIdx(0);
+
+      // Reset live voice for this turn. Spectators arm a listener mesh now so
+      // they're ready to answer the singer's offer; the singer publishes from
+      // startMic() once the mic is live.
+      stopMesh();
+      if (p.phase === 'perform' && p.singerId && p.singerId !== currentPlayer.id) {
+        ensureMesh().startAsListener(p.singerId);
+      }
 
       const beginAudio = () => {
         if (!mountedRef.current) return;
@@ -215,9 +270,10 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
     // non-playing phases
     setCountdown(null);
     stopMic();
+    stopMesh();
     stopMedia();
     setSingerId(null);
-  }, [extractMs, playFromStart, startMic, stopMic, stopMedia, currentPlayer.id]);
+  }, [extractMs, playFromStart, startMic, stopMic, stopMesh, ensureMesh, stopMedia, currentPlayer.id]);
 
   /* ---------------- lyric teleprompter (best-effort proportional) ---------------- */
   useEffect(() => {
@@ -261,6 +317,11 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
         setReactions((prev) => [...prev.slice(-14), e]);
         setTimeout(() => setReactions((prev) => prev.filter((x) => x.id !== e.id)), 2600);
       })
+      .on('broadcast', { event: 'rtc' }, ({ payload }) => {
+        const sig = payload as { kind: 'offer' | 'answer' | 'ice'; to: string };
+        if (sig.to !== currentPlayer.id) return;
+        voiceMeshRef.current?.handleSignal(sig as any);
+      })
       .on('broadcast', { event: 'sync-req' }, ({ payload }) => {
         if (!isHost) return;
         const q = payload as { clientId: string; clientNow: number };
@@ -289,6 +350,7 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
       cleanups.current.forEach((fn) => fn());
       if (timerRef.current) clearTimeout(timerRef.current);
       stopMic();
+      stopMesh();
       stopMedia();
       supabase.removeChannel(channel);
     };
@@ -407,10 +469,9 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
   /* ============================================================ */
   return (
     <div className="h-screen w-full flex flex-col items-center text-white relative overflow-hidden" style={{ background: MIMIC.bg }}>
-      <audio ref={mediaRef} className="hidden" preload="auto" crossOrigin="anonymous"
-        onPlaying={() => setNeedsSoundUnlock(false)}
-        onError={() => { /* iTunes may block crossOrigin; retry without it */ if (mediaRef.current && mediaRef.current.crossOrigin) { const s = mediaRef.current.src; mediaRef.current.crossOrigin = null; mediaRef.current.src = s; } }}
-      />
+      <audio ref={mediaRef} className="hidden" preload="auto" onPlaying={() => setNeedsSoundUnlock(false)} />
+      {/* live voice of the current singer (spectators) */}
+      <audio ref={remoteAudioRef} className="hidden" autoPlay playsInline />
 
       {/* background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ background: MIMIC.bg }}>
@@ -449,6 +510,7 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
               <div className="text-center">
                 <h2 className="text-5xl font-black tracking-tight" style={{ background: MIMIC_SPECTRUM, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>MIMIC</h2>
                 <p className="text-sm mt-1 font-medium" style={{ color: MIMIC.sub }}>Imite la chanson le plus fidèlement possible. Le meilleur % gagne.</p>
+                <p className="text-xs mt-2 flex items-center justify-center gap-1.5" style={{ color: MIMIC.sub }}><Mic className="w-3.5 h-3.5" /> Voix en direct — chacun chante à son tour, les autres t'écoutent.</p>
               </div>
               {isHost ? (
                 <motion.button onClick={startGame} disabled={!channelReady || starting} whileHover={channelReady && !starting ? { scale: 1.03 } : undefined} whileTap={{ scale: 0.97 }}
