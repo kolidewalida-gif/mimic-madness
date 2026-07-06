@@ -13,6 +13,51 @@
     },
     "tools": [
       {
+        "name": "do_anything",
+        "title": "Do anything (Mimic Madness)",
+        "description": "Swiss-army read tool for Mimic Madness. Pick an `action` and pass the matching `params` object. Available actions: list_lobbies, get_lobby, get_leaderboard, get_profile, search_profiles, get_player_stats, list_recent_posts, get_post, list_post_comments, list_quiz_top_scores, list_video_clips, count_table. All actions are read-only.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "list_lobbies",
+                "get_lobby",
+                "get_leaderboard",
+                "get_profile",
+                "search_profiles",
+                "get_player_stats",
+                "list_recent_posts",
+                "get_post",
+                "list_post_comments",
+                "list_quiz_top_scores",
+                "list_video_clips",
+                "count_table"
+              ],
+              "description": "Which operation to run"
+            },
+            "params": {
+              "type": "object",
+              "additionalProperties": {},
+              "default": {},
+              "description": "Parameters for the action. Common: limit (number), user_id (uuid), lobby_id (uuid), post_id (uuid), query (string), table (string)"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
         "name": "list_active_lobbies",
         "title": "List active lobbies",
         "description": "List currently active public game lobbies (waiting or playing).",
