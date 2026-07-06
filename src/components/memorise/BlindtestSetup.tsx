@@ -194,13 +194,13 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
           <span className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: BT.sub }}>Manches</span>
           <div className="flex-1" />
         </div>
-        <Segmented value={roundsSel} options={BLINDTEST_ROUND_OPTIONS} onChange={setRoundsSel} />
+        <Segmented<number> value={roundsSel} options={BLINDTEST_ROUND_OPTIONS as readonly number[]} onChange={setRoundsSel} />
 
         <div className="flex items-center gap-2 mt-1">
           <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: BT.sub }} />
           <span className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: BT.sub }}>Durée d'écoute</span>
         </div>
-        <Segmented value={listenSel} options={BLINDTEST_LISTEN_OPTIONS} onChange={setListenSel} format={(v) => `${Math.round(v / 1000)}s`} />
+        <Segmented<number> value={listenSel} options={BLINDTEST_LISTEN_OPTIONS as readonly number[]} onChange={setListenSel} format={(v) => `${Math.round(v / 1000)}s`} />
 
         <div className="grid grid-cols-1 gap-2 mt-1">
           <Toggle icon={Users} label="Mode équipes (2 équipes)" on={teams} color={BT.cyan} onClick={() => setTeams((v) => !v)} />
