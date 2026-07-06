@@ -59,6 +59,7 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
   const [countdown, setCountdown] = useState<number | null>(null);
   const [lyricIdx, setLyricIdx] = useState(0);
   const [starting, setStarting] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
   const [channelReady, setChannelReady] = useState(false);
   const [needsSoundUnlock, setNeedsSoundUnlock] = useState(false);
   const [micError, setMicError] = useState(false);
@@ -365,59 +366,73 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
 
   /* ---------------- host game loop ---------------- */
   const runGame = useCallback(async () => {
-    const connected = players.filter((p) => !p.isDisconnected);
-    const ord = shuffle(connected.map((p) => p.id));
+    try {
+      const connected = players.filter((p) => !p.isDisconnected);
+      const ord = shuffle(connected.map((p) => p.id));
 
-    // fetch a playable song with lyrics (try a few)
-    let chosen: { song: Song; lines: LyricLine[]; ms: number } | null = null;
-    for (let attempt = 0; attempt < 6 && !chosen; attempt++) {
-      const s = pickRandomSong(playedSongsRef.current);
-      playedSongsRef.current.add(s.title.toLowerCase());
-      const results = await itunesSearch(s.query);
-      const best = pickBestPreview(results, { answer: s.title, category: 'music', query: s.query });
-      if (!best) continue;
-      const ly = await fetchMimicLyrics(best.trackName || s.title, best.artistName || s.artist);
-      if (!ly.lines.length) continue;
-      chosen = {
-        song: { title: s.title, artist: best.artistName || s.artist, artwork: best.artworkUrl, previewUrl: best.previewUrl },
-        lines: pickExtractLines(ly.lines, 8),
-        ms: DEFAULT_EXTRACT_MS,
-      };
-    }
-    if (!mountedRef.current) return;
-    if (!chosen) { setStarting(false); startedRef.current = false; return; }
-
-    resultsRef.current = {};
-    setResults({});
-
-    // PREVIEW (everyone listens, no mic)
-    const previewStart = Date.now() + SYNC_BUFFER_MS + clockOffsetRef.current;
-    broadcast({ phase: 'preview', song: chosen.song, lyrics: chosen.lines, extractMs: chosen.ms, order: ord, totalTurns: ord.length, startAt: previewStart });
-    await wait(SYNC_BUFFER_MS + chosen.ms + 1200);
-    if (!mountedRef.current) return;
-
-    // PERFORM turns
-    for (let i = 0; i < ord.length; i++) {
-      const startAt = Date.now() + SYNC_BUFFER_MS + COUNTDOWN_MS + clockOffsetRef.current;
-      broadcast({ phase: 'perform', song: chosen.song, lyrics: chosen.lines, extractMs: chosen.ms, order: ord, singerId: ord[i], turnIndex: i, totalTurns: ord.length, startAt });
-      // wait: buffer + countdown + extract + grace for the singer's 'final'
-      await wait(SYNC_BUFFER_MS + COUNTDOWN_MS + chosen.ms + 1600);
-      if (!mountedRef.current) return;
-      // ensure a result exists (default modest score if singer had no mic / left)
-      if (!resultsRef.current[ord[i]]) {
-        resultsRef.current[ord[i]] = { mimic: 0, sub: { paroles: 0, justesse: 0, rythme: 0, synchro: 0, dynamique: 0, stabilite: 0 } };
+      // fetch a playable song with lyrics (try a few). Each network call below
+      // already has its own hard timeout (itunes ~8s, lrclib ~6s), but we also
+      // cap the whole search so a slow/flaky network never freezes the host
+      // on "Préparation…" forever.
+      let chosen: { song: Song; lines: LyricLine[]; ms: number } | null = null;
+      for (let attempt = 0; attempt < 6 && !chosen && mountedRef.current; attempt++) {
+        const s = pickRandomSong(playedSongsRef.current);
+        playedSongsRef.current.add(s.title.toLowerCase());
+        try {
+          const results = await itunesSearch(s.query);
+          const best = pickBestPreview(results, { answer: s.title, category: 'music', query: s.query });
+          if (!best) continue;
+          const ly = await fetchMimicLyrics(best.trackName || s.title, best.artistName || s.artist);
+          if (!ly.lines.length) continue;
+          chosen = {
+            song: { title: s.title, artist: best.artistName || s.artist, artwork: best.artworkUrl, previewUrl: best.previewUrl },
+            lines: pickExtractLines(ly.lines, 8),
+            ms: DEFAULT_EXTRACT_MS,
+          };
+        } catch { /* try the next song */ }
       }
-      await wait(700);
-    }
+      if (!mountedRef.current) return;
+      if (!chosen) { setSearchFailed(true); return; }
 
-    if (!mountedRef.current) return;
-    broadcast({ phase: 'results', results: { ...resultsRef.current } });
+      resultsRef.current = {};
+      setResults({});
+
+      // PREVIEW (everyone listens, no mic)
+      const previewStart = Date.now() + SYNC_BUFFER_MS + clockOffsetRef.current;
+      broadcast({ phase: 'preview', song: chosen.song, lyrics: chosen.lines, extractMs: chosen.ms, order: ord, totalTurns: ord.length, startAt: previewStart });
+      await wait(SYNC_BUFFER_MS + chosen.ms + 1200);
+      if (!mountedRef.current) return;
+
+      // PERFORM turns
+      for (let i = 0; i < ord.length; i++) {
+        const startAt = Date.now() + SYNC_BUFFER_MS + COUNTDOWN_MS + clockOffsetRef.current;
+        broadcast({ phase: 'perform', song: chosen.song, lyrics: chosen.lines, extractMs: chosen.ms, order: ord, singerId: ord[i], turnIndex: i, totalTurns: ord.length, startAt });
+        // wait: buffer + countdown + extract + grace for the singer's 'final'
+        await wait(SYNC_BUFFER_MS + COUNTDOWN_MS + chosen.ms + 1600);
+        if (!mountedRef.current) return;
+        // ensure a result exists (default modest score if singer had no mic / left)
+        if (!resultsRef.current[ord[i]]) {
+          resultsRef.current[ord[i]] = { mimic: 0, sub: { paroles: 0, justesse: 0, rythme: 0, synchro: 0, dynamique: 0, stabilite: 0 } };
+        }
+        await wait(700);
+      }
+
+      if (!mountedRef.current) return;
+      broadcast({ phase: 'results', results: { ...resultsRef.current } });
+    } catch {
+      // Any unexpected error (network throw, etc.) must never leave the host
+      // stuck on "Préparation…" with no feedback.
+      if (mountedRef.current) setSearchFailed(true);
+    } finally {
+      if (mountedRef.current) { setStarting(false); startedRef.current = false; }
+    }
   }, [players, broadcast]);
 
   const startGame = useCallback(async () => {
     if (startedRef.current) return;
     startedRef.current = true;
     setStarting(true);
+    setSearchFailed(false);
     // unlock audio on this gesture
     try { const el = mediaRef.current; if (el) { el.muted = true; await el.play().catch(() => {}); el.pause(); el.muted = muted; } } catch { /* noop */ }
     await runGame();
@@ -517,12 +532,17 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
                   className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-black text-2xl text-white"
                   style={{ background: channelReady && !starting ? MIMIC_SPECTRUM : 'rgba(255,255,255,0.06)', boxShadow: channelReady && !starting ? `0 12px 40px ${MIMIC.magenta}55` : 'none', cursor: channelReady && !starting ? 'pointer' : 'not-allowed', opacity: channelReady && !starting ? 1 : 0.5 }}>
                   {starting ? <Loader2 className="w-7 h-7 animate-spin" /> : <Play className="w-7 h-7 fill-white" />}
-                  {starting ? 'Préparation…' : 'LANCER'}
+                  {starting ? 'Préparation…' : searchFailed ? 'RÉESSAYER' : 'LANCER'}
                 </motion.button>
               ) : (
                 <p className="text-lg font-bold" style={{ color: MIMIC.sub }}>En attente de l'hôte…</p>
               )}
-              {starting && <p className="text-xs -mt-2" style={{ color: MIMIC.sub }}>Recherche d'une chanson avec paroles…</p>}
+              {starting && <p className="text-xs -mt-2" style={{ color: MIMIC.sub }}>Recherche d'une chanson avec paroles… (max ~1 min)</p>}
+              {!starting && searchFailed && (
+                <p className="flex items-center gap-2 text-sm font-bold -mt-2" style={{ color: MIMIC.rose }}>
+                  <AlertTriangle className="w-4 h-4" /> Aucune chanson trouvée (réseau lent ou bloqué). Réessaie.
+                </p>
+              )}
             </motion.div>
           )}
 

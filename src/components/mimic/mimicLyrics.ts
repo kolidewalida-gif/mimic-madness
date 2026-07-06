@@ -61,9 +61,16 @@ export async function fetchMimicLyrics(trackName: string, artistName: string): P
 
   const tryGet = async (url: string): Promise<any | null> => {
     try {
-      const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-      if (!r.ok) return null;
-      return await r.json();
+      // Hard timeout: some networks silently stall requests to lrclib.net
+      // (firewall/extension/DNS), which would otherwise hang `fetch` forever
+      // and freeze the "searching for a song" loop indefinitely.
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6000);
+      try {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json' }, signal: ctrl.signal });
+        if (!r.ok) return null;
+        return await r.json();
+      } finally { clearTimeout(timer); }
     } catch { return null; }
   };
 
