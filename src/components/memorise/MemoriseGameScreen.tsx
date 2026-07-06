@@ -98,6 +98,10 @@ interface PhasePayload {
   /** playerId -> average reaction time (ms) across all answered rounds,
    *  sent with the final phase so everyone sees everyone's average speed. */
   avgReaction?: Record<string, number>;
+  /** When set, only the client with this id should apply the payload (used for
+   *  resync so re-sending the current phase to a late joiner doesn't disrupt
+   *  players already in the round). */
+  targetId?: string;
 }
 
 /** Buffer used by the host to schedule a synchronized listen start on all clients. */
@@ -197,6 +201,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const [avgReaction, setAvgReaction] = useState<Record<string, number>>({});
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const lastPhaseRef = useRef<PhasePayload | null>(null);
   const answersRef = useRef<Record<string, { choice: number; elapsed: number }>>({});
   const scoreRef = useRef<Record<string, number>>({});
   const streakRef = useRef<Record<string, number>>({});
@@ -317,6 +322,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
   /* ---------- apply phase (everyone) ---------- */
   const applyPhase = useCallback((p: PhasePayload) => {
+    // Targeted resync payload → ignore on everyone but the intended late joiner.
+    if (p.targetId && p.targetId !== currentPlayer.id) return;
     setPhase(p.phase);
     setRoundIndex(p.roundIndex);
     if (p.totalRounds != null) setTotalRounds(p.totalRounds);
@@ -415,7 +422,22 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           clockOffsetRef.current = (r.hostNow + rtt / 2) - now;
         }
       })
-      .subscribe((status) => { if (status === 'SUBSCRIBED') setChannelReady(true); });
+      // Late-join resync: a newcomer asks the host for the current phase; the
+      // host replies with the last payload TARGETED to that client so players
+      // already mid-round aren't disrupted.
+      .on('broadcast', { event: 'resync' }, ({ payload }) => {
+        if (!isHost) return;
+        const q = payload as { clientId: string };
+        if (lastPhaseRef.current && q.clientId) {
+          channelRef.current?.send({ type: 'broadcast', event: 'phase', payload: { ...lastPhaseRef.current, targetId: q.clientId } });
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setChannelReady(true);
+          if (!isHost) channel.send({ type: 'broadcast', event: 'resync', payload: { clientId: currentPlayer.id } });
+        }
+      });
 
     // Non-host: periodically ping the host to keep the clock offset fresh.
     let syncIv: ReturnType<typeof setInterval> | null = null;
@@ -444,6 +466,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   }, [lobbyId]);
 
   const broadcastPhase = useCallback((payload: PhasePayload) => {
+    lastPhaseRef.current = payload; // remembered so late joiners can be resynced
     channelRef.current?.send({ type: 'broadcast', event: 'phase', payload });
   }, []);
 

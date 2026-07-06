@@ -495,7 +495,32 @@ const Index = () => {
         playerId,
         playerName,
       });
-      setGameState("lobby");
+      // Route directly into a game already in progress (e.g. joining a running
+      // blindtest / mimic / other mode), instead of always dropping to the
+      // lobby screen. Mirrors the resume-session routing.
+      const lob = result.lobby as any;
+      const phase = lob?.game_phase;
+      const mode = lob?.game_mode;
+      if (mode) setGameMode(mode as GameMode);
+      if (phase === 'playing') {
+        setGameState(mode === 'memorise' ? 'memorise' : mode === 'mimic' ? 'mimic' : 'playing');
+      } else if (phase === 'preparation') {
+        setGameState('preparation');
+      } else if (phase === 'quiz') {
+        setGameState('quiz');
+      } else if (phase === 'audiophone') {
+        setGameState('audiophone');
+      } else if (phase === 'pixoguess') {
+        setGameState('pixoguess');
+      } else if (phase === 'monopoly') {
+        setGameState('monopoly');
+      } else if (phase === 'undercover') {
+        setGameState('undercover');
+      } else if (phase === 'memorise') {
+        setGameState('memorise');
+      } else {
+        setGameState("lobby");
+      }
     } else {
       playSoundEffect('error', 0.4);
       setCurrentPlayer(null);
