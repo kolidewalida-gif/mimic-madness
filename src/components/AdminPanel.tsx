@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, X, Gift, Trophy, Zap, Star, ChevronUp, Loader2 } from 'lucide-react';
+import { Shield, X, Gift, Zap, ChevronUp, Loader2, Sparkles } from 'lucide-react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { AdminSuperPanel } from './AdminSuperPanel';
 
 export const AdminPanel = () => {
   const { isAdmin, isLoading, giveAllRewards, giveAllAchievements, setLevel, setStats } = useAdmin();
   const [isOpen, setIsOpen] = useState(false);
+  const [superOpen, setSuperOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [levelInput, setLevelInput] = useState('30');
 
@@ -96,6 +98,13 @@ export const AdminPanel = () => {
 
               <div className="p-3 space-y-2">
                 <AdminBtn
+                  icon={Sparkles}
+                  label="Super Panel (bans, annonces, lobbies)"
+                  onClick={() => { setIsOpen(false); setSuperOpen(true); }}
+                  disabled={isBusy}
+                  className="!bg-destructive/10 !border-destructive/40 text-destructive"
+                />
+                <AdminBtn
                   icon={Gift}
                   label="Débloquer tout (récomp + succès)"
                   onClick={handleGiveAll}
@@ -130,6 +139,10 @@ export const AdminPanel = () => {
             </motion.div>
           </>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {superOpen && <AdminSuperPanel onClose={() => setSuperOpen(false)} />}
       </AnimatePresence>
     </>
   );
