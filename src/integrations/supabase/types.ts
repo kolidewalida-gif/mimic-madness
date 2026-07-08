@@ -14,6 +14,32 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcement_acks: {
+        Row: {
+          acked_at: string
+          announcement_id: string
+          user_id: string
+        }
+        Insert: {
+          acked_at?: string
+          announcement_id: string
+          user_id: string
+        }
+        Update: {
+          acked_at?: string
+          announcement_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_acks_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "global_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audio_phone_imitations: {
         Row: {
           created_at: string
@@ -382,6 +408,36 @@ export type Database = {
           },
         ]
       }
+      global_announcements: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          message: string
+          severity: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          message: string
+          severity?: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          message?: string
+          severity?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       imitation_votes: {
         Row: {
           created_at: string
@@ -461,6 +517,8 @@ export type Database = {
           connection_status: string
           disconnected_at: string | null
           id: string
+          is_admin: boolean
+          is_ghost: boolean
           is_host: boolean
           joined_at: string
           lobby_id: string
@@ -471,6 +529,8 @@ export type Database = {
           connection_status?: string
           disconnected_at?: string | null
           id?: string
+          is_admin?: boolean
+          is_ghost?: boolean
           is_host?: boolean
           joined_at?: string
           lobby_id: string
@@ -481,6 +541,8 @@ export type Database = {
           connection_status?: string
           disconnected_at?: string | null
           id?: string
+          is_admin?: boolean
+          is_ghost?: boolean
           is_host?: boolean
           joined_at?: string
           lobby_id?: string
@@ -1625,6 +1687,45 @@ export type Database = {
           },
         ]
       }
+      user_bans: {
+        Row: {
+          ban_type: Database["public"]["Enums"]["ban_type"]
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          reason: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          user_id: string
+        }
+        Insert: {
+          ban_type: Database["public"]["Enums"]["ban_type"]
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          user_id: string
+        }
+        Update: {
+          ban_type?: Database["public"]["Enums"]["ban_type"]
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1739,6 +1840,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_join_lobby: {
+        Args: {
+          p_display_name: string
+          p_ghost: boolean
+          p_lobby_id: string
+          p_player_id: string
+        }
+        Returns: boolean
+      }
       archive_undercover_clues: {
         Args: { p_game_id: string }
         Returns: undefined
@@ -1766,6 +1876,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_user_banned: {
+        Args: {
+          _type: Database["public"]["Enums"]["ban_type"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       publish_social_post: {
         Args: {
           p_caption: string
@@ -1778,6 +1895,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      ban_type: "global" | "chat" | "lobby" | "mute"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1906,6 +2024,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      ban_type: ["global", "chat", "lobby", "mute"],
     },
   },
 } as const
