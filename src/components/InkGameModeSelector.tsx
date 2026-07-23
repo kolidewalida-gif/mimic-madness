@@ -1,5 +1,5 @@
 import { LobbyGameMode } from '@/lib/gameModes';
-import { Phone, Copy, Swords, Brain, Zap, Landmark, UserX } from 'lucide-react';
+import { Phone, Copy, Swords, Brain, Zap, Landmark, UserX, Music, Mic2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -68,6 +68,20 @@ const GAME_MODES: GameModeInfo[] = [
     icon: <UserX className="w-5 h-5" />,
     description: 'Démasque l\'imposteur',
     minPlayers: 3,
+  },
+  {
+    id: 'memorise',
+    name: 'Blindtest',
+    icon: <Music className="w-5 h-5" />,
+    description: 'Devine les chansons et bandes originales',
+    minPlayers: 2,
+  },
+  {
+    id: 'mimic',
+    name: 'Mimic',
+    icon: <Mic2 className="w-5 h-5" />,
+    description: 'Karaoké compétitif',
+    minPlayers: 2,
   },
 ];
 

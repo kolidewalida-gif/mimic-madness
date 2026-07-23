@@ -51,7 +51,7 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
         <span id="admin-super-panel-title" className="font-bold flex items-center gap-2">
           <Shield className="w-5 h-5" /> Admin Super Panel
         </span>
-        <button type="button" onClick={onClose} aria-label="Fermer le panneau administrateur"><X className="w-5 h-5" /></button>
+        <button type="button" data-back onClick={onClose} aria-label="Fermer le panneau administrateur"><X className="w-5 h-5" /></button>
       </div>
 
       <div className="flex border-b border-border">
@@ -91,7 +91,7 @@ const BansTab = () => {
   const [banType, setBanType] = useState<BanType>('chat');
   const [durationH, setDurationH] = useState<number | null>(24);
   const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
   const [activeBans, setActiveBans] = useState<any[]>([]);
 
   const search = async (q: string) => {
@@ -117,8 +117,8 @@ const BansTab = () => {
   useEffect(() => { loadActive(); }, []);
 
   const applyBan = async () => {
-    if (!selected || !user?.id) return;
-    setBusy(true);
+    if (!selected || !user?.id || busyAction) return;
+    setBusyAction('apply');
     const expires_at = durationH === null ? null : new Date(Date.now() + durationH * 3_600_000).toISOString();
     const { error } = await supabase.from('user_bans').insert({
       user_id: selected.user_id,
@@ -127,7 +127,7 @@ const BansTab = () => {
       expires_at,
       created_by: user.id,
     });
-    setBusy(false);
+    setBusyAction(null);
     if (error) return toast.error(error.message);
     toast.success(`${selected.display_name} banni (${BAN_LABELS[banType]})`);
     setReason('');
@@ -138,11 +138,13 @@ const BansTab = () => {
   };
 
   const revoke = async (id: string) => {
-    if (!user?.id) return;
+    if (!user?.id || busyAction) return;
+    setBusyAction(`revoke:${id}`);
     const { error } = await supabase
       .from('user_bans')
       .update({ revoked_at: new Date().toISOString(), revoked_by: user.id })
       .eq('id', id);
+    setBusyAction(null);
     if (error) return toast.error(error.message);
     toast.success('Ban levé');
     loadActive();
@@ -219,11 +221,13 @@ const BansTab = () => {
         />
 
         <button
+          type="button"
           onClick={applyBan}
-          disabled={!selected || busy}
-          className="w-full py-2 rounded-lg bg-destructive text-destructive-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+          disabled={!selected || busyAction !== null}
+          aria-busy={busyAction === 'apply'}
+          className="menu-action w-full py-2 rounded-lg bg-destructive text-destructive-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
         >
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
+          {busyAction === 'apply' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
           Bannir
         </button>
       </div>
@@ -249,11 +253,15 @@ const BansTab = () => {
                 {b.reason && <div className="text-xs text-muted-foreground mt-1 italic">« {b.reason} »</div>}
               </div>
               <button
+                type="button"
                 onClick={() => revoke(b.id)}
-                className="p-2 rounded-lg hover:bg-destructive/20 text-destructive"
+                disabled={busyAction !== null}
+                aria-busy={busyAction === `revoke:${b.id}`}
+                className="menu-icon-control p-2 rounded-lg hover:bg-destructive/20 text-destructive disabled:opacity-50"
                 title="Lever le ban"
+                aria-label="Lever le ban"
               >
-                <Trash2 className="w-4 h-4" />
+                {busyAction === `revoke:${b.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               </button>
             </div>
           ))}
@@ -270,7 +278,7 @@ const AnnounceTab = () => {
   const [message, setMessage] = useState('');
   const [severity, setSeverity] = useState('info');
   const [expiresH, setExpiresH] = useState<number | null>(24);
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
   const [recent, setRecent] = useState<any[]>([]);
 
   const load = async () => {
@@ -284,8 +292,8 @@ const AnnounceTab = () => {
   useEffect(() => { load(); }, []);
 
   const send = async () => {
-    if (!message.trim() || !user?.id) return;
-    setBusy(true);
+    if (!message.trim() || !user?.id || busyAction) return;
+    setBusyAction('send');
     const expires_at = expiresH === null ? null : new Date(Date.now() + expiresH * 3_600_000).toISOString();
     const { error } = await supabase.from('global_announcements').insert({
       title: title.trim() || null,
@@ -294,7 +302,7 @@ const AnnounceTab = () => {
       created_by: user.id,
       expires_at,
     });
-    setBusy(false);
+    setBusyAction(null);
     if (error) return toast.error(error.message);
     toast.success('Annonce envoyée à tous les joueurs');
     setTitle(''); setMessage('');
@@ -302,7 +310,10 @@ const AnnounceTab = () => {
   };
 
   const remove = async (id: string) => {
+    if (busyAction) return;
+    setBusyAction(`remove:${id}`);
     const { error } = await supabase.from('global_announcements').delete().eq('id', id);
+    setBusyAction(null);
     if (error) return toast.error(error.message);
     toast.success('Annonce supprimée');
     load();
@@ -348,11 +359,13 @@ const AnnounceTab = () => {
           </select>
         </div>
         <button
+          type="button"
           onClick={send}
-          disabled={busy || !message.trim()}
-          className="w-full py-2 rounded-lg bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+          disabled={busyAction !== null || !message.trim()}
+          aria-busy={busyAction === 'send'}
+          className="menu-action w-full py-2 rounded-lg bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
         >
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Megaphone className="w-4 h-4" />}
+          {busyAction === 'send' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Megaphone className="w-4 h-4" />}
           Envoyer à tous
         </button>
       </div>
@@ -374,10 +387,14 @@ const AnnounceTab = () => {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => remove(a.id)}
-                className="p-2 rounded-lg hover:bg-destructive/20 text-destructive"
+                disabled={busyAction !== null}
+                aria-busy={busyAction === `remove:${a.id}`}
+                className="menu-icon-control p-2 rounded-lg hover:bg-destructive/20 text-destructive disabled:opacity-50"
+                aria-label="Supprimer l'annonce"
               >
-                <Trash2 className="w-4 h-4" />
+                {busyAction === `remove:${a.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               </button>
             </div>
           ))}
@@ -392,6 +409,7 @@ const LobbiesTab = ({ onClose }: { onClose: () => void }) => {
   const { user } = useAuth();
   const [lobbies, setLobbies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -406,7 +424,8 @@ const LobbiesTab = ({ onClose }: { onClose: () => void }) => {
   useEffect(() => { load(); }, []);
 
   const joinAs = async (lobby: any, ghost: boolean) => {
-    if (!user?.id) return;
+    if (!user?.id || joiningId) return;
+    setJoiningId(`${lobby.id}:${ghost ? 'ghost' : 'visible'}`);
     const { data: profile } = await supabase
       .from('profiles').select('display_name').eq('user_id', user.id).maybeSingle();
     const displayName = ghost ? '👁️ ADMIN' : (profile?.display_name ?? 'ADMIN');
@@ -416,7 +435,10 @@ const LobbiesTab = ({ onClose }: { onClose: () => void }) => {
       p_display_name: displayName,
       p_ghost: ghost,
     } as any);
-    if (error) return toast.error(error.message);
+    if (error) {
+      setJoiningId(null);
+      return toast.error(error.message);
+    }
     localStorage.setItem('lovable_admin_lobby_code', lobby.code);
     toast.success(`Rejoint ${lobby.code} (${ghost ? 'fantôme' : 'visible'})`);
     onClose();
@@ -443,16 +465,22 @@ const LobbiesTab = ({ onClose }: { onClose: () => void }) => {
           </div>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={() => joinAs(l, true)}
-              className="flex-1 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-muted flex items-center justify-center gap-1"
+              disabled={joiningId !== null}
+              aria-busy={joiningId === `${l.id}:ghost`}
+              className="menu-action flex-1 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-muted flex items-center justify-center gap-1 disabled:opacity-50"
             >
-              <Ghost className="w-3.5 h-3.5" /> Fantôme
+              {joiningId === `${l.id}:ghost` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ghost className="w-3.5 h-3.5" />} Fantôme
             </button>
             <button
+              type="button"
               onClick={() => joinAs(l, false)}
-              className="flex-1 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 flex items-center justify-center gap-1"
+              disabled={joiningId !== null}
+              aria-busy={joiningId === `${l.id}:visible`}
+              className="menu-action flex-1 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 flex items-center justify-center gap-1 disabled:opacity-50"
             >
-              <LogIn className="w-3.5 h-3.5" /> Rejoindre
+              {joiningId === `${l.id}:visible` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />} Rejoindre
             </button>
           </div>
         </div>

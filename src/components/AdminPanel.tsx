@@ -10,53 +10,64 @@ export const AdminPanel = () => {
   const { isAdmin, isLoading, giveAllRewards, giveAllAchievements, setLevel, setStats } = useAdmin();
   const [isOpen, setIsOpen] = useState(false);
   const [superOpen, setSuperOpen] = useState(false);
-  const [isBusy, setIsBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<'rewards' | 'level' | 'stats' | null>(null);
   const [levelInput, setLevelInput] = useState('30');
 
   if (isLoading || !isAdmin) return null;
 
   const handleGiveAll = async () => {
-    setIsBusy(true);
-    const [r1, r2] = await Promise.all([
-      giveAllRewards(),
-      giveAllAchievements(),
-    ]);
-    if (r1 && r2) {
-      toast.success('Toutes les récompenses et succès débloqués !');
-    } else {
-      toast.error('Erreur partielle');
+    if (busyAction) return;
+    setBusyAction('rewards');
+    try {
+      const [r1, r2] = await Promise.all([
+        giveAllRewards(),
+        giveAllAchievements(),
+      ]);
+      if (r1 && r2) {
+        toast.success('Toutes les récompenses et succès débloqués !');
+      } else {
+        toast.error('Erreur partielle');
+      }
+    } finally {
+      setBusyAction(null);
     }
-    setIsBusy(false);
   };
 
   const handleSetLevel = async () => {
-    setIsBusy(true);
+    if (busyAction) return;
     const lvl = parseInt(levelInput);
-    if (lvl >= 1 && lvl <= 30) {
+    if (lvl < 1 || lvl > 30) return;
+    setBusyAction('level');
+    try {
       const ok = await setLevel(lvl);
       if (ok) toast.success(`Niveau défini à ${lvl}`);
       else toast.error('Erreur');
+    } finally {
+      setBusyAction(null);
     }
-    setIsBusy(false);
   };
 
   const handleMaxStats = async () => {
-    setIsBusy(true);
-    const ok = await setStats({
-      games_played: 999,
-      games_won: 888,
-      current_streak: 50,
-      best_streak: 50,
-      games_hosted: 200,
-      messages_sent: 5000,
-      recordings_made: 500,
-      quiz_games: 300,
-      audio_phone_games: 200,
-      standard_games: 200,
-    });
-    if (ok) toast.success('Stats maximisées !');
-    else toast.error('Erreur');
-    setIsBusy(false);
+    if (busyAction) return;
+    setBusyAction('stats');
+    try {
+      const ok = await setStats({
+        games_played: 999,
+        games_won: 888,
+        current_streak: 50,
+        best_streak: 50,
+        games_hosted: 200,
+        messages_sent: 5000,
+        recordings_made: 500,
+        quiz_games: 300,
+        audio_phone_games: 200,
+        standard_games: 200,
+      });
+      if (ok) toast.success('Stats maximisées !');
+      else toast.error('Erreur');
+    } finally {
+      setBusyAction(null);
+    }
   };
 
   return (
@@ -98,7 +109,7 @@ export const AdminPanel = () => {
                 <span id="admin-panel-title" className="font-bold flex items-center gap-2">
                   <Shield className="w-4 h-4" /> Admin Panel
                 </span>
-                <button type="button" onClick={() => setIsOpen(false)} aria-label="Fermer le panneau administrateur">
+                <button type="button" data-back onClick={() => setIsOpen(false)} aria-label="Fermer le panneau administrateur">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -108,14 +119,15 @@ export const AdminPanel = () => {
                   icon={Sparkles}
                   label="Super Panel (bans, annonces, lobbies)"
                   onClick={() => { setIsOpen(false); setSuperOpen(true); }}
-                  disabled={isBusy}
+                  disabled={busyAction !== null}
                   className="!bg-destructive/10 !border-destructive/40 text-destructive"
                 />
                 <AdminBtn
                   icon={Gift}
                   label="Débloquer tout (récomp + succès)"
                   onClick={handleGiveAll}
-                  disabled={isBusy}
+                  disabled={busyAction !== null}
+                  loading={busyAction === 'rewards'}
                 />
 
                 <div className="flex gap-2 items-center">
@@ -131,7 +143,8 @@ export const AdminPanel = () => {
                     icon={ChevronUp}
                     label={`Set niveau ${levelInput}`}
                     onClick={handleSetLevel}
-                    disabled={isBusy}
+                    disabled={busyAction !== null}
+                    loading={busyAction === 'level'}
                     className="flex-1"
                   />
                 </div>
@@ -140,7 +153,8 @@ export const AdminPanel = () => {
                   icon={Zap}
                   label="Max stats (999 parties, etc.)"
                   onClick={handleMaxStats}
-                  disabled={isBusy}
+                  disabled={busyAction !== null}
+                  loading={busyAction === 'stats'}
                 />
               </div>
             </motion.div>
@@ -155,20 +169,22 @@ export const AdminPanel = () => {
   );
 };
 
-const AdminBtn = ({ icon: Icon, label, onClick, disabled, className }: {
-  icon: any; label: string; onClick: () => void; disabled: boolean; className?: string;
+const AdminBtn = ({ icon: Icon, label, onClick, disabled, loading = false, className }: {
+  icon: any; label: string; onClick: () => void; disabled: boolean; loading?: boolean; className?: string;
 }) => (
   <button
+    type="button"
     onClick={onClick}
     disabled={disabled}
+    aria-busy={loading}
     className={cn(
-      "w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg",
+      "menu-action w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg",
       "bg-background hover:bg-muted border border-border transition-colors",
       "disabled:opacity-50 disabled:cursor-not-allowed",
       className
     )}
   >
-    {disabled ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Icon className="w-3.5 h-3.5 text-destructive" />}
+    {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Icon className="w-3.5 h-3.5 text-destructive" />}
     {label}
   </button>
 );

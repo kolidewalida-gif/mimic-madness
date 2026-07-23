@@ -616,7 +616,7 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
               {phase === 'perform' && !isMeSinging && (
                 <div className="flex gap-2">
                   {['👏', '🔥', '😂', '❤️', '⭐', '🎉'].map((e) => (
-                    <button key={e} onClick={() => sendReaction(e)} className="w-10 h-10 rounded-full text-xl flex items-center justify-center hover:scale-110 transition-transform" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${MIMIC.hair}` }}>{e}</button>
+                    <button key={e} type="button" onClick={() => sendReaction(e)} className="menu-icon-control w-11 h-11 rounded-full text-xl flex items-center justify-center hover:scale-110 transition-transform" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${MIMIC.hair}` }} aria-label={`Réagir ${e}`}>{e}</button>
                   ))}
                 </div>
               )}

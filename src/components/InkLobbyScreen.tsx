@@ -107,8 +107,8 @@ const MODE_CARDS: ModeCard[] = [
   },
   {
     id: 'pixoguess',
-    label: 'BLIND TEST',
-    tagline: 'Devine la musique',
+    label: 'BLURRUSH',
+    tagline: "Devine l'image le plus vite possible",
     imageCandidates: ['/lobby/cards/blindtest.png', '/lobby/cards/blindtest.jpg'],
     fallbackEmoji: '🎧',
     fallbackColor: '#06b6d4',
@@ -740,6 +740,8 @@ export const InkLobbyScreen = ({
 
           {/* QUITTER */}
           <motion.button
+            type="button"
+            data-back={showLeaveConfirm ? undefined : true}
             onClick={() => {
               playInkSound('cartoonSwoosh', 0.3);
               setShowLeaveConfirm(true);
@@ -765,7 +767,7 @@ export const InkLobbyScreen = ({
         </aside>
 
         {/* MAIN CONTENT — Hero header + Mode grid + PRÊT button */}
-        <main className="flex flex-col min-h-max md:min-h-0 overflow-visible md:overflow-hidden gap-3">
+        <main className="flex flex-col min-h-[40rem] md:min-h-0 overflow-visible md:overflow-hidden gap-3">
           {/* Hero mode banner */}
           <AnimatePresence mode="wait">
             <motion.div
@@ -839,8 +841,9 @@ export const InkLobbyScreen = ({
                   onClick={handleShareLink}
                   whileHover={{ scale: 1.06, rotate: -8 }}
                   whileTap={{ scale: 0.94 }}
-                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
+                  className="menu-icon-control w-11 h-11 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
                   title="Partager le lien (L)"
+                  aria-label="Partager le lien"
                 >
                   {linkShared ? (
                     <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -855,8 +858,9 @@ export const InkLobbyScreen = ({
                   }}
                   whileHover={{ scale: 1.1, rotate: -10 }}
                   whileTap={{ scale: 0.92 }}
-                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
+                  className="menu-icon-control w-11 h-11 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
                   title="Raccourcis (?)"
+                  aria-label="Afficher les raccourcis clavier"
                 >
                   <span
                     className="text-base font-black"
@@ -872,8 +876,9 @@ export const InkLobbyScreen = ({
                   }}
                   whileHover={{ rotate: 90 }}
                   whileTap={{ scale: 0.96 }}
-                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
+                  className="menu-icon-control w-11 h-11 rounded-xl bg-white/10 hover:bg-white/15 border-2 border-white/20 hover:border-white/40 flex items-center justify-center text-white/70 hover:text-white transition-all"
                   title="Paramètres (S)"
+                  aria-label="Ouvrir les paramètres"
                 >
                   <Settings className="w-3.5 h-3.5" />
                 </motion.button>
@@ -907,9 +912,7 @@ export const InkLobbyScreen = ({
             <CardFanCarousel
               cards={fanCards}
               selectedIndex={selectedFanIndex}
-              onCardClick={(i) => {
-                if (isHost) handleGameModeChange(MODE_CARDS[i].id);
-              }}
+              onCardClick={isHost ? (i) => handleGameModeChange(MODE_CARDS[i].id) : undefined}
             />
           </div>
 
@@ -1152,6 +1155,7 @@ export const InkLobbyScreen = ({
                 <div className="flex gap-3">
                   <motion.button
                     type="button"
+                    data-back
                     whileHover={{ scale: 1.04, rotate: -2 }}
                     whileTap={{ scale: 0.96 }}
                     onClick={() => setShowLeaveConfirm(false)}

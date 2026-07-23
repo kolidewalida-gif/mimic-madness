@@ -352,7 +352,9 @@ export default function SocialCards({ cards, onCardClick, selectedIndex }: Socia
               </div>
             );
 
-            const commonClass = `fan-card ${onCardClick || card.linkUrl ? "cursor-pointer" : ""}`;
+            const interactive = Boolean(onCardClick || card.linkUrl);
+            const commonClass = `fan-card menu-focus ${interactive ? "cursor-pointer" : "cursor-default"}`;
+            const accessibleName = card.alt || card.label || `Mode ${index + 1}`;
 
             return card.linkUrl ? (
               <a
@@ -360,14 +362,24 @@ export default function SocialCards({ cards, onCardClick, selectedIndex }: Socia
                 href={card.linkUrl}
                 target={card.linkUrl.startsWith("http") ? "_blank" : "_self"}
                 rel="noopener noreferrer"
+                aria-label={accessibleName}
+                aria-current={isSelected ? "true" : undefined}
                 className={`${commonClass} block`}
               >
                 {inner}
               </a>
             ) : (
-              <div key={index} className={commonClass} onClick={() => onCardClick?.(index)}>
+              <button
+                key={index}
+                type="button"
+                className={`${commonClass} block border-0 bg-transparent p-0 text-left`}
+                onClick={() => onCardClick?.(index)}
+                disabled={!onCardClick}
+                aria-label={accessibleName}
+                aria-pressed={isSelected}
+              >
                 {inner}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -375,15 +387,15 @@ export default function SocialCards({ cards, onCardClick, selectedIndex }: Socia
 
       {needsPagination && (
         <div className="flex items-center justify-center gap-4 mt-4 md:mt-6 z-30">
-          <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Previous">
+          <button type="button" className={`${ARROW_CLASSES} menu-focus w-11 h-11 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Mode précédent">
             {chevron("left")}
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" aria-hidden="true">
             {cards.map((_, i) => (
               <span key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === centerIndex ? "bg-white/80 scale-[1.3]" : "bg-white/15"}`} />
             ))}
           </div>
-          <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("right")} aria-label="Next">
+          <button type="button" className={`${ARROW_CLASSES} menu-focus w-11 h-11 md:w-12 md:h-12`} onClick={() => cycle("right")} aria-label="Mode suivant">
             {chevron("right")}
           </button>
         </div>

@@ -1,4 +1,4 @@
-import { Users, Swords, Brain, Check, Phone, Image, Landmark, UserX, Music } from "lucide-react";
+import { Users, Swords, Brain, Check, Phone, Image, Landmark, UserX, Music, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInkMode } from "@/hooks/useInkMode";
 import { LobbyGameMode } from "@/lib/gameModes";
@@ -26,6 +26,7 @@ export const GameModeSelector = ({
   const canPlayMonopoly = isAdmin || playerCount >= 2;
   const canPlayUndercover = isAdmin || playerCount >= 3;
   const canPlayMemorise = isAdmin || playerCount >= 2;
+  const canPlayMimic = isAdmin || playerCount >= 2;
 
   const modes = [
     {
@@ -106,6 +107,16 @@ export const GameModeSelector = ({
       canPlay: canPlayMemorise,
       color: 'from-fuchsia-500 to-purple-600',
       bgColor: 'bg-fuchsia-500',
+      inkColor: 'border-primary bg-primary text-primary-foreground',
+    },
+    {
+      id: 'mimic' as const,
+      name: 'Mimic',
+      subtitle: canPlayMimic ? 'Karaoké compétitif' : 'Min. 2',
+      icon: Mic2,
+      canPlay: canPlayMimic,
+      color: 'from-pink-500 to-violet-600',
+      bgColor: 'bg-pink-500',
       inkColor: 'border-primary bg-primary text-primary-foreground',
     },
   ];
