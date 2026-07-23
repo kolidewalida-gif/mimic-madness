@@ -5,7 +5,7 @@
  * 3D shadows, Caveat font with graffiti text-shadow).
  */
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const GRAFFITI_TEXT_SHADOW =
@@ -108,6 +108,8 @@ export const InkButton = ({
   onClick,
   color = '#a855f7',
   disabled = false,
+  loading = false,
+  loadingLabel = 'Chargement…',
   variant = 'filled',
   size = 'md',
   className,
@@ -117,11 +119,14 @@ export const InkButton = ({
   onClick?: () => void;
   color?: string;
   disabled?: boolean;
+  loading?: boolean;
+  loadingLabel?: string;
   variant?: 'filled' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   type?: 'button' | 'submit';
 }) => {
+  const isDisabled = disabled || loading;
   const sizeClass =
     size === 'sm'
       ? 'px-3 py-2 text-base'
@@ -132,13 +137,14 @@ export const InkButton = ({
     <motion.button
       type={type}
       onClick={onClick}
-      disabled={disabled}
-      whileHover={!disabled ? { scale: 1.04, rotate: -1.5 } : undefined}
-      whileTap={!disabled ? { scale: 0.96 } : undefined}
+      disabled={isDisabled}
+      aria-busy={loading}
+      whileHover={!isDisabled ? { scale: 1.04, rotate: -1.5 } : undefined}
+      whileTap={!isDisabled ? { scale: 0.96 } : undefined}
       className={cn(
-        'relative inline-flex items-center justify-center gap-2 rounded-2xl font-black leading-none transition-opacity',
+        'menu-focus relative inline-flex items-center justify-center gap-2 rounded-2xl font-black leading-none transition-opacity',
         sizeClass,
-        disabled && 'opacity-50 cursor-not-allowed',
+        isDisabled && 'opacity-50 cursor-not-allowed',
         className,
       )}
       style={{
@@ -156,7 +162,12 @@ export const InkButton = ({
         textShadow: variant === 'filled' ? GRAFFITI_TEXT_SHADOW_SM : undefined,
       }}
     >
-      {children}
+      {loading ? (
+        <span className="inline-flex items-center justify-center gap-2" role="status">
+          <Loader2 className="h-[1em] w-[1em] animate-spin" aria-hidden="true" />
+          {loadingLabel}
+        </span>
+      ) : children}
     </motion.button>
   );
 };

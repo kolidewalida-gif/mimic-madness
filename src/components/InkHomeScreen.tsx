@@ -396,7 +396,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   }, [friendCode]);
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[#0a0510] text-white relative overflow-hidden">
+    <div className="menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#0a0510] text-white relative overflow-hidden">
       {/* ============== BACKGROUND ============== */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Static background image */}
@@ -429,7 +429,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       </div>
 
       {/* ============== TOP BAR ============== */}
-      <header className="relative z-30 flex items-center justify-between px-6 py-4 flex-shrink-0">
+      <header className="relative z-30 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 gap-2 flex-shrink-0">
         {/* PROFILE PILL */}
         <motion.button
           onClick={() => {
@@ -461,7 +461,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               )}
             </div>
           </div>
-          <div className="text-left">
+          <div className="text-left hidden sm:block">
             <div className="flex items-center gap-1">
               <ImageWithFallback
                 src={['/home/buttons/profil.png']}
@@ -500,7 +500,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           <ImageWithFallback
             src={['/home/logo.png', '/lobby/logo.png']}
             alt="C2TV MIMIC MASTER"
-            className="h-20 md:h-24 w-auto select-none"
+            className="h-14 sm:h-20 md:h-24 w-auto max-w-[32vw] sm:max-w-none select-none"
             style={{ filter: 'drop-shadow(0 4px 12px rgba(168,85,247,0.5))' }}
             fallback={
               <div className="text-center">
@@ -538,7 +538,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         </div>
 
         {/* RIGHT — NAV BUTTONS (amis / social / paramètres) */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1 sm:gap-2.5">
           {/* MES AMIS */}
           <motion.button
             onClick={() => {

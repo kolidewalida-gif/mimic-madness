@@ -102,12 +102,14 @@ export const InkGameModeSelector = ({
           return (
             <motion.button
               key={mode.id}
+              type="button"
               onClick={() => !isDisabled && handleSelect(mode.id)}
               whileHover={!isDisabled ? { x: 4 } : undefined}
               whileTap={!isDisabled ? { scale: 0.98 } : undefined}
               disabled={isDisabled}
+              aria-pressed={isSelected}
               className={cn(
-                'w-full text-left px-4 py-3 rounded-lg transition-all duration-300',
+                'menu-focus w-full text-left px-4 py-3 rounded-lg transition-all duration-300',
                 'border-l-4 flex items-center gap-3',
                 isSelected
                   ? 'border-primary bg-primary/15 text-primary'

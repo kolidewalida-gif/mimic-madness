@@ -2241,3 +2241,61 @@ html.low-power .mix-blend-plus-lighter {
   /* comfortable reading size for lyrics / long text on tablets */
   .custom-scrollbar { scrollbar-width: thin; }
 }
+
+/* ===== Shared menu behaviour (opt-in, keeps each mode's own visual identity) ===== */
+.menu-surface :where(button, a[href], [role="button"]):focus-visible,
+.menu-dialog :where(button, a[href], input, select, textarea, [role="button"]):focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
+
+.menu-surface :where(button:disabled, [aria-disabled="true"]),
+.menu-dialog :where(button:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+}
+
+.menu-surface :where([aria-busy="true"]),
+.menu-dialog :where([aria-busy="true"]) {
+  cursor: wait;
+}
+
+/* Keep fullscreen menus and fixed dialogs outside notches / TV overscan. */
+.menu-screen-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.menu-dialog-safe {
+  margin-top: env(safe-area-inset-top, 0px);
+  margin-right: env(safe-area-inset-right, 0px);
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+  margin-left: env(safe-area-inset-left, 0px);
+}
+
+.menu-icon-control {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.menu-action {
+  min-height: 48px;
+}
+
+@media (pointer: coarse) {
+  .menu-surface :where(button, a[href], [role="button"]),
+  .menu-dialog :where(button, a[href], [role="button"]) {
+    min-height: 44px;
+  }
+
+  .menu-surface :where(button[aria-label], a[aria-label], [role="button"][aria-label]),
+  .menu-dialog :where(button[aria-label], a[aria-label], [role="button"][aria-label]) {
+    min-width: 44px;
+  }
+}
+
+.menu-focus:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}

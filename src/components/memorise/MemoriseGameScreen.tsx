@@ -752,7 +752,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   /* ============================================================ */
   const accent = catMeta?.color ?? BT.violet;
   return (
-    <div className="h-screen w-full flex flex-col items-center text-white relative overflow-hidden" style={{ background: BT.bg }}>
+    <div className="menu-surface menu-screen-safe h-screen w-full flex flex-col items-center text-white relative overflow-hidden" style={{ background: BT.bg }}>
       <audio
         ref={mediaRef}
         className="hidden"
@@ -773,8 +773,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       <BlindtestBackground accent={accent} />
 
       {/* header */}
-      <div className="relative z-10 w-full flex items-center justify-between px-5 py-4 gap-2">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="relative z-10 w-full flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
@@ -794,11 +794,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
           {phase !== 'final' && phase !== 'intro' && (
             <div className="px-3 py-1.5 rounded-full text-sm font-black tabular-nums" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BT.hair}`, color: '#fff' }}>{roundIndex + 1}/{totalRounds}</div>
           )}
-          <button onClick={toggleMute} className="w-9 h-9 rounded-xl flex items-center justify-center text-white/70 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BT.hair}` }} aria-label="Son">
+          <button type="button" onClick={toggleMute} className="menu-icon-control w-11 h-11 rounded-xl flex items-center justify-center text-white/70 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BT.hair}` }} aria-label={muted ? 'Activer le son' : 'Couper le son'} aria-pressed={muted}>
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
-          <button onClick={onEndGame} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/80 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BT.hair}` }}>
-            <LogOut className="w-4 h-4" /><span className="text-sm font-bold hidden sm:inline">Quitter</span>
+          <button type="button" data-back onClick={onEndGame} className="menu-action flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/80 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BT.hair}` }} aria-label="Retour au lobby">
+            <LogOut className="w-4 h-4" /><span className="text-sm font-bold hidden sm:inline">Retour</span>
           </button>
         </div>
       </div>

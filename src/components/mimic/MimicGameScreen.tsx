@@ -483,7 +483,7 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
 
   /* ============================================================ */
   return (
-    <div className="h-screen w-full flex flex-col items-center text-white relative overflow-hidden" style={{ background: MIMIC.bg }}>
+    <div className="menu-surface menu-screen-safe h-screen w-full flex flex-col items-center text-white relative overflow-hidden" style={{ background: MIMIC.bg }}>
       <audio ref={mediaRef} className="hidden" preload="auto" onPlaying={() => setNeedsSoundUnlock(false)} />
       {/* live voice of the current singer (spectators) */}
       <audio ref={remoteAudioRef} className="hidden" autoPlay playsInline />
@@ -497,8 +497,8 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
       </div>
 
       {/* header */}
-      <div className="relative z-10 w-full flex items-center justify-between px-5 py-4 gap-2">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="relative z-10 w-full flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: MIMIC_SPECTRUM, boxShadow: mglow(MIMIC.magenta, 0.4) }}>
             <Mic className="w-5 h-5 text-white" strokeWidth={2.5} />
           </div>
@@ -509,8 +509,8 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {(phase === 'perform') && <div className="px-3 py-1.5 rounded-full text-sm font-black tabular-nums" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${MIMIC.hair}` }}>{turnIndex + 1}/{totalTurns}</div>}
-          <button onClick={toggleMute} className="w-9 h-9 rounded-xl flex items-center justify-center text-white/70 hover:text-white" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${MIMIC.hair}` }}>{muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}</button>
-          <button onClick={onEndGame} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/80 hover:text-white" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${MIMIC.hair}` }}><LogOut className="w-4 h-4" /><span className="text-sm font-bold hidden sm:inline">Quitter</span></button>
+          <button type="button" onClick={toggleMute} className="menu-icon-control w-11 h-11 rounded-xl flex items-center justify-center text-white/70 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${MIMIC.hair}` }} aria-label={muted ? 'Activer le son' : 'Couper le son'} aria-pressed={muted}>{muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}</button>
+          <button type="button" data-back onClick={onEndGame} className="menu-action flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/80 hover:text-white" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${MIMIC.hair}` }} aria-label="Retour au lobby"><LogOut className="w-4 h-4" /><span className="text-sm font-bold hidden sm:inline">Retour</span></button>
         </div>
       </div>
 
@@ -528,7 +528,7 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
                 <p className="text-xs mt-2 flex items-center justify-center gap-1.5" style={{ color: MIMIC.sub }}><Mic className="w-3.5 h-3.5" /> Voix en direct — chacun chante à son tour, les autres t'écoutent.</p>
               </div>
               {isHost ? (
-                <motion.button onClick={startGame} disabled={!channelReady || starting} whileHover={channelReady && !starting ? { scale: 1.03 } : undefined} whileTap={{ scale: 0.97 }}
+                <motion.button onClick={startGame} disabled={!channelReady || starting} aria-busy={starting} whileHover={channelReady && !starting ? { scale: 1.03 } : undefined} whileTap={channelReady && !starting ? { scale: 0.97 } : undefined}
                   className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-black text-2xl text-white"
                   style={{ background: channelReady && !starting ? MIMIC_SPECTRUM : 'rgba(255,255,255,0.06)', boxShadow: channelReady && !starting ? `0 12px 40px ${MIMIC.magenta}55` : 'none', cursor: channelReady && !starting ? 'pointer' : 'not-allowed', opacity: channelReady && !starting ? 1 : 0.5 }}>
                   {starting ? <Loader2 className="w-7 h-7 animate-spin" /> : <Play className="w-7 h-7 fill-white" />}

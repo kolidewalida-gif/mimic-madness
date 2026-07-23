@@ -63,8 +63,12 @@ export const AdminPanel = () => {
     <>
       {/* Toggle button */}
       <motion.button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 left-4 z-[200] w-10 h-10 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-lg"
+        className="menu-focus fixed z-[200] w-11 h-11 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-lg"
+        style={{ bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))', left: 'max(1rem, env(safe-area-inset-left, 0px))' }}
+        aria-label={isOpen ? 'Fermer le panneau administrateur' : 'Ouvrir le panneau administrateur'}
+        aria-expanded={isOpen}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
@@ -85,13 +89,16 @@ export const AdminPanel = () => {
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="fixed bottom-16 left-4 z-[201] w-72 bg-card border border-destructive/50 rounded-xl shadow-2xl overflow-hidden"
+              className="menu-dialog menu-dialog-safe fixed bottom-16 left-4 z-[201] w-[min(18rem,calc(100vw-2rem))] bg-card border border-destructive/50 rounded-xl shadow-2xl overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="admin-panel-title"
             >
               <div className="p-3 bg-destructive text-destructive-foreground flex items-center justify-between">
-                <span className="font-bold flex items-center gap-2">
+                <span id="admin-panel-title" className="font-bold flex items-center gap-2">
                   <Shield className="w-4 h-4" /> Admin Panel
                 </span>
-                <button onClick={() => setIsOpen(false)}>
+                <button type="button" onClick={() => setIsOpen(false)} aria-label="Fermer le panneau administrateur">
                   <X className="w-4 h-4" />
                 </button>
               </div>

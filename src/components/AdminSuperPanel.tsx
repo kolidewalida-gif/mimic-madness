@@ -29,27 +29,40 @@ const DURATIONS: Array<{ label: string; hours: number | null }> = [
 export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
   const [tab, setTab] = useState<Tab>('bans');
 
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="fixed inset-4 md:inset-10 z-[9997] bg-card border-2 border-destructive/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+      className="menu-dialog menu-dialog-safe fixed inset-4 md:inset-10 z-[9997] bg-card border-2 border-destructive/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admin-super-panel-title"
     >
       <div className="p-4 bg-destructive text-destructive-foreground flex items-center justify-between">
-        <span className="font-bold flex items-center gap-2">
+        <span id="admin-super-panel-title" className="font-bold flex items-center gap-2">
           <Shield className="w-5 h-5" /> Admin Super Panel
         </span>
-        <button onClick={onClose}><X className="w-5 h-5" /></button>
+        <button type="button" onClick={onClose} aria-label="Fermer le panneau administrateur"><X className="w-5 h-5" /></button>
       </div>
 
       <div className="flex border-b border-border">
         {(['bans', 'announce', 'lobbies'] as Tab[]).map(t => (
           <button
             key={t}
+            type="button"
             onClick={() => setTab(t)}
+            aria-pressed={tab === t}
             className={cn(
-              'flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition',
+              'flex-1 min-w-0 px-1.5 sm:px-3 py-3 text-xs sm:text-sm font-medium flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition',
               tab === t ? 'bg-destructive/10 text-destructive border-b-2 border-destructive' : 'text-muted-foreground hover:bg-muted/50'
             )}
           >

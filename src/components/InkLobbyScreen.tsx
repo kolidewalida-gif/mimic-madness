@@ -372,6 +372,7 @@ export const InkLobbyScreen = ({
   const minPlayers = GAME_MODE_META[gameMode].minPlayers;
 
   const handleStartGame = async () => {
+    if (!isHost || !canStart || isStarting) return;
     if (gameMode === '2v2' && teams.length === 0 && !isAdmin) {
       toast({ title: 'Équipes requises', description: "Formez d'abord les équipes", variant: 'destructive' });
       return;
@@ -471,7 +472,7 @@ export const InkLobbyScreen = ({
     },
     {
       key: 'Enter',
-      enabled: !lobbyAnyModalOpen && isHost && !isStarting,
+      enabled: !lobbyAnyModalOpen && isHost && canStart && !isStarting,
       handler: () => {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         handleStartGame();
@@ -492,7 +493,7 @@ export const InkLobbyScreen = ({
     modeId === gameMode ? connectedCount : 0;
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[#1a0d2e] text-white relative overflow-hidden">
+    <div className="menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#1a0d2e] text-white relative overflow-hidden">
       {/* Background canvas (collaborative drawing) */}
       <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
 
@@ -542,10 +543,10 @@ export const InkLobbyScreen = ({
       </div>
 
       {/* MAIN GRID — sidebar + main area */}
-      <div className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 p-4 pb-[100px] min-h-0 overflow-hidden">
+      <div className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 p-3 md:p-4 pb-24 md:pb-[100px] min-h-0 overflow-y-auto md:overflow-hidden custom-scrollbar">
 
         {/* SIDEBAR — Logo + Players + Mascot + QUITTER */}
-        <aside className="flex flex-col gap-3 min-h-0 overflow-hidden">
+        <aside className="flex flex-col gap-3 min-h-[36rem] md:min-h-0 overflow-visible md:overflow-hidden">
           {/* C2TV / MIMIC MASTER LOGO */}
           <div className="flex-shrink-0 flex items-center justify-center pt-2">
             <ImageWithFallback
@@ -764,7 +765,7 @@ export const InkLobbyScreen = ({
         </aside>
 
         {/* MAIN CONTENT — Hero header + Mode grid + PRÊT button */}
-        <main className="flex flex-col min-h-0 overflow-hidden gap-3">
+        <main className="flex flex-col min-h-max md:min-h-0 overflow-visible md:overflow-hidden gap-3">
           {/* Hero mode banner */}
           <AnimatePresence mode="wait">
             <motion.div
@@ -915,19 +916,7 @@ export const InkLobbyScreen = ({
           {/* PRÊT button (host) — uses /lobby/pret-stamp.png */}
           <div className="flex-shrink-0 flex items-end justify-end pb-2 pr-2">
             {isHost ? (
-              isStarting ? (
-                <div className="px-6 py-4 rounded-2xl bg-white/5 border-2 border-white/10 flex items-center gap-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-white" />
-                  <span
-                    className="text-xl font-black text-white"
-                    style={{ fontFamily: "'Caveat', cursive" }}
-                  >
-                    Démarrage…
-                  </span>
-                </div>
-              ) : (
-                <PretButton onClick={handleStartGame} disabled={!canStart} />
-              )
+              <PretButton onClick={handleStartGame} disabled={!canStart || isStarting} loading={isStarting} />
             ) : (
               <div className="px-6 py-4 rounded-2xl bg-white/5 border-2 border-white/10 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-white/50" />
@@ -1231,7 +1220,7 @@ export const InkLobbyScreen = ({
 /**
  * PRÊT button — uses the user's pret-stamp.png with a graceful SVG fallback.
  */
-const PretButton = ({ onClick, disabled }: { onClick: () => void; disabled: boolean }) => {
+const PretButton = ({ onClick, disabled, loading = false }: { onClick: () => void; disabled: boolean; loading?: boolean }) => {
   const [imageOk, setImageOk] = useState(true);
 
   return (
@@ -1239,6 +1228,7 @@ const PretButton = ({ onClick, disabled }: { onClick: () => void; disabled: bool
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-busy={loading}
       whileHover={!disabled ? { scale: 1.06, rotate: -2 } : undefined}
       whileTap={!disabled ? { scale: 0.94, rotate: 1 } : undefined}
       animate={!disabled ? { rotate: [-3, 3, -3] } : undefined}
@@ -1246,8 +1236,9 @@ const PretButton = ({ onClick, disabled }: { onClick: () => void; disabled: bool
         !disabled ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } : undefined
       }
       className={cn(
-        'relative w-60 h-44 flex-shrink-0 select-none',
-        disabled && 'opacity-40 grayscale cursor-not-allowed',
+        'menu-focus relative w-60 h-44 flex-shrink-0 select-none',
+        disabled && !loading && 'opacity-40 grayscale cursor-not-allowed',
+        loading && 'cursor-wait',
       )}
       style={{
         filter: !disabled
@@ -1296,6 +1287,12 @@ const PretButton = ({ onClick, disabled }: { onClick: () => void; disabled: bool
             ✌️
           </span>
         </>
+      )}
+      {loading && (
+        <span className="absolute inset-4 z-10 rounded-3xl bg-black/70 flex flex-col items-center justify-center gap-2 text-white" role="status">
+          <Loader2 className="w-7 h-7 animate-spin" aria-hidden="true" />
+          <span className="text-xl font-black" style={{ fontFamily: "'Caveat', cursive" }}>Démarrage…</span>
+        </span>
       )}
     </motion.button>
   );

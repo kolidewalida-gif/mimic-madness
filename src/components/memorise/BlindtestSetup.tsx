@@ -50,8 +50,10 @@ const Segmented = <T extends string | number>({ value, options, onChange, format
       return (
         <button
           key={String(o)}
+          type="button"
           onClick={() => onChange(o)}
-          className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-sm font-black transition-colors"
+          aria-pressed={active}
+          className="menu-focus flex-1 min-w-0 px-2 py-1.5 rounded-lg text-sm font-black transition-colors"
           style={{ background: active ? BT_SPECTRUM : 'transparent', color: active ? '#fff' : BT.sub }}
         >
           {format ? format(o) : String(o)}
@@ -64,8 +66,10 @@ const Segmented = <T extends string | number>({ value, options, onChange, format
 /* toggle chip */
 const Toggle = ({ icon: Icon, label, on, color, onClick }: { icon: any; label: string; on: boolean; color: string; onClick: () => void }) => (
   <button
+    type="button"
     onClick={onClick}
-    className="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors"
+    aria-pressed={on}
+    className="menu-focus flex items-center gap-2 px-3 py-2 rounded-xl transition-colors"
     style={{
       background: on ? `${color}26` : 'rgba(255,255,255,0.04)',
       border: `1px solid ${on ? color : BT.hairSoft}`,
@@ -119,7 +123,7 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
       initial={{ opacity: 0, y: 22 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', damping: 20, stiffness: 180 }}
-      className="relative w-full max-w-md flex flex-col items-center gap-7 rounded-[2.2rem] px-6 py-9 overflow-hidden"
+      className="menu-surface relative w-full max-w-md flex flex-col items-center gap-7 rounded-[2.2rem] px-4 min-[360px]:px-6 py-7 min-[360px]:py-9 overflow-hidden"
       style={{
         background: BT.panelSolid,
         border: `1px solid ${BT.hair}`,
@@ -157,10 +161,12 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
           return (
             <motion.button
               key={c}
+              type="button"
               whileHover={{ scale: 1.04, y: -3 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => toggle(c)}
-              className="relative overflow-hidden py-4 px-3.5 rounded-2xl flex items-center gap-3 text-left"
+              aria-pressed={active}
+              className="menu-focus relative overflow-hidden py-4 px-3.5 rounded-2xl flex items-center gap-3 text-left"
               style={{
                 border: `1px solid ${active ? meta.color : BT.hairSoft}`,
                 background: active
@@ -220,11 +226,13 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
 
       {/* CTA */}
       <motion.button
+        type="button"
         onClick={() => onStart(Array.from(selected), config)}
         disabled={!canStart || starting}
         whileHover={canStart && !starting ? { scale: 1.03 } : undefined}
         whileTap={canStart && !starting ? { scale: 0.97 } : undefined}
-        className="relative w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-black text-2xl tracking-wide overflow-hidden"
+        aria-busy={starting}
+        className="menu-focus relative w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-black text-2xl tracking-wide overflow-hidden"
         style={{
           color: canStart && !starting ? '#fff' : 'rgba(255,255,255,0.4)',
           background: canStart && !starting ? BT_SPECTRUM : 'rgba(255,255,255,0.06)',

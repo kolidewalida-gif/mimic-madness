@@ -140,10 +140,12 @@ export const GameModeSelector = ({
           return (
             <button
               key={mode.id}
-              onClick={() => mode.canPlay && onGameModeChange(mode.id)}
+              type="button"
+              onClick={() => !isDisabled && onGameModeChange(mode.id)}
               disabled={isDisabled}
+              aria-pressed={isSelected}
               className={cn(
-                "relative p-4 rounded-xl transition-all duration-300 group",
+                "menu-focus relative p-4 rounded-xl transition-all duration-300 group",
                 "border-2 overflow-hidden",
                 isInkMode
                   ? isSelected
