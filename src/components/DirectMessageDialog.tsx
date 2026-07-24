@@ -49,7 +49,7 @@ export const DirectMessageDialog = ({ open, onOpenChange, friend }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden border-primary/30 bg-background/95 backdrop-blur-xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-hidden border-primary/30 bg-background/95 p-0 backdrop-blur-xl">
         <DialogHeader className="px-5 py-4 border-b border-border/40 bg-gradient-to-r from-primary/10 via-background to-background">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 ring-2 ring-primary/40">
@@ -65,7 +65,7 @@ export const DirectMessageDialog = ({ open, onOpenChange, friend }: Props) => {
           </div>
         </DialogHeader>
 
-        <ScrollArea className="h-[420px]">
+        <ScrollArea className="h-[min(420px,calc(100dvh-9rem))]">
           <div ref={scrollRef} className="px-4 py-4 space-y-2">
             {loading && messages.length === 0 ? (
               <div className="flex justify-center py-10">

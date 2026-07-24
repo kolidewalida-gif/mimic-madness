@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, X, Gift, Zap, ChevronUp, Loader2, Ban, Megaphone, Gamepad2 } from 'lucide-react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { AdminAnnouncementsTab, AdminBansTab, AdminLobbiesTab } from './AdminSuperPanel';
 
 type AdminTab = 'account' | 'bans' | 'announce' | 'lobbies';
@@ -21,6 +23,17 @@ export const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>('account');
   const [busyAction, setBusyAction] = useState<'rewards' | 'level' | 'stats' | null>(null);
   const [levelInput, setLevelInput] = useState('30');
+
+  useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isOpen]);
 
   if (isLoading || !isAdmin) return null;
 
@@ -60,12 +73,13 @@ export const AdminPanel = () => {
         aria-label={isOpen ? 'Fermer le panneau administrateur' : 'Ouvrir le panneau administrateur'} aria-expanded={isOpen}
         whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}><Shield className="h-5 w-5" /></motion.button>
 
-      <AnimatePresence>
-        {isOpen && (
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isOpen && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsOpen(false)} className="fixed inset-0 z-[200] bg-black/55" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsOpen(false)} className="fixed inset-0 z-[10100] bg-black/70 backdrop-blur-sm" />
             <motion.section initial={{ opacity: 0, y: 40, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 40, scale: .98 }}
-              className="ibs-panel menu-dialog menu-dialog-safe fixed bottom-16 left-4 z-[201] flex h-[min(44rem,calc(100dvh-5.5rem))] w-[min(46rem,calc(100vw-2rem))] flex-col overflow-hidden"
+              className="admin-command-dialog ibs-panel menu-dialog force-cursor fixed z-[10101] flex flex-col overflow-hidden"
               role="dialog" aria-modal="true" aria-labelledby="admin-panel-title">
               <header className="flex flex-shrink-0 items-center justify-between border-b border-primary/30 bg-primary/15 p-3 text-foreground">
                 <div><span className="ibs-eyebrow">COMMAND CENTER</span><h2 id="admin-panel-title" className="mt-0.5 flex items-center gap-2 text-lg font-black"><Shield className="h-4 w-4 text-primary" /> Administration</h2></div>
@@ -92,7 +106,9 @@ export const AdminPanel = () => {
             </motion.section>
           </>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body,
+      )}
     </>
   );
 };

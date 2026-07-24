@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DirectMessageDialog } from '@/components/DirectMessageDialog';
 import { toast } from 'sonner';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface SocialHubPanelProps {
   isOpen: boolean;
@@ -86,6 +87,8 @@ const SocialHubPanelComponent = ({
     display_name: string | null;
     avatar_url: string | null;
   } | null>(null);
+
+  useBodyScrollLock(isOpen || showSocialModal || chatFriend !== null);
 
   const totalUnreadMessages = Object.values(unreadCounts).reduce(
     (sum, count) => sum + count,
@@ -190,8 +193,9 @@ const SocialHubPanelComponent = ({
 
   return (
     <>
-      <AnimatePresence>
-        {isOpen && (
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isOpen && (
           <>
             {/* BACKDROP */}
             <motion.div
@@ -994,7 +998,9 @@ const SocialHubPanelComponent = ({
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body,
+      )}
 
       <DirectMessageDialog
         open={!!chatFriend}
@@ -1011,9 +1017,9 @@ const SocialHubPanelComponent = ({
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {showSocialModal && (
-            <div className="social-studio-overlay menu-dialog menu-dialog-safe force-cursor">
-              <motion.button
-                type="button"
+            <div className="social-studio-overlay menu-dialog force-cursor">
+              <motion.div
+                data-cartoon-skip
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
