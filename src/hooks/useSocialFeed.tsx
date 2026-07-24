@@ -106,10 +106,40 @@ export const useSocialFeed = (tab: SocialFeedTab = 'top_week') => {
   useEffect(() => {
     const channel = supabase
       .channel(`social-feed:${tab}`)
+      // New / removed posts require a full refetch (ordering, membership).
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'social_posts' },
+        { event: 'INSERT', schema: 'public', table: 'social_posts' },
         () => fetchFeed(),
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'social_posts' },
+        () => fetchFeed(),
+      )
+      // Counter changes (likes/comments/views) are patched in place so the
+      // feed never reloads — the "For You" video keeps playing on every like.
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'social_posts' },
+        (payload) => {
+          const next = payload.new as Partial<SocialPost> & { id?: string };
+          if (!next?.id) return;
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.id === next.id
+                ? {
+                    ...p,
+                    likes_count: next.likes_count ?? p.likes_count,
+                    comments_count: next.comments_count ?? p.comments_count,
+                    views_count: next.views_count ?? p.views_count,
+                    caption: next.caption ?? p.caption,
+                    is_featured: next.is_featured ?? p.is_featured,
+                  }
+                : p,
+            ),
+          );
+        },
       )
       .subscribe();
     return () => {
@@ -154,10 +184,10 @@ export const useSocialFeed = (tab: SocialFeedTab = 'top_week') => {
   const toggleLike = useCallback(
     async (postId: string) => {
       if (!user) return;
-      const post = posts.find((p) => p.id === postId);
-      if (!post) return;
 
-      // Optimistic update
+      // Optimistic update. Uses a functional update so this callback keeps a
+      // stable identity (deps: [user]) — otherwise it changes on every fetch
+      // and forces the memoized viewer to re-render / the video to restart.
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
@@ -174,7 +204,7 @@ export const useSocialFeed = (tab: SocialFeedTab = 'top_week') => {
       // duplicate likes (rare but possible) and centralizes the auth check.
       await supabase.rpc('toggle_social_like', { p_post_id: postId });
     },
-    [user, posts],
+    [user],
   );
 
   const remove = useCallback(
