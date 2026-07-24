@@ -60,21 +60,47 @@ export const useSocialComments = (postId: string | null) => {
     fetchComments();
   }, [fetchComments]);
 
-  // Realtime
+  // Realtime — apply changes straight from the payload so a comment posted by
+  // any player appears instantly for everyone, without reloading. INSERT rows
+  // are appended (de-duplicated, replacing the author's optimistic copy);
+  // DELETE rows are removed. REPLICA IDENTITY FULL (set in the migration)
+  // guarantees the deleted row id is present in `payload.old`.
   useEffect(() => {
     if (!postId) return;
     const channel = supabase
-      .channel(`comments:${postId}`)
+      .channel(`comments:${postId}:${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'social_post_comments', filter: `post_id=eq.${postId}` },
-        () => fetchComments(),
+        { event: 'INSERT', schema: 'public', table: 'social_post_comments', filter: `post_id=eq.${postId}` },
+        (payload) => {
+          const row = payload.new as SocialComment;
+          if (!row?.id) return;
+          setComments((prev) => {
+            if (prev.some((c) => c.id === row.id)) return prev; // already have it
+            // Drop the matching optimistic (tmp-) entry from the author, if any.
+            const withoutOptimistic = prev.filter(
+              (c) => !(c.id.startsWith('tmp-') && c.user_id === row.user_id && c.body === row.body),
+            );
+            const merged = [...withoutOptimistic, row];
+            merged.sort((a, b) => a.created_at.localeCompare(b.created_at));
+            return merged;
+          });
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'social_post_comments', filter: `post_id=eq.${postId}` },
+        (payload) => {
+          const removed = payload.old as { id?: string };
+          if (!removed?.id) return;
+          setComments((prev) => prev.filter((c) => c.id !== removed.id));
+        },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [postId, fetchComments]);
+  }, [postId]);
 
   const addComment = useCallback(
     async (body: string): Promise<boolean> => {
