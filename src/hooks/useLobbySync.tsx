@@ -12,12 +12,15 @@ interface Player {
   disconnectedTimeLeft?: number;
 }
 
+type LobbyConnectionState = 'online' | 'offline' | 'reconnecting';
+
 interface Lobby {
   id: string;
   code: string;
   host_id: string;
   status: string;
   game_phase?: string;
+  game_mode?: string;
 }
 
 interface UseLobbyResult {
@@ -26,6 +29,8 @@ interface UseLobbyResult {
   isLoading: boolean;
   wasKicked: boolean;
   lobbyDeleted: boolean;
+  connectionState: LobbyConnectionState;
+  retryConnection: () => void;
   createLobby: (hostId: string, hostName: string) => Promise<{ lobby: Lobby; code: string } | null>;
   joinLobby: (code: string, playerId: string, playerName: string) => Promise<{ lobby: Lobby } | null>;
   leaveLobby: (playerId: string) => Promise<void>;
@@ -45,6 +50,10 @@ export const useLobbySync = (): UseLobbyResult => {
   const [isLoading, setIsLoading] = useState(false);
   const [wasKicked, setWasKicked] = useState(false);
   const [lobbyDeleted, setLobbyDeleted] = useState(false);
+  const [connectionState, setConnectionState] = useState<LobbyConnectionState>(() =>
+    typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'online',
+  );
+  const [connectionGeneration, setConnectionGeneration] = useState(0);
   const { toast } = useToast();
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
   const currentPlayerIdRef = useRef<string | null>(null);
@@ -67,6 +76,7 @@ export const useLobbySync = (): UseLobbyResult => {
     setPlayers([]);
     setWasKicked(false);
     setLobbyDeleted(false);
+    setConnectionState(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'online');
     currentPlayerIdRef.current = null;
     if (channel) {
       supabase.removeChannel(channel);
@@ -533,7 +543,16 @@ export const useLobbySync = (): UseLobbyResult => {
     }
   }, [lobby]);
 
-  // Subscribe to lobby changes — keyed only on lobby.id so the channel
+  const retryConnection = useCallback(() => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setConnectionState('offline');
+      return;
+    }
+    setConnectionState('reconnecting');
+    setConnectionGeneration((generation) => generation + 1);
+  }, []);
+
+  // Subscribe to lobby changes — keyed on lobby.id so the channel
   // is created once per lobby and not torn down on every player change.
   useEffect(() => {
     if (!lobby?.id) {
@@ -597,8 +616,26 @@ export const useLobbySync = (): UseLobbyResult => {
       }
     };
 
-    // Initial fetch
-    fetchPlayers();
+    const fetchLobbyState = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('lobbies')
+          .select('*')
+          .eq('id', lobbyId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching lobby state:', error);
+          return;
+        }
+        if (data && isSubscribed) setLobby(data as Lobby);
+      } catch (error) {
+        console.error('Error in fetchLobbyState:', error);
+      }
+    };
+
+    setConnectionState(navigator.onLine ? 'reconnecting' : 'offline');
+    void Promise.all([fetchPlayers(), fetchLobbyState()]);
 
     // Inline heartbeat helpers using refs (avoid stale closures + re-subscriptions)
     const beatConnected = async () => {
@@ -695,9 +732,13 @@ export const useLobbySync = (): UseLobbyResult => {
 
     // Set up heartbeat
     heartbeatRef.current = setInterval(() => {
-      beatConnected();
-      cleanupExpired();
-      fetchPlayers();
+      if (!navigator.onLine) {
+        setConnectionState('offline');
+        return;
+      }
+      void beatConnected();
+      void cleanupExpired();
+      void fetchPlayers();
       // Re-evaluate host migration each tick
       const lob = lobbyRef.current;
       const host = playersRef.current.find(p => p.isHost);
@@ -708,20 +749,32 @@ export const useLobbySync = (): UseLobbyResult => {
       }
     }, HEARTBEAT_INTERVAL);
 
-    // Handle page visibility
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        beatDisconnected();
-      } else {
-        beatConnected();
+    const resync = () => {
+      if (!navigator.onLine) {
+        setConnectionState('offline');
+        return;
       }
+      setConnectionState('reconnecting');
+      void beatConnected();
+      void Promise.all([fetchPlayers(), fetchLobbyState()]);
     };
 
-    const handleBeforeUnload = () => {
-      beatDisconnected();
+    // Backgrounding a tab or locking a phone is not a real disconnect.
+    // Presence/socket status remains the source of truth; resync on return.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') resync();
+    };
+    const handleOnline = () => resync();
+    const handleOffline = () => setConnectionState('offline');
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      void beatDisconnected();
+      event.preventDefault();
+      event.returnValue = '';
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Subscribe to realtime changes
@@ -835,11 +888,17 @@ export const useLobbySync = (): UseLobbyResult => {
         console.log('Channel status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to lobby:', lobbyId);
+          setConnectionState('reconnecting');
+          void Promise.all([beatConnected(), fetchPlayers(), fetchLobbyState()]).finally(() => {
+            if (isSubscribed) setConnectionState('online');
+          });
           // Announce ourselves on the presence layer
           const me = currentPlayerIdRef.current;
           if (me) {
-            newChannel.track({ player_id: me, at: new Date().toISOString() });
+            void newChannel.track({ player_id: me, at: new Date().toISOString() });
           }
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setConnectionState(navigator.onLine ? 'reconnecting' : 'offline');
         }
       });
 
@@ -855,9 +914,11 @@ export const useLobbySync = (): UseLobbyResult => {
         clearInterval(heartbeatRef.current);
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [lobby?.id]);
+  }, [lobby?.id, connectionGeneration]);
 
   // Diff players list → emit toasts for join / leave / disconnect / reconnect
   useEffect(() => {
@@ -925,6 +986,8 @@ export const useLobbySync = (): UseLobbyResult => {
     isLoading,
     wasKicked,
     lobbyDeleted,
+    connectionState,
+    retryConnection,
     createLobby,
     joinLobby,
     leaveLobby,

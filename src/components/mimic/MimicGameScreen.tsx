@@ -11,6 +11,7 @@ import { fetchMimicLyrics, pickExtractLines, type LyricLine } from './mimicLyric
 import { MimicAnalyzer, detectPitch, mimicComment, type MimicResult } from './mimicScore';
 import { pickRandomSong } from './mimicSongs';
 import { MimicVoiceMesh } from './mimicVoice';
+import { MimicMicCheck } from './MimicMicCheck';
 
 interface Player { id: string; name: string; isHost: boolean; isDisconnected?: boolean; }
 interface Props { currentPlayer: Player; players: Player[]; lobbyId: string; onEndGame: () => void; }
@@ -63,6 +64,8 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
   const [channelReady, setChannelReady] = useState(false);
   const [needsSoundUnlock, setNeedsSoundUnlock] = useState(false);
   const [micError, setMicError] = useState(false);
+  const [localMicReady, setLocalMicReady] = useState(false);
+  const [micReadyIds, setMicReadyIds] = useState<Set<string>>(() => new Set());
   const [reactions, setReactions] = useState<Array<{ emoji: string; id: number }>>([]);
   const [volume, setVolume] = useState<number>(() => {
     try { const s = Number(localStorage.getItem('mimic.karaoke.volume')); if (Number.isFinite(s) && s >= 0 && s <= 100) return s; } catch { /* noop */ }
@@ -79,6 +82,7 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const volumeRef = useRef(75);
   const resultsRef = useRef<Record<string, MimicResult>>({});
+  const lastPhaseRef = useRef<MimicPayload | null>(null);
   const playedSongsRef = useRef<Set<string>>(new Set());
   // mic analysis (singer only)
   const analyzerRef = useRef<MimicAnalyzer | null>(null);
@@ -96,6 +100,20 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
   const { getAvatar } = useMultiplePlayerAvatars(playerIds);
   const namesById = useMemo(() => { const m: Record<string, string> = {}; players.forEach((p) => { m[p.id] = p.name; }); return m; }, [players]);
   const muted = volume === 0;
+  const connectedPlayerIds = useMemo(() => players.filter((player) => !player.isDisconnected).map((player) => player.id), [players]);
+  const readyMicCount = connectedPlayerIds.filter((id) => micReadyIds.has(id)).length;
+  const allMicsReady = connectedPlayerIds.length > 0 && readyMicCount === connectedPlayerIds.length;
+
+  const reportMicReady = useCallback((ready: boolean) => {
+    setLocalMicReady(ready);
+    setMicReadyIds((previous) => {
+      const next = new Set(previous);
+      if (ready) next.add(currentPlayer.id);
+      else next.delete(currentPlayer.id);
+      return next;
+    });
+    channelRef.current?.send({ type: 'broadcast', event: 'mic-ready', payload: { playerId: currentPlayer.id, ready } });
+  }, [currentPlayer.id]);
 
   useEffect(() => { playersRef.current = players; }, [players]);
   useEffect(() => {
@@ -308,6 +326,24 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
         const s = payload as { playerId: string; live: number };
         if (s.playerId !== currentPlayer.id) setLiveScore(s.live);
       })
+      .on('broadcast', { event: 'mic-ready' }, ({ payload }) => {
+        const status = payload as { playerId: string; ready: boolean };
+        setMicReadyIds((previous) => {
+          const next = new Set(previous);
+          if (status.ready) next.add(status.playerId);
+          else next.delete(status.playerId);
+          return next;
+        });
+      })
+      .on('broadcast', { event: 'state-req' }, ({ payload }) => {
+        if (!isHost || !lastPhaseRef.current) return;
+        const request = payload as { clientId: string };
+        channelRef.current?.send({ type: 'broadcast', event: 'state-res', payload: { clientId: request.clientId, state: lastPhaseRef.current } });
+      })
+      .on('broadcast', { event: 'state-res' }, ({ payload }) => {
+        const response = payload as { clientId: string; state: MimicPayload };
+        if (response.clientId === currentPlayer.id) applyPhase(response.state);
+      })
       .on('broadcast', { event: 'final' }, ({ payload }) => {
         const r = payload as { playerId: string; result: MimicResult };
         resultsRef.current = { ...resultsRef.current, [r.playerId]: r.result };
@@ -336,7 +372,16 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
         if (rtt < 0 || rtt > 5000) return;
         if (rtt < bestRttRef.current) { bestRttRef.current = rtt; clockOffsetRef.current = (r.hostNow + rtt / 2) - now; }
       })
-      .subscribe((status) => { if (status === 'SUBSCRIBED') setChannelReady(true); });
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setChannelReady(true);
+          if (!isHost) {
+            void channel.send({ type: 'broadcast', event: 'state-req', payload: { clientId: currentPlayer.id } });
+          }
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setChannelReady(false);
+        }
+      });
 
     let syncIv: ReturnType<typeof setInterval> | null = null;
     if (!isHost) {
@@ -358,7 +403,18 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lobbyId]);
 
-  const broadcast = useCallback((payload: MimicPayload) => { channelRef.current?.send({ type: 'broadcast', event: 'phase', payload }); }, []);
+  useEffect(() => {
+    if (!channelReady || !localMicReady || phase !== 'setup') return;
+    const announce = () => channelRef.current?.send({ type: 'broadcast', event: 'mic-ready', payload: { playerId: currentPlayer.id, ready: true } });
+    void announce();
+    const interval = setInterval(announce, 2500);
+    return () => clearInterval(interval);
+  }, [channelReady, currentPlayer.id, localMicReady, phase]);
+
+  const broadcast = useCallback((payload: MimicPayload) => {
+    lastPhaseRef.current = payload;
+    channelRef.current?.send({ type: 'broadcast', event: 'phase', payload });
+  }, []);
   const wait = (ms: number) => new Promise<void>((res) => { const t = setTimeout(res, ms); cleanups.current.push(() => clearTimeout(t)); });
 
   /* ---------------- reactions ---------------- */
@@ -429,14 +485,14 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
   }, [players, broadcast]);
 
   const startGame = useCallback(async () => {
-    if (startedRef.current) return;
+    if (startedRef.current || !allMicsReady) return;
     startedRef.current = true;
     setStarting(true);
     setSearchFailed(false);
     // unlock audio on this gesture
     try { const el = mediaRef.current; if (el) { el.muted = true; await el.play().catch(() => {}); el.pause(); el.muted = muted; } } catch { /* noop */ }
     await runGame();
-  }, [runGame, muted]);
+  }, [runGame, muted, allMicsReady]);
 
   const replay = useCallback(() => {
     if (!isHost) return;
@@ -527,12 +583,16 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
                 <p className="text-sm mt-1 font-medium" style={{ color: MIMIC.sub }}>Imite la chanson le plus fidèlement possible. Le meilleur % gagne.</p>
                 <p className="text-xs mt-2 flex items-center justify-center gap-1.5" style={{ color: MIMIC.sub }}><Mic className="w-3.5 h-3.5" /> Voix en direct — chacun chante à son tour, les autres t'écoutent.</p>
               </div>
+              <MimicMicCheck onReadyChange={reportMicReady} />
+              <div className="rounded-full px-4 py-1.5 text-xs font-black" style={{ color: allMicsReady ? MIMIC.emerald : MIMIC.sub, background: 'rgba(255,255,255,0.05)', border: `1px solid ${allMicsReady ? `${MIMIC.emerald}66` : MIMIC.hair}` }}>
+                {readyMicCount}/{connectedPlayerIds.length} micro{connectedPlayerIds.length > 1 ? 's' : ''} prêt{readyMicCount > 1 ? 's' : ''}
+              </div>
               {isHost ? (
-                <motion.button onClick={startGame} disabled={!channelReady || starting} aria-busy={starting} whileHover={channelReady && !starting ? { scale: 1.03 } : undefined} whileTap={channelReady && !starting ? { scale: 0.97 } : undefined}
+                <motion.button onClick={startGame} disabled={!channelReady || starting || !allMicsReady} aria-busy={starting} whileHover={channelReady && allMicsReady && !starting ? { scale: 1.03 } : undefined} whileTap={channelReady && allMicsReady && !starting ? { scale: 0.97 } : undefined}
                   className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-black text-2xl text-white"
-                  style={{ background: channelReady && !starting ? MIMIC_SPECTRUM : 'rgba(255,255,255,0.06)', boxShadow: channelReady && !starting ? `0 12px 40px ${MIMIC.magenta}55` : 'none', cursor: channelReady && !starting ? 'pointer' : 'not-allowed', opacity: channelReady && !starting ? 1 : 0.5 }}>
+                  style={{ background: channelReady && allMicsReady && !starting ? MIMIC_SPECTRUM : 'rgba(255,255,255,0.06)', boxShadow: channelReady && allMicsReady && !starting ? `0 12px 40px ${MIMIC.magenta}55` : 'none', cursor: channelReady && allMicsReady && !starting ? 'pointer' : 'not-allowed', opacity: channelReady && allMicsReady && !starting ? 1 : 0.5 }}>
                   {starting ? <Loader2 className="w-7 h-7 animate-spin" /> : <Play className="w-7 h-7 fill-white" />}
-                  {starting ? 'Préparation…' : searchFailed ? 'RÉESSAYER' : 'LANCER'}
+                  {starting ? 'Préparation…' : !allMicsReady ? 'MICROS EN ATTENTE' : searchFailed ? 'RÉESSAYER' : 'LANCER'}
                 </motion.button>
               ) : (
                 <p className="text-lg font-bold" style={{ color: MIMIC.sub }}>En attente de l'hôte…</p>

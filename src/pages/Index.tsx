@@ -21,6 +21,18 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { useTheme } from "@/hooks/useTheme";
 import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import { LobbyGameMode } from "@/lib/gameModes";
+import { ConnectionRecoveryOverlay } from "@/components/ConnectionRecoveryOverlay";
+import {
+  loadAudioPhoneGameScreen,
+  loadGamePlayScreen,
+  loadMemoriseGameScreen,
+  loadMimicGameScreen,
+  loadMonopolyGameScreen,
+  loadPixoguessGameScreen,
+  loadQuizGameScreen,
+  loadUndercoverGameScreen,
+  preloadGameMode,
+} from "@/lib/gameScreenLoaders";
 import { useBackgroundMusic, type MusicSituation } from "@/hooks/useBackgroundMusic";
 import React from "react";
 
@@ -31,14 +43,14 @@ const NeonHomeScreen = React.lazy(() => import("@/components/neon/NeonHomeScreen
 const LobbyScreen = React.lazy(() => import("@/components/LobbyScreen").then(m => ({ default: m.LobbyScreen })));
 const InkLobbyScreen = React.lazy(() => import("@/components/InkLobbyScreen").then(m => ({ default: m.InkLobbyScreen })));
 const VideoSubmissionScreen = React.lazy(() => import("@/components/VideoSubmissionScreen").then(m => ({ default: m.VideoSubmissionScreen })));
-const GamePlayScreen = React.lazy(() => import("@/components/GamePlayScreen").then(m => ({ default: m.GamePlayScreen })));
-const QuizGameScreen = React.lazy(() => import("@/components/QuizGameScreen").then(m => ({ default: m.QuizGameScreen })));
-const AudioPhoneGameScreen = React.lazy(() => import("@/components/AudioPhoneGameScreen").then(m => ({ default: m.AudioPhoneGameScreen })));
-const PixoguessGameScreen = React.lazy(() => import("@/components/PixoguessGameScreen").then(m => ({ default: m.PixoguessGameScreen })));
-const MonopolyGameScreen = React.lazy(() => import("@/components/monopoly/MonopolyGameScreen").then(m => ({ default: m.MonopolyGameScreen })));
-const UndercoverGameScreen = React.lazy(() => import("@/components/undercover/UndercoverGameScreen").then(m => ({ default: m.UndercoverGameScreen })));
-const MemoriseGameScreen = React.lazy(() => import("@/components/memorise/MemoriseGameScreen").then(m => ({ default: m.MemoriseGameScreen })));
-const MimicGameScreen = React.lazy(() => import("@/components/mimic/MimicGameScreen").then(m => ({ default: m.MimicGameScreen })));
+const GamePlayScreen = React.lazy(loadGamePlayScreen);
+const QuizGameScreen = React.lazy(loadQuizGameScreen);
+const AudioPhoneGameScreen = React.lazy(loadAudioPhoneGameScreen);
+const PixoguessGameScreen = React.lazy(loadPixoguessGameScreen);
+const MonopolyGameScreen = React.lazy(loadMonopolyGameScreen);
+const UndercoverGameScreen = React.lazy(loadUndercoverGameScreen);
+const MemoriseGameScreen = React.lazy(loadMemoriseGameScreen);
+const MimicGameScreen = React.lazy(loadMimicGameScreen);
 const NeverLikeThatBackground = React.lazy(() => import("@/components/NeverLikeThatBackground").then(m => ({ default: m.NeverLikeThatBackground })));
 const NeverLikeThatLobbyScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatLobbyScreen").then(m => ({ default: m.NeverLikeThatLobbyScreen })));
 const NeverLikeThatHomeScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatHomeScreen").then(m => ({ default: m.NeverLikeThatHomeScreen })));
@@ -51,6 +63,18 @@ interface Player {
 
 type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise" | "mimic";
 type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise" | "mimic";
+
+const resolveLobbyGameState = (phase?: string, mode?: string): GameState => {
+  if (phase === 'playing') {
+    if (mode === 'memorise') return 'memorise';
+    if (mode === 'mimic') return 'mimic';
+    return 'playing';
+  }
+  if (phase === 'preparation' || phase === 'quiz' || phase === 'audiophone' || phase === 'pixoguess' || phase === 'monopoly' || phase === 'undercover' || phase === 'memorise') {
+    return phase;
+  }
+  return 'lobby';
+};
 
 const LoadingFallback = memo(() => (
   <div className="h-screen flex items-center justify-center">
@@ -145,8 +169,27 @@ const Index = () => {
     leaveLobby, 
     kickPlayer,
     transferHost,
-    resetState 
+    resetState,
+    connectionState,
+    retryConnection,
   } = useLobbySync();
+
+  const routeFromLobbySnapshot = useCallback((phase?: string, mode?: string) => {
+    if (mode) setGameMode(mode as GameMode);
+    setGameState(resolveLobbyGameState(phase, mode));
+  }, []);
+
+  useEffect(() => {
+    if (gameState !== 'lobby' || !lobby?.game_mode) return;
+    void preloadGameMode(lobby.game_mode as LobbyGameMode).catch((error) => {
+      console.warn('[preload] Unable to preload game mode:', lobby.game_mode, error);
+    });
+  }, [gameState, lobby?.game_mode]);
+
+  useEffect(() => {
+    if (!currentPlayer || !lobby || connectionState !== 'online') return;
+    routeFromLobbySnapshot(lobby.game_phase, lobby.game_mode);
+  }, [connectionState, currentPlayer, lobby, routeFromLobbySnapshot]);
 
   // ── Resume session (crash/reload recovery) ──────────────────────────────
   const resumeStatus = useResumeSession({ enabled: gameState === 'home' && inkAnimationCompleted });
@@ -180,36 +223,14 @@ const Index = () => {
       };
       setCurrentPlayer(newPlayer);
 
-      // Route directly to the correct game phase
+      // Route directly to the current phase from the refreshed lobby snapshot.
       const lobbyData = result.lobby as any;
-      const phase = lobbyData?.game_phase;
-      const mode = lobbyData?.game_mode;
-      if (mode) setGameMode(mode as GameMode);
-
-      if (phase === 'playing') {
-        setGameState(mode === 'memorise' ? 'memorise' : mode === 'mimic' ? 'mimic' : 'playing');
-      } else if (phase === 'preparation') {
-        setGameState('preparation');
-      } else if (phase === 'quiz') {
-        setGameState('quiz');
-      } else if (phase === 'audiophone') {
-        setGameState('audiophone');
-      } else if (phase === 'pixoguess') {
-        setGameState('pixoguess');
-      } else if (phase === 'monopoly') {
-        setGameState('monopoly');
-      } else if (phase === 'undercover') {
-        setGameState('undercover');
-      } else if (phase === 'memorise') {
-        setGameState('memorise');
-      } else {
-        setGameState('lobby');
-      }
+      routeFromLobbySnapshot(lobbyData?.game_phase, lobbyData?.game_mode);
     } else {
       clearResumeSession();
       setCurrentPlayer(null);
     }
-  }, [resumeStatus, joinLobby]);
+  }, [resumeStatus, joinLobby, routeFromLobbySnapshot]);
 
   const handleResumeNo = useCallback(() => {
     setShowResumeModal(false);
@@ -495,37 +516,14 @@ const Index = () => {
         playerId,
         playerName,
       });
-      // Route directly into a game already in progress (e.g. joining a running
-      // blindtest / mimic / other mode), instead of always dropping to the
-      // lobby screen. Mirrors the resume-session routing.
+      // Join directly at the current phase when a game is already running.
       const lob = result.lobby as any;
-      const phase = lob?.game_phase;
-      const mode = lob?.game_mode;
-      if (mode) setGameMode(mode as GameMode);
-      if (phase === 'playing') {
-        setGameState(mode === 'memorise' ? 'memorise' : mode === 'mimic' ? 'mimic' : 'playing');
-      } else if (phase === 'preparation') {
-        setGameState('preparation');
-      } else if (phase === 'quiz') {
-        setGameState('quiz');
-      } else if (phase === 'audiophone') {
-        setGameState('audiophone');
-      } else if (phase === 'pixoguess') {
-        setGameState('pixoguess');
-      } else if (phase === 'monopoly') {
-        setGameState('monopoly');
-      } else if (phase === 'undercover') {
-        setGameState('undercover');
-      } else if (phase === 'memorise') {
-        setGameState('memorise');
-      } else {
-        setGameState("lobby");
-      }
+      routeFromLobbySnapshot(lob?.game_phase, lob?.game_mode);
     } else {
       playSoundEffect('error', 0.4);
       setCurrentPlayer(null);
     }
-  }, [joinLobby, user?.id]);
+  }, [joinLobby, user?.id, routeFromLobbySnapshot]);
 
   const handleStartGame = useCallback(async (mode: GameMode = 'normal') => {
     console.log('[Index] handleStartGame called with mode:', mode);
@@ -950,6 +948,10 @@ const Index = () => {
       <ScreenTransition screenKey={gameState}>
         {renderContent}
       </ScreenTransition>
+
+      {currentPlayer && lobby && connectionState !== 'online' && (
+        <ConnectionRecoveryOverlay state={connectionState} onRetry={retryConnection} />
+      )}
       
       {/* Resume session modal — shown when a player reloads/crashes and comes back */}
       {showResumeModal && resumeStatus.kind === 'ready' && (

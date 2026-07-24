@@ -5,9 +5,9 @@
  * mic track over WebRTC to every other player; listeners just receive & play.
  * Signaling rides the existing Supabase broadcast channel (offer/answer/ICE).
  *
- * Honest limitation: uses public STUN only (no TURN), so players behind
- * symmetric NAT may fail to connect. This class is self-contained so it can be
- * swapped for LiveKit / a TURN-backed setup later without touching the UI.
+ * Uses public STUN by default and automatically adds an optional TURN server
+ * when VITE_TURN_URL(S), VITE_TURN_USERNAME and VITE_TURN_CREDENTIAL are set.
+ * For production, prefer short-lived TURN credentials delivered by a backend.
  */
 
 type Signal =
@@ -18,11 +18,23 @@ type Signal =
 type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
 type SendFn = (kind: Signal['kind'], payload: DistributiveOmit<Signal, 'kind'>) => void;
 
-const ICE: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-];
+const buildIceServers = (): RTCIceServer[] => {
+  const servers: RTCIceServer[] = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+  ];
+  const urlsValue = import.meta.env.VITE_TURN_URLS || import.meta.env.VITE_TURN_URL;
+  const username = import.meta.env.VITE_TURN_USERNAME;
+  const credential = import.meta.env.VITE_TURN_CREDENTIAL;
+  if (urlsValue && username && credential) {
+    const urls = urlsValue.split(',').map((url: string) => url.trim()).filter(Boolean);
+    if (urls.length) servers.push({ urls, username, credential });
+  }
+  return servers;
+};
+
+const ICE = buildIceServers();
 
 export class MimicVoiceMesh {
   private pcs = new Map<string, RTCPeerConnection>();
@@ -32,6 +44,7 @@ export class MimicVoiceMesh {
   private localStream: MediaStream | null = null;
   private role: 'singer' | 'listener' | null = null;
   private singerId: string | null = null;
+  private pendingIce = new Map<string, RTCIceCandidateInit[]>();
 
   constructor(selfId: string, send: SendFn, onRemoteStream: (stream: MediaStream) => void) {
     this.selfId = selfId;
@@ -40,13 +53,34 @@ export class MimicVoiceMesh {
   }
 
   private makePc(peerId: string): RTCPeerConnection {
+    const existing = this.pcs.get(peerId);
+    if (existing) return existing;
     const pc = new RTCPeerConnection({ iceServers: ICE });
     pc.onicecandidate = (e) => {
       if (e.candidate) this.send('ice', { from: this.selfId, to: peerId, candidate: e.candidate.toJSON() });
     };
     pc.ontrack = (e) => { if (e.streams[0]) this.onRemoteStream(e.streams[0]); };
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        this.pcs.delete(peerId);
+      }
+    };
     this.pcs.set(peerId, pc);
     return pc;
+  }
+
+  private queueIce(peerId: string, candidate: RTCIceCandidateInit) {
+    const queued = this.pendingIce.get(peerId) ?? [];
+    queued.push(candidate);
+    this.pendingIce.set(peerId, queued);
+  }
+
+  private async flushIce(peerId: string, pc: RTCPeerConnection) {
+    const queued = this.pendingIce.get(peerId) ?? [];
+    this.pendingIce.delete(peerId);
+    for (const candidate of queued) {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => undefined);
+    }
   }
 
   /** Singer: publish mic to every listener (we initiate the offers). */
@@ -78,17 +112,25 @@ export class MimicVoiceMesh {
       if (sig.kind === 'offer') {
         // listener side: only accept an offer from the current singer
         if (this.role !== 'listener' || sig.from !== this.singerId) return;
-        const pc = this.pcs.get(sig.from) ?? this.makePc(sig.from);
+        const pc = this.makePc(sig.from);
         await pc.setRemoteDescription(new RTCSessionDescription(sig.sdp));
+        await this.flushIce(sig.from, pc);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         this.send('answer', { from: this.selfId, to: sig.from, sdp: answer });
       } else if (sig.kind === 'answer') {
         const pc = this.pcs.get(sig.from);
-        if (pc && !pc.currentRemoteDescription) await pc.setRemoteDescription(new RTCSessionDescription(sig.sdp));
+        if (pc && !pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(new RTCSessionDescription(sig.sdp));
+          await this.flushIce(sig.from, pc);
+        }
       } else if (sig.kind === 'ice') {
         const pc = this.pcs.get(sig.from);
-        if (pc) await pc.addIceCandidate(new RTCIceCandidate(sig.candidate)).catch(() => {});
+        if (!pc || !pc.remoteDescription) {
+          this.queueIce(sig.from, sig.candidate);
+        } else {
+          await pc.addIceCandidate(new RTCIceCandidate(sig.candidate)).catch(() => undefined);
+        }
       }
     } catch { /* ignore signaling errors */ }
   }
@@ -96,6 +138,7 @@ export class MimicVoiceMesh {
   stop() {
     this.pcs.forEach((pc) => { try { pc.close(); } catch { /* noop */ } });
     this.pcs.clear();
+    this.pendingIce.clear();
     this.localStream = null;
     this.role = null;
     this.singerId = null;
