@@ -12,7 +12,6 @@ import {
   MoreVertical,
   Loader2,
   Users,
-  Lock,
   LogOut,
   UserPlus,
   Sparkles,
@@ -31,7 +30,7 @@ import { getStartStatus, GAME_MODE_META, type LobbyGameMode } from '@/lib/gameMo
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { Share2 } from 'lucide-react';
-import CardFanCarousel from '@/components/ui/card-fan-carousel';
+import { ModePicker } from '@/components/menu/ModePicker';
 import { MemberSelector, type Member } from '@/components/ui/member-selector';
 
 interface Player {
@@ -53,169 +52,6 @@ interface InkLobbyScreenProps {
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
 }
-
-interface ModeCard {
-  id: LobbyGameMode;
-  label: string;
-  tagline: string;
-  /** Image candidates in /public/lobby/cards/ — first one that loads is used */
-  imageCandidates: string[];
-  /** Fallback emoji shown if no image loads */
-  fallbackEmoji: string;
-  /** Card body color when fallback is used */
-  fallbackColor: string;
-  /** Glow color for active state */
-  glowColor: string;
-}
-
-const MODE_CARDS: ModeCard[] = [
-  {
-    id: 'normal',
-    label: 'IMITATION',
-    tagline: 'Imite le son ou le chanteur !',
-    imageCandidates: ['/lobby/cards/imitation.png', '/lobby/cards/imitation.jpg'],
-    fallbackEmoji: '🎤',
-    fallbackColor: '#8b5cf6',
-    glowColor: '#a855f7',
-  },
-  {
-    id: 'audiophone',
-    label: 'AUDIO PIONNER',
-    tagline: 'Téléphone arabe audio',
-    imageCandidates: ['/lobby/cards/audiophone.png', '/lobby/cards/audiophone.jpg'],
-    fallbackEmoji: '🔊',
-    fallbackColor: '#f59e0b',
-    glowColor: '#fbbf24',
-  },
-  {
-    id: '2v2',
-    label: '2 VS 2',
-    tagline: 'Combat en équipes',
-    imageCandidates: ['/lobby/cards/2v2.png', '/lobby/cards/2v2.jpg'],
-    fallbackEmoji: '⚔️',
-    fallbackColor: '#3b82f6',
-    glowColor: '#60a5fa',
-  },
-  {
-    id: 'quiz',
-    label: 'QUIZ',
-    tagline: 'Connaissances générales',
-    imageCandidates: ['/lobby/cards/quiz.png', '/lobby/cards/quiz.jpg'],
-    fallbackEmoji: '❓',
-    fallbackColor: '#84cc16',
-    glowColor: '#a3e635',
-  },
-  {
-    id: 'pixoguess',
-    label: 'BLURRUSH',
-    tagline: "Devine l'image le plus vite possible",
-    imageCandidates: ['/lobby/cards/blindtest.png', '/lobby/cards/blindtest.jpg'],
-    fallbackEmoji: '🎧',
-    fallbackColor: '#06b6d4',
-    glowColor: '#22d3ee',
-  },
-  {
-    id: 'undercover',
-    label: 'UNDERCOVER',
-    tagline: 'Trouve l\'infiltré',
-    imageCandidates: ['/lobby/cards/undercover.png', '/lobby/cards/undercover.jpg'],
-    fallbackEmoji: '🕵️',
-    fallbackColor: '#a855f7',
-    glowColor: '#c084fc',
-  },
-  {
-    id: 'memorise',
-    label: 'BLINDTEST',
-    tagline: 'Devine la musique, anime ou dessin animé !',
-    imageCandidates: ['/lobby/cards/blindtest.png', '/lobby/cards/blindtest.jpg', '/lobby/cards/memorise.png'],
-    fallbackEmoji: '🎵',
-    fallbackColor: '#d946ef',
-    glowColor: '#e879f9',
-  },
-  {
-    id: 'mimic',
-    label: 'MIMIC',
-    tagline: 'Karaoké compétitif — imite la chanson !',
-    imageCandidates: ['/lobby/cards/mimic.png', '/lobby/cards/mimic.jpg'],
-    fallbackEmoji: '🎤',
-    fallbackColor: '#ff2e97',
-    glowColor: '#ffcf4a',
-  },
-];
-
-/**
- * Card image with multi-candidate fallback chain (tries .png then .jpg, etc.)
- * Falls back to a stylized colored card with emoji if no image loads.
- */
-const CardArt = ({
-  card,
-  isActive,
-}: {
-  card: ModeCard;
-  isActive: boolean;
-}) => {
-  const [candidateIndex, setCandidateIndex] = useState(0);
-  const [allFailed, setAllFailed] = useState(false);
-
-  const currentSrc = card.imageCandidates[candidateIndex];
-
-  const handleError = () => {
-    if (candidateIndex + 1 < card.imageCandidates.length) {
-      setCandidateIndex(candidateIndex + 1);
-    } else {
-      setAllFailed(true);
-    }
-  };
-
-  if (allFailed || !currentSrc) {
-    // Fallback: stylized colored card with emoji and label
-    return (
-      <div
-        className="absolute inset-0 rounded-2xl flex flex-col items-center justify-between p-4 overflow-hidden"
-        style={{
-          background: `linear-gradient(180deg, ${card.fallbackColor}, ${card.fallbackColor}dd)`,
-          border: '3px solid rgba(0,0,0,0.4)',
-        }}
-      >
-        <div className="flex-1 flex items-center justify-center">
-          <motion.div
-            animate={{ rotate: [-3, 3, -3], scale: [1, 1.05, 1] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            className="text-7xl"
-            style={{ filter: 'drop-shadow(2px 4px 0 rgba(0,0,0,0.4))' }}
-          >
-            {card.fallbackEmoji}
-          </motion.div>
-        </div>
-        <h3
-          className="text-xl font-black tracking-tight leading-none text-white text-center px-1"
-          style={{
-            fontFamily: "'Caveat', cursive",
-            textShadow:
-              '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
-          }}
-        >
-          {card.label}
-        </h3>
-      </div>
-    );
-  }
-
-  return (
-    <img
-      key={currentSrc}
-      src={currentSrc}
-      alt={card.label}
-      onError={handleError}
-      className="absolute inset-0 w-full h-full object-cover rounded-2xl"
-      style={{
-        filter: isActive
-          ? 'brightness(1.05) saturate(1.1)'
-          : 'brightness(0.9) saturate(0.95)',
-      }}
-    />
-  );
-};
 
 /**
  * Optional asset with fallback. Tries multiple candidate URLs (.png/.jpg/etc.)
@@ -321,27 +157,7 @@ export const InkLobbyScreen = ({
     };
   }, [lobbyId]);
 
-  const selectedCard = useMemo(
-    () => MODE_CARDS.find((c) => c.id === gameMode) ?? MODE_CARDS[0],
-    [gameMode],
-  );
-
-  // Fan carousel cards (stable) + selected index for the highlight ring
-  const fanCards = useMemo(
-    () =>
-      MODE_CARDS.map((c) => ({
-        imgUrl: c.imageCandidates[0],
-        alt: c.label,
-        id: c.id,
-        label: c.label,
-        bgColor: `linear-gradient(180deg, ${c.fallbackColor}, ${c.fallbackColor}dd)`,
-      })),
-    [],
-  );
-  const selectedFanIndex = useMemo(
-    () => MODE_CARDS.findIndex((c) => c.id === gameMode),
-    [gameMode],
-  );
+  const selectedCard = GAME_MODE_META[gameMode];
 
   const handleGameModeChange = useCallback(
     async (mode: LobbyGameMode) => {
@@ -369,7 +185,6 @@ export const InkLobbyScreen = ({
     teamsCount: teams.length,
     isAdmin,
   });
-  const minPlayers = GAME_MODE_META[gameMode].minPlayers;
 
   const handleStartGame = async () => {
     if (!isHost || !canStart || isStarting) return;
@@ -489,11 +304,8 @@ export const InkLobbyScreen = ({
     return () => window.removeEventListener('click', close);
   }, [openMenuFor]);
 
-  const playerCountForMode = (modeId: LobbyGameMode) =>
-    modeId === gameMode ? connectedCount : 0;
-
   return (
-    <div className="menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#1a0d2e] text-white relative overflow-hidden">
+    <div className="ibs-shell ibs-lobby menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#1a0d2e] text-white relative overflow-hidden">
       {/* Background canvas (collaborative drawing) */}
       <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
 
@@ -546,7 +358,7 @@ export const InkLobbyScreen = ({
       <div className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 p-3 md:p-4 pb-24 md:pb-[100px] min-h-0 overflow-y-auto md:overflow-hidden custom-scrollbar">
 
         {/* SIDEBAR — Logo + Players + Mascot + QUITTER */}
-        <aside className="flex flex-col gap-3 min-h-[36rem] md:min-h-0 overflow-visible md:overflow-hidden">
+        <aside className="order-2 md:order-1 flex flex-col gap-3 min-h-[36rem] md:min-h-0 overflow-visible md:overflow-hidden">
           {/* C2TV / MIMIC MASTER LOGO */}
           <div className="flex-shrink-0 flex items-center justify-center pt-2">
             <ImageWithFallback
@@ -673,7 +485,7 @@ export const InkLobbyScreen = ({
                           playInkSound('cartoonPop', 0.3);
                           setOpenMenuFor(openMenuFor === p.id ? null : p.id);
                         }}
-                        className="w-6 h-6 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                        className="menu-icon-control w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white opacity-100 transition-all"
                       >
                         <MoreVertical className="w-3 h-3" />
                       </button>
@@ -767,11 +579,11 @@ export const InkLobbyScreen = ({
         </aside>
 
         {/* MAIN CONTENT — Hero header + Mode grid + PRÊT button */}
-        <main className="flex flex-col min-h-[40rem] md:min-h-0 overflow-visible md:overflow-hidden gap-3">
+        <main className="order-1 md:order-2 flex flex-col min-h-[40rem] md:min-h-0 overflow-visible md:overflow-hidden gap-3">
           {/* Hero mode banner */}
           <AnimatePresence mode="wait">
             <motion.div
-              key={selectedCard.id}
+              key={gameMode}
               initial={{ opacity: 0, y: -10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.98 }}
@@ -815,7 +627,7 @@ export const InkLobbyScreen = ({
                       '2px 2px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
                   }}
                 >
-                  {selectedCard.label}
+                  {selectedCard.shortLabel}
                 </h2>
                 <p className="text-xs md:text-sm text-white/80 mt-0.5">
                   {selectedCard.tagline}
@@ -907,14 +719,22 @@ export const InkLobbyScreen = ({
             )}
           </AnimatePresence>
 
-          {/* MODE FAN CAROUSEL — all modes shown in a fan */}
-          <div className="flex-1 min-h-0 flex items-center justify-center">
-            <CardFanCarousel
-              cards={fanCards}
-              selectedIndex={selectedFanIndex}
-              onCardClick={isHost ? (i) => handleGameModeChange(MODE_CARDS[i].id) : undefined}
+          {/* Accessible programme rail — same metadata on touch, keyboard, TV and gamepad. */}
+          <section className="ibs-panel flex-1 min-h-0 overflow-y-auto p-3 sm:p-4" style={{ '--menu-accent': selectedCard.accent } as React.CSSProperties}>
+            <div className="flex items-end justify-between gap-3 mb-3">
+              <div className="ibs-section-heading">
+                <span>{isHost ? 'PROGRAMMATION HÔTE' : 'PROGRAMME EN COURS'}</span>
+                <h3>{isHost ? 'Choisis le mode' : 'Mode sélectionné'}</h3>
+              </div>
+              <span className="ibs-status ibs-status--network">{connectedCount} connecté{connectedCount > 1 ? 's' : ''}</span>
+            </div>
+            <ModePicker
+              value={gameMode}
+              onChange={isHost ? handleGameModeChange : undefined}
+              playerCount={connectedCount}
+              isAdmin={isAdmin}
             />
-          </div>
+          </section>
 
           {/* PRÊT button (host) — uses /lobby/pret-stamp.png */}
           <div className="flex-shrink-0 flex items-end justify-end pb-2 pr-2">

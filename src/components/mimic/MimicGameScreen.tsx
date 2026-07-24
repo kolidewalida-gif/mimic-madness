@@ -539,7 +539,7 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
 
   /* ============================================================ */
   return (
-    <div className="menu-surface menu-screen-safe h-screen w-full flex flex-col items-center text-white relative overflow-hidden" style={{ background: MIMIC.bg }}>
+    <div className="ibs-shell ibs-mimic menu-surface menu-screen-safe h-screen w-full flex flex-col items-center text-white relative overflow-hidden" style={{ background: MIMIC.bg }}>
       <audio ref={mediaRef} className="hidden" preload="auto" onPlaying={() => setNeedsSoundUnlock(false)} />
       {/* live voice of the current singer (spectators) */}
       <audio ref={remoteAudioRef} className="hidden" autoPlay playsInline />
@@ -553,7 +553,7 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
       </div>
 
       {/* header */}
-      <div className="relative z-10 w-full flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4 gap-2">
+      <div className="ibs-studio-header relative z-10 w-full flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4 gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: MIMIC_SPECTRUM, boxShadow: mglow(MIMIC.magenta, 0.4) }}>
             <Mic className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -574,35 +574,58 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
       <div className="relative z-10 flex-1 w-full flex flex-col items-center justify-center px-4 min-h-0 overflow-y-auto custom-scrollbar py-4">
         <AnimatePresence mode="wait">
           {phase === 'setup' && (
-            <motion.div key="setup" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="w-full max-w-md flex flex-col items-center gap-6 rounded-[2rem] px-6 py-9" style={{ background: MIMIC.panel, border: `1px solid ${MIMIC.hair}`, backdropFilter: 'blur(14px)' }}>
-              <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: MIMIC_SPECTRUM, boxShadow: mglow(MIMIC.magenta, 0.5) }}>
-                <Mic className="w-11 h-11 text-white" strokeWidth={2} />
-              </div>
-              <div className="text-center">
-                <h2 className="text-5xl font-black tracking-tight" style={{ background: MIMIC_SPECTRUM, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>MIMIC</h2>
-                <p className="text-sm mt-1 font-medium" style={{ color: MIMIC.sub }}>Imite la chanson le plus fidèlement possible. Le meilleur % gagne.</p>
-                <p className="text-xs mt-2 flex items-center justify-center gap-1.5" style={{ color: MIMIC.sub }}><Mic className="w-3.5 h-3.5" /> Voix en direct — chacun chante à son tour, les autres t'écoutent.</p>
-              </div>
-              <MimicMicCheck onReadyChange={reportMicReady} />
-              <div className="rounded-full px-4 py-1.5 text-xs font-black" style={{ color: allMicsReady ? MIMIC.emerald : MIMIC.sub, background: 'rgba(255,255,255,0.05)', border: `1px solid ${allMicsReady ? `${MIMIC.emerald}66` : MIMIC.hair}` }}>
-                {readyMicCount}/{connectedPlayerIds.length} micro{connectedPlayerIds.length > 1 ? 's' : ''} prêt{readyMicCount > 1 ? 's' : ''}
-              </div>
-              {isHost ? (
-                <motion.button onClick={startGame} disabled={!channelReady || starting || !allMicsReady} aria-busy={starting} whileHover={channelReady && allMicsReady && !starting ? { scale: 1.03 } : undefined} whileTap={channelReady && allMicsReady && !starting ? { scale: 0.97 } : undefined}
-                  className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-black text-2xl text-white"
-                  style={{ background: channelReady && allMicsReady && !starting ? MIMIC_SPECTRUM : 'rgba(255,255,255,0.06)', boxShadow: channelReady && allMicsReady && !starting ? `0 12px 40px ${MIMIC.magenta}55` : 'none', cursor: channelReady && allMicsReady && !starting ? 'pointer' : 'not-allowed', opacity: channelReady && allMicsReady && !starting ? 1 : 0.5 }}>
-                  {starting ? <Loader2 className="w-7 h-7 animate-spin" /> : <Play className="w-7 h-7 fill-white" />}
-                  {starting ? 'Préparation…' : !allMicsReady ? 'MICROS EN ATTENTE' : searchFailed ? 'RÉESSAYER' : 'LANCER'}
-                </motion.button>
-              ) : (
-                <p className="text-lg font-bold" style={{ color: MIMIC.sub }}>En attente de l'hôte…</p>
-              )}
-              {starting && <p className="text-xs -mt-2" style={{ color: MIMIC.sub }}>Recherche d'une chanson avec paroles… (max ~1 min)</p>}
-              {!starting && searchFailed && (
-                <p className="flex items-center gap-2 text-sm font-bold -mt-2" style={{ color: MIMIC.rose }}>
-                  <AlertTriangle className="w-4 h-4" /> Aucune chanson trouvée (réseau lent ou bloqué). Réessaie.
-                </p>
-              )}
+            <motion.div key="setup" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="grid w-full max-w-4xl gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+              <section className="ibs-panel flex flex-col gap-5 p-5 sm:p-7" style={{ '--menu-accent': MIMIC.magenta } as React.CSSProperties}>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl" style={{ background: MIMIC_SPECTRUM, boxShadow: mglow(MIMIC.magenta, 0.45) }}>
+                    <Mic className="h-9 w-9 text-white" strokeWidth={2} />
+                  </div>
+                  <div>
+                    <span className="ibs-eyebrow">LIVE VOCAL · TOUR PAR TOUR</span>
+                    <h2 className="text-4xl font-black tracking-tight" style={{ background: MIMIC_SPECTRUM, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>MIMIC STAGE</h2>
+                    <p className="mt-1 text-sm" style={{ color: MIMIC.sub }}>Imite rythme, énergie et justesse. Les autres joueurs t’écoutent en direct.</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-xl bg-white/[0.04] p-3"><Music2 className="mx-auto mb-1 h-4 w-4" style={{ color: MIMIC.gold }} /><strong className="block text-white">Preview iTunes</strong></div>
+                  <div className="rounded-xl bg-white/[0.04] p-3"><Mic className="mx-auto mb-1 h-4 w-4" style={{ color: MIMIC.magenta }} /><strong className="block text-white">Voix WebRTC</strong></div>
+                  <div className="rounded-xl bg-white/[0.04] p-3"><Trophy className="mx-auto mb-1 h-4 w-4" style={{ color: MIMIC.emerald }} /><strong className="block text-white">Score live</strong></div>
+                </div>
+                <MimicMicCheck onReadyChange={reportMicReady} />
+              </section>
+
+              <aside className="ibs-panel flex flex-col gap-4 p-5 sm:p-6" style={{ '--menu-accent': MIMIC.emerald } as React.CSSProperties}>
+                <div className="flex items-end justify-between gap-3">
+                  <div className="ibs-section-heading"><span>CHECK-IN STUDIO</span><h3>Micros des joueurs</h3></div>
+                  <span className={`ibs-status ${allMicsReady ? 'ibs-status--online' : 'ibs-status--network'}`}>{readyMicCount}/{connectedPlayerIds.length} prêts</span>
+                </div>
+                <div className="grid gap-2" role="list" aria-label="État des microphones">
+                  {players.filter((player) => !player.isDisconnected).map((player) => {
+                    const ready = micReadyIds.has(player.id);
+                    const avatar = getAvatar(player.id);
+                    const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
+                    return (
+                      <div key={player.id} role="listitem" className="flex min-h-12 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
+                        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white/10 text-xs font-black">{image ? <img src={image} alt="" className="h-full w-full object-cover" /> : player.name.slice(0, 1).toUpperCase()}</div>
+                        <span className="min-w-0 flex-1 truncate font-bold text-white">{player.name}{player.id === currentPlayer.id ? ' · toi' : ''}</span>
+                        <span className={`ibs-status ${ready ? 'ibs-status--online' : 'ibs-status--neutral'}`}>{ready ? 'MICRO PRÊT' : 'EN ATTENTE'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-auto">
+                  {isHost ? (
+                    <motion.button onClick={startGame} disabled={!channelReady || starting || !allMicsReady} aria-busy={starting} whileHover={channelReady && allMicsReady && !starting ? { scale: 1.02 } : undefined} whileTap={channelReady && allMicsReady && !starting ? { scale: 0.98 } : undefined}
+                      className="menu-focus flex min-h-14 w-full items-center justify-center gap-2.5 rounded-xl px-6 py-3 text-xl font-black text-white"
+                      style={{ background: channelReady && allMicsReady && !starting ? MIMIC_SPECTRUM : 'rgba(255,255,255,0.06)', boxShadow: channelReady && allMicsReady && !starting ? `0 10px 34px ${MIMIC.magenta}55` : 'none', opacity: channelReady && allMicsReady && !starting ? 1 : 0.55 }}>
+                      {starting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Play className="h-6 w-6 fill-white" />}
+                      {starting ? 'Préparation…' : !allMicsReady ? 'MICROS EN ATTENTE' : searchFailed ? 'RÉESSAYER' : 'OUVRIR LA SCÈNE'}
+                    </motion.button>
+                  ) : <p className="rounded-xl border border-white/10 bg-white/[0.035] p-4 text-center font-bold" style={{ color: MIMIC.sub }}>L’hôte ouvrira la scène quand tous les micros seront prêts.</p>}
+                  {starting && <p className="mt-2 text-center text-xs" style={{ color: MIMIC.sub }}>Recherche d’une chanson avec paroles… (max ~1 min)</p>}
+                  {!starting && searchFailed && <p className="mt-2 flex items-center justify-center gap-2 text-sm font-bold" style={{ color: MIMIC.rose }}><AlertTriangle className="h-4 w-4" /> Réseau lent ou bloqué. Réessaie.</p>}
+                </div>
+              </aside>
             </motion.div>
           )}
 

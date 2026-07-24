@@ -1,4 +1,4 @@
-import { useState, memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, memo, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,7 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { DeviceSettings } from '@/components/DeviceSettings';
-import { LobbyGameMode } from '@/lib/gameModes';
+import { GAME_MODE_META, GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
 import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
@@ -41,116 +41,6 @@ interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
   onJoinGame: (playerName: string, lobbyCode: string) => void;
 }
-
-interface GameModeInfo {
-  id: LobbyGameMode;
-  name: string;
-  shortLabel: string;
-  tagline: string;
-  description: string;
-  icon: React.ReactNode;
-  /** Mini card image candidates (small bottom row) */
-  cardImageCandidates: string[];
-  /** Hero banner image candidates (big top card) */
-  bannerImageCandidates: string[];
-  fallbackEmoji: string;
-  fallbackColor: string;
-  accent: string;
-}
-
-const GAME_MODES: GameModeInfo[] = [
-  {
-    id: 'normal',
-    name: 'Imitation',
-    shortLabel: 'IMITATION',
-    tagline: 'Imitation classique',
-    description: 'Imitez les défis vidéo des autres joueurs',
-    icon: <Copy className="w-7 h-7" />,
-    cardImageCandidates: ['/lobby/cards/imitation.png', '/lobby/cards/imitation.jpg'],
-    bannerImageCandidates: ['/home/banners/normal.png', '/home/banners/normal.jpg', '/home/banners/imitation.png'],
-    fallbackEmoji: '🎤',
-    fallbackColor: '#a855f7',
-    accent: '#c084fc',
-  },
-  {
-    id: 'audiophone',
-    name: 'Audio Phone',
-    shortLabel: 'AUDIO PIONNER',
-    tagline: 'Le téléphone arabe audio',
-    description: 'Enregistrez, écoutez, imitez. Fou rire garanti !',
-    icon: <Phone className="w-7 h-7" />,
-    cardImageCandidates: ['/lobby/cards/audiophone.png', '/lobby/cards/audiophone.jpg'],
-    bannerImageCandidates: ['/home/banners/audiophone.png', '/home/banners/audiophone.jpg'],
-    fallbackEmoji: '🔊',
-    fallbackColor: '#f59e0b',
-    accent: '#fbbf24',
-  },
-  {
-    id: '2v2',
-    name: '2 vs 2',
-    shortLabel: '2 VS 2',
-    tagline: 'Combat en équipes',
-    description: 'Affrontement en équipes de 2 joueurs',
-    icon: <Swords className="w-7 h-7" />,
-    cardImageCandidates: ['/lobby/cards/2v2.png', '/lobby/cards/2v2.jpg'],
-    bannerImageCandidates: ['/home/banners/2v2.png', '/home/banners/2v2.jpg'],
-    fallbackEmoji: '⚔️',
-    fallbackColor: '#3b82f6',
-    accent: '#60a5fa',
-  },
-  {
-    id: 'quiz',
-    name: 'Quiz',
-    shortLabel: 'QUIZ',
-    tagline: 'Testez vos connaissances',
-    description: 'Questions variées en temps réel',
-    icon: <Brain className="w-7 h-7" />,
-    cardImageCandidates: ['/lobby/cards/quiz.png', '/lobby/cards/quiz.jpg'],
-    bannerImageCandidates: ['/home/banners/quiz.png', '/home/banners/quiz.jpg'],
-    fallbackEmoji: '❓',
-    fallbackColor: '#84cc16',
-    accent: '#a3e635',
-  },
-  {
-    id: 'pixoguess',
-    name: 'BlurRush',
-    shortLabel: 'BLURRUSH',
-    tagline: "Devinez l'image",
-    description: "L'image se dépixelise, soyez le plus rapide",
-    icon: <Zap className="w-7 h-7" />,
-    cardImageCandidates: ['/lobby/cards/blindtest.png', '/lobby/cards/blindtest.jpg'],
-    bannerImageCandidates: ['/home/banners/pixoguess.png', '/home/banners/blindtest.png'],
-    fallbackEmoji: '🎧',
-    fallbackColor: '#06b6d4',
-    accent: '#22d3ee',
-  },
-  {
-    id: 'monopoly',
-    name: 'Monopoly',
-    shortLabel: 'MONOPOLY',
-    tagline: 'Plateau multijoueur',
-    description: 'Jeu de plateau 3D multijoueur',
-    icon: <Brain className="w-7 h-7" />,
-    cardImageCandidates: ['/lobby/cards/memory.png', '/lobby/cards/memory.jpg'],
-    bannerImageCandidates: ['/home/banners/memory.png', '/home/banners/memory.jpg'],
-    fallbackEmoji: '🔐',
-    fallbackColor: '#ec4899',
-    accent: '#f472b6',
-  },
-  {
-    id: 'undercover',
-    name: 'Undercover',
-    shortLabel: 'UNDERCOVER',
-    tagline: "Trouvez l'infiltré",
-    description: "Donnez des indices, démasquez l'imposteur",
-    icon: <UserX className="w-7 h-7" />,
-    cardImageCandidates: ['/lobby/cards/undercover.png', '/lobby/cards/undercover.jpg'],
-    bannerImageCandidates: ['/home/banners/undercover.png', '/home/banners/undercover.jpg'],
-    fallbackEmoji: '🕵️',
-    fallbackColor: '#a855f7',
-    accent: '#c084fc',
-  },
-];
 
 /* ============================================================
    Image with multi-candidate fallback
@@ -210,11 +100,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
-  const [modeIndex, setModeIndex] = useState(1); // start on AUDIO PHONE like mockup
-  // Direction of last mode change: +1 = went right, -1 = went left.
-  // Used to drive the hero banner horizontal swipe animation.
-  const [modeDir, setModeDir] = useState<1 | -1>(1);
-  const prevModeIndexRef = useRef(1);
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
   const { level } = usePlayerLevel();
@@ -224,28 +109,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     pushLobby: pushRecentLobby,
     removeLobby: removeRecentLobby,
   } = useRecentLobbies();
-
-  const selectedMode = GAME_MODES[modeIndex];
-
-  /**
-   * Switch to a mode index using shortest-path direction with wrap-around.
-   * Drives the hero banner horizontal swipe direction:
-   *   +1 = swipe right (new card slides in from right)
-   *   -1 = swipe left  (new card slides in from left)
-   */
-  const goToMode = useCallback((next: number) => {
-    setModeIndex((curr) => {
-      if (next === curr) return curr;
-      const len = GAME_MODES.length;
-      const normalized = ((next % len) + len) % len;
-      const forward = (normalized - curr + len) % len; // steps going right
-      const backward = (curr - normalized + len) % len; // steps going left
-      const dir: 1 | -1 = forward <= backward ? 1 : -1;
-      prevModeIndexRef.current = curr;
-      setModeDir(dir);
-      return normalized;
-    });
-  }, []);
 
   const toggleMute = useCallback(() => {
     if (volume === 0) setVolume(0.5);
@@ -349,24 +212,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       },
       label: 'Lancer la partie',
     },
-    {
-      key: 'ArrowLeft',
-      enabled: !anyModalOpen,
-      handler: () => {
-        playInkSound('brushTap', 0.25);
-        goToMode((modeIndex - 1 + GAME_MODES.length) % GAME_MODES.length);
-      },
-      label: 'Mode précédent',
-    },
-    {
-      key: 'ArrowRight',
-      enabled: !anyModalOpen,
-      handler: () => {
-        playInkSound('brushTap', 0.25);
-        goToMode((modeIndex + 1) % GAME_MODES.length);
-      },
-      label: 'Mode suivant',
-    },
   ]);
 
   const handleCreateGame = useCallback(() => {
@@ -396,7 +241,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   }, [friendCode]);
 
   return (
-    <div className="menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#0a0510] text-white relative overflow-hidden">
+    <div className="ibs-shell ibs-home menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#0a0510] text-white relative overflow-hidden">
       {/* ============== BACKGROUND ============== */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Static background image */}
@@ -419,7 +264,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[700px] rounded-full opacity-20"
           style={{
-            background: `radial-gradient(circle, ${selectedMode.accent}55 0%, transparent 70%)`,
+            background: 'radial-gradient(circle, rgba(167,139,250,0.28) 0%, transparent 70%)',
             filter: 'blur(120px)',
           }}
         />
@@ -647,9 +492,15 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       </header>
 
       {/* ============== MAIN CONTENT ============== */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar gap-4">
+      <main className="ibs-home-main relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar gap-4">
+        <div className="w-full max-w-3xl text-center sm:text-left">
+          <span className="ibs-eyebrow">INK BROADCAST STUDIO · EN DIRECT</span>
+          <h2 className="ibs-display-title">Ta soirée commence ici.</h2>
+          <p className="mt-1 text-sm text-white/60">Entre ton nom, ouvre un studio puis choisis l’émission avec tes invités.</p>
+        </div>
+
         {/* PSEUDO INPUT — discreet, just above the buttons */}
-        <div className="w-full max-w-3xl">
+        <div className="ibs-panel w-full max-w-3xl p-3 sm:p-4">
           <div className="relative group">
             <Input
               placeholder="Votre pseudo"
@@ -784,7 +635,27 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           </motion.button>
         </div>
 
-        {/* Mode selection removed — the host picks the mode in the lobby */}
+        {/* Le mode réel reste choisi dans le lobby ; cette galerie est informative. */}
+        <section className="ibs-panel w-full max-w-3xl p-3 sm:p-4" aria-labelledby="home-programmes-title">
+          <div className="flex items-end justify-between gap-3 mb-3">
+            <div className="ibs-section-heading">
+              <span>PROGRAMMES</span>
+              <h3 id="home-programmes-title">À l’antenne</h3>
+            </div>
+            <span className="ibs-status ibs-status--network">9 modes · temps réel</span>
+          </div>
+          <div className="ibs-program-strip">
+            {GAME_MODE_ORDER.map((mode) => {
+              const meta = GAME_MODE_META[mode];
+              return (
+                <div key={mode} className="ibs-program-chip" style={{ '--mode-accent': meta.accent } as React.CSSProperties}>
+                  <span aria-hidden="true">{meta.fallbackEmoji}</span>
+                  <div><strong>{meta.shortLabel}</strong><small>{meta.minPlayers}+ joueurs</small></div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </main>
 
       {/* ============== BOTTOM UTILITY BAR ============== */}
@@ -1303,7 +1174,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         onClose={() => setShowShortcuts(false)}
         extra={[
           { keys: ['C'], label: 'Copier le code ami' },
-          { keys: ['←', '→'], label: 'Naviguer entre les modes' },
           { keys: ['Enter'], label: 'Lancer la partie' },
         ]}
       />

@@ -76,7 +76,7 @@ export const AdminPanel = () => {
       <motion.button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="menu-focus fixed z-[200] w-11 h-11 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-lg"
+        className="menu-focus fixed z-[200] w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg border border-white/15"
         style={{ bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))', left: 'max(1rem, env(safe-area-inset-left, 0px))' }}
         aria-label={isOpen ? 'Fermer le panneau administrateur' : 'Ouvrir le panneau administrateur'}
         aria-expanded={isOpen}
@@ -100,12 +100,12 @@ export const AdminPanel = () => {
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="menu-dialog menu-dialog-safe fixed bottom-16 left-4 z-[201] w-[min(18rem,calc(100vw-2rem))] bg-card border border-destructive/50 rounded-xl shadow-2xl overflow-hidden"
+              className="ibs-panel menu-dialog menu-dialog-safe fixed bottom-16 left-4 z-[201] w-[min(20rem,calc(100vw-2rem))] rounded-2xl overflow-hidden"
               role="dialog"
               aria-modal="true"
               aria-labelledby="admin-panel-title"
             >
-              <div className="p-3 bg-destructive text-destructive-foreground flex items-center justify-between">
+              <div className="p-3 bg-primary/15 border-b border-primary/30 text-foreground flex items-center justify-between">
                 <span id="admin-panel-title" className="font-bold flex items-center gap-2">
                   <Shield className="w-4 h-4" /> Admin Panel
                 </span>
@@ -120,7 +120,7 @@ export const AdminPanel = () => {
                   label="Super Panel (bans, annonces, lobbies)"
                   onClick={() => { setIsOpen(false); setSuperOpen(true); }}
                   disabled={busyAction !== null}
-                  className="!bg-destructive/10 !border-destructive/40 text-destructive"
+                  className="!bg-primary/10 !border-primary/40 text-primary"
                 />
                 <AdminBtn
                   icon={Gift}
@@ -184,7 +184,7 @@ const AdminBtn = ({ icon: Icon, label, onClick, disabled, loading = false, class
       className
     )}
   >
-    {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Icon className="w-3.5 h-3.5 text-destructive" />}
+    {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Icon className="w-3.5 h-3.5 text-primary" />}
     {label}
   </button>
 );

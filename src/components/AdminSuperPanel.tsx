@@ -42,19 +42,19 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="menu-dialog menu-dialog-safe fixed inset-4 md:inset-10 z-[9997] bg-card border-2 border-destructive/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+      className="ibs-admin-super menu-dialog menu-dialog-safe fixed inset-4 md:inset-10 z-[9997] bg-[#100b1d] border border-primary/35 rounded-2xl shadow-2xl flex flex-col md:grid md:grid-cols-[13rem_1fr] md:grid-rows-[auto_1fr] overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="admin-super-panel-title"
     >
-      <div className="p-4 bg-destructive text-destructive-foreground flex items-center justify-between">
+      <div className="ibs-admin-header p-4 bg-primary/15 border-b border-primary/30 text-foreground flex items-center justify-between md:col-span-2">
         <span id="admin-super-panel-title" className="font-bold flex items-center gap-2">
           <Shield className="w-5 h-5" /> Admin Super Panel
         </span>
         <button type="button" data-back onClick={onClose} aria-label="Fermer le panneau administrateur"><X className="w-5 h-5" /></button>
       </div>
 
-      <div className="flex border-b border-border">
+      <div className="ibs-admin-tabs flex md:flex-col border-b md:border-b-0 md:border-r border-border bg-black/15">
         {(['bans', 'announce', 'lobbies'] as Tab[]).map(t => (
           <button
             key={t}
@@ -63,7 +63,7 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
             aria-pressed={tab === t}
             className={cn(
               'flex-1 min-w-0 px-1.5 sm:px-3 py-3 text-xs sm:text-sm font-medium flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition',
-              tab === t ? 'bg-destructive/10 text-destructive border-b-2 border-destructive' : 'text-muted-foreground hover:bg-muted/50'
+              tab === t ? 'bg-primary/15 text-primary border-b-2 md:border-b-0 md:border-l-2 border-primary' : 'text-muted-foreground hover:bg-muted/50'
             )}
           >
             {t === 'bans' && <><Ban className="w-4 h-4" /> Bans</>}
@@ -73,7 +73,7 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
         {tab === 'bans' && <BansTab />}
         {tab === 'announce' && <AnnounceTab />}
         {tab === 'lobbies' && <LobbiesTab onClose={onClose} />}
@@ -478,7 +478,7 @@ const LobbiesTab = ({ onClose }: { onClose: () => void }) => {
               onClick={() => joinAs(l, false)}
               disabled={joiningId !== null}
               aria-busy={joiningId === `${l.id}:visible`}
-              className="menu-action flex-1 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 flex items-center justify-center gap-1 disabled:opacity-50"
+              className="menu-action flex-1 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 flex items-center justify-center gap-1 disabled:opacity-50"
             >
               {joiningId === `${l.id}:visible` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />} Rejoindre
             </button>
