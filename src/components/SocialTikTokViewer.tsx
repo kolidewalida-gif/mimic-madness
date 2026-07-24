@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Trash2, Send, X, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 import { SocialPost } from '@/hooks/useSocialFeed';
-import { useLiveComments } from '@/hooks/useLiveComments';
+import { useSocialComments } from '@/hooks/useSocialComments';
 import { useAuth } from '@/hooks/useAuth';
 import { VideoWithAudioOverlay } from '@/components/VideoWithAudioOverlay';
 import { VideoPreview } from '@/components/VideoPreview';
@@ -33,7 +33,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
   const post = posts[index];
-  const { comments, posting, sendComment } = useLiveComments(post?.id ?? null);
+  const { comments, posting, addComment } = useSocialComments(post?.id ?? null);
 
   // Auto-scroll comments to bottom
   useEffect(() => {
@@ -74,7 +74,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
     if (!draft.trim() || posting) return;
     const body = draft;
     setDraft('');
-    await sendComment(body);
+    await addComment(body);
     playInkSound('cartoonDing', 0.3);
   };
 
@@ -261,7 +261,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
             Chat live
           </span>
           <span className="ml-auto text-xs text-white/40 font-bold" style={{ fontFamily: FONT }}>
-            éphémère
+            {comments.length} message{comments.length > 1 ? 's' : ''}
           </span>
         </div>
 
@@ -275,7 +275,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                 Aucun message — lance la conversation !
               </p>
               <p className="text-xs text-white/30" style={{ fontFamily: FONT }}>
-                Les messages disparaissent quand tu fermes
+                Sois le premier à laisser un mot ✨
               </p>
             </div>
           ) : (
