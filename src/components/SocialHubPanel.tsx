@@ -50,7 +50,7 @@ const TAB_COLORS: Record<Tab, { bg: string; accent: string; glow: string }> = {
   messages: { bg: '#a855f7', accent: '#c084fc', glow: 'rgba(168,85,247,0.5)' },
   requests: { bg: '#fbbf24', accent: '#fde047', glow: 'rgba(251,191,36,0.5)' },
   invitations: { bg: '#34d399', accent: '#6ee7b7', glow: 'rgba(52,211,153,0.5)' },
-  social: { bg: '#ef4444', accent: '#fb7185', glow: 'rgba(239,68,68,0.5)' },
+  social: { bg: '#8b5cf6', accent: '#a78bfa', glow: 'rgba(139,92,246,0.5)' },
 };
 
 const SocialHubPanelComponent = ({
@@ -1011,111 +1011,48 @@ const SocialHubPanelComponent = ({
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {showSocialModal && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                width: '100vw',
-                height: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '16px',
-                zIndex: 9999,
-              }}
-            >
-              {/* Backdrop */}
-              <motion.div
+            <div className="social-studio-overlay menu-dialog menu-dialog-safe force-cursor">
+              <motion.button
+                type="button"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowSocialModal(false)}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'rgba(0,0,0,0.85)',
-                  backdropFilter: 'blur(12px)',
-                }}
+                className="social-studio-backdrop"
+                aria-label="Fermer Social"
               />
-              {/* Modal card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: 20 }}
+                initial={{ opacity: 0, scale: 0.96, y: 18 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: 20 }}
-                transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-                style={{
-                  position: 'relative',
-                  width: 'min(96vw, 1100px)',
-                  height: 'min(90vh, 800px)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: '24px',
-                  overflow: 'hidden',
-                  background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-                  border: '4px solid #0a0810',
-                  boxShadow: '0 12px 0 #0a0810, 0 18px 50px rgba(239,68,68,0.4), inset 0 2px 0 rgba(255,255,255,0.08)',
-                }}
+                exit={{ opacity: 0, scale: 0.96, y: 18 }}
+                transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+                className="social-studio-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="social-studio-title"
               >
-                {/* Header */}
-                <div
-                  style={{
-                    flexShrink: 0,
-                    padding: '16px 20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: 'linear-gradient(180deg, rgba(239,68,68,0.18), rgba(239,68,68,0.05))',
-                    borderBottom: '3px solid #0a0810',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <motion.div
-                      animate={{ rotate: [-5, 5, -5] }}
-                      transition={{ duration: 2.4, repeat: Infinity }}
-                      style={{
-                        width: 48, height: 48, borderRadius: 16,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                        border: '3px solid #0a0810',
-                        boxShadow: '0 4px 0 #0a0810',
-                      }}
-                    >
-                      <Share2 style={{ width: 24, height: 24, color: 'white' }} strokeWidth={2.5} />
-                    </motion.div>
+                <header className="social-studio-header">
+                  <div className="social-studio-brand">
+                    <span className="social-studio-logo"><Share2 aria-hidden="true" /></span>
                     <div>
-                      <h2 style={{ fontFamily: "'Caveat', cursive", fontSize: 28, fontWeight: 900, color: 'white', margin: 0, lineHeight: 1, textShadow: GRAFFITI_TEXT_SHADOW }}>
-                        Social
-                      </h2>
-                      <p style={{ fontFamily: "'Caveat', cursive", fontSize: 13, color: 'rgba(251,182,206,0.8)', margin: '2px 0 0', fontWeight: 700 }}>
-                        Profil · Pour toi · Tendances
-                      </p>
+                      <span className="social-studio-kicker">MIMIC COMMUNITY</span>
+                      <h2 id="social-studio-title">Social Studio</h2>
                     </div>
                   </div>
-                  <motion.button
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setShowSocialModal(false)}
-                    style={{
-                      width: 40, height: 40, borderRadius: 12,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'rgba(239,68,68,0.2)',
-                      border: '2.5px solid #0a0810',
-                      boxShadow: '0 3px 0 #0a0810',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <X style={{ width: 20, height: 20, color: 'white' }} strokeWidth={3} />
-                  </motion.button>
-                </div>
-
-                {/* Feed */}
-                <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                  <div className="flex items-center gap-2">
+                    <span className="ibs-status ibs-status--online"><span className="h-1.5 w-1.5 rounded-full bg-current" /> LIVE</span>
+                    <button
+                      type="button"
+                      data-back
+                      onClick={() => setShowSocialModal(false)}
+                      className="social-studio-close menu-icon-control"
+                      aria-label="Fermer Social"
+                    >
+                      <X aria-hidden="true" />
+                    </button>
+                  </div>
+                </header>
+                <div className="min-h-0 flex-1 overflow-hidden">
                   <SocialExperience />
                 </div>
               </motion.div>

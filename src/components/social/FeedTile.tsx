@@ -1,27 +1,25 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Play, Trash2, Volume2, VolumeX } from 'lucide-react';
-import { SocialPost } from '@/hooks/useSocialFeed';
+import { Heart, MessageCircle, Play, Trash2, Volume2, VolumeX } from 'lucide-react';
+import type { SocialPost } from '@/hooks/useSocialFeed';
 import { FeedVideo } from '@/components/social/FeedVideo';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
-const FONT = "'Caveat', cursive";
-
 export const LikePill = ({ post, onLike }: { post: SocialPost; onLike: (id: string) => void }) => (
   <button
-    onClick={(e) => {
-      e.stopPropagation();
+    type="button"
+    onClick={(event) => {
+      event.stopPropagation();
       playInkSound('cartoonPop', 0.3);
       onLike(post.id);
     }}
-    className={cn(
-      'flex items-center gap-1 px-2 py-1 rounded-full backdrop-blur-md transition-all',
-      post.liked_by_me ? 'bg-rose-500/90 text-white' : 'bg-black/50 text-white/90 hover:bg-black/70',
-    )}
+    className={cn('social-like-button menu-focus', post.liked_by_me && 'is-liked')}
+    aria-label={post.liked_by_me ? `Retirer le like, ${post.likes_count} likes` : `Aimer, ${post.likes_count} likes`}
+    aria-pressed={post.liked_by_me}
   >
-    <Heart className={cn('w-3.5 h-3.5', post.liked_by_me && 'fill-current')} strokeWidth={2.5} />
-    <span className="text-xs font-bold tabular-nums">{post.likes_count}</span>
+    <Heart className={cn(post.liked_by_me && 'fill-current')} aria-hidden="true" />
+    <span>{post.likes_count}</span>
   </button>
 );
 
@@ -40,95 +38,66 @@ export const FeedTile = memo(({
   soundActive?: boolean;
   volume?: number;
   onToggleSound?: () => void;
-  onVolume?: (v: number) => void;
+  onVolume?: (value: number) => void;
 }) => (
-  <motion.div
+  <motion.article
     layout
-    initial={{ opacity: 0, scale: 0.94 }}
+    initial={{ opacity: 0, scale: 0.96 }}
     animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.9 }}
-    whileHover={{ y: -3 }}
+    exit={{ opacity: 0, scale: 0.94 }}
     transition={{ type: 'spring', damping: 24 }}
-    onClick={() => { playInkSound('cartoonPop', 0.3); onOpen(); }}
-    className={cn(
-      'group relative w-full overflow-hidden rounded-2xl cursor-pointer bg-black/60 border border-white/10 hover:border-white/25',
-      square ? 'aspect-square' : 'aspect-[9/16]',
-    )}
+    className={cn('social-feed-tile group', square && 'social-feed-tile--square')}
   >
-    <FeedVideo clipId={post.challenge_clip_id || post.clip_id} soundActive={soundActive} volume={volume} className="absolute inset-0 w-full h-full" />
+    <button type="button" onClick={() => { playInkSound('cartoonPop', 0.3); onOpen(); }} className="social-feed-media menu-focus" aria-label={`Ouvrir la création de ${post.owner_name}`}>
+      <FeedVideo clipId={post.challenge_clip_id || post.clip_id} soundActive={soundActive} volume={volume} className="absolute inset-0 h-full w-full" />
+      <span className="social-feed-shade" />
+      <span className="social-feed-play"><Play aria-hidden="true" /></span>
+    </button>
 
-    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20 pointer-events-none" />
-    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-      <div className="w-12 h-12 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center">
-        <Play className="w-6 h-6 text-white fill-current ml-0.5" />
-      </div>
+    <div className="social-feed-tools">
+      {onToggleSound && (
+        <button type="button" onClick={onToggleSound} className="menu-icon-control" aria-label={soundActive ? 'Couper le son' : 'Activer le son'} aria-pressed={soundActive}>
+          {soundActive ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+        </button>
+      )}
+      {isOwner && onDelete && (
+        <button type="button" onClick={() => { playInkSound('cartoonZap', 0.3); onDelete(post.id); }} className="menu-icon-control social-delete-button" aria-label="Supprimer la publication">
+          <Trash2 aria-hidden="true" />
+        </button>
+      )}
     </div>
 
-    {/* sound toggle */}
-    {onToggleSound && (
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggleSound(); }}
-        className="absolute top-2 left-2 z-20 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-md flex items-center justify-center text-white transition-colors"
-        title={soundActive ? 'Couper le son' : 'Activer le son'}
-      >
-        {soundActive ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-      </button>
-    )}
 
-    {/* volume slider (only when this tile has sound) */}
-    {onToggleSound && soundActive && onVolume && (
-      <div
-        className="absolute top-2 left-11 z-20 flex items-center px-2 h-8 rounded-full bg-black/55 backdrop-blur-md"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={volume}
-          onChange={(e) => onVolume(parseFloat(e.target.value))}
-          onClick={(e) => e.stopPropagation()}
-          className="w-16 sm:w-20 accent-rose-400 cursor-pointer"
-          aria-label="Volume"
-        />
-      </div>
+    {soundActive && onVolume && (
+      <label className="social-volume-control" onClick={(event) => event.stopPropagation()}>
+        <Volume2 aria-hidden="true" />
+        <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(event) => onVolume(parseFloat(event.target.value))} aria-label="Volume de la vidéo" />
+      </label>
     )}
 
     {rank != null && rank <= 3 && (
-      <div className="absolute bottom-12 left-2 z-10 text-2xl drop-shadow-lg pointer-events-none">
-        {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
-      </div>
+      <span className="social-rank" aria-label={`Classement numéro ${rank}`}>{rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</span>
     )}
 
-    {isOwner && onDelete && (
+    <footer className="social-feed-footer">
       <button
-        onClick={(e) => { e.stopPropagation(); playInkSound('cartoonZap', 0.3); onDelete(post.id); }}
-        className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/60 hover:bg-rose-600 backdrop-blur-md flex items-center justify-center text-white/90 opacity-0 group-hover:opacity-100 transition-all"
-        title="Supprimer"
-      >
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
-    )}
-
-    <div className="absolute inset-x-0 bottom-0 p-2.5 flex items-end justify-between gap-2">
-      <button
-        onClick={(e) => {
-          if (onOpenProfile) {
-            e.stopPropagation();
-            playInkSound('cartoonPop', 0.3);
-            onOpenProfile(post);
-          }
+        type="button"
+        onClick={() => {
+          if (!onOpenProfile) return;
+          playInkSound('cartoonPop', 0.3);
+          onOpenProfile(post);
         }}
-        className="min-w-0 text-left"
+        tabIndex={onOpenProfile ? 0 : -1}
+        className="menu-focus min-w-0 flex-1 text-left"
       >
-        <p className={cn('text-sm font-black text-white truncate leading-tight', onOpenProfile && 'hover:text-cyan-300')} style={{ fontFamily: FONT }}>
-          @{post.owner_name}
-        </p>
-        {post.caption && <p className="text-[11px] text-white/70 truncate">{post.caption}</p>}
+        <strong>@{post.owner_name}</strong>
+        <span>{post.caption || 'Imitation partagée'}</span>
       </button>
-      <LikePill post={post} onLike={onLike} />
-    </div>
-  </motion.div>
+      <div className="social-feed-metrics">
+        {!!post.comments_count && <span><MessageCircle aria-hidden="true" />{post.comments_count}</span>}
+        <LikePill post={post} onLike={onLike} />
+      </div>
+    </footer>
+  </motion.article>
 ));
 FeedTile.displayName = 'FeedTile';
