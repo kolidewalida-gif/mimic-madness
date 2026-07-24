@@ -411,17 +411,62 @@ export const AdminLobbiesTab = ({ onClose }: { onClose: () => void }) => {
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
+  // A lobby is "active" when it was touched recently AND still has at least one
+  // connected player. This filters out the stale/ghost lobbies that never got
+  // cleaned up. Data is kept live via Supabase Realtime below.
+  const ACTIVE_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h candidate window
+
   const load = async () => {
-    setLoading(true);
-    const { data } = await supabase
+    const since = new Date(Date.now() - ACTIVE_WINDOW_MS).toISOString();
+    const { data: rows } = await supabase
       .from('lobbies')
-      .select('id, code, game_mode, game_phase, host_id, created_at')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    setLobbies(data ?? []);
+      .select('id, code, game_mode, game_phase, status, host_id, created_at, updated_at')
+      .gte('updated_at', since)
+      .order('updated_at', { ascending: false })
+      .limit(100);
+
+    const ids = (rows ?? []).map((l) => l.id);
+    const counts: Record<string, number> = {};
+    if (ids.length) {
+      const { data: players } = await supabase
+        .from('lobby_players')
+        .select('lobby_id, connection_status')
+        .in('lobby_id', ids);
+      for (const p of players ?? []) {
+        if (p.connection_status === 'connected') counts[p.lobby_id] = (counts[p.lobby_id] ?? 0) + 1;
+      }
+    }
+
+    const active = (rows ?? [])
+      .map((l) => ({ ...l, playerCount: counts[l.id] ?? 0 }))
+      .filter((l) => l.playerCount > 0 && l.status !== 'finished' && l.status !== 'closed');
+
+    setLobbies(active);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    load();
+
+    // Live refresh: debounce reloads triggered by lobby / player changes.
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { void load(); }, 350);
+    };
+
+    const channel = supabase
+      .channel('admin-lobbies-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lobbies' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lobby_players' }, scheduleReload)
+      .subscribe();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const joinAs = async (lobby: any, ghost: boolean) => {
     if (!user?.id || joiningId) return;
@@ -449,19 +494,27 @@ export const AdminLobbiesTab = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <div className="space-y-2">
-      <div className="text-xs text-muted-foreground mb-3">
-        Rejoindre n'importe quelle partie en cours. Le code du lobby sera stocké et l'app rechargera.
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">
+          Parties actives uniquement. Rejoindre stocke le code et recharge l'app.
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-300">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE · {lobbies.length}
+        </span>
       </div>
-      {lobbies.length === 0 && <div className="text-xs italic">Aucun lobby.</div>}
+      {lobbies.length === 0 && <div className="text-xs italic text-muted-foreground">Aucune partie active pour le moment.</div>}
       {lobbies.map(l => (
         <div key={l.id} className="p-3 bg-muted/30 rounded-lg">
           <div className="flex items-center justify-between mb-2">
-            <div>
+            <div className="min-w-0">
               <span className="font-mono font-bold text-primary">{l.code}</span>
               <span className="ml-2 text-xs text-muted-foreground">
                 {l.game_mode} • {l.game_phase}
               </span>
             </div>
+            <span className="flex flex-shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-bold text-primary">
+              👥 {l.playerCount}
+            </span>
           </div>
           <div className="flex gap-2">
             <button
