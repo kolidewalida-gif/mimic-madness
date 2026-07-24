@@ -100,19 +100,6 @@ const SocialExperienceComponent = () => {
     return { emoji: '✨', title: 'Le studio est calme', sub: 'Sois le premier à publier une imitation.' };
   }, [view]);
 
-  // "Pour toi" plays like TikTok: as soon as the tab is active and posts are
-  // loaded, open the immersive full-screen viewer on the first clip. Resets
-  // when leaving the tab so it re-launches next time the user comes back.
-  const autoOpenedForYou = useRef(false);
-  useEffect(() => {
-    if (view !== 'foryou') { autoOpenedForYou.current = false; return; }
-    if (loading || autoOpenedForYou.current) return;
-    if (filteredPosts.length > 0 && viewerIndex === null && !profileUser) {
-      autoOpenedForYou.current = true;
-      openViewer(0);
-    }
-  }, [view, loading, filteredPosts.length, viewerIndex, profileUser]);
-
   const openProfile = (id: string, name: string) => {
     playInkSound('cartoonPop', 0.3);
     setProfileUser({ id, name });
@@ -204,6 +191,10 @@ const SocialExperienceComponent = () => {
               <span aria-hidden="true">{search.trim() ? '🔎' : emptyCopy.emoji}</span>
               <h4>{search.trim() ? 'Aucun résultat' : emptyCopy.title}</h4>
               <p>{search.trim() ? 'Essaie un autre joueur ou mot-clé.' : emptyCopy.sub}</p>
+            </div>
+          ) : view === 'foryou' ? (
+            <div className="social-foryou-stage">
+              <SocialTikTokViewer embedded posts={filteredPosts} startIndex={0} onClose={() => undefined} onLike={toggleLike} onDelete={remove} />
             </div>
           ) : (
             <div className={cn('social-post-grid', view === 'profile' && 'social-post-grid--profile')}>

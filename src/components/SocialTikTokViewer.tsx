@@ -19,9 +19,11 @@ interface Props {
   onClose: () => void;
   onLike: (id: string) => void;
   onDelete?: (id: string) => void;
+  /** Render inline (fills its container) instead of as a floating modal. */
+  embedded?: boolean;
 }
 
-const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDelete }: Props) => {
+const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDelete, embedded = false }: Props) => {
   const { user } = useAuth();
   const [index, setIndex] = useState(Math.max(0, Math.min(startIndex, posts.length - 1)));
   const [draft, setDraft] = useState('');
@@ -93,7 +95,16 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
     <div
       onWheel={onWheel}
       className="force-cursor"
-      style={{
+      style={embedded ? {
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        borderRadius: 16,
+        overflow: 'hidden',
+        background: '#0a0510',
+        border: '1px solid rgba(155,114,255,.25)',
+      } : {
         position: 'relative',
         width: 'min(96vw, 1240px)',
         height: 'min(92vh, 880px)',
@@ -328,14 +339,16 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
       </div>
 
       {/* Close */}
-      <motion.button
-        whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
-        onClick={onClose}
-        className="absolute top-4 right-4 w-11 h-11 rounded-2xl flex items-center justify-center z-30 force-cursor"
-        style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', cursor: 'pointer' }}
-      >
-        <X className="w-5 h-5 text-white" strokeWidth={3} />
-      </motion.button>
+      {!embedded && (
+        <motion.button
+          whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
+          onClick={onClose}
+          className="absolute top-4 right-4 w-11 h-11 rounded-2xl flex items-center justify-center z-30 force-cursor"
+          style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', cursor: 'pointer' }}
+        >
+          <X className="w-5 h-5 text-white" strokeWidth={3} />
+        </motion.button>
+      )}
     </div>
   );
 };
