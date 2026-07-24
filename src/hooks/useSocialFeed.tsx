@@ -43,8 +43,11 @@ export const useSocialFeed = (tab: SocialFeedTab = 'top_week') => {
   const weekKey = weeklyPeriodKey();
 
   const fetchFeed = useCallback(async () => {
-    setLoading(true);
     setError(null);
+    // Only show the full-page loader on the very first fetch. Subsequent
+    // refetches (triggered by realtime updates like a like) keep the
+    // existing posts visible to avoid unmounting the viewer.
+    setLoading((prev) => (posts.length === 0 ? true : prev));
     try {
       let query = supabase
         .from('social_posts')
@@ -88,6 +91,7 @@ export const useSocialFeed = (tab: SocialFeedTab = 'top_week') => {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, weekKey, user]);
 
   useEffect(() => {
