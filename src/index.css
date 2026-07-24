@@ -2460,6 +2460,14 @@ body.ink-mode {
 .ibs-studio-header { border-bottom: 1px solid rgba(255,255,255,.09); background: rgba(11,7,18,.82); box-shadow: 0 3px 0 rgba(5,3,9,.45); }
 .ibs-admin-tabs button { min-height: 3.25rem; }
 
+/* Vertically center the home content, but fall back to top-aligned scrolling
+   when it overflows a short viewport. Without `safe`, `justify-content:center`
+   clips the top of an overflowing flex column and makes focus/click jump the
+   whole menu, leaving it unusable on small heights. */
+.ibs-shell .ibs-home-main {
+  justify-content: safe center;
+}
+
 @media (max-width: 960px) {
   .ibs-mode-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ibs-home-main { justify-content: flex-start; padding-top: 1rem; }
