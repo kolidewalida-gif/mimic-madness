@@ -42,6 +42,23 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Safety net: if the intro video is missing (404), stalls, or never fires
+  // its load/ended events, don't trap the player on a black spinner. After a
+  // short wait we hide the spinner and reveal the "press any key" prompt so
+  // the app is always reachable.
+  useEffect(() => {
+    const fallback = window.setTimeout(() => {
+      setImgLoaded(true);
+      setVideoEnded(true);
+    }, 4000);
+    return () => window.clearTimeout(fallback);
+  }, []);
+
+  const revealPrompt = () => {
+    setImgLoaded(true);
+    setVideoEnded(true);
+  };
+
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-end justify-center bg-black select-none cursor-pointer overflow-hidden"
@@ -60,6 +77,8 @@ export const InkSplashAnimation = ({ onComplete }: InkSplashAnimationProps) => {
         playsInline
         onLoadedData={() => setImgLoaded(true)}
         onEnded={() => setVideoEnded(true)}
+        onError={revealPrompt}
+        onStalled={revealPrompt}
         className="absolute inset-0 h-full w-full object-cover"
       />
 
