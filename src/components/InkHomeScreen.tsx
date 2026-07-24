@@ -1,4 +1,4 @@
-import { useState, memo, useCallback, useEffect, useMemo } from 'react';
+import { useState, memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +22,9 @@ import {
   Play,
   Check,
   Sparkles,
+  Music,
+  Mic2,
+  Dices,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -41,6 +44,57 @@ interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
   onJoinGame: (playerName: string, lobbyCode: string) => void;
 }
+
+interface GameModeInfo {
+  id: LobbyGameMode;
+  name: string;
+  shortLabel: string;
+  tagline: string;
+  description: string;
+  icon: React.ReactNode;
+  /** Mini card image candidates (small bottom row) */
+  cardImageCandidates: string[];
+  /** Hero banner image candidates (big top card) */
+  bannerImageCandidates: string[];
+  fallbackEmoji: string;
+  fallbackColor: string;
+  accent: string;
+}
+
+/** Lucide icon per mode — kept here so GAME_MODES stays data-only. */
+const MODE_ICONS: Record<LobbyGameMode, React.ReactNode> = {
+  normal: <Copy className="w-7 h-7" />,
+  audiophone: <Phone className="w-7 h-7" />,
+  '2v2': <Swords className="w-7 h-7" />,
+  quiz: <Brain className="w-7 h-7" />,
+  pixoguess: <Zap className="w-7 h-7" />,
+  undercover: <UserX className="w-7 h-7" />,
+  memorise: <Music className="w-7 h-7" />,
+  mimic: <Mic2 className="w-7 h-7" />,
+  monopoly: <Dices className="w-7 h-7" />,
+};
+
+/**
+ * All game modes for the home hero carousel. Derived from GAME_MODE_META
+ * (single source of truth) via GAME_MODE_ORDER so every mode — including
+ * `mimic` and `memorise` (Blindtest) — is present and stays consistent.
+ */
+const GAME_MODES: GameModeInfo[] = GAME_MODE_ORDER.map((id) => {
+  const meta = GAME_MODE_META[id];
+  return {
+    id,
+    name: meta.label,
+    shortLabel: meta.shortLabel,
+    tagline: meta.tagline,
+    description: meta.description,
+    icon: MODE_ICONS[id],
+    cardImageCandidates: meta.imageCandidates,
+    bannerImageCandidates: [`/home/banners/${id}.png`, `/home/banners/${id}.jpg`],
+    fallbackEmoji: meta.fallbackEmoji,
+    fallbackColor: meta.fallbackColor,
+    accent: meta.accent,
+  };
+});
 
 /* ============================================================
    Image with multi-candidate fallback
@@ -100,6 +154,11 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
+  const [modeIndex, setModeIndex] = useState(1); // start on AUDIO PHONE like mockup
+  // Direction of last mode change: +1 = went right, -1 = went left.
+  // Used to drive the hero banner horizontal swipe animation.
+  const [modeDir, setModeDir] = useState<1 | -1>(1);
+  const prevModeIndexRef = useRef(1);
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
   const { level } = usePlayerLevel();
@@ -109,6 +168,28 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     pushLobby: pushRecentLobby,
     removeLobby: removeRecentLobby,
   } = useRecentLobbies();
+
+  const selectedMode = GAME_MODES[modeIndex];
+
+  /**
+   * Switch to a mode index using shortest-path direction with wrap-around.
+   * Drives the hero banner horizontal swipe direction:
+   *   +1 = swipe right (new card slides in from right)
+   *   -1 = swipe left  (new card slides in from left)
+   */
+  const goToMode = useCallback((next: number) => {
+    setModeIndex((curr) => {
+      if (next === curr) return curr;
+      const len = GAME_MODES.length;
+      const normalized = ((next % len) + len) % len;
+      const forward = (normalized - curr + len) % len; // steps going right
+      const backward = (curr - normalized + len) % len; // steps going left
+      const dir: 1 | -1 = forward <= backward ? 1 : -1;
+      prevModeIndexRef.current = curr;
+      setModeDir(dir);
+      return normalized;
+    });
+  }, []);
 
   const toggleMute = useCallback(() => {
     if (volume === 0) setVolume(0.5);
@@ -211,6 +292,24 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         onCreateGame(playerName.trim());
       },
       label: 'Lancer la partie',
+    },
+    {
+      key: 'ArrowLeft',
+      enabled: !anyModalOpen,
+      handler: () => {
+        playInkSound('brushTap', 0.25);
+        goToMode((modeIndex - 1 + GAME_MODES.length) % GAME_MODES.length);
+      },
+      label: 'Mode précédent',
+    },
+    {
+      key: 'ArrowRight',
+      enabled: !anyModalOpen,
+      handler: () => {
+        playInkSound('brushTap', 0.25);
+        goToMode((modeIndex + 1) % GAME_MODES.length);
+      },
+      label: 'Mode suivant',
     },
   ]);
 
@@ -635,27 +734,186 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           </motion.button>
         </div>
 
-        {/* Le mode réel reste choisi dans le lobby ; cette galerie est informative. */}
-        <section className="ibs-panel w-full max-w-3xl p-3 sm:p-4" aria-labelledby="home-programmes-title">
-          <div className="flex items-end justify-between gap-3 mb-3">
-            <div className="ibs-section-heading">
-              <span>PROGRAMMES</span>
-              <h3 id="home-programmes-title">À l’antenne</h3>
-            </div>
-            <span className="ibs-status ibs-status--network">9 modes · temps réel</span>
-          </div>
-          <div className="ibs-program-strip">
-            {GAME_MODE_ORDER.map((mode) => {
-              const meta = GAME_MODE_META[mode];
-              return (
-                <div key={mode} className="ibs-program-chip" style={{ '--mode-accent': meta.accent } as React.CSSProperties}>
-                  <span aria-hidden="true">{meta.fallbackEmoji}</span>
-                  <div><strong>{meta.shortLabel}</strong><small>{meta.minPlayers}+ joueurs</small></div>
+        {/* HERO MODE BANNER — le mode réel reste choisi dans le lobby ; cette
+            galerie est purement informative / visuelle. Navigable ← / →. */}
+        <AnimatePresence mode="wait" custom={modeDir}>
+          <motion.div
+            key={selectedMode.id}
+            custom={modeDir}
+            variants={{
+              enter: (dir: number) => ({
+                opacity: 0,
+                x: 320 * dir,
+                scale: 0.94,
+                rotate: dir * 1.5,
+              }),
+              center: {
+                opacity: 1,
+                x: 0,
+                scale: 1,
+                rotate: 0,
+              },
+              exit: (dir: number) => ({
+                opacity: 0,
+                x: -320 * dir,
+                scale: 0.94,
+                rotate: -dir * 1.5,
+              }),
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+            style={{
+              willChange: 'transform, opacity',
+              border: '4px solid #0a0810',
+              boxShadow:
+                '0 12px 0 #0a0810, 0 18px 40px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.08)',
+            }}
+            className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
+          >
+            {/* Custom banner image — falls back to gradient + icon if missing */}
+            <ImageWithFallback
+              src={selectedMode.bannerImageCandidates}
+              alt={selectedMode.name}
+              className="block w-full h-auto select-none"
+              fallback={
+                <div
+                  className="relative w-full p-6 md:p-8 flex items-center gap-5"
+                  style={{
+                    background: `linear-gradient(180deg, #0a0510 0%, #1a0d2e 50%, #0a0510 100%)`,
+                  }}
+                >
+                  {/* Glow halo */}
+                  <div
+                    className="absolute inset-0 opacity-40 pointer-events-none"
+                    style={{
+                      background: `radial-gradient(circle at 30% 50%, ${selectedMode.accent}55, transparent 60%)`,
+                    }}
+                  />
+                  {/* Icon badge */}
+                  <motion.div
+                    animate={{ rotate: [-3, 3, -3] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                    className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: selectedMode.fallbackColor,
+                      border: '3px solid #0a0810',
+                      boxShadow: `0 4px 0 #0a0810, 0 8px 20px ${selectedMode.fallbackColor}88`,
+                    }}
+                  >
+                    <span className="text-5xl">{selectedMode.fallbackEmoji}</span>
+                  </motion.div>
+
+                  <div className="relative flex-1 min-w-0">
+                    <h2
+                      className="text-4xl md:text-5xl font-black leading-none tracking-tight text-white"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        textShadow:
+                          '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810, 2px 2px 0 #0a0810',
+                      }}
+                    >
+                      {selectedMode.name.toUpperCase()}
+                    </h2>
+                    <p
+                      className="text-sm md:text-base text-white/85 font-bold mt-2 uppercase tracking-wider"
+                      style={{ fontFamily: "'Caveat', cursive" }}
+                    >
+                      {selectedMode.tagline}
+                    </p>
+                    <p className="text-xs md:text-sm text-white/70 mt-2 font-medium">
+                      {selectedMode.description}
+                    </p>
+                  </div>
                 </div>
+              }
+            />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* MINI MODE CARDS ROW — click to preview a mode in the hero above */}
+        <div className="w-full max-w-3xl">
+          <div className="grid grid-cols-5 md:grid-cols-9 gap-2">
+            {GAME_MODES.map((mode, idx) => {
+              const isActive = idx === modeIndex;
+              return (
+                <motion.button
+                  key={mode.id}
+                  onClick={() => {
+                    playInkSound('brushTap', 0.3);
+                    goToMode(idx);
+                  }}
+                  whileHover={{ y: -4, scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  animate={
+                    isActive
+                      ? { y: [0, -3, 0], transition: { duration: 1.6, repeat: Infinity } }
+                      : undefined
+                  }
+                  className="relative aspect-[3/4] rounded-2xl overflow-hidden group"
+                  aria-label={mode.name}
+                  aria-pressed={isActive}
+                  style={{
+                    border: isActive ? '3.5px solid #fbbf24' : '3px solid #0a0810',
+                    boxShadow: isActive
+                      ? `0 0 24px ${mode.accent}cc, 0 6px 0 #0a0810`
+                      : '0 4px 0 #0a0810',
+                  }}
+                >
+                  {/* Card image with fallback */}
+                  <ImageWithFallback
+                    src={mode.cardImageCandidates}
+                    alt={mode.shortLabel}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    fallback={
+                      <div
+                        className="absolute inset-0 flex flex-col items-center justify-between p-1.5"
+                        style={{
+                          background: `linear-gradient(180deg, ${mode.fallbackColor}, ${mode.fallbackColor}cc)`,
+                        }}
+                      >
+                        <div className="flex-1 flex items-center justify-center">
+                          <span className="text-3xl">{mode.fallbackEmoji}</span>
+                        </div>
+                      </div>
+                    }
+                  />
+                  {/* Bottom label overlay */}
+                  <div
+                    className="absolute bottom-0 inset-x-0 px-1 py-1 text-center"
+                    style={{
+                      background:
+                        'linear-gradient(180deg, transparent, rgba(0,0,0,0.85))',
+                    }}
+                  >
+                    <div
+                      className="text-[10px] font-black text-white uppercase leading-tight tracking-wide"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        textShadow:
+                          '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810',
+                      }}
+                    >
+                      {mode.shortLabel}
+                    </div>
+                  </div>
+                  {/* Active checkmark */}
+                  {isActive && (
+                    <motion.div
+                      initial={{ scale: 0, rotate: -45 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 border-[3px] border-[#0a0810] flex items-center justify-center z-10"
+                      style={{ boxShadow: '0 3px 0 #0a0810' }}
+                    >
+                      <Check className="w-3 h-3 text-[#0a0810]" strokeWidth={4} />
+                    </motion.div>
+                  )}
+                </motion.button>
               );
             })}
           </div>
-        </section>
+        </div>
       </main>
 
       {/* ============== BOTTOM UTILITY BAR ============== */}

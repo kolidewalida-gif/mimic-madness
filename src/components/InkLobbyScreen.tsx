@@ -26,11 +26,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { InkLobbyCanvas } from '@/components/InkLobbyCanvas';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
-import { getStartStatus, GAME_MODE_META, type LobbyGameMode } from '@/lib/gameModes';
+import { getStartStatus, GAME_MODE_META, GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { Share2 } from 'lucide-react';
-import { ModePicker } from '@/components/menu/ModePicker';
+import CardFanCarousel from '@/components/ui/card-fan-carousel';
 import { MemberSelector, type Member } from '@/components/ui/member-selector';
 
 interface Player {
@@ -52,6 +52,112 @@ interface InkLobbyScreenProps {
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
 }
+
+interface ModeCard {
+  id: LobbyGameMode;
+  label: string;
+  tagline: string;
+  /** Image candidates in /public/lobby/cards/ — first one that loads is used */
+  imageCandidates: string[];
+  /** Fallback emoji shown if no image loads */
+  fallbackEmoji: string;
+  /** Card body color when fallback is used */
+  fallbackColor: string;
+  /** Glow color for active state */
+  glowColor: string;
+}
+
+/**
+ * All game modes as fan cards. Derived from GAME_MODE_META (single source of
+ * truth) via GAME_MODE_ORDER so every mode — including `monopoly` — is present
+ * and stays consistent with the rest of the app.
+ */
+const MODE_CARDS: ModeCard[] = GAME_MODE_ORDER.map((id) => {
+  const meta = GAME_MODE_META[id];
+  return {
+    id,
+    label: meta.shortLabel,
+    tagline: meta.tagline,
+    imageCandidates: meta.imageCandidates,
+    fallbackEmoji: meta.fallbackEmoji,
+    fallbackColor: meta.fallbackColor,
+    glowColor: meta.accent,
+  };
+});
+
+/**
+ * Card image with multi-candidate fallback chain (tries .png then .jpg, etc.)
+ * Falls back to a stylized colored card with emoji if no image loads.
+ */
+const CardArt = ({
+  card,
+  isActive,
+}: {
+  card: ModeCard;
+  isActive: boolean;
+}) => {
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [allFailed, setAllFailed] = useState(false);
+
+  const currentSrc = card.imageCandidates[candidateIndex];
+
+  const handleError = () => {
+    if (candidateIndex + 1 < card.imageCandidates.length) {
+      setCandidateIndex(candidateIndex + 1);
+    } else {
+      setAllFailed(true);
+    }
+  };
+
+  if (allFailed || !currentSrc) {
+    // Fallback: stylized colored card with emoji and label
+    return (
+      <div
+        className="absolute inset-0 rounded-2xl flex flex-col items-center justify-between p-4 overflow-hidden"
+        style={{
+          background: `linear-gradient(180deg, ${card.fallbackColor}, ${card.fallbackColor}dd)`,
+          border: '3px solid rgba(0,0,0,0.4)',
+        }}
+      >
+        <div className="flex-1 flex items-center justify-center">
+          <motion.div
+            animate={{ rotate: [-3, 3, -3], scale: [1, 1.05, 1] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="text-7xl"
+            style={{ filter: 'drop-shadow(2px 4px 0 rgba(0,0,0,0.4))' }}
+          >
+            {card.fallbackEmoji}
+          </motion.div>
+        </div>
+        <h3
+          className="text-xl font-black tracking-tight leading-none text-white text-center px-1"
+          style={{
+            fontFamily: "'Caveat', cursive",
+            textShadow:
+              '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
+          }}
+        >
+          {card.label}
+        </h3>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      key={currentSrc}
+      src={currentSrc}
+      alt={card.label}
+      onError={handleError}
+      className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+      style={{
+        filter: isActive
+          ? 'brightness(1.05) saturate(1.1)'
+          : 'brightness(0.9) saturate(0.95)',
+      }}
+    />
+  );
+};
 
 /**
  * Optional asset with fallback. Tries multiple candidate URLs (.png/.jpg/etc.)
@@ -158,6 +264,23 @@ export const InkLobbyScreen = ({
   }, [lobbyId]);
 
   const selectedCard = GAME_MODE_META[gameMode];
+
+  // Fan carousel cards (stable) + selected index for the highlight ring
+  const fanCards = useMemo(
+    () =>
+      MODE_CARDS.map((c) => ({
+        imgUrl: c.imageCandidates[0],
+        alt: c.label,
+        id: c.id,
+        label: c.label,
+        bgColor: `linear-gradient(180deg, ${c.fallbackColor}, ${c.fallbackColor}dd)`,
+      })),
+    [],
+  );
+  const selectedFanIndex = useMemo(
+    () => MODE_CARDS.findIndex((c) => c.id === gameMode),
+    [gameMode],
+  );
 
   const handleGameModeChange = useCallback(
     async (mode: LobbyGameMode) => {
@@ -719,22 +842,14 @@ export const InkLobbyScreen = ({
             )}
           </AnimatePresence>
 
-          {/* Accessible programme rail — same metadata on touch, keyboard, TV and gamepad. */}
-          <section className="ibs-panel flex-1 min-h-0 overflow-y-auto p-3 sm:p-4" style={{ '--menu-accent': selectedCard.accent } as React.CSSProperties}>
-            <div className="flex items-end justify-between gap-3 mb-3">
-              <div className="ibs-section-heading">
-                <span>{isHost ? 'PROGRAMMATION HÔTE' : 'PROGRAMME EN COURS'}</span>
-                <h3>{isHost ? 'Choisis le mode' : 'Mode sélectionné'}</h3>
-              </div>
-              <span className="ibs-status ibs-status--network">{connectedCount} connecté{connectedCount > 1 ? 's' : ''}</span>
-            </div>
-            <ModePicker
-              value={gameMode}
-              onChange={isHost ? handleGameModeChange : undefined}
-              playerCount={connectedCount}
-              isAdmin={isAdmin}
+          {/* MODE FAN CAROUSEL — all modes shown in a fan */}
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <CardFanCarousel
+              cards={fanCards}
+              selectedIndex={selectedFanIndex}
+              onCardClick={isHost ? (i) => handleGameModeChange(MODE_CARDS[i].id) : undefined}
             />
-          </section>
+          </div>
 
           {/* PRÊT button (host) — uses /lobby/pret-stamp.png */}
           <div className="flex-shrink-0 flex items-end justify-end pb-2 pr-2">
