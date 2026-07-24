@@ -28,7 +28,8 @@ const Vinyl = ({ size = 132, spin = true, accent = BT.magenta }: { size?: number
   </div>
 );
 
-const Segmented = <T extends string | number>({ value, options, onChange, format }: { value: T; options: readonly T[]; onChange: (v: T) => void; format?: (v: T) => string }) => (
+function Segmented<T extends string | number>({ value, options, onChange, format }: { value: T; options: readonly T[]; onChange: (v: T) => void; format?: (v: T) => string }) {
+  return (
   <div className="flex gap-1 rounded-xl p-1" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BT.hairSoft}` }}>
     {options.map((option) => <button key={String(option)} type="button" onClick={() => onChange(option)} aria-pressed={option === value}
       className="menu-focus min-h-10 min-w-0 flex-1 rounded-lg px-2 py-1.5 text-sm font-black transition-colors"
@@ -36,7 +37,8 @@ const Segmented = <T extends string | number>({ value, options, onChange, format
       {format ? format(option) : String(option)}
     </button>)}
   </div>
-);
+  );
+}
 
 const Toggle = ({ icon: Icon, label, on, color, onClick }: { icon: any; label: string; on: boolean; color: string; onClick: () => void }) => (
   <button type="button" onClick={onClick} aria-pressed={on} className="menu-focus flex min-h-12 items-center gap-2 rounded-xl px-3 py-2 transition-colors"
