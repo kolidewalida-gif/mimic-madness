@@ -28,7 +28,8 @@ const Vinyl = ({ size = 132, spin = true, accent = BT.magenta }: { size?: number
   </div>
 );
 
-const Segmented = <T extends string | number>({ value, options, onChange, format }: { value: T; options: readonly T[]; onChange: (v: T) => void; format?: (v: T) => string }) => (
+function Segmented<T extends string | number>({ value, options, onChange, format }: { value: T; options: readonly T[]; onChange: (v: T) => void; format?: (v: T) => string }) {
+  return (
   <div className="flex gap-1 rounded-xl p-1" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BT.hairSoft}` }}>
     {options.map((option) => <button key={String(option)} type="button" onClick={() => onChange(option)} aria-pressed={option === value}
       className="menu-focus min-h-10 min-w-0 flex-1 rounded-lg px-2 py-1.5 text-sm font-black transition-colors"
@@ -36,7 +37,8 @@ const Segmented = <T extends string | number>({ value, options, onChange, format
       {format ? format(option) : String(option)}
     </button>)}
   </div>
-);
+  );
+}
 
 const Toggle = ({ icon: Icon, label, on, color, onClick }: { icon: any; label: string; on: boolean; color: string; onClick: () => void }) => (
   <button type="button" onClick={onClick} aria-pressed={on} className="menu-focus flex min-h-12 items-center gap-2 rounded-xl px-3 py-2 transition-colors"
@@ -118,10 +120,10 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
         <SetupSection eyebrow="02" title="Format" className="ibs-panel p-4">
           <div className="mt-3 space-y-4">
             <label className="block"><span className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em]" style={{ color: BT.sub }}><Disc3 className="h-3.5 w-3.5" /> Manches</span>
-              <Segmented<number> value={roundsSel} options={BLINDTEST_ROUND_OPTIONS as readonly number[]} onChange={setRoundsSel} />
+              <Segmented value={roundsSel} options={BLINDTEST_ROUND_OPTIONS as readonly number[]} onChange={(v) => setRoundsSel(v as number)} />
             </label>
             <label className="block"><span className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em]" style={{ color: BT.sub }}><Clock className="h-3.5 w-3.5" /> Écoute</span>
-              <Segmented<number> value={listenSel} options={BLINDTEST_LISTEN_OPTIONS as readonly number[]} onChange={setListenSel} format={(value) => `${Math.round(value / 1000)}s`} />
+              <Segmented value={listenSel} options={BLINDTEST_LISTEN_OPTIONS as readonly number[]} onChange={(v) => setListenSel(v as number)} format={(value) => `${Math.round((value as number) / 1000)}s`} />
             </label>
           </div>
         </SetupSection>
