@@ -118,10 +118,10 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
         <SetupSection eyebrow="02" title="Format" className="ibs-panel p-4">
           <div className="mt-3 space-y-4">
             <label className="block"><span className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em]" style={{ color: BT.sub }}><Disc3 className="h-3.5 w-3.5" /> Manches</span>
-              <Segmented<number> value={roundsSel} options={BLINDTEST_ROUND_OPTIONS as readonly number[]} onChange={setRoundsSel} />
+              <Segmented value={roundsSel} options={BLINDTEST_ROUND_OPTIONS as readonly number[]} onChange={setRoundsSel} />
             </label>
             <label className="block"><span className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em]" style={{ color: BT.sub }}><Clock className="h-3.5 w-3.5" /> Écoute</span>
-              <Segmented<number> value={listenSel} options={BLINDTEST_LISTEN_OPTIONS as readonly number[]} onChange={setListenSel} format={(value) => `${Math.round(value / 1000)}s`} />
+              <Segmented value={listenSel} options={BLINDTEST_LISTEN_OPTIONS as readonly number[]} onChange={setListenSel} format={(value) => `${Math.round(value / 1000)}s`} />
             </label>
           </div>
         </SetupSection>
