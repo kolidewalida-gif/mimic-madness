@@ -74,16 +74,16 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
-        {tab === 'bans' && <BansTab />}
-        {tab === 'announce' && <AnnounceTab />}
-        {tab === 'lobbies' && <LobbiesTab onClose={onClose} />}
+        {tab === 'bans' && <AdminBansTab />}
+        {tab === 'announce' && <AdminAnnouncementsTab />}
+        {tab === 'lobbies' && <AdminLobbiesTab onClose={onClose} />}
       </div>
     </motion.div>
   );
 };
 
 // ============================ BANS TAB ============================
-const BansTab = () => {
+export const AdminBansTab = () => {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Array<{ user_id: string; display_name: string; avatar_url: string | null }>>([]);
@@ -272,7 +272,7 @@ const BansTab = () => {
 };
 
 // ============================ ANNOUNCE TAB ============================
-const AnnounceTab = () => {
+export const AdminAnnouncementsTab = () => {
   const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -405,7 +405,7 @@ const AnnounceTab = () => {
 };
 
 // ============================ LOBBIES TAB ============================
-const LobbiesTab = ({ onClose }: { onClose: () => void }) => {
+export const AdminLobbiesTab = ({ onClose }: { onClose: () => void }) => {
   const { user } = useAuth();
   const [lobbies, setLobbies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
