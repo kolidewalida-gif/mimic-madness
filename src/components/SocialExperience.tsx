@@ -100,6 +100,19 @@ const SocialExperienceComponent = () => {
     return { emoji: '✨', title: 'Le studio est calme', sub: 'Sois le premier à publier une imitation.' };
   }, [view]);
 
+  // "Pour toi" plays like TikTok: as soon as the tab is active and posts are
+  // loaded, open the immersive full-screen viewer on the first clip. Resets
+  // when leaving the tab so it re-launches next time the user comes back.
+  const autoOpenedForYou = useRef(false);
+  useEffect(() => {
+    if (view !== 'foryou') { autoOpenedForYou.current = false; return; }
+    if (loading || autoOpenedForYou.current) return;
+    if (filteredPosts.length > 0 && viewerIndex === null && !profileUser) {
+      autoOpenedForYou.current = true;
+      openViewer(0);
+    }
+  }, [view, loading, filteredPosts.length, viewerIndex, profileUser]);
+
   const openProfile = (id: string, name: string) => {
     playInkSound('cartoonPop', 0.3);
     setProfileUser({ id, name });

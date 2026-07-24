@@ -79,7 +79,7 @@ export const AdminPanel = () => {
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsOpen(false)} className="fixed inset-0 z-[10100] bg-black/70 backdrop-blur-sm" />
             <motion.section initial={{ opacity: 0, y: 40, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 40, scale: .98 }}
-              className="admin-command-dialog ibs-panel menu-dialog force-cursor fixed z-[10101] flex flex-col overflow-hidden"
+              className="ibs-panel menu-dialog force-cursor fixed bottom-16 left-4 z-[10101] flex h-[min(44rem,calc(100dvh-5.5rem))] w-[min(46rem,calc(100vw-2rem))] flex-col overflow-hidden"
               role="dialog" aria-modal="true" aria-labelledby="admin-panel-title">
               <header className="flex flex-shrink-0 items-center justify-between border-b border-primary/30 bg-primary/15 p-3 text-foreground">
                 <div><span className="ibs-eyebrow">COMMAND CENTER</span><h2 id="admin-panel-title" className="mt-0.5 flex items-center gap-2 text-lg font-black"><Shield className="h-4 w-4 text-primary" /> Administration</h2></div>

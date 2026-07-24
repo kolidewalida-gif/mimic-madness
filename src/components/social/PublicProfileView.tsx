@@ -95,7 +95,7 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[10055] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
