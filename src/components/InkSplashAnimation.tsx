@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
-import introVideo from '../../public/intro/ink-mode-intro.mp4.asset.json';
+const introVideo = { url: '/__l5e/assets-v1/14e83340-a764-4d6b-9e9e-ae1d1760adb3/ink-mode-intro.mp4' };
 
 interface InkSplashAnimationProps {
   onComplete: () => void;
