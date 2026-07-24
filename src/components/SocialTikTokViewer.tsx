@@ -136,9 +136,11 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                 videoClipId={post.challenge_clip_id}
                 audioClipId={post.clip_id}
                 className="max-h-full max-w-full"
+                externalControl
+                isPlayingExternal
               />
             ) : (
-              <VideoPreview clipId={post.clip_id} className="max-h-full max-w-full" />
+              <VideoPreview clipId={post.clip_id} className="max-h-full max-w-full" autoPlay loop />
             )}
           </motion.div>
         </AnimatePresence>

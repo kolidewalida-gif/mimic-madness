@@ -9,6 +9,10 @@ interface VideoPreviewProps {
   className?: string;
   muted?: boolean;
   videoRef?: Ref<HTMLVideoElement>;
+  /** Start playing automatically as soon as the clip is ready (TikTok-style). */
+  autoPlay?: boolean;
+  /** Loop the clip continuously (respects trim range). */
+  loop?: boolean;
 }
 
 export const VideoPreview = ({ 
@@ -17,7 +21,9 @@ export const VideoPreview = ({
   endTime, 
   className = "",
   muted = false,
-  videoRef: externalVideoRef
+  videoRef: externalVideoRef,
+  autoPlay = false,
+  loop = false,
 }: VideoPreviewProps) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [clipData, setClipData] = useState<any>(null);
@@ -97,6 +103,18 @@ export const VideoPreview = ({
   }, [clipId]);
 
 
+  // Attempt playback; if the browser blocks unmuted autoplay, retry muted so
+  // the clip still plays without any manual click.
+  const playWithFallback = async () => {
+    const el = (videoRef as any).current as HTMLVideoElement | null;
+    if (!el) return;
+    try {
+      await el.play();
+    } catch {
+      try { el.muted = true; await el.play(); } catch { /* ignored */ }
+    }
+  };
+
   const handleLoadedData = () => {
     const el = (videoRef as any).current as HTMLVideoElement | null;
     if (el) {
@@ -106,6 +124,7 @@ export const VideoPreview = ({
       if (effectiveStartTime > 0) {
         el.currentTime = effectiveStartTime;
       }
+      if (autoPlay) void playWithFallback();
     }
   };
 
@@ -123,8 +142,13 @@ export const VideoPreview = ({
         ? (duration || Number.MAX_SAFE_INTEGER)
         : Math.min(Math.max(effectiveStartTime, rawEnd), duration || Number.MAX_SAFE_INTEGER);
       if (el.currentTime >= effectiveEndTime) {
-        el.pause();
-        el.currentTime = effectiveStartTime;
+        if (loop) {
+          el.currentTime = effectiveStartTime;
+          void el.play().catch(() => { /* ignored */ });
+        } else {
+          el.pause();
+          el.currentTime = effectiveStartTime;
+        }
       }
     }
   };
@@ -152,6 +176,9 @@ export const VideoPreview = ({
   }
 
   const shouldBeMuted = muted || clipData?.isMuted || false;
+  const rawStartForLoop = startTime ?? clipData?.startTime ?? 0;
+  const rawEndForLoop = endTime ?? clipData?.endTime ?? 0;
+  const noTrim = rawEndForLoop <= 0 || rawEndForLoop <= rawStartForLoop;
 
   return (
     <div className={`relative ${className}`}>
@@ -167,7 +194,9 @@ export const VideoPreview = ({
             setError("Erreur de lecture de la vidéo");
           }}
           className="w-full h-full object-cover rounded-lg"
-          controls
+          controls={!autoPlay}
+          autoPlay={autoPlay}
+          loop={loop && noTrim}
           playsInline
           preload="auto"
           muted={shouldBeMuted}
