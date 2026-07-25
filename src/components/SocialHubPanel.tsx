@@ -120,7 +120,7 @@ const SocialHubPanelComponent = ({
       icon: Mail,
       badge: pendingInvitations.length || undefined,
     },
-    { id: 'social', label: 'Communauté', icon: Share2 },
+    { id: 'social', label: 'Social', icon: Share2 },
   ];
 
   const handleSendRequest = async () => {
@@ -212,7 +212,7 @@ const SocialHubPanelComponent = ({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-              className="social-drawer fixed right-0 top-0 bottom-0 w-full max-w-md z-[56] flex flex-col"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-[56] flex flex-col"
               style={{
                 background:
                   'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -1041,11 +1041,12 @@ const SocialHubPanelComponent = ({
                   <div className="social-studio-brand">
                     <span className="social-studio-logo"><Share2 aria-hidden="true" /></span>
                     <div>
-                      <span className="social-studio-kicker">MIMIC MASTER</span>
-                      <h2 id="social-studio-title">Communauté</h2>
+                      <span className="social-studio-kicker">MIMIC COMMUNITY</span>
+                      <h2 id="social-studio-title">Social Studio</h2>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <span className="ibs-status ibs-status--online"><span className="h-1.5 w-1.5 rounded-full bg-current" /> LIVE</span>
                     <button
                       type="button"
                       data-back

@@ -75,7 +75,7 @@ export const NotificationCenter = () => {
   };
 
   return (
-    <div ref={rootRef} className="notification-center relative">
+    <div ref={rootRef} className="relative">
       <motion.button
         type="button"
         onClick={toggle}

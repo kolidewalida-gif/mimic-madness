@@ -14,7 +14,7 @@ const TABS: Array<{ id: AdminTab; label: string; icon: any }> = [
   { id: 'account', label: 'Compte', icon: Shield },
   { id: 'bans', label: 'Bans', icon: Ban },
   { id: 'announce', label: 'Annonces', icon: Megaphone },
-  { id: 'lobbies', label: 'Parties', icon: Gamepad2 },
+  { id: 'lobbies', label: 'Lobbies', icon: Gamepad2 },
 ];
 
 export const AdminPanel = () => {
@@ -82,12 +82,12 @@ export const AdminPanel = () => {
         <AnimatePresence>
           {isOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleClose}
-            className="admin-panel-overlay fixed inset-0 z-[10100] flex items-center justify-center p-4 bg-black/70 force-cursor">
+            className="fixed inset-0 z-[10100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm force-cursor">
             <motion.section onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, y: 24, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: .97 }}
-              className="admin-panel-surface menu-dialog relative flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden"
+              className="ibs-panel menu-dialog relative flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl"
               role="dialog" aria-modal="true" aria-labelledby="admin-panel-title">
-              <header className="admin-panel-header flex flex-shrink-0 items-center justify-between p-3 text-foreground">
-                <div><span className="ibs-eyebrow">OUTILS DE MODÉRATION</span><h2 id="admin-panel-title" className="mt-0.5 flex items-center gap-2 text-lg font-black"><Shield className="h-4 w-4 text-primary" /> Administration</h2></div>
+              <header className="flex flex-shrink-0 items-center justify-between border-b border-primary/30 bg-primary/15 p-3 text-foreground">
+                <div><span className="ibs-eyebrow">COMMAND CENTER</span><h2 id="admin-panel-title" className="mt-0.5 flex items-center gap-2 text-lg font-black"><Shield className="h-4 w-4 text-primary" /> Administration</h2></div>
                 <button type="button" data-back onClick={handleClose} className="menu-icon-control rounded-lg p-2" aria-label="Fermer le panneau administrateur"><X className="h-4 w-4" /></button>
               </header>
 
