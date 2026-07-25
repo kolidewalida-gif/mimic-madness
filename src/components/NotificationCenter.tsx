@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Mail, UserPlus, MessageCircle, Wifi, X, CheckCheck } from 'lucide-react';
-import { useNotifications, type NotifType } from '@/hooks/useNotifications';
+import { useNotificationCenter, type NotifType } from '@/hooks/useNotificationCenter';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
@@ -36,7 +36,7 @@ const timeAgo = (ts: number) => {
  * logic is duplicated here.
  */
 export const NotificationCenter = () => {
-  const { items, unreadCount, markAllRead, remove, clear } = useNotifications();
+  const { items, unreadCount, markAllRead, remove, clear } = useNotificationCenter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 

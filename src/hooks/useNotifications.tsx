@@ -1,189 +1,92 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useFriends } from '@/hooks/useFriends';
-import { useOnlinePresence } from '@/hooks/useOnlinePresence';
-import { useGameInvitations } from '@/hooks/useGameInvitations';
 
-export type NotifType = 'invite' | 'friend_request' | 'friend_online' | 'comment';
+const db = supabase as any;
 
 export interface AppNotification {
   id: string;
-  type: NotifType;
-  title: string;
-  body?: string;
-  ts: number;
-  read: boolean;
+  user_id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  type: 'like' | 'reaction' | 'follow' | string;
+  post_id: string | null;
+  emoji: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
-const STORAGE_KEY = 'mimic.notifications.v1';
-const MAX_ITEMS = 40;
-// Don't re-notify that the same friend came online more than once per window.
-const ONLINE_WINDOW_MS = 5 * 60 * 1000;
-
-const load = (): AppNotification[] => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as AppNotification[]) : [];
-  } catch {
-    return [];
-  }
-};
-
-const persist = (items: AppNotification[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_ITEMS)));
-  } catch {
-    /* ignore quota */
-  }
-};
-
 /**
- * useNotifications — a lightweight, Realtime-fed notification centre.
- *
- * Aggregates awareness events from systems that already exist:
- *   • game invitations   (useGameInvitations)
- *   • friend requests    (useFriends.pendingRequests)
- *   • a friend coming online (useOnlinePresence)
- *   • new comments on the current user's own clips (social_post_comments)
- *
- * The list is de-duplicated by a stable id and persisted to localStorage so
- * it survives navigation/remounts without re-notifying.
+ * useNotifications — live feed of notifications for the current user.
+ * Subscribes to Realtime INSERT/UPDATE/DELETE on `public.notifications`
+ * filtered by `user_id=eq.<me>` so the list stays in sync without reload.
  */
 export const useNotifications = () => {
   const { user } = useAuth();
-  const { friends, pendingRequests } = useFriends();
-  const { presenceState } = useOnlinePresence();
-  const { pendingInvitations } = useGameInvitations();
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [items, setItems] = useState<AppNotification[]>(() => load());
-  const seenIds = useRef<Set<string>>(new Set(load().map((n) => n.id)));
-  const myPostIds = useRef<Set<string>>(new Set());
-  const onlineBaseline = useRef(false);
-  const prevOnline = useRef<Set<string>>(new Set());
-
-  const push = useCallback((incoming: Omit<AppNotification, 'read' | 'ts'> & { ts?: number }) => {
-    if (seenIds.current.has(incoming.id)) return;
-    seenIds.current.add(incoming.id);
-    setItems((prev) => {
-      const next = [{ ...incoming, ts: incoming.ts ?? Date.now(), read: false }, ...prev].slice(0, MAX_ITEMS);
-      persist(next);
-      return next;
-    });
-  }, []);
-
-  // --- Game invitations -> notifications ---------------------------------
-  useEffect(() => {
-    for (const inv of pendingInvitations) {
-      push({
-        id: `invite:${inv.id}`,
-        type: 'invite',
-        title: `${inv.sender_name} t'invite à jouer`,
-        body: `Lobby ${inv.lobby_code}`,
-      });
-    }
-  }, [pendingInvitations, push]);
-
-  // --- Friend requests -> notifications ----------------------------------
-  useEffect(() => {
-    for (const req of pendingRequests) {
-      push({
-        id: `friend_req:${req.id}`,
-        type: 'friend_request',
-        title: `${req.requesterProfile?.display_name || 'Un joueur'} veut t'ajouter`,
-        body: 'Demande d’ami en attente',
-      });
-    }
-  }, [pendingRequests, push]);
-
-  // --- Friend comes online -----------------------------------------------
-  useEffect(() => {
-    const friendIds = new Set(friends.map((f) => f.user_id));
-    const nowOnline = new Set<string>();
-    for (const [uid, p] of Object.entries(presenceState)) {
-      if (p.online && friendIds.has(uid)) nowOnline.add(uid);
-    }
-    // Skip the first pass so we don't announce everyone already online.
-    if (!onlineBaseline.current) {
-      onlineBaseline.current = true;
-      prevOnline.current = nowOnline;
+  const fetchAll = useCallback(async () => {
+    if (!user) {
+      setNotifications([]);
+      setLoading(false);
       return;
     }
-    for (const uid of nowOnline) {
-      if (!prevOnline.current.has(uid)) {
-        const friend = friends.find((f) => f.user_id === uid);
-        const bucket = Math.floor(Date.now() / ONLINE_WINDOW_MS);
-        push({
-          id: `online:${uid}:${bucket}`,
-          type: 'friend_online',
-          title: `${friend?.display_name || 'Un ami'} est en ligne`,
-        });
-      }
-    }
-    prevOnline.current = nowOnline;
-  }, [presenceState, friends, push]);
+    setLoading(true);
+    const { data } = await db
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    setNotifications((data ?? []) as AppNotification[]);
+    setLoading(false);
+  }, [user]);
 
-  // --- Comments on my own clips ------------------------------------------
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
   useEffect(() => {
     if (!user) return;
-    let cancelled = false;
-
-    (async () => {
-      const { data } = await supabase.from('social_posts').select('id').eq('owner_id', user.id);
-      if (cancelled) return;
-      myPostIds.current = new Set((data ?? []).map((p: any) => p.id));
-    })();
-
     const channel = supabase
-      .channel(`notif-comments:${user.id}:${Math.random().toString(36).slice(2)}`)
+      .channel(`notifications:${user.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'social_post_comments' },
-        (payload) => {
-          const c = payload.new as { id?: string; post_id?: string; user_id?: string; user_name?: string; body?: string };
-          if (!c?.id || !c.post_id) return;
-          if (c.user_id === user.id) return; // don't notify my own comments
-          if (!myPostIds.current.has(c.post_id)) return; // only on my clips
-          push({
-            id: `comment:${c.id}`,
-            type: 'comment',
-            title: `${c.user_name || 'Un joueur'} a commenté ton clip`,
-            body: c.body ? `« ${c.body.slice(0, 60)} »` : undefined,
-          });
-        },
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        (payload) => setNotifications((prev) => [payload.new as AppNotification, ...prev].slice(0, 50)),
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        (payload) => setNotifications((prev) => prev.map((n) => (n.id === (payload.new as any).id ? (payload.new as AppNotification) : n))),
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        (payload) => setNotifications((prev) => prev.filter((n) => n.id !== (payload.old as any).id)),
       )
       .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
-  }, [user, push]);
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  const unreadCount = items.reduce((n, x) => n + (x.read ? 0 : 1), 0);
+  const markAsRead = useCallback(async (id: string) => {
+    if (!user) return;
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    await db.from('notifications').update({ is_read: true }).eq('id', id).eq('user_id', user.id);
+  }, [user]);
 
-  const markAllRead = useCallback(() => {
-    setItems((prev) => {
-      const next = prev.map((n) => (n.read ? n : { ...n, read: true }));
-      persist(next);
-      return next;
-    });
-  }, []);
+  const markAllAsRead = useCallback(async () => {
+    if (!user) return;
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    await db.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
+  }, [user]);
 
-  const remove = useCallback((id: string) => {
-    setItems((prev) => {
-      const next = prev.filter((n) => n.id !== id);
-      persist(next);
-      return next;
-    });
-  }, []);
+  const remove = useCallback(async (id: string) => {
+    if (!user) return;
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    await db.from('notifications').delete().eq('id', id).eq('user_id', user.id);
+  }, [user]);
 
-  const clear = useCallback(() => {
-    setItems([]);
-    persist([]);
-  }, []);
-
-  return { items, unreadCount, markAllRead, remove, clear };
+  return { notifications, loading, unreadCount, markAsRead, markAllAsRead, remove, refresh: fetchAll };
 };
