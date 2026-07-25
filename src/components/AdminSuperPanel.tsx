@@ -49,7 +49,7 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
     >
       <div className="ibs-admin-header p-4 bg-primary/15 border-b border-primary/30 text-foreground flex items-center justify-between md:col-span-2">
         <span id="admin-super-panel-title" className="font-bold flex items-center gap-2">
-          <Shield className="w-5 h-5" /> Admin Super Panel
+          <Shield className="w-5 h-5" /> Administration
         </span>
         <button type="button" data-back onClick={onClose} aria-label="Fermer le panneau administrateur"><X className="w-5 h-5" /></button>
       </div>
@@ -68,7 +68,7 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
           >
             {t === 'bans' && <><Ban className="w-4 h-4" /> Bans</>}
             {t === 'announce' && <><Megaphone className="w-4 h-4" /> Annonces</>}
-            {t === 'lobbies' && <><Gamepad2 className="w-4 h-4" /> Lobbies</>}
+            {t === 'lobbies' && <><Gamepad2 className="w-4 h-4" /> Parties</>}
           </button>
         ))}
       </div>
@@ -575,7 +575,7 @@ const AdminLobbiesTabComponent = ({ onClose }: { onClose: () => void }) => {
           Parties actives uniquement. Rejoindre stocke le code et recharge l'app.
         </span>
         <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE · {lobbies.length}
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> {lobbies.length} parties actives
         </span>
       </div>
       {lobbies.length === 0 && <div className="text-xs italic text-muted-foreground">Aucune partie active pour le moment.</div>}

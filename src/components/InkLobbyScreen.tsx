@@ -467,14 +467,6 @@ export const InkLobbyScreen = ({
         />
         {/* Subtle dark overlay so the foreground UI stays legible */}
         <div className="absolute inset-0 bg-[#1a0d2e]/15" />
-        {/* Soft glow halo on top */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[400px] rounded-full opacity-25"
-          style={{
-            background: 'radial-gradient(ellipse, rgba(168,85,247,0.4) 0%, transparent 70%)',
-            filter: 'blur(120px)',
-          }}
-        />
       </div>
 
       {/* MAIN GRID — sidebar + main area */}

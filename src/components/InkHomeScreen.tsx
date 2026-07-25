@@ -368,15 +368,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           />
         </div>
 
-        {/* Static mode-tinted glow */}
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[700px] rounded-full opacity-20"
-          style={{
-            background: 'radial-gradient(circle, rgba(167,139,250,0.28) 0%, transparent 70%)',
-            filter: 'blur(120px)',
-          }}
-        />
-
         {/* Slight dark overlay so the foreground stays legible */}
         <div className="absolute inset-0 bg-[#0a0510]/30" />
       </div>
@@ -603,9 +594,9 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       {/* ============== MAIN CONTENT ============== */}
       <main className="ibs-home-main relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar gap-4">
         <div className="w-full max-w-3xl text-center sm:text-left">
-          <span className="ibs-eyebrow">INK BROADCAST STUDIO · EN DIRECT</span>
+          <span className="ibs-eyebrow">MIMIC MASTER · JEU DE SOIRÉE</span>
           <h2 className="ibs-display-title">Ta soirée commence ici.</h2>
-          <p className="mt-1 text-sm text-white/60">Entre ton nom, ouvre un studio puis choisis l’émission avec tes invités.</p>
+          <p className="mt-1 text-sm text-white/60">Entre ton nom, lance une partie ou rejoins tes amis.</p>
         </div>
 
         {/* PSEUDO INPUT — discreet, just above the buttons */}

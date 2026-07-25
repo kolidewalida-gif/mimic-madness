@@ -97,7 +97,7 @@ const SocialExperienceComponent = () => {
   const emptyCopy = useMemo(() => {
     if (view === 'profile') return { emoji: '📭', title: 'Aucune création', sub: 'Partage tes meilleurs moments après une partie.' };
     if (view === 'trending') return { emoji: '🔥', title: 'Le classement arrive', sub: 'Les créations les plus aimées apparaîtront ici.' };
-    return { emoji: '✨', title: 'Le studio est calme', sub: 'Sois le premier à publier une imitation.' };
+    return { emoji: '✨', title: 'Aucune publication', sub: 'Sois le premier à publier une imitation.' };
   }, [view]);
 
   const openProfile = (id: string, name: string) => {
@@ -161,7 +161,7 @@ const SocialExperienceComponent = () => {
       <main className="social-feed-column">
         <header className="social-feed-toolbar">
           <div>
-            <span className="social-feed-kicker">{view === 'trending' ? 'CLASSEMENT LIVE' : view === 'profile' ? 'TON ESPACE' : 'SÉLECTION COMMUNAUTÉ'}</span>
+            <span className="social-feed-kicker">{view === 'trending' ? 'CLASSEMENT' : view === 'profile' ? 'TON ESPACE' : 'SÉLECTION COMMUNAUTÉ'}</span>
             <h3>{activeView.label}</h3>
             <p>{activeView.description}</p>
           </div>
@@ -185,7 +185,7 @@ const SocialExperienceComponent = () => {
         <div className="social-feed-scroll custom-scrollbar">
 
           {loading ? (
-            <div className="social-loading"><Loader2 className="animate-spin" /><span>Chargement du studio…</span></div>
+            <div className="social-loading"><Loader2 className="animate-spin" /><span>Chargement…</span></div>
           ) : filteredPosts.length === 0 ? (
             <div className="social-empty">
               <span aria-hidden="true">{search.trim() ? '🔎' : emptyCopy.emoji}</span>
