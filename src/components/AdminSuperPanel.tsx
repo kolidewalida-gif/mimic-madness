@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Shield, Ban, Megaphone, Gamepad2, Search, Loader2, Trash2, Ghost, LogIn,
@@ -83,7 +83,7 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
 };
 
 // ============================ BANS TAB ============================
-export const AdminBansTab = () => {
+const AdminBansTabComponent = () => {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Array<{ user_id: string; display_name: string; avatar_url: string | null }>>([]);
@@ -93,28 +93,60 @@ export const AdminBansTab = () => {
   const [reason, setReason] = useState('');
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [activeBans, setActiveBans] = useState<any[]>([]);
+  const mountedRef = useRef(true);
+  const searchSeq = useRef(0);
 
-  const search = async (q: string) => {
-    if (!q.trim()) { setResults([]); return; }
-    const { data } = await supabase
-      .from('profiles')
-      .select('user_id, display_name, avatar_url')
-      .ilike('display_name', `%${q}%`)
-      .limit(10);
-    setResults((data ?? []) as any);
-  };
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
-  const loadActive = async () => {
+  // Debounced player search with a race guard so slow responses can't
+  // overwrite the results of a newer query.
+  useEffect(() => {
+    const q = query.trim();
+    if (!q || selected) { setResults([]); return; }
+    const seq = ++searchSeq.current;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url')
+        .ilike('display_name', `%${q}%`)
+        .limit(10);
+      if (mountedRef.current && seq === searchSeq.current) setResults((data ?? []) as any);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, selected]);
+
+  const loadActive = useCallback(async () => {
     const { data } = await supabase
       .from('user_bans')
       .select('*')
       .is('revoked_at', null)
       .order('created_at', { ascending: false })
       .limit(50);
+    if (!mountedRef.current) return;
     setActiveBans((data ?? []).filter((b: any) => !b.expires_at || new Date(b.expires_at).getTime() > Date.now()));
-  };
+  }, []);
 
-  useEffect(() => { loadActive(); }, []);
+  // Initial load + live refresh so bans applied/revoked by any admin appear
+  // instantly without a manual reload.
+  useEffect(() => {
+    loadActive();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { void loadActive(); }, 300);
+    };
+    const channel = supabase
+      .channel(`admin-bans-live:${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_bans' }, scheduleReload)
+      .subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [loadActive]);
 
   const applyBan = async () => {
     if (!selected || !user?.id || busyAction) return;
@@ -159,7 +191,7 @@ export const AdminBansTab = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             value={query}
-            onChange={e => { setQuery(e.target.value); search(e.target.value); }}
+            onChange={e => { setQuery(e.target.value); if (selected) setSelected(null); }}
             placeholder="Rechercher un joueur…"
             className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-lg text-sm"
           />
@@ -270,9 +302,10 @@ export const AdminBansTab = () => {
     </div>
   );
 };
+export const AdminBansTab = memo(AdminBansTabComponent);
 
 // ============================ ANNOUNCE TAB ============================
-export const AdminAnnouncementsTab = () => {
+const AdminAnnouncementsTabComponent = () => {
   const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -280,16 +313,22 @@ export const AdminAnnouncementsTab = () => {
   const [expiresH, setExpiresH] = useState<number | null>(24);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [recent, setRecent] = useState<any[]>([]);
+  const mountedRef = useRef(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const { data } = await supabase
       .from('global_announcements')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(20);
-    setRecent(data ?? []);
-  };
-  useEffect(() => { load(); }, []);
+    if (mountedRef.current) setRecent(data ?? []);
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    load();
+    return () => { mountedRef.current = false; };
+  }, [load]);
 
   const send = async () => {
     if (!message.trim() || !user?.id || busyAction) return;
@@ -403,20 +442,22 @@ export const AdminAnnouncementsTab = () => {
     </div>
   );
 };
+export const AdminAnnouncementsTab = memo(AdminAnnouncementsTabComponent);
 
 // ============================ LOBBIES TAB ============================
-export const AdminLobbiesTab = ({ onClose }: { onClose: () => void }) => {
+const AdminLobbiesTabComponent = ({ onClose }: { onClose: () => void }) => {
   const { user } = useAuth();
   const [lobbies, setLobbies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   // A lobby is "active" when it was touched recently AND still has at least one
   // connected player. This filters out the stale/ghost lobbies that never got
   // cleaned up. Data is kept live via Supabase Realtime below.
   const ACTIVE_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h candidate window
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const since = new Date(Date.now() - ACTIVE_WINDOW_MS).toISOString();
     const { data: rows } = await supabase
       .from('lobbies')
@@ -441,11 +482,13 @@ export const AdminLobbiesTab = ({ onClose }: { onClose: () => void }) => {
       .map((l) => ({ ...l, playerCount: counts[l.id] ?? 0 }))
       .filter((l) => l.playerCount > 0 && l.status !== 'finished' && l.status !== 'closed');
 
+    if (!mountedRef.current) return;
     setLobbies(active);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     load();
 
     // Live refresh: debounce reloads triggered by lobby / player changes.
@@ -455,18 +498,20 @@ export const AdminLobbiesTab = ({ onClose }: { onClose: () => void }) => {
       timer = setTimeout(() => { void load(); }, 350);
     };
 
+    // Unique channel name avoids collisions if the panel is mounted more than
+    // once (e.g. re-open, or the legacy super panel alongside it).
     const channel = supabase
-      .channel('admin-lobbies-live')
+      .channel(`admin-lobbies-live:${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lobbies' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lobby_players' }, scheduleReload)
       .subscribe();
 
     return () => {
+      mountedRef.current = false;
       if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
 
   const joinAs = async (lobby: any, ghost: boolean) => {
     if (!user?.id || joiningId) return;
@@ -541,3 +586,5 @@ export const AdminLobbiesTab = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
+
+export const AdminLobbiesTab = memo(AdminLobbiesTabComponent);

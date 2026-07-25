@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, X, Gift, Zap, ChevronUp, Loader2, Ban, Megaphone, Gamepad2 } from 'lucide-react';
@@ -35,9 +35,9 @@ export const AdminPanel = () => {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [isOpen]);
 
-  if (isLoading || !isAdmin) return null;
+  const handleClose = useCallback(() => setIsOpen(false), []);
 
-  const handleGiveAll = async () => {
+  const handleGiveAll = useCallback(async () => {
     if (busyAction) return;
     setBusyAction('rewards');
     try {
@@ -45,25 +45,27 @@ export const AdminPanel = () => {
       if (rewards && achievements) toast.success('Toutes les récompenses et succès sont débloqués.');
       else toast.error('Déblocage partiel.');
     } finally { setBusyAction(null); }
-  };
+  }, [busyAction, giveAllRewards, giveAllAchievements]);
 
-  const handleSetLevel = async () => {
+  const handleSetLevel = useCallback(async () => {
     if (busyAction) return;
     const level = parseInt(levelInput);
     if (level < 1 || level > 30) return;
     setBusyAction('level');
     try { (await setLevel(level)) ? toast.success(`Niveau défini à ${level}`) : toast.error('Erreur de niveau.'); }
     finally { setBusyAction(null); }
-  };
+  }, [busyAction, levelInput, setLevel]);
 
-  const handleMaxStats = async () => {
+  const handleMaxStats = useCallback(async () => {
     if (busyAction) return;
     setBusyAction('stats');
     try {
       const ok = await setStats({ games_played: 999, games_won: 888, current_streak: 50, best_streak: 50, games_hosted: 200, messages_sent: 5000, recordings_made: 500, quiz_games: 300, audio_phone_games: 200, standard_games: 200 });
       ok ? toast.success('Statistiques maximisées.') : toast.error('Erreur de statistiques.');
     } finally { setBusyAction(null); }
-  };
+  }, [busyAction, setStats]);
+
+  if (isLoading || !isAdmin) return null;
 
   return (
     <>
@@ -76,14 +78,14 @@ export const AdminPanel = () => {
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {isOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsOpen(false)}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleClose}
             className="fixed inset-0 z-[10100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm force-cursor">
             <motion.section onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, y: 24, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: .97 }}
               className="ibs-panel menu-dialog relative flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl"
               role="dialog" aria-modal="true" aria-labelledby="admin-panel-title">
               <header className="flex flex-shrink-0 items-center justify-between border-b border-primary/30 bg-primary/15 p-3 text-foreground">
                 <div><span className="ibs-eyebrow">COMMAND CENTER</span><h2 id="admin-panel-title" className="mt-0.5 flex items-center gap-2 text-lg font-black"><Shield className="h-4 w-4 text-primary" /> Administration</h2></div>
-                <button type="button" data-back onClick={() => setIsOpen(false)} className="menu-icon-control rounded-lg p-2" aria-label="Fermer le panneau administrateur"><X className="h-4 w-4" /></button>
+                <button type="button" data-back onClick={handleClose} className="menu-icon-control rounded-lg p-2" aria-label="Fermer le panneau administrateur"><X className="h-4 w-4" /></button>
               </header>
 
               <nav className="grid flex-shrink-0 grid-cols-4 gap-px border-b border-border bg-black/20" aria-label="Sections administrateur">
@@ -101,7 +103,7 @@ export const AdminPanel = () => {
                 {activeTab === 'account' && <AccountCommands levelInput={levelInput} onLevelChange={setLevelInput} busyAction={busyAction} onGiveAll={handleGiveAll} onSetLevel={handleSetLevel} onMaxStats={handleMaxStats} />}
                 {activeTab === 'bans' && <AdminBansTab />}
                 {activeTab === 'announce' && <AdminAnnouncementsTab />}
-                {activeTab === 'lobbies' && <AdminLobbiesTab onClose={() => setIsOpen(false)} />}
+                {activeTab === 'lobbies' && <AdminLobbiesTab onClose={handleClose} />}
               </div>
             </motion.section>
           </motion.div>
@@ -114,7 +116,7 @@ export const AdminPanel = () => {
 };
 
 
-const AccountCommands = ({
+const AccountCommands = memo(({
   levelInput, onLevelChange, busyAction, onGiveAll, onSetLevel, onMaxStats,
 }: {
   levelInput: string;
@@ -143,9 +145,10 @@ const AccountCommands = ({
 
     <AdminButton icon={Zap} label="Maximiser les statistiques de test" onClick={onMaxStats} disabled={busyAction !== null} loading={busyAction === 'stats'} />
   </div>
-);
+));
+AccountCommands.displayName = 'AccountCommands';
 
-const AdminButton = ({ icon: Icon, label, onClick, disabled, loading = false, className }: {
+const AdminButton = memo(({ icon: Icon, label, onClick, disabled, loading = false, className }: {
   icon: any;
   label: string;
   onClick: () => void;
@@ -158,4 +161,5 @@ const AdminButton = ({ icon: Icon, label, onClick, disabled, loading = false, cl
     {loading ? <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" /> : <Icon className="h-4 w-4 text-primary" aria-hidden="true" />}
     <span>{label}</span>
   </button>
-);
+));
+AdminButton.displayName = 'AdminButton';
