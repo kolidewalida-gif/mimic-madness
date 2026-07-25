@@ -49,8 +49,11 @@ export const AdminPanel = () => {
 
   const handleSetLevel = useCallback(async () => {
     if (busyAction) return;
-    const level = parseInt(levelInput);
-    if (level < 1 || level > 30) return;
+    const level = parseInt(levelInput, 10);
+    if (!Number.isFinite(level) || level < 1 || level > 30) {
+      toast.error('Niveau invalide : choisis une valeur entre 1 et 30.');
+      return;
+    }
     setBusyAction('level');
     try { (await setLevel(level)) ? toast.success(`Niveau défini à ${level}`) : toast.error('Erreur de niveau.'); }
     finally { setBusyAction(null); }

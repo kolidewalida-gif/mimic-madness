@@ -95,6 +95,7 @@ const AdminBansTabComponent = () => {
   const [activeBans, setActiveBans] = useState<any[]>([]);
   const mountedRef = useRef(true);
   const searchSeq = useRef(0);
+  const loadSeq = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -119,13 +120,16 @@ const AdminBansTabComponent = () => {
   }, [query, selected]);
 
   const loadActive = useCallback(async () => {
-    const { data } = await supabase
+    const seq = ++loadSeq.current;
+    const { data, error } = await supabase
       .from('user_bans')
       .select('*')
       .is('revoked_at', null)
       .order('created_at', { ascending: false })
       .limit(50);
-    if (!mountedRef.current) return;
+    // Drop stale responses: only the most recent load may update state.
+    if (!mountedRef.current || seq !== loadSeq.current) return;
+    if (error) { toast.error('Chargement des bans impossible.'); return; }
     setActiveBans((data ?? []).filter((b: any) => !b.expires_at || new Date(b.expires_at).getTime() > Date.now()));
   }, []);
 
@@ -150,6 +154,10 @@ const AdminBansTabComponent = () => {
 
   const applyBan = async () => {
     if (!selected || !user?.id || busyAction) return;
+    // Guard against stacking a duplicate active ban of the same type.
+    if (activeBans.some((b) => b.user_id === selected.user_id && b.ban_type === banType)) {
+      return toast.error('Ce joueur a déjà un ban actif de ce type.');
+    }
     setBusyAction('apply');
     const expires_at = durationH === null ? null : new Date(Date.now() + durationH * 3_600_000).toISOString();
     const { error } = await supabase.from('user_bans').insert({
@@ -172,14 +180,19 @@ const AdminBansTabComponent = () => {
   const revoke = async (id: string) => {
     if (!user?.id || busyAction) return;
     setBusyAction(`revoke:${id}`);
+    // Optimistic: drop it instantly; realtime reconciles across admins.
+    const snapshot = activeBans;
+    setActiveBans((prev) => prev.filter((b) => b.id !== id));
     const { error } = await supabase
       .from('user_bans')
       .update({ revoked_at: new Date().toISOString(), revoked_by: user.id })
       .eq('id', id);
     setBusyAction(null);
-    if (error) return toast.error(error.message);
+    if (error) {
+      setActiveBans(snapshot); // rollback
+      return toast.error(error.message);
+    }
     toast.success('Ban levé');
-    loadActive();
   };
 
   return (
@@ -314,14 +327,18 @@ const AdminAnnouncementsTabComponent = () => {
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [recent, setRecent] = useState<any[]>([]);
   const mountedRef = useRef(true);
+  const loadSeq = useRef(0);
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const seq = ++loadSeq.current;
+    const { data, error } = await supabase
       .from('global_announcements')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(20);
-    if (mountedRef.current) setRecent(data ?? []);
+    if (!mountedRef.current || seq !== loadSeq.current) return;
+    if (error) { toast.error('Chargement des annonces impossible.'); return; }
+    setRecent(data ?? []);
   }, []);
 
   useEffect(() => {
@@ -351,11 +368,16 @@ const AdminAnnouncementsTabComponent = () => {
   const remove = async (id: string) => {
     if (busyAction) return;
     setBusyAction(`remove:${id}`);
+    // Optimistic removal with rollback on failure.
+    const snapshot = recent;
+    setRecent((prev) => prev.filter((a) => a.id !== id));
     const { error } = await supabase.from('global_announcements').delete().eq('id', id);
     setBusyAction(null);
-    if (error) return toast.error(error.message);
+    if (error) {
+      setRecent(snapshot);
+      return toast.error(error.message);
+    }
     toast.success('Annonce supprimée');
-    load();
   };
 
   return (
@@ -451,6 +473,7 @@ const AdminLobbiesTabComponent = ({ onClose }: { onClose: () => void }) => {
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const loadSeq = useRef(0);
 
   // A lobby is "active" when it was touched recently AND still has at least one
   // connected player. This filters out the stale/ghost lobbies that never got
@@ -458,13 +481,19 @@ const AdminLobbiesTabComponent = ({ onClose }: { onClose: () => void }) => {
   const ACTIVE_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h candidate window
 
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     const since = new Date(Date.now() - ACTIVE_WINDOW_MS).toISOString();
-    const { data: rows } = await supabase
+    const { data: rows, error } = await supabase
       .from('lobbies')
       .select('id, code, game_mode, game_phase, status, host_id, created_at, updated_at')
       .gte('updated_at', since)
       .order('updated_at', { ascending: false })
       .limit(100);
+
+    if (error) {
+      if (mountedRef.current && seq === loadSeq.current) setLoading(false);
+      return;
+    }
 
     const ids = (rows ?? []).map((l) => l.id);
     const counts: Record<string, number> = {};
@@ -482,7 +511,9 @@ const AdminLobbiesTabComponent = ({ onClose }: { onClose: () => void }) => {
       .map((l) => ({ ...l, playerCount: counts[l.id] ?? 0 }))
       .filter((l) => l.playerCount > 0 && l.status !== 'finished' && l.status !== 'closed');
 
-    if (!mountedRef.current) return;
+    // Only the newest load may commit — prevents out-of-order realtime reloads
+    // from flickering an older snapshot back in.
+    if (!mountedRef.current || seq !== loadSeq.current) return;
     setLobbies(active);
     setLoading(false);
   }, []);
