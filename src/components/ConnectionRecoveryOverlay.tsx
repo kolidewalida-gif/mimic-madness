@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { Loader2, RefreshCw, WifiOff } from 'lucide-react';
 
 interface ConnectionRecoveryOverlayProps {
@@ -7,6 +9,25 @@ interface ConnectionRecoveryOverlayProps {
 
 export const ConnectionRecoveryOverlay = ({ state, onRetry }: ConnectionRecoveryOverlayProps) => {
   const offline = state === 'offline';
+  const { setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
+
+  useEffect(() => {
+    if (autoMode) {
+      // Changing situation preserves the current play/pause state. Do not force
+      // playback: a player who paused music explicitly stays in control.
+      setSituation('connection', { priority: 10, source: 'connection-recovery' });
+    }
+    return () => clearSituationOverride('connection-recovery');
+  }, [autoMode, setSituation, clearSituationOverride]);
+
+  // Browsers fire `online` as soon as connectivity comes back. Retry
+  // immediately so players do not have to press the button after a short drop.
+  useEffect(() => {
+    if (!offline) return;
+    const retryWhenOnline = () => onRetry();
+    window.addEventListener('online', retryWhenOnline);
+    return () => window.removeEventListener('online', retryWhenOnline);
+  }, [offline, onRetry]);
 
   return (
     <div

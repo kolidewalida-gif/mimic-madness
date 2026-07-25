@@ -12,6 +12,7 @@ import { MimicAnalyzer, detectPitch, mimicComment, type MimicResult } from './mi
 import { pickRandomSong } from './mimicSongs';
 import { MimicVoiceMesh } from './mimicVoice';
 import { MimicMicCheck } from './MimicMicCheck';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 
 interface Player { id: string; name: string; isHost: boolean; isDisconnected?: boolean; }
 interface Props { currentPlayer: Player; players: Player[]; lobbyId: string; onEndGame: () => void; }
@@ -45,6 +46,7 @@ function shuffle<T>(a: T[]): T[] {
 
 export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: Props) => {
   const isHost = currentPlayer.isHost;
+  const { isPlaying: isBackgroundPlaying, pause: pauseBackground, play: playBackground, setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
 
   const [phase, setPhase] = useState<Phase>('setup');
   const [song, setSong] = useState<Song | null>(null);
@@ -95,6 +97,9 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
   const voiceMeshRef = useRef<MimicVoiceMesh | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const playersRef = useRef<Player[]>(players);
+  const backgroundIsPlayingRef = useRef(isBackgroundPlaying);
+  const backgroundShouldResumeRef = useRef(false);
+  const backgroundAutoModeRef = useRef(autoMode);
 
   const playerIds = useMemo(() => players.map((p) => p.id), [players]);
   const { getAvatar } = useMultiplePlayerAvatars(playerIds);
@@ -122,6 +127,40 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
     if (remoteAudioRef.current) { remoteAudioRef.current.muted = muted; remoteAudioRef.current.volume = volume / 100; }
     try { localStorage.setItem('mimic.karaoke.volume', String(volume)); } catch { /* noop */ }
   }, [volume, muted]);
+
+  useEffect(() => { backgroundIsPlayingRef.current = isBackgroundPlaying; }, [isBackgroundPlaying]);
+  useEffect(() => {
+    backgroundAutoModeRef.current = autoMode;
+    if (!autoMode) {
+      backgroundShouldResumeRef.current = false;
+      clearSituationOverride('mimic-game');
+    }
+  }, [autoMode, clearSituationOverride]);
+
+  // Keep menu music out of the iTunes preview and live vocal performance,
+  // then restore it only when this component paused it itself.
+  useEffect(() => {
+    if (!autoMode) return;
+    if (phase === 'preview' || phase === 'perform') {
+      if (backgroundIsPlayingRef.current) backgroundShouldResumeRef.current = true;
+      pauseBackground();
+      return;
+    }
+
+    setSituation(phase === 'results' ? 'mimic-results' : 'mimic-waiting', {
+      priority: 5,
+      source: 'mimic-game',
+    });
+    if (backgroundShouldResumeRef.current) {
+      backgroundShouldResumeRef.current = false;
+      playBackground();
+    }
+  }, [phase, autoMode, pauseBackground, playBackground, setSituation]);
+
+  useEffect(() => () => {
+    clearSituationOverride('mimic-game');
+    if (backgroundAutoModeRef.current && backgroundShouldResumeRef.current) playBackground();
+  }, [clearSituationOverride, playBackground]);
 
   /* ---------------- live voice mesh helpers ---------------- */
   const ensureMesh = useCallback(() => {

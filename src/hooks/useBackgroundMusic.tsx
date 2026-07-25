@@ -3,35 +3,25 @@ import {
   ReactNode, useCallback, useMemo,
 } from 'react';
 
-// Import music files
-import music1 from '@/assets/background-music-1.mp3';
-import music2 from '@/assets/background-music-2.mp3';
-import music3 from '@/assets/background-music-3.mp3';
-import music4 from '@/assets/background-music-4.mp3';
-import music5 from '@/assets/background-music-5.mp3';
-import music6 from '@/assets/background-music-6.mp3';
-import music7 from '@/assets/background-music-7.mp3';
-import music8 from '@/assets/background-music-8.mp3';
-import music9 from '@/assets/background-music-9.mp3';
-import music10 from '@/assets/background-music-10.mp3';
-import music11 from '@/assets/background-music-11.mp3';
-import music12 from '@/assets/background-music-12.mp3';
-import music13 from '@/assets/background-music-13.mp3';
-
-import aLobby from '@/assets/adaptive/lobby.mp3';
-import aLobby2 from '@/assets/adaptive/lobby2.mp3';
-import aGameplay from '@/assets/adaptive/gameplay.mp3';
-import aVote from '@/assets/adaptive/vote.mp3';
-import aVictory from '@/assets/adaptive/victory.mp3';
-import aDefeat from '@/assets/adaptive/defeat.mp3';
-import aUndercover from '@/assets/adaptive/undercover.mp3';
-import aAudiophone from '@/assets/adaptive/audio-phone.mp3';
-import aQuiz from '@/assets/adaptive/quiz.mp3';
-
-const USER_GAMEPLAY_TRACKS: { id: number; name: string; src: string }[] = [
-  { id: 200, name: '🎲 Cubic Confetti', src: '/music/cubic-confetti.mp3' },
-  { id: 201, name: '⛏️ Mineclap Mayhem', src: '/music/mineclap-mayhem.mp3' },
-];
+// Original procedural soundtrack: composed from oscillators/noise in
+// scripts/generate_original_music.py, without samples or external music.
+import inkHome from '@/assets/original-music/ink-home.mp3';
+import inkLobby from '@/assets/original-music/ink-lobby.mp3';
+import imitation from '@/assets/original-music/imitation.mp3';
+import audioPhone from '@/assets/original-music/audiophone.mp3';
+import audioPhoneRewind from '@/assets/original-music/audiophone-rewind.mp3';
+import teamShowdown from '@/assets/original-music/team-showdown.mp3';
+import quiz from '@/assets/original-music/quiz.mp3';
+import pixoguess from '@/assets/original-music/pixoguess.mp3';
+import undercover from '@/assets/original-music/undercover.mp3';
+import blindtest from '@/assets/original-music/blindtest.mp3';
+import mimicWaiting from '@/assets/original-music/mimic-waiting.mp3';
+import mimicResults from '@/assets/original-music/mimic-results.mp3';
+import monopoly from '@/assets/original-music/monopoly.mp3';
+import voting from '@/assets/original-music/voting.mp3';
+import victory from '@/assets/original-music/victory.mp3';
+import defeat from '@/assets/original-music/defeat.mp3';
+import connection from '@/assets/original-music/connection.mp3';
 
 export interface MusicTrack {
   id: number;
@@ -45,7 +35,9 @@ export type MusicMood = 'chill' | 'energetic' | 'tense' | 'epic' | 'mysterious' 
 export type MusicSituation =
   | 'home' | 'lobby' | 'preparation' | 'preview' | 'round'
   | 'playing' | 'voting' | 'victory' | 'defeat'
-  | 'undercover' | 'audiophone' | 'quiz' | 'monopoly' | 'pixoguess';
+  | 'undercover' | 'audiophone' | 'audiophone-rewind' | 'quiz'
+  | 'monopoly' | 'pixoguess' | 'team-showdown'
+  | 'blindtest' | 'mimic-waiting' | 'mimic-results' | 'connection';
 
 interface SituationOverride {
   situation: MusicSituation;
@@ -61,50 +53,56 @@ interface SetSituationOptions {
 }
 
 const musicTracks: MusicTrack[] = [
-  { id: 1,   name: 'Neon Dreams',        src: music1,  moods: ['chill'] },
-  { id: 2,   name: 'Cyber Wave',         src: music2,  moods: ['chill', 'playful'] },
-  { id: 3,   name: 'Digital Pulse',      src: music3,  moods: ['energetic'] },
-  { id: 4,   name: 'Synth Horizon',      src: music4,  moods: ['chill', 'epic'] },
-  { id: 5,   name: 'Electric Night',     src: music5,  moods: ['tense', 'mysterious'] },
-  { id: 6,   name: 'Midnight Glow',      src: music6,  moods: ['mysterious', 'tense'] },
-  { id: 7,   name: 'Retro Vibes',        src: music7,  moods: ['playful', 'chill'] },
-  { id: 8,   name: 'Future Bass',        src: music8,  moods: ['energetic', 'epic'] },
-  { id: 9,   name: 'Pixel Party',        src: music9,  moods: ['playful', 'energetic'] },
-  { id: 10,  name: 'Neon Rush',          src: music10, moods: ['energetic', 'tense'] },
-  { id: 11,  name: 'Cosmic Flow',        src: music11, moods: ['chill', 'mysterious'] },
-  { id: 12,  name: 'Stellar Beat',       src: music12, moods: ['epic', 'energetic'] },
-  { id: 13,  name: 'Original Mafieux',   src: music13, moods: ['mysterious', 'tense'] },
-  { id: 100, name: '🎪 Lobby Theme',     src: aLobby,     moods: ['chill', 'playful'] },
-  { id: 101, name: '⚡ Game On',         src: aGameplay,  moods: ['energetic'] },
-  { id: 102, name: '🕯️ The Vote',        src: aVote,      moods: ['tense', 'mysterious'] },
-  { id: 103, name: '🏆 Victory Fanfare', src: aVictory,   moods: ['epic'] },
-  { id: 104, name: '💀 Sad Trombone',    src: aDefeat,    moods: ['chill'] },
-  { id: 105, name: '🕵️ Undercover Noir', src: aUndercover, moods: ['mysterious', 'tense'] },
-  { id: 106, name: '📞 Audio Phone',     src: aAudiophone, moods: ['playful'] },
-  { id: 107, name: '🧠 Quiz Show',       src: aQuiz,      moods: ['playful', 'energetic'] },
-  { id: 108, name: '🎪 Lobby Theme II',  src: aLobby2,    moods: ['chill', 'playful'] },
-  { id: 109, name: '🎪 Lobby Theme III', src: '/music/lobbytheme3.mp3', moods: ['chill', 'playful'] },
-  ...USER_GAMEPLAY_TRACKS.map((t) => ({ ...t, moods: ['energetic', 'epic'] as MusicMood[] })),
+  { id: 300, name: 'Ink After Dark', src: inkHome, moods: ['chill', 'mysterious'] },
+  { id: 301, name: 'Lobby After Hours', src: inkLobby, moods: ['chill'] },
+  { id: 302, name: 'Mirror Pressure', src: imitation, moods: ['energetic', 'tense'] },
+  { id: 303, name: 'Signal Chain', src: audioPhone, moods: ['mysterious', 'chill'] },
+  { id: 304, name: 'Reverse Protocol', src: audioPhoneRewind, moods: ['mysterious', 'tense'] },
+  { id: 305, name: 'Two Sides', src: teamShowdown, moods: ['energetic', 'epic'] },
+  { id: 306, name: 'Decision Window', src: quiz, moods: ['tense', 'energetic'] },
+  { id: 307, name: 'Into Focus', src: pixoguess, moods: ['energetic', 'mysterious'] },
+  { id: 308, name: 'False Alibi', src: undercover, moods: ['mysterious', 'tense'] },
+  { id: 309, name: 'Neon Pressing', src: blindtest, moods: ['chill', 'energetic'] },
+  { id: 310, name: 'Backstage Signal', src: mimicWaiting, moods: ['chill'] },
+  { id: 311, name: 'Spotlight Scores', src: mimicResults, moods: ['epic', 'energetic'] },
+  { id: 312, name: 'Hostile Assets', src: monopoly, moods: ['mysterious', 'chill'] },
+  { id: 313, name: 'Final Choice', src: voting, moods: ['tense', 'mysterious'] },
+  { id: 314, name: 'Top Line', src: victory, moods: ['epic', 'energetic'] },
+  { id: 315, name: 'Run It Back', src: defeat, moods: ['chill', 'mysterious'] },
+  { id: 316, name: 'Signal Returning', src: connection, moods: ['chill'] },
 ];
 
 const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number | number[]>> = {
-  home: 109, lobby: 109, preparation: 109,
-  preview: [108, 100],
-  round: [200, 201, 101],
-  playing: [200, 201, 101],
-  voting: 102, victory: 103, defeat: 104,
-  undercover: 105, audiophone: 106, quiz: 107,
-  monopoly: [200, 201, 101], pixoguess: [200, 201, 101],
+  home: 300,
+  lobby: 301,
+  preparation: 301,
+  preview: 301,
+  round: 302,
+  playing: 302,
+  audiophone: 303,
+  'audiophone-rewind': 304,
+  'team-showdown': 305,
+  quiz: 306,
+  pixoguess: 307,
+  undercover: 308,
+  blindtest: 309,
+  'mimic-waiting': 310,
+  'mimic-results': 311,
+  monopoly: 312,
+  voting: 313,
+  victory: 314,
+  defeat: 315,
+  connection: 316,
 };
 
 const SITUATION_TO_MOODS: Record<MusicSituation, MusicMood[]> = {
-  home: ['chill', 'playful'], lobby: ['chill', 'playful'],
-  preparation: ['playful', 'energetic'], preview: ['playful', 'chill'],
-  round: ['energetic', 'epic'], playing: ['energetic', 'epic'],
-  voting: ['tense', 'mysterious'], victory: ['epic', 'energetic'],
-  defeat: ['mysterious', 'chill'], undercover: ['mysterious', 'tense'],
-  audiophone: ['playful', 'chill'], quiz: ['playful', 'energetic'],
-  monopoly: ['epic', 'energetic'], pixoguess: ['playful', 'energetic'],
+  home: ['chill', 'mysterious'], lobby: ['chill'], preparation: ['chill'], preview: ['chill'],
+  round: ['energetic', 'tense'], playing: ['energetic'], voting: ['tense'],
+  victory: ['epic'], defeat: ['chill'], undercover: ['mysterious'],
+  audiophone: ['mysterious'], 'audiophone-rewind': ['mysterious', 'tense'],
+  quiz: ['tense'], monopoly: ['mysterious'], pixoguess: ['energetic'],
+  'team-showdown': ['energetic', 'epic'], blindtest: ['chill'],
+  'mimic-waiting': ['chill'], 'mimic-results': ['epic'], connection: ['chill'],
 };
 
 function pickTrackForSituation(situation: MusicSituation, excludeId?: number): MusicTrack {
@@ -160,14 +158,16 @@ const BackgroundMusicContext = createContext<BackgroundMusicContextType | undefi
 
 export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) => {
   const [volume, setVolumeState] = useState(() => {
-    const s = localStorage.getItem('backgroundMusicVolume');
-    return s ? parseFloat(s) : 0.3;
+    const stored = localStorage.getItem('backgroundMusicVolume');
+    if (stored === null) return 0.3;
+    const parsed = Number(stored);
+    return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : 0.3;
   });
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(() => {
-    const s = localStorage.getItem('backgroundMusicTrack');
-    const idx = s ? parseInt(s, 10) : -1;
-    return idx >= 0 && idx < musicTracks.length ? idx : 0;
+    const storedId = Number(localStorage.getItem('backgroundMusicTrackId'));
+    const byId = musicTracks.findIndex((track) => track.id === storedId);
+    return byId >= 0 ? byId : 0;
   });
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -195,10 +195,13 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     return s === null ? true : s === 'true';
   });
   const [baseSituation, setBaseSituation] = useState<MusicSituation>('home');
-  const [overrideSituation, setOverrideSituation] = useState<SituationOverride | null>(null);
+  const [situationOverrides, setSituationOverrides] = useState<SituationOverride[]>([]);
   const lastAutoSituation = useRef<MusicSituation | null>(null);
 
-  useEffect(() => { autoModeRef.current = autoMode; }, [autoMode]);
+  useEffect(() => {
+    autoModeRef.current = autoMode;
+    if (audioRef.current) audioRef.current.loop = autoMode;
+  }, [autoMode]);
 
   const setAutoMode = useCallback((v: boolean) => {
     setAutoModeState(v);
@@ -206,51 +209,59 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   }, []);
 
   const clearSituationOverride = useCallback((source?: string) => {
-    setOverrideSituation((cur) => {
-      if (!cur) return null;
-      if (source && cur.source !== source) return cur;
-      return null;
-    });
+    setSituationOverrides((current) => (
+      source ? current.filter((item) => item.source !== source) : []
+    ));
   }, []);
 
   const setSituation = useCallback((s: MusicSituation, options?: SetSituationOptions) => {
     const priority = options?.priority ?? 0;
     if (priority > 0) {
       const next: SituationOverride = {
-        situation: s, priority,
+        situation: s,
+        priority,
         source: options?.source ?? 'unknown',
         expiresAt: options?.holdMs ? Date.now() + options.holdMs : null,
       };
-      setOverrideSituation((cur) => {
-        if (!cur) return next;
-        if (cur.expiresAt !== null && cur.expiresAt <= Date.now()) return next;
-        if (cur.source === next.source) return next;
-        if (next.priority >= cur.priority) return next;
-        return cur;
+      setSituationOverrides((current) => {
+        const now = Date.now();
+        const active = current.filter((item) => (
+          item.source !== next.source
+          && (item.expiresAt === null || item.expiresAt > now)
+        ));
+        return [...active, next];
       });
       return;
     }
     setBaseSituation(s);
   }, []);
 
-  // Auto-expire overrides
+  // Auto-expire only the overrides whose hold duration elapsed. Lower-priority
+  // situations stay in the stack and become active again afterwards.
   useEffect(() => {
-    if (!overrideSituation?.expiresAt) return;
-    const delay = Math.max(overrideSituation.expiresAt - Date.now(), 0);
-    const t = window.setTimeout(() => {
-      setOverrideSituation((cur) => {
-        if (!cur || cur.expiresAt !== overrideSituation.expiresAt) return cur;
-        return cur.expiresAt <= Date.now() ? null : cur;
-      });
-    }, delay + 20);
-    return () => window.clearTimeout(t);
-  }, [overrideSituation]);
+    const expirations = situationOverrides
+      .map((item) => item.expiresAt)
+      .filter((expiresAt): expiresAt is number => expiresAt !== null);
+    if (expirations.length === 0) return;
+    const nextExpiration = Math.min(...expirations);
+    const timer = window.setTimeout(() => {
+      const now = Date.now();
+      setSituationOverrides((current) => current.filter((item) => (
+        item.expiresAt === null || item.expiresAt > now
+      )));
+    }, Math.max(nextExpiration - Date.now(), 0) + 20);
+    return () => window.clearTimeout(timer);
+  }, [situationOverrides]);
 
   const situation = useMemo<MusicSituation>(() => {
-    if (!overrideSituation) return baseSituation;
-    if (overrideSituation.expiresAt !== null && overrideSituation.expiresAt <= Date.now()) return baseSituation;
-    return overrideSituation.situation;
-  }, [baseSituation, overrideSituation]);
+    const now = Date.now();
+    let selected: SituationOverride | null = null;
+    for (const candidate of situationOverrides) {
+      if (candidate.expiresAt !== null && candidate.expiresAt <= now) continue;
+      if (!selected || candidate.priority >= selected.priority) selected = candidate;
+    }
+    return selected?.situation ?? baseSituation;
+  }, [baseSituation, situationOverrides]);
 
   useEffect(() => { situationRef.current = situation; }, [situation]);
 
@@ -338,7 +349,7 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   useEffect(() => {
     const el = new Audio();
     el.preload = 'none';
-    el.loop = false;
+    el.loop = autoModeRef.current;
     el.volume = volumeRef.current;
     audioRef.current = el;
 
@@ -387,7 +398,8 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     const el = audioRef.current;
     const track = musicTracks[currentTrackIndex];
     if (!el || !track) return;
-    localStorage.setItem('backgroundMusicTrack', String(currentTrackIndex));
+    localStorage.setItem('backgroundMusicTrackId', String(track.id));
+    localStorage.removeItem('backgroundMusicTrack');
     fadeAndLoad(track.src, volumeRef.current, isPlayingRef.current);
   }, [currentTrackIndex, fadeAndLoad]);
 
@@ -436,10 +448,11 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
 
   // ── Controls ─────────────────────────────────────────────────────────────
   const setVolume = useCallback((v: number) => {
-    setVolumeState(v);
-    volumeRef.current = v;
-    if (audioRef.current) audioRef.current.volume = v;
-    localStorage.setItem('backgroundMusicVolume', String(v));
+    const safe = Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.3;
+    setVolumeState(safe);
+    volumeRef.current = safe;
+    if (audioRef.current) audioRef.current.volume = safe;
+    localStorage.setItem('backgroundMusicVolume', String(safe));
   }, []);
 
   const pause = useCallback(() => {

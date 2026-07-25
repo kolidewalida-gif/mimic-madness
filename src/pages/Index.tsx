@@ -34,6 +34,7 @@ import {
   preloadGameMode,
 } from "@/lib/gameScreenLoaders";
 import { useBackgroundMusic, type MusicSituation } from "@/hooks/useBackgroundMusic";
+import { Loader2 } from "lucide-react";
 import React from "react";
 
 // Lazy load heavy components
@@ -117,6 +118,8 @@ const Index = () => {
   const [activeInvitation, setActiveInvitation] = useState<GameInvitation | null>(null);
   const [showInkAnimation, setShowInkAnimation] = useState(false);
   const [inkAnimationCompleted, setInkAnimationCompleted] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const { toast } = useToast();
   const { acceptInvitation, declineInvitation } = useGameInvitations();
   const { setSituation } = useBackgroundMusic();
@@ -127,17 +130,17 @@ const Index = () => {
       home: "home",
       lobby: "lobby",
       preparation: "preparation",
-      playing: "playing",
+      playing: gameMode === "2v2" ? "team-showdown" : "playing",
       quiz: "quiz",
       audiophone: "audiophone",
       pixoguess: "pixoguess",
       monopoly: "monopoly",
       undercover: "undercover",
-      memorise: "quiz",
-      mimic: "quiz",
+      memorise: "blindtest",
+      mimic: "mimic-waiting",
     };
     setSituation(map[gameState] ?? "home");
-  }, [gameState, setSituation]);
+  }, [gameState, gameMode, setSituation]);
   
   // Check if we need to show ink animation (fresh load with ink mode)
   useEffect(() => {
@@ -202,12 +205,18 @@ const Index = () => {
   }, [resumeStatus.kind]);
 
   const handleResumeYes = useCallback(async () => {
-    setShowResumeModal(false);
-    if (resumeStatus.kind !== 'ready') return;
+    if (resumeStatus.kind !== 'ready' || isResuming) return;
     const { session } = resumeStatus;
+    setIsResuming(true);
+    setResumeError(null);
 
-    const result = await joinLobby(session.lobbyCode, session.playerId, session.playerName);
-    if (result) {
+    try {
+      const result = await joinLobby(session.lobbyCode, session.playerId, session.playerName);
+      if (!result) {
+        setResumeError('Impossible de rejoindre pour le moment. Vérifie ta connexion puis réessaie.');
+        return;
+      }
+
       // Check if this player is the host (they might have been before crash)
       const { data: playerRow } = await supabase
         .from('lobby_players')
@@ -222,20 +231,25 @@ const Index = () => {
         isHost: playerRow?.is_host ?? false,
       };
       setCurrentPlayer(newPlayer);
+      setShowResumeModal(false);
 
       // Route directly to the current phase from the refreshed lobby snapshot.
       const lobbyData = result.lobby as any;
       routeFromLobbySnapshot(lobbyData?.game_phase, lobbyData?.game_mode);
-    } else {
-      clearResumeSession();
-      setCurrentPlayer(null);
+    } catch (error) {
+      console.error('[resume] rejoin failed:', error);
+      setResumeError('La reprise a échoué, mais ta partie est toujours mémorisée. Réessaie dans un instant.');
+    } finally {
+      setIsResuming(false);
     }
-  }, [resumeStatus, joinLobby, routeFromLobbySnapshot]);
+  }, [resumeStatus, isResuming, joinLobby, routeFromLobbySnapshot]);
 
   const handleResumeNo = useCallback(() => {
+    if (isResuming) return;
     setShowResumeModal(false);
+    setResumeError(null);
     clearResumeSession();
-  }, []);  // Register invitation callback for premium notification
+  }, [isResuming]);  // Register invitation callback for premium notification
   useEffect(() => {
     setOnNewInvitationCallback((invitation) => {
       setActiveInvitation(invitation);
@@ -964,16 +978,30 @@ const Index = () => {
             <p className="text-white/70 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>
               Tu étais dans une partie avec le code <span className="text-purple-300 font-black">{resumeStatus.session.lobbyCode}</span>. Veux-tu revenir ?
             </p>
+            {resumeError && (
+              <p role="alert" className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm font-bold text-rose-200">
+                {resumeError}
+              </p>
+            )}
             <div className="flex gap-3">
-              <button onClick={handleResumeNo}
-                className="flex-1 py-3 rounded-2xl text-lg font-black text-white/70"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: "'Caveat', cursive" }}>
+              <button
+                type="button"
+                onClick={handleResumeNo}
+                disabled={isResuming}
+                className="flex-1 py-3 rounded-2xl text-lg font-black text-white/70 disabled:cursor-not-allowed disabled:opacity-45"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: "'Caveat', cursive" }}
+              >
                 Non
               </button>
-              <button onClick={handleResumeYes}
-                className="flex-1 py-3 rounded-2xl text-lg font-black text-white"
-                style={{ background: 'linear-gradient(180deg, #a855f7, #7c3aed)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: "'Caveat', cursive" }}>
-                Oui
+              <button
+                type="button"
+                onClick={handleResumeYes}
+                disabled={isResuming}
+                aria-busy={isResuming}
+                className="flex-1 py-3 rounded-2xl text-lg font-black text-white disabled:cursor-wait disabled:opacity-70 inline-flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(180deg, #a855f7, #7c3aed)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: "'Caveat', cursive" }}
+              >
+                {isResuming ? <><Loader2 className="h-5 w-5 animate-spin" /> Reprise…</> : 'Oui'}
               </button>
             </div>
           </div>

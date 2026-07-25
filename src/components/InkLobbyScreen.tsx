@@ -85,6 +85,29 @@ const MODE_CARDS: ModeCard[] = GAME_MODE_ORDER.map((id) => {
   };
 });
 
+/** Copy with a DOM fallback for browsers where Clipboard API is unavailable. */
+const copyText = async (text: string) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to the selection-based copy below.
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  return copied;
+};
+
 /**
  * Card image with multi-candidate fallback chain (tries .png then .jpg, etc.)
  * Falls back to a stylized colored card with emoji if no image loads.
@@ -325,35 +348,59 @@ export const InkLobbyScreen = ({
     }
   };
 
-  const handleCopyCode = async () => {
-    await navigator.clipboard.writeText(lobbyCode);
+  const handleCopyCode = useCallback(async () => {
+    const copied = await copyText(lobbyCode);
+    if (!copied) {
+      toast({ title: 'Copie impossible', description: `Sélectionne le code manuellement : ${lobbyCode}`, variant: 'destructive' });
+      return;
+    }
     setCodeCopied(true);
     playInkSound('cartoonPop', 0.3);
     toast({ title: '📋 Code copié !', description: lobbyCode });
     setTimeout(() => setCodeCopied(false), 1500);
-  };
+  }, [lobbyCode, toast]);
 
-  // Share lobby link via Web Share API or copy to clipboard
+  // Share lobby link via Web Share API or copy to clipboard.
   const handleShareLink = useCallback(async () => {
-    const url = `${window.location.origin}${window.location.pathname}?code=${lobbyCode}`;
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('code', lobbyCode);
+    const link = url.toString();
     const shareData = {
       title: 'Mimic Master',
       text: `Rejoins-moi sur Mimic Master ! Code lobby : ${lobbyCode}`,
-      url,
+      url: link,
     };
     playInkSound('cartoonPop', 0.3);
-    try {
-      if (navigator.share && /mobile|iphone|ipad|android/i.test(navigator.userAgent)) {
+
+    if (navigator.share) {
+      try {
         await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(url);
         setLinkShared(true);
-        toast({ title: '🔗 Lien copié !', description: url });
         setTimeout(() => setLinkShared(false), 1800);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        // Some desktop implementations expose share but reject this payload;
+        // clipboard remains a reliable fallback.
       }
-    } catch {
-      /* user cancelled share */
     }
+
+    const copied = await copyText(link);
+    if (copied) {
+      setLinkShared(true);
+      toast({ title: '🔗 Lien copié !', description: link });
+      setTimeout(() => setLinkShared(false), 1800);
+      return;
+    }
+
+    toast({
+      title: 'Partage impossible',
+      description: `Copie ce lien manuellement : ${link}`,
+      variant: 'destructive',
+    });
+    window.prompt('Copie ce lien pour inviter tes amis :', link);
   }, [lobbyCode, toast]);
 
   // Global lobby shortcuts
@@ -394,12 +441,7 @@ export const InkLobbyScreen = ({
     {
       key: 'c',
       enabled: !lobbyAnyModalOpen,
-      handler: () => {
-        navigator.clipboard.writeText(lobbyCode).catch(() => {});
-        setCodeCopied(true);
-        toast({ title: 'Code copié !', description: lobbyCode });
-        setTimeout(() => setCodeCopied(false), 1500);
-      },
+      handler: () => { void handleCopyCode(); },
       label: 'Copier le code lobby',
     },
     {

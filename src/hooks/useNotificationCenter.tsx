@@ -168,6 +168,14 @@ export const useNotificationCenter = () => {
 
   const unreadCount = items.reduce((n, x) => n + (x.read ? 0 : 1), 0);
 
+  const markRead = useCallback((id: string) => {
+    setItems((prev) => {
+      const next = prev.map((n) => (n.id === id && !n.read ? { ...n, read: true } : n));
+      persist(next);
+      return next;
+    });
+  }, []);
+
   const markAllRead = useCallback(() => {
     setItems((prev) => {
       const next = prev.map((n) => (n.read ? n : { ...n, read: true }));
@@ -189,5 +197,5 @@ export const useNotificationCenter = () => {
     persist([]);
   }, []);
 
-  return { items, unreadCount, markAllRead, remove, clear };
+  return { items, unreadCount, markRead, markAllRead, remove, clear };
 };

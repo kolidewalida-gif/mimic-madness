@@ -14,6 +14,7 @@ import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { BlindtestSetup } from './BlindtestSetup';
 import { BT, BT_SPECTRUM, glow } from './blindtestTheme';
 import { BlindtestBackground } from './BlindtestBackground';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 
 interface Player {
   id: string;
@@ -159,6 +160,7 @@ function buildOptions(
 
 export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: MemoriseGameScreenProps) => {
   const isHost = currentPlayer.isHost;
+  const { isPlaying: isBackgroundPlaying, pause: pauseBackground, play: playBackground, setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [roundIndex, setRoundIndex] = useState(0);
@@ -234,6 +236,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   const roundAudioStartedRef = useRef(false);
   const listenMsRef = useRef<number>(BLINDTEST_LISTEN_MS);
   const configRef = useRef<BlindtestConfig>({ rounds: BLINDTEST_ROUNDS, listenMs: BLINDTEST_LISTEN_MS, teams: false, hints: true, doublePoints: false });
+  const backgroundIsPlayingRef = useRef(isBackgroundPlaying);
+  const backgroundShouldResumeRef = useRef(false);
+  const backgroundAutoModeRef = useRef(autoMode);
 
   useEffect(() => { playersRef.current = players; }, [players]);
   // Reset the artwork-failed flag whenever the round's track changes.
@@ -302,6 +307,40 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     if (volume > 0) lastVolRef.current = volume;
     try { localStorage.setItem('mimic.blindtest.volume', String(volume)); } catch { /* noop */ }
   }, [volume, muted]);
+
+  useEffect(() => { backgroundIsPlayingRef.current = isBackgroundPlaying; }, [isBackgroundPlaying]);
+  useEffect(() => {
+    backgroundAutoModeRef.current = autoMode;
+    if (!autoMode) {
+      backgroundShouldResumeRef.current = false;
+      clearSituationOverride('blindtest-game');
+    }
+  }, [autoMode, clearSituationOverride]);
+
+  // The iTunes extract must stay intelligible: pause only during listening,
+  // then restore the soundtrack if this screen was the code that paused it.
+  useEffect(() => {
+    if (!autoMode) return;
+    if (phase === 'listen') {
+      if (backgroundIsPlayingRef.current) backgroundShouldResumeRef.current = true;
+      pauseBackground();
+      return;
+    }
+
+    setSituation(phase === 'final' ? 'victory' : 'blindtest', {
+      priority: 5,
+      source: 'blindtest-game',
+    });
+    if (backgroundShouldResumeRef.current) {
+      backgroundShouldResumeRef.current = false;
+      playBackground();
+    }
+  }, [phase, autoMode, pauseBackground, playBackground, setSituation]);
+
+  useEffect(() => () => {
+    clearSituationOverride('blindtest-game');
+    if (backgroundAutoModeRef.current && backgroundShouldResumeRef.current) playBackground();
+  }, [clearSituationOverride, playBackground]);
 
   /* ---------- countdown + urgency tick ---------- */
   useEffect(() => {

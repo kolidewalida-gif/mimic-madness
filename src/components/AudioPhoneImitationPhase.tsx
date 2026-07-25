@@ -13,6 +13,7 @@ import {
 } from '@/components/audiophone/PulpComic';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { processStreamWithNoiseReduction } from '@/hooks/useNoiseReduction';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 
 interface AudioPhoneImitationPhaseProps {
   currentPhraseIndex: number;
@@ -97,6 +98,15 @@ export const AudioPhoneImitationPhase = ({
   onSubmitImitation,
   onNextPhrase,
 }: AudioPhoneImitationPhaseProps) => {
+  const { setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
+
+  useEffect(() => {
+    if (autoMode) {
+      setSituation('audiophone-rewind', { priority: 4, source: 'audiophone-imitation' });
+    }
+    return () => clearSituationOverride('audiophone-imitation');
+  }, [autoMode, setSituation, clearSituationOverride]);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasListened, setHasListened] = useState(false);
   const [isRecording, setIsRecording] = useState(false);

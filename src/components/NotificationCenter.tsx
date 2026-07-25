@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Mail, UserPlus, MessageCircle, Wifi, X, CheckCheck } from 'lucide-react';
+import { Bell, Mail, UserPlus, MessageCircle, Wifi, X, CheckCheck, Trash2 } from 'lucide-react';
 import { useNotificationCenter, type NotifType } from '@/hooks/useNotificationCenter';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
@@ -36,7 +36,7 @@ const timeAgo = (ts: number) => {
  * logic is duplicated here.
  */
 export const NotificationCenter = () => {
-  const { items, unreadCount, markAllRead, remove, clear } = useNotificationCenter();
+  const { items, unreadCount, markRead, markAllRead, remove, clear } = useNotificationCenter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -57,20 +57,16 @@ export const NotificationCenter = () => {
 
   const toggle = () => {
     playInkSound('inkClick', 0.3);
-    setOpen((o) => {
-      const next = !o;
-      if (next && unreadCount > 0) markAllRead();
-      return next;
-    });
+    setOpen((o) => !o);
   };
 
   const act = (type: NotifType, id: string) => {
+    markRead(id);
     if (type === 'invite' || type === 'friend_request') {
       window.dispatchEvent(new CustomEvent('mimic:open-friends'));
     } else if (type === 'comment') {
       window.dispatchEvent(new CustomEvent('mimic:open-social'));
     }
-    remove(id);
     setOpen(false);
   };
 
@@ -120,9 +116,14 @@ export const NotificationCenter = () => {
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <span className="text-sm font-black text-white uppercase tracking-wider">Notifications</span>
               <div className="flex items-center gap-1">
-                {items.length > 0 && (
-                  <button type="button" onClick={clear} className="menu-icon-control rounded-lg p-1.5 text-white/60 hover:text-white" title="Tout effacer" aria-label="Tout effacer">
+                {unreadCount > 0 && (
+                  <button type="button" onClick={markAllRead} className="menu-icon-control rounded-lg p-1.5 text-white/60 hover:text-white" title="Tout marquer comme lu" aria-label="Tout marquer comme lu">
                     <CheckCheck className="h-4 w-4" />
+                  </button>
+                )}
+                {items.length > 0 && (
+                  <button type="button" onClick={clear} className="menu-icon-control rounded-lg p-1.5 text-white/60 hover:text-rose-300" title="Tout effacer" aria-label="Tout effacer">
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 )}
                 <button type="button" onClick={() => setOpen(false)} className="menu-icon-control rounded-lg p-1.5 text-white/60 hover:text-white" aria-label="Fermer">
@@ -141,32 +142,36 @@ export const NotificationCenter = () => {
               ) : (
                 items.map((n) => {
                   const Icon = ICONS[n.type];
-                  const actionable = n.type !== 'friend_online';
                   return (
                     <div
                       key={n.id}
                       className={cn(
-                        'flex items-start gap-3 px-4 py-3 border-b border-white/5 transition-colors',
-                        actionable && 'cursor-pointer hover:bg-white/5',
+                        'flex items-stretch border-b border-white/5 transition-colors',
                         !n.read && 'bg-primary/[0.06]',
                       )}
-                      onClick={actionable ? () => act(n.type, n.id) : undefined}
                     >
-                      <span
-                        className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
-                        style={{ background: `${ACCENT[n.type]}22`, border: `1.5px solid ${ACCENT[n.type]}55` }}
-                      >
-                        <Icon className="h-4 w-4" style={{ color: ACCENT[n.type] }} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-white leading-snug">{n.title}</div>
-                        {n.body && <div className="mt-0.5 truncate text-xs text-white/55">{n.body}</div>}
-                        <div className="mt-1 text-[10px] uppercase tracking-wider text-white/35">{timeAgo(n.ts)}</div>
-                      </div>
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); remove(n.id); }}
-                        className="menu-icon-control rounded-md p-1 text-white/40 hover:text-white"
+                        onClick={() => act(n.type, n.id)}
+                        className="menu-focus flex min-w-0 flex-1 items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
+                        aria-label={`${n.title}${n.read ? '' : ', non lue'}`}
+                      >
+                        <span
+                          className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
+                          style={{ background: `${ACCENT[n.type]}22`, border: `1.5px solid ${ACCENT[n.type]}55` }}
+                        >
+                          <Icon className="h-4 w-4" style={{ color: ACCENT[n.type] }} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-bold text-white leading-snug">{n.title}</span>
+                          {n.body && <span className="mt-0.5 block truncate text-xs text-white/55">{n.body}</span>}
+                          <span className="mt-1 block text-[10px] uppercase tracking-wider text-white/35">{timeAgo(n.ts)}</span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => remove(n.id)}
+                        className="menu-icon-control m-2 self-center rounded-md p-1 text-white/40 hover:text-white"
                         aria-label="Ignorer la notification"
                       >
                         <X className="h-3.5 w-3.5" />

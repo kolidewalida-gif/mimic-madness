@@ -104,7 +104,7 @@ export const ImitationPhase = ({
     // choice. The previous behaviour was to brute-force `pause()` which
     // killed any music the user had selected manually.
     if (autoMode) {
-      setSituation("round", { priority: 2, source: "imitation-phase" });
+      setSituation(gameMode === '2v2' ? "team-showdown" : "round", { priority: 2, source: "imitation-phase" });
     }
     return () => {
       if (autoMode) clearSituationOverride("imitation-phase");

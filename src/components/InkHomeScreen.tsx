@@ -147,8 +147,12 @@ const ImageWithFallback = ({
 
 const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps) => {
   const { profile, friendCode } = useAuth();
-  const [playerName, setPlayerName] = useState('');
-  const [lobbyCode, setLobbyCode] = useState('');
+  const [playerName, setPlayerName] = useState(() => {
+    try { return localStorage.getItem('playerName') ?? ''; } catch { return ''; }
+  });
+  const [lobbyCode, setLobbyCode] = useState(() => {
+    try { return sessionStorage.getItem('mimic.joinCode') ?? ''; } catch { return ''; }
+  });
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPatchNote, setShowPatchNote] = useState(false);
@@ -203,7 +207,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       const url = new URL(window.location.href);
       const param = url.searchParams.get('code') || url.searchParams.get('lobby');
       if (param) {
-        const cleaned = param.trim().toUpperCase().slice(0, 4);
+        const cleaned = param.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
         if (cleaned.length === 4) {
           setLobbyCode(cleaned);
           setShowJoinDialog(true);
@@ -227,6 +231,25 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.display_name]);
+
+  // Keep the identity used by invitations and restore unfinished join codes.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const name = playerName.trim();
+        if (name) localStorage.setItem('playerName', name);
+        else localStorage.removeItem('playerName');
+      } catch { /* storage can be disabled */ }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [playerName]);
+
+  useEffect(() => {
+    try {
+      if (lobbyCode) sessionStorage.setItem('mimic.joinCode', lobbyCode);
+      else sessionStorage.removeItem('mimic.joinCode');
+    } catch { /* storage can be disabled */ }
+  }, [lobbyCode]);
 
   // Notification centre can request opening the friends drawer (invites /
   // friend requests are handled there).
@@ -293,12 +316,21 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       label: 'Copier le code ami',
     },
     {
+      key: 'j',
+      enabled: !anyModalOpen && !!playerName.trim(),
+      handler: () => {
+        playInkSound('brushTap', 0.3);
+        setShowJoinDialog(true);
+      },
+      label: 'Rejoindre une partie',
+    },
+    {
       key: 'Enter',
       enabled: !anyModalOpen && !!playerName.trim(),
       handler: () => {
         playInkSound('inkSuccess', 0.5);
         play();
-        onCreateGame(playerName.trim());
+        onCreateGame(playerName.trim(), selectedMode.id);
       },
       label: 'Lancer la partie',
     },
@@ -326,16 +358,17 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     if (playerName.trim()) {
       play();
       playInkSound('inkSuccess', 0.5);
-      onCreateGame(playerName.trim());
+      onCreateGame(playerName.trim(), selectedMode.id);
     }
-  }, [playerName, play, onCreateGame]);
+  }, [playerName, play, onCreateGame, selectedMode.id]);
 
   const handleJoinGame = useCallback(() => {
-    if (playerName.trim() && lobbyCode.trim()) {
-      const code = lobbyCode.trim().toUpperCase();
+    const code = lobbyCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+    if (playerName.trim() && code.length === 4) {
       play();
       playInkSound('inkSuccess', 0.5);
       pushRecentLobby(code);
+      try { sessionStorage.removeItem('mimic.joinCode'); } catch { /* storage can be disabled */ }
       onJoinGame(playerName.trim(), code);
     }
   }, [playerName, lobbyCode, play, onJoinGame, pushRecentLobby]);
@@ -1193,13 +1226,17 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
             onClick={() => setShowJoinDialog(false)}
           >
-            <motion.div
+            <motion.form
               initial={{ opacity: 0, scale: 0.85, y: 20, rotate: -2 }}
               animate={{ opacity: 1, scale: 1, y: 0, rotate: -1 }}
               exit={{ opacity: 0, scale: 0.85, y: 20, rotate: 2 }}
               transition={{ type: 'spring', damping: 22, stiffness: 260 }}
               onClick={(e) => e.stopPropagation()}
+              onSubmit={(e) => { e.preventDefault(); handleJoinGame(); }}
               className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="join-lobby-title"
               style={{
                 background:
                   'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -1228,6 +1265,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                       <Hash className="h-5 w-5 text-white" strokeWidth={3} />
                     </motion.div>
                     <h3
+                      id="join-lobby-title"
                       className="text-3xl font-black text-white leading-none"
                       style={{
                         fontFamily: "'Caveat', cursive",
@@ -1264,8 +1302,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   <Input
                     placeholder="XXXX"
                     value={lobbyCode}
-                    onChange={(e) => setLobbyCode(e.target.value.toUpperCase())}
-                    onKeyPress={(e) => e.key === 'Enter' && handleJoinGame()}
+                    onChange={(e) => setLobbyCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4))}
                     maxLength={4}
                     className="text-center text-4xl tracking-[0.4em] uppercase font-black h-16 bg-black/50 rounded-2xl text-white"
                     style={{
@@ -1289,9 +1326,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {recentLobbies.slice(0, 6).map((it, idx) => (
-                        <motion.button
+                        <motion.div
                           key={it.code}
-                          type="button"
                           initial={{ opacity: 0, scale: 0.8, rotate: -4 }}
                           animate={{
                             opacity: 1,
@@ -1300,42 +1336,43 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                           }}
                           transition={{ delay: idx * 0.04 }}
                           whileHover={{ scale: 1.05, rotate: 0, y: -2 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            setLobbyCode(it.code);
-                            playInkSound('brushTap', 0.3);
-                          }}
-                          className="group relative px-3 py-1.5 rounded-xl flex items-center gap-1.5"
+                          className="group relative flex items-center rounded-xl"
                           style={{
                             background:
                               'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(126,34,206,0.05))',
                             border: '2.5px solid #0a0810',
                             boxShadow: '0 3px 0 #0a0810',
                           }}
-                          title={`Rejoindre ${it.code}`}
                         >
-                          <span
-                            className="font-mono text-base font-black tracking-wider text-white"
-                            style={{
-                              fontFamily: "'Caveat', cursive",
-                              textShadow:
-                                '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLobbyCode(it.code);
+                              playInkSound('brushTap', 0.3);
                             }}
+                            className="menu-focus px-3 py-1.5"
+                            title={`Rejoindre ${it.code}`}
                           >
-                            {it.code}
-                          </span>
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeRecentLobby(it.code);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded-full bg-red-500/30 hover:bg-red-500/50 flex items-center justify-center"
+                            <span
+                              className="font-mono text-base font-black tracking-wider text-white"
+                              style={{
+                                fontFamily: "'Caveat', cursive",
+                                textShadow:
+                                  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                              }}
+                            >
+                              {it.code}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeRecentLobby(it.code)}
+                            className="menu-icon-control mr-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500/30 opacity-60 transition-opacity hover:bg-red-500/50 hover:opacity-100 group-hover:opacity-100"
+                            aria-label={`Supprimer le lobby récent ${it.code}`}
                           >
                             <X className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-                          </span>
-                        </motion.button>
+                          </button>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
@@ -1361,7 +1398,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     Annuler
                   </motion.button>
                   <motion.button
-                    type="button"
+                    type="submit"
                     whileHover={
                       playerName.trim() && lobbyCode.length === 4
                         ? { scale: 1.04, rotate: 2 }
@@ -1372,7 +1409,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                         ? { scale: 0.96 }
                         : undefined
                     }
-                    onClick={handleJoinGame}
                     disabled={!playerName.trim() || lobbyCode.length !== 4}
                     className={cn(
                       'flex-1 py-3 rounded-2xl text-xl font-black text-white transition-opacity',
@@ -1391,7 +1427,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   </motion.button>
                 </div>
               </div>
-            </motion.div>
+            </motion.form>
           </motion.div>
         )}
       </AnimatePresence>
