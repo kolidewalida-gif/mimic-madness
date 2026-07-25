@@ -37,6 +37,7 @@ import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteMod
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useRecentLobbies } from '@/hooks/useRecentLobbies';
+import { NotificationCenter } from '@/components/NotificationCenter';
 import { toast } from 'sonner';
 
 
@@ -226,6 +227,14 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.display_name]);
+
+  // Notification centre can request opening the friends drawer (invites /
+  // friend requests are handled there).
+  useEffect(() => {
+    const openFriends = () => setShowFriendsDrawer(true);
+    window.addEventListener('mimic:open-friends', openFriends);
+    return () => window.removeEventListener('mimic:open-friends', openFriends);
+  }, []);
 
   // Close modals on Escape (already handled per-modal but extra safety)
   const anyModalOpen =
@@ -481,8 +490,9 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           />
         </div>
 
-        {/* RIGHT — NAV BUTTONS (amis / social / paramètres) */}
+        {/* RIGHT — NAV BUTTONS (notifs / amis / social / paramètres) */}
         <div className="flex items-center gap-1 sm:gap-2.5">
+          <NotificationCenter />
           {/* MES AMIS */}
           <motion.button
             onClick={() => {
