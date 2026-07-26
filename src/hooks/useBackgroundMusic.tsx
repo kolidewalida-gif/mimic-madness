@@ -28,6 +28,9 @@ export interface MusicTrack {
   name: string;
   src: string;
   moods?: MusicMood[];
+  /** Style label shown in the player, mirrors scripts/generate_original_music.py. */
+  genre?: string;
+  bpm?: number;
 }
 
 export type MusicMood = 'chill' | 'energetic' | 'tense' | 'epic' | 'mysterious' | 'playful';
@@ -53,23 +56,23 @@ interface SetSituationOptions {
 }
 
 const musicTracks: MusicTrack[] = [
-  { id: 300, name: 'Ink After Dark', src: inkHome, moods: ['chill', 'mysterious'] },
-  { id: 301, name: 'Lobby After Hours', src: inkLobby, moods: ['chill'] },
-  { id: 302, name: 'Mirror Pressure', src: imitation, moods: ['energetic', 'tense'] },
-  { id: 303, name: 'Signal Chain', src: audioPhone, moods: ['mysterious', 'chill'] },
-  { id: 304, name: 'Reverse Protocol', src: audioPhoneRewind, moods: ['mysterious', 'tense'] },
-  { id: 305, name: 'Two Sides', src: teamShowdown, moods: ['energetic', 'epic'] },
-  { id: 306, name: 'Decision Window', src: quiz, moods: ['tense', 'energetic'] },
-  { id: 307, name: 'Into Focus', src: pixoguess, moods: ['energetic', 'mysterious'] },
-  { id: 308, name: 'False Alibi', src: undercover, moods: ['mysterious', 'tense'] },
-  { id: 309, name: 'Neon Pressing', src: blindtest, moods: ['chill', 'energetic'] },
-  { id: 310, name: 'Backstage Signal', src: mimicWaiting, moods: ['chill'] },
-  { id: 311, name: 'Spotlight Scores', src: mimicResults, moods: ['epic', 'energetic'] },
-  { id: 312, name: 'Hostile Assets', src: monopoly, moods: ['mysterious', 'chill'] },
-  { id: 313, name: 'Final Choice', src: voting, moods: ['tense', 'mysterious'] },
-  { id: 314, name: 'Top Line', src: victory, moods: ['epic', 'energetic'] },
-  { id: 315, name: 'Run It Back', src: defeat, moods: ['chill', 'mysterious'] },
-  { id: 316, name: 'Signal Returning', src: connection, moods: ['chill'] },
+  { id: 300, name: 'Ink After Dark', src: inkHome, moods: ['chill', 'mysterious'], genre: 'UK Garage', bpm: 112 },
+  { id: 301, name: 'Lobby After Hours', src: inkLobby, moods: ['chill'], genre: 'Lounge nocturne', bpm: 96 },
+  { id: 302, name: 'Mirror Pressure', src: imitation, moods: ['energetic', 'tense'], genre: 'Breakbeat', bpm: 128 },
+  { id: 303, name: 'Signal Chain', src: audioPhone, moods: ['mysterious', 'chill'], genre: 'Electro minimale', bpm: 104 },
+  { id: 304, name: 'Reverse Protocol', src: audioPhoneRewind, moods: ['mysterious', 'tense'], genre: 'Trip-hop inversé', bpm: 96 },
+  { id: 305, name: 'Two Sides', src: teamShowdown, moods: ['energetic', 'epic'], genre: 'Club peak-time', bpm: 128 },
+  { id: 306, name: 'Decision Window', src: quiz, moods: ['tense', 'energetic'], genre: 'Electro tendue', bpm: 120 },
+  { id: 307, name: 'Into Focus', src: pixoguess, moods: ['energetic', 'mysterious'], genre: 'Tech house', bpm: 120 },
+  { id: 308, name: 'False Alibi', src: undercover, moods: ['mysterious', 'tense'], genre: 'Trip-hop noir', bpm: 96 },
+  { id: 309, name: 'Neon Pressing', src: blindtest, moods: ['chill', 'energetic'], genre: 'French house', bpm: 112 },
+  { id: 310, name: 'Backstage Signal', src: mimicWaiting, moods: ['chill'], genre: 'R&B nocturne', bpm: 96 },
+  { id: 311, name: 'Spotlight Scores', src: mimicResults, moods: ['epic', 'energetic'], genre: 'Club house', bpm: 120 },
+  { id: 312, name: 'Hostile Assets', src: monopoly, moods: ['mysterious', 'chill'], genre: 'Jazz électronique', bpm: 104 },
+  { id: 313, name: 'Final Choice', src: voting, moods: ['tense', 'mysterious'], genre: 'Suspense electro', bpm: 96 },
+  { id: 314, name: 'Top Line', src: victory, moods: ['epic', 'energetic'], genre: 'House euphorique', bpm: 120 },
+  { id: 315, name: 'Run It Back', src: defeat, moods: ['chill', 'mysterious'], genre: 'Downtempo', bpm: 88 },
+  { id: 316, name: 'Signal Returning', src: connection, moods: ['chill'], genre: 'Ambient', bpm: 80 },
 ];
 
 const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number | number[]>> = {

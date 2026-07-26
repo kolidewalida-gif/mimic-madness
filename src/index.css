@@ -2820,3 +2820,9 @@ html.low-power .mp-eq-bar { animation: none; }
   .mp-float,
   .mp-eq-bar { animation: none; }
 }
+
+/* Vinyl label rotation on the studio cover art. */
+@keyframes mpSpin { to { transform: rotate(360deg); } }
+.mp-spin { animation: mpSpin 6s linear infinite; }
+html.low-power .mp-spin { animation: none; }
+@media (prefers-reduced-motion: reduce) { .mp-spin { animation: none; } }

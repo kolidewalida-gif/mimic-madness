@@ -43,6 +43,12 @@ export function coverFor(track: MusicTrack | null | undefined): TrackCover {
   const mood = track.moods?.[0];
   const leadEmoji = track.name.match(/\p{Extended_Pictographic}/u)?.[0];
   const emoji = leadEmoji || (mood ? MOOD_EMOJI[mood] : '🎵');
-  const artist = mood ? MOOD_GENRE[mood] : 'Mimic Master';
+  // The generator gives every track a real style label; fall back to the mood.
+  const artist = track.genre ?? (mood ? MOOD_GENRE[mood] : 'Mimic Master');
   return { gradient: `linear-gradient(135deg, ${a}, ${b})`, emoji, artist };
 }
+
+export const MOOD_LABEL: Record<MusicMood, string> = {
+  chill: 'Chill', energetic: 'Énergique', tense: 'Tendu',
+  epic: 'Épique', mysterious: 'Mystère', playful: 'Fun',
+};

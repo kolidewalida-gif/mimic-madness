@@ -13,7 +13,7 @@ const FOCUSABLE =
  * trigger on close. Previously each panel reimplemented a subset of this, and
  * most implemented none of it.
  */
-const useDialogBehaviour = (isOpen: boolean, onClose: () => void) => {
+export const useDialogBehaviour = (isOpen: boolean, onClose: () => void) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
 
