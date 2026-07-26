@@ -206,13 +206,14 @@ const InkFriendsSidebarComponent = ({
             Connecte-toi pour ajouter des amis et jouer ensemble !
           </p>
           <motion.button
+            type="button"
             whileHover={{ scale: 1.04, rotate: -1.5 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => {
               playInkSound('inkClick', 0.4);
               signInWithGoogle();
             }}
-            className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
+            className="menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
             style={{
               background: 'linear-gradient(180deg, #06b6d4, #0e7490)',
               border: '3px solid #0a0810',
@@ -221,7 +222,7 @@ const InkFriendsSidebarComponent = ({
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
-            <LogIn className="h-5 w-5" strokeWidth={2.5} />
+            <LogIn className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
             Connexion Google
           </motion.button>
         </div>
@@ -360,10 +361,16 @@ const InkFriendsSidebarComponent = ({
               Votre Code Ami
             </SectionLabel>
             <motion.button
+              type="button"
               onClick={copyFriendCode}
               whileHover={{ scale: 1.02, rotate: -0.4 }}
               whileTap={{ scale: 0.98 }}
-              className="relative w-full rounded-2xl p-3 pr-14 text-left overflow-hidden"
+              aria-label={
+                friendCode
+                  ? `Copier le code ami ${friendCode}`
+                  : 'Copier le code ami'
+              }
+              className="menu-focus relative w-full rounded-2xl p-3 pr-14 text-left overflow-hidden"
               style={{
                 background:
                   'linear-gradient(180deg, rgba(6,182,212,0.18), rgba(6,182,212,0.05))',
@@ -388,9 +395,9 @@ const InkFriendsSidebarComponent = ({
                 }}
               >
                 {copied ? (
-                  <Check className="h-4 w-4 text-white" strokeWidth={3} />
+                  <Check className="h-4 w-4 text-white" strokeWidth={3} aria-hidden="true" />
                 ) : (
-                  <Copy className="h-4 w-4 text-white" strokeWidth={2.5} />
+                  <Copy className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden="true" />
                 )}
               </div>
             </motion.button>
@@ -425,10 +432,13 @@ const InkFriendsSidebarComponent = ({
                     ? { scale: 0.94 }
                     : undefined
                 }
+                type="button"
                 onClick={handleSendRequest}
                 disabled={!friendCodeInput.trim() || isSending}
+                aria-label="Envoyer la demande d'ami"
+                aria-busy={isSending}
                 className={cn(
-                  'h-11 w-11 rounded-xl flex items-center justify-center text-white transition-opacity',
+                  'menu-icon-control menu-focus h-11 w-11 rounded-xl flex items-center justify-center text-white transition-opacity',
                   (!friendCodeInput.trim() || isSending) && 'opacity-50',
                 )}
                 style={{
@@ -440,9 +450,9 @@ const InkFriendsSidebarComponent = ({
                 }}
               >
                 {isSending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 ) : (
-                  <Send className="h-4 w-4" strokeWidth={2.5} />
+                  <Send className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
                 )}
               </motion.button>
             </div>
@@ -508,10 +518,12 @@ const InkFriendsSidebarComponent = ({
                         </div>
                       </div>
                       <motion.button
+                        type="button"
                         whileHover={{ scale: 1.1, rotate: -5 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleAcceptInvitation(invitation.id)}
-                        className="h-9 w-9 rounded-xl flex items-center justify-center text-white"
+                        aria-label={`Accepter l'invitation de ${invitation.sender_name}`}
+                        className="menu-icon-control menu-focus h-9 w-9 rounded-xl flex items-center justify-center text-white"
                         style={{
                           background:
                             'linear-gradient(180deg, #34d399, #059669)',
@@ -519,13 +531,15 @@ const InkFriendsSidebarComponent = ({
                           boxShadow: '0 3px 0 #0a0810',
                         }}
                       >
-                        <Check className="h-4 w-4" strokeWidth={3} />
+                        <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
                       </motion.button>
                       <motion.button
+                        type="button"
                         whileHover={{ scale: 1.1, rotate: 5 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => declineInvitation(invitation.id)}
-                        className="h-9 w-9 rounded-xl flex items-center justify-center text-white"
+                        aria-label={`Refuser l'invitation de ${invitation.sender_name}`}
+                        className="menu-icon-control menu-focus h-9 w-9 rounded-xl flex items-center justify-center text-white"
                         style={{
                           background:
                             'linear-gradient(180deg, #ef4444, #b91c1c)',
@@ -533,7 +547,7 @@ const InkFriendsSidebarComponent = ({
                           boxShadow: '0 3px 0 #0a0810',
                         }}
                       >
-                        <X className="h-4 w-4" strokeWidth={3} />
+                        <X className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
                       </motion.button>
                     </motion.div>
                   ))}
@@ -605,10 +619,12 @@ const InkFriendsSidebarComponent = ({
                         {request.requesterProfile?.display_name || 'Inconnu'}
                       </span>
                       <motion.button
+                        type="button"
                         whileHover={{ scale: 1.1, rotate: -5 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleAccept(request.id)}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center text-white"
+                        aria-label={`Accepter la demande d'ami de ${request.requesterProfile?.display_name || 'joueur inconnu'}`}
+                        className="menu-icon-control menu-focus h-8 w-8 rounded-lg flex items-center justify-center text-white"
                         style={{
                           background:
                             'linear-gradient(180deg, #34d399, #059669)',
@@ -616,13 +632,15 @@ const InkFriendsSidebarComponent = ({
                           boxShadow: '0 2px 0 #0a0810',
                         }}
                       >
-                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
                       </motion.button>
                       <motion.button
+                        type="button"
                         whileHover={{ scale: 1.1, rotate: 5 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleReject(request.id)}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center text-white"
+                        aria-label={`Refuser la demande d'ami de ${request.requesterProfile?.display_name || 'joueur inconnu'}`}
+                        className="menu-icon-control menu-focus h-8 w-8 rounded-lg flex items-center justify-center text-white"
                         style={{
                           background:
                             'linear-gradient(180deg, #ef4444, #b91c1c)',
@@ -630,7 +648,7 @@ const InkFriendsSidebarComponent = ({
                           boxShadow: '0 2px 0 #0a0810',
                         }}
                       >
-                        <X className="h-3.5 w-3.5" strokeWidth={3} />
+                        <X className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
                       </motion.button>
                     </motion.div>
                   ))}
@@ -783,6 +801,7 @@ const InkFriendsSidebarComponent = ({
                         {/* ACTIONS */}
                         <div className="flex gap-1.5 flex-shrink-0">
                           <motion.button
+                            type="button"
                             whileHover={{ scale: 1.1, rotate: -5 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() => {
@@ -793,7 +812,8 @@ const InkFriendsSidebarComponent = ({
                                 avatar_url: friend.avatar_url,
                               });
                             }}
-                            className="relative w-8 h-8 rounded-xl flex items-center justify-center text-white"
+                            aria-label={`Envoyer un message à ${friend.display_name || 'cet ami'}`}
+                            className="menu-icon-control menu-focus relative w-8 h-8 rounded-xl flex items-center justify-center text-white"
                             style={{
                               background:
                                 'linear-gradient(180deg, #6b7280, #374151)',
@@ -802,7 +822,7 @@ const InkFriendsSidebarComponent = ({
                             }}
                             title="Envoyer un message"
                           >
-                            <MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} />
+                            <MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
                             {unread > 0 && (
                               <span
                                 className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center"
@@ -820,10 +840,12 @@ const InkFriendsSidebarComponent = ({
                           </motion.button>
                           {lobbyCode && (
                             <motion.button
+                              type="button"
                               whileHover={{ scale: 1.1, rotate: -5 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handleJoinFriend(lobbyCode)}
-                              className="w-8 h-8 rounded-xl flex items-center justify-center text-white"
+                              aria-label={`Rejoindre la partie de ${friend.display_name || 'cet ami'}`}
+                              className="menu-icon-control menu-focus w-8 h-8 rounded-xl flex items-center justify-center text-white"
                               style={{
                                 background:
                                   'linear-gradient(180deg, #34d399, #059669)',
@@ -832,15 +854,17 @@ const InkFriendsSidebarComponent = ({
                               }}
                               title="Rejoindre"
                             >
-                              <Play className="h-3.5 w-3.5" strokeWidth={2.5} fill="white" />
+                              <Play className="h-3.5 w-3.5" strokeWidth={2.5} fill="white" aria-hidden="true" />
                             </motion.button>
                           )}
                           {currentLobbyCode && !lobbyCode && (
                             <motion.button
+                              type="button"
                               whileHover={{ scale: 1.1, rotate: -5 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handleInviteFriend(friend.user_id)}
-                              className="w-8 h-8 rounded-xl flex items-center justify-center text-white"
+                              aria-label={`Inviter ${friend.display_name || 'cet ami'} dans le lobby`}
+                              className="menu-icon-control menu-focus w-8 h-8 rounded-xl flex items-center justify-center text-white"
                               style={{
                                 background:
                                   'linear-gradient(180deg, #fbbf24, #d97706)',
@@ -850,7 +874,7 @@ const InkFriendsSidebarComponent = ({
                               }}
                               title={isOnline ? 'Inviter' : 'Inviter (statut hors-ligne, mais l\'invitation sera envoyée)'}
                             >
-                              <Send className="h-3.5 w-3.5" strokeWidth={2.5} />
+                              <Send className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
                             </motion.button>
                           )}
                         </div>

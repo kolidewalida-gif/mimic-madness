@@ -159,8 +159,8 @@ const ProfileSidebarComponent = () => {
             Mon Profil
           </NeonText>
           <InteractiveWrapper glow>
-            <button onClick={signOut} className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
-              <LogOut className="h-3.5 w-3.5" />
+            <button type="button" onClick={signOut} aria-label="Se déconnecter" className="menu-icon-control menu-focus p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
+              <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </InteractiveWrapper>
         </div>
@@ -193,9 +193,13 @@ const ProfileSidebarComponent = () => {
                 className="hidden"
               />
               <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingAvatar || avatarLoading}
+                aria-label="Changer la photo de profil"
+                aria-busy={isUploadingAvatar}
                 className={cn(
+                  "menu-icon-control menu-focus",
                   "absolute -bottom-1 -right-1 w-7 h-7 rounded-full",
                   "bg-primary text-white flex items-center justify-center",
                   "hover:bg-primary/80 transition-colors shadow-lg",
@@ -205,7 +209,7 @@ const ProfileSidebarComponent = () => {
                 {isUploadingAvatar ? (
                   <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Camera className="h-3.5 w-3.5" />
+                  <Camera className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
               </button>
             </div>
@@ -214,14 +218,14 @@ const ProfileSidebarComponent = () => {
             {isEditing ? (
               <div className="flex items-center gap-1 px-2">
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-center text-sm bg-background/50" placeholder="Votre pseudo" autoFocus />
-                <button onClick={handleSave} disabled={isSaving} className="p-1.5 rounded hover:bg-green-500/20"><Check className="h-3.5 w-3.5 text-green-500" /></button>
-                <button onClick={() => setIsEditing(false)} className="p-1.5 rounded hover:bg-red-500/20"><X className="h-3.5 w-3.5 text-red-500" /></button>
+                <button type="button" onClick={handleSave} disabled={isSaving} aria-label="Enregistrer le pseudo" aria-busy={isSaving} className="menu-icon-control menu-focus p-1.5 rounded hover:bg-green-500/20"><Check className="h-3.5 w-3.5 text-green-500" aria-hidden="true" /></button>
+                <button type="button" onClick={() => setIsEditing(false)} aria-label="Annuler la modification du pseudo" className="menu-icon-control menu-focus p-1.5 rounded hover:bg-red-500/20"><X className="h-3.5 w-3.5 text-red-500" aria-hidden="true" /></button>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-0.5">
                 <div className="flex items-center gap-1">
                   <span className="font-semibold text-base">{profile?.display_name || 'Joueur'}</span>
-                  <button onClick={() => setIsEditing(true)} className="p-1 rounded hover:bg-muted"><Edit2 className="h-3 w-3 text-muted-foreground" /></button>
+                  <button type="button" onClick={() => setIsEditing(true)} aria-label="Modifier le pseudo" className="menu-icon-control menu-focus p-1 rounded hover:bg-muted"><Edit2 className="h-3 w-3 text-muted-foreground" aria-hidden="true" /></button>
                 </div>
                 {/* Equipped title */}
                 {equippedTitle && (
@@ -280,18 +284,18 @@ const ProfileSidebarComponent = () => {
           {/* Action Buttons */}
           <div className="grid grid-cols-3 gap-2">
             <InteractiveWrapper glow>
-              <PremiumButton variant="neon" size="sm" onClick={() => setShowAchievements(true)} className="w-full text-xs px-2">
-                <Award className="h-3 w-3" />
+              <PremiumButton variant="neon" size="sm" onClick={() => setShowAchievements(true)} className="w-full text-xs px-2" aria-label="Ouvrir mes badges">
+                <Award className="h-3 w-3" aria-hidden="true" />
               </PremiumButton>
             </InteractiveWrapper>
             <InteractiveWrapper glow>
-              <PremiumButton variant="neon" size="sm" onClick={() => setShowTitles(true)} className="w-full text-xs px-2">
-                <Crown className="h-3 w-3" />
+              <PremiumButton variant="neon" size="sm" onClick={() => setShowTitles(true)} className="w-full text-xs px-2" aria-label="Ouvrir mes titres">
+                <Crown className="h-3 w-3" aria-hidden="true" />
               </PremiumButton>
             </InteractiveWrapper>
             <InteractiveWrapper glow>
-              <PremiumButton variant="neon" size="sm" onClick={() => setShowRewards(true)} className="w-full text-xs px-2">
-                <Gift className="h-3 w-3" />
+              <PremiumButton variant="neon" size="sm" onClick={() => setShowRewards(true)} className="w-full text-xs px-2" aria-label="Ouvrir mes récompenses">
+                <Gift className="h-3 w-3" aria-hidden="true" />
               </PremiumButton>
             </InteractiveWrapper>
           </div>

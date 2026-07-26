@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Crown, Check, Star, Shield, Award, Sparkles, Zap, Sun, Trophy, Compass, Circle, User } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Crown, Check, Star, Shield, Award, Sparkles, Zap, Sun, Trophy, Compass, Circle, User, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlayerLevel, LEVEL_REWARDS, LevelReward } from '@/hooks/usePlayerLevel';
 import { useEquippedTitle } from '@/hooks/useEquippedTitle';
+import { InkDrawer } from '@/components/menu/InkOverlay';
+import { RARITY_STYLE as RARITY_TABLE } from '@/lib/rarity';
 import { toast } from 'sonner';
 
 interface TitleSelectorProps {
@@ -25,12 +27,8 @@ const iconMap: Record<string, React.ReactNode> = {
   user: <User className="h-4 w-4" />,
 };
 
-const RARITY_STYLE = {
-  common: { gradient: 'from-zinc-500 to-zinc-600', color: '#a1a1aa', label: 'Commun', bg: '#a1a1aa' },
-  rare: { gradient: 'from-blue-500 to-cyan-500', color: '#38bdf8', label: 'Rare', bg: '#38bdf8' },
-  epic: { gradient: 'from-purple-500 to-pink-500', color: '#c084fc', label: 'Épique', bg: '#c084fc' },
-  legendary: { gradient: 'from-amber-400 to-orange-500', color: '#fbbf24', label: 'Légendaire', bg: '#fbbf24' },
-};
+/** Rarity presentation now comes from the shared table (was a 4th copy). */
+const RARITY_STYLE = RARITY_TABLE;
 
 /** Real perks for each title — visible to other players + gameplay bonuses */
 const TITLE_PERKS: Record<string, string> = {
@@ -63,45 +61,15 @@ export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[150]"
-          />
-          <motion.div
-            initial={{ opacity: 0, x: '100%' }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 250 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-md z-[151] flex flex-col overflow-hidden"
-            style={{ background: '#0c0a14' }}
-          >
-            {/* Header */}
-            <div className="px-5 pt-5 pb-4 border-b border-white/8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #c084fc, #7c3aed)', border: '1.5px solid rgba(192,132,252,0.4)' }}>
-                    <Crown className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-white">Mes Titres</h2>
-                    <p className="text-xs text-white/40">{unlockedTitles.length}/{titles.length} débloqués</p>
-                  </div>
-                </div>
-                <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5 transition-colors">
-                  <X className="h-4 w-4 text-white/60" />
-                </button>
-              </div>
-            </div>
-
-            {/* Equipped title */}
-            <div className="px-5 py-4 border-b border-white/5">
+    <InkDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Mes titres"
+      subtitle={`${unlockedTitles.length}/${titles.length} débloqués`}
+      icon={<Crown className="h-5 w-5" strokeWidth={2.5} />}
+      iconGradient="linear-gradient(135deg, #c084fc, #7c3aed)"
+      toolbar={
+        <div className="flex-shrink-0 border-b-2 border-white/10 px-5 pb-4">
               <p className="text-xs text-white/40 mb-2 uppercase tracking-wider font-medium">Titre équipé</p>
               {equippedTitle ? (
                 <div className="flex items-center justify-between p-3 rounded-xl"
@@ -113,26 +81,30 @@ export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
                     <span className="font-semibold text-white text-sm">{equippedTitle.name}</span>
                   </div>
                   <button
+                    type="button"
                     onClick={handleUnequip}
                     disabled={isEquipping || isLoading}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors border border-red-500/20"
+                    aria-busy={isEquipping}
+                    className="menu-focus inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
                   >
+                    {isEquipping && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}
                     Retirer
                   </button>
                 </div>
               ) : (
-                <div className="p-3 rounded-xl text-center text-sm text-white/30" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                <div className="rounded-xl p-3 text-center text-sm text-white/30" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)' }}>
                   Aucun titre équipé
                 </div>
               )}
-            </div>
-
-            {/* Title list */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2.5">
+        </div>
+      }
+    >
+            <div className="space-y-2.5">
               {unlockedTitles.length === 0 ? (
-                <div className="text-center py-16">
-                  <Crown className="h-10 w-10 mx-auto text-white/15 mb-3" />
-                  <p className="text-sm text-white/40">Monte en niveau pour débloquer des titres</p>
+                <div className="ink-empty">
+                  <Crown aria-hidden="true" />
+                  <strong>Aucun titre débloqué</strong>
+                  <p>Monte en niveau en jouant pour débloquer tes premiers titres.</p>
                 </div>
               ) : (
                 unlockedTitles.map((title, i) => {
@@ -175,11 +147,14 @@ export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
                           </div>
                         ) : (
                           <button
+                            type="button"
                             onClick={() => handleEquip(title)}
                             disabled={isEquipping || isLoading}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                            aria-busy={isEquipping}
+                            className="menu-focus inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
                             style={{ background: `${style.color}15`, color: style.color, border: `1px solid ${style.color}33` }}
                           >
+                            {isEquipping && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}
                             Équiper
                           </button>
                         )}
@@ -197,9 +172,6 @@ export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
                 })
               )}
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    </InkDrawer>
   );
 };

@@ -1,6 +1,7 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Users, X, Loader2, Send, CheckCircle2, Search, Sparkles } from 'lucide-react';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -66,6 +67,9 @@ const LobbyInvitePanelComponent = ({
       setTimeout(() => setInvitedFriends(new Set()), 300);
     }
   }, [showInvitePanel]);
+
+  // The secondary invite modal had no keyboard exit.
+  useEscapeKey(showInvitePanel, useCallback(() => setShowInvitePanel(false), []));
 
   const handleInvite = async (friendUserId: string, _friendName: string) => {
     if (!profile?.display_name) {

@@ -31,6 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { DirectMessageDialog } from '@/components/DirectMessageDialog';
 import { toast } from 'sonner';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface SocialHubPanelProps {
   isOpen: boolean;
@@ -89,6 +90,8 @@ const SocialHubPanelComponent = ({
   } | null>(null);
 
   useBodyScrollLock(isOpen || showSocialModal || chatFriend !== null);
+  // Escape closes the hub, like every other menu overlay.
+  useEscapeKey(isOpen && !showSocialModal && chatFriend === null, onClose);
 
   const totalUnreadMessages = Object.values(unreadCounts).reduce(
     (sum, count) => sum + count,

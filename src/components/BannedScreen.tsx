@@ -48,10 +48,11 @@ export const BannedScreen = ({ ban }: { ban: BanRow }) => {
         </div>
 
         <button
+          type="button"
           onClick={handleLogout}
-          className="w-full py-3 rounded-lg bg-destructive text-destructive-foreground font-semibold hover:bg-destructive/90 transition flex items-center justify-center gap-2"
+          className="menu-focus w-full py-3 rounded-lg bg-destructive text-destructive-foreground font-semibold hover:bg-destructive/90 transition flex items-center justify-center gap-2"
         >
-          <LogOut className="w-4 h-4" /> Se déconnecter
+          <LogOut className="w-4 h-4" aria-hidden="true" /> Se déconnecter
         </button>
       </motion.div>
     </div>

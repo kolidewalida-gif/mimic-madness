@@ -2693,3 +2693,130 @@ html.gamepad-active .ibs-mode-card:focus { transform: scale(1.025); z-index: 2; 
   .social-feed-toolbar { align-items: stretch; flex-direction: column; }
   .social-search-wrap { width: 100%; }
 }
+
+/* ===== Ink menu design tokens =====
+   Same visual values as before, centralised so panels stop drifting apart.
+   Replaces ~500 hard-coded #0a0810 borders/shadows across the menus. */
+:root {
+  --ink-outline: #0a0810;
+  --ink-violet: #a855f7;
+  --ink-violet-deep: #7e22ce;
+  --ink-danger: #ef4444;
+  --ink-border: 3px solid var(--ink-outline);
+  --ink-border-thin: 2.5px solid var(--ink-outline);
+  --ink-shadow-sm: 0 2px 0 var(--ink-outline);
+  --ink-shadow: 0 4px 0 var(--ink-outline);
+  --ink-shadow-lg: 0 12px 0 var(--ink-outline);
+  --ink-graffiti-shadow:
+    2px 2px 0 var(--ink-outline), -1.5px -1.5px 0 var(--ink-outline),
+    1.5px -1.5px 0 var(--ink-outline), -1.5px 1.5px 0 var(--ink-outline),
+    1.5px 1.5px 0 var(--ink-outline);
+  --ink-panel-gradient: linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%);
+  --ink-header-gradient: linear-gradient(180deg, rgba(168, 85, 247, 0.18), rgba(168, 85, 247, 0.05));
+}
+
+/* Documented stacking order. Menus used to mix z-50, z-[151], z-[9998], z-[10100]. */
+.ink-z-bar { z-index: 50; }
+.ink-z-drawer-backdrop { z-index: 9200; }
+.ink-z-drawer { z-index: 9210; }
+.ink-z-modal-backdrop { z-index: 9400; }
+.ink-z-modal { z-index: 9410; }
+
+/* Shared graffiti heading, previously duplicated inline in ~100 places. */
+.ink-title {
+  font-family: 'Caveat', cursive;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  text-shadow: var(--ink-graffiti-shadow);
+}
+
+.ink-panel-surface {
+  background: var(--ink-panel-gradient);
+  border: 4px solid var(--ink-outline);
+  box-shadow: var(--ink-shadow-lg), 0 18px 40px rgba(168, 85, 247, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.08);
+}
+
+.ink-panel-header {
+  background: var(--ink-header-gradient);
+  border-bottom: var(--ink-border);
+}
+
+/* One single "close" button for every menu (was 5 different sizes). */
+.ink-close-button {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: var(--ink-border-thin);
+  border-radius: 0.75rem;
+  color: #fff;
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 3px 0 var(--ink-outline);
+  transition: transform 130ms ease, background 130ms ease;
+}
+.ink-close-button:hover { background: rgba(239, 68, 68, 0.34); }
+.ink-close-button:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink-outline); }
+
+/* Unified tab row (Rewards / Badges / Quests used 4 different implementations). */
+.ink-tab {
+  position: relative;
+  flex: 1 1 0%;
+  min-height: 3rem;
+  padding: 0.75rem 0.5rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: 'Caveat', cursive;
+  font-size: 1.05rem;
+  font-weight: 900;
+  transition: color 130ms ease;
+}
+.ink-tab:hover { color: rgba(255, 255, 255, 0.72); }
+.ink-tab.is-active { color: #fff; }
+
+.ink-progress {
+  overflow: hidden;
+  height: 0.5rem;
+  border: 1.5px solid var(--ink-outline);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.ink-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 400ms ease;
+}
+
+/* Shared empty state so panels never render a blank scroll area. */
+.ink-empty {
+  display: grid;
+  place-items: center;
+  padding: 3rem 1.25rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.45);
+}
+.ink-empty svg { width: 2rem; height: 2rem; opacity: 0.4; }
+.ink-empty strong { margin-top: 0.6rem; font-size: 0.95rem; font-weight: 800; color: rgba(255, 255, 255, 0.75); }
+.ink-empty p { margin-top: 0.3rem; max-width: 20rem; font-size: 0.78rem; }
+
+/* Music player animations. Previously injected as an inline <style> block on
+   every render of MusicPlayerBar. */
+@keyframes mpFloat {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+@keyframes mpEqBar {
+  0%, 100% { height: 25%; }
+  50% { height: 100%; }
+}
+.mp-float { animation: mpFloat 5s ease-in-out infinite; }
+.mp-eq-bar { animation: mpEqBar 0.9s ease-in-out infinite; }
+
+html.low-power .mp-float,
+html.low-power .mp-eq-bar { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-float,
+  .mp-eq-bar { animation: none; }
+}

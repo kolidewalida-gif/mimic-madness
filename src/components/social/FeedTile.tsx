@@ -87,7 +87,8 @@ export const FeedTile = memo(({
           playInkSound('cartoonPop', 0.3);
           onOpenProfile(post);
         }}
-        tabIndex={onOpenProfile ? 0 : -1}
+        disabled={!onOpenProfile}
+        aria-label={onOpenProfile ? `Voir le profil de ${post.owner_name}` : undefined}
         className="menu-focus min-w-0 flex-1 text-left"
       >
         <strong>@{post.owner_name}</strong>

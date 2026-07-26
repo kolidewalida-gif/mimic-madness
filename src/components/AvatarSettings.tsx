@@ -103,12 +103,14 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
     <GameCard className="relative">
       {onClose && (
         <Button
+          type="button"
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="absolute top-4 right-4"
+          aria-label="Fermer la personnalisation de l'avatar"
+          className="menu-icon-control menu-focus absolute top-4 right-4"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden="true" />
         </Button>
       )}
       
@@ -148,10 +150,12 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
             className="hidden"
           />
           <Button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
             variant="outline"
-            className="w-full"
+            className="menu-focus w-full"
             disabled={isUploading || isLoading}
+            aria-busy={isUploading}
           >
             {isUploading ? (
               <>
@@ -160,7 +164,7 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
               </>
             ) : (
               <>
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
                 Choisir une image ou un GIF
               </>
             )}
@@ -180,9 +184,12 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
             {DEFAULT_COLORS.map((color, index) => (
               <button
                 key={index}
+                type="button"
                 onClick={() => handleColorSelect(color)}
                 disabled={isLoading}
-                className={`w-full aspect-square rounded-xl transition-all hover:scale-110 hover:ring-2 hover:ring-white/50 ${
+                aria-label={`Choisir la couleur de fond ${color}`}
+                aria-pressed={avatarData.backgroundColor === color}
+                className={`menu-focus w-full aspect-square rounded-xl transition-all hover:scale-110 hover:ring-2 hover:ring-white/50 ${
                   avatarData.backgroundColor === color ? 'ring-2 ring-white scale-110' : ''
                 }`}
                 style={{ backgroundColor: color }}
@@ -194,12 +201,13 @@ export const AvatarSettings = ({ playerId, playerName, onClose }: AvatarSettings
         {/* Reset Button */}
         {(avatarData.type === 'image' || avatarData.backgroundColor) && (
           <Button
+            type="button"
             onClick={handleClearAvatar}
             variant="ghost"
-            className="w-full text-foreground-muted hover:text-destructive"
+            className="menu-focus w-full text-foreground-muted hover:text-destructive"
             disabled={isLoading}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
+            <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
             Réinitialiser l'avatar
           </Button>
         )}

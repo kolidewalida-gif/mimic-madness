@@ -58,8 +58,16 @@ const AuthButtonComponent = ({ onOpenProfile, onOpenFriends, className }: AuthBu
 
   if (isLoading) {
     return (
-      <Button variant="ghost" size="icon" disabled className={className}>
-        <Loader2 className="h-4 w-4 animate-spin" />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        disabled
+        aria-label="Chargement du compte"
+        aria-busy={isLoading}
+        className={cn("menu-icon-control menu-focus", className)}
+      >
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
       </Button>
     );
   }
@@ -67,10 +75,13 @@ const AuthButtonComponent = ({ onOpenProfile, onOpenFriends, className }: AuthBu
   if (!user) {
     return (
       <Button
+        type="button"
         onClick={handleSignIn}
         disabled={isSigningIn}
+        aria-busy={isSigningIn}
         variant="outline"
         className={cn(
+          "menu-focus",
           "gap-2 rounded-xl border-border/50 bg-background/50",
           "hover:bg-background hover:border-primary/50",
           "transition-all duration-200",
@@ -78,9 +89,9 @@ const AuthButtonComponent = ({ onOpenProfile, onOpenFriends, className }: AuthBu
         )}
       >
         {isSigningIn ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
         ) : (
-          <LogIn className="h-4 w-4" />
+          <LogIn className="h-4 w-4" aria-hidden="true" />
         )}
         <span className="hidden sm:inline">Connexion Google</span>
         <span className="sm:hidden">Connexion</span>
@@ -92,8 +103,11 @@ const AuthButtonComponent = ({ onOpenProfile, onOpenFriends, className }: AuthBu
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button 
+          type="button"
           variant="ghost" 
+          aria-label={`Ouvrir le menu du compte de ${profile?.display_name || 'Joueur'}`}
           className={cn(
+            "menu-focus",
             "gap-2 rounded-xl px-2 sm:px-3",
             "hover:bg-background/80 transition-all duration-200",
             className
@@ -124,14 +138,16 @@ const AuthButtonComponent = ({ onOpenProfile, onOpenFriends, className }: AuthBu
             <div className="px-2 py-2">
               <p className="text-xs text-foreground-muted mb-1">Code Ami</p>
               <button
+                type="button"
                 onClick={copyFriendCode}
-                className="flex items-center gap-2 w-full px-2 py-1.5 bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors"
+                aria-label={`Copier le code ami ${friendCode}`}
+                className="menu-focus flex items-center gap-2 w-full px-2 py-1.5 bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors"
               >
                 <span className="font-mono font-bold text-primary tracking-wider">{friendCode}</span>
                 {copied ? (
-                  <Check className="h-3.5 w-3.5 text-green-500 ml-auto" />
+                  <Check className="h-3.5 w-3.5 text-green-500 ml-auto" aria-hidden="true" />
                 ) : (
-                  <Copy className="h-3.5 w-3.5 text-foreground-muted ml-auto" />
+                  <Copy className="h-3.5 w-3.5 text-foreground-muted ml-auto" aria-hidden="true" />
                 )}
               </button>
             </div>

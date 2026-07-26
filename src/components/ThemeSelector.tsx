@@ -62,28 +62,39 @@ export const ThemeSelector = ({ variant = 'full', className, showInkToggle = tru
     return (
       <div className={cn("relative", className)}>
         <button
+          type="button"
           onClick={handleToggle}
-          className="p-3 rounded-xl glass-ultra hover:scale-110 transition-all duration-300 group"
+          aria-expanded={isOpen}
+          aria-label="Choisir un thème"
+          className="menu-icon-control menu-focus p-3 rounded-xl glass-ultra hover:scale-110 transition-all duration-300 group"
           onMouseEnter={() => playSoundEffect('hoverSoft', 0.2)}
         >
-          <Palette className="w-5 h-5 text-primary group-hover:animate-spin" />
+          <Palette className="w-5 h-5 text-primary group-hover:animate-spin" aria-hidden="true" />
         </button>
 
         {isOpen && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+            <button
+              type="button"
+              className="fixed inset-0 z-40 cursor-default"
+              onClick={() => setIsOpen(false)}
+              aria-label="Fermer le choix de thème"
+            />
             <div className="absolute right-0 top-full mt-2 z-50 flex gap-2 p-2 glass-ultra rounded-xl animate-scaleIn">
               {availableThemes.map((t) => (
                 <button
                   key={t}
+                  type="button"
                   onClick={() => handleSelectTheme(t)}
+                  aria-label={`Thème ${themeConfig[t].name}`}
+                  aria-pressed={theme === t}
                   onMouseEnter={() => {
                     setHoveredTheme(t);
                     playSoundEffect('hoverSoft', 0.15);
                   }}
                   onMouseLeave={() => setHoveredTheme(null)}
                   className={cn(
-                    "w-10 h-10 rounded-lg transition-all duration-300 flex items-center justify-center text-xl",
+                    "menu-icon-control menu-focus w-10 h-10 rounded-lg transition-all duration-300 flex items-center justify-center text-xl",
                     "hover:scale-110 hover:shadow-lg",
                     theme === t && "ring-2 ring-white scale-110"
                   )}
@@ -111,10 +122,13 @@ export const ThemeSelector = ({ variant = 'full', className, showInkToggle = tru
         {availableThemes.map((t) => (
           <button
             key={t}
+            type="button"
             onClick={() => handleSelectTheme(t)}
             onMouseEnter={() => playSoundEffect('hoverSoft', 0.15)}
+            aria-label={`Thème ${themeConfig[t].name}`}
+            aria-pressed={theme === t}
             className={cn(
-              "w-12 h-12 rounded-xl transition-all duration-300 flex items-center justify-center text-2xl",
+              "menu-icon-control menu-focus w-12 h-12 rounded-xl transition-all duration-300 flex items-center justify-center text-2xl",
               "hover:scale-110 hover:shadow-lg relative overflow-hidden",
               theme === t && "ring-2 ring-white scale-105"
             )}

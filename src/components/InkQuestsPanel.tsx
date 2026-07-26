@@ -104,11 +104,14 @@ const QuestRow = memo(({ quest, onClaim, claiming }: {
           </div>
         ) : quest.isComplete ? (
           <motion.button
+            type="button"
             onClick={() => onClaim(quest.id)}
             disabled={claiming}
+            aria-busy={claiming}
+            aria-label={`Réclamer ${quest.xpReward} XP pour la quête ${quest.title}`}
             whileHover={{ scale: 1.05, rotate: -2 }}
             whileTap={{ scale: 0.95 }}
-            className="px-3 py-2 rounded-2xl flex items-center gap-1.5 disabled:opacity-50"
+            className="menu-focus px-3 py-2 rounded-2xl flex items-center gap-1.5 disabled:opacity-50"
             style={{
               background: 'linear-gradient(180deg, #fbbf24, #d97706)',
               border: '3px solid #0a0810',
@@ -116,9 +119,9 @@ const QuestRow = memo(({ quest, onClaim, claiming }: {
             }}
           >
             {claiming ? (
-              <Loader2 className="w-4 h-4 text-white animate-spin" />
+              <Loader2 className="w-4 h-4 text-white animate-spin" aria-hidden="true" />
             ) : (
-              <Gift className="w-4 h-4 text-white" strokeWidth={2.5} />
+              <Gift className="w-4 h-4 text-white" strokeWidth={2.5} aria-hidden="true" />
             )}
             <span
               className="text-sm font-black text-white"
@@ -256,15 +259,18 @@ const InkQuestsPanelComponent = () => {
       </div>
 
       {/* Tabs */}
-      <div className="px-4 py-2.5 flex gap-2 border-b border-white/10">
+      <div role="tablist" aria-label="Type de quêtes" className="px-4 py-2.5 flex gap-2 border-b border-white/10">
         {(['daily', 'weekly'] as const).map((t) => (
           <motion.button
             key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
             onClick={() => { playInkSound('cartoonPop', 0.3); setTab(t); }}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             className={cn(
-              'px-4 py-1.5 rounded-2xl text-base font-black',
+              'menu-focus menu-action px-4 rounded-2xl text-base font-black',
               tab === t ? 'text-white' : 'text-white/50',
             )}
             style={{
@@ -285,8 +291,18 @@ const InkQuestsPanelComponent = () => {
       {/* Quest list */}
       <div className="p-4 space-y-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
         {loading ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+          <div className="flex items-center justify-center py-10" role="status" aria-label="Chargement des quêtes">
+            <Loader2 className="w-6 h-6 text-purple-400 animate-spin" aria-hidden="true" />
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="ink-empty">
+            <Calendar aria-hidden="true" />
+            <strong>{tab === 'daily' ? 'Aucune quête du jour' : 'Aucune quête hebdo'}</strong>
+            <p>
+              {tab === 'daily'
+                ? 'De nouvelles quêtes arrivent chaque jour. Reviens demain.'
+                : 'De nouvelles quêtes arrivent chaque semaine.'}
+            </p>
           </div>
         ) : (
           <AnimatePresence mode="popLayout">

@@ -13,6 +13,13 @@ interface PremiumButtonProps {
   loading?: boolean;
   className?: string;
   sound?: boolean;
+  /** Defaults to "button" so the component never submits a form by accident. */
+  type?: 'button' | 'submit' | 'reset';
+  /** Required for icon-only buttons: the props were previously dropped. */
+  'aria-label'?: string;
+  'aria-pressed'?: boolean;
+  'aria-expanded'?: boolean;
+  title?: string;
 }
 
 export const PremiumButton = ({
@@ -24,7 +31,12 @@ export const PremiumButton = ({
   disabled = false,
   loading = false,
   className = '',
-  sound = true
+  sound = true,
+  type = 'button',
+  title,
+  'aria-label': ariaLabel,
+  'aria-pressed': ariaPressed,
+  'aria-expanded': ariaExpanded,
 }: PremiumButtonProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
@@ -153,6 +165,12 @@ export const PremiumButton = ({
       whileHover={{ scale: disabled ? 1 : 1.02 }}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       disabled={disabled || loading}
+      type={type}
+      title={title}
+      aria-label={ariaLabel}
+      aria-pressed={ariaPressed}
+      aria-expanded={ariaExpanded}
+      aria-busy={loading}
     >
       {/* Scan line overlay for cyber variant */}
       {variant === 'cyber' && (

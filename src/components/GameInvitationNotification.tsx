@@ -135,10 +135,12 @@ export const GameInvitationNotification = ({
 
             {/* Close button */}
             <button
+              type="button"
               onClick={handleDecline}
-              className="absolute top-3 right-3 text-foreground-muted hover:text-foreground transition-colors"
+              aria-label="Fermer et refuser l'invitation"
+              className="menu-icon-control menu-focus absolute top-3 right-3 text-foreground-muted hover:text-foreground transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
 
             {/* Content */}
@@ -168,18 +170,20 @@ export const GameInvitationNotification = ({
               {/* Action buttons */}
               <div className="flex gap-3">
                 <Button
+                  type="button"
                   onClick={handleDecline}
                   variant="outline"
-                  className="flex-1 h-12 border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50"
+                  className="menu-focus flex-1 h-12 border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50"
                 >
-                  <X className="h-4 w-4 mr-2" />
+                  <X className="h-4 w-4 mr-2" aria-hidden="true" />
                   Refuser
                 </Button>
                 <Button
+                  type="button"
                   onClick={handleAccept}
-                  className="flex-1 h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity group"
+                  className="menu-focus flex-1 h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity group"
                 >
-                  <Users className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                  <Users className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" aria-hidden="true" />
                   Rejoindre
                 </Button>
               </div>

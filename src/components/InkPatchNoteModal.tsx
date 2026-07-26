@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Zap, Bug, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Sparkles, Zap, Bug, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { InkModal } from '@/components/menu/InkOverlay';
 
 // ─── Patch notes config ────────────────────────────────────────────────────
 // Bump CURRENT_VERSION whenever you ship new features/fixes.
@@ -109,138 +110,84 @@ export const InkPatchNoteModal = ({ onClose, forceOpen = false }: InkPatchNoteMo
   const latest = PATCH_NOTES[0];
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          key="patchnote-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
-          onClick={handleClose}
-        >
-          <motion.div
-            key="patchnote-panel"
-            initial={{ opacity: 0, scale: 0.92, y: 24 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 24 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Glow halo */}
-            <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl pointer-events-none" />
+    <InkModal
+      isOpen={open}
+      onClose={handleClose}
+      title={latest.title}
+      subtitle={`v${latest.version} · ${latest.date}`}
+      icon={<Sparkles className="w-5 h-5" strokeWidth={2.5} />}
+      className="max-w-lg"
+    >
+      <div className="space-y-2">
+        {latest.changes.map((change, i) => {
+          const cfg = typeConfig[change.type];
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 + Math.min(i, 10) * 0.04 }}
+              className="flex items-start gap-3"
+            >
+              <span
+                className={cn(
+                  'mt-0.5 flex flex-shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold',
+                  cfg.color,
+                )}
+              >
+                {cfg.icon}
+                <span className="hidden sm:inline">{cfg.label}</span>
+              </span>
+              <p className="text-sm leading-snug text-white/85">{change.text}</p>
+            </motion.div>
+          );
+        })}
+      </div>
 
-            {/* Card */}
-            <div className="relative bg-card border border-primary/30 rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 flex flex-col min-h-0">
-              {/* Top accent bar */}
-              <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent" />
-
-              {/* Header */}
-              <div className="flex items-start justify-between p-5 pb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/15 border border-primary/30 text-primary"
-                      style={{ fontFamily: "'Caveat', cursive" }}
-                    >
-                      v{latest.version}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{latest.date}</span>
-                  </div>
-                  <h2
-                    className="text-2xl font-black text-primary leading-tight"
-                    style={{ fontFamily: "'Caveat', cursive" }}
-                  >
-                    {latest.title}
-                  </h2>
+      {PATCH_NOTES.length > 1 && (
+        <details className="group mt-4">
+          <summary className="menu-focus flex cursor-pointer list-none items-center gap-1 py-2 text-xs text-white/50 transition-colors hover:text-white">
+            <span className="inline-block transition-transform group-open:rotate-90" aria-hidden="true">▶</span>
+            Versions précédentes
+          </summary>
+          <div className="mt-2 space-y-4 border-t border-white/10 pt-3">
+            {PATCH_NOTES.slice(1).map((note) => (
+              <div key={note.version}>
+                <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-white/60">v{note.version}</span>
+                  <span className="text-xs text-white/40">— {note.date}</span>
+                  <span className="text-xs font-semibold text-white/60" style={{ fontFamily: "'Caveat', cursive" }}>
+                    {note.title}
+                  </span>
                 </div>
-
-                <button
-                  onClick={handleClose}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0 mt-0.5"
-                  aria-label="Fermer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <ul className="space-y-1">
+                  {note.changes.map((c, j) => (
+                    <li key={j} className="flex items-start gap-2 text-xs text-white/55">
+                      <span className="mt-0.5 text-purple-300" aria-hidden="true">•</span>
+                      {c.text}
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-              {/* Changes list */}
-              <div className="px-5 pb-2 space-y-2 flex-1 overflow-y-auto custom-scrollbar">
-                {latest.changes.map((change, i) => {
-                  const cfg = typeConfig[change.type];
-                  return (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.05 + i * 0.04 }}
-                      className="flex items-start gap-3"
-                    >
-                      <span
-                        className={cn(
-                          'flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold flex-shrink-0 mt-0.5',
-                          cfg.color
-                        )}
-                      >
-                        {cfg.icon}
-                        <span className="hidden sm:inline">{cfg.label}</span>
-                      </span>
-                      <p className="text-sm text-foreground/85 leading-snug">{change.text}</p>
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              {/* Previous versions (collapsed) */}
-              {PATCH_NOTES.length > 1 && (
-                <details className="px-5 pb-3 group">
-                  <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none py-2 list-none flex items-center gap-1">
-                    <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
-                    Versions précédentes
-                  </summary>
-                  <div className="mt-2 space-y-4 border-t border-border/40 pt-3">
-                    {PATCH_NOTES.slice(1).map((note) => (
-                      <div key={note.version}>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-xs font-bold text-muted-foreground">v{note.version}</span>
-                          <span className="text-xs text-muted-foreground/60">— {note.date}</span>
-                          <span
-                            className="text-xs font-semibold text-muted-foreground"
-                            style={{ fontFamily: "'Caveat', cursive" }}
-                          >
-                            {note.title}
-                          </span>
-                        </div>
-                        <ul className="space-y-1">
-                          {note.changes.map((c, j) => (
-                            <li key={j} className="flex items-start gap-2 text-xs text-muted-foreground/70">
-                              <span className="text-primary mt-0.5">•</span>
-                              {c.text}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              )}
-
-              {/* Footer */}
-              <div className="px-5 pb-5 pt-1">
-                <button
-                  onClick={handleClose}
-                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
-                  style={{ fontFamily: "'Caveat', cursive", fontSize: '1rem' }}
-                >
-                  C'est parti !
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
+            ))}
+          </div>
+        </details>
       )}
-    </AnimatePresence>
+
+      <button
+        type="button"
+        onClick={handleClose}
+        data-autofocus
+        className="menu-action menu-focus mt-5 w-full rounded-xl text-lg font-black text-white"
+        style={{
+          background: 'linear-gradient(180deg, #a855f7, #6b21a8)',
+          border: 'var(--ink-border)',
+          boxShadow: 'var(--ink-shadow)',
+          fontFamily: "'Caveat', cursive",
+        }}
+      >
+        C'est parti !
+      </button>
+    </InkModal>
   );
 };

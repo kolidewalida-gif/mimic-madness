@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Star, Zap, MessageSquare, Mic, Award, Target, Flame, Crown, Heart, Sparkles, Lock, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Trophy, Star, Zap, MessageSquare, Mic, Award, Target, Flame, Crown, Heart, Sparkles, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Achievement, ACHIEVEMENTS } from './AchievementToast';
+import { Achievement } from './AchievementToast';
 import { useAchievements } from '@/hooks/useAchievements';
+import { InkDrawer, InkTabs } from '@/components/menu/InkOverlay';
+import { rarityStyle } from '@/lib/rarity';
 
 const iconMap: Record<string, React.ReactNode> = {
   trophy: <Trophy className="h-5 w-5" />,
@@ -17,13 +19,6 @@ const iconMap: Record<string, React.ReactNode> = {
   crown: <Crown className="h-5 w-5" />,
   heart: <Heart className="h-5 w-5" />,
   sparkles: <Sparkles className="h-5 w-5" />,
-};
-
-const RARITY_STYLE = {
-  common: { gradient: 'from-zinc-500 to-zinc-600', color: '#a1a1aa', label: 'Commun' },
-  rare: { gradient: 'from-blue-500 to-cyan-500', color: '#38bdf8', label: 'Rare' },
-  epic: { gradient: 'from-purple-500 to-pink-500', color: '#c084fc', label: 'Épique' },
-  legendary: { gradient: 'from-amber-400 to-orange-500', color: '#fbbf24', label: 'Légendaire' },
 };
 
 /** Perk descriptions — what each badge ACTUALLY gives you in-game */
@@ -56,149 +51,103 @@ export const AchievementsPanel = ({ isOpen, onClose }: AchievementsPanelProps) =
   const list = tab === 'unlocked' ? unlocked : locked;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
+    <InkDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Badges"
+      subtitle={`${progress.unlocked}/${progress.total} débloqués`}
+      icon={<Trophy className="h-5 w-5" strokeWidth={2.5} />}
+      iconGradient="linear-gradient(135deg, #fbbf24, #f97316)"
+      toolbar={
         <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[150]"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, x: '100%' }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 250 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-md z-[151] flex flex-col overflow-hidden"
-            style={{ background: '#0c0a14' }}
-          >
-            {/* Header */}
-            <div className="px-5 pt-5 pb-4 border-b border-white/8">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #fbbf24, #f97316)', border: '1.5px solid rgba(251,191,36,0.4)' }}>
-                    <Trophy className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-white">Badges</h2>
-                    <p className="text-xs text-white/40">{progress.unlocked}/{progress.total} débloqués</p>
-                  </div>
-                </div>
-                <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5 transition-colors">
-                  <X className="h-4 w-4 text-white/60" />
-                </button>
-              </div>
-
-              {/* Progress bar */}
-              <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ background: 'linear-gradient(90deg, #fbbf24, #f97316)' }}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress.percentage}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                />
-              </div>
-
-              {/* Stats row */}
-              <div className="grid grid-cols-4 gap-2 mt-4">
-                {[
-                  { label: 'Victoires', value: stats.winsCount, color: '#fbbf24' },
-                  { label: 'Messages', value: stats.messagesCount, color: '#38bdf8' },
-                  { label: 'Records', value: stats.recordingsCount, color: '#34d399' },
-                  { label: 'Hébergées', value: stats.gamesHosted, color: '#c084fc' },
-                ].map((s) => (
-                  <div key={s.label} className="text-center py-2 rounded-lg" style={{ background: `${s.color}08` }}>
-                    <div className="text-base font-bold" style={{ color: s.color }}>{s.value}</div>
-                    <div className="text-[10px] text-white/40">{s.label}</div>
-                  </div>
-                ))}
-              </div>
+          <div className="flex-shrink-0 px-5 pb-3">
+            <div className="ink-progress" role="progressbar" aria-valuenow={progress.percentage} aria-valuemin={0} aria-valuemax={100} aria-label="Progression des badges">
+              <motion.span
+                style={{ background: 'linear-gradient(90deg, #fbbf24, #f97316)' }}
+                initial={{ width: 0 }}
+                animate={{ width: `${progress.percentage}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              />
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-white/5">
-              {(['unlocked', 'locked'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={cn(
-                    'flex-1 py-3 text-sm font-medium transition-colors relative',
-                    tab === t ? 'text-white' : 'text-white/40 hover:text-white/60',
-                  )}
-                >
-                  {t === 'unlocked' ? `Débloqués (${unlocked.length})` : `À débloquer (${locked.length})`}
-                  {tab === t && (
-                    <motion.div layoutId="badge-tab" className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-amber-400" />
-                  )}
-                </button>
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {[
+                { label: 'Victoires', value: stats.winsCount, color: '#fbbf24' },
+                { label: 'Messages', value: stats.messagesCount, color: '#38bdf8' },
+                { label: 'Records', value: stats.recordingsCount, color: '#34d399' },
+                { label: 'Hébergées', value: stats.gamesHosted, color: '#c084fc' },
+              ].map((item) => (
+                <div key={item.label} className="rounded-lg py-2 text-center" style={{ background: `${item.color}12` }}>
+                  <div className="text-base font-bold tabular-nums" style={{ color: item.color }}>{item.value}</div>
+                  <div className="text-[10px] text-white/45">{item.label}</div>
+                </div>
               ))}
             </div>
-
-            {/* List */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2.5">
-              {list.length === 0 ? (
-                <div className="text-center py-16">
-                  <Trophy className="h-10 w-10 mx-auto text-white/15 mb-3" />
-                  <p className="text-sm text-white/40">
-                    {tab === 'unlocked' ? 'Aucun badge débloqué' : 'Tous les badges sont débloqués !'}
-                  </p>
-                </div>
-              ) : (
-                list.map((achievement, i) => (
-                  <BadgeCard key={achievement.id} achievement={achievement} isUnlocked={tab === 'unlocked'} index={i} />
-                ))
-              )}
-            </div>
-          </motion.div>
+          </div>
+          <InkTabs
+            value={tab}
+            onChange={setTab}
+            accent="#fbbf24"
+            items={[
+              { key: 'unlocked', label: `Débloqué (${unlocked.length})` },
+              { key: 'locked', label: `À débloquer (${locked.length})` },
+            ]}
+          />
         </>
+      }
+    >
+      {list.length === 0 ? (
+        <div className="ink-empty">
+          <Trophy aria-hidden="true" />
+          <strong>{tab === 'unlocked' ? 'Aucun badge débloqué' : 'Tous les badges sont débloqués'}</strong>
+          <p>
+            {tab === 'unlocked'
+              ? 'Joue une partie, envoie un message ou enregistre une imitation pour décrocher ton premier badge.'
+              : 'Collection complète. Il ne reste plus rien à décrocher.'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {list.map((achievement, i) => (
+            <BadgeCard key={achievement.id} achievement={achievement} isUnlocked={tab === 'unlocked'} index={i} />
+          ))}
+        </div>
       )}
-    </AnimatePresence>
+    </InkDrawer>
   );
 };
 
 const BadgeCard = ({ achievement, isUnlocked, index }: { achievement: Achievement; isUnlocked: boolean; index: number }) => {
-  const style = RARITY_STYLE[achievement.rarity];
+  const style = rarityStyle(achievement.rarity);
   const perk = BADGE_PERKS[achievement.id];
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04 }}
-      className={cn(
-        'relative rounded-xl p-3.5 transition-all',
-        isUnlocked ? 'bg-white/[0.03]' : 'bg-white/[0.015] opacity-60',
-      )}
+      transition={{ delay: Math.min(index, 12) * 0.04 }}
+      className={cn('relative rounded-xl p-3.5 transition-all', isUnlocked ? 'bg-white/[0.03]' : 'bg-white/[0.015] opacity-60')}
       style={{ border: `1px solid ${isUnlocked ? `${style.color}33` : 'rgba(255,255,255,0.05)'}` }}
     >
       <div className="flex items-start gap-3">
-        {/* Icon */}
         <div
           className={cn(
-            'w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0',
+            'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl',
             isUnlocked ? `bg-gradient-to-br ${style.gradient}` : 'bg-white/5',
           )}
           style={isUnlocked ? { boxShadow: `0 0 12px ${style.color}33` } : undefined}
+          aria-hidden="true"
         >
-          {isUnlocked ? (
-            <span className="text-white">{iconMap[achievement.icon]}</span>
-          ) : (
-            <Lock className="h-4 w-4 text-white/30" />
-          )}
+          {isUnlocked ? <span className="text-white">{iconMap[achievement.icon]}</span> : <Lock className="h-4 w-4 text-white/30" />}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className={cn('font-semibold text-sm truncate', isUnlocked ? 'text-white' : 'text-white/50')}>
+            <h3 className={cn('truncate text-sm font-semibold', isUnlocked ? 'text-white' : 'text-white/50')}>
               {achievement.title}
             </h3>
             <span
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-md flex-shrink-0"
+              className="flex-shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
               style={{
                 background: isUnlocked ? `${style.color}18` : 'rgba(255,255,255,0.05)',
                 color: isUnlocked ? style.color : 'rgba(255,255,255,0.3)',
@@ -207,13 +156,14 @@ const BadgeCard = ({ achievement, isUnlocked, index }: { achievement: Achievemen
               {style.label}
             </span>
           </div>
-          <p className="text-xs text-white/40 mt-0.5">{achievement.description}</p>
+          <p className="mt-0.5 text-xs text-white/40">{achievement.description}</p>
 
-          {/* Perk — what it actually does */}
-          {perk && isUnlocked && (
-            <div className="mt-2 flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: `${style.color}0d` }}>
-              <Zap className="h-3 w-3 flex-shrink-0" style={{ color: style.color }} />
-              <span className="text-[11px] font-medium" style={{ color: `${style.color}cc` }}>{perk}</span>
+          {perk && (
+            <div className="mt-2 flex items-start gap-1.5 rounded-md px-2 py-1.5" style={{ background: isUnlocked ? `${style.color}0a` : 'rgba(255,255,255,0.02)' }}>
+              <Zap className="mt-0.5 h-3 w-3 flex-shrink-0" style={{ color: isUnlocked ? style.color : 'rgba(255,255,255,0.2)' }} aria-hidden="true" />
+              <span className="text-[11px] font-medium leading-tight" style={{ color: isUnlocked ? `${style.color}bb` : 'rgba(255,255,255,0.25)' }}>
+                {perk}
+              </span>
             </div>
           )}
         </div>

@@ -102,10 +102,12 @@ export const DeviceSettings = ({
           </div>
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center"
+              aria-label="Fermer les paramètres"
+              className="menu-icon-control menu-focus w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -179,11 +181,14 @@ export const DeviceSettings = ({
         </div>
         <div className="flex items-center gap-2">
           <motion.button
+            type="button"
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
             onClick={reloadDevices}
             disabled={isLoading}
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+            aria-label="Recharger les appareils"
+            aria-busy={isLoading}
+            className="menu-icon-control menu-focus w-10 h-10 rounded-xl flex items-center justify-center text-white"
             style={{
               background: "rgba(168,85,247,0.18)",
               border: "2.5px solid #0a0810",
@@ -194,14 +199,17 @@ export const DeviceSettings = ({
             <RefreshCw
               className={cn("h-4 w-4", isLoading && "animate-spin")}
               strokeWidth={2.5}
+              aria-hidden="true"
             />
           </motion.button>
           {onClose && (
             <motion.button
+              type="button"
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
               onClick={onClose}
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+              aria-label="Fermer les paramètres"
+              className="menu-icon-control menu-focus w-10 h-10 rounded-xl flex items-center justify-center text-white"
               style={{
                 background: "rgba(239,68,68,0.25)",
                 border: "2.5px solid #0a0810",
@@ -209,7 +217,7 @@ export const DeviceSettings = ({
               }}
               title="Fermer (Esc)"
             >
-              <X className="w-5 h-5" strokeWidth={3} />
+              <X className="w-5 h-5" strokeWidth={3} aria-hidden="true" />
             </motion.button>
           )}
         </div>
@@ -231,7 +239,8 @@ export const DeviceSettings = ({
               whileHover={{ scale: isActive ? 1 : 1.04, y: isActive ? 0 : -2 }}
               whileTap={{ scale: 0.96 }}
               animate={isActive ? { rotate: -2 } : { rotate: 0 }}
-              className="relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-2xl"
+              aria-pressed={isActive}
+              className="menu-focus relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-2xl"
               style={{
                 background: isActive
                   ? `linear-gradient(180deg, ${tab.color}, ${tab.color}cc)`
@@ -246,6 +255,7 @@ export const DeviceSettings = ({
                   isActive ? "text-white" : "text-white/60",
                 )}
                 strokeWidth={2.5}
+                aria-hidden="true"
               />
               <span
                 className={cn(
@@ -335,10 +345,11 @@ export const DeviceSettings = ({
       {onClose && (
         <div className="px-5 py-3" style={{ borderTop: "3px solid #0a0810" }}>
           <motion.button
+            type="button"
             whileHover={{ scale: 1.02, rotate: -1 }}
             whileTap={{ scale: 0.98 }}
             onClick={onClose}
-            className="w-full py-3 rounded-2xl text-2xl font-black text-white"
+            className="menu-focus w-full py-3 rounded-2xl text-2xl font-black text-white"
             style={{
               background:
                 "linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)",
@@ -433,6 +444,7 @@ const AudioSection = ({
           Choisis ton entrée audio
         </span>
         <motion.button
+          type="button"
           whileHover={{ scale: 1.05, rotate: -2 }}
           whileTap={{ scale: 0.95 }}
           onClick={async () => {
@@ -440,7 +452,8 @@ const AudioSection = ({
             onStopStream();
           }}
           disabled={isLoading}
-          className="px-3 py-1.5 rounded-xl text-base font-black text-white disabled:opacity-50"
+          aria-busy={isLoading}
+          className="menu-focus px-3 py-1.5 rounded-xl text-base font-black text-white disabled:opacity-50"
           style={{
             background: "linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)",
             border: "2.5px solid #0a0810",
@@ -483,7 +496,8 @@ const AudioSection = ({
       <button
         type="button"
         onClick={onToggleNoiseSuppression}
-        className="w-full flex items-center justify-between p-3 rounded-2xl"
+        aria-pressed={noiseSuppressionEnabled}
+        className="menu-focus w-full flex items-center justify-between p-3 rounded-2xl"
         style={{
           background: noiseSuppressionEnabled
             ? "linear-gradient(180deg, rgba(52,211,153,0.18), rgba(5,150,105,0.05))"
@@ -494,9 +508,9 @@ const AudioSection = ({
       >
         <div className="flex items-center gap-2">
           {noiseSuppressionEnabled ? (
-            <VolumeX className="h-4 w-4 text-emerald-300" />
+            <VolumeX className="h-4 w-4 text-emerald-300" aria-hidden="true" />
           ) : (
-            <Volume2 className="h-4 w-4 text-white/60" />
+            <Volume2 className="h-4 w-4 text-white/60" aria-hidden="true" />
           )}
           <span
             className="text-base font-black text-white"
@@ -513,11 +527,13 @@ const AudioSection = ({
 
       {/* Mic test */}
       <motion.button
+        type="button"
         whileHover={{ scale: 1.02, rotate: -0.5 }}
         whileTap={{ scale: 0.98 }}
         onClick={isMicTesting ? onStopMicTest : onStartMicTest}
         disabled={!isMicTesting && (isLoading || !selectedAudioId)}
-        className="w-full py-3 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white disabled:opacity-50"
+        aria-pressed={isMicTesting}
+        className="menu-focus w-full py-3 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white disabled:opacity-50"
         style={{
           background: isMicTesting
             ? "linear-gradient(180deg, #ef4444, #b91c1c)"
@@ -530,11 +546,11 @@ const AudioSection = ({
       >
         {isMicTesting ? (
           <>
-            <VolumeX className="h-5 w-5" strokeWidth={2.5} /> Arrêter le test
+            <VolumeX className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" /> Arrêter le test
           </>
         ) : (
           <>
-            <Mic className="h-5 w-5" strokeWidth={2.5} /> Tester le micro
+            <Mic className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" /> Tester le micro
           </>
         )}
       </motion.button>
@@ -665,7 +681,8 @@ const ThemeSection = () => {
               onClick={() => handlePick(t)}
               whileHover={{ scale: 1.03, y: -2, rotate: -0.5 }}
               whileTap={{ scale: 0.96 }}
-              className="relative rounded-2xl p-3 flex items-center gap-2.5 overflow-hidden text-left"
+              aria-pressed={isSelected}
+              className="menu-focus relative rounded-2xl p-3 flex items-center gap-2.5 overflow-hidden text-left"
               style={{
                 background: isSelected
                   ? `linear-gradient(135deg, hsl(${config.colors.primary}), hsl(${config.colors.secondary}))`
@@ -703,7 +720,7 @@ const ThemeSection = () => {
                   className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white flex items-center justify-center"
                   style={{ boxShadow: "0 1.5px 0 #0a0810" }}
                 >
-                  <Check className="w-3.5 h-3.5 text-[#0a0810]" strokeWidth={3} />
+                  <Check className="w-3.5 h-3.5 text-[#0a0810]" strokeWidth={3} aria-hidden="true" />
                 </span>
               )}
             </motion.button>
@@ -840,10 +857,11 @@ const CartoonPresetButton = ({
   onClick: () => void;
 }) => (
   <motion.button
+    type="button"
     whileHover={{ scale: 1.06, y: -2, rotate: -1 }}
     whileTap={{ scale: 0.94 }}
     onClick={onClick}
-    className="flex-1 py-2 rounded-xl text-base font-black text-white"
+    className="menu-focus flex-1 py-2 rounded-xl text-base font-black text-white"
     style={{
       background: `linear-gradient(180deg, ${color}, ${color}cc)`,
       border: "2.5px solid #0a0810",

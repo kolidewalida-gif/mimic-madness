@@ -1,5 +1,6 @@
+import { useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Megaphone, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
+import { Megaphone, AlertTriangle, Info, CheckCircle2, Loader2 } from 'lucide-react';
 import { useGlobalAnnouncements } from '@/hooks/useGlobalAnnouncements';
 
 const iconFor = (sev: string) => {
@@ -18,7 +19,20 @@ const colorFor = (sev: string) => {
 
 export const AnnouncementModal = () => {
   const { pending, ack } = useGlobalAnnouncements();
+  const [acking, setAcking] = useState(false);
   const current = pending[0];
+
+  // An announcement must be acknowledged, so there is deliberately no Escape or
+  // backdrop dismissal here. The button is guarded against double clicks.
+  const confirm = useCallback(async () => {
+    if (!current || acking) return;
+    setAcking(true);
+    try {
+      await ack(current.id);
+    } finally {
+      setAcking(false);
+    }
+  }, [current, acking, ack]);
 
   return (
     <AnimatePresence>
@@ -28,31 +42,40 @@ export const AnnouncementModal = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9998] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+          className="menu-dialog menu-dialog-safe fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="announcement-title"
+          aria-describedby="announcement-body"
         >
           <motion.div
             initial={{ scale: 0.85, y: 40 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.85, y: 40 }}
-            className={`max-w-md w-full bg-card border-2 rounded-2xl p-6 shadow-2xl ${colorFor(current.severity)}`}
+            className={`w-full max-w-md rounded-2xl border-2 bg-card p-6 shadow-2xl ${colorFor(current.severity)}`}
           >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-current/10 flex items-center justify-center">
-                <Megaphone className="w-5 h-5" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-current/10" aria-hidden="true">
+                <Megaphone className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-bold flex-1 truncate">
+              <h2 id="announcement-title" className="flex-1 truncate text-xl font-bold">
                 {current.title || 'Annonce globale'}
               </h2>
             </div>
-            <p className="text-foreground whitespace-pre-wrap mb-6">{current.message}</p>
+            <p id="announcement-body" className="mb-6 whitespace-pre-wrap text-foreground">{current.message}</p>
             <button
-              onClick={() => ack(current.id)}
-              className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition"
+              type="button"
+              onClick={confirm}
+              disabled={acking}
+              aria-busy={acking}
+              autoFocus
+              className="menu-action menu-focus flex w-full items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-60"
             >
-              J'ai compris
+              {acking && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              {acking ? 'Enregistrement…' : "J'ai compris"}
             </button>
             {pending.length > 1 && (
-              <div className="text-xs text-center text-muted-foreground mt-3">
+              <div className="mt-3 text-center text-xs text-muted-foreground">
                 +{pending.length - 1} autre(s) annonce(s)
               </div>
             )}

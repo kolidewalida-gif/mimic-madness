@@ -33,6 +33,9 @@ import { GAME_MODE_META, GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameM
 import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
+import { InkQuestsPanel } from '@/components/InkQuestsPanel';
+import { InkChatColorPicker } from '@/components/InkChatColorPicker';
+import { InkDrawer } from '@/components/menu/InkOverlay';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -1057,164 +1060,41 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       </div>
 
       {/* ============== PROFILE DRAWER ============== */}
-      <AnimatePresence>
-        {showProfileDrawer && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
-              onClick={() => setShowProfileDrawer(false)}
-            />
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="fixed left-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col"
-              style={{
-                background:
-                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-                borderRight: '4px solid #0a0810',
-                boxShadow: '8px 0 24px rgba(0,0,0,0.5)',
-              }}
-            >
-              <div
-                className="flex items-center justify-between px-5 py-4 flex-shrink-0"
-                style={{
-                  background:
-                    'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
-                  borderBottom: '3px solid #0a0810',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                    style={{
-                      background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
-                      border: '3px solid #0a0810',
-                      boxShadow: '0 4px 0 #0a0810',
-                    }}
-                  >
-                    <User className="w-5 h-5 text-white" strokeWidth={2.5} />
-                  </div>
-                  <h2
-                    className="text-3xl font-black text-white leading-none"
-                    style={{
-                      fontFamily: "'Caveat', cursive",
-                      textShadow:
-                        '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
-                    }}
-                  >
-                    Mon profil
-                  </h2>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setShowProfileDrawer(false)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                  style={{
-                    background: 'rgba(239,68,68,0.2)',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 3px 0 #0a0810',
-                  }}
-                >
-                  <X className="w-5 h-5" strokeWidth={3} />
-                </motion.button>
-              </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-                <InkProfileSidebar />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Quests and chat colour used to live in an unreachable carousel panel,
+          so both features were invisible in game. They belong here. */}
+      <InkDrawer
+        isOpen={showProfileDrawer}
+        onClose={() => setShowProfileDrawer(false)}
+        side="left"
+        title="Mon profil"
+        subtitle={`Niveau ${level}`}
+        icon={<User className="w-5 h-5" strokeWidth={2.5} />}
+      >
+        <div className="flex flex-col gap-3">
+          <InkProfileSidebar />
+          <InkQuestsPanel />
+          <InkChatColorPicker />
+        </div>
+      </InkDrawer>
 
       {/* ============== FRIENDS DRAWER ============== */}
-      <AnimatePresence>
-        {showFriendsDrawer && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
-              onClick={() => setShowFriendsDrawer(false)}
-            />
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col"
-              style={{
-                background:
-                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-                borderLeft: '4px solid #0a0810',
-                boxShadow: '-8px 0 24px rgba(0,0,0,0.5)',
-              }}
-            >
-              <div
-                className="flex items-center justify-between px-5 py-4 flex-shrink-0"
-                style={{
-                  background:
-                    'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
-                  borderBottom: '3px solid #0a0810',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                    style={{
-                      background: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
-                      border: '3px solid #0a0810',
-                      boxShadow: '0 4px 0 #0a0810',
-                    }}
-                  >
-                    <UsersRound className="w-5 h-5 text-white" strokeWidth={2.5} />
-                  </div>
-                  <h2
-                    className="text-3xl font-black text-white leading-none"
-                    style={{
-                      fontFamily: "'Caveat', cursive",
-                      textShadow:
-                        '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
-                    }}
-                  >
-                    Mes amis
-                  </h2>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setShowFriendsDrawer(false)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                  style={{
-                    background: 'rgba(239,68,68,0.2)',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 3px 0 #0a0810',
-                  }}
-                >
-                  <X className="w-5 h-5" strokeWidth={3} />
-                </motion.button>
-              </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-                <InkFriendsSidebar
-                  onJoinFriend={(code) => {
-                    setLobbyCode(code);
-                    setShowFriendsDrawer(false);
-                    if (playerName.trim()) {
-                      onJoinGame(playerName.trim(), code);
-                    }
-                  }}
-                />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <InkDrawer
+        isOpen={showFriendsDrawer}
+        onClose={() => setShowFriendsDrawer(false)}
+        title="Mes amis"
+        icon={<UsersRound className="w-5 h-5" strokeWidth={2.5} />}
+        iconGradient="linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)"
+      >
+        <InkFriendsSidebar
+          onJoinFriend={(code) => {
+            setLobbyCode(code);
+            setShowFriendsDrawer(false);
+            if (playerName.trim()) {
+              onJoinGame(playerName.trim(), code);
+            }
+          }}
+        />
+      </InkDrawer>
 
       {/* ============== JOIN DIALOG ============== */}
       <AnimatePresence>
@@ -1477,7 +1357,12 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
         extra={[
+          { keys: ['M'], label: 'Couper / activer le son' },
+          { keys: ['S'], label: 'Ouvrir les paramètres' },
           { keys: ['C'], label: 'Copier le code ami' },
+          { keys: ['J'], label: 'Rejoindre une partie' },
+          { keys: ['←'], label: 'Mode précédent' },
+          { keys: ['→'], label: 'Mode suivant' },
           { keys: ['Enter'], label: 'Lancer la partie' },
         ]}
       />

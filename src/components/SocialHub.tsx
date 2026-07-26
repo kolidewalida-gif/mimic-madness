@@ -87,7 +87,10 @@ const SocialHubComponent = ({
         )}
 
         <motion.button
+          type="button"
           onClick={handleToggle}
+          aria-label={isOpen ? 'Fermer le hub social' : 'Ouvrir le hub social'}
+          aria-expanded={isOpen}
           whileHover={{ scale: 1.08, rotate: isOpen ? -90 : -3 }}
           whileTap={{ scale: 0.92 }}
           animate={
@@ -104,7 +107,7 @@ const SocialHubComponent = ({
                 ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
                 : undefined
           }
-          className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
+          className="menu-icon-control menu-focus relative w-16 h-16 rounded-2xl flex items-center justify-center"
           style={{
             background: isOpen
               ? 'linear-gradient(180deg, #ef4444, #b91c1c)'
@@ -123,7 +126,7 @@ const SocialHubComponent = ({
                 exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
                 transition={{ duration: 0.2 }}
               >
-                <X className="w-7 h-7 text-white" strokeWidth={3} />
+                <X className="w-7 h-7 text-white" strokeWidth={3} aria-hidden="true" />
               </motion.div>
             ) : (
               <motion.div
@@ -133,7 +136,7 @@ const SocialHubComponent = ({
                 exit={{ rotate: -90, opacity: 0, scale: 0.5 }}
                 transition={{ duration: 0.2 }}
               >
-                <Users className="w-7 h-7 text-white" strokeWidth={2.5} />
+                <Users className="w-7 h-7 text-white" strokeWidth={2.5} aria-hidden="true" />
               </motion.div>
             )}
           </AnimatePresence>

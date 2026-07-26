@@ -1188,6 +1188,7 @@ export const InkLobbyScreen = ({
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
         extra={[
+          { keys: ['S'], label: 'Ouvrir les paramètres' },
           { keys: ['I'], label: 'Inviter des amis (host)' },
           { keys: ['L'], label: 'Partager le lien' },
           { keys: ['C'], label: 'Copier le code lobby' },

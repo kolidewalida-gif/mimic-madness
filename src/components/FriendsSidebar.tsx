@@ -238,8 +238,9 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
                   size="sm"
                   color="primary"
                   className="h-10 w-10 p-0"
+                  aria-label="Envoyer la demande d'ami"
                 >
-                  {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {isSending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
                 </PremiumButton>
               </InteractiveWrapper>
             </div>
@@ -278,8 +279,9 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
                           size="sm"
                           color="success"
                           className="h-8 w-8 p-0"
+                          aria-label={`Accepter l'invitation de ${invitation.sender_name || 'un joueur'}`}
                         >
-                          <Check className="h-3.5 w-3.5" />
+                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
                         </PremiumButton>
                       </InteractiveWrapper>
                       <InteractiveWrapper>
@@ -289,8 +291,9 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
                           size="sm"
                           color="warning"
                           className="h-8 w-8 p-0"
+                          aria-label={`Refuser l'invitation de ${invitation.sender_name || 'un joueur'}`}
                         >
-                          <X className="h-3.5 w-3.5" />
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
                         </PremiumButton>
                       </InteractiveWrapper>
                     </motion.div>
@@ -336,8 +339,9 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
                           size="sm"
                           color="success"
                           className="h-7 w-7 p-0"
+                          aria-label={`Accepter la demande d'ami de ${request.requesterProfile?.display_name || 'Inconnu'}`}
                         >
-                          <Check className="h-3 w-3" />
+                          <Check className="h-3 w-3" aria-hidden="true" />
                         </PremiumButton>
                       </InteractiveWrapper>
                       <InteractiveWrapper>
@@ -347,8 +351,9 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
                           size="sm"
                           color="warning"
                           className="h-7 w-7 p-0"
+                          aria-label={`Refuser la demande d'ami de ${request.requesterProfile?.display_name || 'Inconnu'}`}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-3 w-3" aria-hidden="true" />
                         </PremiumButton>
                       </InteractiveWrapper>
                     </motion.div>
@@ -436,8 +441,9 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
                                 size="sm"
                                 color="success"
                                 className="h-8 w-8 p-0"
+                                aria-label={`Rejoindre la partie de ${friend.display_name || 'Joueur'}`}
                               >
-                                <Play className="h-3.5 w-3.5" />
+                                <Play className="h-3.5 w-3.5" aria-hidden="true" />
                               </PremiumButton>
                             </InteractiveWrapper>
                           )}
@@ -450,8 +456,9 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
                                 size="sm"
                                 color="accent"
                                 className="h-8 w-8 p-0"
+                                aria-label={`Inviter ${friend.display_name || 'Joueur'} à rejoindre la partie`}
                               >
-                                <Mail className="h-3.5 w-3.5" />
+                                <Mail className="h-3.5 w-3.5" aria-hidden="true" />
                               </PremiumButton>
                             </InteractiveWrapper>
                           )}
@@ -462,8 +469,9 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
                               size="sm"
                               color="warning"
                               className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label={`Retirer ${friend.display_name || 'Joueur'} de mes amis`}
                             >
-                              <UserMinus className="h-3.5 w-3.5" />
+                              <UserMinus className="h-3.5 w-3.5" aria-hidden="true" />
                             </PremiumButton>
                           </InteractiveWrapper>
                         </div>

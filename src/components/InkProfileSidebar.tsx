@@ -162,13 +162,14 @@ const InkProfileSidebarComponent = () => {
             Connecte-toi pour sauvegarder ta progression !
           </p>
           <motion.button
+            type="button"
             whileHover={{ scale: 1.04, rotate: -1.5 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => {
               playInkSound('inkClick', 0.4);
               signInWithGoogle();
             }}
-            className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
+            className="menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
             style={{
               background: 'linear-gradient(180deg, #a855f7, #6b21a8)',
               border: '3px solid #0a0810',
@@ -177,7 +178,7 @@ const InkProfileSidebarComponent = () => {
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
-            <LogIn className="h-5 w-5" strokeWidth={2.5} />
+            <LogIn className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
             Connexion Google
           </motion.button>
         </div>
@@ -252,13 +253,15 @@ const InkProfileSidebarComponent = () => {
 
         {/* Floating sign out button */}
         <motion.button
+          type="button"
           whileHover={{ scale: 1.1, rotate: -8 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => {
             playInkSound('inkClick', 0.3);
             signOut();
           }}
-          className="absolute top-3 right-3 z-[3] w-9 h-9 rounded-xl flex items-center justify-center text-white"
+          aria-label="Se déconnecter"
+          className="menu-icon-control menu-focus absolute top-3 right-3 z-[3] w-9 h-9 rounded-xl flex items-center justify-center text-white"
           style={{
             background: 'rgba(239,68,68,0.25)',
             border: '2.5px solid #0a0810',
@@ -266,7 +269,7 @@ const InkProfileSidebarComponent = () => {
           }}
           title="Déconnexion"
         >
-          <LogOut className="h-4 w-4" strokeWidth={2.5} />
+          <LogOut className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
         </motion.button>
 
         <div className="relative p-4 space-y-3 z-[2]">
@@ -314,6 +317,7 @@ const InkProfileSidebarComponent = () => {
                 className="hidden"
               />
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.15, rotate: -8 }}
                 whileTap={{ scale: 0.92 }}
                 onClick={() => {
@@ -321,7 +325,9 @@ const InkProfileSidebarComponent = () => {
                   fileInputRef.current?.click();
                 }}
                 disabled={isUploadingAvatar || avatarLoading}
-                className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center"
+                aria-label="Changer la photo de profil"
+                aria-busy={isUploadingAvatar}
+                className="menu-icon-control menu-focus absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center"
                 style={{
                   background:
                     'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
@@ -332,7 +338,7 @@ const InkProfileSidebarComponent = () => {
                 {isUploadingAvatar ? (
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Camera className="h-4 w-4 text-white" strokeWidth={2.5} />
+                  <Camera className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden="true" />
                 )}
               </motion.button>
             </div>
@@ -357,11 +363,14 @@ const InkProfileSidebarComponent = () => {
                   autoFocus
                 />
                 <motion.button
+                  type="button"
                   whileHover={{ scale: 1.1, rotate: -5 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  aria-label="Enregistrer le pseudo"
+                  aria-busy={isSaving}
+                  className="menu-icon-control menu-focus w-9 h-9 rounded-xl flex items-center justify-center"
                   style={{
                     background:
                       'linear-gradient(180deg, #34d399, #059669)',
@@ -369,20 +378,22 @@ const InkProfileSidebarComponent = () => {
                     boxShadow: '0 3px 0 #0a0810',
                   }}
                 >
-                  <Check className="h-4 w-4 text-white" strokeWidth={3} />
+                  <Check className="h-4 w-4 text-white" strokeWidth={3} aria-hidden="true" />
                 </motion.button>
                 <motion.button
+                  type="button"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setIsEditing(false)}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  aria-label="Annuler la modification du pseudo"
+                  className="menu-icon-control menu-focus w-9 h-9 rounded-xl flex items-center justify-center"
                   style={{
                     background: 'rgba(239,68,68,0.25)',
                     border: '2.5px solid #0a0810',
                     boxShadow: '0 3px 0 #0a0810',
                   }}
                 >
-                  <X className="h-4 w-4 text-white" strokeWidth={3} />
+                  <X className="h-4 w-4 text-white" strokeWidth={3} aria-hidden="true" />
                 </motion.button>
               </div>
             ) : (
@@ -398,13 +409,15 @@ const InkProfileSidebarComponent = () => {
                     {profile?.display_name || 'Joueur'}
                   </span>
                   <motion.button
+                    type="button"
                     whileHover={{ scale: 1.15, rotate: 8 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
                       playInkSound('inkClick', 0.3);
                       setIsEditing(true);
                     }}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    aria-label="Modifier le pseudo"
+                    className="menu-icon-control menu-focus w-7 h-7 rounded-lg flex items-center justify-center"
                     style={{
                       background: 'rgba(255,255,255,0.08)',
                       border: '2px solid #0a0810',
@@ -412,7 +425,7 @@ const InkProfileSidebarComponent = () => {
                     }}
                     title="Modifier le pseudo"
                   >
-                    <Edit2 className="h-3 w-3 text-white/80" />
+                    <Edit2 className="h-3 w-3 text-white/80" aria-hidden="true" />
                   </motion.button>
                 </div>
 
@@ -657,10 +670,11 @@ const InkActionButton = ({
   onClick: () => void;
 }) => (
   <motion.button
+    type="button"
     onClick={onClick}
     whileHover={{ y: -3, scale: 1.05, rotate: -2 }}
     whileTap={{ scale: 0.95 }}
-    className="relative flex flex-col items-center gap-1 py-3 px-2 rounded-2xl overflow-hidden"
+    className="menu-focus relative flex flex-col items-center gap-1 py-3 px-2 rounded-2xl overflow-hidden"
     style={{
       background: `linear-gradient(180deg, ${color}33, ${color}10)`,
       border: '3px solid #0a0810',
@@ -675,7 +689,7 @@ const InkActionButton = ({
         boxShadow: '0 2px 0 #0a0810',
       }}
     >
-      <Icon className="h-4 w-4 text-white" strokeWidth={2.5} />
+      <Icon className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden="true" />
     </div>
     <span
       className="text-sm font-black text-white leading-none"
