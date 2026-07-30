@@ -85,7 +85,7 @@ export const RewardsPanel = ({ isOpen, onClose }: RewardsPanelProps) => {
           </div>
           <InkTabs
             value={activeTab}
-            onChange={setActiveTab}
+            onChange={(v) => setActiveTab(v as typeof activeTab)}
             accent="#f87171"
             items={[
               { key: 'all', label: `Tout (${totalCount})` },

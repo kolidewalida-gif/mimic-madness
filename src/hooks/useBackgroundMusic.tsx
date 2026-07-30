@@ -3,25 +3,10 @@ import {
   ReactNode, useCallback, useMemo,
 } from 'react';
 
-// Original procedural soundtrack: composed from oscillators/noise in
-// scripts/generate_original_music.py, without samples or external music.
-import inkHome from '@/assets/original-music/ink-home.mp3';
-import inkLobby from '@/assets/original-music/ink-lobby.mp3';
-import imitation from '@/assets/original-music/imitation.mp3';
-import audioPhone from '@/assets/original-music/audiophone.mp3';
-import audioPhoneRewind from '@/assets/original-music/audiophone-rewind.mp3';
-import teamShowdown from '@/assets/original-music/team-showdown.mp3';
-import quiz from '@/assets/original-music/quiz.mp3';
-import pixoguess from '@/assets/original-music/pixoguess.mp3';
-import undercover from '@/assets/original-music/undercover.mp3';
-import blindtest from '@/assets/original-music/blindtest.mp3';
-import mimicWaiting from '@/assets/original-music/mimic-waiting.mp3';
-import mimicResults from '@/assets/original-music/mimic-results.mp3';
-import monopoly from '@/assets/original-music/monopoly.mp3';
-import voting from '@/assets/original-music/voting.mp3';
-import victory from '@/assets/original-music/victory.mp3';
-import defeat from '@/assets/original-music/defeat.mp3';
-import connection from '@/assets/original-music/connection.mp3';
+// Bande-son du jeu : 3 pistes, jouées en playlist continue.
+import neonPirate from '@/assets/music/neon-pirate.mp3.asset.json';
+import captainRoxas from '@/assets/music/captain-roxas.mp3.asset.json';
+import myLuckySpot from '@/assets/music/my-lucky-spot.mp3.asset.json';
 
 export interface MusicTrack {
   id: number;
@@ -56,74 +41,17 @@ interface SetSituationOptions {
 }
 
 const musicTracks: MusicTrack[] = [
-  { id: 300, name: 'Ink After Dark', src: inkHome, moods: ['chill', 'mysterious'], genre: 'UK Garage', bpm: 112 },
-  { id: 301, name: 'Lobby After Hours', src: inkLobby, moods: ['chill'], genre: 'Lounge nocturne', bpm: 96 },
-  { id: 302, name: 'Mirror Pressure', src: imitation, moods: ['energetic', 'tense'], genre: 'Breakbeat', bpm: 128 },
-  { id: 303, name: 'Signal Chain', src: audioPhone, moods: ['mysterious', 'chill'], genre: 'Electro minimale', bpm: 104 },
-  { id: 304, name: 'Reverse Protocol', src: audioPhoneRewind, moods: ['mysterious', 'tense'], genre: 'Trip-hop inversé', bpm: 96 },
-  { id: 305, name: 'Two Sides', src: teamShowdown, moods: ['energetic', 'epic'], genre: 'Club peak-time', bpm: 128 },
-  { id: 306, name: 'Decision Window', src: quiz, moods: ['tense', 'energetic'], genre: 'Electro tendue', bpm: 120 },
-  { id: 307, name: 'Into Focus', src: pixoguess, moods: ['energetic', 'mysterious'], genre: 'Tech house', bpm: 120 },
-  { id: 308, name: 'False Alibi', src: undercover, moods: ['mysterious', 'tense'], genre: 'Trip-hop noir', bpm: 96 },
-  { id: 309, name: 'Neon Pressing', src: blindtest, moods: ['chill', 'energetic'], genre: 'French house', bpm: 112 },
-  { id: 310, name: 'Backstage Signal', src: mimicWaiting, moods: ['chill'], genre: 'R&B nocturne', bpm: 96 },
-  { id: 311, name: 'Spotlight Scores', src: mimicResults, moods: ['epic', 'energetic'], genre: 'Club house', bpm: 120 },
-  { id: 312, name: 'Hostile Assets', src: monopoly, moods: ['mysterious', 'chill'], genre: 'Jazz électronique', bpm: 104 },
-  { id: 313, name: 'Final Choice', src: voting, moods: ['tense', 'mysterious'], genre: 'Suspense electro', bpm: 96 },
-  { id: 314, name: 'Top Line', src: victory, moods: ['epic', 'energetic'], genre: 'House euphorique', bpm: 120 },
-  { id: 315, name: 'Run It Back', src: defeat, moods: ['chill', 'mysterious'], genre: 'Downtempo', bpm: 88 },
-  { id: 316, name: 'Signal Returning', src: connection, moods: ['chill'], genre: 'Ambient', bpm: 80 },
+  { id: 400, name: 'Neon Pirate', src: neonPirate.url },
+  { id: 401, name: 'Captain Roxas — Super', src: captainRoxas.url },
+  { id: 402, name: 'My Lucky Spot', src: myLuckySpot.url },
 ];
 
-const SITUATION_TO_ADAPTIVE_ID: Partial<Record<MusicSituation, number | number[]>> = {
-  home: 300,
-  lobby: 301,
-  preparation: 301,
-  preview: 301,
-  round: 302,
-  playing: 302,
-  audiophone: 303,
-  'audiophone-rewind': 304,
-  'team-showdown': 305,
-  quiz: 306,
-  pixoguess: 307,
-  undercover: 308,
-  blindtest: 309,
-  'mimic-waiting': 310,
-  'mimic-results': 311,
-  monopoly: 312,
-  voting: 313,
-  victory: 314,
-  defeat: 315,
-  connection: 316,
-};
-
-const SITUATION_TO_MOODS: Record<MusicSituation, MusicMood[]> = {
-  home: ['chill', 'mysterious'], lobby: ['chill'], preparation: ['chill'], preview: ['chill'],
-  round: ['energetic', 'tense'], playing: ['energetic'], voting: ['tense'],
-  victory: ['epic'], defeat: ['chill'], undercover: ['mysterious'],
-  audiophone: ['mysterious'], 'audiophone-rewind': ['mysterious', 'tense'],
-  quiz: ['tense'], monopoly: ['mysterious'], pixoguess: ['energetic'],
-  'team-showdown': ['energetic', 'epic'], blindtest: ['chill'],
-  'mimic-waiting': ['chill'], 'mimic-results': ['epic'], connection: ['chill'],
-};
-
-function pickTrackForSituation(situation: MusicSituation, excludeId?: number): MusicTrack {
-  const adaptive = SITUATION_TO_ADAPTIVE_ID[situation];
-  if (adaptive !== undefined) {
-    const ids = Array.isArray(adaptive) ? adaptive : [adaptive];
-    const pool = ids.filter((id) => id !== excludeId);
-    const chosen = pool.length > 0 ? pool : ids;
-    const pickId = chosen[Math.floor(Math.random() * chosen.length)];
-    const track = musicTracks.find((t) => t.id === pickId);
-    if (track) return track;
-  }
-  const moods = SITUATION_TO_MOODS[situation] ?? ['energetic'];
-  for (const mood of moods) {
-    const candidates = musicTracks.filter((t) => t.moods?.includes(mood) && t.id !== excludeId);
-    if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
-  }
-  return musicTracks[Math.floor(Math.random() * musicTracks.length)];
+/**
+ * La playlist ne dépend plus de la situation de jeu : les 3 pistes
+ * s'enchaînent en boucle, quel que soit l'écran.
+ */
+function nextTrackIndex(current: number): number {
+  return (current + 1) % musicTracks.length;
 }
 
 /** Normalise a src to a comparable key (strip origin for absolute URLs). */
@@ -357,13 +285,7 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     audioRef.current = el;
 
     const onEnded = () => {
-      // Pick next track for the current situation (read from ref, always fresh)
-      const curId = musicTracks[currentTrackIndexRef.current]?.id;
-      const next = autoModeRef.current
-        ? pickTrackForSituation(situationRef.current, curId)
-        : musicTracks[(currentTrackIndexRef.current + 1) % musicTracks.length];
-      const nextIdx = musicTracks.findIndex((t) => t.id === next.id);
-      setCurrentTrackIndex(nextIdx >= 0 ? nextIdx : 0);
+      setCurrentTrackIndex(nextTrackIndex(currentTrackIndexRef.current));
     };
 
     const onTimeUpdate = () => {
@@ -435,19 +357,6 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ── Auto-switch track when situation changes ─────────────────────────────
-  useEffect(() => {
-    if (!autoMode) return;
-    if (lastAutoSituation.current === situation) return;
-    lastAutoSituation.current = situation;
-    const curId = musicTracks[currentTrackIndex]?.id;
-    const next = pickTrackForSituation(situation, curId);
-    const nextIdx = musicTracks.findIndex((t) => t.id === next.id);
-    if (nextIdx !== -1 && nextIdx !== currentTrackIndex) {
-      setCurrentTrackIndex(nextIdx);
-    }
-  }, [autoMode, situation, currentTrackIndex]);
 
   // ── Controls ─────────────────────────────────────────────────────────────
   const setVolume = useCallback((v: number) => {
