@@ -5,6 +5,3 @@ verify_jwt = false
 
 [functions.generate-quiz-question]
 verify_jwt = false
-
-[functions.generate-game-music]
-verify_jwt = false
