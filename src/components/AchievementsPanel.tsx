@@ -86,7 +86,7 @@ export const AchievementsPanel = ({ isOpen, onClose }: AchievementsPanelProps) =
           </div>
           <InkTabs
             value={tab}
-            onChange={setTab}
+            onChange={(v) => setTab(v as typeof tab)}
             accent="#fbbf24"
             items={[
               { key: 'unlocked', label: `Débloqué (${unlocked.length})` },
