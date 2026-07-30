@@ -137,40 +137,47 @@ STYLES: dict[str, dict] = {
 
 # Chord progressions in semitones from the root, one entry per bar (cycled).
 PROGRESSIONS: dict[str, tuple[int, ...]] = {
-    "victory": (0, 8, 3, 10),
-    "disco": (0, 5, 10, 3),
-    "jazz": (0, 3, 8, 7),
-    "rnb": (0, 8, 5, 3),
-    "club": (0, 8, 3, 10),
-    "defeat": (0, 8, 5, 3),
-    "noir": (0, 8, 0, 5),
-    "ambient": (0, 5),
-    "tension": (0, 1, 0, 11),
-    "rewind": (0, 10, 0, 8),
+    "victory": (0, 7, 10, 5),
+    "disco": (0, 10, 5, 7),
+    "jazz": (0, 5, 10, 3),
+    "rnb": (0, 3, 10, 8),
+    "club": (0, 10, 7, 3),
+    "defeat": (0, 5, 3, 10),
+    "noir": (0, 11, 8, 3),
+    "ambient": (0, 7, 5, 10),
+    "tension": (0, 1, 11, 8),
+    "rewind": (0, 8, 10, 3),
+    "garage": (0, 10, 3, 7),
+    "lounge": (0, 5, 8, 10),
+    "breakbeat": (0, 7, 3, 10),
+    "signal": (0, 10, 7, 5),
+    "showdown": (0, 5, 7, 10),
+    "quiz": (0, 11, 7, 3),
+    "focus": (0, 7, 10, 8),
 }
-DEFAULT_PROGRESSION = (0, 8, 3, 10)
+DEFAULT_PROGRESSION = (0, 10, 5, 7)
 
 # Chord colours: minor 9th / minor 7th voicings keep it adult, never nursery.
-VOICINGS = ((0, 3, 7, 10, 14), (0, 3, 7, 14), (0, 7, 10, 15))
+VOICINGS = ((0, 3, 7, 10, 17), (0, 5, 10, 14), (0, 3, 10, 14, 19), (0, 7, 14, 17))
 
 TRACKS = [
-    dict(file="ink-home", title="Ink After Dark", bpm=112, root=50, kind="garage", energy=.68),
-    dict(file="ink-lobby", title="Lobby After Hours", bpm=96, root=49, kind="lounge", energy=.5),
-    dict(file="imitation", title="Mirror Pressure", bpm=128, root=52, kind="breakbeat", energy=.86),
-    dict(file="audiophone", title="Signal Chain", bpm=104, root=54, kind="signal", energy=.54),
-    dict(file="audiophone-rewind", title="Reverse Protocol", bpm=96, root=51, kind="rewind", energy=.6),
-    dict(file="team-showdown", title="Two Sides", bpm=128, root=53, kind="showdown", energy=.9),
-    dict(file="quiz", title="Decision Window", bpm=120, root=57, kind="quiz", energy=.66),
-    dict(file="pixoguess", title="Into Focus", bpm=120, root=48, kind="focus", energy=.74),
-    dict(file="undercover", title="False Alibi", bpm=96, root=45, kind="noir", energy=.46),
-    dict(file="blindtest", title="Neon Pressing", bpm=112, root=54, kind="disco", energy=.7),
-    dict(file="mimic-waiting", title="Backstage Signal", bpm=96, root=50, kind="rnb", energy=.44),
-    dict(file="mimic-results", title="Spotlight Scores", bpm=120, root=55, kind="club", energy=.76),
-    dict(file="monopoly", title="Hostile Assets", bpm=104, root=48, kind="jazz", energy=.56),
-    dict(file="voting", title="Final Choice", bpm=96, root=52, kind="tension", energy=.56),
-    dict(file="victory", title="Top Line", bpm=120, root=59, kind="victory", energy=.82),
-    dict(file="defeat", title="Run It Back", bpm=88, root=50, kind="defeat", energy=.38),
-    dict(file="connection", title="Signal Returning", bpm=80, root=48, kind="ambient", energy=.26),
+    dict(file="ink-home", title="Ink After Dark", bpm=112, root=52, kind="garage", energy=.68),
+    dict(file="ink-lobby", title="Lobby After Hours", bpm=96, root=47, kind="lounge", energy=.5),
+    dict(file="imitation", title="Mirror Pressure", bpm=128, root=50, kind="breakbeat", energy=.86),
+    dict(file="audiophone", title="Signal Chain", bpm=104, root=56, kind="signal", energy=.54),
+    dict(file="audiophone-rewind", title="Reverse Protocol", bpm=96, root=49, kind="rewind", energy=.6),
+    dict(file="team-showdown", title="Two Sides", bpm=128, root=55, kind="showdown", energy=.9),
+    dict(file="quiz", title="Decision Window", bpm=120, root=55, kind="quiz", energy=.66),
+    dict(file="pixoguess", title="Into Focus", bpm=120, root=51, kind="focus", energy=.74),
+    dict(file="undercover", title="False Alibi", bpm=96, root=44, kind="noir", energy=.46),
+    dict(file="blindtest", title="Neon Pressing", bpm=112, root=52, kind="disco", energy=.7),
+    dict(file="mimic-waiting", title="Backstage Signal", bpm=96, root=48, kind="rnb", energy=.44),
+    dict(file="mimic-results", title="Spotlight Scores", bpm=120, root=57, kind="club", energy=.76),
+    dict(file="monopoly", title="Hostile Assets", bpm=104, root=46, kind="jazz", energy=.56),
+    dict(file="voting", title="Final Choice", bpm=96, root=53, kind="tension", energy=.56),
+    dict(file="victory", title="Top Line", bpm=120, root=57, kind="victory", energy=.82),
+    dict(file="defeat", title="Run It Back", bpm=88, root=48, kind="defeat", energy=.38),
+    dict(file="connection", title="Signal Returning", bpm=80, root=50, kind="ambient", energy=.26),
 ]
 
 
@@ -383,7 +390,7 @@ def compose(cfg: dict) -> np.ndarray:
     swing = style["swing"]
     bright = style["brightness"]
     progression = PROGRESSIONS.get(kind, DEFAULT_PROGRESSION)
-    rng = np.random.default_rng(abs(hash(cfg["file"])) % (2 ** 32))
+    rng = np.random.default_rng((abs(hash(cfg["file"])) + 20260730) % (2 ** 32))
 
     drums = np.zeros((SAMPLES, 2), dtype=np.float32)
     lows = np.zeros((SAMPLES, 2), dtype=np.float32)
@@ -452,7 +459,7 @@ def compose(cfg: dict) -> np.ndarray:
     # Lead motif: deliberately restrained, the modes are voice-heavy.
     if style["lead"]:
         scale = (0, 3, 5, 7, 10, 12, 14)
-        motif = (0, 4, 2, 5, 4, 2, 1, 3)
+        motif = (4, 2, 5, 3, 6, 4, 1, 2, 5, 3, 0, 4)
         for index in range(0, total_steps, 2):
             bar = index // 16
             if bar % 4 == 3 and kind not in {"victory", "showdown"}:
