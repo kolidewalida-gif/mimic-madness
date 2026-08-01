@@ -104,9 +104,16 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   const [duration, setDuration] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  /** Deux éléments audio pour permettre un vrai crossfade (A/B). */
+  const decksRef = useRef<HTMLAudioElement[]>([]);
+  const activeDeckRef = useRef(0);
+  const crossfadingRef = useRef(false);
   const hasInteracted = useRef(false);
   const fadeAbortRef = useRef<{ aborted: boolean } | null>(null);
   const progressTimerRef = useRef<number>(0);
+
+/** Durée du fondu enchaîné entre deux pistes (ms). */
+const CROSSFADE_MS = 3000;
 
   // Keep refs in sync so callbacks always see the latest values without
   // being recreated (avoids the audio element teardown/recreate loop).
