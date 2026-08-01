@@ -391,7 +391,10 @@ const CROSSFADE_MS = 3000;
   }, []);
 
   const pause = useCallback(() => {
-    audioRef.current?.pause();
+    if (fadeAbortRef.current) fadeAbortRef.current.aborted = true;
+    crossfadingRef.current = false;
+    decksRef.current.forEach((el) => el.pause());
+    if (audioRef.current) audioRef.current.volume = volumeRef.current;
     setIsPlaying(false);
   }, []);
 
