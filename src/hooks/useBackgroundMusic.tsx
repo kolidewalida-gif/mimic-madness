@@ -353,30 +353,49 @@ const CROSSFADE_MS = 3000;
 
   // ── Auto-start on first user gesture ────────────────────────────────────
   useEffect(() => {
-    // Try immediately (works for returning users / PWA)
+    let stopped = false;
+
+    // Lance la musique dès que le navigateur l'autorise.
     const tryPlay = () => {
+      if (stopped || hasInteracted.current) return;
       const el = audioRef.current;
       if (!el) return;
       if (!el.src) {
         el.src = musicTracks[currentTrackIndexRef.current]?.src ?? '';
         el.preload = 'auto';
       }
-      el.play().then(() => setIsPlaying(true)).catch(() => {});
+      el.volume = volumeRef.current;
+      el.play()
+        .then(() => {
+          if (stopped) return;
+          hasInteracted.current = true;
+          setIsPlaying(true);
+          detach();
+        })
+        .catch(() => { /* autoplay bloqué : on retente au prochain geste */ });
     };
-    tryPlay();
 
-    const onGesture = () => {
-      if (hasInteracted.current) return;
-      hasInteracted.current = true;
-      tryPlay();
+    const events: (keyof WindowEventMap)[] = [
+      'pointerdown', 'pointerup', 'mousedown', 'keydown', 'touchstart', 'touchend',
+      'click', 'scroll', 'wheel', 'focus',
+    ];
+    const onVisible = () => { if (document.visibilityState === 'visible') tryPlay(); };
+    const detach = () => {
+      events.forEach((name) => window.removeEventListener(name, tryPlay));
+      document.removeEventListener('visibilitychange', onVisible);
     };
-    window.addEventListener('pointerdown', onGesture);
-    window.addEventListener('keydown', onGesture);
-    window.addEventListener('touchstart', onGesture);
+
+    events.forEach((name) => window.addEventListener(name, tryPlay, { passive: true }));
+    document.addEventListener('visibilitychange', onVisible);
+
+    // Tentative immédiate (utilisateurs récurrents / PWA), puis quelques relances.
+    tryPlay();
+    const retries = [300, 1200, 3000].map((ms) => window.setTimeout(tryPlay, ms));
+
     return () => {
-      window.removeEventListener('pointerdown', onGesture);
-      window.removeEventListener('keydown', onGesture);
-      window.removeEventListener('touchstart', onGesture);
+      stopped = true;
+      retries.forEach((id) => window.clearTimeout(id));
+      detach();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
