@@ -131,7 +131,8 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
 
   useEffect(() => {
     autoModeRef.current = autoMode;
-    if (audioRef.current) audioRef.current.loop = autoMode;
+    // Jamais de boucle sur une seule piste : la playlist enchaîne les morceaux.
+    if (audioRef.current) audioRef.current.loop = false;
   }, [autoMode]);
 
   const setAutoMode = useCallback((v: boolean) => {
@@ -280,11 +281,17 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   useEffect(() => {
     const el = new Audio();
     el.preload = 'none';
-    el.loop = autoModeRef.current;
+    el.loop = false;
     el.volume = volumeRef.current;
     audioRef.current = el;
 
     const onEnded = () => {
+      setCurrentTrackIndex(nextTrackIndex(currentTrackIndexRef.current));
+    };
+
+    // Filet de sécurité : si "ended" ne se déclenche pas (erreur réseau/décodage),
+    // on passe quand même à la piste suivante.
+    const onError = () => {
       setCurrentTrackIndex(nextTrackIndex(currentTrackIndexRef.current));
     };
 
@@ -301,6 +308,7 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     const onPause = () => setIsPlaying(false);
 
     el.addEventListener('ended', onEnded);
+    el.addEventListener('error', onError);
     el.addEventListener('timeupdate', onTimeUpdate);
     el.addEventListener('loadedmetadata', onMeta);
     el.addEventListener('play', onPlay);
@@ -308,6 +316,7 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
 
     return () => {
       el.removeEventListener('ended', onEnded);
+      el.removeEventListener('error', onError);
       el.removeEventListener('timeupdate', onTimeUpdate);
       el.removeEventListener('loadedmetadata', onMeta);
       el.removeEventListener('play', onPlay);
