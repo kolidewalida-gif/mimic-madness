@@ -104,9 +104,16 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   const [duration, setDuration] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  /** Deux éléments audio pour permettre un vrai crossfade (A/B). */
+  const decksRef = useRef<HTMLAudioElement[]>([]);
+  const activeDeckRef = useRef(0);
+  const crossfadingRef = useRef(false);
   const hasInteracted = useRef(false);
   const fadeAbortRef = useRef<{ aborted: boolean } | null>(null);
   const progressTimerRef = useRef<number>(0);
+
+/** Durée du fondu enchaîné entre deux pistes (ms). */
+const CROSSFADE_MS = 3000;
 
   // Keep refs in sync so callbacks always see the latest values without
   // being recreated (avoids the audio element teardown/recreate loop).
@@ -199,14 +206,21 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
 
   const currentTrack = useMemo(() => musicTracks[currentTrackIndex] ?? null, [currentTrackIndex]);
 
-  // ── Cross-fade helper ────────────────────────────────────────────────────
-  const fadeAndLoad = useCallback((nextSrc: string, targetVol: number, wasPlaying: boolean, fadeMs = 400) => {
-    const el = audioRef.current;
-    if (!el) return;
+  // ── Cross-fade helper (A/B decks, aucun blanc entre les pistes) ──────────
+  const fadeAndLoad = useCallback((
+    nextSrc: string,
+    targetVol: number,
+    wasPlaying: boolean,
+    fadeMs = CROSSFADE_MS,
+  ) => {
+    const decks = decksRef.current;
+    const current = decks[activeDeckRef.current];
+    const incoming = decks[1 - activeDeckRef.current];
+    if (!current || !incoming) return;
 
-    // Same track? Just ensure volume is right.
-    if (normSrc(el.src) === normSrc(nextSrc)) {
-      el.volume = targetVol;
+    // Même piste déjà en cours ? On ajuste juste le volume.
+    if (current.src && normSrc(current.src) === normSrc(nextSrc) && !current.paused) {
+      current.volume = targetVol;
       return;
     }
 
@@ -214,114 +228,114 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
     const token = { aborted: false };
     fadeAbortRef.current = token;
 
-    const startVol = el.volume;
+    incoming.src = nextSrc;
+    incoming.preload = 'auto';
+    incoming.volume = 0;
+    incoming.currentTime = 0;
+
+    // Le deck entrant devient l'actif (progression / ended le suivent).
+    activeDeckRef.current = 1 - activeDeckRef.current;
+    audioRef.current = incoming;
+
+    if (!wasPlaying) {
+      incoming.load();
+      incoming.volume = targetVol;
+      current.pause();
+      crossfadingRef.current = false;
+      return;
+    }
+
+    const startVol = current.paused ? 0 : current.volume;
     const t0 = performance.now();
-
-    const fadeOut = (now: number) => {
-      if (token.aborted || !audioRef.current) return;
+    const step = (now: number) => {
+      if (token.aborted) return;
       const t = Math.min(1, (now - t0) / fadeMs);
-      audioRef.current.volume = Math.max(0, startVol * (1 - t));
-      if (t < 1) { requestAnimationFrame(fadeOut); return; }
-
-      // Swap src
-      if (token.aborted || !audioRef.current) return;
-      audioRef.current.src = nextSrc;
-      audioRef.current.preload = 'auto';
-      audioRef.current.volume = 0;
-
-      if (!wasPlaying) {
-        // User had paused — load but don't play
-        audioRef.current.load();
-        return;
+      // Fondu en puissance constante pour éviter le creux de volume.
+      incoming.volume = Math.max(0, Math.min(1, targetVol * Math.sin((t * Math.PI) / 2)));
+      if (!current.paused) {
+        current.volume = Math.max(0, Math.min(1, startVol * Math.cos((t * Math.PI) / 2)));
       }
-
-      audioRef.current.play()
-        .then(() => {
-          if (token.aborted) return;
-          setIsPlaying(true);
-          const t1 = performance.now();
-          const fadeIn = (now2: number) => {
-            if (token.aborted || !audioRef.current) return;
-            const t2 = Math.min(1, (now2 - t1) / fadeMs);
-            audioRef.current.volume = targetVol * t2;
-            if (t2 < 1) requestAnimationFrame(fadeIn);
-          };
-          requestAnimationFrame(fadeIn);
-        })
-        .catch(() => {});
+      if (t < 1) { requestAnimationFrame(step); return; }
+      current.pause();
+      current.volume = 0;
+      crossfadingRef.current = false;
     };
 
-    // If currently silent (paused or vol=0), skip the fade-out
-    if (el.paused || el.volume < 0.01) {
-      el.src = nextSrc;
-      el.preload = 'auto';
-      el.volume = wasPlaying ? 0 : targetVol;
-      if (wasPlaying) {
-        el.play()
-          .then(() => {
-            if (token.aborted) return;
-            setIsPlaying(true);
-            const t1 = performance.now();
-            const fadeIn = (now2: number) => {
-              if (token.aborted || !audioRef.current) return;
-              const t2 = Math.min(1, (now2 - t1) / fadeMs);
-              audioRef.current.volume = targetVol * t2;
-              if (t2 < 1) requestAnimationFrame(fadeIn);
-            };
-            requestAnimationFrame(fadeIn);
-          })
-          .catch(() => {});
-      }
-    } else {
-      requestAnimationFrame(fadeOut);
-    }
+    incoming.play()
+      .then(() => {
+        if (token.aborted) return;
+        setIsPlaying(true);
+        requestAnimationFrame(step);
+      })
+      .catch(() => { crossfadingRef.current = false; });
   }, []);
 
   // ── Audio element — created once, never torn down ────────────────────────
   useEffect(() => {
-    const el = new Audio();
-    el.preload = 'none';
-    el.loop = false;
-    el.volume = volumeRef.current;
-    audioRef.current = el;
+    const decks = [new Audio(), new Audio()];
+    decks.forEach((el) => {
+      el.preload = 'none';
+      el.loop = false;
+      el.volume = 0;
+    });
+    decks[0].volume = volumeRef.current;
+    decksRef.current = decks;
+    activeDeckRef.current = 0;
+    audioRef.current = decks[0];
 
-    const onEnded = () => {
+    const isActive = (el: HTMLAudioElement) => decksRef.current[activeDeckRef.current] === el;
+    const goNext = () => {
+      crossfadingRef.current = true;
       setCurrentTrackIndex(nextTrackIndex(currentTrackIndexRef.current));
     };
 
-    // Filet de sécurité : si "ended" ne se déclenche pas (erreur réseau/décodage),
-    // on passe quand même à la piste suivante.
-    const onError = () => {
-      setCurrentTrackIndex(nextTrackIndex(currentTrackIndexRef.current));
-    };
+    const cleanups = decks.map((el) => {
+      const onEnded = () => { if (isActive(el) && !crossfadingRef.current) goNext(); };
+      const onError = () => { if (isActive(el)) goNext(); };
+      const onTimeUpdate = () => {
+        if (!isActive(el)) return;
+        // Déclenche le fondu enchaîné avant la fin : aucun blanc entre les pistes.
+        if (
+          !crossfadingRef.current
+          && isPlayingRef.current
+          && Number.isFinite(el.duration)
+          && el.duration > CROSSFADE_MS / 1000 + 1
+          && el.duration - el.currentTime <= CROSSFADE_MS / 1000
+        ) {
+          goNext();
+          return;
+        }
+        const now = Date.now();
+        if (now - progressTimerRef.current > 250) {
+          progressTimerRef.current = now;
+          setProgress(el.currentTime);
+        }
+      };
+      const onMeta = () => { if (isActive(el)) setDuration(el.duration); };
+      const onPlay = () => { if (isActive(el)) setIsPlaying(true); };
+      const onPause = () => { if (isActive(el) && !crossfadingRef.current) setIsPlaying(false); };
 
-    const onTimeUpdate = () => {
-      const now = Date.now();
-      if (now - progressTimerRef.current > 250) {
-        progressTimerRef.current = now;
-        setProgress(el.currentTime);
-      }
-    };
+      el.addEventListener('ended', onEnded);
+      el.addEventListener('error', onError);
+      el.addEventListener('timeupdate', onTimeUpdate);
+      el.addEventListener('loadedmetadata', onMeta);
+      el.addEventListener('play', onPlay);
+      el.addEventListener('pause', onPause);
 
-    const onMeta = () => setDuration(el.duration);
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-
-    el.addEventListener('ended', onEnded);
-    el.addEventListener('error', onError);
-    el.addEventListener('timeupdate', onTimeUpdate);
-    el.addEventListener('loadedmetadata', onMeta);
-    el.addEventListener('play', onPlay);
-    el.addEventListener('pause', onPause);
+      return () => {
+        el.removeEventListener('ended', onEnded);
+        el.removeEventListener('error', onError);
+        el.removeEventListener('timeupdate', onTimeUpdate);
+        el.removeEventListener('loadedmetadata', onMeta);
+        el.removeEventListener('play', onPlay);
+        el.removeEventListener('pause', onPause);
+        el.pause();
+      };
+    });
 
     return () => {
-      el.removeEventListener('ended', onEnded);
-      el.removeEventListener('error', onError);
-      el.removeEventListener('timeupdate', onTimeUpdate);
-      el.removeEventListener('loadedmetadata', onMeta);
-      el.removeEventListener('play', onPlay);
-      el.removeEventListener('pause', onPause);
-      el.pause();
+      cleanups.forEach((fn) => fn());
+      decksRef.current = [];
       audioRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -377,7 +391,10 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   }, []);
 
   const pause = useCallback(() => {
-    audioRef.current?.pause();
+    if (fadeAbortRef.current) fadeAbortRef.current.aborted = true;
+    crossfadingRef.current = false;
+    decksRef.current.forEach((el) => el.pause());
+    if (audioRef.current) audioRef.current.volume = volumeRef.current;
     setIsPlaying(false);
   }, []);
 
