@@ -651,7 +651,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         </div>
 
         {/* ACTION BUTTONS — JOUER + REJOINDRE */}
-        <div className="w-full max-w-3xl flex flex-col sm:flex-row items-stretch gap-3">
+        <div className="w-full max-w-2xl flex flex-col sm:flex-row items-stretch gap-3">
           {/* JOUER — yellow image button (with code fallback) */}
           <motion.button
             onClick={handleCreateGame}
