@@ -1,4 +1,4 @@
-import { useState, memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, memo, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -163,10 +163,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
   const [modeIndex, setModeIndex] = useState(1); // start on AUDIO PHONE like mockup
-  // Direction of last mode change: +1 = went right, -1 = went left.
-  // Used to drive the hero banner horizontal swipe animation.
-  const [modeDir, setModeDir] = useState<1 | -1>(1);
-  const prevModeIndexRef = useRef(1);
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
   const { level } = usePlayerLevel();
@@ -186,17 +182,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
    *   -1 = swipe left  (new card slides in from left)
    */
   const goToMode = useCallback((next: number) => {
-    setModeIndex((curr) => {
-      if (next === curr) return curr;
-      const len = GAME_MODES.length;
-      const normalized = ((next % len) + len) % len;
-      const forward = (normalized - curr + len) % len; // steps going right
-      const backward = (curr - normalized + len) % len; // steps going left
-      const dir: 1 | -1 = forward <= backward ? 1 : -1;
-      prevModeIndexRef.current = curr;
-      setModeDir(dir);
-      return normalized;
-    });
+    const len = GAME_MODES.length;
+    setModeIndex(((next % len) + len) % len);
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -638,28 +625,20 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
       {/* ============== MAIN CONTENT ============== */}
       <main className="ibs-home-main relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar gap-4">
-        <div className="w-full max-w-3xl text-center sm:text-left">
-          <span className="ibs-eyebrow">INK BROADCAST STUDIO · EN DIRECT</span>
-          <h2 className="ibs-display-title">Ta soirée commence ici.</h2>
-          <p className="mt-1 text-sm text-white/60">Entre ton nom, ouvre un studio puis choisis l’émission avec tes invités.</p>
-        </div>
-
-        {/* PSEUDO INPUT — discreet, just above the buttons */}
-        <div className="ibs-panel w-full max-w-3xl p-3 sm:p-4">
-          <div className="relative group">
-            <Input
-              placeholder="Votre pseudo"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="h-12 bg-black/50 backdrop-blur-md border-2 border-[#0a0810] rounded-xl text-center text-xl font-black text-white placeholder:text-white/30 focus:border-purple-400/60 transition-all"
-              style={{ fontFamily: "'Caveat', cursive" }}
-              maxLength={20}
-            />
-          </div>
+        {/* PSEUDO INPUT — first and only required step */}
+        <div className="w-full max-w-2xl">
+          <Input
+            placeholder="Votre pseudo"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            className="h-14 bg-black/55 backdrop-blur-md border-[3px] border-[#0a0810] rounded-2xl text-center text-2xl font-black text-white placeholder:text-white/30 focus:border-purple-400/60 transition-all"
+            style={{ fontFamily: "'Caveat', cursive" }}
+            maxLength={20}
+          />
         </div>
 
         {/* ACTION BUTTONS — JOUER + REJOINDRE */}
-        <div className="w-full max-w-3xl flex flex-col sm:flex-row items-stretch gap-3">
+        <div className="w-full max-w-2xl flex flex-col sm:flex-row items-stretch gap-3">
           {/* JOUER — yellow image button (with code fallback) */}
           <motion.button
             onClick={handleCreateGame}
@@ -780,106 +759,22 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           </motion.button>
         </div>
 
-        {/* HERO MODE BANNER — le mode réel reste choisi dans le lobby ; cette
-            galerie est purement informative / visuelle. Navigable ← / →. */}
-        <AnimatePresence mode="wait" custom={modeDir}>
-          <motion.div
-            key={selectedMode.id}
-            custom={modeDir}
-            variants={{
-              enter: (dir: number) => ({
-                opacity: 0,
-                x: 320 * dir,
-                scale: 0.94,
-                rotate: dir * 1.5,
-              }),
-              center: {
-                opacity: 1,
-                x: 0,
-                scale: 1,
-                rotate: 0,
-              },
-              exit: (dir: number) => ({
-                opacity: 0,
-                x: -320 * dir,
-                scale: 0.94,
-                rotate: -dir * 1.5,
-              }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+        {/* MODE PREVIEW — simple ligne d'info, le mode réel se choisit dans le lobby */}
+        <div className="w-full max-w-2xl text-center">
+          <h2
+            className="text-3xl font-black text-white leading-none"
             style={{
-              willChange: 'transform, opacity',
-              border: '4px solid #0a0810',
-              boxShadow:
-                '0 12px 0 #0a0810, 0 18px 40px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.08)',
+              fontFamily: "'Caveat', cursive",
+              textShadow: '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810',
             }}
-            className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
           >
-            {/* Custom banner image — falls back to gradient + icon if missing */}
-            <ImageWithFallback
-              src={selectedMode.bannerImageCandidates}
-              alt={selectedMode.name}
-              className="block w-full h-auto select-none"
-              fallback={
-                <div
-                  className="relative w-full p-6 md:p-8 flex items-center gap-5"
-                  style={{
-                    background: `linear-gradient(180deg, #0a0510 0%, #1a0d2e 50%, #0a0510 100%)`,
-                  }}
-                >
-                  {/* Glow halo */}
-                  <div
-                    className="absolute inset-0 opacity-40 pointer-events-none"
-                    style={{
-                      background: `radial-gradient(circle at 30% 50%, ${selectedMode.accent}55, transparent 60%)`,
-                    }}
-                  />
-                  {/* Icon badge */}
-                  <motion.div
-                    animate={{ rotate: [-3, 3, -3] }}
-                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                    className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                      background: selectedMode.fallbackColor,
-                      border: '3px solid #0a0810',
-                      boxShadow: `0 4px 0 #0a0810, 0 8px 20px ${selectedMode.fallbackColor}88`,
-                    }}
-                  >
-                    <span className="text-5xl">{selectedMode.fallbackEmoji}</span>
-                  </motion.div>
+            {selectedMode.name.toUpperCase()}
+          </h2>
+          <p className="text-xs text-white/60 mt-1">{selectedMode.tagline}</p>
+        </div>
 
-                  <div className="relative flex-1 min-w-0">
-                    <h2
-                      className="text-4xl md:text-5xl font-black leading-none tracking-tight text-white"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        textShadow:
-                          '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810, 2px 2px 0 #0a0810',
-                      }}
-                    >
-                      {selectedMode.name.toUpperCase()}
-                    </h2>
-                    <p
-                      className="text-sm md:text-base text-white/85 font-bold mt-2 uppercase tracking-wider"
-                      style={{ fontFamily: "'Caveat', cursive" }}
-                    >
-                      {selectedMode.tagline}
-                    </p>
-                    <p className="text-xs md:text-sm text-white/70 mt-2 font-medium">
-                      {selectedMode.description}
-                    </p>
-                  </div>
-                </div>
-              }
-            />
-          </motion.div>
-        </AnimatePresence>
-
-        {/* MINI MODE CARDS ROW — click to preview a mode in the hero above */}
-        <div className="w-full max-w-3xl">
+        {/* MINI MODE CARDS ROW */}
+        <div className="w-full max-w-2xl">
           <div className="grid grid-cols-5 md:grid-cols-9 gap-2">
             {GAME_MODES.map((mode, idx) => {
               const isActive = idx === modeIndex;
@@ -892,11 +787,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   }}
                   whileHover={{ y: -4, scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  animate={
-                    isActive
-                      ? { y: [0, -3, 0], transition: { duration: 1.6, repeat: Infinity } }
-                      : undefined
-                  }
                   className="relative aspect-[3/4] rounded-2xl overflow-hidden group"
                   aria-label={mode.name}
                   aria-pressed={isActive}
