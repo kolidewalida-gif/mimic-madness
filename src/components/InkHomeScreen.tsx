@@ -638,24 +638,16 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
       {/* ============== MAIN CONTENT ============== */}
       <main className="ibs-home-main relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar gap-4">
-        <div className="w-full max-w-3xl text-center sm:text-left">
-          <span className="ibs-eyebrow">INK BROADCAST STUDIO · EN DIRECT</span>
-          <h2 className="ibs-display-title">Ta soirée commence ici.</h2>
-          <p className="mt-1 text-sm text-white/60">Entre ton nom, ouvre un studio puis choisis l’émission avec tes invités.</p>
-        </div>
-
-        {/* PSEUDO INPUT — discreet, just above the buttons */}
-        <div className="ibs-panel w-full max-w-3xl p-3 sm:p-4">
-          <div className="relative group">
-            <Input
-              placeholder="Votre pseudo"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="h-12 bg-black/50 backdrop-blur-md border-2 border-[#0a0810] rounded-xl text-center text-xl font-black text-white placeholder:text-white/30 focus:border-purple-400/60 transition-all"
-              style={{ fontFamily: "'Caveat', cursive" }}
-              maxLength={20}
-            />
-          </div>
+        {/* PSEUDO INPUT — first and only required step */}
+        <div className="w-full max-w-2xl">
+          <Input
+            placeholder="Votre pseudo"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            className="h-14 bg-black/55 backdrop-blur-md border-[3px] border-[#0a0810] rounded-2xl text-center text-2xl font-black text-white placeholder:text-white/30 focus:border-purple-400/60 transition-all"
+            style={{ fontFamily: "'Caveat', cursive" }}
+            maxLength={20}
+          />
         </div>
 
         {/* ACTION BUTTONS — JOUER + REJOINDRE */}
