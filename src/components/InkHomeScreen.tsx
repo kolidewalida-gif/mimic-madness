@@ -772,103 +772,19 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           </motion.button>
         </div>
 
-        {/* HERO MODE BANNER — le mode réel reste choisi dans le lobby ; cette
-            galerie est purement informative / visuelle. Navigable ← / →. */}
-        <AnimatePresence mode="wait" custom={modeDir}>
-          <motion.div
-            key={selectedMode.id}
-            custom={modeDir}
-            variants={{
-              enter: (dir: number) => ({
-                opacity: 0,
-                x: 320 * dir,
-                scale: 0.94,
-                rotate: dir * 1.5,
-              }),
-              center: {
-                opacity: 1,
-                x: 0,
-                scale: 1,
-                rotate: 0,
-              },
-              exit: (dir: number) => ({
-                opacity: 0,
-                x: -320 * dir,
-                scale: 0.94,
-                rotate: -dir * 1.5,
-              }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+        {/* MODE PREVIEW — simple ligne d'info, le mode réel se choisit dans le lobby */}
+        <div className="w-full max-w-2xl text-center">
+          <h2
+            className="text-3xl font-black text-white leading-none"
             style={{
-              willChange: 'transform, opacity',
-              border: '4px solid #0a0810',
-              boxShadow:
-                '0 12px 0 #0a0810, 0 18px 40px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.08)',
+              fontFamily: "'Caveat', cursive",
+              textShadow: '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810',
             }}
-            className="relative w-full max-w-3xl rounded-3xl overflow-hidden"
           >
-            {/* Custom banner image — falls back to gradient + icon if missing */}
-            <ImageWithFallback
-              src={selectedMode.bannerImageCandidates}
-              alt={selectedMode.name}
-              className="block w-full h-auto select-none"
-              fallback={
-                <div
-                  className="relative w-full p-6 md:p-8 flex items-center gap-5"
-                  style={{
-                    background: `linear-gradient(180deg, #0a0510 0%, #1a0d2e 50%, #0a0510 100%)`,
-                  }}
-                >
-                  {/* Glow halo */}
-                  <div
-                    className="absolute inset-0 opacity-40 pointer-events-none"
-                    style={{
-                      background: `radial-gradient(circle at 30% 50%, ${selectedMode.accent}55, transparent 60%)`,
-                    }}
-                  />
-                  {/* Icon badge */}
-                  <motion.div
-                    animate={{ rotate: [-3, 3, -3] }}
-                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                    className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                      background: selectedMode.fallbackColor,
-                      border: '3px solid #0a0810',
-                      boxShadow: `0 4px 0 #0a0810, 0 8px 20px ${selectedMode.fallbackColor}88`,
-                    }}
-                  >
-                    <span className="text-5xl">{selectedMode.fallbackEmoji}</span>
-                  </motion.div>
-
-                  <div className="relative flex-1 min-w-0">
-                    <h2
-                      className="text-4xl md:text-5xl font-black leading-none tracking-tight text-white"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        textShadow:
-                          '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810, 2px 2px 0 #0a0810',
-                      }}
-                    >
-                      {selectedMode.name.toUpperCase()}
-                    </h2>
-                    <p
-                      className="text-sm md:text-base text-white/85 font-bold mt-2 uppercase tracking-wider"
-                      style={{ fontFamily: "'Caveat', cursive" }}
-                    >
-                      {selectedMode.tagline}
-                    </p>
-                    <p className="text-xs md:text-sm text-white/70 mt-2 font-medium">
-                      {selectedMode.description}
-                    </p>
-                  </div>
-                </div>
-              }
-            />
-          </motion.div>
-        </AnimatePresence>
+            {selectedMode.name.toUpperCase()}
+          </h2>
+          <p className="text-xs text-white/60 mt-1">{selectedMode.tagline}</p>
+        </div>
 
         {/* MINI MODE CARDS ROW — click to preview a mode in the hero above */}
         <div className="w-full max-w-3xl">
