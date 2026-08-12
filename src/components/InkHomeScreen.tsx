@@ -1,4 +1,4 @@
-import { useState, memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, memo, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
