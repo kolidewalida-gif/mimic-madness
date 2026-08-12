@@ -163,10 +163,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
   const [modeIndex, setModeIndex] = useState(1); // start on AUDIO PHONE like mockup
-  // Direction of last mode change: +1 = went right, -1 = went left.
-  // Used to drive the hero banner horizontal swipe animation.
-  const [modeDir, setModeDir] = useState<1 | -1>(1);
-  const prevModeIndexRef = useRef(1);
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
   const { level } = usePlayerLevel();
@@ -186,17 +182,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
    *   -1 = swipe left  (new card slides in from left)
    */
   const goToMode = useCallback((next: number) => {
-    setModeIndex((curr) => {
-      if (next === curr) return curr;
-      const len = GAME_MODES.length;
-      const normalized = ((next % len) + len) % len;
-      const forward = (normalized - curr + len) % len; // steps going right
-      const backward = (curr - normalized + len) % len; // steps going left
-      const dir: 1 | -1 = forward <= backward ? 1 : -1;
-      prevModeIndexRef.current = curr;
-      setModeDir(dir);
-      return normalized;
-    });
+    const len = GAME_MODES.length;
+    setModeIndex(((next % len) + len) % len);
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -786,8 +773,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           <p className="text-xs text-white/60 mt-1">{selectedMode.tagline}</p>
         </div>
 
-        {/* MINI MODE CARDS ROW — click to preview a mode in the hero above */}
-        <div className="w-full max-w-3xl">
+        {/* MINI MODE CARDS ROW */}
+        <div className="w-full max-w-2xl">
           <div className="grid grid-cols-5 md:grid-cols-9 gap-2">
             {GAME_MODES.map((mode, idx) => {
               const isActive = idx === modeIndex;
@@ -800,11 +787,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   }}
                   whileHover={{ y: -4, scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  animate={
-                    isActive
-                      ? { y: [0, -3, 0], transition: { duration: 1.6, repeat: Infinity } }
-                      : undefined
-                  }
                   className="relative aspect-[3/4] rounded-2xl overflow-hidden group"
                   aria-label={mode.name}
                   aria-pressed={isActive}
