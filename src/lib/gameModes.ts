@@ -17,6 +17,12 @@ export const GAME_MODE_ORDER: LobbyGameMode[] = [
   'normal', 'audiophone', '2v2', 'quiz', 'pixoguess', 'undercover', 'memorise', 'mimic', 'monopoly',
 ];
 
+/** Modes disponibles dans le thème Ink (Monopoly et Mimic retirés). */
+export const INK_GAME_MODE_ORDER: LobbyGameMode[] = GAME_MODE_ORDER.filter(
+  (m) => m !== 'monopoly' && m !== 'mimic',
+);
+
+
 export const GAME_MODE_META: Record<LobbyGameMode, GameModeMeta> = {
   normal: {
     label: 'Imitation', shortLabel: 'IMITATION', emojiLabel: '🎮 Imitation',
