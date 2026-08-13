@@ -1231,12 +1231,9 @@ const PretButton = ({ onClick, disabled, loading = false }: { onClick: () => voi
       onClick={onClick}
       disabled={disabled}
       aria-busy={loading}
-      whileHover={!disabled ? { scale: 1.06, rotate: -2 } : undefined}
-      whileTap={!disabled ? { scale: 0.94, rotate: 1 } : undefined}
-      animate={!disabled ? { rotate: [-3, 3, -3] } : undefined}
-      transition={
-        !disabled ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } : undefined
-      }
+      whileHover={!disabled ? { scale: 1.04 } : undefined}
+      whileTap={!disabled ? { scale: 0.96 } : undefined}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
       className={cn(
         'menu-focus relative w-60 h-44 flex-shrink-0 select-none',
         disabled && !loading && 'opacity-40 grayscale cursor-not-allowed',
