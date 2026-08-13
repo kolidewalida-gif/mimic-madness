@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useInkMode } from '@/hooks/useInkMode';
-import { InkCartoonTransition } from '@/components/InkCartoonTransition';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ScreenTransitionProps {
   children: ReactNode;
@@ -32,12 +32,22 @@ const INK_TRANSITIONS: InkTransitionStyle[] = [
 const ScreenTransitionComponent = ({ children, screenKey, className }: ScreenTransitionProps) => {
   const { isInkMode } = useInkMode();
 
-  // In ink mode, delegate to the new cartoon transition (punchy + SFX layered)
+  // Ink mode: soft, clean cross-fade (no punchy overlay)
   if (isInkMode) {
     return (
-      <InkCartoonTransition screenKey={screenKey} className={className}>
-        {children}
-      </InkCartoonTransition>
+      <div className={cn('relative', className)}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={screenKey}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     );
   }
 
