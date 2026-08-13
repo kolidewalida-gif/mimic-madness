@@ -797,20 +797,6 @@ export const InkLobbyScreen = ({
                 <p className="text-xs md:text-sm text-white/80 mt-0.5">
                   {selectedCard.tagline}
                 </p>
-                <div className="flex items-center gap-3 mt-1.5 text-[10px] uppercase tracking-wider font-bold">
-                  <span className="text-white/50">
-                    Mode : <span className="text-white">SOLO</span>
-                  </span>
-                  <span className="text-white/50">
-                    Difficulté :
-                    <span
-                      className="ml-1 inline-block px-1.5 py-0.5 rounded-md text-white"
-                      style={{ background: selectedCard.fallbackColor }}
-                    >
-                      NORMAL
-                    </span>
-                  </span>
-                </div>
               </div>
 
               <div className="relative flex items-center gap-2 flex-shrink-0">
@@ -861,9 +847,6 @@ export const InkLobbyScreen = ({
                 </motion.button>
               </div>
 
-              {/* Decorative lightning bolts */}
-              <Sparkles className="absolute -bottom-1 -left-1 w-4 h-4 text-amber-400 select-none pointer-events-none" />
-              <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-amber-400 select-none pointer-events-none" />
             </motion.div>
           </AnimatePresence>
 
@@ -884,17 +867,54 @@ export const InkLobbyScreen = ({
             )}
           </AnimatePresence>
 
-          {/* MODE FAN CAROUSEL — all modes shown in a fan */}
-          <div className="flex-1 min-h-0 flex items-center justify-center">
-            <CardFanCarousel
-              cards={fanCards}
-              selectedIndex={selectedFanIndex}
-              onCardClick={isHost ? (i) => handleGameModeChange(MODE_CARDS[i].id) : undefined}
-            />
+          {/* MODE GRID — compact, clear, one tap to pick */}
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar py-1">
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
+              {MODE_CARDS.map((c) => {
+                const active = c.id === gameMode;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={!isHost}
+                    onClick={() => handleGameModeChange(c.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      'menu-focus group relative aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all duration-300 ease-out',
+                      active
+                        ? 'border-white/70 scale-[1.02]'
+                        : 'border-white/10 hover:border-white/30',
+                      !isHost && 'cursor-default',
+                    )}
+                    style={{
+                      background: `linear-gradient(180deg, ${c.fallbackColor}, ${c.fallbackColor}cc)`,
+                      boxShadow: active ? `0 0 0 2px ${c.glowColor}66, 0 8px 20px rgba(0,0,0,0.35)` : undefined,
+                    }}
+                  >
+                    <ImageWithFallback
+                      src={c.imageCandidates[0]}
+                      alt={c.label}
+                      className={cn(
+                        'absolute inset-0 w-full h-full object-cover transition-opacity duration-300',
+                        active ? 'opacity-100' : 'opacity-70 group-hover:opacity-90',
+                      )}
+                      fallback={
+                        <span className="absolute inset-0 flex items-center justify-center text-3xl">
+                          {c.fallbackEmoji}
+                        </span>
+                      }
+                    />
+                    <span className="absolute inset-x-0 bottom-0 px-1.5 py-1 bg-black/60 text-white text-[11px] font-black uppercase tracking-wide truncate">
+                      {c.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* PRÊT button (host) — uses /lobby/pret-stamp.png */}
-          <div className="flex-shrink-0 flex items-end justify-end pb-2 pr-2">
+          <div className="flex-shrink-0 flex items-center justify-center pb-2">
             {isHost ? (
               <PretButton onClick={handleStartGame} disabled={!canStart || isStarting} loading={isStarting} />
             ) : (
