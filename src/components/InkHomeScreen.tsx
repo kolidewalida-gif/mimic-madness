@@ -83,7 +83,7 @@ const MODE_ICONS: Record<LobbyGameMode, React.ReactNode> = {
  * (single source of truth) via GAME_MODE_ORDER so every mode — including
  * `mimic` and `memorise` (Blindtest) — is present and stays consistent.
  */
-const GAME_MODES: GameModeInfo[] = GAME_MODE_ORDER.map((id) => {
+const GAME_MODES: GameModeInfo[] = INK_GAME_MODE_ORDER.map((id) => {
   const meta = GAME_MODE_META[id];
   return {
     id,
@@ -775,7 +775,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
         {/* MINI MODE CARDS ROW */}
         <div className="w-full max-w-2xl">
-          <div className="grid grid-cols-5 md:grid-cols-9 gap-2">
+          <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
             {GAME_MODES.map((mode, idx) => {
               const isActive = idx === modeIndex;
               return (

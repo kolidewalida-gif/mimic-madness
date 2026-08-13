@@ -26,7 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { InkLobbyCanvas } from '@/components/InkLobbyCanvas';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
-import { getStartStatus, GAME_MODE_META, GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
+import { getStartStatus, GAME_MODE_META, INK_GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { Share2 } from 'lucide-react';
@@ -67,11 +67,9 @@ interface ModeCard {
 }
 
 /**
- * All game modes as fan cards. Derived from GAME_MODE_META (single source of
- * truth) via GAME_MODE_ORDER so every mode — including `monopoly` — is present
- * and stays consistent with the rest of the app.
+ * Modes disponibles dans le lobby Ink (Monopoly et Mimic exclus).
  */
-const MODE_CARDS: ModeCard[] = GAME_MODE_ORDER.map((id) => {
+const MODE_CARDS: ModeCard[] = INK_GAME_MODE_ORDER.map((id) => {
   const meta = GAME_MODE_META[id];
   return {
     id,
