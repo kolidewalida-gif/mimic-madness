@@ -30,7 +30,6 @@ import { getStartStatus, GAME_MODE_META, GAME_MODE_ORDER, type LobbyGameMode } f
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { Share2 } from 'lucide-react';
-import CardFanCarousel from '@/components/ui/card-fan-carousel';
 import { MemberSelector, type Member } from '@/components/ui/member-selector';
 
 interface Player {
@@ -287,23 +286,6 @@ export const InkLobbyScreen = ({
   }, [lobbyId]);
 
   const selectedCard = GAME_MODE_META[gameMode];
-
-  // Fan carousel cards (stable) + selected index for the highlight ring
-  const fanCards = useMemo(
-    () =>
-      MODE_CARDS.map((c) => ({
-        imgUrl: c.imageCandidates[0],
-        alt: c.label,
-        id: c.id,
-        label: c.label,
-        bgColor: `linear-gradient(180deg, ${c.fallbackColor}, ${c.fallbackColor}dd)`,
-      })),
-    [],
-  );
-  const selectedFanIndex = useMemo(
-    () => MODE_CARDS.findIndex((c) => c.id === gameMode),
-    [gameMode],
-  );
 
   const handleGameModeChange = useCallback(
     async (mode: LobbyGameMode) => {
