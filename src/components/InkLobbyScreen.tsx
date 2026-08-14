@@ -27,6 +27,7 @@ import { InkLobbyCanvas } from '@/components/InkLobbyCanvas';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { getStartStatus, GAME_MODE_META, INK_GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
+import CardFanCarousel from '@/components/ui/card-fan-carousel';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { Share2 } from 'lucide-react';
@@ -81,6 +82,15 @@ const MODE_CARDS: ModeCard[] = INK_GAME_MODE_ORDER.map((id) => {
     glowColor: meta.accent,
   };
 });
+
+/** Cartes formatées pour le card-fan carousel. */
+const FAN_CARDS = MODE_CARDS.map((c) => ({
+  id: c.id,
+  imgUrl: c.imageCandidates[0],
+  alt: c.label,
+  label: c.label,
+  bgColor: `linear-gradient(180deg, ${c.fallbackColor}, ${c.fallbackColor}cc)`,
+}));
 
 /** Copy with a DOM fallback for browsers where Clipboard API is unavailable. */
 const copyText = async (text: string) => {
@@ -847,50 +857,13 @@ export const InkLobbyScreen = ({
             )}
           </AnimatePresence>
 
-          {/* MODE GRID — compact, clear, one tap to pick */}
-          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar py-1">
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
-              {MODE_CARDS.map((c) => {
-                const active = c.id === gameMode;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    disabled={!isHost}
-                    onClick={() => handleGameModeChange(c.id)}
-                    aria-pressed={active}
-                    className={cn(
-                      'menu-focus group relative aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all duration-300 ease-out',
-                      active
-                        ? 'border-white/70 scale-[1.02]'
-                        : 'border-white/10 hover:border-white/30',
-                      !isHost && 'cursor-default',
-                    )}
-                    style={{
-                      background: `linear-gradient(180deg, ${c.fallbackColor}, ${c.fallbackColor}cc)`,
-                      boxShadow: active ? `0 0 0 2px ${c.glowColor}66, 0 8px 20px rgba(0,0,0,0.35)` : undefined,
-                    }}
-                  >
-                    <ImageWithFallback
-                      src={c.imageCandidates[0]}
-                      alt={c.label}
-                      className={cn(
-                        'absolute inset-0 w-full h-full object-cover transition-opacity duration-300',
-                        active ? 'opacity-100' : 'opacity-70 group-hover:opacity-90',
-                      )}
-                      fallback={
-                        <span className="absolute inset-0 flex items-center justify-center text-3xl">
-                          {c.fallbackEmoji}
-                        </span>
-                      }
-                    />
-                    <span className="absolute inset-x-0 bottom-0 px-1.5 py-1 bg-black/60 text-white text-[11px] font-black uppercase tracking-wide truncate">
-                      {c.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+          {/* MODE CARD-FAN CAROUSEL */}
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <CardFanCarousel
+              cards={FAN_CARDS}
+              selectedIndex={Math.max(0, MODE_CARDS.findIndex((c) => c.id === gameMode))}
+              onCardClick={isHost ? (i) => handleGameModeChange(MODE_CARDS[i].id) : undefined}
+            />
           </div>
 
           {/* PRÊT button (host) — uses /lobby/pret-stamp.png */}
