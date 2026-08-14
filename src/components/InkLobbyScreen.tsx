@@ -82,6 +82,15 @@ const MODE_CARDS: ModeCard[] = INK_GAME_MODE_ORDER.map((id) => {
   };
 });
 
+/** Cartes formatées pour le card-fan carousel. */
+const FAN_CARDS = MODE_CARDS.map((c) => ({
+  id: c.id,
+  imgUrl: c.imageCandidates[0],
+  alt: c.label,
+  label: c.label,
+  bgColor: `linear-gradient(180deg, ${c.fallbackColor}, ${c.fallbackColor}cc)`,
+}));
+
 /** Copy with a DOM fallback for browsers where Clipboard API is unavailable. */
 const copyText = async (text: string) => {
   try {
