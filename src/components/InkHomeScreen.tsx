@@ -1,5 +1,6 @@
 import { useState, memo, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { InkStripesBackground } from '@/components/InkStripesBackground';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
