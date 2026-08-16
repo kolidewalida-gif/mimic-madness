@@ -744,21 +744,21 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         </div>
 
         {/* MODE PREVIEW — simple ligne d'info, le mode réel se choisit dans le lobby */}
-        <div className="w-full max-w-2xl text-center">
+        <div className="w-full text-center">
           <h2
-            className="text-3xl font-black text-white leading-none"
+            className="text-3xl font-black text-[#1a0f2e] leading-none"
             style={{
               fontFamily: "'Caveat', cursive",
-              textShadow: '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810',
+              textShadow: 'none',
             }}
           >
             {selectedMode.name.toUpperCase()}
           </h2>
-          <p className="text-xs text-white/60 mt-1">{selectedMode.tagline}</p>
+          <p className="text-xs text-[#1a0f2e]/60 mt-1">{selectedMode.tagline}</p>
         </div>
 
         {/* MINI MODE CARDS ROW */}
-        <div className="w-full max-w-2xl">
+        <div className="w-full">
           <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
             {GAME_MODES.map((mode, idx) => {
               const isActive = idx === modeIndex;
@@ -833,6 +833,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               );
             })}
           </div>
+        </div>
         </div>
       </main>
 
