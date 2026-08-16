@@ -372,36 +372,10 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   }, [friendCode]);
 
   return (
-    <div className="ibs-shell ibs-home menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#0a0510] text-white relative overflow-hidden">
+    <div className="ibs-shell ibs-home menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#7c3aed] text-white relative overflow-hidden">
       {/* ============== BACKGROUND ============== */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Static background image */}
-        <div className="absolute inset-0">
-          <ImageWithFallback
-            src={[
-              '/home/background.png',
-              '/home/background.jpg',
-              '/home/background.jpeg',
-            ]}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-            fallback={
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0f0820] via-[#0a0510] to-[#160a26]" />
-            }
-          />
-        </div>
-
-        {/* Static mode-tinted glow */}
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[700px] rounded-full opacity-20"
-          style={{
-            background: 'radial-gradient(circle, rgba(167,139,250,0.28) 0%, transparent 70%)',
-            filter: 'blur(120px)',
-          }}
-        />
-
-        {/* Slight dark overlay so the foreground stays legible */}
-        <div className="absolute inset-0 bg-[#0a0510]/30" />
+        <InkStripesBackground />
       </div>
 
       {/* ============== TOP BAR ============== */}
