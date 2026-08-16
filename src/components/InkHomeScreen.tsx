@@ -599,21 +599,30 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       </header>
 
       {/* ============== MAIN CONTENT ============== */}
-      <main className="ibs-home-main relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar gap-4">
+      <main className="ibs-home-main relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar">
+        {/* MENU PANEL — solid card so the menu reads clearly over the striped bg */}
+        <div
+          className="w-full max-w-2xl flex flex-col gap-4 p-4 sm:p-6 rounded-[28px]"
+          style={{
+            background: 'linear-gradient(180deg, #f5f0ff 0%, #e6dcff 100%)',
+            border: '4px solid #0a0810',
+            boxShadow: '0 10px 0 #0a0810, 0 22px 40px rgba(20,6,45,0.35)',
+          }}
+        >
         {/* PSEUDO INPUT — first and only required step */}
-        <div className="w-full max-w-2xl">
+        <div className="w-full">
           <Input
             placeholder="Votre pseudo"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
-            className="h-14 bg-black/55 backdrop-blur-md border-[3px] border-[#0a0810] rounded-2xl text-center text-2xl font-black text-white placeholder:text-white/30 focus:border-purple-400/60 transition-all"
+            className="h-14 bg-white border-[3px] border-[#0a0810] rounded-2xl text-center text-2xl font-black text-[#1a0f2e] placeholder:text-[#1a0f2e]/35 focus-visible:ring-0 focus:border-[#7c3aed] transition-all"
             style={{ fontFamily: "'Caveat', cursive" }}
             maxLength={20}
           />
         </div>
 
         {/* ACTION BUTTONS — JOUER + REJOINDRE */}
-        <div className="w-full max-w-2xl flex flex-col sm:flex-row items-stretch gap-3">
+        <div className="w-full flex flex-col sm:flex-row items-stretch gap-3">
           {/* JOUER — yellow image button (with code fallback) */}
           <motion.button
             onClick={handleCreateGame}
