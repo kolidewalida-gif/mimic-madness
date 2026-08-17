@@ -2699,8 +2699,8 @@ html.gamepad-active .ibs-mode-card:focus { transform: scale(1.025); z-index: 2; 
    Replaces ~500 hard-coded #0a0810 borders/shadows across the menus. */
 :root {
   --ink-outline: #0a0810;
-  --ink-violet: #a855f7;
-  --ink-violet-deep: #7e22ce;
+  --ink-violet: #dc2626;
+  --ink-violet-deep: #991b1b;
   --ink-danger: #ef4444;
   --ink-border: 3px solid var(--ink-outline);
   --ink-border-thin: 2.5px solid var(--ink-outline);
@@ -2711,8 +2711,8 @@ html.gamepad-active .ibs-mode-card:focus { transform: scale(1.025); z-index: 2; 
     2px 2px 0 var(--ink-outline), -1.5px -1.5px 0 var(--ink-outline),
     1.5px -1.5px 0 var(--ink-outline), -1.5px 1.5px 0 var(--ink-outline),
     1.5px 1.5px 0 var(--ink-outline);
-  --ink-panel-gradient: linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%);
-  --ink-header-gradient: linear-gradient(180deg, rgba(168, 85, 247, 0.18), rgba(168, 85, 247, 0.05));
+  --ink-panel-gradient: linear-gradient(180deg, #1a0a0a 0%, #140707 50%, #0a0404 100%);
+  --ink-header-gradient: linear-gradient(180deg, rgba(220, 38, 38, 0.18), rgba(220, 38, 38, 0.05));
 }
 
 /* Documented stacking order. Menus used to mix z-50, z-[151], z-[9998], z-[10100]. */
@@ -2734,7 +2734,7 @@ html.gamepad-active .ibs-mode-card:focus { transform: scale(1.025); z-index: 2; 
 .ink-panel-surface {
   background: var(--ink-panel-gradient);
   border: 4px solid var(--ink-outline);
-  box-shadow: var(--ink-shadow-lg), 0 18px 40px rgba(168, 85, 247, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: var(--ink-shadow-lg), 0 18px 40px rgba(220, 38, 38, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.08);
 }
 
 .ink-panel-header {
