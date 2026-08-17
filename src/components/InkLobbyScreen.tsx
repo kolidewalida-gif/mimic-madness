@@ -461,7 +461,7 @@ export const InkLobbyScreen = ({
   }, [openMenuFor]);
 
   return (
-    <div className="ibs-shell ibs-lobby menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#7c3aed] text-white relative overflow-hidden">
+    <div className="ibs-shell ibs-lobby menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#0b0708] text-white relative overflow-hidden">
       {/* Background canvas (collaborative drawing) */}
       <InkLobbyCanvas lobbyId={lobbyId} playerId={currentPlayer.id} />
 
@@ -492,7 +492,7 @@ export const InkLobbyScreen = ({
                     className="text-3xl font-black leading-none"
                     style={{
                       fontFamily: "'Caveat', cursive",
-                      color: '#a855f7',
+                      color: '#dc2626',
                       textShadow:
                         '2px 2px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
                     }}
@@ -521,7 +521,7 @@ export const InkLobbyScreen = ({
               fallback={<></>}
             />
             {/* Subtle dark overlay so text stays readable on top of the custom image */}
-            <div className="absolute inset-0 bg-[#1a0d2e]/40 pointer-events-none" />
+            <div className="absolute inset-0 bg-[#1a0a0a]/40 pointer-events-none" />
 
             <div className="relative px-4 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -613,7 +613,7 @@ export const InkLobbyScreen = ({
                             exit={{ opacity: 0, y: -5, scale: 0.95 }}
                             transition={{ duration: 0.15 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="absolute right-0 top-7 z-50 w-44 rounded-xl bg-[#1a0d2e]/95 backdrop-blur-xl border-2 border-white/15 shadow-2xl overflow-hidden"
+                            className="absolute right-0 top-7 z-50 w-44 rounded-xl bg-[#1a0a0a]/95 backdrop-blur-xl border-2 border-white/15 shadow-2xl overflow-hidden"
                           >
                             {onTransferHost && (
                               <button
@@ -867,7 +867,7 @@ export const InkLobbyScreen = ({
               className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col"
               style={{
                 background:
-                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                  'linear-gradient(180deg, #1a0a0a 0%, #140707 50%, #0a0404 100%)',
                 borderLeft: '4px solid #0a0810',
                 boxShadow: '-8px 0 24px rgba(0,0,0,0.5)',
               }}
@@ -877,7 +877,7 @@ export const InkLobbyScreen = ({
                 className="absolute inset-y-0 left-1.5 w-0.5 pointer-events-none"
                 style={{
                   background:
-                    'linear-gradient(180deg, transparent, rgba(168,85,247,0.4), transparent)',
+                    'linear-gradient(180deg, transparent, rgba(220,38,38,0.4), transparent)',
                 }}
               />
 
@@ -885,7 +885,7 @@ export const InkLobbyScreen = ({
                 className="relative flex items-center justify-between px-5 py-4 flex-shrink-0"
                 style={{
                   background:
-                    'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
+                    'linear-gradient(180deg, rgba(220,38,38,0.18), rgba(220,38,38,0.05))',
                   borderBottom: '3px solid #0a0810',
                 }}
               >
@@ -895,7 +895,7 @@ export const InkLobbyScreen = ({
                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                     className="w-11 h-11 rounded-2xl flex items-center justify-center"
                     style={{
-                      background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                      background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
                       border: '3px solid #0a0810',
                       boxShadow:
                         '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
@@ -962,16 +962,16 @@ export const InkLobbyScreen = ({
               onClick={(e) => e.stopPropagation()}
               style={{
                 background:
-                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                  'linear-gradient(180deg, #1a0a0a 0%, #140707 50%, #0a0404 100%)',
                 border: '4px solid #0a0810',
                 boxShadow:
-                  '0 12px 0 #0a0810, 0 18px 40px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+                  '0 12px 0 #0a0810, 0 18px 40px rgba(220,38,38,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
               }}
             >
               {/* Inner accent border */}
               <div
                 className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none z-[1]"
-                style={{ border: '2px solid rgba(168,85,247,0.4)' }}
+                style={{ border: '2px solid rgba(220,38,38,0.4)' }}
               />
               {/* Decorative stars */}
               <Sparkles
@@ -1009,7 +1009,7 @@ export const InkLobbyScreen = ({
               className="relative w-full max-w-sm max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl overflow-hidden"
               style={{
                 background:
-                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                  'linear-gradient(180deg, #1a0a0a 0%, #140707 50%, #0a0404 100%)',
                 border: '4px solid #0a0810',
                 boxShadow:
                   '0 12px 0 #0a0810, 0 18px 40px rgba(239,68,68,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',

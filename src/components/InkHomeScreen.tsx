@@ -373,7 +373,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   }, [friendCode]);
 
   return (
-    <div className="ibs-shell ibs-home menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#7c3aed] text-white relative overflow-hidden">
+    <div className="ibs-shell ibs-home menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#0b0708] text-white relative overflow-hidden">
       {/* ============== BACKGROUND ============== */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <InkStripesBackground />
@@ -392,7 +392,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           className="relative flex items-center gap-3 pl-1.5 pr-4 py-1.5 rounded-2xl"
           style={{
             background:
-              'linear-gradient(180deg, rgba(168,85,247,0.25), rgba(126,34,206,0.25))',
+              'linear-gradient(180deg, rgba(220,38,38,0.25), rgba(127,29,29,0.25))',
             border: '2.5px solid #0a0810',
             boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.1)',
           }}
@@ -401,7 +401,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             <div
               className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center text-white font-bold text-base"
               style={{
-                background: 'linear-gradient(135deg, #a855f7, #6b21a8)',
+                background: 'linear-gradient(135deg, #dc2626, #7f1d1d)',
                 border: '2px solid #0a0810',
               }}
             >
@@ -452,7 +452,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             src={['/home/logo.png', '/lobby/logo.png']}
             alt="C2TV MIMIC MASTER"
             className="h-14 sm:h-20 md:h-24 w-auto max-w-[32vw] sm:max-w-none select-none"
-            style={{ filter: 'drop-shadow(0 4px 12px rgba(168,85,247,0.5))' }}
+            style={{ filter: 'drop-shadow(0 4px 12px rgba(220,38,38,0.5))' }}
             fallback={
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-0.5">
@@ -467,7 +467,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
-                    filter: 'drop-shadow(0 2px 8px rgba(168,85,247,0.6))',
+                    filter: 'drop-shadow(0 2px 8px rgba(220,38,38,0.6))',
                   }}
                 >
                   C2TV
@@ -500,7 +500,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             className="relative h-12 flex items-center"
-            style={{ filter: 'drop-shadow(0 4px 10px rgba(168,85,247,0.35))' }}
+            style={{ filter: 'drop-shadow(0 4px 10px rgba(220,38,38,0.35))' }}
             aria-label="Mes amis"
           >
             <ImageWithFallback
@@ -512,7 +512,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   className="h-12 flex items-center gap-2 px-4 rounded-2xl"
                   style={{
                     background:
-                      'linear-gradient(180deg, rgba(168,85,247,0.25), rgba(126,34,206,0.25))',
+                      'linear-gradient(180deg, rgba(220,38,38,0.25), rgba(127,29,29,0.25))',
                     border: '2.5px solid #0a0810',
                     boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.1)',
                   }}
@@ -542,7 +542,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             whileHover={{ scale: 1.08, y: -2 }}
             whileTap={{ scale: 0.94 }}
             className="relative h-12 flex items-center"
-            style={{ filter: 'drop-shadow(0 4px 10px rgba(236,72,153,0.35))' }}
+            style={{ filter: 'drop-shadow(0 4px 10px rgba(220,38,38,0.35))' }}
             aria-label="Social"
           >
             <ImageWithFallback
@@ -554,7 +554,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
                   style={{
                     background:
-                      'linear-gradient(180deg, rgba(236,72,153,0.3), rgba(190,24,93,0.3))',
+                      'linear-gradient(180deg, rgba(220,38,38,0.3), rgba(127,29,29,0.3))',
                     border: '2.5px solid #0a0810',
                     boxShadow: '0 4px 0 #0a0810',
                   }}
@@ -604,9 +604,9 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         <div
           className="w-full max-w-2xl flex flex-col gap-4 p-4 sm:p-6 rounded-[28px]"
           style={{
-            background: 'linear-gradient(180deg, #f5f0ff 0%, #e6dcff 100%)',
+            background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
             border: '4px solid #0a0810',
-            boxShadow: '0 10px 0 #0a0810, 0 22px 40px rgba(20,6,45,0.35)',
+            boxShadow: '0 10px 0 #0a0810, 0 22px 40px rgba(220,38,38,0.25)',
           }}
         >
         {/* PSEUDO INPUT — first and only required step */}
@@ -615,7 +615,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             placeholder="Votre pseudo"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
-            className="h-14 bg-white border-[3px] border-[#0a0810] rounded-2xl text-center text-2xl font-black text-[#1a0f2e] placeholder:text-[#1a0f2e]/35 focus-visible:ring-0 focus:border-[#7c3aed] transition-all"
+            className="h-14 bg-white border-[3px] border-[#0a0810] rounded-2xl text-center text-2xl font-black text-[#1a0a0a] placeholder:text-[#1a0a0a]/35 focus-visible:ring-0 focus:border-[#dc2626] transition-all"
             style={{ fontFamily: "'Caveat', cursive" }}
             maxLength={20}
           />
@@ -648,7 +648,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   className="absolute inset-0 flex items-center justify-center gap-3"
                   style={{
                     background:
-                      'linear-gradient(180deg, #fde047 0%, #fbbf24 50%, #d97706 100%)',
+                      'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #7f1d1d 100%)',
                     border: '4px solid #0a0810',
                     borderRadius: '1rem',
                     boxShadow: '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.4)',
@@ -699,7 +699,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             )}
             style={{
               filter: playerName.trim()
-                ? 'drop-shadow(0 8px 20px rgba(168,85,247,0.4))'
+                ? 'drop-shadow(0 8px 20px rgba(220,38,38,0.4))'
                 : undefined,
             }}
           >
@@ -712,7 +712,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   className="absolute inset-0 flex items-center justify-center gap-3"
                   style={{
                     background:
-                      'linear-gradient(180deg, #a855f7 0%, #7e22ce 50%, #4c1d95 100%)',
+                      'linear-gradient(180deg, #dc2626 0%, #991b1b 50%, #450a0a 100%)',
                     border: '4px solid #0a0810',
                     borderRadius: '1rem',
                     boxShadow: '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)',
@@ -746,7 +746,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         {/* MODE PREVIEW — simple ligne d'info, le mode réel se choisit dans le lobby */}
         <div className="w-full text-center">
           <h2
-            className="text-3xl font-black text-[#1a0f2e] leading-none"
+            className="text-3xl font-black text-white leading-none"
             style={{
               fontFamily: "'Caveat', cursive",
               textShadow: 'none',
@@ -754,7 +754,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           >
             {selectedMode.name.toUpperCase()}
           </h2>
-          <p className="text-xs text-[#1a0f2e]/60 mt-1">{selectedMode.tagline}</p>
+          <p className="text-xs text-white/60 mt-1">{selectedMode.tagline}</p>
         </div>
 
         {/* MINI MODE CARDS ROW */}
@@ -994,15 +994,15 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               aria-labelledby="join-lobby-title"
               style={{
                 background:
-                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                  'linear-gradient(180deg, #1a0a0a 0%, #140707 50%, #0a0404 100%)',
                 border: '4px solid #0a0810',
                 boxShadow:
-                  '0 12px 0 #0a0810, 0 18px 40px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+                  '0 12px 0 #0a0810, 0 18px 40px rgba(220,38,38,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
               }}
             >
               <div
                 className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
-                style={{ border: '2px solid rgba(168,85,247,0.4)' }}
+                style={{ border: '2px solid rgba(220,38,38,0.4)' }}
               />
               <div className="relative p-6 space-y-4 overflow-y-auto custom-scrollbar">
                 <div className="flex items-center justify-between">
@@ -1012,7 +1012,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                       className="w-11 h-11 rounded-2xl flex items-center justify-center"
                       style={{
-                        background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                        background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
                         border: '3px solid #0a0810',
                         boxShadow: '0 4px 0 #0a0810',
                       }}
@@ -1094,7 +1094,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                           className="group relative flex items-center rounded-xl"
                           style={{
                             background:
-                              'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(126,34,206,0.05))',
+                              'linear-gradient(180deg, rgba(220,38,38,0.18), rgba(127,29,29,0.05))',
                             border: '2.5px solid #0a0810',
                             boxShadow: '0 3px 0 #0a0810',
                           }}
@@ -1170,7 +1170,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                       (!playerName.trim() || lobbyCode.length !== 4) && 'opacity-50',
                     )}
                     style={{
-                      background: 'linear-gradient(180deg, #a855f7, #6b21a8)',
+                      background: 'linear-gradient(180deg, #dc2626, #7f1d1d)',
                       border: '3px solid #0a0810',
                       boxShadow: '0 4px 0 #0a0810',
                       fontFamily: "'Caveat', cursive",
@@ -1206,15 +1206,15 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
               onClick={(e) => e.stopPropagation()}
               style={{
                 background:
-                  'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
+                  'linear-gradient(180deg, #1a0a0a 0%, #140707 50%, #0a0404 100%)',
                 border: '4px solid #0a0810',
                 boxShadow:
-                  '0 12px 0 #0a0810, 0 18px 40px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+                  '0 12px 0 #0a0810, 0 18px 40px rgba(220,38,38,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
               }}
             >
               <div
                 className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none z-[1]"
-                style={{ border: '2px solid rgba(168,85,247,0.4)' }}
+                style={{ border: '2px solid rgba(220,38,38,0.4)' }}
               />
               <div className="relative z-[2] flex flex-col min-h-0 flex-1">
                 <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
@@ -1246,8 +1246,8 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.4); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.6); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(220,38,38,0.4); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(220,38,38,0.6); }
       `}</style>
     </div>
   );
