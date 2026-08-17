@@ -2303,28 +2303,28 @@ html.low-power .mix-blend-plus-lighter {
    Opaque aubergine surfaces, short ink shadows and device-safe focus.
    ============================================================ */
 body.ink-mode {
-  --primary: 263 84% 67%;
-  --primary-hover: 263 88% 73%;
-  --primary-light: 279 88% 76%;
-  --accent: 188 91% 48%;
+  --primary: 0 85% 55%;
+  --primary-hover: 0 85% 62%;
+  --primary-light: 0 85% 70%;
+  --accent: 0 75% 45%;
   --success: 158 74% 44%;
   --warning: 45 96% 57%;
-  --card: 269 31% 10%;
-  --border: 270 20% 22%;
+  --card: 0 0% 7%;
+  --border: 0 0% 16%;
 }
 
 .ibs-shell {
-  --ibs-ink: #08060d;
-  --ibs-canvas: #0e0917;
-  --ibs-panel: #171022;
-  --ibs-panel-raised: #21162f;
-  --ibs-violet: #9b72ff;
-  --ibs-cyan: #22d3ee;
+  --ibs-ink: #080607;
+  --ibs-canvas: #0b0708;
+  --ibs-panel: #16100f;
+  --ibs-panel-raised: #201413;
+  --ibs-violet: #e6394a;
+  --ibs-cyan: #ff6b6b;
   --ibs-yellow: #f8cf45;
   --ibs-green: #39d98a;
   --ibs-red: #ef5b68;
   --menu-accent: var(--ibs-violet);
-  color: #f8f5ff;
+  color: #f8f2f2;
   background-color: var(--ibs-canvas);
   font-family: 'Outfit', sans-serif;
 }
