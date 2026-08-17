@@ -13,7 +13,7 @@ interface InkStripesBackgroundProps {
  */
 const InkStripesBackgroundComponent = ({
   base = '#7c3aed',
-  stripe = '#8b4cf0',
+  stripe = '#141013',
 }: InkStripesBackgroundProps) => (
   <div
     className="absolute inset-0 pointer-events-none ink-stripes-bg"
