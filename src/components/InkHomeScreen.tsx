@@ -604,9 +604,9 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         <div
           className="w-full max-w-2xl flex flex-col gap-4 p-4 sm:p-6 rounded-[28px]"
           style={{
-            background: 'linear-gradient(180deg, #fff1f1 0%, #ffd9d9 100%)',
+            background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
             border: '4px solid #0a0810',
-            boxShadow: '0 10px 0 #0a0810, 0 22px 40px rgba(20,6,45,0.35)',
+            boxShadow: '0 10px 0 #0a0810, 0 22px 40px rgba(220,38,38,0.25)',
           }}
         >
         {/* PSEUDO INPUT — first and only required step */}
@@ -746,7 +746,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         {/* MODE PREVIEW — simple ligne d'info, le mode réel se choisit dans le lobby */}
         <div className="w-full text-center">
           <h2
-            className="text-3xl font-black text-[#1a0a0a] leading-none"
+            className="text-3xl font-black text-white leading-none"
             style={{
               fontFamily: "'Caveat', cursive",
               textShadow: 'none',
@@ -754,7 +754,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           >
             {selectedMode.name.toUpperCase()}
           </h2>
-          <p className="text-xs text-[#1a0a0a]/60 mt-1">{selectedMode.tagline}</p>
+          <p className="text-xs text-white/60 mt-1">{selectedMode.tagline}</p>
         </div>
 
         {/* MINI MODE CARDS ROW */}

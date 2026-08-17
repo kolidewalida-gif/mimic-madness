@@ -12,7 +12,7 @@ interface InkStripesBackgroundProps {
  * in Mimic Master violet. No blur, no blobs, no images — pure CSS, cheap.
  */
 const InkStripesBackgroundComponent = ({
-  base = '#7c3aed',
+  base = '#0b0708',
   stripe = '#141013',
 }: InkStripesBackgroundProps) => (
   <div
