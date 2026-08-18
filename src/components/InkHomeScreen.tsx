@@ -34,7 +34,6 @@ import {
   GameAvatar,
   GameBackdrop,
   GameButton,
-  GameCard,
   GameIconButton,
   GameImage,
   GameInput,
@@ -356,15 +355,16 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       {/* ============== MAIN ==============
           Wide focal panel + side rail, then the mode shelf across the full
           width. pb-32 clears the floating music bar. */}
-      <main className="custom-scrollbar relative flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-28 sm:px-8">
-        <div className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col gap-5">
+      <main className="custom-scrollbar relative flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 pb-28 sm:px-8 [justify-content:safe_center]">
+        <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-5">
+          {/* One focal panel: the selected mode and everything needed to play
+              it. Splitting these into two side-by-side cards is what left a
+              large void inside the panel. */}
           <motion.div
-            className="gm-stage flex-1"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.26, ease: 'easeOut' }}
           >
-            {/* Focal panel: whatever mode is selected right now */}
             <ModeHero
               name={selectedMode.name}
               tagline={selectedMode.tagline}
@@ -387,82 +387,59 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   fallback={<span aria-hidden="true">{selectedMode.fallbackEmoji}</span>}
                 />
               }
-            />
-
-            {/* Side rail: identity and the two ways into a game */}
-            <div className="gm-rail">
-              <GameCard className="p-4 sm:p-5">
-                <label
-                  htmlFor="ink-player-name"
-                  className="if-label mb-2 flex items-center gap-1.5"
-                >
-                  <User className="h-3.5 w-3.5" aria-hidden="true" />
-                  Ton pseudo
-                </label>
-                <GameInput
-                  id="ink-player-name"
-                  placeholder="Entre ton pseudo"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  maxLength={20}
-                  autoComplete="nickname"
-                />
-
-                <div className="mt-3.5 flex flex-col gap-2.5">
-                  <GameButton
-                    variant="primary"
-                    size="xl"
-                    accent={selectedMode.accent}
-                    block
-                    disabled={!nameReady}
-                    onClick={handleCreateGame}
-                    icon={<Play className="h-5 w-5" fill="currentColor" />}
+              aside={
+                <div className="gm-hero-actions">
+                  <label
+                    htmlFor="ink-player-name"
+                    className="if-label mb-1.5 flex items-center gap-1.5"
                   >
-                    Créer la partie
-                  </GameButton>
-                  <GameButton
-                    variant="neutral"
-                    size="lg"
-                    block
-                    disabled={!nameReady}
-                    onClick={() => {
-                      playInkSound('brushTap', 0.3);
-                      setShowJoinDialog(true);
-                    }}
-                    icon={<LogIn className="h-[18px] w-[18px]" />}
-                  >
-                    Rejoindre avec un code
-                  </GameButton>
+                    <User className="h-3.5 w-3.5" aria-hidden="true" />
+                    Ton pseudo
+                  </label>
+                  <GameInput
+                    id="ink-player-name"
+                    placeholder="Entre ton pseudo"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    maxLength={20}
+                    autoComplete="nickname"
+                  />
+
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <GameButton
+                      variant="primary"
+                      size="xl"
+                      accent={selectedMode.accent}
+                      className="flex-1"
+                      disabled={!nameReady}
+                      onClick={handleCreateGame}
+                      icon={<Play className="h-5 w-5" fill="currentColor" />}
+                    >
+                      Créer la partie
+                    </GameButton>
+                    <GameButton
+                      variant="neutral"
+                      size="xl"
+                      className="sm:w-auto"
+                      disabled={!nameReady}
+                      onClick={() => {
+                        playInkSound('brushTap', 0.3);
+                        setShowJoinDialog(true);
+                      }}
+                      icon={<LogIn className="h-[18px] w-[18px]" />}
+                    >
+                      Rejoindre
+                    </GameButton>
+                  </div>
+
+                  {!nameReady && (
+                    <p className="if-mute mt-2 text-xs">
+                      Entre un pseudo pour commencer.
+                    </p>
+                  )}
                 </div>
-
-                {!nameReady && (
-                  <p className="if-mute mt-3 text-xs">
-                    Entre un pseudo pour commencer.
-                  </p>
-                )}
-              </GameCard>
-
-              {friendCode && (
-                <GameCard inset className="flex items-center justify-between gap-2 px-3 py-2.5">
-                  <span className="if-label">Code ami</span>
-                  <button
-                    type="button"
-                    onClick={handleCopyFriendCode}
-                    className="if-btn if-btn--ghost if-btn--sm menu-focus"
-                    title="Copier mon code ami"
-                  >
-                    <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
-                      {friendCode}
-                    </span>
-                    {codeCopied ? (
-                      <Check className="h-3.5 w-3.5 text-[var(--c-green)]" aria-hidden="true" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                    )}
-                  </button>
-                </GameCard>
-              )}
-            </div>
+              }
+            />
           </motion.div>
 
           {/* Mode shelf — one row, so seven modes never leave a gap */}
@@ -499,8 +476,29 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         </div>
       </main>
 
-      {/* ============== FOOTER — utilities only ============== */}
-      <footer className="flex flex-shrink-0 items-center justify-end gap-1 px-4 py-1.5 sm:px-8">
+      {/* ============== FOOTER ============== */}
+      <footer className="flex flex-shrink-0 items-center justify-between gap-2 px-4 py-1.5 sm:px-8">
+        {friendCode ? (
+          <button
+            type="button"
+            onClick={handleCopyFriendCode}
+            className="if-btn if-btn--ghost if-btn--sm menu-focus"
+            title="Copier mon code ami"
+          >
+            <span className="if-label">Code ami</span>
+            <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
+              {friendCode}
+            </span>
+            {codeCopied ? (
+              <Check className="h-3.5 w-3.5 text-[var(--c-green)]" aria-hidden="true" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+          </button>
+        ) : (
+          <span />
+        )}
+
         <div className="flex items-center gap-1">
           <GameIconButton
             label={isMuted ? 'Activer le son' : 'Couper le son'}

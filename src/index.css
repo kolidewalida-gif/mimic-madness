@@ -2777,6 +2777,9 @@ html.low-power .mp-spin { animation: none; }
    dialog fell back into the document flow, lost its centring, and ended up
    painted under the music bar. Negative z-index keeps the decoration behind
    the content without touching a single child. */
+/* Decrescendo: a wide glow at the top that fades out towards the bottom.
+   It reads `--accent`, which the screens set from the currently selected game
+   mode, so the whole page quietly takes on that mode's colour. */
 .if-root::before {
   content: '';
   position: absolute;
@@ -2786,12 +2789,26 @@ html.low-power .mp-spin { animation: none; }
   transform: translateZ(0);
   will-change: transform;
   background:
-    radial-gradient(58rem 34rem at 12% -8%, rgba(160, 107, 255, 0.2), transparent 62%),
-    radial-gradient(46rem 30rem at 92% 8%, rgba(64, 201, 255, 0.13), transparent 60%),
-    radial-gradient(52rem 34rem at 50% 108%, rgba(255, 92, 138, 0.12), transparent 62%);
+    radial-gradient(
+      120% 62% at 50% -12%,
+      color-mix(in srgb, var(--accent, var(--c-violet)) 30%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(60% 40% at 6% 4%, rgba(160, 107, 255, 0.16), transparent 70%),
+    radial-gradient(55% 38% at 96% 10%, rgba(64, 201, 255, 0.12), transparent 70%),
+    linear-gradient(180deg, transparent 30%, var(--ink-bg-deep) 96%);
+  transition: background 420ms ease;
 }
 
 html.low-power .if-root::before { display: none; }
+
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .if-root::before {
+    background:
+      radial-gradient(120% 62% at 50% -12%, rgba(160, 107, 255, 0.26), transparent 68%),
+      linear-gradient(180deg, transparent 30%, var(--ink-bg-deep) 96%);
+  }
+}
 
 /* ---- Surfaces ---- */
 .if-panel {
@@ -3127,22 +3144,9 @@ html.low-power .if-root::before { display: none; }
 }
 html.low-power .if-root > .gm-backdrop { display: none; }
 
-.gm-stage {
-  display: grid;
-  gap: 1.25rem;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  align-items: stretch;
-}
-@media (max-width: 1080px) {
-  .gm-stage { grid-template-columns: minmax(0, 1fr); align-items: start; }
-}
-
-/* Only the home stage stretches its hero to fill the column. In the lobby the
-   hero is a fixed-height block above the roster, so it must not grow. */
-.gm-stage > .gm-hero {
-  height: 100%;
-  min-height: clamp(230px, 30vh, 380px);
-}
+/* The hero is never stretched: growing the panel without growing its content
+   is exactly what left a large empty area inside it. It sizes to its content
+   and the surrounding layout centres it instead. */
 
 /* ---- Featured mode panel ---- */
 .gm-hero {
@@ -3153,33 +3157,48 @@ html.low-power .if-root > .gm-backdrop { display: none; }
   gap: clamp(1.25rem, 2.5vw, 2.25rem);
   align-items: center;
   overflow: hidden;
-  padding: clamp(1.25rem, 2.2vw, 2rem);
-  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--ink-line-strong));
+  padding: clamp(1.25rem, 2vw, 1.75rem);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--ink-line-strong));
   border-radius: var(--ink-radius-xl);
+  /* Decrescendo again: the mode colour is strongest at the top edge and dies
+     out before the bottom, so the panel has a light source instead of a flat
+     tint. */
   background:
-    radial-gradient(90% 120% at 0% 0%, color-mix(in srgb, var(--accent) 34%, transparent), transparent 68%),
+    linear-gradient(
+      178deg,
+      color-mix(in srgb, var(--accent) 30%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 8%, transparent) 42%,
+      transparent 72%
+    ),
     var(--ink-surface);
-  box-shadow: var(--ink-shadow-card), 0 0 42px color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: var(--ink-shadow-card), 0 0 42px color-mix(in srgb, var(--accent) 16%, transparent);
+  transition: border-color 260ms ease, background 260ms ease;
 }
 
 .gm-hero-art {
   position: relative;
-  width: clamp(150px, 13vw, 250px);
-  aspect-ratio: 3 / 4;
-  max-height: 100%;
-  overflow: hidden;
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--accent) 26%, rgba(255, 255, 255, 0.05));
   display: grid;
+  width: clamp(148px, 14vw, 216px);
+  aspect-ratio: 3 / 4;
   place-items: center;
-  font-size: 4rem;
+  overflow: hidden;
+  padding: 6px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.05));
+  font-size: 3.5rem;
   line-height: 1;
   box-shadow:
-    0 16px 38px rgba(8, 5, 24, 0.6),
-    0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent),
-    0 0 38px color-mix(in srgb, var(--accent) 28%, transparent);
+    0 16px 38px rgba(8, 5, 24, 0.55),
+    0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
 }
-.gm-hero-art img { width: 100%; height: 100%; object-fit: cover; }
+/* `contain`, not `cover`: the mode artwork is a full game card, and cropping
+   it cut the mode name off the bottom. */
+.gm-hero-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 14px;
+}
 
 /* Name picks up the mode colour, so the panel is unmistakably "this mode". */
 .gm-hero-name {
@@ -3210,11 +3229,20 @@ html.low-power .if-root > .gm-backdrop { display: none; }
 }
 
 .gm-hero-desc {
-  margin-top: 0.7rem;
-  max-width: 46ch;
+  margin-top: 0.6rem;
+  max-width: 52ch;
   color: var(--ink-text-dim);
   font-size: 0.9375rem;
   line-height: 1.5;
+}
+
+/* Action block inside the hero: pseudo field + the two ways into a game.
+   Reads as its own zone without being a separate floating card. */
+.gm-hero-actions {
+  padding: 0.875rem 1rem 1rem;
+  border: 1px solid var(--ink-line-strong);
+  border-radius: var(--ink-radius);
+  background: rgba(10, 7, 26, 0.42);
 }
 
 @media (max-width: 560px) {
@@ -3296,7 +3324,9 @@ html.low-power .if-root > .gm-backdrop { display: none; }
 .gm-chip-art img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* `contain` for the same reason as the hero: these are whole game cards, and
+     cropping them cut off the mode name. */
+  object-fit: contain;
   filter: saturate(0.55) opacity(0.72);
   transition: filter 170ms ease;
 }
@@ -3345,13 +3375,6 @@ html.low-power .if-root > .gm-backdrop { display: none; }
 @media (max-width: 560px) {
   .gm-chip { width: 96px; }
   .gm-chip-art { font-size: 1.4rem; }
-}
-
-/* ---- Side rail ---- */
-.gm-rail {
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
 }
 
 /* ---- Mascot ---- */
