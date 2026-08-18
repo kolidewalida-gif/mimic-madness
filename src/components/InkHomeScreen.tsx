@@ -32,14 +32,19 @@ import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import {
   GameAvatar,
+  GameBackdrop,
   GameButton,
   GameCard,
   GameIconButton,
   GameImage,
   GameInput,
   GameLabel,
+  GameLogo,
   GameModal,
-  ModeCard,
+  GameTag,
+  ModeChip,
+  ModeHero,
+  ModeShelf,
 } from '@/components/game-ui/GameUI';
 import { toast } from 'sonner';
 
@@ -303,22 +308,11 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       className="ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
       style={{ ['--accent' as string]: selectedMode.accent }}
     >
-      {/* ============== HEADER — logo left, two actions right ============== */}
-      <header className="flex flex-shrink-0 items-center justify-between gap-3 px-4 py-4 sm:px-7">
-        <span className="if-display select-none text-2xl sm:text-[1.75rem]">
-          Mimic{' '}
-          <span
-            style={{
-              background:
-                'linear-gradient(100deg, var(--c-violet), var(--c-pink) 60%, var(--c-orange))',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              color: 'transparent',
-            }}
-          >
-            Master
-          </span>
-        </span>
+      <GameBackdrop src="/home/background.png" />
+
+      {/* ============== HEADER — logo left, actions right ============== */}
+      <header className="flex flex-shrink-0 items-center justify-between gap-3 px-4 py-3.5 sm:px-8">
+        <GameLogo />
 
         <div className="flex items-center gap-2">
           <NotificationCenter />
@@ -360,95 +354,131 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       </header>
 
       {/* ============== MAIN ==============
-          pb-32 clears the floating music bar. `safe center` keeps the content
-          centred on tall screens but scrollable on short ones. */}
-      <main className="custom-scrollbar relative flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 pb-32 pt-2 sm:px-6 [justify-content:safe_center]">
-        <div className="mx-auto w-full max-w-[860px]">
-          {/* Hero */}
+          Wide focal panel + side rail, then the mode shelf across the full
+          width. pb-32 clears the floating music bar. */}
+      <main className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto px-4 pb-32 sm:px-8">
+        <div className="mx-auto w-full max-w-[1240px]">
           <motion.div
-            className="if-hero mb-7"
+            className="gm-stage"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, ease: 'easeOut' }}
+            transition={{ duration: 0.26, ease: 'easeOut' }}
           >
-            <p className="if-display text-2xl text-[var(--ink-text-dim)] sm:text-3xl">
-              Prêt à jouer&nbsp;?
-            </p>
-            <p className="if-hero-sub">
-              Choisis ton pseudo, ton mode, et lance la partie.
-            </p>
-          </motion.div>
+            {/* Focal panel: whatever mode is selected right now */}
+            <ModeHero
+              name={selectedMode.name}
+              tagline={selectedMode.tagline}
+              description={selectedMode.description}
+              accent={selectedMode.accent}
+              meta={
+                <>
+                  <GameTag accent={selectedMode.accent}>
+                    {selectedMode.minPlayers}+ joueurs
+                  </GameTag>
+                  <span className="if-mute text-xs">
+                    Mode {modeIndex + 1} sur {GAME_MODES.length}
+                  </span>
+                </>
+              }
+              art={
+                <GameImage
+                  candidates={selectedMode.imageCandidates}
+                  alt=""
+                  fallback={<span aria-hidden="true">{selectedMode.fallbackEmoji}</span>}
+                />
+              }
+            />
 
-          {/* Pseudo + the two big actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, delay: 0.04, ease: 'easeOut' }}
-          >
-            <GameCard className="p-5 sm:p-6">
-              <label htmlFor="ink-player-name" className="if-label mb-2 flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5" aria-hidden="true" />
-                Ton pseudo
-              </label>
-              <GameInput
-                id="ink-player-name"
-                placeholder="Entre ton pseudo"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                maxLength={20}
-                autoComplete="nickname"
-              />
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-[1.4fr_1fr]">
-                <GameButton
-                  variant="primary"
-                  size="xl"
-                  accent={selectedMode.accent}
-                  block
-                  disabled={!nameReady}
-                  onClick={handleCreateGame}
-                  icon={<Play className="h-5 w-5" fill="currentColor" />}
+            {/* Side rail: identity and the two ways into a game */}
+            <div className="gm-rail">
+              <GameCard className="p-4 sm:p-5">
+                <label
+                  htmlFor="ink-player-name"
+                  className="if-label mb-2 flex items-center gap-1.5"
                 >
-                  Créer une partie
-                </GameButton>
-                <GameButton
-                  variant="neutral"
-                  size="xl"
-                  block
-                  disabled={!nameReady}
-                  onClick={() => {
-                    playInkSound('brushTap', 0.3);
-                    setShowJoinDialog(true);
-                  }}
-                  icon={<LogIn className="h-5 w-5" />}
-                >
-                  Rejoindre
-                </GameButton>
-              </div>
+                  <User className="h-3.5 w-3.5" aria-hidden="true" />
+                  Ton pseudo
+                </label>
+                <GameInput
+                  id="ink-player-name"
+                  placeholder="Entre ton pseudo"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  maxLength={20}
+                  autoComplete="nickname"
+                />
 
-              {!nameReady && (
-                <p className="if-mute mt-3 text-xs">
-                  Entre un pseudo pour créer ou rejoindre une partie.
-                </p>
+                <div className="mt-3.5 flex flex-col gap-2.5">
+                  <GameButton
+                    variant="primary"
+                    size="xl"
+                    accent={selectedMode.accent}
+                    block
+                    disabled={!nameReady}
+                    onClick={handleCreateGame}
+                    icon={<Play className="h-5 w-5" fill="currentColor" />}
+                  >
+                    Créer la partie
+                  </GameButton>
+                  <GameButton
+                    variant="neutral"
+                    size="lg"
+                    block
+                    disabled={!nameReady}
+                    onClick={() => {
+                      playInkSound('brushTap', 0.3);
+                      setShowJoinDialog(true);
+                    }}
+                    icon={<LogIn className="h-[18px] w-[18px]" />}
+                  >
+                    Rejoindre avec un code
+                  </GameButton>
+                </div>
+
+                {!nameReady && (
+                  <p className="if-mute mt-3 text-xs">
+                    Entre un pseudo pour commencer.
+                  </p>
+                )}
+              </GameCard>
+
+              {friendCode && (
+                <GameCard inset className="flex items-center justify-between gap-2 px-3 py-2.5">
+                  <span className="if-label">Code ami</span>
+                  <button
+                    type="button"
+                    onClick={handleCopyFriendCode}
+                    className="if-btn if-btn--ghost if-btn--sm menu-focus"
+                    title="Copier mon code ami"
+                  >
+                    <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
+                      {friendCode}
+                    </span>
+                    {codeCopied ? (
+                      <Check className="h-3.5 w-3.5 text-[var(--c-green)]" aria-hidden="true" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
+                  </button>
+                </GameCard>
               )}
-            </GameCard>
+            </div>
           </motion.div>
 
-          {/* Mode cards */}
-          <div className="mt-7">
-            <div className="mb-3 flex items-baseline justify-between gap-3 px-1">
-              <GameLabel>Mode de jeu</GameLabel>
-              <span className="if-mute text-xs">{GAME_MODES.length} modes</span>
+          {/* Mode shelf — one row, so seven modes never leave a gap */}
+          <div className="mt-5">
+            <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
+              <GameLabel>Choisis ton mode</GameLabel>
+              <span className="if-mute text-xs">
+                Flèches ← → pour naviguer
+              </span>
             </div>
 
-            <div className="gm-mode-grid">
+            <ModeShelf label="Modes de jeu">
               {GAME_MODES.map((mode, idx) => (
-                <ModeCard
+                <ModeChip
                   key={mode.id}
-                  order={idx}
                   name={mode.name}
-                  description={mode.tagline}
-                  minPlayers={mode.minPlayers}
                   accent={mode.accent}
                   selected={idx === modeIndex}
                   onClick={() => {
@@ -464,34 +494,13 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                   }
                 />
               ))}
-            </div>
+            </ModeShelf>
           </div>
         </div>
       </main>
 
-      {/* ============== FOOTER ============== */}
-      <footer className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-7">
-        {friendCode ? (
-          <button
-            type="button"
-            onClick={handleCopyFriendCode}
-            className="if-btn if-btn--ghost if-btn--sm menu-focus"
-            title="Copier mon code ami"
-          >
-            <span className="if-mute text-xs font-semibold">Code ami</span>
-            <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
-              {friendCode}
-            </span>
-            {codeCopied ? (
-              <Check className="h-3.5 w-3.5 text-[var(--c-green)]" aria-hidden="true" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-            )}
-          </button>
-        ) : (
-          <span />
-        )}
-
+      {/* ============== FOOTER — utilities only ============== */}
+      <footer className="flex flex-shrink-0 items-center justify-end gap-1 px-4 py-1.5 sm:px-8">
         <div className="flex items-center gap-1">
           <GameIconButton
             label={isMuted ? 'Activer le son' : 'Couper le son'}

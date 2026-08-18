@@ -35,14 +35,18 @@ import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { InkModal } from '@/components/menu/InkOverlay';
 import {
+  GameBackdrop,
   GameButton,
   GameCard,
   GameIconButton,
   GameImage,
   GameLabel,
+  GameLogo,
   GameModal,
   GameTag,
-  ModeCard,
+  ModeChip,
+  ModeHero,
+  ModeShelf,
   PlayerCard,
 } from '@/components/game-ui/GameUI';
 
@@ -332,16 +336,19 @@ export const InkLobbyScreen = ({
       className="ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
       style={{ ['--accent' as string]: selectedCard.accent }}
     >
+      <GameBackdrop src="/lobby/backgroundlobby.png" />
+
       {/* ============== HEADER ============== */}
-      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-7">
+      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="if-display select-none text-xl sm:text-2xl">Salon</span>
+          <GameLogo candidates={['/lobby/logo.png', '/home/logo.png']} imgClassName="h-8 w-auto sm:h-9" />
           <button
             type="button"
             onClick={handleCopyCode}
             className="if-btn if-btn--neutral menu-focus"
             title="Copier le code du lobby"
           >
+            <span className="if-label hidden sm:inline">Code</span>
             <span className="font-mono text-lg font-bold tracking-[0.28em]">{lobbyCode}</span>
             {codeCopied ? (
               <Check className="h-4 w-4 text-[var(--c-green)]" aria-hidden="true" />
@@ -384,9 +391,9 @@ export const InkLobbyScreen = ({
 
       {/* ============== MAIN GRID ==============
           pb-32 clears the floating music bar. */}
-      <div className="custom-scrollbar grid min-h-0 flex-1 grid-cols-1 gap-4 px-4 pb-32 sm:px-7 md:grid-cols-[320px_1fr] md:overflow-hidden">
-        {/* ---------- LEFT: players + chat ---------- */}
-        <aside className="order-2 flex min-h-[28rem] flex-col gap-4 md:order-1 md:min-h-0">
+      <div className="custom-scrollbar grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto px-4 pb-32 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:overflow-hidden">
+        {/* ---------- RIGHT RAIL: players + mascot + chat ---------- */}
+        <aside className="order-2 flex min-h-[28rem] flex-col gap-3.5 lg:order-2 lg:min-h-0">
           <GameCard className="flex flex-shrink-0 flex-col overflow-hidden">
             <div className="flex items-center justify-between gap-2 border-b border-[var(--ink-line)] px-4 py-3">
               <GameLabel className="flex items-center gap-1.5">
@@ -501,6 +508,23 @@ export const InkLobbyScreen = ({
             </div>
           </GameCard>
 
+          {/* Waiting state — the project's mascot earns its keep here instead of
+              leaving an empty rail while the host waits for players. */}
+          {players.length <= 1 && (
+            <GameCard inset className="hidden flex-shrink-0 flex-col items-center gap-1 p-4 text-center lg:flex">
+              <GameImage
+                candidates={['/lobby/mascot.png']}
+                alt=""
+                className="gm-mascot max-w-[128px]"
+                fallback={<span className="text-4xl">🎤</span>}
+              />
+              <p className="if-h2">Encore tout seul&nbsp;!</p>
+              <p className="if-mute text-xs">
+                Partage le code {lobbyCode} pour remplir le salon.
+              </p>
+            </GameCard>
+          )}
+
           {/* Chat */}
           <GameCard className="flex min-h-[16rem] flex-1 flex-col overflow-hidden">
             <TwitchStyleLobbyChat
@@ -512,100 +536,105 @@ export const InkLobbyScreen = ({
           </GameCard>
         </aside>
 
-        {/* ---------- RIGHT: mode picker + start ---------- */}
-        <section className="order-1 flex min-h-0 flex-col gap-4 md:order-2">
-          <GameCard className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--ink-line)] px-5 py-3.5">
-              <div className="min-w-0">
-                <GameLabel>Mode de jeu</GameLabel>
-                <p className="if-h2 mt-0.5 truncate">{selectedCard.label}</p>
-              </div>
-              {isHost ? (
-                <GameTag accent={selectedCard.accent}>
-                  {selectedCard.minPlayers}+ joueurs
-                </GameTag>
-              ) : (
-                <GameTag>L'hôte choisit le mode</GameTag>
-              )}
-            </div>
-
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5">
-              <div className="gm-mode-grid">
-                {MODE_CARDS.map((card, idx) => (
-                  <ModeCard
-                    key={card.id}
-                    order={idx}
-                    name={card.label}
-                    description={card.tagline}
-                    minPlayers={card.minPlayers}
-                    accent={card.accent}
-                    selected={card.id === gameMode}
-                    disabled={!isHost}
-                    onClick={() => handleGameModeChange(card.id)}
-                    art={
-                      <GameImage
-                        candidates={card.imageCandidates}
-                        alt=""
-                        fallback={<span aria-hidden="true">{card.fallbackEmoji}</span>}
+        {/* ---------- MAIN STAGE: featured mode, start, shelf ---------- */}
+        <section className="order-1 flex min-h-0 flex-col gap-4 lg:order-1 lg:overflow-y-auto lg:pr-1 custom-scrollbar">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.26, ease: 'easeOut' }}
+          >
+            <ModeHero
+              name={selectedCard.label}
+              tagline={selectedCard.tagline}
+              description={selectedCard.description}
+              accent={selectedCard.accent}
+              meta={
+                <>
+                  <GameTag accent={selectedCard.accent}>
+                    {selectedCard.minPlayers}+ joueurs
+                  </GameTag>
+                  {!isHost && <GameTag>L'hôte choisit le mode</GameTag>}
+                  {gameMode === '2v2' && teams.length > 0 && (
+                    <GameTag>
+                      {teams.length} équipe{teams.length > 1 ? 's' : ''}
+                    </GameTag>
+                  )}
+                </>
+              }
+              art={
+                <GameImage
+                  candidates={selectedCard.imageCandidates}
+                  alt=""
+                  fallback={<span aria-hidden="true">{selectedCard.fallbackEmoji}</span>}
+                />
+              }
+              aside={
+                <div className="flex flex-col gap-2.5">
+                  {isHost && !canStart && reasons.length > 0 && (
+                    <div
+                      role="status"
+                      className="flex items-start gap-2 rounded-[var(--ink-radius-sm)] border border-[rgba(255,206,61,0.3)] bg-[rgba(255,206,61,0.1)] px-3 py-2.5"
+                    >
+                      <AlertTriangle
+                        className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--c-yellow)]"
+                        aria-hidden="true"
                       />
-                    }
-                  />
-                ))}
-              </div>
+                      <span className="text-xs text-[var(--c-yellow)]">
+                        {reasons.join(' · ')}
+                      </span>
+                    </div>
+                  )}
 
-              <p className="if-muted mt-5 text-sm leading-relaxed">
-                {selectedCard.description}
-              </p>
-
-              {gameMode === '2v2' && teams.length > 0 && (
-                <p className="if-mute mt-2 text-xs">
-                  {teams.length} équipe{teams.length > 1 ? 's' : ''} formée
-                  {teams.length > 1 ? 's' : ''}.
-                </p>
-              )}
-            </div>
-
-            {/* Start area */}
-            <div className="flex flex-col gap-3 border-t border-[var(--ink-line)] p-5">
-              {isHost && !canStart && reasons.length > 0 && (
-                <div
-                  role="status"
-                  className="flex items-start gap-2 rounded-[var(--ink-radius-sm)] border border-[rgba(255,206,61,0.3)] bg-[rgba(255,206,61,0.1)] px-3 py-2.5"
-                >
-                  <AlertTriangle
-                    className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--c-yellow)]"
-                    aria-hidden="true"
-                  />
-                  <span className="text-xs text-[var(--c-yellow)]">{reasons.join(' · ')}</span>
+                  {isHost ? (
+                    <GameButton
+                      variant="primary"
+                      size="xl"
+                      accent={selectedCard.accent}
+                      className="w-full sm:w-auto sm:min-w-[280px]"
+                      disabled={!canStart}
+                      loading={isStarting}
+                      loadingLabel="Lancement…"
+                      onClick={handleStartGame}
+                      icon={<Play className="h-5 w-5" fill="currentColor" />}
+                    >
+                      Lancer la partie
+                    </GameButton>
+                  ) : (
+                    <p className="if-mute text-sm">
+                      En attente du lancement par l'hôte…
+                    </p>
+                  )}
                 </div>
-              )}
+              }
+            />
+          </motion.div>
 
-              {isHost ? (
-                <motion.div
-                  animate={canStart && !isStarting ? { scale: [1, 1.015, 1] } : undefined}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  <GameButton
-                    variant="primary"
-                    size="xl"
-                    accent={selectedCard.accent}
-                    block
-                    disabled={!canStart}
-                    loading={isStarting}
-                    loadingLabel="Lancement…"
-                    onClick={handleStartGame}
-                    icon={<Play className="h-5 w-5" fill="currentColor" />}
-                  >
-                    Lancer la partie
-                  </GameButton>
-                </motion.div>
-              ) : (
-                <p className="if-mute py-2 text-center text-sm">
-                  En attente du lancement par l'hôte…
-                </p>
-              )}
+          {/* Mode shelf */}
+          <div>
+            <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
+              <GameLabel>{isHost ? 'Change de mode' : 'Modes du salon'}</GameLabel>
+              <span className="if-mute text-xs">{MODE_CARDS.length} modes</span>
             </div>
-          </GameCard>
+            <ModeShelf label="Modes de jeu">
+              {MODE_CARDS.map((card) => (
+                <ModeChip
+                  key={card.id}
+                  name={card.label}
+                  accent={card.accent}
+                  selected={card.id === gameMode}
+                  disabled={!isHost}
+                  onClick={() => handleGameModeChange(card.id)}
+                  art={
+                    <GameImage
+                      candidates={card.imageCandidates}
+                      alt=""
+                      fallback={<span aria-hidden="true">{card.fallbackEmoji}</span>}
+                    />
+                  }
+                />
+              ))}
+            </ModeShelf>
+          </div>
         </section>
       </div>
 

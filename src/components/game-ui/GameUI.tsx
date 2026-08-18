@@ -255,60 +255,97 @@ export const GameImage = ({
 };
 
 /* ============================================================
-   ModeCard — the centrepiece of the menu
+   ModeHero — the focal panel
 
-   Large illustration, name, one-line pitch, own accent colour. Selection is
-   signalled four ways at once (scale, glow, border, ribbon) so it reads
-   without having to parse any text.
+   Shows the currently selected mode large: real artwork, name, tagline and
+   description. This is what gives the screen a subject instead of a grid.
 ============================================================ */
-export const ModeCard = ({
+export const ModeHero = ({
   name,
+  tagline,
   description,
-  minPlayers,
+  accent,
+  art,
+  aside,
+  meta,
+}: {
+  name: string;
+  tagline?: string;
+  description?: string;
+  accent: string;
+  art: ReactNode;
+  /** Rendered under the description (CTA, tags…). */
+  aside?: ReactNode;
+  /** Rendered top-right (player count, host hint…). */
+  meta?: ReactNode;
+}) => (
+  <div className="gm-hero" style={accentStyle(accent)}>
+    <span className="gm-hero-art" aria-hidden="true">
+      {art}
+    </span>
+    <div className="min-w-0">
+      {meta && <div className="mb-2 flex flex-wrap items-center gap-2">{meta}</div>}
+      <h2 className="gm-hero-name">{name}</h2>
+      {tagline && <p className="gm-hero-tagline">{tagline}</p>}
+      {description && <p className="gm-hero-desc">{description}</p>}
+      {aside && <div className="mt-4">{aside}</div>}
+    </div>
+  </div>
+);
+
+/* ============================================================
+   ModeShelf — one scrollable row of compact mode chips
+
+   A single row always fills its line, which is why this replaced the grid:
+   seven cards in a 4-column grid left an obvious half-empty second row.
+============================================================ */
+export const ModeShelf = ({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) => (
+  <div role="group" aria-label={label} className="gm-shelf custom-scrollbar">
+    {children}
+  </div>
+);
+
+export const ModeChip = ({
+  name,
   accent,
   art,
   selected = false,
   disabled = false,
   onClick,
-  /** Index in the grid, used to stagger the entrance animation. */
-  order = 0,
+  title,
 }: {
   name: string;
-  description?: string;
-  minPlayers?: number;
   accent: string;
   art: ReactNode;
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
-  order?: number;
+  title?: string;
 }) => (
   <button
     type="button"
     onClick={onClick}
     disabled={disabled}
     aria-pressed={selected}
-    style={accentStyle(accent, {
-      animationDelay: `${Math.min(order, 9) * 35}ms`,
-    })}
-    className={cn('gm-mode gm-pop menu-focus', selected && 'is-selected')}
+    title={title ?? name}
+    style={accentStyle(accent)}
+    className={cn('gm-chip menu-focus', selected && 'is-selected')}
   >
     {selected && (
-      <span className="gm-mode-flag">
-        <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-        Choisi
+      <span className="gm-chip-dot" aria-hidden="true">
+        <Check className="h-3 w-3" strokeWidth={3.5} />
       </span>
     )}
-
-    <span className="gm-mode-art" aria-hidden="true">
+    <span className="gm-chip-art" aria-hidden="true">
       {art}
     </span>
-
-    <span className="gm-mode-name">{name}</span>
-    {description && <span className="gm-mode-desc">{description}</span>}
-    {minPlayers !== undefined && (
-      <span className="gm-mode-players">{minPlayers}+ joueurs</span>
-    )}
+    <span className="gm-chip-name">{name}</span>
   </button>
 );
 
@@ -408,22 +445,48 @@ export const GameHeader = ({
   </header>
 );
 
-/** Compact inline logo lockup for headers. */
-export const GameLogo = ({ className }: { className?: string }) => (
-  <span
-    className={cn('if-display select-none text-xl sm:text-2xl', className)}
-    aria-label="Mimic Master"
-  >
-    Mimic{' '}
-    <span
-      style={{
-        background: 'linear-gradient(100deg, var(--c-violet), var(--c-pink) 60%, var(--c-orange))',
-        WebkitBackgroundClip: 'text',
-        backgroundClip: 'text',
-        color: 'transparent',
-      }}
-    >
-      Master
-    </span>
+/**
+ * Logo lockup. Uses the artwork shipped in /public when it loads, and falls
+ * back to a typographic lockup so the header is never empty.
+ */
+export const GameLogo = ({
+  candidates = ['/home/logo.png'],
+  className,
+  imgClassName = 'h-9 w-auto sm:h-11',
+}: {
+  candidates?: string[];
+  className?: string;
+  imgClassName?: string;
+}) => (
+  <span className={cn('select-none', className)}>
+    <GameImage
+      candidates={candidates}
+      alt="Mimic Master"
+      className={imgClassName}
+      fallback={
+        <span className="if-display text-xl sm:text-2xl" aria-label="Mimic Master">
+          Mimic{' '}
+          <span
+            style={{
+              background:
+                'linear-gradient(100deg, var(--c-violet), var(--c-pink) 60%, var(--c-orange))',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            Master
+          </span>
+        </span>
+      }
+    />
   </span>
+);
+
+/**
+ * Faint full-screen artwork behind a screen. Purely decorative, and skipped
+ * entirely on low-power devices via CSS.
+ */
+export const GameBackdrop = ({ src }: { src: string }) => (
+  <div className="gm-backdrop" style={{ backgroundImage: `url(${src})` }} aria-hidden="true" />
 );
