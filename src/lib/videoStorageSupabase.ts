@@ -189,10 +189,14 @@ class VideoStorageSupabase {
     // Invalidate cache
     urlCache.delete(clipId);
 
-    // Delete from storage
+    // Delete from storage, along with the clip's rythmo cue file when it has
+    // one. The cue file is a `<path>.cues.json` sibling of the video, so it is
+    // removed here rather than by every caller — otherwise deleting a clip
+    // would leave orphaned cues behind in the bucket.
+    const cuesPath = `${clip.storagePath.replace(/\.[^./]+$/, '')}.cues.json`;
     const { error: storageError } = await supabase.storage
       .from('video-challenges')
-      .remove([clip.storagePath]);
+      .remove([clip.storagePath, cuesPath]);
 
     if (storageError) {
       console.error('Error deleting from storage:', storageError);

@@ -3817,3 +3817,157 @@ body.ink-mode .glass-nav {
   background: var(--ink-surface) !important;
   border-color: var(--ink-line) !important;
 }
+
+/* ============================================================
+   Bande rythmo
+   ------------------------------------------------------------
+   The dubbing strip under the challenge video. Words scroll
+   right-to-left at a constant speed and must be spoken as they
+   cross the fixed playhead.
+
+   Everything here is driven by a single `transform` on `.rb-strip`,
+   written from an animation frame. Nothing in this block may use
+   `backdrop-filter` or animate `width`: both caused the flicker
+   the player reported earlier in this project.
+============================================================ */
+.rb-root {
+  --rb-accent: var(--c-violet);
+  --rb-height: 74px;
+  position: relative;
+  width: 100%;
+}
+
+.rb-viewport {
+  position: relative;
+  height: var(--rb-height);
+  overflow: hidden;
+  border-radius: 14px;
+  background: #14121c;
+  border: 1px solid var(--ink-line, rgba(255, 255, 255, 0.1));
+  /* Keeps the strip's compositing layer from bleeding into the page. */
+  isolation: isolate;
+  contain: paint;
+}
+
+/* The moving text run. Positioned absolutely so its transform never
+   affects layout, and promoted to its own layer up-front. */
+.rb-strip {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+/* Thin rule the words sit on: it turns the constant scroll speed into a
+   visible distance, which is what makes the band readable ahead of time. */
+.rb-baseline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.09);
+  pointer-events: none;
+}
+
+.rb-word {
+  position: absolute;
+  bottom: 18px;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  white-space: nowrap;
+  font-family: var(--font-display, 'Baloo 2', system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+  /* Only colour and opacity change per word, so the strip never re-lays out
+     mid-scroll. */
+  transition: color 90ms linear, opacity 160ms linear;
+}
+
+/* Under the playhead: this is the word to say right now. */
+.rb-word.is-live {
+  color: var(--rb-accent);
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.5),
+    0 0 18px color-mix(in srgb, var(--rb-accent) 55%, transparent);
+}
+
+/* Already spoken. */
+.rb-word.is-past {
+  opacity: 0.34;
+}
+
+/* Underline spanning the word's real duration, so a long, drawn-out word
+   looks long. */
+.rb-word-span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rb-accent) 40%, transparent);
+  pointer-events: none;
+}
+
+.rb-word.is-live .rb-word-span {
+  background: var(--rb-accent);
+}
+
+/* The line to speak on. */
+.rb-playhead {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 999px;
+  background: var(--rb-accent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--rb-accent) 70%, transparent);
+  pointer-events: none;
+}
+
+/* Words fade in and out at the edges instead of popping. */
+.rb-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 56px;
+  pointer-events: none;
+}
+
+.rb-fade--left {
+  left: 0;
+  background: linear-gradient(to right, #14121c, rgba(20, 18, 28, 0));
+}
+
+.rb-fade--right {
+  right: 0;
+  background: linear-gradient(to left, #14121c, rgba(20, 18, 28, 0));
+}
+
+/* Shown instead of the scroll for `prefers-reduced-motion`. */
+.rb-static {
+  margin-top: 8px;
+  font-family: var(--font-display, 'Baloo 2', system-ui, sans-serif);
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 640px) {
+  .rb-root {
+    --rb-height: 62px;
+  }
+  .rb-word {
+    font-size: 1.2rem;
+  }
+}

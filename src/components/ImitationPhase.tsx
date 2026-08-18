@@ -23,6 +23,9 @@ import { Label } from "@/components/ui/label";
 import { playInkSound } from "@/hooks/useInkSoundEffects";
 import { useQuestTracker } from "@/hooks/useQuestTracker";
 import { cn } from "@/lib/utils";
+import { RhythmoBand } from "@/components/rhythmo/RhythmoBand";
+import { loadRhythmoTrack } from "@/lib/rhythmo/store";
+import type { RhythmoTrack } from "@/lib/rhythmo/types";
 
 interface Player {
   id: string;
@@ -77,6 +80,12 @@ export const ImitationPhase = ({
   const { setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
   const questTracker = useQuestTracker();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
+  // Rythmo band for the challenge clip. Null when the clip has none, which is
+  // normal: it is generated at import time and older clips predate it.
+  const [rhythmoTrack, setRhythmoTrack] = useState<RhythmoTrack | null>(null);
+  // Players can hide the band — an imperfect transcription is more of a
+  // distraction than a help, and only they can judge that.
+  const [showRhythmo, setShowRhythmo] = useState(true);
 
   const teammate = gameMode === '2v2' && getTeammate ? getTeammate(currentPlayer.id) : null;
   const { broadcastStatus } = useBroadcastRecordingStatus(
@@ -87,15 +96,31 @@ export const ImitationPhase = ({
   );
 
   useEffect(() => {
+    let isMounted = true;
     const loadChallengeData = async () => {
       try {
         const clip = await videoStorage.getVideoClip(currentChallenge.id);
-        if (clip) setChallengeClipData(clip);
+        if (clip && isMounted) setChallengeClipData(clip);
       } catch (error) {
         console.error('Error loading challenge clip:', error);
       }
     };
     loadChallengeData();
+
+    // Loaded separately: a missing band must never delay or break the clip.
+    setRhythmoTrack(null);
+    setShowRhythmo(true);
+    loadRhythmoTrack(currentChallenge.id)
+      .then((track) => {
+        if (isMounted) setRhythmoTrack(track);
+      })
+      .catch(() => {
+        /* no band for this clip */
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [currentChallenge.id]);
 
   useEffect(() => {
@@ -399,6 +424,34 @@ export const ImitationPhase = ({
                 style={{ border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0)${isRecording ? ", 0 0 0 3px #ef4444" : ""}` }}>
                 <VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" videoRef={challengeVideoRef} />
               </div>
+
+              {/* Bande rythmo — words scroll past the playhead and must be
+                  spoken as they cross it. Only rendered when the clip has a
+                  transcription. */}
+              {rhythmoTrack && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-1.5 px-0.5">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em]"
+                      style={{ fontFamily: FONT, color: 'var(--c-violet)' }}>
+                      Bande rythmo
+                    </span>
+                    <button type="button"
+                      onClick={() => { playInkSound('cartoonPop', 0.35); setShowRhythmo((v) => !v); }}
+                      className="text-[9px] font-black uppercase tracking-[0.16em] px-2 py-0.5 rounded-full transition-colors"
+                      style={{
+                        fontFamily: FONT,
+                        color: showRhythmo ? 'rgba(255,255,255,0.5)' : 'var(--c-violet)',
+                        border: '1px solid var(--ink-line)',
+                      }}>
+                      {showRhythmo ? 'Masquer' : 'Afficher'}
+                    </button>
+                  </div>
+
+                  {showRhythmo && (
+                    <RhythmoBand track={rhythmoTrack} videoRef={challengeVideoRef} accent="var(--c-violet)" />
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
