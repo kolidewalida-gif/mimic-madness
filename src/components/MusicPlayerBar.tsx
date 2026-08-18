@@ -569,149 +569,118 @@ const MusicPlayerBarComponent = () => {
         className="menu-surface ink-z-bar pointer-events-none fixed bottom-14 left-1/2 -translate-x-1/2"
         style={{ width: "min(94vw, 620px)" }}
       >
-        {/* Rounded capsule with a light frosted feel, so it reads as part of
-            the game rather than as a dashboard audio widget. */}
+        {/* "Now playing" card. A rounded card rather than a full pill, so the
+            progress line can sit flush along the bottom edge instead of being
+            clipped by a 999px radius.
+
+            No backdrop-filter on purpose: a blurred fixed element over the
+            menu background caused visible flickering. A nearly opaque surface
+            reads the same and never repaints. */}
         <div
-          className="pointer-events-auto relative overflow-hidden"
+          className="mp-bar pointer-events-auto relative overflow-hidden"
           role="region"
           aria-label="Lecteur de musique"
-          // No backdrop-filter here on purpose: a blurred fixed element over
-          // the animated menu background caused visible flickering. A nearly
-          // opaque surface reads the same and never repaints.
-          style={{
-            borderRadius: "999px",
-            border: "1px solid var(--ink-line-strong)",
-            background: "rgba(34, 28, 72, 0.97)",
-            boxShadow: "var(--ink-shadow-pop), inset 0 1px 0 rgba(255,255,255,0.1)",
-            transform: "translateZ(0)",
-          }}
         >
-          <SeekBar progress={progress} duration={duration} onSeek={seek} />
-
-          <div className="flex items-center gap-2 px-3 py-2.5">
+          <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3">
+            {/* Cover + title, opens the full player */}
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="menu-focus group flex min-w-0 flex-1 items-center gap-3 text-left"
+              className="menu-focus group flex min-w-0 flex-1 items-center gap-3 rounded-[14px] text-left"
               aria-label={`Ouvrir le lecteur, ${trackLabel}`}
             >
               <span className="relative flex-shrink-0">
-                <Cover track={currentTrack} size={46} />
+                <Cover track={currentTrack} size={44} />
                 {isPlaying && (
-                  <span
-                    className="absolute -bottom-1 -right-1 flex h-4 items-end gap-[2px] rounded-md px-1 pb-[3px]"
-                    style={{ background: "var(--ink-outline)" }}
-                    aria-hidden="true"
-                  >
+                  <span className="mp-eq" aria-hidden="true">
                     {[0, 1, 2].map((i) => (
                       <span
                         key={i}
-                        className="mp-eq-bar w-[2px] rounded-full bg-[var(--ink-surface-3)]"
+                        className="mp-eq-bar"
                         style={{ animationDelay: `${i * 0.15}s` }}
                       />
                     ))}
                   </span>
                 )}
               </span>
+
               <span className="min-w-0 flex-1">
-                <span
-                  className="block truncate text-xl font-black leading-tight text-white transition-colors group-hover:text-[var(--ink-accent-text)]"
-                  style={{ fontFamily: "'Outfit', sans-serif" }}
-                >
+                <span className="mp-title group-hover:text-[var(--ink-accent-text)]">
                   {trackLabel}
                 </span>
-                <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/45">
+                <span className="mp-sub">
                   <span className="truncate">{cover.artist}</span>
-                  <span
-                    className="flex-shrink-0 rounded-md px-1.5 py-[1px] tabular-nums text-white/70"
-                    style={{ background: "rgba(255,255,255,0.08)" }}
-                  >
+                  <span className="mp-time">
                     {formatTime(progress)} / {formatTime(duration)}
                   </span>
                 </span>
               </span>
+
               <ChevronUp
-                className="h-4 w-4 flex-shrink-0 text-white/40 transition-transform group-hover:-translate-y-0.5 group-hover:text-white"
+                className="h-4 w-4 flex-shrink-0 text-[var(--ink-text-mute)] transition-transform group-hover:-translate-y-0.5 group-hover:text-[var(--ink-text)]"
                 aria-hidden="true"
               />
             </button>
 
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.94 }}
-              onClick={() => setAutoMode(!autoMode)}
-              aria-pressed={autoMode}
-              aria-label={autoMode ? `Musique adaptative activée, ambiance ${SITUATION_LABEL[situation] ?? situation}` : "Musique adaptative désactivée"}
-              className={cn(
-                "menu-focus flex h-9 flex-shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] font-black tracking-wider",
-                autoMode ? "text-white" : "text-white/50 hover:text-white",
-              )}
-              style={{
-                background: autoMode ? "var(--ink-accent)" : "var(--ink-surface-2)",
-                border: "1px solid var(--ink-line)",
-                boxShadow: "none",
-              }}
-            >
-              <Sparkles className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
-              <span className="hidden sm:inline">AUTO</span>
-            </motion.button>
-
-            {/* Groupe transport : bloc encré unique */}
-            <div
-              className="flex flex-shrink-0 items-center gap-1 rounded-full p-1"
-              style={{
-                background: "rgba(0,0,0,0.35)",
-                border: "var(--ink-border-thin)",
-                boxShadow: "inset 0 2px 6px rgba(0,0,0,0.45)",
-              }}
-            >
+            {/* Transport */}
+            <div className="flex flex-shrink-0 items-center gap-0.5">
               <button
                 type="button"
                 onClick={handlePrev}
                 aria-label="Piste précédente"
-                className="menu-focus hidden h-9 w-9 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white sm:flex"
+                className="mp-ghost hidden sm:grid"
               >
                 <SkipBack className="h-4 w-4" fill="currentColor" aria-hidden="true" />
               </button>
-              <motion.button
+
+              <button
                 type="button"
-                whileTap={{ scale: 0.92 }}
-                whileHover={{ y: -1 }}
                 onClick={togglePlay}
                 aria-label={isPlaying ? `Mettre en pause ${trackLabel}` : `Lire ${trackLabel}`}
-                className="menu-focus grid h-11 w-11 flex-shrink-0 place-items-center rounded-full text-white"
-                style={{
-                  background: "var(--ink-accent)",
-                  border: "1px solid var(--ink-accent)",
-                  boxShadow: "none",
-                }}
+                className="mp-play"
               >
                 {isPlaying
-                  ? <Pause className="h-5 w-5" fill="white" aria-hidden="true" />
-                  : <Play className="ml-0.5 h-5 w-5" fill="white" aria-hidden="true" />}
-              </motion.button>
+                  ? <Pause className="h-5 w-5" fill="currentColor" aria-hidden="true" />
+                  : <Play className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden="true" />}
+              </button>
+
               <button
                 type="button"
                 onClick={handleNext}
                 aria-label="Piste suivante"
-                className="menu-focus flex h-9 w-9 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                className="mp-ghost grid"
               >
                 <SkipForward className="h-4 w-4" fill="currentColor" aria-hidden="true" />
               </button>
+            </div>
+
+            {/* Secondary toggles, visually separated from the transport */}
+            <div className="mp-aside hidden sm:flex">
               <button
                 type="button"
                 onClick={toggleMute}
                 aria-pressed={muted}
                 aria-label={muted ? "Réactiver la musique" : "Couper la musique"}
-                className={cn(
-                  "menu-focus hidden h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10 sm:flex",
-                  muted ? "text-rose-300" : "text-white/60 hover:text-white",
-                )}
+                className={cn("mp-ghost grid", muted && "is-off")}
               >
                 {muted ? <VolumeX className="h-4 w-4" aria-hidden="true" /> : <Volume2 className="h-4 w-4" aria-hidden="true" />}
               </button>
+
+              <button
+                type="button"
+                onClick={() => setAutoMode(!autoMode)}
+                aria-pressed={autoMode}
+                aria-label={autoMode ? `Musique adaptative activée, ambiance ${SITUATION_LABEL[situation] ?? situation}` : "Musique adaptative désactivée"}
+                title={autoMode ? `Auto · ${SITUATION_LABEL[situation] ?? situation}` : "Musique adaptative désactivée"}
+                className={cn("mp-ghost grid", autoMode && "is-on")}
+              >
+                <Sparkles className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+              </button>
             </div>
           </div>
+
+          {/* Progress sits flush on the bottom edge, full width */}
+          <SeekBar progress={progress} duration={duration} onSeek={seek} />
         </div>
       </motion.div>
     </>

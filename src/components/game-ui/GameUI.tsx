@@ -17,6 +17,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -399,35 +400,42 @@ export const GameModal = ({
   /** Render a standard header row with a close button. */
   showClose?: boolean;
   title?: ReactNode;
-}) => (
-  <div className="ink-z-modal fixed inset-0 flex items-center justify-center p-4">
-    <button
-      type="button"
-      onClick={onClose}
-      aria-label={`Fermer ${label}`}
-      className="absolute inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.75)] backdrop-blur-sm"
-    />
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={label}
-      className={cn(
-        'menu-dialog menu-dialog-safe if-panel if-fade relative flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden',
-        className,
-      )}
-    >
-      {showClose && (
-        <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-[var(--ink-line)] px-5 py-3.5">
-          <span className="if-h2 truncate">{title ?? label}</span>
-          <GameIconButton label={`Fermer ${label}`} onClick={onClose}>
-            <X className="h-4 w-4" aria-hidden="true" />
-          </GameIconButton>
-        </div>
-      )}
-      {children}
-    </div>
-  </div>
-);
+}) => {
+  if (typeof document === 'undefined') return null;
+
+  // Rendered into <body>, not in place: a dialog must not inherit the
+  // positioning, stacking or overflow of whatever screen opened it.
+  return createPortal(
+    <div className="ink-z-modal fixed inset-0 flex items-center justify-center p-4">
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label={`Fermer ${label}`}
+        className="absolute inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.78)]"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        className={cn(
+          'menu-dialog menu-dialog-safe if-panel if-fade relative flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden',
+          className,
+        )}
+      >
+        {showClose && (
+          <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-[var(--ink-line)] px-5 py-3.5">
+            <span className="if-h2 truncate">{title ?? label}</span>
+            <GameIconButton label={`Fermer ${label}`} onClick={onClose}>
+              <X className="h-4 w-4" aria-hidden="true" />
+            </GameIconButton>
+          </div>
+        )}
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
+};
 
 /* ============================================================
    GameHeader — logo left, actions right. Deliberately sparse.

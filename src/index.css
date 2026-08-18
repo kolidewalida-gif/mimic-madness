@@ -2771,11 +2771,17 @@ html.low-power .mp-spin { animation: none; }
    fixed layer under a scrolling area forces a full repaint every frame, which
    is what made the background shimmer. Promoting it to its own compositor
    layer keeps it perfectly still. */
+/* `z-index: -1` rather than lifting every child with `.if-root > *`.
+   That rule set `position: relative` on all direct children, which silently
+   overrode `position: fixed` on any modal rendered inside the shell: the
+   dialog fell back into the document flow, lost its centring, and ended up
+   painted under the music bar. Negative z-index keeps the decoration behind
+   the content without touching a single child. */
 .if-root::before {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   transform: translateZ(0);
   will-change: transform;
@@ -2784,7 +2790,6 @@ html.low-power .mp-spin { animation: none; }
     radial-gradient(46rem 30rem at 92% 8%, rgba(64, 201, 255, 0.13), transparent 60%),
     radial-gradient(52rem 34rem at 50% 108%, rgba(255, 92, 138, 0.12), transparent 62%);
 }
-.if-root > * { position: relative; z-index: 1; }
 
 html.low-power .if-root::before { display: none; }
 
@@ -3112,7 +3117,7 @@ html.low-power .if-root::before { display: none; }
 .if-root > .gm-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   background-position: center top;
   background-size: cover;
@@ -3495,4 +3500,107 @@ html.low-power .if-root > .gm-backdrop { display: none; }
   .gm-player-avatar,
   .gm-slot-ring { width: 44px; height: 44px; }
   .gm-slot { min-height: 96px; }
+}
+
+/* ============================================================
+   MUSIC BAR — "now playing" card
+
+   A rounded card rather than a full pill: the progress line can then run
+   flush along the bottom edge instead of being clipped by a 999px radius.
+   Deliberately quiet, since it is permanently on screen.
+   ============================================================ */
+.mp-bar {
+  border: 1px solid var(--ink-line-strong);
+  border-radius: 18px;
+  background: rgba(34, 28, 72, 0.97);
+  box-shadow: var(--ink-shadow-pop), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  transform: translateZ(0);
+}
+
+.mp-title {
+  display: block;
+  overflow: hidden;
+  color: var(--ink-text);
+  font-family: var(--ink-font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 150ms ease;
+}
+
+.mp-sub {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.05rem;
+  color: var(--ink-text-mute);
+  font-size: 0.6875rem;
+}
+
+.mp-time {
+  flex-shrink: 0;
+  color: var(--ink-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Equalizer badge pinned to the cover corner. */
+.mp-eq {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: flex;
+  height: 15px;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 4px 3px;
+  border-radius: 6px;
+  background: var(--c-violet);
+}
+.mp-eq .mp-eq-bar {
+  width: 2px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+/* Transport buttons */
+.mp-ghost {
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--ink-text-dim);
+  transition: background 150ms ease, color 150ms ease;
+}
+.mp-ghost:hover { background: rgba(255, 255, 255, 0.09); color: var(--ink-text); }
+.mp-ghost.is-on { background: var(--ink-accent-soft); color: var(--c-violet); }
+.mp-ghost.is-off { color: var(--c-coral); }
+
+.mp-play {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--c-violet);
+  color: #fff;
+  transition: transform 150ms cubic-bezier(0.34, 1.4, 0.64, 1), background 150ms ease;
+}
+.mp-play:hover { background: var(--ink-accent-hover); transform: scale(1.06); }
+.mp-play:active { transform: scale(0.96); }
+
+/* Mute + adaptive-music, separated from the transport by a hairline. */
+.mp-aside {
+  align-items: center;
+  gap: 0.125rem;
+  padding-left: 0.375rem;
+  border-left: 1px solid var(--ink-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-play,
+  .mp-title { transition: none; }
+  .mp-play:hover { transform: none; }
 }
