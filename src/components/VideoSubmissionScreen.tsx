@@ -12,6 +12,7 @@ import {
   Upload,
   Trash2,
   Loader2,
+  Mic,
 } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { CircularGallery } from "@/components/ui/circular-gallery";
 import { generateRhythmoTrack, releaseRhythmoWorker } from "@/lib/rhythmo/generate";
 import { isLikelyDecodable } from "@/lib/rhythmo/audio";
+import { hasRhythmoTrack } from "@/lib/rhythmo/store";
 import { RhythmoError, rhythmoErrorLabel, type RhythmoProgress } from "@/lib/rhythmo/types";
 
 interface Player {
@@ -83,9 +85,12 @@ export const VideoSubmissionScreen = ({
   const { toast } = useToast();
 
   // ── Rythmo band generation ──────────────────────────────────────────────
-  // Runs right after an import, entirely on this machine (local Whisper).
-  // Tracked in one state object because the panel shows which clip is being
-  // processed, which stage it is at, and the model download progress.
+  // Never automatic: transcription costs a model download and a minute of
+  // compute, and a band is only useful on clips where the words matter. The
+  // player asks for it, per clip.
+  //
+  // One state object because the panel shows which clip is being processed,
+  // which stage it is at, and the model download progress.
   const [rhythmo, setRhythmo] = useState<{
     clipName: string;
     index: number;
@@ -93,12 +98,41 @@ export const VideoSubmissionScreen = ({
     progress: RhythmoProgress;
   } | null>(null);
   const rhythmoAbortRef = useRef<AbortController | null>(null);
+  /** Which clips already have a band. Drives the badges and the button state. */
+  const [rhythmoReady, setRhythmoReady] = useState<Record<string, boolean>>({});
+  /**
+   * Files kept from this session's imports, keyed by clip id. Lets a band be
+   * generated without downloading the video back. Clips from earlier sessions
+   * are not here and fall back to the signed URL.
+   */
+  const importedFilesRef = useRef<Record<string, File>>({});
 
   // Abort in-flight work and free the model if the player leaves this screen.
   useEffect(() => () => {
     rhythmoAbortRef.current?.abort();
     releaseRhythmoWorker();
   }, []);
+
+  // Which clips already have a band. Checked once per clip; `loadRhythmoTrack`
+  // caches the answer, so revisiting this screen costs nothing.
+  useEffect(() => {
+    let cancelled = false;
+    const unknown = savedClips.filter((clip) => rhythmoReady[clip.id] === undefined);
+    if (unknown.length === 0) return;
+    (async () => {
+      const entries = await Promise.all(
+        unknown.map(async (clip) => [clip.id, await hasRhythmoTrack(clip.id)] as const),
+      );
+      if (cancelled) return;
+      setRhythmoReady((prev) => {
+        const next = { ...prev };
+        for (const [id, ready] of entries) next[id] = ready;
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedClips]);
 
   useEffect(() => {
     loadPlayerClips();
@@ -180,6 +214,11 @@ export const VideoSubmissionScreen = ({
       }));
       const imported = results.filter((r): r is { clip: VideoClip; file: File } => r !== null);
       if (imported.length > 0) {
+        // Keep the File around so a band asked for later in this session can
+        // read the audio locally instead of downloading the video back.
+        for (const { clip, file } of imported) {
+          importedFilesRef.current[clip.id] = file;
+        }
         setSavedClips((prev) => [...prev, ...imported.map((r) => r.clip)]);
         toast({ title: `📂 ${imported.length} vidéo${imported.length > 1 ? 's' : ''} importée${imported.length > 1 ? 's' : ''} !` });
       }
@@ -187,66 +226,81 @@ export const VideoSubmissionScreen = ({
       if (failed > 0) {
         toast({ title: `⚠️ ${failed} échec${failed > 1 ? 's' : ''}`, description: 'Certains fichiers n\'ont pas pu être uploadés.', variant: 'destructive' });
       }
-
-      // Transcribe now rather than at play time: the band has to be ready
-      // before the round starts, and doing it here means it is computed once
-      // per clip instead of once per player per round.
-      if (imported.length > 0) {
-        void buildRhythmoBands(imported);
-      }
     } finally {
       setIsUploading(false);
     }
   };
 
   /**
-   * Transcribe freshly imported clips, one at a time.
+   * Get the media for a clip. Prefers the File from this session's import;
+   * otherwise downloads the clip back from storage, which is what makes it
+   * possible to add a band to a clip imported before.
+   */
+  const getClipMedia = async (clip: VideoClip): Promise<{ blob: Blob; fileName: string }> => {
+    const local = importedFilesRef.current[clip.id];
+    if (local) return { blob: local, fileName: local.name };
+
+    const url = clipUrls[clip.id] ?? (await videoStorage.getVideoUrl(clip.id));
+    if (!url) throw new RhythmoError('engine', 'Vidéo introuvable.');
+
+    const response = await fetch(url);
+    if (!response.ok) throw new RhythmoError('engine', 'Téléchargement de la vidéo impossible.');
+    // The stored path carries the real extension; the clip name does not.
+    return { blob: await response.blob(), fileName: clip.storagePath };
+  };
+
+  /**
+   * Generate bands for the given clips, one at a time.
    *
    * Sequential on purpose: a single Whisper model is held in one worker, and
    * running clips in parallel would compete for the same compute while making
    * progress impossible to report meaningfully.
    */
-  const buildRhythmoBands = async (entries: { clip: VideoClip; file: File }[]) => {
-    // Containers the browser cannot decode are skipped silently — the clip
-    // still works, it just gets no band.
-    const candidates = entries.filter((e) => isLikelyDecodable(e.file.name));
-    if (candidates.length === 0) return;
+  const buildRhythmoBands = async (clips: VideoClip[]) => {
+    if (clips.length === 0 || rhythmo) return;
 
     const controller = new AbortController();
     rhythmoAbortRef.current = controller;
 
     let done = 0;
     let failures = 0;
+    let lastReason: RhythmoError | null = null;
 
-    for (const [index, entry] of candidates.entries()) {
+    for (const [index, clip] of clips.entries()) {
       if (controller.signal.aborted) break;
 
       setRhythmo({
-        clipName: entry.clip.name,
+        clipName: clip.name,
         index: index + 1,
-        total: candidates.length,
+        total: clips.length,
         progress: { phase: 'extracting' },
       });
 
       try {
+        const { blob, fileName } = await getClipMedia(clip);
+
+        // Containers the browser cannot decode are rejected here rather than
+        // after a pointless model load.
+        if (!isLikelyDecodable(fileName)) {
+          throw new RhythmoError('unsupported-container', 'Format non décodable.');
+        }
+
         await generateRhythmoTrack({
-          clipId: entry.clip.id,
-          file: entry.file,
-          fileName: entry.file.name,
+          clipId: clip.id,
+          file: blob,
+          fileName,
           signal: controller.signal,
           onProgress: (progress) =>
             setRhythmo((prev) => (prev ? { ...prev, progress } : prev)),
         });
+
+        setRhythmoReady((prev) => ({ ...prev, [clip.id]: true }));
         done += 1;
       } catch (error) {
         if (error instanceof RhythmoError && error.reason === 'cancelled') break;
         failures += 1;
-        console.warn('[rythmo] échec pour', entry.clip.name, error);
-        // Surface the reason once, on the last clip, so a batch of silent
-        // videos does not produce a wall of toasts.
-        if (index === candidates.length - 1 && error instanceof RhythmoError) {
-          toast({ title: '🎤 Bande rythmo', description: rhythmoErrorLabel(error.reason) });
-        }
+        if (error instanceof RhythmoError) lastReason = error;
+        console.warn('[rythmo] échec pour', clip.name, error);
       }
     }
 
@@ -255,16 +309,25 @@ export const VideoSubmissionScreen = ({
 
     if (done > 0) {
       toast({
-        title: `🎤 Bande rythmo prête (${done}/${candidates.length})`,
-        description: 'Le texte défilera sous la vidéo pendant l\'imitation.',
+        title: `🎤 Bande rythmo prête (${done}/${clips.length})`,
+        description: "Le texte défilera sous la vidéo pendant l'imitation.",
       });
     } else if (failures > 0 && !controller.signal.aborted) {
+      // Report the actual reason: a container we cannot decode is a very
+      // different problem from a clip with no speech.
       toast({
-        title: '🎤 Bande rythmo indisponible',
-        description: 'Les vidéos restent jouables, sans texte défilant.',
+        title: '🎤 Bande rythmo impossible',
+        description: lastReason
+          ? rhythmoErrorLabel(lastReason.reason)
+          : 'Les vidéos restent jouables, sans texte défilant.',
       });
     }
   };
+
+  /** Selected clips that do not have a band yet. */
+  const rhythmoTargets = selectedClips
+    .map((id) => savedClips.find((c) => c.id === id))
+    .filter((c): c is VideoClip => !!c && rhythmoReady[c.id] !== true);
 
   const cancelRhythmo = () => {
     rhythmoAbortRef.current?.abort();
@@ -296,6 +359,9 @@ export const VideoSubmissionScreen = ({
       setSavedClips([]);
       setSelectedClips([]);
       setClipUrls({});
+      // The bands went with the clips (deleteVideoClip removes the cue file).
+      setRhythmoReady({});
+      importedFilesRef.current = {};
       toast({ title: '🗑️ Bibliothèque vidée', description: `${clips.length} vidéo(s) supprimée(s).` });
     } catch (err) {
       console.error('[wipe] error:', err);
@@ -559,46 +625,6 @@ export const VideoSubmissionScreen = ({
                     </span>
                   </div>
 
-                  {/* RYTHMO PROGRESS — the first run downloads the speech model
-                      (~80 Mo, cached afterwards), so the player needs to see
-                      that something is happening and be able to skip it. */}
-                  {rhythmo && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="rounded-2xl p-3 space-y-2"
-                      style={{ background: "var(--ink-accent-soft)", border: "1px solid var(--ink-line)" }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 shrink-0 animate-spin text-[var(--ink-accent-text)]" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-black truncate text-[var(--ink-accent-text)]"
-                            style={{ fontFamily: "'Outfit', sans-serif" }}>
-                            {rhythmoLabel(rhythmo.progress)}
-                          </p>
-                          <p className="text-[10px] text-white/45 truncate" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                            {rhythmo.clipName} · {rhythmo.index}/{rhythmo.total}
-                          </p>
-                        </div>
-                        <button type="button" onClick={cancelRhythmo}
-                          className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] px-2 py-1 rounded-full text-white/55 hover:text-white transition-colors"
-                          style={{ fontFamily: "'Outfit', sans-serif", border: "1px solid var(--ink-line)" }}>
-                          Passer
-                        </button>
-                      </div>
-
-                      {/* Determinate only while the model downloads; inference
-                          gives no usable percentage, so it stays indeterminate
-                          rather than faking one. */}
-                      {rhythmo.progress.phase === 'loading-model' && (
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.09)" }}>
-                          <div className="h-full rounded-full transition-[width] duration-200"
-                            style={{ width: `${Math.round(rhythmo.progress.ratio * 100)}%`, background: ACCENT }} />
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-
                   {/* CIRCULAR GALLERY — drag with the cursor to browse, click center to (de)select */}
                   {savedClips.length > 0 && (
                     <div className="space-y-1">
@@ -637,6 +663,110 @@ export const VideoSubmissionScreen = ({
                       >
                         Glisse avec la souris pour parcourir · clique sur la vidéo centrale pour la (dé)sélectionner
                       </p>
+                    </div>
+                  )}
+
+                  {/* RYTHMO PROGRESS — the first run downloads the speech model
+                      (~80 Mo, cached afterwards), so the player needs to see
+                      that something is happening and be able to give up. */}
+                  {rhythmo && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-2xl p-3 space-y-2"
+                      style={{ background: "var(--ink-accent-soft)", border: "1px solid var(--ink-line)" }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 shrink-0 animate-spin text-[var(--ink-accent-text)]" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black truncate text-[var(--ink-accent-text)]"
+                            style={{ fontFamily: "'Outfit', sans-serif" }}>
+                            {rhythmoLabel(rhythmo.progress)}
+                          </p>
+                          <p className="text-[10px] text-white/45 truncate" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                            {rhythmo.clipName} · {rhythmo.index}/{rhythmo.total}
+                          </p>
+                        </div>
+                        <button type="button" onClick={cancelRhythmo}
+                          className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] px-2 py-1 rounded-full text-white/55 hover:text-white transition-colors"
+                          style={{ fontFamily: "'Outfit', sans-serif", border: "1px solid var(--ink-line)" }}>
+                          Annuler
+                        </button>
+                      </div>
+
+                      {/* Determinate only while the model downloads; inference
+                          gives no usable percentage, so it stays indeterminate
+                          rather than faking one. */}
+                      {rhythmo.progress.phase === 'loading-model' && (
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.09)" }}>
+                          <div className="h-full rounded-full transition-[width] duration-200"
+                            style={{ width: `${Math.round(rhythmo.progress.ratio * 100)}%`, background: ACCENT }} />
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* RYTHMO — opt-in, on the clips the player has selected.
+                      Deliberately a separate action from submitting: a band is
+                      worth the wait on a dialogue clip and pointless on a
+                      wordless one, and only the player knows which. */}
+                  {selectedClips.length > 0 && !rhythmo && (
+                    <div className="rounded-2xl p-3 space-y-2"
+                      style={{ background: "var(--ink-accent-soft)", border: "1px solid var(--ink-line)" }}>
+                      <div className="flex items-start gap-2">
+                        <Mic className="w-4 h-4 mt-0.5 shrink-0 text-[var(--ink-accent-text)]" strokeWidth={2.5} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-[var(--ink-accent-text)]"
+                            style={{ fontFamily: "'Outfit', sans-serif" }}>
+                            Bande rythmo <span className="text-white/40">(optionnel)</span>
+                          </p>
+                          <p className="text-[10px] leading-snug text-white/45"
+                            style={{ fontFamily: "'Outfit', sans-serif" }}>
+                            Le texte défile sous la vidéo pendant l'imitation. Transcription
+                            faite sur ton ordi, sans rien envoyer.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Per-clip state, so the player sees what he would be
+                          paying the wait for. */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedClips.map((id) => {
+                          const clip = savedClips.find((c) => c.id === id);
+                          if (!clip) return null;
+                          const ready = rhythmoReady[clip.id] === true;
+                          return (
+                            <span key={clip.id}
+                              className="max-w-[48%] truncate text-[10px] font-black px-2 py-0.5 rounded-full"
+                              style={{
+                                fontFamily: "'Outfit', sans-serif",
+                                color: ready ? "#34d399" : "rgba(255,255,255,0.45)",
+                                border: "1px solid var(--ink-line)",
+                              }}>
+                              {ready ? "✓ " : "· "}{clip.name}
+                            </span>
+                          );
+                        })}
+                      </div>
+
+                      <motion.button type="button"
+                        onClick={() => void buildRhythmoBands(rhythmoTargets)}
+                        disabled={rhythmoTargets.length === 0}
+                        whileHover={rhythmoTargets.length > 0 ? { scale: 1.02 } : undefined}
+                        whileTap={rhythmoTargets.length > 0 ? { scale: 0.98 } : undefined}
+                        className={cn(
+                          "w-full py-2 rounded-xl flex items-center justify-center gap-1.5",
+                          rhythmoTargets.length === 0 && "opacity-45 cursor-not-allowed",
+                        )}
+                        style={{ background: ACCENT, border: "1px solid var(--ink-line)" }}>
+                        <Sparkles className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                        <span className="text-xs font-black text-white leading-none"
+                          style={{ fontFamily: "'Outfit', sans-serif" }}>
+                          {rhythmoTargets.length === 0
+                            ? "Bandes déjà générées"
+                            : `Générer la bande rythmo (${rhythmoTargets.length})`}
+                        </span>
+                      </motion.button>
                     </div>
                   )}
 
