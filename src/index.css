@@ -2374,7 +2374,9 @@ body.ink-mode {
   place-items: center;
   padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
 }
-.social-studio-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: rgba(3,2,7,.84); backdrop-filter: blur(10px); }
+/* Solid scrim, no blur: animating a blur layer in over the menu background is
+   what made overlays flicker when they opened. */
+.social-studio-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: rgba(8,5,24,.86); }
 /* The social hub is opened from the menu, so it shares the menu palette:
    `--social-violet` / `--social-cyan` are kept as names only and now resolve
    to the Ink accent and the neutral scale. */
@@ -2481,7 +2483,7 @@ body.ink-mode {
 .social-empty > span { font-size: 3.5rem; }
 .social-empty h4 { margin-top: .8rem; font: 750 1.2rem/1 'Space Grotesk',sans-serif; }
 .social-empty p { max-width: 22rem; margin-top: .5rem; color: rgba(255,255,255,.4); font-size: .78rem; }
-.social-viewer-overlay { position: fixed; inset: 0; z-index: 10060; display: grid; place-items: center; padding: 1rem; background: rgba(0,0,0,.9); backdrop-filter: blur(10px); }
+.social-viewer-overlay { position: fixed; inset: 0; z-index: 10060; display: grid; place-items: center; padding: 1rem; background: rgba(6,4,18,.94); }
 
 /* "Pour toi" plays the immersive player inline (no grid to choose from). */
 .social-foryou-stage { height: min(76dvh, 680px); min-height: 22rem; }
@@ -3567,7 +3569,12 @@ html.low-power .if-root > .gm-backdrop { display: none; }
 .mp-seek:focus-within .mp-seek-track { height: 6px; }
 
 /* ---- Volume ---- */
-.mp-vol { align-items: center; gap: 0.25rem; }
+.mp-vol {
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+}
+@media (min-width: 1024px) { .mp-vol { display: flex; } }
 
 .mp-vol-range {
   width: 74px;
@@ -3760,16 +3767,53 @@ html.low-power .if-root > .gm-backdrop { display: none; }
 .mp-play:hover { background: var(--ink-accent-hover); transform: scale(1.06); }
 .mp-play:active { transform: scale(0.96); }
 
-/* Mute + adaptive-music, separated from the transport by a hairline. */
+/* Secondary control groups, separated from the transport by a hairline.
+   `display: flex` belongs here, not in a utility class: without it the span
+   stayed `inline`, so `align-items` and `gap` were ignored and the buttons
+   (which are `display: grid`) stacked vertically and stretched the bar. */
 .mp-aside {
+  display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 0.125rem;
   padding-left: 0.375rem;
   border-left: 1px solid var(--ink-line);
 }
+/* Opt-out for the group that is hidden below a breakpoint. */
+.mp-aside.is-hidden { display: none; }
+@media (min-width: 768px) { .mp-aside.is-hidden { display: flex; } }
 
 @media (prefers-reduced-motion: reduce) {
   .mp-play,
   .mp-title { transition: none; }
   .mp-play:hover { transform: none; }
+}
+
+/* ============================================================
+   INK MODE — no blur layers, anywhere
+
+   Fading a `backdrop-filter` layer in over the menu's gradient background
+   forces the compositor to re-sample a large area on every frame, which is
+   what produced the flicker when opening a menu. Ink mode's visual language
+   has no glassmorphism, so every blur is switched off in one place rather
+   than being hunted down across ~40 components. Mirrors the existing
+   `html.low-power` / `html.tv-mode` overrides.
+   ============================================================ */
+body.ink-mode [class*="backdrop-blur"],
+body.ink-mode .glass-panel,
+body.ink-mode .glass-card,
+body.ink-mode .glass-surface,
+body.ink-mode .glass-nav {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Those glass utilities relied on the blur for legibility, so give them a real
+   surface once it is gone. */
+body.ink-mode .glass-panel,
+body.ink-mode .glass-card,
+body.ink-mode .glass-surface,
+body.ink-mode .glass-nav {
+  background: var(--ink-surface) !important;
+  border-color: var(--ink-line) !important;
 }

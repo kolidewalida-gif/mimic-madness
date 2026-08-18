@@ -148,14 +148,20 @@ export const InkDrawer = ({
             exit={{ opacity: 0 }}
             onClick={close}
             aria-label={closeLabel ?? `Fermer ${title}`}
-            className="ink-z-drawer-backdrop fixed inset-0 h-full w-full cursor-default bg-black/70 backdrop-blur-sm"
+            // No backdrop-blur: fading a blur layer in over the menu's
+            // gradient background forces the compositor to re-sample the whole
+            // viewport every frame, which showed up as flicker on open. A
+            // denser solid scrim reads the same.
+            className="ink-z-drawer-backdrop fixed inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.78)]"
           />
           <motion.div
             ref={panelRef}
             initial={{ x: offscreen }}
             animate={{ x: 0 }}
             exit={{ x: offscreen }}
-            transition={{ type: 'spring', damping: 26, stiffness: 240 }}
+            // Short tween rather than a spring: a spring overshoots and keeps
+            // painting for extra frames after it looks settled.
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
@@ -205,14 +211,14 @@ export const InkModal = ({
             exit={{ opacity: 0 }}
             onClick={close}
             aria-label={closeLabel ?? `Fermer ${title}`}
-            className="absolute inset-0 h-full w-full cursor-default bg-black/85 backdrop-blur-md"
+            className="absolute inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.82)]"
           />
           <motion.div
             ref={panelRef}
             initial={{ opacity: 0, scale: 0.9, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 18 }}
-            transition={{ type: 'spring', damping: 24, stiffness: 260 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}

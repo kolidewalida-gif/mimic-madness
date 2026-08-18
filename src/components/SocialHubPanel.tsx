@@ -206,7 +206,7 @@ const SocialHubPanelComponent = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[55]"
+              className="fixed inset-0 bg-[rgba(8,5,24,0.78)] z-[55]"
             />
 
             {/* PANEL */}

@@ -208,7 +208,7 @@ export const DoodleStage = ({
   children: ReactNode;
   className?: string;
 }) => (
-  <div className={cn('min-h-screen bg-[var(--ink-line)] text-white relative overflow-x-hidden', className)}>
+  <div className={cn('min-h-screen bg-[var(--ink-bg)] text-white relative overflow-x-hidden', className)}>
     {/* Phase-tinted background — subtle, single soft halo */}
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
       <div className="absolute inset-0 bg-gradient-to-br from-[#0c0813] via-[var(--ink-line)] to-[#0c0814]" />

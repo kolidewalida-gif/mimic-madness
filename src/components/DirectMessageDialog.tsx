@@ -49,7 +49,7 @@ export const DirectMessageDialog = ({ open, onOpenChange, friend }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-hidden border-primary/30 bg-background/95 p-0 backdrop-blur-xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-hidden border-primary/30 bg-background p-0">
         <DialogHeader className="px-5 py-4 border-b border-border/40 bg-gradient-to-r from-primary/10 via-background to-background">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 ring-2 ring-primary/40">

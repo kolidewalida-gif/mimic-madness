@@ -408,7 +408,7 @@ const LobbyInvitePanelComponent = ({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowInvitePanel(false)}
-                className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60]"
+                className="fixed inset-0 bg-[rgba(8,5,24,0.82)] z-[60]"
               />
 
               <motion.div
@@ -777,7 +777,7 @@ const LobbyInvitePanelComponent = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowInvitePanel(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+              className="fixed inset-0 bg-[rgba(8,5,24,0.78)] z-[60]"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -786,7 +786,7 @@ const LobbyInvitePanelComponent = ({
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col px-4"
             >
-              <div className="rounded-2xl shadow-2xl overflow-hidden bg-card/95 backdrop-blur-xl border border-border/30 flex flex-col min-h-0 max-h-full">
+              <div className="rounded-2xl shadow-2xl overflow-hidden bg-card border border-border/30 flex flex-col min-h-0 max-h-full">
                 <div className="px-5 py-4 border-b border-border/20 bg-gradient-to-r from-primary/10 to-accent/10">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">

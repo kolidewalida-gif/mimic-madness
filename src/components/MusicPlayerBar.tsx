@@ -317,7 +317,7 @@ const MusicPlayerBarComponent = () => {
           </span>
 
           {/* Playback modes */}
-          <span className="mp-aside hidden md:flex">
+          <span className="mp-aside is-hidden">
             <button
               type="button"
               onClick={() => setShuffle(!shuffle)}
@@ -342,7 +342,7 @@ const MusicPlayerBarComponent = () => {
 
           {/* Volume, adaptive mode, list */}
           <span className="mp-aside">
-            <span className="mp-vol hidden lg:flex">
+            <span className="mp-vol">
               <button
                 type="button"
                 onClick={toggleMute}

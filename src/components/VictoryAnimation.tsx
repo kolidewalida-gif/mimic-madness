@@ -65,7 +65,7 @@ export const VictoryAnimation = ({ winnerName, isTeam, teamPlayers }: VictoryAni
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="absolute inset-0 bg-[var(--ink-line)]/95 backdrop-blur-sm"
+        className="absolute inset-0 bg-[rgba(8,5,24,0.86)]"
       />
 
       {/* Confetti */}

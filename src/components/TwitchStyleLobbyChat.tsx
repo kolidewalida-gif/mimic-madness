@@ -129,7 +129,7 @@ const GifPickerModal = memo(function GifPickerModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(10px)' }}
+      style={{ background: 'rgba(8,5,24,0.82)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <motion.div
