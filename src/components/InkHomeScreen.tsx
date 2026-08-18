@@ -356,10 +356,10 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       {/* ============== MAIN ==============
           Wide focal panel + side rail, then the mode shelf across the full
           width. pb-32 clears the floating music bar. */}
-      <main className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto px-4 pb-32 sm:px-8">
-        <div className="mx-auto w-full max-w-[1240px]">
+      <main className="custom-scrollbar relative flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-28 sm:px-8">
+        <div className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col gap-5">
           <motion.div
-            className="gm-stage"
+            className="gm-stage flex-1"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.26, ease: 'easeOut' }}
@@ -466,7 +466,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           </motion.div>
 
           {/* Mode shelf — one row, so seven modes never leave a gap */}
-          <div className="mt-5">
+          <div className="flex-shrink-0">
             <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
               <GameLabel>Choisis ton mode</GameLabel>
               <span className="if-mute text-xs">

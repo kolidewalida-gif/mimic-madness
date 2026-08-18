@@ -391,7 +391,8 @@ export const InkLobbyScreen = ({
 
       {/* ============== MAIN GRID ==============
           pb-32 clears the floating music bar. */}
-      <div className="custom-scrollbar grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto px-4 pb-32 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:overflow-hidden">
+      <div className="min-h-0 flex-1 px-4 pb-28 sm:px-8 lg:overflow-hidden">
+      <div className="custom-scrollbar mx-auto grid h-full max-w-[1600px] grid-cols-1 gap-4 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_340px] lg:overflow-hidden">
         {/* ---------- RIGHT RAIL: players + mascot + chat ---------- */}
         <aside className="order-2 flex min-h-[28rem] flex-col gap-3.5 lg:order-2 lg:min-h-0">
           <GameCard className="flex flex-shrink-0 flex-col overflow-hidden">
@@ -636,6 +637,7 @@ export const InkLobbyScreen = ({
             </ModeShelf>
           </div>
         </section>
+      </div>
       </div>
 
       {/* ============== INVITE PANEL ============== */}

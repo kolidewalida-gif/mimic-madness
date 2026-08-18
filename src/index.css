@@ -2718,12 +2718,20 @@ body.ink-mode {
   0%, 100% { transform: translateY(0) rotate(-1deg); }
   50% { transform: translateY(-10px) rotate(1deg); }
 }
+/* Scales instead of animating `height`: height is a layout property, so the
+   old version reflowed the whole capsule ~60 times a second and made the
+   music bar flicker. transform is composited and costs nothing. */
 @keyframes mpEqBar {
-  0%, 100% { height: 25%; }
-  50% { height: 100%; }
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
 }
 .mp-float { animation: mpFloat 5s ease-in-out infinite; }
-.mp-eq-bar { animation: mpEqBar 0.9s ease-in-out infinite; }
+.mp-eq-bar {
+  height: 100%;
+  transform-origin: bottom;
+  will-change: transform;
+  animation: mpEqBar 0.9s ease-in-out infinite;
+}
 
 html.low-power .mp-float,
 html.low-power .mp-eq-bar { animation: none; }
@@ -2757,13 +2765,20 @@ html.low-power .mp-spin { animation: none; }
   font-family: var(--ink-font-body);
 }
 
-/* Two very soft colour blooms so the canvas has depth without being busy. */
+/* Soft colour blooms so the canvas has depth without being busy.
+
+   `absolute`, not `fixed`: the shell never scrolls (only <main> does), and a
+   fixed layer under a scrolling area forces a full repaint every frame, which
+   is what made the background shimmer. Promoting it to its own compositor
+   layer keeps it perfectly still. */
 .if-root::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  transform: translateZ(0);
+  will-change: transform;
   background:
     radial-gradient(58rem 34rem at 12% -8%, rgba(160, 107, 255, 0.2), transparent 62%),
     radial-gradient(46rem 30rem at 92% 8%, rgba(64, 201, 255, 0.13), transparent 60%),
@@ -3089,28 +3104,32 @@ html.low-power .if-root::before { display: none; }
    uses the full viewport width.
    ============================================================ */
 
-/* Artwork the project already ships, used as a faint backdrop. */
-.gm-backdrop {
-  position: fixed;
+/* Artwork the project already ships, used as a faint backdrop.
+
+   Absolute + own compositor layer for the same reason as `.if-root::before`.
+   The vertical fade is baked into `background-image` instead of `mask-image`,
+   because masking a large bitmap is expensive and was a source of shimmer. */
+.if-root > .gm-backdrop {
+  position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-position: center;
+  background-position: center top;
   background-size: cover;
-  opacity: 0.16;
-  mask-image: radial-gradient(130% 100% at 50% 0%, #000 35%, transparent 78%);
-  -webkit-mask-image: radial-gradient(130% 100% at 50% 0%, #000 35%, transparent 78%);
+  opacity: 0.14;
+  transform: translateZ(0);
+  will-change: transform;
 }
-html.low-power .gm-backdrop { display: none; }
+html.low-power .if-root > .gm-backdrop { display: none; }
 
 .gm-stage {
   display: grid;
   gap: 1.25rem;
-  grid-template-columns: minmax(0, 1fr) 336px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: stretch;
 }
 @media (max-width: 1080px) {
-  .gm-stage { grid-template-columns: minmax(0, 1fr); }
+  .gm-stage { grid-template-columns: minmax(0, 1fr); align-items: start; }
 }
 
 /* ---- Featured mode panel ---- */
@@ -3119,10 +3138,12 @@ html.low-power .gm-backdrop { display: none; }
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 1.5rem;
+  gap: clamp(1.25rem, 2.5vw, 2.25rem);
   align-items: center;
+  height: 100%;
+  min-height: clamp(230px, 30vh, 380px);
   overflow: hidden;
-  padding: 1.5rem;
+  padding: clamp(1.25rem, 2.2vw, 2rem);
   border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--ink-line-strong));
   border-radius: var(--ink-radius-xl);
   background:
@@ -3133,8 +3154,9 @@ html.low-power .gm-backdrop { display: none; }
 
 .gm-hero-art {
   position: relative;
-  width: 168px;
-  height: 214px;
+  width: clamp(150px, 13vw, 250px);
+  aspect-ratio: 3 / 4;
+  max-height: 100%;
   overflow: hidden;
   border-radius: 22px;
   background: color-mix(in srgb, var(--accent) 26%, rgba(255, 255, 255, 0.05));
@@ -3142,9 +3164,24 @@ html.low-power .gm-backdrop { display: none; }
   place-items: center;
   font-size: 4rem;
   line-height: 1;
-  box-shadow: 0 14px 34px rgba(8, 5, 24, 0.55);
+  box-shadow:
+    0 16px 38px rgba(8, 5, 24, 0.6),
+    0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 0 38px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 .gm-hero-art img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Name picks up the mode colour, so the panel is unmistakably "this mode". */
+.gm-hero-name {
+  background: linear-gradient(
+    100deg,
+    #fff 8%,
+    color-mix(in srgb, var(--accent) 55%, white) 92%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
 .gm-hero-name {
   font-family: var(--ink-font-display);
@@ -3171,8 +3208,14 @@ html.low-power .gm-backdrop { display: none; }
 }
 
 @media (max-width: 560px) {
-  .gm-hero { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 1.25rem; }
-  .gm-hero-art { width: 132px; height: 168px; }
+  .gm-hero {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    min-height: 0;
+    text-align: center;
+    padding: 1.25rem;
+  }
+  .gm-hero-art { width: 132px; }
   .gm-hero-desc { max-width: none; }
 }
 
@@ -3191,7 +3234,7 @@ html.low-power .gm-backdrop { display: none; }
   --accent: var(--c-violet);
   position: relative;
   display: flex;
-  width: 118px;
+  width: clamp(112px, 8.5vw, 152px);
   flex: 0 0 auto;
   flex-direction: column;
   gap: 0.4rem;
@@ -3203,16 +3246,21 @@ html.low-power .gm-backdrop { display: none; }
   background: var(--ink-surface);
   color: var(--ink-text-dim);
   text-align: center;
+  /* Own compositor layer: the hover transform rotates text, and without this
+     the glyphs get re-rasterised every frame and visibly shimmer. */
+  transform: translateZ(0);
+  backface-visibility: hidden;
   transition: transform 170ms cubic-bezier(0.34, 1.4, 0.64, 1),
     border-color 170ms ease, box-shadow 170ms ease, color 170ms ease;
 }
+.gm-chip:hover { will-change: transform; }
 .gm-chip:not(:disabled):hover {
-  transform: translateY(-4px) rotate(-1deg);
+  transform: translateY(-4px) translateZ(0);
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   color: var(--ink-text);
   box-shadow: var(--ink-shadow-card), 0 0 22px color-mix(in srgb, var(--accent) 26%, transparent);
 }
-.gm-chip:not(:disabled):active { transform: translateY(-1px); }
+.gm-chip:not(:disabled):active { transform: translateY(-1px) translateZ(0); }
 .gm-chip:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .gm-chip.is-selected {
@@ -3254,6 +3302,20 @@ html.low-power .gm-backdrop { display: none; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Accent strip along the bottom edge: keeps each mode identifiable even while
+   its artwork is desaturated. */
+.gm-chip::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: var(--accent);
+  opacity: 0.45;
+  transition: opacity 170ms ease;
+}
+.gm-chip:hover::after { opacity: 0.8; }
+.gm-chip.is-selected::after { opacity: 1; }
 
 /* Selected marker on the chip */
 .gm-chip-dot {
@@ -3302,6 +3364,10 @@ html.low-power .gm-backdrop { display: none; }
   .gm-hero { background: var(--ink-surface); border-color: var(--ink-line-strong); }
   .gm-hero-art,
   .gm-chip-art { background: rgba(255, 255, 255, 0.08); }
+  .gm-hero-art { box-shadow: 0 16px 38px rgba(8, 5, 24, 0.6); }
   .gm-hero-tagline { color: var(--ink-accent-text); }
+  /* Without color-mix the gradient is invalid, which would leave the title
+     transparent. Fall back to plain text. */
+  .gm-hero-name { background: none; color: var(--ink-text); }
   .gm-chip.is-selected { background: var(--ink-surface-2); }
 }

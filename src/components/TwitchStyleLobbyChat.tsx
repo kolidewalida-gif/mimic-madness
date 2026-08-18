@@ -253,27 +253,11 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
   );
 
   return (
-    <div className={cn('relative rounded-2xl p-[1.5px] overflow-hidden', className)}>
-      {/* animated gradient border */}
-      <div
-        className="absolute inset-0 rounded-2xl opacity-70"
-        style={{
-          background: 'conic-gradient(from var(--chat-angle,0deg), var(--ink-accent), var(--ink-text-dim), #fb7185, #fbbf24, var(--ink-accent))',
-          animation: 'chatBorderSpin 8s linear infinite',
-          filter: 'blur(0.5px)',
-        }}
-      />
-      <div
-        className="relative flex flex-col rounded-2xl overflow-hidden h-full"
-        style={{
-          background: 'linear-gradient(180deg, rgba(22,12,38,0.95), rgba(10,6,20,0.96))',
-          backdropFilter: 'blur(14px)',
-        }}
-      >
-        {/* glow blobs */}
-        <div className="absolute -top-10 -left-10 w-40 h-40 rounded-full bg-[var(--ink-accent)]/20 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-[var(--ink-surface-3)]/15 blur-3xl pointer-events-none" />
-
+    <div className={cn('relative flex h-full flex-col overflow-hidden rounded-2xl', className)}>
+      {/* The border used to be a conic gradient spinning on an 8s loop with a
+          blur filter on top. A blurred conic gradient repaints in full every
+          frame, which is what made the lobby shimmer. It is now static. */}
+      <div className="relative flex h-full flex-col overflow-hidden rounded-2xl">
         {/* Header */}
         <div className="relative flex items-center justify-between px-3.5 py-2.5 flex-shrink-0 border-b border-white/10">
           <div className="flex items-center gap-2">
@@ -282,8 +266,7 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
               <span className="relative inline-flex rounded-full w-2.5 h-2.5 bg-emerald-400" style={{ boxShadow: '0 0 8px #34d399' }} />
             </span>
             <span
-              className="text-sm font-black uppercase tracking-wider bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(90deg,#fff,var(--ink-accent),var(--ink-text-dim),#fff)', backgroundSize: '200% auto', animation: 'chatTextShine 4s linear infinite' }}
+              className="if-label"
             >
               Chat en direct
             </span>
@@ -301,7 +284,9 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center flex-1 px-4 text-center">
-              <motion.div animate={{ y: [0, -5, 0], rotate: [-4, 4, -4] }} transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }} className="text-5xl mb-3 drop-shadow-[0_4px_12px_var(--ink-accent-soft)]">💬</motion.div>
+              {/* Static: rotating a glyph re-rasterises it every frame, which
+                  reads as flickering on an otherwise idle screen. */}
+              <div className="mb-3 text-5xl">💬</div>
               <p className="text-base font-black text-white/80">Aucun message</p>
               <p className="text-xs text-white/40 mt-0.5">Sois le premier à écrire ✨</p>
             </div>
@@ -381,11 +366,6 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
         {showGifPicker && <GifPickerModal onSelect={handleSendGif} onClose={() => setShowGifPicker(false)} />}
       </AnimatePresence>
 
-      <style>{`
-        @property --chat-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-        @keyframes chatBorderSpin { to { --chat-angle: 360deg; } }
-        @keyframes chatTextShine { to { background-position: 200% center; } }
-      `}</style>
     </div>
   );
 });

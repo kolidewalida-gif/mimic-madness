@@ -575,13 +575,15 @@ const MusicPlayerBarComponent = () => {
           className="pointer-events-auto relative overflow-hidden"
           role="region"
           aria-label="Lecteur de musique"
+          // No backdrop-filter here on purpose: a blurred fixed element over
+          // the animated menu background caused visible flickering. A nearly
+          // opaque surface reads the same and never repaints.
           style={{
             borderRadius: "999px",
             border: "1px solid var(--ink-line-strong)",
-            background: "rgba(38, 32, 81, 0.72)",
-            backdropFilter: "blur(14px) saturate(150%)",
-            WebkitBackdropFilter: "blur(14px) saturate(150%)",
+            background: "rgba(34, 28, 72, 0.97)",
             boxShadow: "var(--ink-shadow-pop), inset 0 1px 0 rgba(255,255,255,0.1)",
+            transform: "translateZ(0)",
           }}
         >
           <SeekBar progress={progress} duration={duration} onSeek={seek} />
