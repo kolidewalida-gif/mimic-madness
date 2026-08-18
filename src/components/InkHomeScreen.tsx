@@ -598,11 +598,83 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         </div>
       </header>
 
-      {/* ============== MAIN CONTENT ============== */}
-      <main className="ibs-home-main relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-24 min-h-0 overflow-y-auto custom-scrollbar">
-        {/* MENU PANEL — solid card so the menu reads clearly over the striped bg */}
+      {/* ============== MAIN CONTENT — 4 colonnes (profil / modes / hub / amis) ============== */}
+      <main className="ibs-home-main relative z-10 flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 pb-24">
+        <div className="mx-auto flex h-full w-full max-w-[1600px] items-stretch justify-center gap-4">
+        {/* COLONNE 1 — PROFIL */}
+        <aside className="hidden xl:flex w-[290px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar rounded-[24px] p-3"
+          style={{
+            background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
+            border: '4px solid #0a0810',
+            boxShadow: '0 10px 0 #0a0810',
+          }}
+        >
+          <InkProfileSidebar />
+          <div className="mt-3 space-y-3">
+            <InkQuestsPanel />
+            <InkChatColorPicker />
+          </div>
+        </aside>
+
+        {/* COLONNE 2 — LISTE VERTICALE DES MODES */}
+        <nav className="hidden lg:flex w-[230px] flex-shrink-0 flex-col gap-2 overflow-y-auto custom-scrollbar rounded-[24px] p-3"
+          style={{
+            background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
+            border: '4px solid #0a0810',
+            boxShadow: '0 10px 0 #0a0810',
+          }}
+        >
+          <div
+            className="px-1 pb-1 text-lg font-black uppercase tracking-wide text-white/80"
+            style={{ fontFamily: "'Caveat', cursive" }}
+          >
+            Modes de jeu
+          </div>
+          {GAME_MODES.map((mode, idx) => {
+            const isActive = idx === modeIndex;
+            return (
+              <motion.button
+                key={mode.id}
+                onClick={() => {
+                  playInkSound('brushTap', 0.3);
+                  goToMode(idx);
+                }}
+                whileHover={{ x: 3 }}
+                whileTap={{ scale: 0.97 }}
+                aria-pressed={isActive}
+                className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors"
+                style={{
+                  background: isActive
+                    ? 'linear-gradient(90deg, rgba(220,38,38,0.45), rgba(127,29,29,0.15))'
+                    : 'rgba(255,255,255,0.04)',
+                  border: isActive ? '2.5px solid #fbbf24' : '2.5px solid #0a0810',
+                  boxShadow: isActive ? '0 3px 0 #0a0810' : 'none',
+                }}
+              >
+                <span
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white [&>svg]:h-4 [&>svg]:w-4"
+                  style={{ background: mode.fallbackColor, border: '2px solid #0a0810' }}
+                >
+                  {mode.icon}
+                </span>
+                <span
+                  className={cn(
+                    'truncate text-base font-black uppercase leading-none',
+                    isActive ? 'text-white' : 'text-white/70',
+                  )}
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  {mode.shortLabel}
+                </span>
+                {isActive && <Check className="ml-auto h-4 w-4 flex-shrink-0 text-amber-400" strokeWidth={4} />}
+              </motion.button>
+            );
+          })}
+        </nav>
+
+        {/* COLONNE 3 — HUB CENTRAL */}
         <div
-          className="w-full max-w-2xl flex flex-col gap-4 p-4 sm:p-6 rounded-[28px]"
+          className="w-full max-w-2xl flex flex-col gap-4 p-4 sm:p-6 rounded-[28px] self-center"
           style={{
             background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
             border: '4px solid #0a0810',
@@ -743,7 +815,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           </motion.button>
         </div>
 
-        {/* MODE PREVIEW — simple ligne d'info, le mode réel se choisit dans le lobby */}
+        {/* MODE PREVIEW — description du mode sélectionné */}
         <div className="w-full text-center">
           <h2
             className="text-3xl font-black text-white leading-none"
@@ -755,10 +827,13 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             {selectedMode.name.toUpperCase()}
           </h2>
           <p className="text-xs text-white/60 mt-1">{selectedMode.tagline}</p>
+          <p className="mx-auto mt-2 hidden max-w-md text-xs leading-relaxed text-white/45 lg:block">
+            {selectedMode.description}
+          </p>
         </div>
 
-        {/* MINI MODE CARDS ROW */}
-        <div className="w-full">
+        {/* MINI MODE CARDS ROW — remplacée par la colonne de modes en lg+ */}
+        <div className="w-full lg:hidden">
           <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
             {GAME_MODES.map((mode, idx) => {
               const isActive = idx === modeIndex;
@@ -834,6 +909,27 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             })}
           </div>
         </div>
+        </div>
+
+        {/* COLONNE 4 — AMIS */}
+        <aside className="hidden xl:flex w-[290px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar rounded-[24px] p-3"
+          style={{
+            background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
+            border: '4px solid #0a0810',
+            boxShadow: '0 10px 0 #0a0810',
+          }}
+        >
+          <InkFriendsSidebar
+            onJoinFriend={(code) => {
+              setLobbyCode(code);
+              if (playerName.trim()) {
+                onJoinGame(playerName.trim(), code);
+              } else {
+                setShowJoinDialog(true);
+              }
+            }}
+          />
+        </aside>
         </div>
       </main>
 
