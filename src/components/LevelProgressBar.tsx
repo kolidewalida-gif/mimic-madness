@@ -15,15 +15,15 @@ const GRAFFITI_TEXT_SHADOW_SM =
 const getLevelGradient = (level: number) => {
   if (level >= 25) return 'linear-gradient(180deg, #fde047, #fbbf24, #f97316)';
   if (level >= 15) return 'linear-gradient(180deg, #f9a8d4, #ec4899, #be185d)';
-  if (level >= 8) return 'linear-gradient(180deg, #67e8f9, #06b6d4, #0e7490)';
-  return 'linear-gradient(180deg, #c084fc, #a855f7, #6b21a8)';
+  if (level >= 8) return 'linear-gradient(180deg, var(--ink-text-dim), var(--ink-text-dim), var(--ink-text-dim))';
+  return 'var(--ink-accent)';
 };
 
 const getLevelBarGradient = (level: number) => {
   if (level >= 25) return 'linear-gradient(90deg, #fde047, #fbbf24, #f97316, #ef4444)';
   if (level >= 15) return 'linear-gradient(90deg, #f9a8d4, #ec4899, #be185d, #9d174d)';
-  if (level >= 8) return 'linear-gradient(90deg, #67e8f9, #38bdf8, #0ea5e9, #1e40af)';
-  return 'linear-gradient(90deg, #c084fc, #a855f7, #7e22ce, #4c1d95)';
+  if (level >= 8) return 'linear-gradient(90deg, var(--ink-text-dim), #38bdf8, #0ea5e9, #1e40af)';
+  return 'linear-gradient(90deg, var(--ink-accent), var(--ink-accent), var(--ink-accent-strong), #4c1d95)';
 };
 
 export const LevelProgressBar = ({

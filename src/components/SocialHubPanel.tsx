@@ -48,11 +48,11 @@ const GRAFFITI_TEXT_SHADOW_SM =
   'none';
 
 const TAB_COLORS: Record<Tab, { bg: string; accent: string; glow: string }> = {
-  friends: { bg: '#06b6d4', accent: '#22d3ee', glow: 'rgba(6,182,212,0.5)' },
-  messages: { bg: '#a855f7', accent: '#c084fc', glow: 'rgba(168,85,247,0.5)' },
+  friends: { bg: 'var(--ink-text-dim)', accent: 'var(--ink-text-dim)', glow: 'rgba(6,182,212,0.5)' },
+  messages: { bg: 'var(--ink-accent)', accent: 'var(--ink-accent)', glow: 'var(--ink-accent-soft)' },
   requests: { bg: '#fbbf24', accent: '#fde047', glow: 'rgba(251,191,36,0.5)' },
   invitations: { bg: '#34d399', accent: '#6ee7b7', glow: 'rgba(52,211,153,0.5)' },
-  social: { bg: '#8b5cf6', accent: '#a78bfa', glow: 'rgba(139,92,246,0.5)' },
+  social: { bg: 'var(--ink-accent)', accent: '#a78bfa', glow: 'rgba(139,92,246,0.5)' },
 };
 
 const SocialHubPanelComponent = ({
@@ -228,7 +228,7 @@ const SocialHubPanelComponent = ({
                 className="absolute inset-y-0 left-1.5 w-0.5 pointer-events-none"
                 style={{
                   background:
-                    'linear-gradient(180deg, transparent, rgba(168,85,247,0.4), transparent)',
+                    'linear-gradient(180deg, transparent, var(--ink-accent-soft), transparent)',
                 }}
               />
 
@@ -247,7 +247,7 @@ const SocialHubPanelComponent = ({
                 className="relative flex items-center justify-between px-5 py-4 flex-shrink-0"
                 style={{
                   background:
-                    'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
+                    'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))',
                   borderBottom: '1px solid var(--ink-line)',
                 }}
               >
@@ -262,7 +262,7 @@ const SocialHubPanelComponent = ({
                     className="w-12 h-12 rounded-2xl flex items-center justify-center"
                     style={{
                       background:
-                        'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                        'var(--ink-accent)',
                       border: '1px solid var(--ink-line)',
                       boxShadow:
                         'none',
@@ -284,7 +284,7 @@ const SocialHubPanelComponent = ({
                       Réseau Social
                     </h2>
                     <p
-                      className="text-sm text-purple-200/80 font-bold mt-0.5"
+                      className="text-sm text-[var(--ink-accent-text)]/80 font-bold mt-0.5"
                       style={{ fontFamily: "'Outfit', sans-serif" }}
                     >
                       Reste connecté à tes amis !
@@ -388,7 +388,7 @@ const SocialHubPanelComponent = ({
                 <div className="p-4 space-y-4">
                   {/* FRIEND CODE — visible on all tabs */}
                   <div className="space-y-2">
-                    <SectionLabel icon={Hash} color="#06b6d4">
+                    <SectionLabel icon={Hash} color="var(--ink-text-dim)">
                       Votre Code Ami
                     </SectionLabel>
                     <motion.button
@@ -405,7 +405,7 @@ const SocialHubPanelComponent = ({
                       }}
                     >
                       <div
-                        className="font-mono text-2xl font-black tracking-[0.25em] text-cyan-300"
+                        className="font-mono text-2xl font-black tracking-[0.25em] text-[var(--ink-text-dim)]"
                         style={{ textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                       >
                         {friendCode || '...'}
@@ -415,7 +415,7 @@ const SocialHubPanelComponent = ({
                         style={{
                           background: copied
                             ? 'linear-gradient(180deg, #34d399, #059669)'
-                            : 'linear-gradient(180deg, #06b6d4, #0e7490)',
+                            : 'linear-gradient(180deg, var(--ink-text-dim), var(--ink-text-dim))',
                           border: '1px solid var(--ink-line)',
                           boxShadow: 'none',
                         }}
@@ -447,7 +447,7 @@ const SocialHubPanelComponent = ({
                       >
                         {/* ADD FRIEND */}
                         <div className="space-y-2">
-                          <SectionLabel icon={UserPlus} color="#a855f7">
+                          <SectionLabel icon={UserPlus} color="var(--ink-accent)">
                             Ajouter un ami
                           </SectionLabel>
                           <div className="flex gap-2">
@@ -674,7 +674,7 @@ const SocialHubPanelComponent = ({
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-2"
                       >
-                        <SectionLabel icon={MessageCircle} color="#a855f7">
+                        <SectionLabel icon={MessageCircle} color="var(--ink-accent)">
                           Conversations
                         </SectionLabel>
                         {friends.length === 0 ? (
@@ -714,7 +714,7 @@ const SocialHubPanelComponent = ({
                                   style={{
                                     background:
                                       unread > 0
-                                        ? 'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(126,34,206,0.05))'
+                                        ? 'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))'
                                         : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
                                     border: '1px solid var(--ink-line)',
                                     boxShadow: 'none',
@@ -734,7 +734,7 @@ const SocialHubPanelComponent = ({
                                       className="text-white text-base font-black"
                                       style={{
                                         background:
-                                          'linear-gradient(135deg, #a855f7, #6b21a8)',
+                                          'var(--ink-accent)',
                                         fontFamily: "'Outfit', sans-serif",
                                       }}
                                     >
@@ -757,7 +757,7 @@ const SocialHubPanelComponent = ({
                                       className={cn(
                                         'text-[11px] font-bold mt-0.5',
                                         unread > 0
-                                          ? 'text-purple-200'
+                                          ? 'text-[var(--ink-accent-text)]'
                                           : 'text-white/45',
                                       )}
                                     >
@@ -1081,7 +1081,7 @@ const SocialHubPanelComponent = ({
 const SectionLabel = ({
   icon: Icon,
   children,
-  color = '#a855f7',
+  color = 'var(--ink-accent)',
 }: {
   icon?: any;
   children: React.ReactNode;

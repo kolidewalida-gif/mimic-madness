@@ -176,7 +176,7 @@ export const QuizWaitingScreen = memo(
                       style={{
                         background: isMe
                           ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`
-                          : 'linear-gradient(135deg, #a855f7, #6b21a8)',
+                          : 'var(--ink-accent)',
                         border: '1px solid var(--ink-line)',
                         boxShadow: 'none',
                       }}
@@ -257,7 +257,7 @@ export const QuizWaitingScreen = memo(
               <CartoonSection
                 icon={SettingsIcon}
                 title="Options"
-                accent="#a855f7"
+                accent="var(--ink-accent)"
               >
                 <QuizSettingsPanel
                   settings={hostSettings}

@@ -39,7 +39,7 @@ export const ConnectionRecoveryOverlay = ({ state, onRetry }: ConnectionRecovery
     >
       <div className="w-full max-w-sm rounded-3xl border border-white/15 bg-[#100b1d] p-6 text-center text-white shadow-2xl">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/5">
-          {offline ? <WifiOff className="h-7 w-7 text-rose-400" /> : <Loader2 className="h-7 w-7 animate-spin text-purple-300" />}
+          {offline ? <WifiOff className="h-7 w-7 text-rose-400" /> : <Loader2 className="h-7 w-7 animate-spin text-[var(--ink-accent-text)]" />}
         </div>
         <h2 id="connection-recovery-title" className="text-2xl font-black">
           {offline ? 'Connexion perdue' : 'Reconnexion…'}

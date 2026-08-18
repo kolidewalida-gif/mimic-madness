@@ -109,19 +109,19 @@ const LobbyInvitePanelComponent = ({
       return (
         <div className="flex flex-col gap-3">
           <p
-            className="text-sm text-purple-200/80 font-bold"
+            className="text-sm text-[var(--ink-accent-text)]/80 font-bold"
             style={{ fontFamily: "'Outfit', sans-serif" }}
           >
             {emptySlots} place{emptySlots > 1 ? 's' : ''} dispo
             {emptySlots > 1 ? 's' : ''} dans le lobby !
           </p>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-300 z-[1] pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-accent-text)] z-[1] pointer-events-none" />
             <Input
               placeholder="Cherche un ami…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-black/40 text-white placeholder:text-purple-200/40 font-bold rounded-xl h-11"
+              className="pl-10 bg-black/40 text-white placeholder:text-[var(--ink-accent-text)]/40 font-bold rounded-xl h-11"
               style={{
                 fontFamily: "'Outfit', sans-serif",
                 border: '1px solid var(--ink-line)',
@@ -133,7 +133,7 @@ const LobbyInvitePanelComponent = ({
           <div className="space-y-2">
             {friendsLoading ? (
               <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-purple-300" />
+                <Loader2 className="h-6 w-6 animate-spin text-[var(--ink-accent-text)]" />
               </div>
             ) : availableFriends.length === 0 ? (
               <div className="text-center py-10">
@@ -182,7 +182,7 @@ const LobbyInvitePanelComponent = ({
                     className="flex items-center gap-3 p-3 rounded-2xl"
                     style={{
                       background:
-                        'linear-gradient(180deg, rgba(168,85,247,0.12), rgba(168,85,247,0.04))',
+                        'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))',
                       border: '1px solid var(--ink-line)',
                       boxShadow:
                         'none',
@@ -195,7 +195,7 @@ const LobbyInvitePanelComponent = ({
                           className="font-black text-white text-base"
                           style={{
                             background:
-                              'linear-gradient(135deg, #a855f7, #6b21a8)',
+                              'var(--ink-accent)',
                           }}
                         >
                           {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
@@ -305,7 +305,7 @@ const LobbyInvitePanelComponent = ({
         {/* SLOTS GRID — graffiti style */}
         <div>
           <div className="flex items-center gap-2 mb-2 px-1">
-            <Users className="w-3.5 h-3.5 text-purple-300" />
+            <Users className="w-3.5 h-3.5 text-[var(--ink-accent-text)]" />
             <span
               className="text-base font-black text-white/90"
               style={{ fontFamily: "'Outfit', sans-serif" }}
@@ -325,7 +325,7 @@ const LobbyInvitePanelComponent = ({
                 className="relative aspect-square rounded-2xl overflow-hidden"
                 style={{
                   background:
-                    'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(126,34,206,0.4))',
+                    'linear-gradient(135deg, var(--ink-accent-soft), var(--ink-accent-soft))',
                   border: '1px solid var(--ink-line)',
                   boxShadow:
                     'none',
@@ -336,7 +336,7 @@ const LobbyInvitePanelComponent = ({
                     <AvatarFallback
                       className="text-xs font-black text-white"
                       style={{
-                        background: 'linear-gradient(135deg, #a855f7, #6b21a8)',
+                        background: 'var(--ink-accent)',
                       }}
                     >
                       {player.name.charAt(0).toUpperCase()}
@@ -373,22 +373,22 @@ const LobbyInvitePanelComponent = ({
                 onClick={togglePanel}
                 className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
                 style={{
-                  background: 'rgba(168,85,247,0.05)',
-                  border: '3px dashed rgba(168,85,247,0.5)',
+                  background: 'var(--ink-accent-soft)',
+                  border: '3px dashed var(--ink-accent-soft)',
                 }}
               >
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center transition-all group-hover:scale-110"
                     style={{
-                      background: 'rgba(168,85,247,0.15)',
-                      border: '2px solid rgba(168,85,247,0.5)',
+                      background: 'var(--ink-accent-soft)',
+                      border: '2px solid var(--ink-accent-soft)',
                     }}
                   >
-                    <UserPlus className="h-4 w-4 text-purple-300 group-hover:text-purple-200" />
+                    <UserPlus className="h-4 w-4 text-[var(--ink-accent-text)] group-hover:text-[var(--ink-accent-text)]" />
                   </div>
                   <span
-                    className="text-[11px] mt-1 font-black text-purple-300 group-hover:text-white transition-colors"
+                    className="text-[11px] mt-1 font-black text-[var(--ink-accent-text)] group-hover:text-white transition-colors"
                     style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     Inviter
@@ -432,7 +432,7 @@ const LobbyInvitePanelComponent = ({
                   <div
                     className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
                     style={{
-                      border: '2px solid rgba(168,85,247,0.4)',
+                      border: '2px solid var(--ink-accent-soft)',
                     }}
                   />
 
@@ -451,7 +451,7 @@ const LobbyInvitePanelComponent = ({
                     className="relative px-5 py-4 flex items-center justify-between"
                     style={{
                       background:
-                        'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
+                        'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))',
                       borderBottom: '1px solid var(--ink-line)',
                     }}
                   >
@@ -462,7 +462,7 @@ const LobbyInvitePanelComponent = ({
                         className="w-12 h-12 rounded-2xl flex items-center justify-center"
                         style={{
                           background:
-                            'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                            'var(--ink-accent)',
                           border: '1px solid var(--ink-line)',
                           boxShadow:
                             'none',
@@ -481,7 +481,7 @@ const LobbyInvitePanelComponent = ({
                           Inviter des amis
                         </h3>
                         <p
-                          className="text-sm text-purple-200/80 font-bold mt-0.5"
+                          className="text-sm text-[var(--ink-accent-text)]/80 font-bold mt-0.5"
                           style={{ fontFamily: "'Outfit', sans-serif" }}
                         >
                           {emptySlots} place{emptySlots > 1 ? 's' : ''} dispo
@@ -507,15 +507,15 @@ const LobbyInvitePanelComponent = ({
                   {/* SEARCH */}
                   <div
                     className="px-5 py-3 relative z-[1]"
-                    style={{ borderBottom: '2px solid rgba(168,85,247,0.2)' }}
+                    style={{ borderBottom: '2px solid var(--ink-accent-soft)' }}
                   >
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-300 z-[1] pointer-events-none" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-accent-text)] z-[1] pointer-events-none" />
                       <Input
                         placeholder="Cherche un ami…"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 bg-black/40 text-white placeholder:text-purple-200/40 font-bold rounded-xl h-11"
+                        className="pl-10 bg-black/40 text-white placeholder:text-[var(--ink-accent-text)]/40 font-bold rounded-xl h-11"
                         style={{
                           fontFamily: "'Outfit', sans-serif",
                           border: '1px solid var(--ink-line)',
@@ -530,7 +530,7 @@ const LobbyInvitePanelComponent = ({
                     <div className="p-4 space-y-2">
                       {friendsLoading ? (
                         <div className="flex items-center justify-center py-10">
-                          <Loader2 className="h-6 w-6 animate-spin text-purple-300" />
+                          <Loader2 className="h-6 w-6 animate-spin text-[var(--ink-accent-text)]" />
                         </div>
                       ) : availableFriends.length === 0 ? (
                         <div className="text-center py-10">
@@ -577,7 +577,7 @@ const LobbyInvitePanelComponent = ({
                               className="flex items-center gap-3 p-3 rounded-2xl"
                               style={{
                                 background:
-                                  'linear-gradient(180deg, rgba(168,85,247,0.12), rgba(168,85,247,0.04))',
+                                  'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))',
                                 border: '1px solid var(--ink-line)',
                                 boxShadow:
                                   'none',
@@ -590,7 +590,7 @@ const LobbyInvitePanelComponent = ({
                                     className="font-black text-white text-base"
                                     style={{
                                       background:
-                                        'linear-gradient(135deg, #a855f7, #6b21a8)',
+                                        'var(--ink-accent)',
                                     }}
                                   >
                                     {friend.display_name?.charAt(0)?.toUpperCase() ||

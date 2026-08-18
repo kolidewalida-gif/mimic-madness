@@ -18,7 +18,7 @@ interface ChallengePreviewPhaseProps {
 const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
 const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
 const FONT = "'Outfit', sans-serif";
-const ACCENT = "#06b6d4";
+const ACCENT = "var(--ink-text-dim)";
 
 export const ChallengePreviewPhase = ({
   lobbyId, roundNumber, currentPlayer, players, currentChallenge, onAllReady,
@@ -117,7 +117,7 @@ export const ChallengePreviewPhase = ({
           style={{ background: `radial-gradient(circle, ${ACCENT}55, transparent 70%)`, filter: "blur(80px)" }} />
         <Sparkles className="absolute top-[10%] right-[8%] w-6 h-6 text-amber-400/30" />
         <Sparkles className="absolute bottom-[20%] left-[5%] w-5 h-5 text-pink-400/25" />
-        <Zap className="absolute top-[40%] right-[3%] w-4 h-4 text-cyan-400/20" />
+        <Zap className="absolute top-[40%] right-[3%] w-4 h-4 text-[var(--ink-text-dim)]/20" />
       </div>
 
       <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-5 pb-[140px]">
@@ -181,7 +181,7 @@ export const ChallengePreviewPhase = ({
               </motion.button>
 
               {isReady && (
-                <div className="flex items-center justify-center gap-2 text-cyan-200">
+                <div className="flex items-center justify-center gap-2 text-[var(--ink-text-dim)]">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span className="text-sm font-black" style={{ fontFamily: FONT }}>
                     {readyPlayers.length}/{players.length} joueurs prêts
@@ -214,7 +214,7 @@ export const ChallengePreviewPhase = ({
                       boxShadow: ready ? "0 0 0 rgba(0,0,0,0), 0 0 12px rgba(52,211,153,0.3)" : "0 0 0 rgba(0,0,0,0)",
                     }}>
                     <div className="relative w-12 h-12 rounded-full flex items-center justify-center"
-                      style={{ background: isMe ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "linear-gradient(135deg, #a855f7, #6b21a8)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                      style={{ background: isMe ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "var(--ink-accent)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                       {av.type === "image" && av.imageUrl
                         ? <img src={av.imageUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover" />
                         : <span className="text-xl font-black text-white" style={{ fontFamily: FONT }}>{player.name[0]?.toUpperCase()}</span>}

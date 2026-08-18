@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
   AlertTriangle,
   Check,
@@ -15,7 +16,6 @@ import {
   WifiOff,
   X,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useGameTeams } from '@/hooks/useGameTeams';
@@ -35,15 +35,16 @@ import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { InkModal } from '@/components/menu/InkOverlay';
 import {
-  FlatAvatar,
-  FlatButton,
-  FlatIconButton,
-  FlatImage,
-  FlatLabel,
-  FlatPanel,
-  FlatTag,
-  FlatTile,
-} from '@/components/ink/InkFlat';
+  GameButton,
+  GameCard,
+  GameIconButton,
+  GameImage,
+  GameLabel,
+  GameModal,
+  GameTag,
+  ModeCard,
+  PlayerCard,
+} from '@/components/game-ui/GameUI';
 
 interface Player {
   id: string;
@@ -65,14 +66,15 @@ interface InkLobbyScreenProps {
   onTransferHost?: (playerId: string) => void;
 }
 
-/** Modes available in the Ink lobby (Monopoly and Mimic excluded). */
+/** Modes available in the lobby (Monopoly and Mimic excluded). */
 const MODE_CARDS = INK_GAME_MODE_ORDER.map((id) => {
   const meta = GAME_MODE_META[id];
   return {
     id,
-    label: meta.shortLabel,
+    label: meta.label,
     tagline: meta.tagline,
     minPlayers: meta.minPlayers,
+    accent: meta.accent,
     imageCandidates: meta.imageCandidates,
     fallbackEmoji: meta.fallbackEmoji,
   };
@@ -103,39 +105,6 @@ const copyText = async (text: string) => {
     return false;
   }
 };
-
-/** Headerless overlay for panels that render their own header. */
-const BareOverlay = ({
-  onClose,
-  label,
-  children,
-  className,
-}: {
-  onClose: () => void;
-  label: string;
-  children: ReactNode;
-  className?: string;
-}) => (
-  <div className="ink-z-modal fixed inset-0 flex items-center justify-center p-4">
-    <button
-      type="button"
-      onClick={onClose}
-      aria-label={label}
-      className="absolute inset-0 h-full w-full cursor-default bg-black/70"
-    />
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={label}
-      className={cn(
-        'menu-dialog menu-dialog-safe if-panel if-fade relative flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden',
-        className,
-      )}
-    >
-      {children}
-    </div>
-  </div>
-);
 
 export const InkLobbyScreen = ({
   players,
@@ -359,45 +328,48 @@ export const InkLobbyScreen = ({
   }, [openMenuFor]);
 
   return (
-    <div className="ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden">
-      {/* ============== TOP BAR ============== */}
-      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--ink-line)] px-4 py-3 sm:px-6">
+    <div
+      className="ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
+      style={{ ['--accent' as string]: selectedCard.accent }}
+    >
+      {/* ============== HEADER ============== */}
+      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-7">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="if-h2 truncate">Salon</span>
+          <span className="if-display select-none text-xl sm:text-2xl">Salon</span>
           <button
             type="button"
             onClick={handleCopyCode}
-            className="if-btn if-btn--neutral if-btn--sm menu-focus"
+            className="if-btn if-btn--neutral menu-focus"
             title="Copier le code du lobby"
           >
-            <span className="font-mono text-base font-bold tracking-[0.25em]">{lobbyCode}</span>
+            <span className="font-mono text-lg font-bold tracking-[0.28em]">{lobbyCode}</span>
             {codeCopied ? (
-              <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+              <Check className="h-4 w-4 text-[var(--c-green)]" aria-hidden="true" />
             ) : (
-              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+              <Copy className="h-4 w-4" aria-hidden="true" />
             )}
           </button>
         </div>
 
         <div className="flex items-center gap-2">
-          <FlatButton
-            variant="ghost"
+          <GameButton
+            variant="neutral"
             size="sm"
             onClick={handleShareLink}
             icon={linkShared ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
           >
             {linkShared ? 'Copié' : 'Partager'}
-          </FlatButton>
-          <FlatIconButton
+          </GameButton>
+          <GameIconButton
             label="Paramètres"
             onClick={() => {
               playInkSound('cartoonPop', 0.3);
               setShowSettings(true);
             }}
           >
-            <Settings className="h-4 w-4" />
-          </FlatIconButton>
-          <FlatIconButton
+            <Settings className="h-[18px] w-[18px]" />
+          </GameIconButton>
+          <GameIconButton
             label="Quitter le lobby"
             data-back={showLeaveConfirm ? undefined : true}
             onClick={() => {
@@ -405,117 +377,117 @@ export const InkLobbyScreen = ({
               setShowLeaveConfirm(true);
             }}
           >
-            <LogOut className="h-4 w-4" />
-          </FlatIconButton>
+            <LogOut className="h-[18px] w-[18px]" />
+          </GameIconButton>
         </div>
       </header>
 
-      {/* ============== MAIN GRID ============== */}
-      <div className="custom-scrollbar grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 md:grid-cols-[300px_1fr] md:overflow-hidden">
+      {/* ============== MAIN GRID ==============
+          pb-32 clears the floating music bar. */}
+      <div className="custom-scrollbar grid min-h-0 flex-1 grid-cols-1 gap-4 px-4 pb-32 sm:px-7 md:grid-cols-[320px_1fr] md:overflow-hidden">
         {/* ---------- LEFT: players + chat ---------- */}
         <aside className="order-2 flex min-h-[28rem] flex-col gap-4 md:order-1 md:min-h-0">
-          <FlatPanel className="flex flex-shrink-0 flex-col overflow-hidden">
-            <div className="flex items-center justify-between gap-2 border-b border-[var(--ink-line)] px-3 py-2.5">
-              <FlatLabel className="flex items-center gap-1.5">
+          <GameCard className="flex flex-shrink-0 flex-col overflow-hidden">
+            <div className="flex items-center justify-between gap-2 border-b border-[var(--ink-line)] px-4 py-3">
+              <GameLabel className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" aria-hidden="true" />
                 Joueurs
-              </FlatLabel>
-              <FlatTag>{connectedCount}/{players.length}</FlatTag>
+              </GameLabel>
+              <GameTag>
+                {connectedCount}/{players.length}
+              </GameTag>
             </div>
 
-            <ul className="custom-scrollbar max-h-[240px] overflow-y-auto p-1.5">
+            <ul className="custom-scrollbar max-h-[260px] overflow-y-auto p-2">
               {players.map((p) => {
                 const av = getAvatar(p.id);
                 const canModerate =
                   isHost && p.id !== currentPlayer.id && (!!onKickPlayer || !!onTransferHost);
                 return (
-                  <li
+                  <PlayerCard
                     key={p.id}
-                    className={cn('if-row', p.id === currentPlayer.id && 'is-self')}
-                  >
-                    <FlatAvatar
-                      name={p.name}
-                      src={av.type === 'image' ? av.imageUrl : undefined}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1.5">
-                        <span className="truncate text-sm font-semibold">{p.name}</span>
-                        {p.isHost && (
-                          <Crown
-                            className="h-3.5 w-3.5 flex-shrink-0 text-amber-400"
-                            fill="currentColor"
-                            aria-label="Hôte"
-                          />
-                        )}
-                      </span>
-                      {p.isDisconnected ? (
-                        <span className="mt-0.5 flex items-center gap-1 text-xs text-amber-400">
+                    name={p.name}
+                    avatarUrl={av.type === 'image' ? av.imageUrl : undefined}
+                    isSelf={p.id === currentPlayer.id}
+                    badge={
+                      p.isHost ? (
+                        <Crown
+                          className="h-3.5 w-3.5 flex-shrink-0 text-[var(--c-yellow)]"
+                          fill="currentColor"
+                          aria-label="Hôte"
+                        />
+                      ) : null
+                    }
+                    meta={
+                      p.isDisconnected ? (
+                        <span className="flex items-center gap-1 text-[var(--c-orange)]">
                           <WifiOff className="h-3 w-3" aria-hidden="true" />
                           Reconnexion
                         </span>
                       ) : (
-                        <span className="if-mute mt-0.5 block text-xs">En ligne</span>
-                      )}
-                    </span>
-
-                    {canModerate && (
-                      <span className="relative flex-shrink-0">
-                        <FlatIconButton
-                          label={`Actions pour ${p.name}`}
-                          className="h-8 w-8 min-w-0 border-transparent"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            playInkSound('cartoonPop', 0.3);
-                            setOpenMenuFor(openMenuFor === p.id ? null : p.id);
-                          }}
-                        >
-                          <MoreVertical className="h-3.5 w-3.5" />
-                        </FlatIconButton>
-                        {openMenuFor === p.id && (
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="if-panel if-fade absolute right-0 top-9 z-50 w-44 overflow-hidden p-1"
+                        <span className="if-mute">En ligne</span>
+                      )
+                    }
+                    action={
+                      canModerate ? (
+                        <span className="relative flex-shrink-0">
+                          <GameIconButton
+                            label={`Actions pour ${p.name}`}
+                            className="h-8 w-8 min-w-0 border-transparent bg-transparent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playInkSound('cartoonPop', 0.3);
+                              setOpenMenuFor(openMenuFor === p.id ? null : p.id);
+                            }}
                           >
-                            {onTransferHost && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  playInkSound('cartoonDing', 0.3);
-                                  onTransferHost(p.id);
-                                  setOpenMenuFor(null);
-                                }}
-                                className="menu-focus flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-[var(--ink-text-dim)] transition-colors hover:bg-[var(--ink-surface-3)] hover:text-[var(--ink-text)]"
-                              >
-                                <Crown className="h-3.5 w-3.5" aria-hidden="true" />
-                                Transférer l'hôte
-                              </button>
-                            )}
-                            {onKickPlayer && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  playInkSound('cartoonZap', 0.3);
-                                  onKickPlayer(p.id);
-                                  setOpenMenuFor(null);
-                                }}
-                                className="menu-focus flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs text-[var(--ink-text-dim)] transition-colors hover:bg-red-500/10 hover:text-red-400"
-                              >
-                                <X className="h-3.5 w-3.5" aria-hidden="true" />
-                                Exclure
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </span>
-                    )}
-                  </li>
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </GameIconButton>
+                          {openMenuFor === p.id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="if-panel if-fade absolute right-0 top-9 z-50 w-44 overflow-hidden p-1"
+                            >
+                              {onTransferHost && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    playInkSound('cartoonDing', 0.3);
+                                    onTransferHost(p.id);
+                                    setOpenMenuFor(null);
+                                  }}
+                                  className="menu-focus flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-[var(--ink-text-dim)] transition-colors hover:bg-white/8 hover:text-[var(--ink-text)]"
+                                >
+                                  <Crown className="h-3.5 w-3.5" aria-hidden="true" />
+                                  Transférer l'hôte
+                                </button>
+                              )}
+                              {onKickPlayer && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    playInkSound('cartoonZap', 0.3);
+                                    onKickPlayer(p.id);
+                                    setOpenMenuFor(null);
+                                  }}
+                                  className="menu-focus flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-[var(--ink-text-dim)] transition-colors hover:bg-[rgba(255,107,91,0.14)] hover:text-[var(--c-coral)]"
+                                >
+                                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                                  Exclure
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </span>
+                      ) : null
+                    }
+                  />
                 );
               })}
             </ul>
 
-            <div className="border-t border-[var(--ink-line)] p-2">
-              <FlatButton
-                variant="ghost"
+            <div className="border-t border-[var(--ink-line)] p-2.5">
+              <GameButton
+                variant="neutral"
                 size="sm"
                 block
                 onClick={() => {
@@ -525,66 +497,65 @@ export const InkLobbyScreen = ({
                 icon={<UserPlus className="h-4 w-4" />}
               >
                 Inviter des amis
-              </FlatButton>
+              </GameButton>
             </div>
-          </FlatPanel>
+          </GameCard>
 
           {/* Chat */}
-          <FlatPanel className="flex min-h-[16rem] flex-1 flex-col overflow-hidden">
+          <GameCard className="flex min-h-[16rem] flex-1 flex-col overflow-hidden">
             <TwitchStyleLobbyChat
               lobbyId={lobbyId}
               playerId={currentPlayer.id}
               playerName={currentPlayer.name}
               className="h-full"
             />
-          </FlatPanel>
+          </GameCard>
         </aside>
 
         {/* ---------- RIGHT: mode picker + start ---------- */}
         <section className="order-1 flex min-h-0 flex-col gap-4 md:order-2">
-          <FlatPanel className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--ink-line)] px-4 py-3">
+          <GameCard className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--ink-line)] px-5 py-3.5">
               <div className="min-w-0">
-                <FlatLabel>Mode de jeu</FlatLabel>
+                <GameLabel>Mode de jeu</GameLabel>
                 <p className="if-h2 mt-0.5 truncate">{selectedCard.label}</p>
               </div>
-              {!isHost && <FlatTag>L'hôte choisit le mode</FlatTag>}
+              {isHost ? (
+                <GameTag accent={selectedCard.accent}>
+                  {selectedCard.minPlayers}+ joueurs
+                </GameTag>
+              ) : (
+                <GameTag>L'hôte choisit le mode</GameTag>
+              )}
             </div>
 
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {MODE_CARDS.map((card) => (
-                  <FlatTile
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5">
+              <div className="gm-mode-grid">
+                {MODE_CARDS.map((card, idx) => (
+                  <ModeCard
                     key={card.id}
+                    order={idx}
+                    name={card.label}
+                    description={card.tagline}
+                    minPlayers={card.minPlayers}
+                    accent={card.accent}
                     selected={card.id === gameMode}
                     disabled={!isHost}
                     onClick={() => handleGameModeChange(card.id)}
-                    title={card.label}
-                    subtitle={card.tagline}
                     art={
-                      <FlatImage
+                      <GameImage
                         candidates={card.imageCandidates}
                         alt=""
                         fallback={<span aria-hidden="true">{card.fallbackEmoji}</span>}
                       />
                     }
-                    trailing={
-                      card.id === gameMode ? (
-                        <Check
-                          className="h-4 w-4 flex-shrink-0 text-[var(--ink-accent)]"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <span className="if-mute flex-shrink-0 text-xs">
-                          {card.minPlayers}+
-                        </span>
-                      )
-                    }
                   />
                 ))}
               </div>
 
-              <p className="if-muted mt-4 text-sm">{selectedCard.description}</p>
+              <p className="if-muted mt-5 text-sm leading-relaxed">
+                {selectedCard.description}
+              </p>
 
               {gameMode === '2v2' && teams.length > 0 && (
                 <p className="if-mute mt-2 text-xs">
@@ -595,61 +566,63 @@ export const InkLobbyScreen = ({
             </div>
 
             {/* Start area */}
-            <div className="flex flex-col gap-3 border-t border-[var(--ink-line)] p-4">
+            <div className="flex flex-col gap-3 border-t border-[var(--ink-line)] p-5">
               {isHost && !canStart && reasons.length > 0 && (
                 <div
                   role="status"
-                  className="flex items-start gap-2 rounded-[var(--ink-radius-sm)] border border-amber-500/30 bg-amber-500/10 px-3 py-2"
+                  className="flex items-start gap-2 rounded-[var(--ink-radius-sm)] border border-[rgba(255,206,61,0.3)] bg-[rgba(255,206,61,0.1)] px-3 py-2.5"
                 >
                   <AlertTriangle
-                    className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-400"
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--c-yellow)]"
                     aria-hidden="true"
                   />
-                  <span className="text-xs text-amber-200/90">{reasons.join(' · ')}</span>
+                  <span className="text-xs text-[var(--c-yellow)]">{reasons.join(' · ')}</span>
                 </div>
               )}
 
               {isHost ? (
-                <FlatButton
-                  variant="primary"
-                  size="lg"
-                  block
-                  disabled={!canStart}
-                  loading={isStarting}
-                  loadingLabel="Lancement…"
-                  onClick={handleStartGame}
-                  icon={<Play className="h-4 w-4" />}
+                <motion.div
+                  animate={canStart && !isStarting ? { scale: [1, 1.015, 1] } : undefined}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  Lancer la partie
-                </FlatButton>
+                  <GameButton
+                    variant="primary"
+                    size="xl"
+                    accent={selectedCard.accent}
+                    block
+                    disabled={!canStart}
+                    loading={isStarting}
+                    loadingLabel="Lancement…"
+                    onClick={handleStartGame}
+                    icon={<Play className="h-5 w-5" fill="currentColor" />}
+                  >
+                    Lancer la partie
+                  </GameButton>
+                </motion.div>
               ) : (
                 <p className="if-mute py-2 text-center text-sm">
                   En attente du lancement par l'hôte…
                 </p>
               )}
             </div>
-          </FlatPanel>
+          </GameCard>
         </section>
       </div>
 
       {/* ============== INVITE PANEL ============== */}
       {showInvitePanel && (
-        <BareOverlay label="Inviter des amis" onClose={() => setShowInvitePanel(false)}>
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--ink-line)] px-4 py-3">
-            <span className="if-h2 flex items-center gap-2">
+        <GameModal
+          label="Inviter des amis"
+          title={
+            <span className="flex items-center gap-2">
               <Link2 className="h-4 w-4" aria-hidden="true" />
               Inviter des amis
             </span>
-            <button
-              type="button"
-              onClick={() => setShowInvitePanel(false)}
-              className="ink-close-button menu-icon-control menu-focus"
-              aria-label="Fermer les invitations"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
+          }
+          showClose
+          onClose={() => setShowInvitePanel(false)}
+        >
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5">
             <LobbyInvitePanel
               lobbyCode={lobbyCode}
               lobbyId={lobbyId}
@@ -658,16 +631,16 @@ export const InkLobbyScreen = ({
               inlineMode
             />
           </div>
-        </BareOverlay>
+        </GameModal>
       )}
 
       {/* ============== SETTINGS ============== */}
       {showSettings && (
-        <BareOverlay label="Paramètres" onClose={() => setShowSettings(false)}>
+        <GameModal label="Paramètres" onClose={() => setShowSettings(false)}>
           <div className="flex min-h-0 flex-1 flex-col">
             <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
           </div>
-        </BareOverlay>
+        </GameModal>
       )}
 
       {/* ============== LEAVE CONFIRM ============== */}
@@ -681,10 +654,10 @@ export const InkLobbyScreen = ({
           Tu vas quitter le salon {lobbyCode}. Les autres joueurs resteront dans la partie.
         </p>
         <div className="mt-4 flex gap-2">
-          <FlatButton variant="ghost" block onClick={() => setShowLeaveConfirm(false)}>
+          <GameButton variant="ghost" block onClick={() => setShowLeaveConfirm(false)}>
             Annuler
-          </FlatButton>
-          <FlatButton
+          </GameButton>
+          <GameButton
             variant="danger"
             block
             data-autofocus
@@ -696,7 +669,7 @@ export const InkLobbyScreen = ({
             icon={<LogOut className="h-4 w-4" />}
           >
             Quitter
-          </FlatButton>
+          </GameButton>
         </div>
       </InkModal>
 

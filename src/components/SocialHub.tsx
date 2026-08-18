@@ -1,5 +1,4 @@
 import { useState, memo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Users, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -59,113 +58,31 @@ const SocialHubComponent = ({
 
   return (
     <>
-      {/* CARTOON FAB */}
-      <motion.div
-        className={cn('fixed z-[60]', positionClasses[position])}
-        initial={{ scale: 0, opacity: 0, rotate: -45 }}
-        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-        transition={{ delay: 0.5, type: 'spring', stiffness: 260, damping: 18 }}
-      >
-        {/* Pulsing ring when notifications */}
-        {totalNotifications > 0 && !isOpen && (
-          <motion.div
-            className="absolute inset-0 rounded-2xl pointer-events-none"
-            animate={{
-              scale: [1, 1.3, 1.3],
-              opacity: [0.8, 0, 0],
-            }}
-            transition={{
-              duration: 1.6,
-              repeat: Infinity,
-              ease: 'easeOut',
-            }}
-            style={{
-              background: 'rgba(168,85,247,0.4)',
-              border: '3px solid #a855f7',
-            }}
-          />
-        )}
-
-        <motion.button
+      {/* Floating action button. Same surface language as the menu icon
+          buttons: no pulsing ring, no idle float, no rotation — the unread
+          count badge is the only signal it needs. */}
+      <div className={cn('fixed z-[60]', positionClasses[position])}>
+        <button
           type="button"
           onClick={handleToggle}
           aria-label={isOpen ? 'Fermer le hub social' : 'Ouvrir le hub social'}
           aria-expanded={isOpen}
-          whileHover={{ scale: 1.08, rotate: isOpen ? -90 : -3 }}
-          whileTap={{ scale: 0.92 }}
-          animate={
-            !isOpen && totalNotifications === 0
-              ? { y: [0, -3, 0] }
-              : !isOpen
-                ? { rotate: [-3, 3, -3] }
-                : undefined
-          }
-          transition={
-            !isOpen && totalNotifications === 0
-              ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }
-              : !isOpen
-                ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
-                : undefined
-          }
-          className="menu-icon-control menu-focus relative w-16 h-16 rounded-2xl flex items-center justify-center"
-          style={{
-            background: isOpen
-              ? 'linear-gradient(180deg, #ef4444, #b91c1c)'
-              : 'linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)',
-            border: '1px solid var(--ink-line)',
-            boxShadow:
-              'none',
-          }}
+          data-active={isOpen ? 'true' : 'false'}
+          className="if-fab menu-icon-control menu-focus relative"
         >
-          <AnimatePresence mode="wait">
-            {isOpen ? (
-              <motion.div
-                key="close"
-                initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
-                animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
-                transition={{ duration: 0.2 }}
-              >
-                <X className="w-7 h-7 text-white" strokeWidth={3} aria-hidden="true" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="open"
-                initial={{ rotate: 90, opacity: 0, scale: 0.5 }}
-                animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                exit={{ rotate: -90, opacity: 0, scale: 0.5 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Users className="w-7 h-7 text-white" strokeWidth={2.5} aria-hidden="true" />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {isOpen ? (
+            <X className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
+          ) : (
+            <Users className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
+          )}
 
-          {/* Notification badge — graffiti style */}
-          <AnimatePresence>
-            {totalNotifications > 0 && !isOpen && (
-              <motion.div
-                initial={{ scale: 0, rotate: -25 }}
-                animate={{ scale: 1, rotate: 8 }}
-                exit={{ scale: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-                className="absolute -top-2 -right-2 min-w-[26px] h-7 px-1.5 rounded-full text-sm font-black flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
-                  color: 'white',
-                  border: '1px solid var(--ink-line)',
-                  boxShadow: 'none',
-                  fontFamily: "'Outfit', sans-serif",
-                  textShadow:
-                    'none',
-                }}
-              >
-                {totalNotifications > 99 ? '99+' : totalNotifications}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      </motion.div>
+          {totalNotifications > 0 && !isOpen && (
+            <span className="if-badge absolute -right-1.5 -top-1.5">
+              {totalNotifications > 99 ? '99+' : totalNotifications}
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* Side Panel */}
       <SocialHubPanel

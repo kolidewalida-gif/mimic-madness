@@ -12,14 +12,14 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { id: 'mixed', name: 'Mélangé', emoji: '🎲', color: '#a855f7' },
-  { id: 'general', name: 'Culture G', emoji: '🎯', color: '#06b6d4' },
+  { id: 'mixed', name: 'Mélangé', emoji: '🎲', color: '#a06bff' },
+  { id: 'general', name: 'Culture G', emoji: '🎯', color: '#40c9ff' },
   { id: 'anime', name: 'Anime', emoji: '🎌', color: '#ec4899' },
   { id: 'histoire', name: 'Histoire', emoji: '📜', color: '#f59e0b' },
   { id: 'sport', name: 'Sport', emoji: '⚽', color: '#10b981' },
-  { id: 'musique', name: 'Musique', emoji: '🎵', color: '#a855f7' },
+  { id: 'musique', name: 'Musique', emoji: '🎵', color: '#2fd8c5' },
   { id: 'cinema', name: 'Cinéma', emoji: '🎬', color: '#f59e0b' },
-  { id: 'science', name: 'Science', emoji: '🔬', color: '#06b6d4' },
+  { id: 'science', name: 'Science', emoji: '🔬', color: '#5b8cff' },
   { id: 'geographie', name: 'Géographie', emoji: '🌍', color: '#10b981' },
   { id: 'jeux_video', name: 'Jeux Vidéo', emoji: '🎮', color: '#ec4899' },
   { id: 'art', name: 'Art', emoji: '🎨', color: '#f472b6' },

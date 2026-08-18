@@ -163,7 +163,7 @@ export const InkPatchNoteModal = ({ onClose, forceOpen = false }: InkPatchNoteMo
                 <ul className="space-y-1">
                   {note.changes.map((c, j) => (
                     <li key={j} className="flex items-start gap-2 text-xs text-white/55">
-                      <span className="mt-0.5 text-purple-300" aria-hidden="true">•</span>
+                      <span className="mt-0.5 text-[var(--ink-accent-text)]" aria-hidden="true">•</span>
                       {c.text}
                     </li>
                   ))}
@@ -180,7 +180,7 @@ export const InkPatchNoteModal = ({ onClose, forceOpen = false }: InkPatchNoteMo
         data-autofocus
         className="menu-action menu-focus mt-5 w-full rounded-xl text-lg font-black text-white"
         style={{
-          background: 'linear-gradient(180deg, #a855f7, #6b21a8)',
+          background: 'var(--ink-accent)',
           border: 'var(--ink-border)',
           boxShadow: 'var(--ink-shadow)',
           fontFamily: "'Outfit', sans-serif",

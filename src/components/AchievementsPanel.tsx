@@ -75,7 +75,7 @@ export const AchievementsPanel = ({ isOpen, onClose }: AchievementsPanelProps) =
                 { label: 'Victoires', value: stats.winsCount, color: '#fbbf24' },
                 { label: 'Messages', value: stats.messagesCount, color: '#38bdf8' },
                 { label: 'Records', value: stats.recordingsCount, color: '#34d399' },
-                { label: 'Hébergées', value: stats.gamesHosted, color: '#c084fc' },
+                { label: 'Hébergées', value: stats.gamesHosted, color: 'var(--ink-accent)' },
               ].map((item) => (
                 <div key={item.label} className="rounded-lg py-2 text-center" style={{ background: `${item.color}12` }}>
                   <div className="text-base font-bold tabular-nums" style={{ color: item.color }}>{item.value}</div>

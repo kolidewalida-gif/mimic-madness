@@ -68,12 +68,12 @@ export function MonopolyPropertyPanel({
       <div
         className="px-3 py-2.5 flex items-center justify-between"
         style={{
-          background: 'linear-gradient(180deg, rgba(168,85,247,0.25), rgba(168,85,247,0.08))',
+          background: 'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))',
           borderBottom: '1px solid var(--ink-line)',
         }}
       >
         <div className="flex items-center gap-2">
-          <Building className="w-4 h-4 text-purple-300" strokeWidth={2.5} />
+          <Building className="w-4 h-4 text-[var(--ink-accent-text)]" strokeWidth={2.5} />
           <h3
             className="text-lg font-black text-white uppercase tracking-wider leading-none"
             style={{
@@ -334,7 +334,7 @@ export function MonopolyPropertyPanel({
                           )}
                           <InkButton
                             onClick={() => onMortgage(prop.property_index)}
-                            color={prop.is_mortgaged ? '#06b6d4' : '#f59e0b'}
+                            color={prop.is_mortgaged ? 'var(--ink-text-dim)' : '#f59e0b'}
                             variant="outline"
                             size="sm"
                             className="!px-2 !py-1 !text-xs"

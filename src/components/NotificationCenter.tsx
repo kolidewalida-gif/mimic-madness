@@ -5,7 +5,7 @@ import { useNotificationCenter, type NotifType } from '@/hooks/useNotificationCe
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
-const ICONS: Record<NotifType, any> = {
+const ICONS: Record<NotifType, React.ElementType> = {
   invite: Mail,
   friend_request: UserPlus,
   friend_online: Wifi,
@@ -15,8 +15,8 @@ const ICONS: Record<NotifType, any> = {
 const ACCENT: Record<NotifType, string> = {
   invite: '#34d399',
   friend_request: '#fbbf24',
-  friend_online: '#22d3ee',
-  comment: '#a855f7',
+  friend_online: 'var(--ink-text-dim)',
+  comment: 'var(--ink-accent)',
 };
 
 const timeAgo = (ts: number) => {
@@ -72,30 +72,20 @@ export const NotificationCenter = () => {
 
   return (
     <div ref={rootRef} className="relative">
-      <motion.button
+      <button
         type="button"
         onClick={toggle}
-        whileHover={{ scale: 1.08, y: -2 }}
-        whileTap={{ scale: 0.94 }}
-        className="menu-focus relative h-12 w-12 rounded-xl flex items-center justify-center text-white"
-        style={{
-          background: 'linear-gradient(180deg, rgba(168,85,247,0.3), rgba(126,34,206,0.3))',
-          border: '1px solid var(--ink-line)',
-          boxShadow: 'none',
-        }}
+        className="if-icon-btn menu-icon-control menu-focus relative"
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} non lues` : ''}`}
         aria-expanded={open}
       >
-        <Bell className="h-5 w-5" strokeWidth={2.5} />
+        <Bell className="h-4 w-4" aria-hidden="true" />
         {unreadCount > 0 && (
-          <span
-            className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center text-white"
-            style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '1px solid var(--ink-line)' }}
-          >
+          <span className="if-badge absolute -right-1.5 -top-1.5">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
-      </motion.button>
+      </button>
 
       <AnimatePresence>
         {open && (
@@ -106,15 +96,11 @@ export const NotificationCenter = () => {
             transition={{ type: 'spring', damping: 24, stiffness: 300 }}
             role="dialog"
             aria-label="Centre de notifications"
-            className="absolute right-0 top-14 z-[120] w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl"
-            style={{
-              background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 60%, #0f0820 100%)',
-              border: '1px solid var(--ink-line)',
-              boxShadow: 'none',
-            }}
+            className="if-panel absolute right-0 top-12 z-[120] w-[min(22rem,calc(100vw-2rem))] overflow-hidden"
+            style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.5)' }}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <span className="text-sm font-black text-white uppercase tracking-wider">Notifications</span>
+            <div className="flex items-center justify-between border-b border-[var(--ink-line)] px-4 py-3">
+              <span className="if-label">Notifications</span>
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
                   <button type="button" onClick={markAllRead} className="menu-icon-control rounded-lg p-1.5 text-white/60 hover:text-white" title="Tout marquer comme lu" aria-label="Tout marquer comme lu">

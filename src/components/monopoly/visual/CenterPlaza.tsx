@@ -22,7 +22,7 @@
  *      `offset.x`) at its initial value of `0` (Req 12.1).
  *   3. Chamfered platform — `<RoundedBox>` 8.5 × 0.12 × 8.5 in the same
  *      `#1a0d2e` purple velvet as the existing `BoardCenter`, with the
- *      same subtle `#a855f7` emissive (Requirement 2.4 / 1.3 palette
+ *      same subtle `var(--ink-accent)` emissive (Requirement 2.4 / 1.3 palette
  *      continuity).
  *
  * Performance and accessibility (Requirements 11.2, 11.6, 12.1):
@@ -339,7 +339,7 @@ export function CenterPlaza(props: CenterPlazaProps = {}): React.ReactElement {
           color="#1a0d2e"
           metalness={0.1}
           roughness={0.85}
-          emissive={new THREE.Color('#a855f7')}
+          emissive={new THREE.Color('var(--ink-accent)')}
           emissiveIntensity={0.08}
         />
       </RoundedBox>
@@ -384,7 +384,7 @@ export function CenterPlaza(props: CenterPlazaProps = {}): React.ReactElement {
       <Text
         position={[0, 0.13, 1.5]}
         fontSize={0.32}
-        color="#a855f7"
+        color="var(--ink-accent)"
         anchorX="center"
         anchorY="middle"
         outlineWidth={0.018}

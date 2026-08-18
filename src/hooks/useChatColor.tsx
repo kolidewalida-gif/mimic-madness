@@ -22,8 +22,8 @@ export const CHAT_COLOR_PALETTE: ChatColorOption[] = [
   // Default tier — always unlocked
   { id: 'default', hex: '', label: 'Auto (hash)', minLevel: 1 },
   // Level 1+ basics
-  { id: 'purple', hex: '#a855f7', label: 'Violet graffiti', minLevel: 1 },
-  { id: 'cyan', hex: '#06b6d4', label: 'Cyan néon', minLevel: 1 },
+  { id: 'purple', hex: '#a06bff', label: 'Violet', minLevel: 1 },
+  { id: 'cyan', hex: '#40c9ff', label: 'Cyan néon', minLevel: 1 },
   // Level 5+
   { id: 'pink', hex: '#f472b6', label: 'Rose bonbon', minLevel: 5 },
   { id: 'amber', hex: '#fbbf24', label: 'Or jaune', minLevel: 5 },
@@ -34,7 +34,7 @@ export const CHAT_COLOR_PALETTE: ChatColorOption[] = [
   { id: 'red', hex: '#ef4444', label: 'Rouge dragon', minLevel: 15 },
   { id: 'sky', hex: '#60a5fa', label: 'Bleu ciel', minLevel: 15 },
   // Level 20+
-  { id: 'magenta', hex: '#c084fc', label: 'Magenta royal', minLevel: 20 },
+  { id: 'magenta', hex: '#e879f9', label: 'Magenta royal', minLevel: 20 },
   { id: 'lime', hex: '#a3e635', label: 'Citron acide', minLevel: 20 },
   // Level 25+ (legendary)
   { id: 'gold', hex: '#facc15', label: 'Or légendaire', minLevel: 25 },

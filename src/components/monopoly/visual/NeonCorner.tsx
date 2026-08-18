@@ -101,8 +101,8 @@ interface NeonCornerSpec {
 const NEON_CORNER_PALETTE: Readonly<Record<NeonCornerKind, NeonCornerSpec>> = {
   go:           { color: '#fbbf24', periodSec: 1.5, label: 'GO' },
   jail:         { color: '#ef4444', periodSec: 2.0, label: 'JAIL' },
-  free_parking: { color: '#06b6d4', periodSec: 2.5, label: 'P' },
-  go_to_jail:   { color: '#a855f7', periodSec: 1.8, label: 'COP' },
+  free_parking: { color: 'var(--ink-text-dim)', periodSec: 2.5, label: 'P' },
+  go_to_jail:   { color: 'var(--ink-accent)', periodSec: 1.8, label: 'COP' },
 };
 
 // ---------------------------------------------------------------------------

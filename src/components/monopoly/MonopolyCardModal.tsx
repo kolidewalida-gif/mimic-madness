@@ -68,7 +68,7 @@ export function MonopolyCardModal({ card, onClose, isMyTurn }: Props) {
   const isBad = ['pay', 'pay_each', 'repairs', 'jail', 'move_back'].includes(card.action);
   const isGood = ['collect', 'collect_each', 'get_out_of_jail'].includes(card.action);
 
-  const accent = isBad ? '#ef4444' : isGood ? '#22c55e' : '#06b6d4';
+  const accent = isBad ? '#ef4444' : isGood ? '#22c55e' : 'var(--ink-text-dim)';
   const emoji =
     card.action === 'jail'
       ? '👮'

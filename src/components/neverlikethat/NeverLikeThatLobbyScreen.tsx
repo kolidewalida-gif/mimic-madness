@@ -208,7 +208,7 @@ export const NeverLikeThatLobbyScreen = ({
                   className={cn(
                     "relative flex items-center justify-center gap-3 w-full max-w-md py-4 rounded-2xl text-xl font-black tracking-wide transition-all overflow-hidden",
                     canStart && !isLaunching
-                      ? "bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 text-white shadow-[0_0_30px_hsl(217_91%_60%/0.5)] hover:brightness-110"
+                      ? "bg-gradient-to-r from-sky-500 via-blue-500 to-[var(--ink-accent-strong)] text-white shadow-[0_0_30px_hsl(217_91%_60%/0.5)] hover:brightness-110"
                       : "bg-white/5 text-white/40 border border-white/10 cursor-not-allowed",
                   )}
                 >

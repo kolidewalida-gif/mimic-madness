@@ -139,7 +139,7 @@ const InkProfileSidebarComponent = () => {
       >
         <div
           className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
-          style={{ border: '2px solid rgba(168,85,247,0.4)' }}
+          style={{ border: '2px solid var(--ink-accent-soft)' }}
         />
         <div className="relative p-6 text-center space-y-4">
           <motion.div
@@ -147,7 +147,7 @@ const InkProfileSidebarComponent = () => {
             transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
             className="w-24 h-24 mx-auto rounded-full flex items-center justify-center"
             style={{
-              background: 'linear-gradient(135deg, #a855f7, #6b21a8)',
+              background: 'var(--ink-accent)',
               border: '1px solid var(--ink-line)',
               boxShadow:
                 'none',
@@ -171,7 +171,7 @@ const InkProfileSidebarComponent = () => {
             }}
             className="menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
             style={{
-              background: 'linear-gradient(180deg, #a855f7, #6b21a8)',
+              background: 'var(--ink-accent)',
               border: '1px solid var(--ink-line)',
               boxShadow: 'none',
               fontFamily: "'Outfit', sans-serif",
@@ -238,7 +238,7 @@ const InkProfileSidebarComponent = () => {
         {/* Inner accent border */}
         <div
           className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none z-[1]"
-          style={{ border: '2px solid rgba(168,85,247,0.4)' }}
+          style={{ border: '2px solid var(--ink-accent-soft)' }}
         />
 
         {/* Decorative graffiti stars */}
@@ -283,7 +283,7 @@ const InkProfileSidebarComponent = () => {
                 className="absolute -inset-2 rounded-full pointer-events-none"
                 style={{
                   background:
-                    'conic-gradient(from 0deg, #fbbf24, #f87171, #c084fc, #38bdf8, #34d399, #fbbf24)',
+                    'conic-gradient(from 0deg, #fbbf24, #f87171, var(--ink-accent), #38bdf8, #34d399, #fbbf24)',
                   filter: 'blur(8px)',
                   opacity: 0.6,
                 }}
@@ -300,7 +300,7 @@ const InkProfileSidebarComponent = () => {
                 <AvatarFallback
                   className="text-3xl font-black text-white"
                   style={{
-                    background: 'linear-gradient(135deg, #a855f7, #6b21a8)',
+                    background: 'var(--ink-accent)',
                     fontFamily: "'Outfit', sans-serif",
                   }}
                 >
@@ -441,7 +441,7 @@ const InkProfileSidebarComponent = () => {
                         equippedTitle.rarity === 'legendary'
                           ? 'linear-gradient(180deg, #fbbf24, #d97706)'
                           : equippedTitle.rarity === 'epic'
-                            ? 'linear-gradient(180deg, #a855f7, #7e22ce)'
+                            ? 'var(--ink-accent)'
                             : equippedTitle.rarity === 'rare'
                               ? 'linear-gradient(180deg, #38bdf8, #0369a1)'
                               : 'linear-gradient(180deg, #6b7280, #374151)',
@@ -516,8 +516,8 @@ const InkProfileSidebarComponent = () => {
               icon={Gamepad2}
               label="Parties"
               value={stats?.games_played || 0}
-              color="#a855f7"
-              glow="#c084fc"
+              color="var(--ink-accent)"
+              glow="var(--ink-accent)"
               tilt={-1}
             />
             <InkStatCard
@@ -560,7 +560,7 @@ const InkProfileSidebarComponent = () => {
             <InkActionButton
               icon={Crown}
               label="Titres"
-              color="#a855f7"
+              color="var(--ink-accent)"
               onClick={() => {
                 playInkSound('inkClick', 0.4);
                 setShowTitles(true);

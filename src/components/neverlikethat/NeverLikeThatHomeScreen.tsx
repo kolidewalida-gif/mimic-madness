@@ -151,7 +151,7 @@ export const NeverLikeThatHomeScreen = ({
               {/* Settings */}
               <DisplayCard
                 onClick={() => setShowSettings(true)}
-                icon={<Settings className="size-4 text-violet-300" />}
+                icon={<Settings className="size-4 text-[var(--ink-accent-text)]" />}
                 title="Réglages"
                 description="Audio · Thème · Avatar"
                 date="Personnalise"
@@ -201,7 +201,7 @@ export const NeverLikeThatHomeScreen = ({
 
               <button
                 onClick={handleJoin}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-lg font-black bg-gradient-to-r from-sky-500 to-violet-500 text-white hover:brightness-110 shadow-[0_0_24px_hsl(217_91%_60%/0.4)] transition-all"
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-lg font-black bg-gradient-to-r from-sky-500 to-[var(--ink-accent-strong)] text-white hover:brightness-110 shadow-[0_0_24px_hsl(217_91%_60%/0.4)] transition-all"
               >
                 <Play className="w-5 h-5" /> Rejoindre
               </button>

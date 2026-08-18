@@ -105,7 +105,7 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
         exit={{ scale: 0.94, y: 20, opacity: 0 }}
         transition={{ type: 'spring', damping: 24, stiffness: 280 }}
         className="relative w-full max-w-2xl flex flex-col rounded-3xl overflow-hidden"
-        style={{ height: 'min(88vh, 760px)', background: 'linear-gradient(180deg,#160a26,#0d0618)', border: '1px solid rgba(168,85,247,0.3)' }}
+        style={{ height: 'min(88vh, 760px)', background: 'linear-gradient(180deg,#160a26,#0d0618)', border: '1px solid var(--ink-accent-soft)' }}
       >
         {/* header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 flex-shrink-0">
@@ -116,14 +116,14 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
         </div>
 
         {loading ? (
-          <div className="flex-1 flex items-center justify-center"><Loader2 className="w-7 h-7 text-purple-400 animate-spin" /></div>
+          <div className="flex-1 flex items-center justify-center"><Loader2 className="w-7 h-7 text-[var(--ink-accent-text)] animate-spin" /></div>
         ) : (
           <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
             {/* identity */}
             <div className="flex items-center gap-4">
               <div
                 className="relative w-20 h-20 rounded-3xl overflow-hidden flex items-center justify-center flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg,#a855f7,#6d28d9)', border: '2px solid rgba(255,255,255,0.15)' }}
+                style={{ background: 'linear-gradient(135deg,var(--ink-accent),#6d28d9)', border: '2px solid rgba(255,255,255,0.15)' }}
               >
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />

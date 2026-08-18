@@ -461,7 +461,7 @@ export function FXLayerProvider(
             lastOverlayAtRef.current = now;
             overlayStore.push({
               kind: req.kind,
-              color: req.color ?? (req.kind === 'RED_FLASH' ? '#ef4444' : '#a855f7'),
+              color: req.color ?? (req.kind === 'RED_FLASH' ? '#ef4444' : 'var(--ink-accent)'),
               durationMs: req.durationMs ?? FX_DEFAULT_DURATION_MS[req.kind],
               ts: now,
             });

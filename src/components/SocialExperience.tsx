@@ -22,9 +22,9 @@ const VIEW_TO_TAB: Record<View, SocialFeedTab> = {
 };
 
 const NAV: { id: View; label: string; description: string; icon: any; color: string }[] = [
-  { id: 'foryou', label: 'Pour toi', description: 'Les dernières créations', icon: Sparkles, color: '#9b72ff' },
+  { id: 'foryou', label: 'Pour toi', description: 'Les dernières créations', icon: Sparkles, color: 'var(--ink-accent)' },
   { id: 'trending', label: 'Tendances', description: 'Le top de la semaine', icon: Flame, color: '#ff6b8a' },
-  { id: 'profile', label: 'Mon profil', description: 'Tes posts et badges', icon: UserRound, color: '#22d3ee' },
+  { id: 'profile', label: 'Mon profil', description: 'Tes posts et badges', icon: UserRound, color: 'var(--ink-text-dim)' },
 ];
 
 interface UserResult {

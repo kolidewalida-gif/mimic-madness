@@ -32,14 +32,14 @@ const rarityColors = {
     border: 'border-gray-400/50',
   },
   rare: {
-    bg: 'from-blue-400 to-cyan-500',
+    bg: 'from-blue-400 to-[var(--ink-surface-3)]',
     glow: 'shadow-blue-500/50',
     border: 'border-blue-400/50',
   },
   epic: {
-    bg: 'from-purple-500 to-pink-500',
+    bg: 'from-[var(--ink-accent)] to-pink-500',
     glow: 'shadow-purple-500/60',
-    border: 'border-purple-500/50',
+    border: 'border-[var(--ink-accent-line)]/50',
   },
   legendary: {
     bg: 'from-yellow-400 via-amber-500 to-orange-500',
@@ -97,7 +97,7 @@ export const AnimatedAchievementBadge = ({
             style={{
               background: `conic-gradient(from 0deg, transparent, ${
                 achievement.rarity === 'legendary' ? '#fbbf24' :
-                achievement.rarity === 'epic' ? '#a855f7' :
+                achievement.rarity === 'epic' ? 'var(--ink-accent)' :
                 achievement.rarity === 'rare' ? '#3b82f6' : '#9ca3af'
               }, transparent)`,
             }}

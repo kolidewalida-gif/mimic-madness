@@ -37,7 +37,7 @@ interface VideoSubmissionScreenProps {
   onStartActualGame: () => void;
 }
 
-const ACCENT = "#a855f7"; // purple — matches the IMITATION/2v2 menu
+const ACCENT = "var(--ink-accent)"; // purple — matches the IMITATION/2v2 menu
 const GRAFFITI_TEXT_SHADOW =
   "none";
 const GRAFFITI_TEXT_SHADOW_SM =
@@ -361,7 +361,7 @@ export const VideoSubmissionScreen = ({
           >
             Importe tes vidéos puis choisis-en jusqu'à{" "}
             <span
-              className="text-purple-300"
+              className="text-[var(--ink-accent-text)]"
               style={{ textShadow: `0 2px 8px ${ACCENT}88` }}
             >
               3 défis
@@ -421,16 +421,16 @@ export const VideoSubmissionScreen = ({
                       isDragging && "scale-[1.02]"
                     )}
                     style={{
-                      background: isDragging ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.05)",
-                      border: isDragging ? `3px solid ${ACCENT}` : "3px dashed rgba(168,85,247,0.4)",
+                      background: isDragging ? "var(--ink-accent-soft)" : "var(--ink-accent-soft)",
+                      border: isDragging ? `3px solid ${ACCENT}` : "3px dashed var(--ink-accent-soft)",
                     }}
                   >
                     {isUploading ? (
-                      <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                      <Loader2 className="w-8 h-8 text-[var(--ink-accent-text)] animate-spin" />
                     ) : (
-                      <Upload className="w-8 h-8 text-purple-300" strokeWidth={2} />
+                      <Upload className="w-8 h-8 text-[var(--ink-accent-text)]" strokeWidth={2} />
                     )}
-                    <span className="text-base font-black text-purple-200" style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
+                    <span className="text-base font-black text-[var(--ink-accent-text)]" style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
                       {isUploading ? "Upload en cours..." : isDragging ? "Lâche ici !" : "Glisse tes vidéos ici ou clique"}
                     </span>
                     <span className="text-xs text-white/40" style={{ fontFamily: "'Outfit', sans-serif" }}>
@@ -518,7 +518,7 @@ export const VideoSubmissionScreen = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <CartoonCard accent="#06b6d4">
+              <CartoonCard accent="var(--ink-text-dim)">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <motion.div
@@ -530,7 +530,7 @@ export const VideoSubmissionScreen = ({
                       }}
                       className="w-9 h-9 rounded-xl flex items-center justify-center"
                       style={{
-                        background: "linear-gradient(135deg, #06b6d4, #0e7490)",
+                        background: "linear-gradient(135deg, var(--ink-text-dim), var(--ink-text-dim))",
                         border: '1px solid var(--ink-line)',
                         boxShadow: 'none',
                       }}
@@ -590,8 +590,8 @@ export const VideoSubmissionScreen = ({
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.4); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.6); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--ink-accent-soft); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--ink-accent-soft); }
       `}</style>
     </div>
   );

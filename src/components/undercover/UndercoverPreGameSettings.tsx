@@ -186,7 +186,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
   onConfirm,
   isLaunching = false,
 }: UndercoverPreGameSettingsProps) {
-  const accent = '#a855f7';
+  const accent = 'var(--ink-accent)';
   const [numUndercover, setNumUndercover] = useState(initialNumUndercover);
   const [totalRounds, setTotalRounds] = useState(initialTotalRounds);
   const [enableMrWhite, setEnableMrWhite] = useState(initialEnableMrWhite);
@@ -272,9 +272,9 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 boxShadow: 'none',
               }}
             >
-              <Users className="w-4 h-4 text-cyan-300" strokeWidth={2.5} />
+              <Users className="w-4 h-4 text-[var(--ink-text-dim)]" strokeWidth={2.5} />
               <span
-                className="text-base font-black leading-none text-cyan-300"
+                className="text-base font-black leading-none text-[var(--ink-text-dim)]"
                 style={{
                   fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
@@ -422,16 +422,16 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
         </CartoonCard>
 
         {/* MR WHITE TOGGLE */}
-        <CartoonCard accent="#06b6d4" className="px-5 py-4">
+        <CartoonCard accent="var(--ink-text-dim)" className="px-5 py-4">
           <Sparkles
             className="absolute top-3 right-3 w-4 h-4 z-10"
-            style={{ color: '#06b6d4', filter: 'none' }}
+            style={{ color: 'var(--ink-text-dim)', filter: 'none' }}
           />
           <div className="relative flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{
-                background: 'linear-gradient(135deg, #06b6d4, #0e7490)',
+                background: 'linear-gradient(135deg, var(--ink-text-dim), var(--ink-text-dim))',
                 border: '1px solid var(--ink-line)',
                 boxShadow: 'none',
               }}
@@ -460,7 +460,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
             <ToggleSwitch
               active={canEnableMrWhite && enableMrWhite}
               onClick={() => isHost && canEnableMrWhite && setEnableMrWhite((v) => !v)}
-              color="#06b6d4"
+              color="var(--ink-text-dim)"
             />
           </div>
         </CartoonCard>

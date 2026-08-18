@@ -103,7 +103,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         borderRadius: 16,
         overflow: 'hidden',
         background: '#0a0510',
-        border: '1px solid rgba(155,114,255,.25)',
+        border: '1px solid var(--ink-accent-line)',
       } : {
         position: 'relative',
         width: 'min(96vw, 1240px)',
@@ -196,7 +196,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         }}
       >
         {/* Author header */}
-        <div className="p-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--ink-line)', background: 'linear-gradient(180deg, rgba(168,85,247,0.15), transparent)' }}>
+        <div className="p-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--ink-line)', background: 'linear-gradient(180deg, var(--ink-accent-soft), transparent)' }}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
@@ -256,9 +256,9 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
 
         {/* Live chat header */}
         <div className="px-4 py-2.5 flex items-center gap-2 flex-shrink-0"
-          style={{ borderBottom: '2px solid rgba(168,85,247,0.2)' }}>
+          style={{ borderBottom: '2px solid var(--ink-accent-soft)' }}>
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <MessageCircle className="w-4 h-4 text-purple-300" strokeWidth={2.5} />
+          <MessageCircle className="w-4 h-4 text-[var(--ink-accent-text)]" strokeWidth={2.5} />
           <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
             Chat live
           </span>
@@ -300,7 +300,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                 </div>
                 <div className="flex-1 min-w-0 px-3 py-2 rounded-2xl rounded-tl-sm"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--ink-line)' }}>
-                  <span className="text-xs font-black text-purple-300 mr-2" style={{ fontFamily: FONT }}>{c.user_name}</span>
+                  <span className="text-xs font-black text-[var(--ink-accent-text)] mr-2" style={{ fontFamily: FONT }}>{c.user_name}</span>
                   <span className="text-sm text-white/85 break-words" style={{ fontFamily: FONT }}>{c.body}</span>
                 </div>
               </motion.div>
@@ -327,7 +327,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                 onClick={handleSend}
                 disabled={!draft.trim() || posting}
                 className={cn('h-11 w-11 rounded-2xl flex items-center justify-center flex-shrink-0', !draft.trim() && 'opacity-40')}
-                style={{ background: 'linear-gradient(180deg, #a855f7, #7c3aed)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+                style={{ background: 'var(--ink-accent)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
               >
                 <Send className="w-4 h-4 text-white" strokeWidth={2.5} />
               </motion.button>

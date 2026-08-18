@@ -33,7 +33,7 @@ export function BlurRushLiveScoreboard({
     });
 
   return (
-    <InkCard accent="#06b6d4" className={cn('p-4', className)}>
+    <InkCard accent="var(--ink-text-dim)" className={cn('p-4', className)}>
       <div className="flex items-center justify-between mb-3">
         <span
           className="text-base font-black text-white leading-none"
@@ -45,7 +45,7 @@ export function BlurRushLiveScoreboard({
           Live
         </span>
         <span
-          className="text-xs uppercase tracking-wider font-black text-cyan-300"
+          className="text-xs uppercase tracking-wider font-black text-[var(--ink-text-dim)]"
           style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           Tentatives
@@ -113,7 +113,7 @@ export function BlurRushLiveScoreboard({
                   color: r.solved
                     ? '#34d399'
                     : isMe
-                      ? '#22d3ee'
+                      ? 'var(--ink-text-dim)'
                       : 'white',
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}

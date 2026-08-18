@@ -40,7 +40,7 @@ import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
 const ACCENT = '#ec4899';
-const ACCENT_2 = '#a855f7';
+const ACCENT_2 = 'var(--ink-accent)';
 
 interface Player {
   id: string;
@@ -484,9 +484,9 @@ export const MonopolyGameScreen = ({
      PHASE PILL CONFIG
   ============================================================ */
   const phaseInfo = (() => {
-    if (game.phase === 'rolling') return { icon: Dice5, label: 'À LANCER', color: '#a855f7' };
+    if (game.phase === 'rolling') return { icon: Dice5, label: 'À LANCER', color: 'var(--ink-accent)' };
     if (game.phase === 'buying') return { icon: Home, label: 'À ACHETER', color: '#22c55e' };
-    if (game.phase === 'card') return { icon: CreditCard, label: 'CARTE', color: '#06b6d4' };
+    if (game.phase === 'card') return { icon: CreditCard, label: 'CARTE', color: 'var(--ink-text-dim)' };
     if (game.phase === 'bankrupt') return { icon: AlertTriangle, label: 'FAILLITE', color: '#ef4444' };
     if (myPlayer?.in_jail) return { icon: KeyRound, label: 'PRISON', color: '#f59e0b' };
     return { icon: Sparkles, label: 'EN JEU', color: ACCENT };
@@ -639,7 +639,7 @@ export const MonopolyGameScreen = ({
                       <div className="flex items-center gap-2">
                         <MoneyChip amount={myPlayer.money} color="#22c55e" size="md" />
                         {myPlayer.has_get_out_of_jail_card > 0 && (
-                          <InkPill label="🎫" value={`x${myPlayer.has_get_out_of_jail_card}`} color="#06b6d4" />
+                          <InkPill label="🎫" value={`x${myPlayer.has_get_out_of_jail_card}`} color="var(--ink-text-dim)" />
                         )}
                       </div>
                     )}
@@ -726,7 +726,7 @@ export const MonopolyGameScreen = ({
                     >
                       {/* Rolling phase (free) */}
                       {game.phase === 'rolling' && !myPlayer?.in_jail && (
-                        <InkButton onClick={handleRoll} color="#a855f7" size="lg">
+                        <InkButton onClick={handleRoll} color="var(--ink-accent)" size="lg">
                           <Dice5 className="w-5 h-5" />
                           LANCER LES DÉS
                         </InkButton>
@@ -746,7 +746,7 @@ export const MonopolyGameScreen = ({
                             </InkButton>
                           )}
                           {myPlayer.has_get_out_of_jail_card > 0 && (
-                            <InkButton onClick={handleJailCard} color="#06b6d4" size="md">
+                            <InkButton onClick={handleJailCard} color="var(--ink-text-dim)" size="md">
                               <KeyRound className="w-4 h-4" />
                               CARTE SORTIE
                             </InkButton>
@@ -769,7 +769,7 @@ export const MonopolyGameScreen = ({
 
                       {/* Card phase */}
                       {game.phase === 'card' && (
-                        <InkButton onClick={handleCard} color="#06b6d4" size="lg">
+                        <InkButton onClick={handleCard} color="var(--ink-text-dim)" size="lg">
                           <Sparkles className="w-5 h-5" />
                           CONTINUER
                         </InkButton>

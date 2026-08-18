@@ -59,7 +59,7 @@ export const QuizJokers = ({ jokers, onUseFiftyFifty, onUseFreeze, onUseSkip, di
         onClick={onUseFreeze}
         icon={<Snowflake className="h-5 w-5" />}
         label="Freeze"
-        color="bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
+        color="bg-[var(--ink-surface-3)]/20 border-[var(--ink-line)]/50 text-[var(--ink-text-dim)]"
       />
       <JokerBtn
         available={jokers.skip}
@@ -67,7 +67,7 @@ export const QuizJokers = ({ jokers, onUseFiftyFifty, onUseFreeze, onUseSkip, di
         onClick={onUseSkip}
         icon={<FastForward className="h-5 w-5" />}
         label="Skip"
-        color="bg-violet-500/20 border-violet-500/50 text-violet-300"
+        color="bg-[var(--ink-accent)]/20 border-[var(--ink-accent-line)]/50 text-[var(--ink-accent-text)]"
       />
     </div>
   );

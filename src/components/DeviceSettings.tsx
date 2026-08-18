@@ -76,11 +76,11 @@ export const DeviceSettings = ({
   const [activeTab, setActiveTab] = useState<Tab>("audio");
 
   const tabs: { id: Tab; label: string; icon: any; color: string }[] = [
-    { id: "audio", label: "Audio", icon: Mic, color: "#a855f7" },
+    { id: "audio", label: "Audio", icon: Mic, color: "var(--ink-accent)" },
     { id: "volume", label: "Volume", icon: Sliders, color: "#fbbf24" },
     { id: "theme", label: "Thème", icon: Palette, color: "#38bdf8" },
     ...(showAvatarTab
-      ? [{ id: "avatar" as Tab, label: "Avatar", icon: User, color: "#06b6d4" }]
+      ? [{ id: "avatar" as Tab, label: "Avatar", icon: User, color: "var(--ink-text-dim)" }]
       : []),
   ];
 
@@ -143,7 +143,7 @@ export const DeviceSettings = ({
         className="relative px-5 py-4 flex items-center justify-between flex-shrink-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))",
+            "linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))",
           borderBottom: '1px solid var(--ink-line)',
         }}
       >
@@ -153,7 +153,7 @@ export const DeviceSettings = ({
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             className="w-12 h-12 rounded-2xl flex items-center justify-center"
             style={{
-              background: "linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)",
+              background: "var(--ink-accent)",
               border: '1px solid var(--ink-line)',
               boxShadow:
                 'none',
@@ -172,7 +172,7 @@ export const DeviceSettings = ({
               Paramètres
             </h3>
             <p
-              className="text-sm text-purple-200/80 font-bold mt-0.5"
+              className="text-sm text-[var(--ink-accent-text)]/80 font-bold mt-0.5"
               style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Audio · Volume · Thème{showAvatarTab ? " · Avatar" : ""}
@@ -190,7 +190,7 @@ export const DeviceSettings = ({
             aria-busy={isLoading}
             className="menu-icon-control menu-focus w-10 h-10 rounded-xl flex items-center justify-center text-white"
             style={{
-              background: "rgba(168,85,247,0.18)",
+              background: "var(--ink-accent-soft)",
               border: '1px solid var(--ink-line)',
               boxShadow: 'none',
             }}
@@ -352,7 +352,7 @@ export const DeviceSettings = ({
             className="menu-focus w-full py-3 rounded-2xl text-2xl font-black text-white"
             style={{
               background:
-                "linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)",
+                "var(--ink-accent)",
               border: '1px solid var(--ink-line)',
               boxShadow:
                 'none',
@@ -433,8 +433,8 @@ const AudioSection = ({
     <CartoonSection
       icon={Mic}
       title="Microphone"
-      accent="#a855f7"
-      glow="rgba(168,85,247,0.5)"
+      accent="var(--ink-accent)"
+      glow="var(--ink-accent-soft)"
     >
       <div className="flex items-center justify-between gap-3">
         <span
@@ -455,7 +455,7 @@ const AudioSection = ({
           aria-busy={isLoading}
           className="menu-focus px-3 py-1.5 rounded-xl text-base font-black text-white disabled:opacity-50"
           style={{
-            background: "linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)",
+            background: "var(--ink-accent)",
             border: '1px solid var(--ink-line)',
             boxShadow: 'none',
             fontFamily: "'Outfit', sans-serif",
@@ -565,7 +565,7 @@ const AudioSection = ({
           <div
             className="flex items-center gap-2 text-sm uppercase tracking-wider font-black"
             style={{
-              color: "#a855f7",
+              color: "var(--ink-accent)",
               fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
@@ -590,7 +590,7 @@ const AudioSection = ({
                     ? "linear-gradient(90deg, #fbbf24, #ef4444)"
                     : audioLevel > 40
                       ? "linear-gradient(90deg, #34d399, #fbbf24)"
-                      : "linear-gradient(90deg, #06b6d4, #34d399)",
+                      : "linear-gradient(90deg, var(--ink-text-dim), #34d399)",
                 boxShadow: audioLevel > 0 ? "0 0 8px currentColor" : "none",
               }}
             />
@@ -792,10 +792,10 @@ const VolumeSection = () => {
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
-            <Volume2 className="h-4 w-4 text-cyan-300" />
+            <Volume2 className="h-4 w-4 text-[var(--ink-text-dim)]" />
             Effets sonores
           </label>
-          <span className="text-sm font-mono font-bold text-cyan-200">
+          <span className="text-sm font-mono font-bold text-[var(--ink-text-dim)]">
             {Math.round(sfxVolume * 100)}%
           </span>
         </div>
@@ -820,7 +820,7 @@ const VolumeSection = () => {
         />
         <CartoonPresetButton
           label="Bas"
-          color="#a855f7"
+          color="var(--ink-accent)"
           onClick={() => {
             setMusicVolume(0.15);
             setSfxVolume(0.25);
@@ -828,7 +828,7 @@ const VolumeSection = () => {
         />
         <CartoonPresetButton
           label="Moyen"
-          color="#06b6d4"
+          color="var(--ink-text-dim)"
           onClick={() => {
             setMusicVolume(0.4);
             setSfxVolume(0.5);

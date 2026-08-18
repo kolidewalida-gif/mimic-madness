@@ -78,8 +78,8 @@ export const AudioPhoneResultsPhase = memo(({
   }, [recordings, playRecording]);
 
   const colors = [
-    'from-emerald-500 to-teal-500', 'from-violet-500 to-purple-500',
-    'from-cyan-500 to-blue-500', 'from-amber-500 to-orange-500',
+    'from-emerald-500 to-teal-500', 'from-[var(--ink-accent)] to-[var(--ink-accent-strong)]',
+    'from-[var(--ink-surface-2)] to-blue-500', 'from-amber-500 to-orange-500',
     'from-pink-500 to-rose-500', 'from-indigo-500 to-blue-500',
   ];
 
@@ -140,7 +140,7 @@ export const AudioPhoneResultsPhase = memo(({
           <div className={cn("flex justify-center transition-all duration-500", revealedCount >= 1 ? "opacity-100" : "opacity-0")}>
             <div className="flex flex-col items-center">
               <ArrowDown className="h-6 w-6 text-foreground-muted" />
-              <RotateCcw className="h-4 w-4 text-violet-400 mt-1" />
+              <RotateCcw className="h-4 w-4 text-[var(--ink-accent-text)] mt-1" />
             </div>
           </div>
         )}
@@ -198,7 +198,7 @@ export const AudioPhoneResultsPhase = memo(({
                 <div className={cn("flex justify-center py-2 transition-all duration-500", isRevealed ? "opacity-100" : "opacity-0")}>
                   <div className="flex flex-col items-center">
                     <ArrowDown className="h-5 w-5 text-foreground-muted" />
-                    <RotateCcw className="h-3 w-3 text-violet-400" />
+                    <RotateCcw className="h-3 w-3 text-[var(--ink-accent-text)]" />
                   </div>
                 </div>
               )}

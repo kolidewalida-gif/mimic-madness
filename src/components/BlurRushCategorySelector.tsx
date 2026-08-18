@@ -22,7 +22,7 @@ interface BlurRushCategorySelectorProps {
   isHost: boolean;
 }
 
-const ACCENT = '#06b6d4'; // cyan — matches BlurRush card
+const ACCENT = 'var(--ink-text-dim)'; // cyan — matches BlurRush card
 const GRAFFITI_TEXT_SHADOW =
   'none';
 const GRAFFITI_TEXT_SHADOW_SM =
@@ -43,13 +43,13 @@ const CATEGORY_ICONS: Record<BlurRushCategory, React.ReactNode> = {
 const CATEGORY_COLORS: Record<BlurRushCategory, string> = {
   Anime: '#ec4899',
   Film: '#f59e0b',
-  Série: '#a855f7',
-  Personnage: '#06b6d4',
+  Série: 'var(--ink-accent)',
+  Personnage: 'var(--ink-text-dim)',
   'Jeux Vidéo': '#10b981',
   Logo: '#6b7280',
   Monument: '#fbbf24',
   Art: '#f472b6',
-  Mix: '#a855f7',
+  Mix: 'var(--ink-accent)',
 };
 
 export const BlurRushCategorySelector = ({
@@ -335,7 +335,7 @@ export const BlurRushCategorySelector = ({
               Images dispo :{' '}
             </span>
             <span
-              className="text-2xl font-black text-cyan-300"
+              className="text-2xl font-black text-[var(--ink-text-dim)]"
               style={{
                 fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW_SM,

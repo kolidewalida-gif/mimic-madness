@@ -680,7 +680,7 @@ export const VotingPhase = ({
                     {currentTeamImitation.players.map((p) => (
                       <div key={p.id} className="flex flex-col items-center gap-1">
                         <div className="w-12 h-12 rounded-full flex items-center justify-center"
-                          style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                          style={{ background: "var(--ink-accent)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                           <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>{p.name[0]?.toUpperCase()}</span>
                         </div>
                         <span className="text-sm font-black text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>{p.name}</span>
@@ -697,7 +697,7 @@ export const VotingPhase = ({
               ) : currentImitation ? (
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                    style={{ background: "var(--ink-accent)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <span className="text-2xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>{currentImitation.playerName[0]?.toUpperCase()}</span>
                   </div>
                   <h3 className="text-2xl font-black" style={{ fontFamily: "'Outfit', sans-serif", color: isOwnVideo ? "#34d399" : "white", textShadow: 'none' }}>
@@ -745,7 +745,7 @@ export const VotingPhase = ({
                 <motion.button onClick={handleTogglePlay} disabled={!votingSessionId || pendingPlay || showCountdown}
                   whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
                   className="flex items-center gap-2 px-5 py-3 rounded-2xl disabled:opacity-50"
-                  style={{ background: isPlayingSynced ? "linear-gradient(180deg, #6b7280, #4b5563)" : "linear-gradient(180deg, #a855f7, #7c3aed)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                  style={{ background: isPlayingSynced ? "linear-gradient(180deg, #6b7280, #4b5563)" : "var(--ink-accent)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   {isPlayingSynced ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white" />}
                   <span className="text-lg font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
                     {isPlayingSynced ? "Pause" : "Lancer pour tous 🎬"}

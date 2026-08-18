@@ -20,7 +20,7 @@ const buttonVariants = cva(
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-lg hover:shadow-destructive/30 active:scale-[0.97]",
         link: "text-primary underline-offset-4 hover:underline hover:text-primary-hover",
         accent: "bg-accent text-accent-foreground hover:bg-accent/90 hover:shadow-lg hover:shadow-accent/30 active:scale-[0.97]",
-        premium: "bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 text-white font-bold hover:shadow-lg hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] bg-[length:200%_100%] hover:bg-right transition-all duration-500",
+        premium: "bg-gradient-to-r from-[var(--ink-accent)] via-pink-500 to-[var(--ink-accent-strong)] text-white font-bold hover:shadow-lg hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] bg-[length:200%_100%] hover:bg-right transition-all duration-500",
         success: "bg-success text-white hover:bg-success/90 hover:shadow-lg hover:shadow-success/30 active:scale-[0.97]",
         neon: "bg-transparent border-2 border-accent text-accent hover:bg-accent/10 hover:shadow-glow-cyan active:scale-[0.97]",
       },

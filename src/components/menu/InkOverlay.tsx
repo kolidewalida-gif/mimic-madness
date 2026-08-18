@@ -97,7 +97,7 @@ const Header = ({
         <span
           className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-white"
           style={{
-            background: iconGradient ?? 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+            background: iconGradient ?? 'var(--ink-accent)',
             border: 'var(--ink-border)',
             boxShadow: 'var(--ink-shadow)',
           }}

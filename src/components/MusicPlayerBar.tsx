@@ -101,7 +101,7 @@ const SeekBar = ({ progress, duration, onSeek, tall }: {
       >
         <div
           className="h-full"
-          style={{ width: `${pct}%`, background: "linear-gradient(90deg,#a855f7,#22d3ee)", borderRadius: "inherit" }}
+          style={{ width: `${pct}%`, background: "var(--ink-accent)", borderRadius: "inherit" }}
         />
       </div>
       <input
@@ -178,9 +178,9 @@ const TransportButton = ({ children, label, onClick, active, primary, pressed }:
     )}
     style={{
       background: primary
-        ? "linear-gradient(180deg,#a855f7,#6b21a8)"
+        ? "var(--ink-accent)"
         : active
-          ? "linear-gradient(180deg,#22d3ee,#0e7490)"
+          ? "linear-gradient(180deg,var(--ink-text-dim),var(--ink-text-dim))"
           : "rgba(255,255,255,0.05)",
       border: primary ? "4px solid var(--ink-outline)" : "2.5px solid var(--ink-outline)",
       boxShadow: primary ? "0 5px 0 var(--ink-outline)" : "0 3px 0 var(--ink-outline)",
@@ -215,7 +215,10 @@ const MusicPlayerBarComponent = () => {
   const close = useCallback(() => setExpanded(false), []);
   const panelRef = useDialogBehaviour(expanded, close);
 
-  const togglePlay = useCallback(() => { isPlaying ? pause() : play(); }, [isPlaying, pause, play]);
+  const togglePlay = useCallback(() => {
+    if (isPlaying) pause();
+    else play();
+  }, [isPlaying, pause, play]);
 
   const toggleMute = useCallback(() => {
     setMusicVolume(musicVolume > 0 ? 0 : lastVolume || 0.3);
@@ -283,7 +286,7 @@ const MusicPlayerBarComponent = () => {
                 <span
                   className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-2xl text-white"
                   style={{
-                    background: "linear-gradient(135deg,#a855f7,#7e22ce)",
+                    background: "var(--ink-accent)",
                     border: "var(--ink-border)",
                     boxShadow: "var(--ink-shadow)",
                   }}
@@ -292,7 +295,7 @@ const MusicPlayerBarComponent = () => {
                   <Disc3 className="h-5 w-5" strokeWidth={2.5} />
                 </span>
                 <div className="min-w-0">
-                  <p className="font-mono text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
+                  <p className="font-mono text-[10px] font-black uppercase tracking-[0.22em] text-[var(--ink-text-dim)]">
                     Bande-son originale
                   </p>
                   <h2 id="music-studio-title" className="ink-title truncate text-3xl">Studio audio</h2>
@@ -327,7 +330,7 @@ const MusicPlayerBarComponent = () => {
 
                   <div className="text-center">
                     <h3 className="ink-title text-4xl">{trackLabel}</h3>
-                    <p className="mt-1 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-300">
+                    <p className="mt-1 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ink-text-dim)]">
                       {cover.artist}{currentTrack?.bpm ? ` · ${currentTrack.bpm} BPM` : ""}
                     </p>
                     {currentTrack?.moods && currentTrack.moods.length > 0 && (
@@ -336,7 +339,7 @@ const MusicPlayerBarComponent = () => {
                           <span
                             key={mood}
                             className="rounded-full px-2 py-0.5 text-[11px] font-black text-white/80"
-                            style={{ background: "rgba(168,85,247,0.22)", border: "2px solid var(--ink-outline)" }}
+                            style={{ background: "var(--ink-accent-soft)", border: "2px solid var(--ink-outline)" }}
                           >
                             {MOOD_LABEL[mood]}
                           </span>
@@ -385,8 +388,8 @@ const MusicPlayerBarComponent = () => {
                     aria-label="Mixage"
                   >
                     <h3 className="ink-title text-2xl">Mixage</h3>
-                    <VolumeRow label="Musique" icon={<Disc3 className="h-4 w-4" />} value={musicVolume} onChange={setMusicVolume} accent="#a855f7" />
-                    <VolumeRow label="Effets sonores" icon={<Volume2 className="h-4 w-4" />} value={sfxVolume} onChange={setSfxVolume} accent="#22d3ee" />
+                    <VolumeRow label="Musique" icon={<Disc3 className="h-4 w-4" />} value={musicVolume} onChange={setMusicVolume} accent="var(--ink-accent)" />
+                    <VolumeRow label="Effets sonores" icon={<Volume2 className="h-4 w-4" />} value={sfxVolume} onChange={setSfxVolume} accent="var(--ink-text-dim)" />
                     <button
                       type="button"
                       onClick={toggleMute}
@@ -408,7 +411,7 @@ const MusicPlayerBarComponent = () => {
                     className="space-y-2 rounded-3xl p-4"
                     style={{
                       background: autoMode
-                        ? "linear-gradient(180deg, rgba(34,211,238,0.16), rgba(168,85,247,0.06))"
+                        ? "linear-gradient(180deg, var(--ink-surface-3), var(--ink-accent-soft))"
                         : "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))",
                       border: "var(--ink-border)",
                       boxShadow: "var(--ink-shadow)",
@@ -429,7 +432,7 @@ const MusicPlayerBarComponent = () => {
                         aria-label="Musique adaptative automatique"
                         className="menu-focus flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-black text-white"
                         style={{
-                          background: autoMode ? "linear-gradient(90deg,#a855f7,#22d3ee)" : "rgba(255,255,255,0.06)",
+                          background: autoMode ? "linear-gradient(90deg,var(--ink-accent),var(--ink-text-dim))" : "rgba(255,255,255,0.06)",
                           border: "var(--ink-border-thin)",
                           boxShadow: "0 3px 0 var(--ink-outline)",
                         }}
@@ -438,7 +441,7 @@ const MusicPlayerBarComponent = () => {
                         {autoMode ? "AUTO" : "MANUEL"}
                       </button>
                     </div>
-                    <p className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-cyan-300">
+                    <p className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--ink-text-dim)]">
                       <Radio className="h-3.5 w-3.5" aria-hidden="true" />
                       {autoMode ? `Ambiance : ${SITUATION_LABEL[situation] ?? situation}` : "Sélection manuelle"}
                     </p>
@@ -522,7 +525,7 @@ const MusicPlayerBarComponent = () => {
                               >
                                 <Cover track={track} size={42} />
                                 <span className="min-w-0 flex-1">
-                                  <span className={cn("block truncate text-base font-black", active ? "text-purple-300" : "text-white")}
+                                  <span className={cn("block truncate text-base font-black", active ? "text-[var(--ink-accent-text)]" : "text-white")}
                                     style={{ fontFamily: "'Outfit', sans-serif" }}>
                                     {titleOf(track.name)}
                                   </span>
@@ -533,7 +536,7 @@ const MusicPlayerBarComponent = () => {
                                 {active && isPlaying && (
                                   <span className="flex h-4 items-end gap-[3px]" aria-hidden="true">
                                     {[0, 1, 2].map((i) => (
-                                      <span key={i} className="mp-eq-bar w-[3px] rounded-full bg-purple-400" style={{ animationDelay: `${i * 0.15}s` }} />
+                                      <span key={i} className="mp-eq-bar w-[3px] rounded-full bg-[var(--ink-accent)]" style={{ animationDelay: `${i * 0.15}s` }} />
                                     ))}
                                   </span>
                                 )}
@@ -562,18 +565,23 @@ const MusicPlayerBarComponent = () => {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", damping: 22, stiffness: 220, delay: 0.3 }}
-        className="menu-surface ink-z-bar pointer-events-none fixed bottom-4 left-1/2 -translate-x-1/2"
+        // bottom-14 keeps the capsule clear of the menu footer bar underneath.
+        className="menu-surface ink-z-bar pointer-events-none fixed bottom-14 left-1/2 -translate-x-1/2"
         style={{ width: "min(94vw, 620px)" }}
       >
+        {/* Rounded capsule with a light frosted feel, so it reads as part of
+            the game rather than as a dashboard audio widget. */}
         <div
-          className="pointer-events-auto relative overflow-hidden rounded-[26px]"
+          className="pointer-events-auto relative overflow-hidden"
           role="region"
           aria-label="Lecteur de musique"
           style={{
-            background:
-              `radial-gradient(120% 160% at 8% 0%, ${cover.gradient.match(/#[0-9a-f]{6}/gi)?.[0] ?? "#a855f7"}26, transparent 55%), var(--ink-panel-gradient)`,
-            border: "var(--ink-border)",
-            boxShadow: "0 7px 0 var(--ink-outline), 0 20px 48px rgba(0,0,0,0.55)",
+            borderRadius: "999px",
+            border: "1px solid var(--ink-line-strong)",
+            background: "rgba(38, 32, 81, 0.72)",
+            backdropFilter: "blur(14px) saturate(150%)",
+            WebkitBackdropFilter: "blur(14px) saturate(150%)",
+            boxShadow: "var(--ink-shadow-pop), inset 0 1px 0 rgba(255,255,255,0.1)",
           }}
         >
           <SeekBar progress={progress} duration={duration} onSeek={seek} />
@@ -596,7 +604,7 @@ const MusicPlayerBarComponent = () => {
                     {[0, 1, 2].map((i) => (
                       <span
                         key={i}
-                        className="mp-eq-bar w-[2px] rounded-full bg-cyan-300"
+                        className="mp-eq-bar w-[2px] rounded-full bg-[var(--ink-surface-3)]"
                         style={{ animationDelay: `${i * 0.15}s` }}
                       />
                     ))}
@@ -605,7 +613,7 @@ const MusicPlayerBarComponent = () => {
               </span>
               <span className="min-w-0 flex-1">
                 <span
-                  className="block truncate text-xl font-black leading-tight text-white transition-colors group-hover:text-purple-200"
+                  className="block truncate text-xl font-black leading-tight text-white transition-colors group-hover:text-[var(--ink-accent-text)]"
                   style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   {trackLabel}
@@ -637,9 +645,9 @@ const MusicPlayerBarComponent = () => {
                 autoMode ? "text-white" : "text-white/50 hover:text-white",
               )}
               style={{
-                background: autoMode ? "linear-gradient(120deg,#a855f7,#22d3ee)" : "rgba(255,255,255,0.06)",
-                border: "var(--ink-border-thin)",
-                boxShadow: autoMode ? "0 3px 0 var(--ink-outline)" : "0 2px 0 var(--ink-outline)",
+                background: autoMode ? "var(--ink-accent)" : "var(--ink-surface-2)",
+                border: "1px solid var(--ink-line)",
+                boxShadow: "none",
               }}
             >
               <Sparkles className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
@@ -671,9 +679,9 @@ const MusicPlayerBarComponent = () => {
                 aria-label={isPlaying ? `Mettre en pause ${trackLabel}` : `Lire ${trackLabel}`}
                 className="menu-focus grid h-11 w-11 flex-shrink-0 place-items-center rounded-full text-white"
                 style={{
-                  background: "linear-gradient(180deg,#c084fc,#6b21a8)",
-                  border: "var(--ink-border-thin)",
-                  boxShadow: "0 3px 0 var(--ink-outline)",
+                  background: "var(--ink-accent)",
+                  border: "1px solid var(--ink-accent)",
+                  boxShadow: "none",
                 }}
               >
                 {isPlaying

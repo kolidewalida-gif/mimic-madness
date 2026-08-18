@@ -415,7 +415,7 @@ export const ResultsPhase = ({
                 style={{ background: "rgba(0,0,0,0.5)" }}
               >
                 {clipLoading ? (
-                  <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-[var(--ink-accent-text)] animate-spin" />
                 ) : isExpanded && clip && challengeClipId ? (
                   <VideoWithAudioOverlay
                     videoClipId={challengeClipId}
@@ -484,9 +484,9 @@ export const ResultsPhase = ({
                 <motion.button type="button" onClick={() => toggleExpand(result.playerId)}
                   whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
                   className="flex-1 py-1.5 rounded-xl flex items-center justify-center gap-1"
-                  style={{ background: "rgba(168,85,247,0.2)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-                  <ChevronUp className="w-3.5 h-3.5 text-purple-300" strokeWidth={2.5} />
-                  <span className="text-xs font-black text-purple-300" style={{ fontFamily: FONT }}>Cacher</span>
+                  style={{ background: "var(--ink-accent-soft)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                  <ChevronUp className="w-3.5 h-3.5 text-[var(--ink-accent-text)]" strokeWidth={2.5} />
+                  <span className="text-xs font-black text-[var(--ink-accent-text)]" style={{ fontFamily: FONT }}>Cacher</span>
                 </motion.button>
               ) : (
                 <motion.button type="button" onClick={() => toggleExpand(result.playerId)}

@@ -22,7 +22,7 @@ export const LevelUpNotification = ({ level, onClose }: LevelUpNotificationProps
 
   const getLevelColor = () => {
     if (level >= 25) return 'from-yellow-400 via-amber-500 to-orange-500';
-    if (level >= 15) return 'from-purple-500 via-pink-500 to-rose-500';
+    if (level >= 15) return 'from-[var(--ink-accent)] via-pink-500 to-rose-500';
     if (level >= 8) return 'from-blue-500 via-cyan-500 to-teal-500';
     return 'from-primary via-primary-hover to-accent';
   };
@@ -192,8 +192,8 @@ export const LevelUpNotification = ({ level, onClose }: LevelUpNotificationProps
 const RewardBadge = ({ reward }: { reward: LevelReward }) => {
   const rarityColors = {
     common: 'from-gray-400 to-gray-500',
-    rare: 'from-blue-400 to-cyan-500',
-    epic: 'from-purple-500 to-pink-500',
+    rare: 'from-blue-400 to-[var(--ink-surface-3)]',
+    epic: 'from-[var(--ink-accent)] to-pink-500',
     legendary: 'from-yellow-400 to-orange-500',
   };
 

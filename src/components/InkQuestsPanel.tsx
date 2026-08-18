@@ -200,7 +200,7 @@ const InkQuestsPanelComponent = () => {
       <div
         className="relative px-4 py-3 flex items-center justify-between"
         style={{
-          background: 'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
+          background: 'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))',
           borderBottom: '1px solid var(--ink-line)',
         }}
       >
@@ -210,7 +210,7 @@ const InkQuestsPanelComponent = () => {
             transition={{ duration: 2.4, repeat: Infinity }}
             className="w-10 h-10 rounded-xl flex items-center justify-center"
             style={{
-              background: 'linear-gradient(135deg, #a855f7, #7e22ce)',
+              background: 'var(--ink-accent)',
               border: '1px solid var(--ink-line)',
               boxShadow: 'none',
             }}
@@ -292,7 +292,7 @@ const InkQuestsPanelComponent = () => {
       <div className="p-4 space-y-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
         {loading ? (
           <div className="flex items-center justify-center py-10" role="status" aria-label="Chargement des quêtes">
-            <Loader2 className="w-6 h-6 text-purple-400 animate-spin" aria-hidden="true" />
+            <Loader2 className="w-6 h-6 text-[var(--ink-accent-text)] animate-spin" aria-hidden="true" />
           </div>
         ) : visible.length === 0 ? (
           <div className="ink-empty">

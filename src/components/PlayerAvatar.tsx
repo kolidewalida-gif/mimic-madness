@@ -40,7 +40,7 @@ const frameRing = {
 const titleRarityClasses = {
   common: "bg-black/70 text-white border-white/10",
   rare: "bg-blue-500/90 text-white border-blue-300/40",
-  epic: "bg-fuchsia-500/90 text-white border-fuchsia-300/40",
+  epic: "bg-[var(--ink-accent)]/90 text-white border-[var(--ink-accent-line)]/40",
   legendary: "bg-black/85 border-yellow-300/50",
 };
 
@@ -75,7 +75,7 @@ export const PlayerAvatar = ({
         <div
           className={cn(
             "pointer-events-none absolute inset-0 rounded-full blur-2xl avatar-glow",
-            effectTier === "glow" ? "bg-yellow-300/55" : "bg-cyan-400/40",
+            effectTier === "glow" ? "bg-yellow-300/55" : "bg-[var(--ink-surface-3)]/40",
           )}
         />
       )}
@@ -95,7 +95,7 @@ export const PlayerAvatar = ({
                 } as React.CSSProperties
               }
             >
-              <Sparkles className="h-3 w-3 text-cyan-300 drop-shadow-[0_0_4px_rgba(34,211,238,0.9)]" />
+              <Sparkles className="h-3 w-3 text-[var(--ink-text-dim)] drop-shadow-[0_0_4px_var(--ink-surface-3)]" />
             </span>
           ))}
         </div>

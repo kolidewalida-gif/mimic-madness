@@ -1,6 +1,6 @@
-import { useState, memo, useCallback, useEffect, type ReactNode } from 'react';
+import { useState, memo, useCallback, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
-  Bell,
   Check,
   Copy,
   Hash,
@@ -13,7 +13,6 @@ import {
   UsersRound,
   Volume2,
   VolumeX,
-  X,
 } from 'lucide-react';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,14 +31,16 @@ import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteMod
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import {
-  FlatAvatar,
-  FlatButton,
-  FlatIconButton,
-  FlatImage,
-  FlatLabel,
-  FlatPanel,
-  FlatTile,
-} from '@/components/ink/InkFlat';
+  GameAvatar,
+  GameButton,
+  GameCard,
+  GameIconButton,
+  GameImage,
+  GameInput,
+  GameLabel,
+  GameModal,
+  ModeCard,
+} from '@/components/game-ui/GameUI';
 import { toast } from 'sonner';
 
 interface InkHomeScreenProps {
@@ -50,59 +51,31 @@ interface InkHomeScreenProps {
 interface GameModeInfo {
   id: LobbyGameMode;
   name: string;
-  shortLabel: string;
   tagline: string;
   description: string;
   minPlayers: number;
+  accent: string;
   imageCandidates: string[];
   fallbackEmoji: string;
 }
 
 /**
- * Home mode list. Derived from GAME_MODE_META (single source of truth) via
- * INK_GAME_MODE_ORDER so the home and the lobby always offer the same modes.
+ * Home mode list, derived from GAME_MODE_META (single source of truth) via
+ * INK_GAME_MODE_ORDER so home and lobby always offer the same modes.
  */
 const GAME_MODES: GameModeInfo[] = INK_GAME_MODE_ORDER.map((id) => {
   const meta = GAME_MODE_META[id];
   return {
     id,
     name: meta.label,
-    shortLabel: meta.shortLabel,
     tagline: meta.tagline,
     description: meta.description,
     minPlayers: meta.minPlayers,
+    accent: meta.accent,
     imageCandidates: meta.imageCandidates,
     fallbackEmoji: meta.fallbackEmoji,
   };
 });
-
-/** Headerless overlay used for panels that already render their own header. */
-const BareOverlay = ({
-  onClose,
-  label,
-  children,
-}: {
-  onClose: () => void;
-  label: string;
-  children: ReactNode;
-}) => (
-  <div className="ink-z-modal fixed inset-0 flex items-center justify-center p-4">
-    <button
-      type="button"
-      onClick={onClose}
-      aria-label={label}
-      className="absolute inset-0 h-full w-full cursor-default bg-black/70"
-    />
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={label}
-      className="menu-dialog menu-dialog-safe if-panel if-fade relative flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden"
-    >
-      {children}
-    </div>
-  </div>
-);
 
 const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps) => {
   const { profile, friendCode } = useAuth();
@@ -326,200 +299,220 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const displayName = profile?.display_name || playerName || 'Joueur';
 
   return (
-    <div className="ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden">
-      {/* ============== TOP BAR ============== */}
-      <header className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-[var(--ink-line)] px-4 py-3 sm:px-6">
-        <button
-          type="button"
-          onClick={() => {
-            playInkSound('inkClick', 0.3);
-            setShowProfileDrawer(true);
-          }}
-          className="if-row menu-focus -ml-2 min-w-0"
-        >
-          <FlatAvatar name={displayName} src={profile?.avatar_url ?? undefined} />
-          <span className="min-w-0 text-left">
-            <span className="block max-w-[150px] truncate text-sm font-semibold">
-              {displayName}
-            </span>
-            <span className="if-mute block text-xs">Niveau {level}</span>
+    <div
+      className="ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
+      style={{ ['--accent' as string]: selectedMode.accent }}
+    >
+      {/* ============== HEADER — logo left, two actions right ============== */}
+      <header className="flex flex-shrink-0 items-center justify-between gap-3 px-4 py-4 sm:px-7">
+        <span className="if-display select-none text-2xl sm:text-[1.75rem]">
+          Mimic{' '}
+          <span
+            style={{
+              background:
+                'linear-gradient(100deg, var(--c-violet), var(--c-pink) 60%, var(--c-orange))',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            Master
           </span>
-        </button>
+        </span>
 
         <div className="flex items-center gap-2">
-          <span className="if-mute mr-1 hidden text-sm font-semibold tracking-tight sm:block">
-            MIMIC MASTER
-          </span>
           <NotificationCenter />
-          <FlatIconButton
+          <GameIconButton
             label="Mes amis"
             onClick={() => {
               playInkSound('inkClick', 0.3);
               setShowFriendsDrawer(true);
             }}
           >
-            <UsersRound className="h-4 w-4" />
-          </FlatIconButton>
-          <FlatIconButton
-            label="Social"
-            onClick={() => {
-              playInkSound('inkClick', 0.3);
-              window.dispatchEvent(new CustomEvent('mimic:open-social'));
-            }}
-          >
-            <Bell className="h-4 w-4" />
-          </FlatIconButton>
-          <FlatIconButton
+            <UsersRound className="h-[18px] w-[18px]" />
+          </GameIconButton>
+          <GameIconButton
             label="Paramètres"
             onClick={() => {
               playInkSound('inkClick', 0.3);
               setShowSettings(true);
             }}
           >
-            <Settings className="h-4 w-4" />
-          </FlatIconButton>
+            <Settings className="h-[18px] w-[18px]" />
+          </GameIconButton>
+          <button
+            type="button"
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              setShowProfileDrawer(true);
+            }}
+            className="if-row menu-focus min-w-0 pl-1 pr-2.5"
+          >
+            <GameAvatar name={displayName} src={profile?.avatar_url ?? undefined} />
+            <span className="hidden min-w-0 text-left sm:block">
+              <span className="block max-w-[130px] truncate text-sm font-semibold">
+                {displayName}
+              </span>
+              <span className="if-mute block text-xs">Niveau {level}</span>
+            </span>
+          </button>
         </div>
       </header>
 
-      {/* ============== MAIN ============== */}
-      <main className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-        <div className="mx-auto flex w-full max-w-[880px] flex-col gap-4">
-          {/* Identity + actions */}
-          <FlatPanel className="p-5">
-            <label htmlFor="ink-player-name" className="if-label mb-2 block">
-              Ton pseudo
-            </label>
-            <input
-              id="ink-player-name"
-              className="if-input"
-              placeholder="Entre ton pseudo"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              maxLength={20}
-              autoComplete="nickname"
-            />
+      {/* ============== MAIN ==============
+          pb-32 clears the floating music bar. `safe center` keeps the content
+          centred on tall screens but scrollable on short ones. */}
+      <main className="custom-scrollbar relative flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 pb-32 pt-2 sm:px-6 [justify-content:safe_center]">
+        <div className="mx-auto w-full max-w-[860px]">
+          {/* Hero */}
+          <motion.div
+            className="if-hero mb-7"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
+          >
+            <p className="if-display text-2xl text-[var(--ink-text-dim)] sm:text-3xl">
+              Prêt à jouer&nbsp;?
+            </p>
+            <p className="if-hero-sub">
+              Choisis ton pseudo, ton mode, et lance la partie.
+            </p>
+          </motion.div>
 
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <FlatButton
-                variant="primary"
-                size="lg"
-                block
-                disabled={!nameReady}
-                onClick={handleCreateGame}
-                icon={<Play className="h-4 w-4" />}
-              >
-                Créer une partie
-              </FlatButton>
-              <FlatButton
-                variant="neutral"
-                size="lg"
-                block
-                disabled={!nameReady}
-                onClick={() => {
-                  playInkSound('brushTap', 0.3);
-                  setShowJoinDialog(true);
-                }}
-                icon={<LogIn className="h-4 w-4" />}
-              >
-                Rejoindre avec un code
-              </FlatButton>
+          {/* Pseudo + the two big actions */}
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, delay: 0.04, ease: 'easeOut' }}
+          >
+            <GameCard className="p-5 sm:p-6">
+              <label htmlFor="ink-player-name" className="if-label mb-2 flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" aria-hidden="true" />
+                Ton pseudo
+              </label>
+              <GameInput
+                id="ink-player-name"
+                placeholder="Entre ton pseudo"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                maxLength={20}
+                autoComplete="nickname"
+              />
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-[1.4fr_1fr]">
+                <GameButton
+                  variant="primary"
+                  size="xl"
+                  accent={selectedMode.accent}
+                  block
+                  disabled={!nameReady}
+                  onClick={handleCreateGame}
+                  icon={<Play className="h-5 w-5" fill="currentColor" />}
+                >
+                  Créer une partie
+                </GameButton>
+                <GameButton
+                  variant="neutral"
+                  size="xl"
+                  block
+                  disabled={!nameReady}
+                  onClick={() => {
+                    playInkSound('brushTap', 0.3);
+                    setShowJoinDialog(true);
+                  }}
+                  icon={<LogIn className="h-5 w-5" />}
+                >
+                  Rejoindre
+                </GameButton>
+              </div>
+
+              {!nameReady && (
+                <p className="if-mute mt-3 text-xs">
+                  Entre un pseudo pour créer ou rejoindre une partie.
+                </p>
+              )}
+            </GameCard>
+          </motion.div>
+
+          {/* Mode cards */}
+          <div className="mt-7">
+            <div className="mb-3 flex items-baseline justify-between gap-3 px-1">
+              <GameLabel>Mode de jeu</GameLabel>
+              <span className="if-mute text-xs">{GAME_MODES.length} modes</span>
             </div>
 
-            {!nameReady && (
-              <p className="if-mute mt-3 text-xs">
-                Choisis un pseudo pour créer ou rejoindre une partie.
-              </p>
-            )}
-          </FlatPanel>
-
-          {/* Mode picker */}
-          <FlatPanel className="p-5">
-            <div className="mb-3 flex items-baseline justify-between gap-3">
-              <FlatLabel>Mode de jeu</FlatLabel>
-              <span className="if-mute text-xs">
-                {selectedMode.minPlayers}+ joueurs
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="gm-mode-grid">
               {GAME_MODES.map((mode, idx) => (
-                <FlatTile
+                <ModeCard
                   key={mode.id}
+                  order={idx}
+                  name={mode.name}
+                  description={mode.tagline}
+                  minPlayers={mode.minPlayers}
+                  accent={mode.accent}
                   selected={idx === modeIndex}
                   onClick={() => {
                     playInkSound('brushTap', 0.3);
                     goToMode(idx);
                   }}
-                  title={mode.shortLabel}
-                  subtitle={mode.tagline}
                   art={
-                    <FlatImage
+                    <GameImage
                       candidates={mode.imageCandidates}
                       alt=""
                       fallback={<span aria-hidden="true">{mode.fallbackEmoji}</span>}
                     />
                   }
-                  trailing={
-                    idx === modeIndex ? (
-                      <Check
-                        className="h-4 w-4 flex-shrink-0 text-[var(--ink-accent)]"
-                        aria-hidden="true"
-                      />
-                    ) : null
-                  }
                 />
               ))}
             </div>
-
-            <p className="if-muted mt-3 text-sm">{selectedMode.description}</p>
-          </FlatPanel>
+          </div>
         </div>
       </main>
 
       {/* ============== FOOTER ============== */}
-      <footer className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 border-t border-[var(--ink-line)] px-4 py-2 sm:px-6">
-        <div className="flex items-center gap-2">
-          {friendCode && (
-            <button
-              type="button"
-              onClick={handleCopyFriendCode}
-              className="if-btn if-btn--ghost if-btn--sm menu-focus"
-              title="Copier mon code ami"
-            >
-              <FlatLabel>Code ami</FlatLabel>
-              <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
-                {friendCode}
-              </span>
-              {codeCopied ? (
-                <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-              )}
-            </button>
-          )}
-        </div>
+      <footer className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-7">
+        {friendCode ? (
+          <button
+            type="button"
+            onClick={handleCopyFriendCode}
+            className="if-btn if-btn--ghost if-btn--sm menu-focus"
+            title="Copier mon code ami"
+          >
+            <span className="if-mute text-xs font-semibold">Code ami</span>
+            <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
+              {friendCode}
+            </span>
+            {codeCopied ? (
+              <Check className="h-3.5 w-3.5 text-[var(--c-green)]" aria-hidden="true" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+          </button>
+        ) : (
+          <span />
+        )}
 
         <div className="flex items-center gap-1">
-          <FlatIconButton
+          <GameIconButton
             label={isMuted ? 'Activer le son' : 'Couper le son'}
-            className="h-9 w-9 min-w-0 border-transparent"
+            className="h-9 w-9 min-w-0 border-transparent bg-transparent"
             onClick={() => {
               playInkSound('inkClick', 0.3);
               toggleMute();
             }}
           >
             {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </FlatIconButton>
-          <FlatIconButton
+          </GameIconButton>
+          <GameIconButton
             label="Raccourcis clavier"
-            className="h-9 w-9 min-w-0 border-transparent"
+            className="h-9 w-9 min-w-0 border-transparent bg-transparent"
             onClick={() => {
               playInkSound('inkClick', 0.3);
               setShowShortcuts(true);
             }}
           >
             <Keyboard className="h-4 w-4" />
-          </FlatIconButton>
+          </GameIconButton>
           <button
             type="button"
             onClick={() => {
@@ -586,10 +579,10 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             <label htmlFor="ink-lobby-code" className="if-label mb-2 block">
               Code du lobby
             </label>
-            <input
+            <GameInput
               id="ink-lobby-code"
+              code
               data-autofocus
-              className="if-input if-code-input"
               placeholder="XXXX"
               value={lobbyCode}
               onChange={(e) =>
@@ -605,7 +598,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
           {recentLobbies.length > 0 && (
             <div>
-              <FlatLabel className="mb-2 block">Lobbies récents</FlatLabel>
+              <GameLabel className="mb-2 block">Lobbies récents</GameLabel>
               <ul className="flex flex-col gap-1">
                 {recentLobbies.map((it) => (
                   <li key={it.code} className="if-row justify-between gap-2 p-1">
@@ -615,7 +608,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                         setLobbyCode(it.code);
                         playInkSound('brushTap', 0.3);
                       }}
-                      className="menu-focus flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left"
+                      className="menu-focus flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-1.5 text-left"
                     >
                       <span className="font-mono text-sm font-bold tracking-widest">
                         {it.code}
@@ -627,13 +620,13 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
                         })}
                       </span>
                     </button>
-                    <FlatIconButton
+                    <GameIconButton
                       label={`Supprimer le lobby récent ${it.code}`}
-                      className="h-8 w-8 min-w-0 border-transparent"
+                      className="h-8 w-8 min-w-0 border-transparent bg-transparent"
                       onClick={() => removeRecentLobby(it.code)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                    </FlatIconButton>
+                    </GameIconButton>
                   </li>
                 ))}
               </ul>
@@ -641,17 +634,12 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           )}
 
           <div className="flex gap-2">
-            <FlatButton
-              variant="ghost"
-              block
-              onClick={() => setShowJoinDialog(false)}
-              icon={<X className="h-4 w-4" />}
-            >
+            <GameButton variant="ghost" block onClick={() => setShowJoinDialog(false)}>
               Annuler
-            </FlatButton>
-            <FlatButton variant="primary" type="submit" block disabled={!joinReady}>
+            </GameButton>
+            <GameButton variant="primary" type="submit" block disabled={!joinReady}>
               Rejoindre
-            </FlatButton>
+            </GameButton>
           </div>
 
           {!joinReady && lobbyCode.length > 0 && (
@@ -662,11 +650,11 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
       {/* ============== SETTINGS ============== */}
       {showSettings && (
-        <BareOverlay label="Paramètres" onClose={() => setShowSettings(false)}>
+        <GameModal label="Paramètres" onClose={() => setShowSettings(false)}>
           <div className="flex min-h-0 flex-1 flex-col">
             <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
           </div>
-        </BareOverlay>
+        </GameModal>
       )}
 
       {/* ============== PATCH NOTE ============== */}

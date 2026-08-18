@@ -42,7 +42,7 @@ const GRAFFITI_TEXT_SHADOW_SM =
 const SectionLabel = ({
   icon: Icon,
   children,
-  color = '#a855f7',
+  color = 'var(--ink-accent)',
 }: {
   icon?: any;
   children: React.ReactNode;
@@ -191,7 +191,7 @@ const InkFriendsSidebarComponent = ({
             transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
             className="w-24 h-24 mx-auto rounded-full flex items-center justify-center"
             style={{
-              background: 'linear-gradient(135deg, #06b6d4, #0e7490)',
+              background: 'linear-gradient(135deg, var(--ink-text-dim), var(--ink-text-dim))',
               border: '1px solid var(--ink-line)',
               boxShadow:
                 'none',
@@ -215,7 +215,7 @@ const InkFriendsSidebarComponent = ({
             }}
             className="menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
             style={{
-              background: 'linear-gradient(180deg, #06b6d4, #0e7490)',
+              background: 'linear-gradient(180deg, var(--ink-text-dim), var(--ink-text-dim))',
               border: '1px solid var(--ink-line)',
               boxShadow: 'none',
               fontFamily: "'Outfit', sans-serif",
@@ -300,7 +300,7 @@ const InkFriendsSidebarComponent = ({
               transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
               className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{
-                background: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
+                background: 'linear-gradient(135deg, var(--ink-text-dim) 0%, var(--ink-text-dim) 100%)',
                 border: '1px solid var(--ink-line)',
                 boxShadow: 'none',
               }}
@@ -357,7 +357,7 @@ const InkFriendsSidebarComponent = ({
         <div className="relative p-4 space-y-4 z-[2]">
           {/* FRIEND CODE */}
           <div className="space-y-2">
-            <SectionLabel icon={Hash} color="#06b6d4">
+            <SectionLabel icon={Hash} color="var(--ink-text-dim)">
               Votre Code Ami
             </SectionLabel>
             <motion.button
@@ -379,7 +379,7 @@ const InkFriendsSidebarComponent = ({
               }}
             >
               <div
-                className="font-mono text-2xl font-black tracking-[0.25em] text-cyan-300"
+                className="font-mono text-2xl font-black tracking-[0.25em] text-[var(--ink-text-dim)]"
                 style={{ textShadow: GRAFFITI_TEXT_SHADOW_SM }}
               >
                 {friendCode || '...'}
@@ -389,7 +389,7 @@ const InkFriendsSidebarComponent = ({
                 style={{
                   background: copied
                     ? 'linear-gradient(180deg, #34d399, #059669)'
-                    : 'linear-gradient(180deg, #06b6d4, #0e7490)',
+                    : 'linear-gradient(180deg, var(--ink-text-dim), var(--ink-text-dim))',
                   border: '1px solid var(--ink-line)',
                   boxShadow: 'none',
                 }}
@@ -405,7 +405,7 @@ const InkFriendsSidebarComponent = ({
 
           {/* ADD FRIEND */}
           <div className="space-y-2">
-            <SectionLabel icon={UserPlus} color="#a855f7">
+            <SectionLabel icon={UserPlus} color="var(--ink-accent)">
               Ajouter un ami
             </SectionLabel>
             <div className="flex gap-2">
@@ -665,7 +665,7 @@ const InkFriendsSidebarComponent = ({
             <ScrollArea className="max-h-[280px]">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 text-cyan-300 animate-spin" />
+                  <Loader2 className="h-6 w-6 text-[var(--ink-text-dim)] animate-spin" />
                 </div>
               ) : friends.length === 0 ? (
                 <div className="text-center py-8">

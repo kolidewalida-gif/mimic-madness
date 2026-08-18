@@ -20,7 +20,7 @@ interface TeamDisplayProps {
 const teamStyles = [
   { 
     name: "Équipe Bleue",
-    gradient: "from-blue-500 to-cyan-500",
+    gradient: "from-blue-500 to-[var(--ink-surface-3)]",
     bg: "bg-blue-500/10",
     border: "border-blue-500/30",
     text: "text-blue-400"

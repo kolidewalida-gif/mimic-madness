@@ -23,7 +23,7 @@ const SHADOW_SM = '1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1
 const FONT = "'Outfit', sans-serif";
 
 const PHASE_COLORS: Record<string, string> = {
-  word_reveal: '#a855f7', clue_giving: '#06b6d4', discussion: '#f59e0b',
+  word_reveal: 'var(--ink-accent)', clue_giving: 'var(--ink-text-dim)', discussion: '#f59e0b',
   voting: '#ef4444', vote_result: '#fbbf24', game_over: '#fbbf24',
 };
 const PHASE_LABELS: Record<string, string> = {
@@ -100,7 +100,7 @@ export const UndercoverGameScreen = memo(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [game?.phase, isMyTurn, myPlayer?.is_alive, game?.current_round, game?.current_player_index]);
 
-    const accent = game ? PHASE_COLORS[game.phase] ?? '#a855f7' : '#a855f7';
+    const accent = game ? PHASE_COLORS[game.phase] ?? 'var(--ink-accent)' : 'var(--ink-accent)';
 
     const handleSubmitClue = useCallback(() => {
       const trimmed = clueInput.trim();
@@ -165,7 +165,7 @@ export const UndercoverGameScreen = memo(
       return (
         <div className="flex min-h-screen items-center justify-center bg-[#1a0530]">
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
-            <Loader2 className="w-10 h-10 text-purple-400" />
+            <Loader2 className="w-10 h-10 text-[var(--ink-accent-text)]" />
           </motion.div>
         </div>
       );
@@ -259,8 +259,8 @@ export const UndercoverGameScreen = memo(
                     style={{
                       background: isSelected ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
                         : isCurrent ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
-                        : isMe ? 'linear-gradient(135deg, #06b6d4, #0891b2)'
-                        : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                        : isMe ? 'linear-gradient(135deg, var(--ink-text-dim), var(--ink-text-dim))'
+                        : 'var(--ink-accent)',
                       border: '1px solid var(--ink-line)',
                       boxShadow: isCurrent ? `0 0 0 rgba(0,0,0,0), 0 0 20px ${accent}66` : '0 0 0 rgba(0,0,0,0)',
                     }}
@@ -284,7 +284,7 @@ export const UndercoverGameScreen = memo(
 
                   {/* Player name */}
                   <span className={cn('text-base md:text-lg font-black truncate max-w-full text-center',
-                    isMe ? 'text-cyan-300' : 'text-white/90')}
+                    isMe ? 'text-[var(--ink-text-dim)]' : 'text-white/90')}
                     style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
                     {isMe ? 'Toi' : player.player_name}
                   </span>

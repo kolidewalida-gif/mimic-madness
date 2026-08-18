@@ -91,9 +91,9 @@ export const QuizReveal = ({
           animate={{ opacity: 1, y: 0 }}
           className="max-w-2xl w-full"
         >
-          <InkCard accent="#a855f7" showSparkles={false} className="px-5 py-4">
+          <InkCard accent="var(--ink-accent)" showSparkles={false} className="px-5 py-4">
             <div className="flex items-center justify-center gap-2 mb-1">
-              <HelpCircle className="w-4 h-4" style={{ color: '#a855f7' }} strokeWidth={2.5} />
+              <HelpCircle className="w-4 h-4" style={{ color: 'var(--ink-accent)' }} strokeWidth={2.5} />
               <span
                 className="text-sm uppercase tracking-wider font-black text-white/60"
                 style={{ fontFamily: "'Outfit', sans-serif" }}

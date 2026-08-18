@@ -43,7 +43,7 @@ interface PixoguessGameScreenProps {
   onEndGame: () => void;
 }
 
-const ACCENT = '#06b6d4'; // cyan — matches the BLIND TEST card
+const ACCENT = 'var(--ink-text-dim)'; // cyan — matches the BLIND TEST card
 
 export const PixoguessGameScreen = ({
   currentPlayer,
@@ -392,7 +392,7 @@ export const PixoguessGameScreen = ({
                     Catégories :{' '}
                   </span>
                   <span
-                    className="text-base font-black text-cyan-300"
+                    className="text-base font-black text-[var(--ink-text-dim)]"
                     style={{
                       fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
@@ -490,7 +490,7 @@ export const PixoguessGameScreen = ({
                 <InkCard accent={ACCENT} highlighted className="p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Timer className="w-5 h-5 text-cyan-300" strokeWidth={2.5} />
+                      <Timer className="w-5 h-5 text-[var(--ink-text-dim)]" strokeWidth={2.5} />
                       <span
                         className="text-2xl font-black tabular-nums text-white leading-none"
                         style={{
@@ -561,7 +561,7 @@ export const PixoguessGameScreen = ({
                           >
                             On passe à la suivante…
                           </p>
-                          <Loader2 className="w-5 h-5 text-cyan-300 animate-spin" />
+                          <Loader2 className="w-5 h-5 text-[var(--ink-text-dim)] animate-spin" />
                         </div>
                       ) : (
                         <canvas
@@ -624,7 +624,7 @@ export const PixoguessGameScreen = ({
                         className="inline-block px-3 py-1 rounded-full text-base font-black text-white"
                         style={{
                           background:
-                            'linear-gradient(180deg, #a855f7, #6b21a8)',
+                            'var(--ink-accent)',
                           border: '1px solid var(--ink-line)',
                           boxShadow: 'none',
                           fontFamily: "'Outfit', sans-serif",
@@ -828,7 +828,7 @@ export const PixoguessGameScreen = ({
                             </span>
                           </div>
                           <span
-                            className="text-base font-black text-cyan-300 leading-none"
+                            className="text-base font-black text-[var(--ink-text-dim)] leading-none"
                             style={{
                               fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW_SM,
@@ -905,7 +905,7 @@ export const PixoguessGameScreen = ({
                 </div>
 
                 <div
-                  className="text-4xl font-black text-cyan-300 mb-4 capitalize leading-none"
+                  className="text-4xl font-black text-[var(--ink-text-dim)] mb-4 capitalize leading-none"
                   style={{
                     fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,
@@ -1013,7 +1013,7 @@ export const PixoguessGameScreen = ({
                         </div>
                         <div className="text-right">
                           <div
-                            className="text-xl font-black text-cyan-300 leading-none"
+                            className="text-xl font-black text-[var(--ink-text-dim)] leading-none"
                             style={{
                               fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW_SM,
@@ -1097,7 +1097,7 @@ export const PixoguessGameScreen = ({
                       {scores[0].player_name}
                     </p>
                     <p
-                      className="text-2xl font-black text-cyan-300 mt-1 leading-none"
+                      className="text-2xl font-black text-[var(--ink-text-dim)] mt-1 leading-none"
                       style={{
                         fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW_SM,
@@ -1141,7 +1141,7 @@ export const PixoguessGameScreen = ({
                         </span>
                       </div>
                       <span
-                        className="text-base font-black text-cyan-300 leading-none"
+                        className="text-base font-black text-[var(--ink-text-dim)] leading-none"
                         style={{
                           fontFamily: "'Outfit', sans-serif",
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,

@@ -29,8 +29,8 @@ const iconMap: Record<string, React.ReactNode> = {
 
 const rarityColors = {
   common: 'from-gray-500 to-gray-400',
-  rare: 'from-blue-500 to-cyan-400',
-  epic: 'from-purple-500 to-pink-500',
+  rare: 'from-blue-500 to-[var(--ink-surface-3)]',
+  epic: 'from-[var(--ink-accent)] to-pink-500',
   legendary: 'from-yellow-500 to-orange-400',
 };
 
@@ -152,7 +152,7 @@ export const AchievementToast = ({ achievement, onClose }: AchievementToastProps
             )}
             style={{ 
               borderColor: achievement.rarity === 'legendary' ? '#eab308' : 
-                          achievement.rarity === 'epic' ? '#a855f7' :
+                          achievement.rarity === 'epic' ? 'var(--ink-accent)' :
                           achievement.rarity === 'rare' ? '#3b82f6' : '#6b7280'
             }}
           />

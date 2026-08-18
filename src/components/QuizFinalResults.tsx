@@ -240,7 +240,7 @@ export const QuizFinalResults = ({
             {sortedScores.map((score, index) => {
               const isMe = score.player_id === currentPlayerId;
               const isTop = index < 3;
-              const color = isTop ? PODIUM[index].color : '#a855f7';
+              const color = isTop ? PODIUM[index].color : 'var(--ink-accent)';
               return (
                 <div
                   key={score.player_id}

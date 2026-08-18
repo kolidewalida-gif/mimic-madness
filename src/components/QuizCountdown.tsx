@@ -35,7 +35,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   mixed: '🎲 Mélangé',
 };
 
-const NUMBER_COLORS = ['#34d399', '#fbbf24', '#f87171', '#a855f7'];
+const NUMBER_COLORS = ['#34d399', '#fbbf24', '#f87171', 'var(--ink-accent)'];
 
 export const QuizCountdown = ({
   roundNumber,

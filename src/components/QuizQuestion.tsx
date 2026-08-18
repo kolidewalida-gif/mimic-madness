@@ -227,7 +227,7 @@ export const QuizQuestion = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1.5 rounded-xl text-xs font-semibold backdrop-blur-sm border bg-cyan-500/10 border-cyan-400/20 text-cyan-100">
+            <span className="px-3 py-1.5 rounded-xl text-xs font-semibold backdrop-blur-sm border bg-[var(--ink-surface-3)]/10 border-[var(--ink-line)]/20 text-[var(--ink-text-dim)]">
               {answeredPlayers.length}/{players.length} reponses
             </span>
             <span className="px-3 py-1.5 rounded-xl text-xs font-medium backdrop-blur-sm border bg-card/50 border-border/50">

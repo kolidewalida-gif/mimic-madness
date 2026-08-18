@@ -103,7 +103,7 @@ export function MonopolyPlayerPanel({
         className="px-3 py-2 rounded-2xl"
         style={{
           background:
-            'linear-gradient(180deg, rgba(168,85,247,0.2), rgba(168,85,247,0.05))',
+            'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))',
           border: '1px solid var(--ink-line)',
           boxShadow: 'none',
         }}
@@ -287,7 +287,7 @@ export function MonopolyPlayerPanel({
               </div>
               <div className="flex items-center gap-1">
                 <Building
-                  className="w-3 h-3 text-purple-400"
+                  className="w-3 h-3 text-[var(--ink-accent-text)]"
                   strokeWidth={3}
                 />
                 <span
@@ -300,7 +300,7 @@ export function MonopolyPlayerPanel({
               </div>
               <div className="flex items-center gap-1 col-span-2">
                 <MapPin
-                  className="w-3 h-3 text-cyan-400 flex-shrink-0"
+                  className="w-3 h-3 text-[var(--ink-text-dim)] flex-shrink-0"
                   strokeWidth={3}
                 />
                 <span

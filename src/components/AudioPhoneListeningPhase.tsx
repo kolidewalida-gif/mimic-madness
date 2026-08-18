@@ -172,13 +172,13 @@ export const AudioPhoneListeningPhase = memo(({
         <div className={cn(
           "absolute top-1/3 left-1/4 w-96 h-96 rounded-full blur-3xl transition-all duration-500",
           isPlaying 
-            ? "bg-gradient-to-br from-cyan-500/40 to-blue-500/30 scale-110" 
+            ? "bg-gradient-to-br from-[var(--ink-surface-2)]/40 to-blue-500/30 scale-110" 
             : "bg-gradient-to-br from-accent/20 to-primary/15"
         )} />
         <div className={cn(
           "absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl transition-all duration-500 delay-75",
           isPlaying 
-            ? "bg-gradient-to-br from-violet-500/40 to-purple-500/30 scale-110" 
+            ? "bg-gradient-to-br from-[var(--ink-accent)]/40 to-[var(--ink-accent-strong)]/30 scale-110" 
             : "bg-gradient-to-br from-secondary/20 to-accent/15"
         )} />
       </div>
@@ -188,18 +188,18 @@ export const AudioPhoneListeningPhase = memo(({
         "text-center mb-8 relative z-10 transition-all duration-700",
         showReady ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-8"
       )}>
-        <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-cyan-500/15 to-blue-500/10 border border-cyan-500/30 mb-5 backdrop-blur-sm">
-          <Headphones className="h-4 w-4 text-cyan-400" />
-          <span className="text-sm font-semibold text-cyan-400">Phase d'écoute</span>
+        <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[var(--ink-surface-2)]/15 to-blue-500/10 border border-[var(--ink-line)]/30 mb-5 backdrop-blur-sm">
+          <Headphones className="h-4 w-4 text-[var(--ink-text-dim)]" />
+          <span className="text-sm font-semibold text-[var(--ink-text-dim)]">Phase d'écoute</span>
         </div>
         
         <h1 className="text-3xl md:text-5xl font-black mb-3 text-foreground">
-          Écoutez attentivement, <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">{playerName}</span> !
+          Écoutez attentivement, <span className="bg-gradient-to-r from-[var(--ink-surface-2)] to-blue-500 bg-clip-text text-transparent">{playerName}</span> !
         </h1>
         
         <p className="text-foreground-secondary max-w-lg mx-auto text-lg">
           L'audio de <span className="font-semibold text-foreground">{previousPlayerName}</span> a été inversé.
-          <span className="text-cyan-400 font-medium"> Essayez de deviner ce qu'il a dit !</span>
+          <span className="text-[var(--ink-text-dim)] font-medium"> Essayez de deviner ce qu'il a dit !</span>
         </p>
       </div>
 
@@ -208,12 +208,12 @@ export const AudioPhoneListeningPhase = memo(({
         "max-w-xl w-full p-6 md:p-8 relative z-10 overflow-hidden transition-all duration-500 mb-6",
         "bg-card/60 backdrop-blur-md",
         isPlaying 
-          ? "border-cyan-500/50 shadow-lg shadow-cyan-500/20" 
+          ? "border-[var(--ink-line)]/50 shadow-lg shadow-cyan-500/20" 
           : "border-border/30"
       )}>
         {/* Playing glow effect */}
         {isPlaying && (
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[var(--ink-surface-2)]/10 to-blue-500/10 animate-pulse" />
         )}
 
         {/* Warning banner */}
@@ -233,7 +233,7 @@ export const AudioPhoneListeningPhase = memo(({
         <div className={cn(
           "relative h-44 rounded-2xl border overflow-hidden mb-6 transition-all duration-300",
           isPlaying 
-            ? "bg-gradient-to-br from-cyan-500/10 via-background/50 to-blue-500/10 border-cyan-500/30" 
+            ? "bg-gradient-to-br from-[var(--ink-surface-2)]/10 via-background/50 to-blue-500/10 border-[var(--ink-line)]/30" 
             : "bg-background/50 border-border/50"
         )}>
           {/* Waveform */}
@@ -244,7 +244,7 @@ export const AudioPhoneListeningPhase = memo(({
                 className={cn(
                   "w-2 rounded-full transition-all",
                   isPlaying
-                    ? "bg-gradient-to-t from-cyan-500 via-blue-500 to-violet-500"
+                    ? "bg-gradient-to-t from-[var(--ink-surface-2)] via-blue-500 to-[var(--ink-accent-strong)]"
                     : "bg-foreground-muted/30"
                 )}
                 style={{
@@ -262,18 +262,18 @@ export const AudioPhoneListeningPhase = memo(({
               className="absolute inset-0 flex items-center justify-center group"
             >
               <div className="relative">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--ink-surface-2)] to-blue-600 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
                   <Play className="h-12 w-12 text-white ml-1" />
                 </div>
-                <div className="absolute inset-0 w-24 h-24 rounded-full bg-cyan-500/30 animate-ping" />
+                <div className="absolute inset-0 w-24 h-24 rounded-full bg-[var(--ink-surface-3)]/30 animate-ping" />
               </div>
             </button>
           )}
 
           {/* Reversed indicator */}
-          <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/30 backdrop-blur-sm">
-            <RotateCcw className="h-4 w-4 text-violet-400 animate-spin" style={{ animationDuration: '3s' }} />
-            <span className="text-xs font-semibold text-violet-400">Inversé</span>
+          <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-[var(--ink-accent)]/20 to-[var(--ink-accent-strong)]/20 border border-[var(--ink-accent-line)]/30 backdrop-blur-sm">
+            <RotateCcw className="h-4 w-4 text-[var(--ink-accent-text)] animate-spin" style={{ animationDuration: '3s' }} />
+            <span className="text-xs font-semibold text-[var(--ink-accent-text)]">Inversé</span>
           </div>
         </div>
 
@@ -281,7 +281,7 @@ export const AudioPhoneListeningPhase = memo(({
         <div className="mb-5 relative z-10">
           <div className="h-2 bg-background/50 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-violet-500 transition-all duration-100 rounded-full"
+              className="h-full bg-gradient-to-r from-[var(--ink-surface-2)] via-blue-500 to-[var(--ink-accent-strong)] transition-all duration-100 rounded-full"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -327,7 +327,7 @@ export const AudioPhoneListeningPhase = memo(({
                 disabled={!canPlay}
                 className={cn(
                   "h-12 px-6",
-                  canPlay && "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
+                  canPlay && "bg-gradient-to-r from-[var(--ink-surface-2)] to-blue-600 hover:from-[var(--ink-surface-2)] hover:to-blue-700"
                 )}
               >
                 <Play className="h-5 w-5 mr-2" />

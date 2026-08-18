@@ -133,7 +133,7 @@ function MemberRow({
         className={cn("flex items-center gap-3 flex-1 min-w-0 text-left outline-none", selectable && "cursor-pointer")}
       >
         <div className="relative flex-shrink-0">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-black text-white border-2 border-white/15 bg-gradient-to-br from-purple-500 to-purple-900">
+          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-black text-white border-2 border-white/15 bg-gradient-to-br from-[var(--ink-accent)] to-[var(--ink-accent-strong)]">
             {member.avatar ? (
               <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
             ) : (

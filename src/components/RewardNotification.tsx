@@ -90,16 +90,16 @@ const rarityColors = {
     text: 'text-gray-200',
   },
   rare: {
-    bg: 'from-blue-600 to-cyan-600',
+    bg: 'from-blue-600 to-[var(--ink-surface-3)]',
     border: 'border-blue-400/50',
     glow: 'shadow-blue-500/50',
     text: 'text-blue-200',
   },
   epic: {
-    bg: 'from-purple-600 to-pink-600',
-    border: 'border-purple-400/50',
+    bg: 'from-[var(--ink-accent)] to-pink-600',
+    border: 'border-[var(--ink-accent-line)]/50',
     glow: 'shadow-purple-500/50',
-    text: 'text-purple-200',
+    text: 'text-[var(--ink-accent-text)]',
   },
   legendary: {
     bg: 'from-yellow-500 to-orange-500',

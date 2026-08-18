@@ -302,7 +302,7 @@ export const DoodleModal = ({
 export const DoodleConfetti = ({
   show,
   count = 28,
-  colors = ['#f87171', '#fbbf24', '#34d399', '#38bdf8', '#c084fc', '#f472b6'],
+  colors = ['#f87171', '#fbbf24', '#34d399', '#38bdf8', 'var(--ink-accent)', '#f472b6'],
 }: {
   show: boolean;
   count?: number;

@@ -34,7 +34,7 @@ const Swatch = memo(({
       )}
       style={{
         background: isRainbow
-          ? 'conic-gradient(#ef4444, #fbbf24, #34d399, #06b6d4, #a855f7, #ef4444)'
+          ? 'conic-gradient(#ef4444, #fbbf24, #34d399, var(--ink-text-dim), var(--ink-accent), #ef4444)'
           : isAuto
             ? 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02))'
             : option.hex,
@@ -96,7 +96,7 @@ const InkChatColorPickerComponent = () => {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Palette className="w-4 h-4 text-cyan-300" />
+          <Palette className="w-4 h-4 text-[var(--ink-text-dim)]" />
           <h3
             className="text-2xl font-black text-white"
             style={{ fontFamily: FONT, textShadow: SHADOW }}

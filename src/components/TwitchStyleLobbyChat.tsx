@@ -17,9 +17,9 @@ interface TwitchStyleLobbyChatProps {
 }
 
 const PSEUDO_COLORS = [
-  '#c084fc', '#22d3ee', '#fbbf24', '#34d399', '#fb7185',
-  '#f472b6', '#60a5fa', '#fb923c', '#a855f7', '#67e8f9',
-  '#a3e635', '#f87171', '#e879f9', '#fde047', '#38bdf8',
+  'var(--ink-accent)', 'var(--ink-text-dim)', '#fbbf24', '#34d399', '#fb7185',
+  '#f472b6', '#60a5fa', '#fb923c', 'var(--ink-accent)', 'var(--ink-text-dim)',
+  '#a3e635', '#f87171', 'var(--ink-accent)', '#fde047', '#38bdf8',
 ];
 const colorFor = (key: string): string => {
   let h = 0;
@@ -80,7 +80,7 @@ const ChatLine = memo(({ msg, isOwn, ownColor }: { msg: ChatMessage; isOwn: bool
             )}
             style={
               isOwn
-                ? { background: 'linear-gradient(135deg, rgba(168,85,247,0.45), rgba(124,58,237,0.35))', border: '1px solid rgba(192,132,252,0.3)' }
+                ? { background: 'linear-gradient(135deg, var(--ink-accent-soft), rgba(124,58,237,0.35))', border: '1px solid rgba(192,132,252,0.3)' }
                 : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }
             }
           >
@@ -132,9 +132,9 @@ const GifPickerModal = memo(function GifPickerModal({
         exit={{ opacity: 0, scale: 0.94, y: 16 }}
         transition={{ type: 'spring', damping: 24, stiffness: 300 }}
         className="relative w-full max-w-md flex flex-col rounded-3xl overflow-hidden"
-        style={{ height: 'min(72vh, 560px)', background: 'linear-gradient(180deg,#1c1030,#0d0618)', border: '1px solid rgba(168,85,247,0.35)', boxShadow: '0 30px 80px rgba(124,58,237,0.35)' }}
+        style={{ height: 'min(72vh, 560px)', background: 'linear-gradient(180deg,#1c1030,#0d0618)', border: '1px solid var(--ink-accent-soft)', boxShadow: '0 30px 80px rgba(124,58,237,0.35)' }}
       >
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 flex-shrink-0 bg-gradient-to-r from-purple-600/20 to-fuchsia-600/10">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 flex-shrink-0 bg-gradient-to-r from-[var(--ink-accent)]/20 to-[var(--ink-accent-strong)]/10">
           <Sparkles className="w-4 h-4 text-amber-300" />
           <span className="text-base font-bold text-white">GIFs</span>
           <div className="flex-1 relative ml-1">
@@ -144,7 +144,7 @@ const GifPickerModal = memo(function GifPickerModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher un GIF…"
-              className="w-full h-9 pl-8 pr-2 rounded-lg text-sm text-white placeholder:text-white/30 outline-none bg-black/40 border border-white/10 focus:border-purple-400/50"
+              className="w-full h-9 pl-8 pr-2 rounded-lg text-sm text-white placeholder:text-white/30 outline-none bg-black/40 border border-white/10 focus:border-[var(--ink-accent-line)]/50"
             />
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-rose-500/20">
@@ -154,7 +154,7 @@ const GifPickerModal = memo(function GifPickerModal({
 
         {!search.trim() && (
           <div className="flex gap-1.5 px-3 py-2.5 overflow-x-auto custom-scrollbar flex-shrink-0 border-b border-white/5">
-            <CatChip active={activeCategory === 'all'} onClick={() => setActiveCategory('all')} label="✨ Tout" color="#a855f7" />
+            <CatChip active={activeCategory === 'all'} onClick={() => setActiveCategory('all')} label="✨ Tout" color="var(--ink-accent)" />
             {categories.map(([key, info]) => (
               <CatChip key={key} active={activeCategory === key} onClick={() => setActiveCategory(key)} label={`${info.emoji} ${info.label}`} color={info.color} />
             ))}
@@ -172,7 +172,7 @@ const GifPickerModal = memo(function GifPickerModal({
                 whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => { playInkSound('cartoonPop', 0.3); onSelect(gif.url); }}
-                className="relative aspect-square rounded-xl overflow-hidden border border-white/10 hover:border-purple-400/60"
+                className="relative aspect-square rounded-xl overflow-hidden border border-white/10 hover:border-[var(--ink-accent-line)]/60"
               >
                 <img src={gif.url} alt="" className="w-full h-full object-cover" loading="lazy" />
               </motion.button>
@@ -258,7 +258,7 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
       <div
         className="absolute inset-0 rounded-2xl opacity-70"
         style={{
-          background: 'conic-gradient(from var(--chat-angle,0deg), #a855f7, #22d3ee, #fb7185, #fbbf24, #a855f7)',
+          background: 'conic-gradient(from var(--chat-angle,0deg), var(--ink-accent), var(--ink-text-dim), #fb7185, #fbbf24, var(--ink-accent))',
           animation: 'chatBorderSpin 8s linear infinite',
           filter: 'blur(0.5px)',
         }}
@@ -271,8 +271,8 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
         }}
       >
         {/* glow blobs */}
-        <div className="absolute -top-10 -left-10 w-40 h-40 rounded-full bg-purple-600/20 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute -top-10 -left-10 w-40 h-40 rounded-full bg-[var(--ink-accent)]/20 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-[var(--ink-surface-3)]/15 blur-3xl pointer-events-none" />
 
         {/* Header */}
         <div className="relative flex items-center justify-between px-3.5 py-2.5 flex-shrink-0 border-b border-white/10">
@@ -283,12 +283,12 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
             </span>
             <span
               className="text-sm font-black uppercase tracking-wider bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(90deg,#fff,#c084fc,#22d3ee,#fff)', backgroundSize: '200% auto', animation: 'chatTextShine 4s linear infinite' }}
+              style={{ backgroundImage: 'linear-gradient(90deg,#fff,var(--ink-accent),var(--ink-text-dim),#fff)', backgroundSize: '200% auto', animation: 'chatTextShine 4s linear infinite' }}
             >
               Chat en direct
             </span>
           </div>
-          <span className="text-[11px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: 'linear-gradient(180deg,#a855f7,#7c3aed)', boxShadow: '0 0 12px rgba(168,85,247,0.6)' }}>
+          <span className="text-[11px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--ink-accent)', boxShadow: '0 0 12px var(--ink-accent-soft)' }}>
             {messages.length}
           </span>
         </div>
@@ -297,11 +297,11 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
         <div ref={scrollRef} onScroll={handleScroll} className="relative flex-1 overflow-y-auto custom-scrollbar py-2.5 min-h-0 flex flex-col gap-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 rounded-full border-[3px] border-purple-500 border-t-transparent animate-spin" />
+              <div className="w-6 h-6 rounded-full border-[3px] border-[var(--ink-accent-line)] border-t-transparent animate-spin" />
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center flex-1 px-4 text-center">
-              <motion.div animate={{ y: [0, -5, 0], rotate: [-4, 4, -4] }} transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }} className="text-5xl mb-3 drop-shadow-[0_4px_12px_rgba(168,85,247,0.5)]">💬</motion.div>
+              <motion.div animate={{ y: [0, -5, 0], rotate: [-4, 4, -4] }} transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }} className="text-5xl mb-3 drop-shadow-[0_4px_12px_var(--ink-accent-soft)]">💬</motion.div>
               <p className="text-base font-black text-white/80">Aucun message</p>
               <p className="text-xs text-white/40 mt-0.5">Sois le premier à écrire ✨</p>
             </div>
@@ -321,7 +321,7 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
             animate={{ y: 0, opacity: 1 }}
             onClick={() => { setAutoScroll(true); scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }}
             className="relative mx-3 mb-1.5 py-1.5 rounded-full text-xs font-bold text-white"
-            style={{ background: 'linear-gradient(90deg,#a855f7,#7c3aed)', boxShadow: '0 4px 16px rgba(168,85,247,0.5)' }}
+            style={{ background: 'var(--ink-accent)', boxShadow: '0 4px 16px var(--ink-accent-soft)' }}
             whileTap={{ scale: 0.97 }}
           >
             ↓ Nouveaux messages
@@ -366,8 +366,8 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
               whileTap={input.trim() && !isSending ? { scale: 0.9 } : undefined}
               className={cn('flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all', !input.trim() || isSending ? 'opacity-40 cursor-not-allowed' : '')}
               style={{
-                background: 'linear-gradient(135deg,#a855f7,#7c3aed)',
-                boxShadow: input.trim() && !isSending ? '0 4px 16px rgba(168,85,247,0.6)' : 'none',
+                background: 'var(--ink-accent)',
+                boxShadow: input.trim() && !isSending ? '0 4px 16px var(--ink-accent-soft)' : 'none',
               }}
             >
               <Send className="w-4 h-4 text-white" strokeWidth={2.5} />

@@ -232,7 +232,7 @@ const ProfileSidebarComponent = () => {
                   <span className={cn(
                     "text-xs px-2 py-0.5 rounded-full font-medium",
                     equippedTitle.rarity === 'legendary' ? 'bg-yellow-500/20 text-yellow-400' :
-                    equippedTitle.rarity === 'epic' ? 'bg-purple-500/20 text-purple-400' :
+                    equippedTitle.rarity === 'epic' ? 'bg-[var(--ink-accent)]/20 text-[var(--ink-accent-text)]' :
                     equippedTitle.rarity === 'rare' ? 'bg-blue-500/20 text-blue-400' :
                     'bg-gray-500/20 text-gray-400'
                   )}>

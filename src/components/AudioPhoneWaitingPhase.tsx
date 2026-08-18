@@ -205,7 +205,7 @@ export const AudioPhoneWaitingPhase = memo(({
           transition={{ delay: 0.3 }}
           className="w-full max-w-md"
         >
-          <InkCard accent="#a855f7" className="p-4" highlighted={false}>
+          <InkCard accent="var(--ink-accent)" className="p-4" highlighted={false}>
             <h3
               className="text-base font-black uppercase tracking-wider text-white/80 mb-3"
               style={{

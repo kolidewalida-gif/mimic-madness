@@ -35,8 +35,8 @@ const DIFF_OPTIONS: Array<{
   emoji: string;
   color: string;
 }> = [
-  { id: 'mixed', label: 'Mixte', emoji: '🎲', color: '#a855f7' },
-  { id: 'facile', label: 'Facile', emoji: '🟢', color: '#10b981' },
+  { id: 'mixed', label: 'Mixte', emoji: '🎲', color: '#a06bff' },
+  { id: 'facile', label: 'Facile', emoji: '🟢', color: '#3ddc91' },
   { id: 'moyen', label: 'Moyen', emoji: '🟡', color: '#fbbf24' },
   { id: 'difficile', label: 'Difficile', emoji: '🔴', color: '#ef4444' },
 ];
@@ -46,9 +46,9 @@ const MODE_OPTIONS: Array<{
   emoji: string;
   color: string;
 }> = [
-  { id: 'mixed', label: 'Mixte', emoji: '🎲', color: '#a855f7' },
-  { id: 'qcm', label: 'QCM', emoji: '📝', color: '#06b6d4' },
-  { id: 'text', label: 'Libre', emoji: '⌨️', color: '#f59e0b' },
+  { id: 'mixed', label: 'Mixte', emoji: '🎲', color: '#a06bff' },
+  { id: 'qcm', label: 'QCM', emoji: '📝', color: '#40c9ff' },
+  { id: 'text', label: 'Libre', emoji: '⌨️', color: '#ff9640' },
 ];
 
 const InkPill = ({
@@ -56,7 +56,7 @@ const InkPill = ({
   onClick,
   children,
   disabled,
-  color = '#a855f7',
+  color = 'var(--ink-accent)',
 }: {
   active: boolean;
   onClick: () => void;
@@ -207,7 +207,7 @@ export const QuizSettingsPanel = ({ settings, onChange, disabled }: Props) => {
               active={settings.answerDurationMs === s * 1000}
               disabled={disabled}
               onClick={() => update('answerDurationMs', s * 1000)}
-              color="#06b6d4"
+              color="var(--ink-text-dim)"
             >
               {s}s
             </InkPill>

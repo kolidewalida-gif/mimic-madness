@@ -153,7 +153,7 @@ export const QuizLeaderboard = ({
               const pointsThisRound = roundPoints[score.player_id] || 0;
               const isCurrentPlayer = score.player_id === currentPlayerId;
               const isTop = index < 3;
-              const rankColor = isTop ? RANK_COLORS[index] : '#a855f7';
+              const rankColor = isTop ? RANK_COLORS[index] : 'var(--ink-accent)';
               const displayedScore = animatedScores[score.player_id] ?? score.total_points;
 
               return (
@@ -253,7 +253,7 @@ export const QuizLeaderboard = ({
             <div className="space-y-3">
               <div
                 className="rounded-xl px-3 py-3"
-                style={{ background: '#a855f71a', border: '1px solid var(--ink-line)' }}
+                style={{ background: 'var(--ink-accent)1a', border: '1px solid var(--ink-line)' }}
               >
                 <div className="text-xs uppercase tracking-wider text-white/50">MVP vitesse</div>
                 <div
@@ -310,7 +310,7 @@ export const QuizLeaderboard = ({
             <div className="grid grid-cols-2 gap-2 text-center">
               {[
                 { time: '<3s', points: '10pts', color: '#34d399' },
-                { time: '<6s', points: '8pts', color: '#06b6d4' },
+                { time: '<6s', points: '8pts', color: 'var(--ink-text-dim)' },
                 { time: '<10s', points: '6pts', color: '#fbbf24' },
                 { time: '<15s', points: '4pts', color: '#f87171' },
               ].map((tier) => (

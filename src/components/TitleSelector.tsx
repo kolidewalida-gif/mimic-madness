@@ -67,7 +67,7 @@ export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
       title="Mes titres"
       subtitle={`${unlockedTitles.length}/${titles.length} débloqués`}
       icon={<Crown className="h-5 w-5" strokeWidth={2.5} />}
-      iconGradient="linear-gradient(135deg, #c084fc, #7c3aed)"
+      iconGradient="var(--ink-accent)"
       toolbar={
         <div className="flex-shrink-0 border-b-2 border-white/10 px-5 pb-4">
               <p className="text-xs text-white/40 mb-2 uppercase tracking-wider font-medium">Titre équipé</p>

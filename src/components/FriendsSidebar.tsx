@@ -187,7 +187,7 @@ const FriendsSidebarComponent = ({ onJoinFriend, currentLobbyCode }: FriendsSide
               transition={{ duration: 1, repeat: Infinity }}
             >
               <Bell className="h-5 w-5 text-primary" />
-              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gradient-to-br from-pink-500 to-purple-600 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-lg shadow-pink-500/50">
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gradient-to-br from-pink-500 to-[var(--ink-accent-strong)] text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-lg shadow-pink-500/50">
                 {totalNotifications}
               </span>
             </motion.div>

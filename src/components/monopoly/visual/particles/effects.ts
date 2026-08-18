@@ -185,15 +185,15 @@ const DEFAULT_COLOR: Record<FXKind, string> = {
   SHOCKWAVE: '#ffffff',
   JAIL_BARS: '#ef4444',    // jail red
   RED_FLASH: '#ef4444',
-  COLOR_FLASH: '#a855f7',  // generic purple fallback (token color overrides)
+  COLOR_FLASH: 'var(--ink-accent)',  // generic purple fallback (token color overrides)
   STAMP: '#fbbf24',
 };
 
 /** Confetti color cycle — matches Req 1.3 palette anchors. */
 const CONFETTI_COLORS = [
-  '#a855f7', // purple
+  'var(--ink-accent)', // purple
   '#ec4899', // pink
-  '#06b6d4', // cyan
+  'var(--ink-text-dim)', // cyan
   '#fbbf24', // amber
   '#22c55e', // green
   '#ef4444', // red

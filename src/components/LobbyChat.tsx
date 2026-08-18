@@ -30,9 +30,9 @@ const FONT = "'Outfit', sans-serif";
    Pseudo colors
 ============================================================ */
 const PSEUDO_COLORS = [
-  '#a855f7', '#06b6d4', '#fbbf24', '#34d399', '#ef4444',
-  '#f472b6', '#60a5fa', '#fb923c', '#c084fc', '#22d3ee',
-  '#a3e635', '#f87171', '#e879f9', '#fde047', '#67e8f9',
+  'var(--ink-accent)', 'var(--ink-text-dim)', '#fbbf24', '#34d399', '#ef4444',
+  '#f472b6', '#60a5fa', '#fb923c', 'var(--ink-accent)', 'var(--ink-text-dim)',
+  '#a3e635', '#f87171', 'var(--ink-accent)', '#fde047', 'var(--ink-text-dim)',
 ];
 const colorFor = (key: string): string => {
   let h = 0;
@@ -51,20 +51,20 @@ const formatTime = (date: string | Date): string => {
 export const SOUNDBOARD_ITEMS = [
   { id: 'airhorn', emoji: '📯', label: 'Air Horn', sound: 'alertUrgent' as const, color: '#ef4444' },
   { id: 'applause', emoji: '👏', label: 'Applause', sound: 'achievementEarned' as const, color: '#fbbf24' },
-  { id: 'party', emoji: '🎉', label: 'Fête', sound: 'celebration' as const, color: '#a855f7' },
+  { id: 'party', emoji: '🎉', label: 'Fête', sound: 'celebration' as const, color: '#ff5c8a' },
   { id: 'win', emoji: '🏆', label: 'Victoire', sound: 'levelComplete' as const, color: '#f59e0b' },
   { id: 'fail', emoji: '💀', label: 'Fail', sound: 'gameOver' as const, color: '#6b7280' },
-  { id: 'wow', emoji: '😱', label: 'Wow', sound: 'transitionMagic' as const, color: '#06b6d4' },
+  { id: 'wow', emoji: '😱', label: 'Wow', sound: 'transitionMagic' as const, color: '#40c9ff' },
   { id: 'fire', emoji: '🔥', label: 'Fire', sound: 'quizStreak' as const, color: '#f97316' },
   { id: 'zap', emoji: '⚡', label: 'Zap', sound: 'transitionZap' as const, color: '#fbbf24' },
   { id: 'gg', emoji: '🎮', label: 'GG', sound: 'notifySuccess' as const, color: '#34d399' },
   { id: 'nope', emoji: '❌', label: 'Nope', sound: 'notifyError' as const, color: '#ef4444' },
-  { id: 'magic', emoji: '✨', label: 'Magic', sound: 'transitionCosmic' as const, color: '#c084fc' },
+  { id: 'magic', emoji: '✨', label: 'Magic', sound: 'transitionCosmic' as const, color: '#a06bff' },
   { id: 'drum', emoji: '🥁', label: 'Drum', sound: 'quizCombo' as const, color: '#fb923c' },
   { id: 'coin', emoji: '🪙', label: 'Coin', sound: 'coinDrop' as const, color: '#fde047' },
-  { id: 'gem', emoji: '💎', label: 'Gem', sound: 'gemCollect' as const, color: '#22d3ee' },
+  { id: 'gem', emoji: '💎', label: 'Gem', sound: 'gemCollect' as const, color: '#2fd8c5' },
   { id: 'level', emoji: '⬆️', label: 'Level Up', sound: 'levelComplete' as const, color: '#a3e635' },
-  { id: 'suspense', emoji: '😰', label: 'Suspense', sound: 'suspenseBuild' as const, color: '#8b5cf6' },
+  { id: 'suspense', emoji: '😰', label: 'Suspense', sound: 'suspenseBuild' as const, color: '#ff9640' },
 ] as const;
 
 type SoundboardId = typeof SOUNDBOARD_ITEMS[number]['id'];
@@ -217,7 +217,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
           whileHover={{ scale: 1.06, rotate: -2 }} whileTap={{ scale: 0.94 }}
           className="relative flex items-center gap-2 px-4 py-2.5 rounded-2xl"
           style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-          <MessageCircle className="w-4 h-4 text-purple-400" />
+          <MessageCircle className="w-4 h-4 text-[var(--ink-accent-text)]" />
           <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Chat</span>
           {unreadCount > 0 && (
             <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -245,7 +245,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
                 style={{ boxShadow: '0 0 6px #34d39988' }} />
               <span className="text-base font-black text-white uppercase" style={{ fontFamily: FONT, textShadow: SHADOW_SM, letterSpacing: '0.05em' }}>💬 Chat Live</span>
               <span className="text-xs font-black px-1.5 py-0.5 rounded-md text-white"
-                style={{ background: 'rgba(168,85,247,0.25)', border: '1px solid var(--ink-line)', fontFamily: FONT }}>{messages.length}</span>
+                style={{ background: 'var(--ink-accent-soft)', border: '1px solid var(--ink-line)', fontFamily: FONT }}>{messages.length}</span>
             </div>
             <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
               onClick={() => { setIsExpanded(false); setPanel('none'); }}
@@ -257,11 +257,11 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
 
           {/* Messages */}
           <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto py-1.5 px-1 min-h-0"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(168,85,247,0.3) transparent' }}>
+            style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--ink-accent-soft) transparent' }}>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-6 h-6 rounded-full" style={{ border: '3px solid #a855f7', borderTopColor: 'transparent' }} />
+                  className="w-6 h-6 rounded-full" style={{ border: '3px solid var(--ink-accent)', borderTopColor: 'transparent' }} />
               </div>
             ) : messages.length === 0 ? (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -286,7 +286,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
             <motion.button initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
               onClick={() => { setAutoScroll(true); scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }}
               className="mx-2 mb-1 py-1.5 rounded-lg text-xs font-black text-white"
-              style={{ background: 'linear-gradient(180deg, #a855f7, #7c3aed)', border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}
+              style={{ background: 'var(--ink-accent)', border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               ↓ Nouveaux messages
             </motion.button>
@@ -319,7 +319,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
                 {/* Categories */}
                 {!gifSearch.trim() && (
                   <div className="flex gap-1.5 px-2 py-1.5 overflow-x-auto flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    {[['all', { emoji: '✨', label: 'Tout', color: '#a855f7' }] as const, ...Object.entries(CATEGORY_LABELS) as [GifCategory, typeof CATEGORY_LABELS[GifCategory]][]]
+                    {[['all', { emoji: '✨', label: 'Tout', color: 'var(--ink-accent)' }] as const, ...Object.entries(CATEGORY_LABELS) as [GifCategory, typeof CATEGORY_LABELS[GifCategory]][]]
                       .map(([key, info]) => (
                         <button key={key} onClick={() => setGifCategory(key as GifCategory | 'all')}
                           className={cn('flex-shrink-0 px-2 py-1 rounded-lg text-xs font-black whitespace-nowrap transition-all', gifCategory === key ? 'scale-105' : 'opacity-60 hover:opacity-100')}
@@ -362,7 +362,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
                 style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                 <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
                   <div className="flex items-center gap-2">
-                    <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+                    <Volume2 className="w-3.5 h-3.5 text-[var(--ink-text-dim)]" />
                     <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Soundboard</span>
                     <span className="text-xs text-white/40" style={{ fontFamily: FONT }}>— tout le monde entend !</span>
                   </div>
@@ -404,7 +404,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
               <motion.button type="button" onClick={() => setPanel(panel === 'soundboard' ? 'none' : 'soundboard')}
                 whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.9 }}
                 className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: panel === 'soundboard' ? 'linear-gradient(180deg, #06b6d4, #0891b2)' : 'rgba(6,182,212,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+                style={{ background: panel === 'soundboard' ? 'linear-gradient(180deg, var(--ink-text-dim), var(--ink-text-dim))' : 'rgba(6,182,212,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
                 title="Soundboard — tout le monde entend !">
                 <Volume2 className="w-4 h-4 text-white" strokeWidth={2.5} />
               </motion.button>
@@ -421,7 +421,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
                 whileHover={input.trim() && !isSending ? { scale: 1.1, rotate: -5 } : undefined}
                 whileTap={input.trim() && !isSending ? { scale: 0.9 } : undefined}
                 className={cn('flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center', (!input.trim() || isSending) && 'opacity-40 cursor-not-allowed')}
-                style={{ background: 'linear-gradient(180deg, #a855f7, #7c3aed)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                style={{ background: 'var(--ink-accent)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                 <Send className="w-4 h-4 text-white" strokeWidth={2.5} />
               </motion.button>
             </div>

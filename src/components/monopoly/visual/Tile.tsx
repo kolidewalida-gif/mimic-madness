@@ -305,7 +305,7 @@ export function Tile(props: TileProps): React.ReactElement {
           <Text
             position={[0, 0.13, 0.7]}
             fontSize={0.11}
-            color="#7e22ce"
+            color="var(--ink-accent-strong)"
             anchorX="center"
             anchorY="middle"
             outlineWidth={0.004}

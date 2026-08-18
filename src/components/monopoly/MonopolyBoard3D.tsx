@@ -211,11 +211,11 @@ function Scene(props: MonopolyBoard3DProps) {
           visual.shadowMapSize || 512,
         ]}
       />
-      <directionalLight position={[-8, 12, -6]} intensity={0.5} color="#a855f7" />
+      <directionalLight position={[-8, 12, -6]} intensity={0.5} color="var(--ink-accent)" />
       {visual.enableSecondaryLights && (
         <>
           <pointLight position={[0, 9, 0]} intensity={1.0} color="#fbbf24" />
-          <pointLight position={[8, 4, 8]} intensity={0.6} color="#06b6d4" />
+          <pointLight position={[8, 4, 8]} intensity={0.6} color="var(--ink-text-dim)" />
           <pointLight position={[-8, 4, -8]} intensity={0.6} color="#ec4899" />
           {/* Rim light from below to make cartoon outlines pop. */}
           <pointLight position={[0, -3, 0]} intensity={0.4} color="#22c55e" />
@@ -281,7 +281,7 @@ function Scene(props: MonopolyBoard3DProps) {
       <Text
         position={[0, 0.13, 1.3]}
         fontSize={0.26}
-        color="#a855f7"
+        color="var(--ink-accent)"
         anchorX="center"
         anchorY="middle"
         outlineWidth={0.014}
@@ -359,7 +359,7 @@ export function MonopolyBoard3DCanvas(props: MonopolyBoard3DProps) {
       <div
         className="absolute top-3 right-3 z-10 pointer-events-none px-2.5 py-1 rounded-lg"
         style={{
-          background: 'linear-gradient(180deg, #a855f7, #7e22ce)',
+          background: 'var(--ink-accent)',
           border: '1px solid var(--ink-line)',
           boxShadow: 'none',
           transform: 'rotate(4deg)',

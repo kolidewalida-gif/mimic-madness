@@ -889,7 +889,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                   <defs>
                     <linearGradient id="btRing" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0%" stopColor="#ff2e97" />
-                      <stop offset="50%" stopColor="#8b5cf6" />
+                      <stop offset="50%" stopColor="var(--ink-accent)" />
                       <stop offset="100%" stopColor="#22e0ff" />
                     </linearGradient>
                   </defs>
@@ -1378,7 +1378,7 @@ const VerticalVolume = ({ value, onChange }: { value: number; onChange: (v: numb
     >
       <div
         className="absolute bottom-0 left-0 right-0 rounded-full"
-        style={{ height: `${value}%`, background: 'linear-gradient(180deg, #22e0ff, #8b5cf6, #ff2e97)' }}
+        style={{ height: `${value}%`, background: 'linear-gradient(180deg, #22e0ff, var(--ink-accent), #ff2e97)' }}
       />
       <div
         className="absolute left-1/2 w-5 h-5 rounded-full bg-white"
