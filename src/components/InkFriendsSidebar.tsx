@@ -35,9 +35,9 @@ interface InkFriendsSidebarProps {
 }
 
 const GRAFFITI_TEXT_SHADOW =
-  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
+  'none';
 const GRAFFITI_TEXT_SHADOW_SM =
-  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
+  'none';
 
 const SectionLabel = ({
   icon: Icon,
@@ -53,7 +53,7 @@ const SectionLabel = ({
     <span
       className="text-base font-black uppercase tracking-wider"
       style={{
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "'Outfit', sans-serif",
         color,
         textShadow: GRAFFITI_TEXT_SHADOW_SM,
       }}
@@ -176,9 +176,9 @@ const InkFriendsSidebarComponent = ({
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-          border: '4px solid #0a0810',
+          border: '1px solid var(--ink-line)',
           boxShadow:
-            '0 8px 0 #0a0810, 0 14px 30px rgba(6,182,212,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+            'none',
         }}
       >
         <div
@@ -192,16 +192,16 @@ const InkFriendsSidebarComponent = ({
             className="w-24 h-24 mx-auto rounded-full flex items-center justify-center"
             style={{
               background: 'linear-gradient(135deg, #06b6d4, #0e7490)',
-              border: '4px solid #0a0810',
+              border: '1px solid var(--ink-line)',
               boxShadow:
-                '0 5px 0 #0a0810, 0 10px 20px rgba(6,182,212,0.4), inset 0 2px 0 rgba(255,255,255,0.2)',
+                'none',
             }}
           >
             <Users className="h-12 w-12 text-white" strokeWidth={2.5} />
           </motion.div>
           <p
             className="text-base text-white/80 font-bold leading-snug px-2"
-            style={{ fontFamily: "'Caveat', cursive" }}
+            style={{ fontFamily: "'Outfit', sans-serif" }}
           >
             Connecte-toi pour ajouter des amis et jouer ensemble !
           </p>
@@ -216,9 +216,9 @@ const InkFriendsSidebarComponent = ({
             className="menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
             style={{
               background: 'linear-gradient(180deg, #06b6d4, #0e7490)',
-              border: '3px solid #0a0810',
-              boxShadow: '0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)',
-              fontFamily: "'Caveat', cursive",
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
@@ -240,8 +240,8 @@ const InkFriendsSidebarComponent = ({
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-          border: '4px solid #0a0810',
-          boxShadow: '0 8px 0 #0a0810',
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}
       >
         <div className="p-5 space-y-4 animate-pulse">
@@ -264,9 +264,9 @@ const InkFriendsSidebarComponent = ({
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-          border: '4px solid #0a0810',
+          border: '1px solid var(--ink-line)',
           boxShadow:
-            '0 8px 0 #0a0810, 0 14px 30px rgba(6,182,212,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+            'none',
         }}
       >
         {/* Inner accent border */}
@@ -278,11 +278,11 @@ const InkFriendsSidebarComponent = ({
         {/* Decorative graffiti stars */}
         <Sparkles
           className="absolute top-3 right-3 w-4 h-4 text-amber-400 z-[2] select-none pointer-events-none"
-          style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+          style={{ filter: 'none' }}
         />
         <Sparkles
           className="absolute bottom-4 left-4 w-3.5 h-3.5 text-pink-400 z-[2] select-none pointer-events-none"
-          style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+          style={{ filter: 'none' }}
         />
 
         {/* HEADER STRIP */}
@@ -291,7 +291,7 @@ const InkFriendsSidebarComponent = ({
           style={{
             background:
               'linear-gradient(180deg, rgba(6,182,212,0.18), rgba(6,182,212,0.05))',
-            borderBottom: '3px solid #0a0810',
+            borderBottom: '1px solid var(--ink-line)',
           }}
         >
           <div className="flex items-center gap-2.5">
@@ -301,8 +301,8 @@ const InkFriendsSidebarComponent = ({
               className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{
                 background: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
-                border: '2.5px solid #0a0810',
-                boxShadow: '0 3px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <Users className="h-4 w-4 text-white" strokeWidth={2.5} />
@@ -311,7 +311,7 @@ const InkFriendsSidebarComponent = ({
               <h2
                 className="text-2xl font-black text-white leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW,
                 }}
               >
@@ -319,7 +319,7 @@ const InkFriendsSidebarComponent = ({
               </h2>
               <p
                 className="text-xs text-white/55 font-bold mt-0.5"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 {friends.length} ami{friends.length > 1 ? 's' : ''}
               </p>
@@ -333,8 +333,8 @@ const InkFriendsSidebarComponent = ({
               transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut' }}
               style={{
                 background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                border: '2.5px solid #0a0810',
-                boxShadow: '0 3px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <Bell className="h-5 w-5 text-white" strokeWidth={2.5} />
@@ -343,8 +343,8 @@ const InkFriendsSidebarComponent = ({
                 style={{
                   background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
                   color: 'white',
-                  border: '2px solid #0a0810',
-                  fontFamily: "'Caveat', cursive",
+                  border: '1px solid var(--ink-line)',
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -374,8 +374,8 @@ const InkFriendsSidebarComponent = ({
               style={{
                 background:
                   'linear-gradient(180deg, rgba(6,182,212,0.18), rgba(6,182,212,0.05))',
-                border: '3px solid #0a0810',
-                boxShadow: '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.08)',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <div
@@ -390,8 +390,8 @@ const InkFriendsSidebarComponent = ({
                   background: copied
                     ? 'linear-gradient(180deg, #34d399, #059669)'
                     : 'linear-gradient(180deg, #06b6d4, #0e7490)',
-                  border: '2.5px solid #0a0810',
-                  boxShadow: '0 3px 0 #0a0810',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 {copied ? (
@@ -416,8 +416,8 @@ const InkFriendsSidebarComponent = ({
                 onKeyDown={(e) => e.key === 'Enter' && handleSendRequest()}
                 className="flex-1 h-11 text-base font-black uppercase tracking-[0.2em] bg-black/40 text-white rounded-xl placeholder:text-white/30"
                 style={{
-                  fontFamily: "'Caveat', cursive",
-                  border: '3px solid #0a0810',
+                  fontFamily: "'Outfit', sans-serif",
+                  border: '1px solid var(--ink-line)',
                   boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
                 }}
               />
@@ -444,9 +444,9 @@ const InkFriendsSidebarComponent = ({
                 style={{
                   background:
                     'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
-                  border: '3px solid #0a0810',
+                  border: '1px solid var(--ink-line)',
                   boxShadow:
-                    '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)',
+                    'none',
                 }}
               >
                 {isSending ? (
@@ -485,8 +485,8 @@ const InkFriendsSidebarComponent = ({
                       style={{
                         background:
                           'linear-gradient(180deg, rgba(251,191,36,0.18), rgba(217,119,6,0.05))',
-                        border: '3px solid #0a0810',
-                        boxShadow: '0 3px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       <div
@@ -494,8 +494,8 @@ const InkFriendsSidebarComponent = ({
                         style={{
                           background:
                             'linear-gradient(180deg, #fbbf24, #d97706)',
-                          border: '2.5px solid #0a0810',
-                          boxShadow: '0 2px 0 #0a0810',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                         }}
                       >
                         <Mail className="h-4 w-4 text-white" strokeWidth={2.5} />
@@ -504,7 +504,7 @@ const InkFriendsSidebarComponent = ({
                         <div
                           className="text-base font-black text-white truncate leading-none"
                           style={{
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: "'Outfit', sans-serif",
                             textShadow: GRAFFITI_TEXT_SHADOW_SM,
                           }}
                         >
@@ -512,7 +512,7 @@ const InkFriendsSidebarComponent = ({
                         </div>
                         <div
                           className="text-[11px] text-amber-200/80 font-bold mt-0.5"
-                          style={{ fontFamily: "'Caveat', cursive" }}
+                          style={{ fontFamily: "'Outfit', sans-serif" }}
                         >
                           t'invite à jouer !
                         </div>
@@ -527,8 +527,8 @@ const InkFriendsSidebarComponent = ({
                         style={{
                           background:
                             'linear-gradient(180deg, #34d399, #059669)',
-                          border: '2.5px solid #0a0810',
-                          boxShadow: '0 3px 0 #0a0810',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                         }}
                       >
                         <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
@@ -543,8 +543,8 @@ const InkFriendsSidebarComponent = ({
                         style={{
                           background:
                             'linear-gradient(180deg, #ef4444, #b91c1c)',
-                          border: '2.5px solid #0a0810',
-                          boxShadow: '0 3px 0 #0a0810',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                         }}
                       >
                         <X className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
@@ -582,15 +582,15 @@ const InkFriendsSidebarComponent = ({
                       style={{
                         background:
                           'linear-gradient(180deg, rgba(251,191,36,0.14), rgba(217,119,6,0.05))',
-                        border: '3px solid #0a0810',
-                        boxShadow: '0 3px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       <Avatar
                         className="h-10 w-10"
                         style={{
-                          border: '2.5px solid #0a0810',
-                          boxShadow: '0 2px 0 #0a0810',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                         }}
                       >
                         <AvatarImage
@@ -601,7 +601,7 @@ const InkFriendsSidebarComponent = ({
                           style={{
                             background:
                               'linear-gradient(135deg, #fbbf24, #d97706)',
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: "'Outfit', sans-serif",
                           }}
                         >
                           {request.requesterProfile?.display_name
@@ -612,7 +612,7 @@ const InkFriendsSidebarComponent = ({
                       <span
                         className="flex-1 text-base font-black text-white truncate"
                         style={{
-                          fontFamily: "'Caveat', cursive",
+                          fontFamily: "'Outfit', sans-serif",
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                         }}
                       >
@@ -628,8 +628,8 @@ const InkFriendsSidebarComponent = ({
                         style={{
                           background:
                             'linear-gradient(180deg, #34d399, #059669)',
-                          border: '2px solid #0a0810',
-                          boxShadow: '0 2px 0 #0a0810',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                         }}
                       >
                         <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
@@ -644,8 +644,8 @@ const InkFriendsSidebarComponent = ({
                         style={{
                           background:
                             'linear-gradient(180deg, #ef4444, #b91c1c)',
-                          border: '2px solid #0a0810',
-                          boxShadow: '0 2px 0 #0a0810',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                         }}
                       >
                         <X className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
@@ -683,7 +683,7 @@ const InkFriendsSidebarComponent = ({
                   <p
                     className="text-lg font-black text-white/70"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
@@ -714,16 +714,16 @@ const InkFriendsSidebarComponent = ({
                           background: isOnline
                             ? 'linear-gradient(180deg, rgba(52,211,153,0.14), rgba(5,150,105,0.04))'
                             : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                          border: '3px solid #0a0810',
-                          boxShadow: '0 3px 0 #0a0810',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                         }}
                       >
                         <div className="relative flex-shrink-0">
                           <Avatar
                             className="h-11 w-11"
                             style={{
-                              border: '2.5px solid #0a0810',
-                              boxShadow: '0 2px 0 #0a0810',
+                              border: '1px solid var(--ink-line)',
+                              boxShadow: 'none',
                             }}
                           >
                             <AvatarImage src={friend.avatar_url || undefined} />
@@ -733,7 +733,7 @@ const InkFriendsSidebarComponent = ({
                                 background: isOnline
                                   ? 'linear-gradient(135deg, #34d399, #059669)'
                                   : 'linear-gradient(135deg, #6b7280, #374151)',
-                                fontFamily: "'Caveat', cursive",
+                                fontFamily: "'Outfit', sans-serif",
                               }}
                             >
                               {friend.display_name?.charAt(0)?.toUpperCase() ||
@@ -742,7 +742,7 @@ const InkFriendsSidebarComponent = ({
                           </Avatar>
                           <div
                             className={cn(
-                              'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0a0810]',
+                              'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-line)]',
                               lobbyCode
                                 ? 'bg-amber-400'
                                 : isOnline
@@ -764,7 +764,7 @@ const InkFriendsSidebarComponent = ({
                           <div
                             className="text-base font-black text-white truncate leading-none"
                             style={{
-                              fontFamily: "'Caveat', cursive",
+                              fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW_SM,
                             }}
                           >
@@ -817,8 +817,8 @@ const InkFriendsSidebarComponent = ({
                             style={{
                               background:
                                 'linear-gradient(180deg, #6b7280, #374151)',
-                              border: '2.5px solid #0a0810',
-                              boxShadow: '0 2px 0 #0a0810',
+                              border: '1px solid var(--ink-line)',
+                              boxShadow: 'none',
                             }}
                             title="Envoyer un message"
                           >
@@ -830,8 +830,8 @@ const InkFriendsSidebarComponent = ({
                                   background:
                                     'linear-gradient(180deg, #ef4444, #b91c1c)',
                                   color: 'white',
-                                  border: '2px solid #0a0810',
-                                  fontFamily: "'Caveat', cursive",
+                                  border: '1px solid var(--ink-line)',
+                                  fontFamily: "'Outfit', sans-serif",
                                 }}
                               >
                                 {unread}
@@ -849,8 +849,8 @@ const InkFriendsSidebarComponent = ({
                               style={{
                                 background:
                                   'linear-gradient(180deg, #34d399, #059669)',
-                                border: '2.5px solid #0a0810',
-                                boxShadow: '0 2px 0 #0a0810',
+                                border: '1px solid var(--ink-line)',
+                                boxShadow: 'none',
                               }}
                               title="Rejoindre"
                             >
@@ -868,8 +868,8 @@ const InkFriendsSidebarComponent = ({
                               style={{
                                 background:
                                   'linear-gradient(180deg, #fbbf24, #d97706)',
-                                border: '2.5px solid #0a0810',
-                                boxShadow: '0 2px 0 #0a0810',
+                                border: '1px solid var(--ink-line)',
+                                boxShadow: 'none',
                                 opacity: isOnline ? 1 : 0.7,
                               }}
                               title={isOnline ? 'Inviter' : 'Inviter (statut hors-ligne, mais l\'invitation sera envoyée)'}

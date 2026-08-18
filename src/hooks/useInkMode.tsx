@@ -36,6 +36,6 @@ export const useInkMode = () => {
         : '',
     },
     // Font for ink mode
-    inkFont: isInkMode ? { fontFamily: "'Caveat', cursive" } : {},
+    inkFont: isInkMode ? { fontFamily: "'Outfit', sans-serif" } : {},
   };
 };

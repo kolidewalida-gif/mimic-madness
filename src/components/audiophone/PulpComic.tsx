@@ -347,8 +347,8 @@ export const PulpButton = ({
         border: `3px solid ${variant === 'filled' ? PULP.ink : color}`,
         boxShadow:
           variant === 'filled'
-            ? `0 6px 0 ${PULP.ink}, 0 10px 22px ${color}55`
-            : `0 6px 0 ${PULP.ink}`,
+            ? `0 0 0 ${PULP.ink}, 0 10px 22px ${color}55`
+            : `0 0 0 ${PULP.ink}`,
         textShadow:
           variant === 'filled'
             ? '1.5px 1.5px 0 rgba(8,7,10,0.5)'

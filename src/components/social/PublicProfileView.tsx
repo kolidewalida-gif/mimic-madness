@@ -12,7 +12,7 @@ import { SocialTikTokViewer } from '@/components/SocialTikTokViewer';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
-const FONT = "'Caveat', cursive";
+const FONT = "'Outfit', sans-serif";
 
 interface PublicProfileViewProps {
   userId: string;
@@ -130,7 +130,7 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
                 ) : (
                   <span className="text-4xl font-black text-white" style={{ fontFamily: FONT }}>{initial}</span>
                 )}
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-black text-white bg-gradient-to-r from-amber-500 to-orange-600 border border-[#0a0810]">
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-black text-white bg-gradient-to-r from-amber-500 to-orange-600 border border-[var(--ink-line)]">
                   NIV. {level}
                 </span>
               </div>

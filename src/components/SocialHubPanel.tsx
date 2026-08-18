@@ -43,9 +43,9 @@ interface SocialHubPanelProps {
 type Tab = 'friends' | 'messages' | 'requests' | 'invitations' | 'social';
 
 const GRAFFITI_TEXT_SHADOW =
-  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
+  'none';
 const GRAFFITI_TEXT_SHADOW_SM =
-  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
+  'none';
 
 const TAB_COLORS: Record<Tab, { bg: string; accent: string; glow: string }> = {
   friends: { bg: '#06b6d4', accent: '#22d3ee', glow: 'rgba(6,182,212,0.5)' },
@@ -219,7 +219,7 @@ const SocialHubPanelComponent = ({
               style={{
                 background:
                   'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-                borderLeft: '4px solid #0a0810',
+                borderLeft: '1px solid var(--ink-line)',
                 boxShadow: '-12px 0 30px rgba(0,0,0,0.5)',
               }}
             >
@@ -235,11 +235,11 @@ const SocialHubPanelComponent = ({
               {/* Decorative graffiti stars */}
               <Sparkles
                 className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10 select-none pointer-events-none"
-                style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+                style={{ filter: 'none' }}
               />
               <Sparkles
                 className="absolute bottom-4 right-6 w-3.5 h-3.5 text-pink-400 z-10 select-none pointer-events-none"
-                style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+                style={{ filter: 'none' }}
               />
 
               {/* HEADER */}
@@ -248,7 +248,7 @@ const SocialHubPanelComponent = ({
                 style={{
                   background:
                     'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
-                  borderBottom: '3px solid #0a0810',
+                  borderBottom: '1px solid var(--ink-line)',
                 }}
               >
                 <div className="flex items-center gap-3">
@@ -263,9 +263,9 @@ const SocialHubPanelComponent = ({
                     style={{
                       background:
                         'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
-                      border: '3px solid #0a0810',
+                      border: '1px solid var(--ink-line)',
                       boxShadow:
-                        '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                        'none',
                     }}
                   >
                     <Bell
@@ -277,7 +277,7 @@ const SocialHubPanelComponent = ({
                     <h2
                       className="text-3xl font-black text-white leading-none"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW,
                       }}
                     >
@@ -285,7 +285,7 @@ const SocialHubPanelComponent = ({
                     </h2>
                     <p
                       className="text-sm text-purple-200/80 font-bold mt-0.5"
-                      style={{ fontFamily: "'Caveat', cursive" }}
+                      style={{ fontFamily: "'Outfit', sans-serif" }}
                     >
                       Reste connecté à tes amis !
                     </p>
@@ -298,8 +298,8 @@ const SocialHubPanelComponent = ({
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
                   style={{
                     background: 'rgba(239,68,68,0.25)',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 3px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <X className="w-5 h-5" strokeWidth={3} />
@@ -309,7 +309,7 @@ const SocialHubPanelComponent = ({
               {/* TABS — graffiti pills */}
               <div
                 className="relative flex gap-1.5 px-3 py-2.5 flex-shrink-0"
-                style={{ borderBottom: '3px solid #0a0810' }}
+                style={{ borderBottom: '1px solid var(--ink-line)' }}
               >
                 {tabs.map((tab) => {
                   const isActive = activeTab === tab.id;
@@ -339,8 +339,8 @@ const SocialHubPanelComponent = ({
                         background: isActive
                           ? `linear-gradient(180deg, ${colors.bg}, ${colors.bg}cc)`
                           : 'rgba(255,255,255,0.04)',
-                        border: '2.5px solid #0a0810',
-                        boxShadow: isActive ? '0 4px 0 #0a0810' : '0 2px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: isActive ? '0 0 0 rgba(0,0,0,0)' : '0 0 0 rgba(0,0,0,0)',
                       }}
                     >
                       <Icon
@@ -356,7 +356,7 @@ const SocialHubPanelComponent = ({
                           isActive ? 'text-white' : 'text-white/60',
                         )}
                         style={{
-                          fontFamily: "'Caveat', cursive",
+                          fontFamily: "'Outfit', sans-serif",
                           textShadow: isActive
                             ? GRAFFITI_TEXT_SHADOW_SM
                             : 'none',
@@ -371,8 +371,8 @@ const SocialHubPanelComponent = ({
                             background:
                               'linear-gradient(180deg, #ef4444, #b91c1c)',
                             color: 'white',
-                            border: '2px solid #0a0810',
-                            fontFamily: "'Caveat', cursive",
+                            border: '1px solid var(--ink-line)',
+                            fontFamily: "'Outfit', sans-serif",
                           }}
                         >
                           {tab.badge > 9 ? '9+' : tab.badge}
@@ -399,9 +399,9 @@ const SocialHubPanelComponent = ({
                       style={{
                         background:
                           'linear-gradient(180deg, rgba(6,182,212,0.18), rgba(6,182,212,0.05))',
-                        border: '3px solid #0a0810',
+                        border: '1px solid var(--ink-line)',
                         boxShadow:
-                          '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.08)',
+                          'none',
                       }}
                     >
                       <div
@@ -416,8 +416,8 @@ const SocialHubPanelComponent = ({
                           background: copied
                             ? 'linear-gradient(180deg, #34d399, #059669)'
                             : 'linear-gradient(180deg, #06b6d4, #0e7490)',
-                          border: '2.5px solid #0a0810',
-                          boxShadow: '0 3px 0 #0a0810',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                         }}
                       >
                         {copied ? (
@@ -462,8 +462,8 @@ const SocialHubPanelComponent = ({
                               }
                               className="flex-1 h-11 text-base font-black uppercase tracking-[0.2em] bg-black/40 text-white rounded-xl placeholder:text-white/30"
                               style={{
-                                fontFamily: "'Caveat', cursive",
-                                border: '3px solid #0a0810',
+                                fontFamily: "'Outfit', sans-serif",
+                                border: '1px solid var(--ink-line)',
                                 boxShadow:
                                   'inset 0 2px 4px rgba(0,0,0,0.4)',
                               }}
@@ -489,9 +489,9 @@ const SocialHubPanelComponent = ({
                               style={{
                                 background:
                                   'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
-                                border: '3px solid #0a0810',
+                                border: '1px solid var(--ink-line)',
                                 boxShadow:
-                                  '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)',
+                                  'none',
                               }}
                             >
                               {isSending ? (
@@ -546,16 +546,16 @@ const SocialHubPanelComponent = ({
                                       background: isOnline
                                         ? 'linear-gradient(180deg, rgba(52,211,153,0.14), rgba(5,150,105,0.04))'
                                         : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                                      border: '3px solid #0a0810',
-                                      boxShadow: '0 3px 0 #0a0810',
+                                      border: '1px solid var(--ink-line)',
+                                      boxShadow: 'none',
                                     }}
                                   >
                                     <div className="relative flex-shrink-0">
                                       <Avatar
                                         className="h-11 w-11"
                                         style={{
-                                          border: '2.5px solid #0a0810',
-                                          boxShadow: '0 2px 0 #0a0810',
+                                          border: '1px solid var(--ink-line)',
+                                          boxShadow: 'none',
                                         }}
                                       >
                                         <AvatarImage
@@ -567,7 +567,7 @@ const SocialHubPanelComponent = ({
                                             background: isOnline
                                               ? 'linear-gradient(135deg, #34d399, #059669)'
                                               : 'linear-gradient(135deg, #6b7280, #374151)',
-                                            fontFamily: "'Caveat', cursive",
+                                            fontFamily: "'Outfit', sans-serif",
                                           }}
                                         >
                                           {friend.display_name
@@ -577,7 +577,7 @@ const SocialHubPanelComponent = ({
                                       </Avatar>
                                       <div
                                         className={cn(
-                                          'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0a0810]',
+                                          'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-line)]',
                                           lobbyCode
                                             ? 'bg-amber-400'
                                             : isOnline
@@ -598,7 +598,7 @@ const SocialHubPanelComponent = ({
                                       <div
                                         className="text-base font-black text-white truncate leading-none"
                                         style={{
-                                          fontFamily: "'Caveat', cursive",
+                                          fontFamily: "'Outfit', sans-serif",
                                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                                         }}
                                       >
@@ -716,15 +716,15 @@ const SocialHubPanelComponent = ({
                                       unread > 0
                                         ? 'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(126,34,206,0.05))'
                                         : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                                    border: '3px solid #0a0810',
-                                    boxShadow: '0 3px 0 #0a0810',
+                                    border: '1px solid var(--ink-line)',
+                                    boxShadow: 'none',
                                   }}
                                 >
                                   <Avatar
                                     className="h-11 w-11"
                                     style={{
-                                      border: '2.5px solid #0a0810',
-                                      boxShadow: '0 2px 0 #0a0810',
+                                      border: '1px solid var(--ink-line)',
+                                      boxShadow: 'none',
                                     }}
                                   >
                                     <AvatarImage
@@ -735,7 +735,7 @@ const SocialHubPanelComponent = ({
                                       style={{
                                         background:
                                           'linear-gradient(135deg, #a855f7, #6b21a8)',
-                                        fontFamily: "'Caveat', cursive",
+                                        fontFamily: "'Outfit', sans-serif",
                                       }}
                                     >
                                       {friend.display_name
@@ -747,7 +747,7 @@ const SocialHubPanelComponent = ({
                                     <div
                                       className="text-base font-black text-white truncate leading-none"
                                       style={{
-                                        fontFamily: "'Caveat', cursive",
+                                        fontFamily: "'Outfit', sans-serif",
                                         textShadow: GRAFFITI_TEXT_SHADOW_SM,
                                       }}
                                     >
@@ -773,9 +773,9 @@ const SocialHubPanelComponent = ({
                                         background:
                                           'linear-gradient(180deg, #ef4444, #b91c1c)',
                                         color: 'white',
-                                        border: '2.5px solid #0a0810',
-                                        boxShadow: '0 2px 0 #0a0810',
-                                        fontFamily: "'Caveat', cursive",
+                                        border: '1px solid var(--ink-line)',
+                                        boxShadow: 'none',
+                                        fontFamily: "'Outfit', sans-serif",
                                         textShadow: GRAFFITI_TEXT_SHADOW_SM,
                                       }}
                                     >
@@ -826,15 +826,15 @@ const SocialHubPanelComponent = ({
                                 style={{
                                   background:
                                     'linear-gradient(180deg, rgba(251,191,36,0.18), rgba(217,119,6,0.05))',
-                                  border: '3px solid #0a0810',
-                                  boxShadow: '0 3px 0 #0a0810',
+                                  border: '1px solid var(--ink-line)',
+                                  boxShadow: 'none',
                                 }}
                               >
                                 <Avatar
                                   className="h-11 w-11"
                                   style={{
-                                    border: '2.5px solid #0a0810',
-                                    boxShadow: '0 2px 0 #0a0810',
+                                    border: '1px solid var(--ink-line)',
+                                    boxShadow: 'none',
                                   }}
                                 >
                                   <AvatarImage
@@ -848,7 +848,7 @@ const SocialHubPanelComponent = ({
                                     style={{
                                       background:
                                         'linear-gradient(135deg, #fbbf24, #d97706)',
-                                      fontFamily: "'Caveat', cursive",
+                                      fontFamily: "'Outfit', sans-serif",
                                     }}
                                   >
                                     {request.requesterProfile?.display_name
@@ -860,7 +860,7 @@ const SocialHubPanelComponent = ({
                                   <div
                                     className="text-base font-black text-white truncate leading-none"
                                     style={{
-                                      fontFamily: "'Caveat', cursive",
+                                      fontFamily: "'Outfit', sans-serif",
                                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                                     }}
                                   >
@@ -869,7 +869,7 @@ const SocialHubPanelComponent = ({
                                   </div>
                                   <div
                                     className="text-[11px] text-amber-200/80 font-bold mt-0.5"
-                                    style={{ fontFamily: "'Caveat', cursive" }}
+                                    style={{ fontFamily: "'Outfit', sans-serif" }}
                                   >
                                     veut être ton ami !
                                   </div>
@@ -931,8 +931,8 @@ const SocialHubPanelComponent = ({
                                 style={{
                                   background:
                                     'linear-gradient(180deg, rgba(52,211,153,0.18), rgba(5,150,105,0.05))',
-                                  border: '3px solid #0a0810',
-                                  boxShadow: '0 3px 0 #0a0810',
+                                  border: '1px solid var(--ink-line)',
+                                  boxShadow: 'none',
                                 }}
                               >
                                 <motion.div
@@ -946,8 +946,8 @@ const SocialHubPanelComponent = ({
                                   style={{
                                     background:
                                       'linear-gradient(180deg, #34d399, #059669)',
-                                    border: '2.5px solid #0a0810',
-                                    boxShadow: '0 3px 0 #0a0810',
+                                    border: '1px solid var(--ink-line)',
+                                    boxShadow: 'none',
                                   }}
                                 >
                                   <Play
@@ -960,7 +960,7 @@ const SocialHubPanelComponent = ({
                                   <div
                                     className="text-base font-black text-white truncate leading-none"
                                     style={{
-                                      fontFamily: "'Caveat', cursive",
+                                      fontFamily: "'Outfit', sans-serif",
                                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                                     }}
                                   >
@@ -968,7 +968,7 @@ const SocialHubPanelComponent = ({
                                   </div>
                                   <div
                                     className="text-[11px] text-emerald-200/80 font-bold mt-0.5"
-                                    style={{ fontFamily: "'Caveat', cursive" }}
+                                    style={{ fontFamily: "'Outfit', sans-serif" }}
                                   >
                                     t'invite à jouer !
                                   </div>
@@ -1092,7 +1092,7 @@ const SectionLabel = ({
     <span
       className="text-base font-black uppercase tracking-wider"
       style={{
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "'Outfit', sans-serif",
         color,
         textShadow: GRAFFITI_TEXT_SHADOW_SM,
       }}
@@ -1122,7 +1122,7 @@ const EmptyState = ({
     <p
       className="text-lg font-black text-white/80"
       style={{
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "'Outfit', sans-serif",
         textShadow: GRAFFITI_TEXT_SHADOW_SM,
       }}
     >
@@ -1131,7 +1131,7 @@ const EmptyState = ({
     {subtext && (
       <p
         className="text-sm text-white/50 font-bold mt-1 px-4"
-        style={{ fontFamily: "'Caveat', cursive" }}
+        style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         {subtext}
       </p>
@@ -1159,8 +1159,8 @@ const CartoonIconButton = ({
     className="relative w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0"
     style={{
       background: bg,
-      border: '2.5px solid #0a0810',
-      boxShadow: '0 3px 0 #0a0810',
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
     }}
   >
     <Icon
@@ -1174,8 +1174,8 @@ const CartoonIconButton = ({
         style={{
           background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
           color: 'white',
-          border: '2px solid #0a0810',
-          fontFamily: "'Caveat', cursive",
+          border: '1px solid var(--ink-line)',
+          fontFamily: "'Outfit', sans-serif",
         }}
       >
         {badge > 9 ? '9+' : badge}

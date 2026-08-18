@@ -205,8 +205,8 @@ export const ThemeSelector = ({ variant = 'full', className, showInkToggle = tru
               style={{
                 background: `linear-gradient(135deg, hsl(${config.colors.card}), hsl(${config.colors.background}))`,
                 boxShadow: isSelected || hoveredTheme === t
-                  ? `0 0 40px hsl(${config.colors.primary} / 0.5), inset 0 1px 0 rgba(255,255,255,0.1)`
-                  : 'inset 0 1px 0 rgba(255,255,255,0.1)',
+                  ? `0 0 40px hsl(${config.colors.primary} / 0.5), inset 0 0 0 rgba(255,255,255,0.1)`
+                  : 'inset 0 0 0 rgba(255,255,255,0.1)',
                 animationDelay: `${index * 0.1}s`,
               }}
             >

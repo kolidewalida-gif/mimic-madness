@@ -145,7 +145,7 @@ export function CircularGallery({
                 opacity,
                 zIndex,
                 transition: dragging ? "none" : "transform 0.45s cubic-bezier(.22,.61,.36,1), opacity 0.45s",
-                border: isSelected ? "3px solid #fbbf24" : "3px solid #0a0810",
+                border: isSelected ? "3px solid #fbbf24" : "3px solid var(--ink-line)",
                 boxShadow: isSelected
                   ? "0 10px 30px rgba(0,0,0,0.6), 0 0 22px rgba(251,191,36,0.55)"
                   : "0 12px 34px rgba(0,0,0,0.6)",
@@ -180,7 +180,7 @@ export function CircularGallery({
 
               {/* label */}
               <div className="absolute inset-x-0 bottom-0 p-2.5 pt-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
-                <p className="text-sm font-black text-white truncate" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>
+                <p className="text-sm font-black text-white truncate" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
                   {item.common}
                 </p>
                 {item.binomial && <p className="text-[11px] text-white/60 truncate">{item.binomial}</p>}
@@ -188,7 +188,7 @@ export function CircularGallery({
 
               {/* selection badge */}
               {isSelected && (
-                <div className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "linear-gradient(180deg,#fbbf24,#d97706)", border: "2.5px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                <div className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "linear-gradient(180deg,#fbbf24,#d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   {badges?.[i] ?? (
                     <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />

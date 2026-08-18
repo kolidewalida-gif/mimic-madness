@@ -10,8 +10,8 @@ interface CountdownOverlayProps {
   startAt?: number;
 }
 
-const SHADOW = '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810';
-const FONT = "'Caveat', cursive";
+const SHADOW = '3px 3px 0 var(--ink-line), -2px -2px 0 var(--ink-line), 2px -2px 0 var(--ink-line), -2px 2px 0 var(--ink-line)';
+const FONT = "'Outfit', sans-serif";
 
 const COLORS = ['#ef4444', '#f59e0b', '#34d399'];
 const EMOJIS = ['3️⃣', '2️⃣', '1️⃣'];
@@ -87,7 +87,7 @@ export const CountdownOverlay = ({
         {/* Title */}
         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
           className="px-5 py-2 rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '2.5px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}>
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
           <p className="text-lg font-black text-white/80 uppercase tracking-widest"
             style={{ fontFamily: FONT, textShadow: SHADOW }}>
             {title}
@@ -112,7 +112,7 @@ export const CountdownOverlay = ({
 
               {/* Inner circle */}
               <div className="absolute inset-4 rounded-full"
-                style={{ background: `linear-gradient(135deg, ${color}33, ${color}11)`, border: `4px solid #0a0810` }} />
+                style={{ background: `linear-gradient(135deg, ${color}33, ${color}11)`, border: `4px solid var(--ink-line)` }} />
 
               {/* Number */}
               <span className="relative text-[120px] font-black leading-none"

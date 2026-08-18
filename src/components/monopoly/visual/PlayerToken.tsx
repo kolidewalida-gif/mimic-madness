@@ -321,7 +321,7 @@ function TokenMesh({ tokenType, color }: { tokenType: string; color: string }): 
         ].map(([x, y, z], i) => (
           <mesh key={i} position={[x, y, z]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.05, 0.05, 0.04, 12]} />
-            <meshStandardMaterial color="#0a0810" />
+            <meshStandardMaterial color="var(--ink-line)" />
           </mesh>
         ))}
       </group>
@@ -340,7 +340,7 @@ function TokenMesh({ tokenType, color }: { tokenType: string; color: string }): 
         </mesh>
         <mesh position={[0, 0.05, 0]}>
           <cylinderGeometry args={[0.155, 0.155, 0.04, 18]} />
-          <meshStandardMaterial color="#0a0810" />
+          <meshStandardMaterial color="var(--ink-line)" />
         </mesh>
       </group>
     );
@@ -376,10 +376,10 @@ function TokenMesh({ tokenType, color }: { tokenType: string; color: string }): 
           <meshStandardMaterial color={color} />
         </mesh>
         <mesh position={[0.18, 0.16, 0.07]}><sphereGeometry args={[0.04, 12, 12]} />
-          <meshStandardMaterial color="#0a0810" />
+          <meshStandardMaterial color="var(--ink-line)" />
         </mesh>
         <mesh position={[0.18, 0.16, -0.07]}><sphereGeometry args={[0.04, 12, 12]} />
-          <meshStandardMaterial color="#0a0810" />
+          <meshStandardMaterial color="var(--ink-line)" />
         </mesh>
       </group>
     );
@@ -392,7 +392,7 @@ function TokenMesh({ tokenType, color }: { tokenType: string; color: string }): 
         </RoundedBox>
         <mesh position={[0, 0.18, 0]}>
           <boxGeometry args={[0.04, 0.32, 0.04]} />
-          <meshStandardMaterial color="#0a0810" />
+          <meshStandardMaterial color="var(--ink-line)" />
         </mesh>
         <mesh position={[0.05, 0.2, 0]}>
           <boxGeometry args={[0.18, 0.18, 0.005]} />
@@ -410,11 +410,11 @@ function TokenMesh({ tokenType, color }: { tokenType: string; color: string }): 
         </mesh>
         <mesh position={[0, -0.1, 0.1]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.08, 0.08, 0.04, 14]} />
-          <meshStandardMaterial color="#0a0810" />
+          <meshStandardMaterial color="var(--ink-line)" />
         </mesh>
         <mesh position={[0, -0.1, -0.1]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.08, 0.08, 0.04, 14]} />
-          <meshStandardMaterial color="#0a0810" />
+          <meshStandardMaterial color="var(--ink-line)" />
         </mesh>
       </group>
     );
@@ -427,7 +427,7 @@ function TokenMesh({ tokenType, color }: { tokenType: string; color: string }): 
         </RoundedBox>
         <mesh position={[0, 0.13, 0]}>
           <torusGeometry args={[0.08, 0.025, 10, 18]} />
-          <meshStandardMaterial color="#0a0810" />
+          <meshStandardMaterial color="var(--ink-line)" />
         </mesh>
       </group>
     );
@@ -824,7 +824,7 @@ export function PlayerToken(props: PlayerTokenProps): JSX.Element | null {
         {/* Shadow disc on ground */}
         <mesh position={[0, -0.32, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[0.22, 18]} />
-          <meshBasicMaterial color="#0a0810" transparent opacity={0.35} />
+          <meshBasicMaterial color="var(--ink-line)" transparent opacity={0.35} />
         </mesh>
 
         <TokenMesh tokenType={tokenType} color={tokenColor} />
@@ -837,7 +837,7 @@ export function PlayerToken(props: PlayerTokenProps): JSX.Element | null {
           anchorX="center"
           anchorY="middle"
           outlineWidth={0.025}
-          outlineColor="#0a0810"
+          outlineColor="var(--ink-line)"
           fontWeight="bold"
         >
           {playerName.length > 10 ? playerName.substring(0, 9) + '…' : playerName}
@@ -862,7 +862,7 @@ export function PlayerToken(props: PlayerTokenProps): JSX.Element | null {
             anchorX="center"
             anchorY="middle"
             outlineWidth={0.04}
-            outlineColor="#0a0810"
+            outlineColor="var(--ink-line)"
             fontWeight="bold"
           >
             +200$

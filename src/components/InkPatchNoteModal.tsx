@@ -156,7 +156,7 @@ export const InkPatchNoteModal = ({ onClose, forceOpen = false }: InkPatchNoteMo
                 <div className="mb-1.5 flex flex-wrap items-center gap-2">
                   <span className="text-xs font-bold text-white/60">v{note.version}</span>
                   <span className="text-xs text-white/40">— {note.date}</span>
-                  <span className="text-xs font-semibold text-white/60" style={{ fontFamily: "'Caveat', cursive" }}>
+                  <span className="text-xs font-semibold text-white/60" style={{ fontFamily: "'Outfit', sans-serif" }}>
                     {note.title}
                   </span>
                 </div>
@@ -183,7 +183,7 @@ export const InkPatchNoteModal = ({ onClose, forceOpen = false }: InkPatchNoteMo
           background: 'linear-gradient(180deg, #a855f7, #6b21a8)',
           border: 'var(--ink-border)',
           boxShadow: 'var(--ink-shadow)',
-          fontFamily: "'Caveat', cursive",
+          fontFamily: "'Outfit', sans-serif",
         }}
       >
         C'est parti !

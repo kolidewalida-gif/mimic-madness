@@ -27,9 +27,9 @@ const Kbd = ({ children }: { children: React.ReactNode }) => (
       background: 'linear-gradient(180deg, #fbbf24 0%, #d97706 100%)',
       border: 'var(--ink-border-thin)',
       borderRadius: '0.5rem',
-      boxShadow: '0 3px 0 var(--ink-outline), inset 0 1px 0 rgba(255,255,255,0.3)',
+      boxShadow: '0 3px 0 var(--ink-outline), inset 0 0 0 rgba(255,255,255,0.3)',
       color: 'var(--ink-outline)',
-      fontFamily: "'Caveat', cursive",
+      fontFamily: "'Outfit', sans-serif",
     }}
   >
     {children}
@@ -61,7 +61,7 @@ const InkShortcutsModalComponent = ({ isOpen, onClose, extra = [] }: InkShortcut
               boxShadow: 'var(--ink-shadow-sm)',
             }}
           >
-            <span className="text-base font-bold text-white/90" style={{ fontFamily: "'Caveat', cursive" }}>
+            <span className="text-base font-bold text-white/90" style={{ fontFamily: "'Outfit', sans-serif" }}>
               {shortcut.label}
             </span>
             <span className="flex flex-shrink-0 items-center gap-1">
@@ -75,7 +75,7 @@ const InkShortcutsModalComponent = ({ isOpen, onClose, extra = [] }: InkShortcut
           </motion.li>
         ))}
       </ul>
-      <p className="mt-3 text-center text-xs font-bold text-white/40" style={{ fontFamily: "'Caveat', cursive" }}>
+      <p className="mt-3 text-center text-xs font-bold text-white/40" style={{ fontFamily: "'Outfit', sans-serif" }}>
         Appuie sur ? à tout moment pour rouvrir cette aide
       </p>
     </InkModal>

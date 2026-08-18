@@ -320,7 +320,7 @@ export const AudioPhoneRecordingAllPhase = ({
                     border: `5px solid ${PULP.ink}`,
                     boxShadow: isRecording
                       ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px ${PULP.red}77`
-                      : `0 8px 0 ${PULP.ink}, 0 14px 30px ${ACCENT}66`,
+                      : `0 0 0 ${PULP.ink}, 0 14px 30px ${ACCENT}66`,
                   }}
                 >
                   {isRecording ? (

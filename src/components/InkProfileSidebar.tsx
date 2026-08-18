@@ -31,10 +31,10 @@ import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 
 const GRAFFITI_TEXT_SHADOW =
-  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
+  'none';
 
 const GRAFFITI_TEXT_SHADOW_SM =
-  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
+  'none';
 
 const InkProfileSidebarComponent = () => {
   const { user, profile, stats, isLoading, signInWithGoogle, signOut, updateProfile } =
@@ -132,9 +132,9 @@ const InkProfileSidebarComponent = () => {
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-          border: '4px solid #0a0810',
+          border: '1px solid var(--ink-line)',
           boxShadow:
-            '0 8px 0 #0a0810, 0 14px 30px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+            'none',
         }}
       >
         <div
@@ -148,16 +148,16 @@ const InkProfileSidebarComponent = () => {
             className="w-24 h-24 mx-auto rounded-full flex items-center justify-center"
             style={{
               background: 'linear-gradient(135deg, #a855f7, #6b21a8)',
-              border: '4px solid #0a0810',
+              border: '1px solid var(--ink-line)',
               boxShadow:
-                '0 5px 0 #0a0810, 0 10px 20px rgba(168,85,247,0.4), inset 0 2px 0 rgba(255,255,255,0.2)',
+                'none',
             }}
           >
             <User className="h-12 w-12 text-white" strokeWidth={2.5} />
           </motion.div>
           <p
             className="text-base text-white/80 font-bold leading-snug px-2"
-            style={{ fontFamily: "'Caveat', cursive" }}
+            style={{ fontFamily: "'Outfit', sans-serif" }}
           >
             Connecte-toi pour sauvegarder ta progression !
           </p>
@@ -172,9 +172,9 @@ const InkProfileSidebarComponent = () => {
             className="menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
             style={{
               background: 'linear-gradient(180deg, #a855f7, #6b21a8)',
-              border: '3px solid #0a0810',
-              boxShadow: '0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)',
-              fontFamily: "'Caveat', cursive",
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
@@ -196,8 +196,8 @@ const InkProfileSidebarComponent = () => {
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-          border: '4px solid #0a0810',
-          boxShadow: '0 8px 0 #0a0810',
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}
       >
         <div className="p-5 space-y-4 animate-pulse">
@@ -230,9 +230,9 @@ const InkProfileSidebarComponent = () => {
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-          border: '4px solid #0a0810',
+          border: '1px solid var(--ink-line)',
           boxShadow:
-            '0 8px 0 #0a0810, 0 14px 30px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+            'none',
         }}
       >
         {/* Inner accent border */}
@@ -244,11 +244,11 @@ const InkProfileSidebarComponent = () => {
         {/* Decorative graffiti stars */}
         <Sparkles
           className="absolute top-3 right-3 w-4 h-4 text-amber-400 z-[2] select-none pointer-events-none"
-          style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+          style={{ filter: 'none' }}
         />
         <Sparkles
           className="absolute bottom-4 left-4 w-3.5 h-3.5 text-pink-400 z-[2] select-none pointer-events-none"
-          style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+          style={{ filter: 'none' }}
         />
 
         {/* Floating sign out button */}
@@ -264,8 +264,8 @@ const InkProfileSidebarComponent = () => {
           className="menu-icon-control menu-focus absolute top-3 right-3 z-[3] w-9 h-9 rounded-xl flex items-center justify-center text-white"
           style={{
             background: 'rgba(239,68,68,0.25)',
-            border: '2.5px solid #0a0810',
-            boxShadow: '0 3px 0 #0a0810',
+            border: '1px solid var(--ink-line)',
+            boxShadow: 'none',
           }}
           title="Déconnexion"
         >
@@ -291,9 +291,9 @@ const InkProfileSidebarComponent = () => {
               <Avatar
                 className="relative h-24 w-24 mx-auto"
                 style={{
-                  border: '4px solid #0a0810',
+                  border: '1px solid var(--ink-line)',
                   boxShadow:
-                    '0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)',
+                    'none',
                 }}
               >
                 <AvatarImage src={avatarImageUrl} className="object-cover" />
@@ -301,7 +301,7 @@ const InkProfileSidebarComponent = () => {
                   className="text-3xl font-black text-white"
                   style={{
                     background: 'linear-gradient(135deg, #a855f7, #6b21a8)',
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                   }}
                 >
                   {profile?.display_name?.charAt(0)?.toUpperCase() || 'U'}
@@ -331,8 +331,8 @@ const InkProfileSidebarComponent = () => {
                 style={{
                   background:
                     'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
-                  border: '3px solid #0a0810',
-                  boxShadow: '0 3px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 {isUploadingAvatar ? (
@@ -355,8 +355,8 @@ const InkProfileSidebarComponent = () => {
                   }}
                   className="h-10 text-center text-xl font-black bg-black/40 text-white rounded-xl"
                   style={{
-                    fontFamily: "'Caveat', cursive",
-                    border: '3px solid #0a0810',
+                    fontFamily: "'Outfit', sans-serif",
+                    border: '1px solid var(--ink-line)',
                     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
                   }}
                   placeholder="Pseudo"
@@ -374,8 +374,8 @@ const InkProfileSidebarComponent = () => {
                   style={{
                     background:
                       'linear-gradient(180deg, #34d399, #059669)',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 3px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <Check className="h-4 w-4 text-white" strokeWidth={3} aria-hidden="true" />
@@ -389,8 +389,8 @@ const InkProfileSidebarComponent = () => {
                   className="menu-icon-control menu-focus w-9 h-9 rounded-xl flex items-center justify-center"
                   style={{
                     background: 'rgba(239,68,68,0.25)',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 3px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <X className="h-4 w-4 text-white" strokeWidth={3} aria-hidden="true" />
@@ -402,7 +402,7 @@ const InkProfileSidebarComponent = () => {
                   <span
                     className="text-3xl font-black text-white leading-none"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW,
                     }}
                   >
@@ -420,8 +420,8 @@ const InkProfileSidebarComponent = () => {
                     className="menu-icon-control menu-focus w-7 h-7 rounded-lg flex items-center justify-center"
                     style={{
                       background: 'rgba(255,255,255,0.08)',
-                      border: '2px solid #0a0810',
-                      boxShadow: '0 2px 0 #0a0810',
+                      border: '1px solid var(--ink-line)',
+                      boxShadow: 'none',
                     }}
                     title="Modifier le pseudo"
                   >
@@ -445,10 +445,10 @@ const InkProfileSidebarComponent = () => {
                             : equippedTitle.rarity === 'rare'
                               ? 'linear-gradient(180deg, #38bdf8, #0369a1)'
                               : 'linear-gradient(180deg, #6b7280, #374151)',
-                      border: '2.5px solid #0a0810',
+                      border: '1px solid var(--ink-line)',
                       borderRadius: '999px',
-                      boxShadow: '0 3px 0 #0a0810',
-                      fontFamily: "'Caveat', cursive",
+                      boxShadow: 'none',
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
@@ -465,8 +465,8 @@ const InkProfileSidebarComponent = () => {
             style={{
               background:
                 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-              border: '3px solid #0a0810',
-              boxShadow: '0 3px 0 #0a0810',
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
           >
             <LevelProgressBar />
@@ -479,8 +479,8 @@ const InkProfileSidebarComponent = () => {
             style={{
               background:
                 'linear-gradient(180deg, rgba(239,68,68,0.18), rgba(127,29,29,0.18))',
-              border: '3px solid #0a0810',
-              boxShadow: '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.08)',
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
           >
             {/* Glow halo */}
@@ -495,16 +495,16 @@ const InkProfileSidebarComponent = () => {
               className="relative text-5xl font-black leading-none"
               style={{
                 color: '#f87171',
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 textShadow:
-                  '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810, 2px 2px 0 #0a0810',
+                  'none',
               }}
             >
               {winRate}%
             </div>
             <div
               className="relative text-xs uppercase tracking-wider font-black text-white/70 mt-1"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Taux de victoire
             </div>
@@ -616,8 +616,8 @@ const InkStatCard = ({
     style={{
       background:
         'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))',
-      border: '3px solid #0a0810',
-      boxShadow: `0 4px 0 #0a0810`,
+      border: '1px solid var(--ink-line)',
+      boxShadow: `0 0 0 rgba(0,0,0,0)`,
     }}
   >
     {/* Subtle color halo */}
@@ -631,8 +631,8 @@ const InkStatCard = ({
       className="relative w-7 h-7 mx-auto mb-1.5 rounded-lg flex items-center justify-center"
       style={{
         background: `linear-gradient(180deg, ${color}, ${color}aa)`,
-        border: '2px solid #0a0810',
-        boxShadow: '0 2px 0 #0a0810',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
       }}
     >
       <Icon className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
@@ -640,7 +640,7 @@ const InkStatCard = ({
     <div
       className="relative text-2xl font-black text-white leading-none"
       style={{
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "'Outfit', sans-serif",
         textShadow: GRAFFITI_TEXT_SHADOW_SM,
       }}
     >
@@ -648,7 +648,7 @@ const InkStatCard = ({
     </div>
     <div
       className="relative text-[10px] uppercase tracking-wider font-black text-white/55 mt-0.5"
-      style={{ fontFamily: "'Caveat', cursive" }}
+      style={{ fontFamily: "'Outfit', sans-serif" }}
     >
       {label}
     </div>
@@ -677,16 +677,16 @@ const InkActionButton = ({
     className="menu-focus relative flex flex-col items-center gap-1 py-3 px-2 rounded-2xl overflow-hidden"
     style={{
       background: `linear-gradient(180deg, ${color}33, ${color}10)`,
-      border: '3px solid #0a0810',
-      boxShadow: '0 4px 0 #0a0810',
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
     }}
   >
     <div
       className="w-8 h-8 rounded-xl flex items-center justify-center"
       style={{
         background: `linear-gradient(180deg, ${color}, ${color}cc)`,
-        border: '2px solid #0a0810',
-        boxShadow: '0 2px 0 #0a0810',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
       }}
     >
       <Icon className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden="true" />
@@ -694,7 +694,7 @@ const InkActionButton = ({
     <span
       className="text-sm font-black text-white leading-none"
       style={{
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "'Outfit', sans-serif",
         textShadow: GRAFFITI_TEXT_SHADOW_SM,
       }}
     >

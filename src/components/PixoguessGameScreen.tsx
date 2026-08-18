@@ -276,8 +276,8 @@ export const PixoguessGameScreen = ({
             transition={{ duration: 1.6, repeat: Infinity, ease: 'linear' }}
             style={{
               background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
-              border: '4px solid #0a0810',
-              boxShadow: `0 5px 0 #0a0810, 0 10px 24px ${ACCENT}66`,
+              border: '1px solid var(--ink-line)',
+              boxShadow: `0 0 0 rgba(0,0,0,0), 0 10px 24px ${ACCENT}66`,
             }}
           >
             <Loader2 className="w-8 h-8 text-white" strokeWidth={2.5} />
@@ -300,8 +300,8 @@ export const PixoguessGameScreen = ({
                 className="w-12 h-12 rounded-2xl flex items-center justify-center"
                 style={{
                   background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
-                  border: '3px solid #0a0810',
-                  boxShadow: '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <ImageIcon className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -309,14 +309,14 @@ export const PixoguessGameScreen = ({
               <div>
                 <p
                   className="text-[10px] uppercase tracking-[0.25em] text-white/55 font-black"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   Mode
                 </p>
                 <h1
                   className="text-3xl font-black leading-none text-white"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,
                   }}
                 >
@@ -359,8 +359,8 @@ export const PixoguessGameScreen = ({
                   className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
                   style={{
                     background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
-                    border: '3px solid #0a0810',
-                    boxShadow: '0 4px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <Eye className="w-8 h-8 text-white" strokeWidth={2.5} />
@@ -371,7 +371,7 @@ export const PixoguessGameScreen = ({
                 </InkTitle>
                 <p
                   className="text-base text-white/70 mb-4 font-bold"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   Une image floue va apparaître et se clarifier progressivement.
                   Sois le premier à deviner !
@@ -381,20 +381,20 @@ export const PixoguessGameScreen = ({
                   className="rounded-2xl p-3 mb-4"
                   style={{
                     background: `linear-gradient(180deg, ${ACCENT}22, ${ACCENT}08)`,
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 3px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <span
                     className="text-sm font-bold text-white/70"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     Catégories :{' '}
                   </span>
                   <span
                     className="text-base font-black text-cyan-300"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
@@ -412,7 +412,7 @@ export const PixoguessGameScreen = ({
                   <span
                     className="text-base font-black text-white"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
@@ -434,7 +434,7 @@ export const PixoguessGameScreen = ({
                     <button
                       onClick={() => setCategoriesConfirmed(false)}
                       className="text-sm text-white/55 hover:text-white transition-colors font-black"
-                      style={{ fontFamily: "'Caveat', cursive" }}
+                      style={{ fontFamily: "'Outfit', sans-serif" }}
                     >
                       ← Changer les catégories
                     </button>
@@ -442,7 +442,7 @@ export const PixoguessGameScreen = ({
                 ) : (
                   <p
                     className="text-base text-white/65 font-bold"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     En attente de l'hôte…
                   </p>
@@ -461,7 +461,7 @@ export const PixoguessGameScreen = ({
                   className="relative h-4 rounded-full overflow-hidden"
                   style={{
                     background: 'rgba(0,0,0,0.5)',
-                    border: '2.5px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
                   }}
                 >
@@ -494,7 +494,7 @@ export const PixoguessGameScreen = ({
                       <span
                         className="text-2xl font-black tabular-nums text-white leading-none"
                         style={{
-                          fontFamily: "'Caveat', cursive",
+                          fontFamily: "'Outfit', sans-serif",
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                         }}
                       >
@@ -504,7 +504,7 @@ export const PixoguessGameScreen = ({
                     <div className="flex items-center gap-2">
                       <span
                         className="text-xs uppercase tracking-wider font-black text-white/65"
-                        style={{ fontFamily: "'Caveat', cursive" }}
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
                       >
                         Clarté
                       </span>
@@ -512,7 +512,7 @@ export const PixoguessGameScreen = ({
                         className="w-24 h-3 rounded-full overflow-hidden"
                         style={{
                           background: 'rgba(0,0,0,0.5)',
-                          border: '2px solid #0a0810',
+                          border: '1px solid var(--ink-line)',
                         }}
                       >
                         <div
@@ -533,8 +533,8 @@ export const PixoguessGameScreen = ({
                       className="relative rounded-2xl overflow-hidden"
                       style={{
                         background: 'rgba(0,0,0,0.4)',
-                        border: '4px solid #0a0810',
-                        boxShadow: '0 5px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       {imageBroken ? (
@@ -549,7 +549,7 @@ export const PixoguessGameScreen = ({
                           <p
                             className="text-2xl font-black text-white"
                             style={{
-                              fontFamily: "'Caveat', cursive",
+                              fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW,
                             }}
                           >
@@ -557,7 +557,7 @@ export const PixoguessGameScreen = ({
                           </p>
                           <p
                             className="text-sm text-white/55 font-bold"
-                            style={{ fontFamily: "'Caveat', cursive" }}
+                            style={{ fontFamily: "'Outfit', sans-serif" }}
                           >
                             On passe à la suivante…
                           </p>
@@ -587,8 +587,8 @@ export const PixoguessGameScreen = ({
                                 style={{
                                   background:
                                     'linear-gradient(135deg, #fbbf24, #d97706)',
-                                  border: '4px solid #0a0810',
-                                  boxShadow: '0 5px 0 #0a0810',
+                                  border: '1px solid var(--ink-line)',
+                                  boxShadow: 'none',
                                 }}
                               >
                                 <Trophy className="w-8 h-8 text-white" strokeWidth={2.5} />
@@ -596,7 +596,7 @@ export const PixoguessGameScreen = ({
                               <p
                                 className="text-3xl font-black text-white leading-none"
                                 style={{
-                                  fontFamily: "'Caveat', cursive",
+                                  fontFamily: "'Outfit', sans-serif",
                                   textShadow: GRAFFITI_TEXT_SHADOW,
                                 }}
                               >
@@ -605,7 +605,7 @@ export const PixoguessGameScreen = ({
                               <p
                                 className="text-2xl font-black text-amber-300"
                                 style={{
-                                  fontFamily: "'Caveat', cursive",
+                                  fontFamily: "'Outfit', sans-serif",
                                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                                 }}
                               >
@@ -625,9 +625,9 @@ export const PixoguessGameScreen = ({
                         style={{
                           background:
                             'linear-gradient(180deg, #a855f7, #6b21a8)',
-                          border: '2.5px solid #0a0810',
-                          boxShadow: '0 3px 0 #0a0810',
-                          fontFamily: "'Caveat', cursive",
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
+                          fontFamily: "'Outfit', sans-serif",
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                         }}
                       >
@@ -692,14 +692,14 @@ export const PixoguessGameScreen = ({
                             ? '3px solid #34d399'
                             : showFeedback === 'wrong'
                               ? '3px solid #ef4444'
-                              : '3px solid #0a0810',
+                              : '3px solid var(--ink-line)',
                         boxShadow:
                           showFeedback === 'correct'
-                            ? '0 4px 0 #0a0810, 0 0 14px rgba(52,211,153,0.4)'
+                            ? '0 0 0 rgba(0,0,0,0), 0 0 14px rgba(52,211,153,0.4)'
                             : showFeedback === 'wrong'
-                              ? '0 4px 0 #0a0810, 0 0 14px rgba(239,68,68,0.4)'
-                              : 'inset 0 2px 4px rgba(0,0,0,0.4), 0 4px 0 #0a0810',
-                        fontFamily: "'Caveat', cursive",
+                              ? '0 0 0 rgba(0,0,0,0), 0 0 14px rgba(239,68,68,0.4)'
+                              : 'inset 0 2px 4px rgba(0,0,0,0.4), 0 0 0 rgba(0,0,0,0)',
+                        fontFamily: "'Outfit', sans-serif",
                       }}
                     />
                     <InkButton
@@ -719,7 +719,7 @@ export const PixoguessGameScreen = ({
 
                   <div
                     className="mt-2 flex items-center justify-between text-xs font-bold"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     <div className="flex items-center gap-2 text-white/60">
                       {cooldownMs > 0 && (
@@ -763,8 +763,8 @@ export const PixoguessGameScreen = ({
                       style={{
                         background:
                           'linear-gradient(135deg, #fbbf24, #d97706)',
-                        border: '2.5px solid #0a0810',
-                        boxShadow: '0 3px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       <Trophy className="w-4 h-4 text-white" strokeWidth={2.5} />
@@ -772,7 +772,7 @@ export const PixoguessGameScreen = ({
                     <h3
                       className="text-2xl font-black text-white leading-none"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW,
                       }}
                     >
@@ -798,8 +798,8 @@ export const PixoguessGameScreen = ({
                             background: isMe
                               ? `linear-gradient(180deg, ${ACCENT}33, ${ACCENT}10)`
                               : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                            border: '2.5px solid #0a0810',
-                            boxShadow: '0 2px 0 #0a0810',
+                            border: '1px solid var(--ink-line)',
+                            boxShadow: 'none',
                           }}
                         >
                           <div className="flex items-center gap-2.5">
@@ -809,9 +809,9 @@ export const PixoguessGameScreen = ({
                                 background: medal
                                   ? `linear-gradient(180deg, ${medal}, ${medal}cc)`
                                   : 'rgba(255,255,255,0.06)',
-                                border: '2px solid #0a0810',
-                                boxShadow: '0 2px 0 #0a0810',
-                                fontFamily: "'Caveat', cursive",
+                                border: '1px solid var(--ink-line)',
+                                boxShadow: 'none',
+                                fontFamily: "'Outfit', sans-serif",
                                 textShadow: GRAFFITI_TEXT_SHADOW_SM,
                               }}
                             >
@@ -820,7 +820,7 @@ export const PixoguessGameScreen = ({
                             <span
                               className="text-base font-black text-white truncate max-w-[120px] leading-none"
                               style={{
-                                fontFamily: "'Caveat', cursive",
+                                fontFamily: "'Outfit', sans-serif",
                                 textShadow: GRAFFITI_TEXT_SHADOW_SM,
                               }}
                             >
@@ -830,7 +830,7 @@ export const PixoguessGameScreen = ({
                           <span
                             className="text-base font-black text-cyan-300 leading-none"
                             style={{
-                              fontFamily: "'Caveat', cursive",
+                              fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW_SM,
                             }}
                           >
@@ -860,7 +860,7 @@ export const PixoguessGameScreen = ({
                 <h2
                   className="text-3xl font-black text-white mb-4 leading-none"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,
                   }}
                 >
@@ -872,8 +872,8 @@ export const PixoguessGameScreen = ({
                   style={{
                     background:
                       'linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.2))',
-                    border: '4px solid #0a0810',
-                    boxShadow: '0 5px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <img
@@ -896,7 +896,7 @@ export const PixoguessGameScreen = ({
                           ph.dataset.fallback = 'true';
                           ph.className =
                             'absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/55';
-                          ph.innerHTML = `<div style="font-size:64px">🖼️</div><span style="font-family:'Caveat',cursive;font-size:20px;font-weight:900;color:white">Image indisponible</span>`;
+                          ph.innerHTML = `<div style="font-size:64px">🖼️</div><span style="font-family:'Outfit', sans-serif;font-size:20px;font-weight:900;color:white">Image indisponible</span>`;
                           parent.appendChild(ph);
                         }
                       }
@@ -907,7 +907,7 @@ export const PixoguessGameScreen = ({
                 <div
                   className="text-4xl font-black text-cyan-300 mb-4 capitalize leading-none"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,
                   }}
                 >
@@ -920,7 +920,7 @@ export const PixoguessGameScreen = ({
                     <span
                       className="text-xl font-black text-white leading-none"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW_SM,
                       }}
                     >
@@ -931,7 +931,7 @@ export const PixoguessGameScreen = ({
                 ) : (
                   <p
                     className="text-base text-white/65 mb-4 font-bold"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     Personne n'a trouvé…
                   </p>
@@ -982,8 +982,8 @@ export const PixoguessGameScreen = ({
                           background: medal
                             ? `linear-gradient(180deg, ${medal}33, ${medal}10)`
                             : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                          border: '2.5px solid #0a0810',
-                          boxShadow: '0 3px 0 #0a0810',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                         }}
                       >
                         <div className="flex items-center gap-3">
@@ -993,9 +993,9 @@ export const PixoguessGameScreen = ({
                               background: medal
                                 ? `linear-gradient(180deg, ${medal}, ${medal}cc)`
                                 : 'rgba(255,255,255,0.08)',
-                              border: '2.5px solid #0a0810',
-                              boxShadow: '0 2px 0 #0a0810',
-                              fontFamily: "'Caveat', cursive",
+                              border: '1px solid var(--ink-line)',
+                              boxShadow: 'none',
+                              fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW_SM,
                             }}
                           >
@@ -1004,7 +1004,7 @@ export const PixoguessGameScreen = ({
                           <span
                             className="text-base font-black text-white leading-none"
                             style={{
-                              fontFamily: "'Caveat', cursive",
+                              fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW_SM,
                             }}
                           >
@@ -1015,7 +1015,7 @@ export const PixoguessGameScreen = ({
                           <div
                             className="text-xl font-black text-cyan-300 leading-none"
                             style={{
-                              fontFamily: "'Caveat', cursive",
+                              fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW_SM,
                             }}
                           >
@@ -1068,8 +1068,8 @@ export const PixoguessGameScreen = ({
                   className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center"
                   style={{
                     background: 'linear-gradient(135deg, #fbbf24, #d97706)',
-                    border: '4px solid #0a0810',
-                    boxShadow: '0 5px 0 #0a0810, 0 10px 24px rgba(251,191,36,0.5)',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <Trophy className="w-10 h-10 text-white" strokeWidth={2} />
@@ -1083,14 +1083,14 @@ export const PixoguessGameScreen = ({
                   <div className="mb-4">
                     <p
                       className="text-base text-white/65 mb-1 font-bold"
-                      style={{ fontFamily: "'Caveat', cursive" }}
+                      style={{ fontFamily: "'Outfit', sans-serif" }}
                     >
                       Le gagnant est
                     </p>
                     <p
                       className="text-3xl font-black text-amber-300 leading-none"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW,
                       }}
                     >
@@ -1099,7 +1099,7 @@ export const PixoguessGameScreen = ({
                     <p
                       className="text-2xl font-black text-cyan-300 mt-1 leading-none"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW_SM,
                       }}
                     >
@@ -1116,15 +1116,15 @@ export const PixoguessGameScreen = ({
                       style={{
                         background:
                           'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                        border: '2.5px solid #0a0810',
-                        boxShadow: '0 2px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       <div className="flex items-center gap-2">
                         <span
                           className="text-base font-black text-white/85"
                           style={{
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: "'Outfit', sans-serif",
                             textShadow: GRAFFITI_TEXT_SHADOW_SM,
                           }}
                         >
@@ -1133,7 +1133,7 @@ export const PixoguessGameScreen = ({
                         <span
                           className="text-base font-black text-white leading-none"
                           style={{
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: "'Outfit', sans-serif",
                             textShadow: GRAFFITI_TEXT_SHADOW_SM,
                           }}
                         >
@@ -1143,7 +1143,7 @@ export const PixoguessGameScreen = ({
                       <span
                         className="text-base font-black text-cyan-300 leading-none"
                         style={{
-                          fontFamily: "'Caveat', cursive",
+                          fontFamily: "'Outfit', sans-serif",
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                         }}
                       >
@@ -1201,13 +1201,13 @@ const StatBlock = ({
     className="rounded-2xl px-3 py-2.5"
     style={{
       background: `linear-gradient(180deg, ${color}22, ${color}08)`,
-      border: '2.5px solid #0a0810',
-      boxShadow: '0 2px 0 #0a0810',
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
     }}
   >
     <div
       className="text-[10px] uppercase tracking-[0.2em] text-white/55 font-black"
-      style={{ fontFamily: "'Caveat', cursive" }}
+      style={{ fontFamily: "'Outfit', sans-serif" }}
     >
       {label}
     </div>
@@ -1217,7 +1217,7 @@ const StatBlock = ({
         compact ? 'text-sm text-white' : 'text-xl',
       )}
       style={{
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "'Outfit', sans-serif",
         color: compact ? 'white' : color,
         textShadow: GRAFFITI_TEXT_SHADOW_SM,
       }}
@@ -1227,7 +1227,7 @@ const StatBlock = ({
     {sublabel && (
       <div
         className="text-[10px] text-white/45 font-bold mt-0.5"
-        style={{ fontFamily: "'Caveat', cursive" }}
+        style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         {sublabel}
       </div>

@@ -38,7 +38,7 @@ export function BlurRushLiveScoreboard({
         <span
           className="text-base font-black text-white leading-none"
           style={{
-            fontFamily: "'Caveat', cursive",
+            fontFamily: "'Outfit', sans-serif",
             textShadow: GRAFFITI_TEXT_SHADOW_SM,
           }}
         >
@@ -46,7 +46,7 @@ export function BlurRushLiveScoreboard({
         </span>
         <span
           className="text-xs uppercase tracking-wider font-black text-cyan-300"
-          style={{ fontFamily: "'Caveat', cursive" }}
+          style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           Tentatives
         </span>
@@ -72,8 +72,8 @@ export function BlurRushLiveScoreboard({
                   : isMe
                     ? 'linear-gradient(180deg, rgba(6,182,212,0.22), rgba(14,116,144,0.05))'
                     : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                border: '2.5px solid #0a0810',
-                boxShadow: '0 2px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <div className="min-w-0 flex-1">
@@ -81,7 +81,7 @@ export function BlurRushLiveScoreboard({
                   <span
                     className="text-base font-black text-white truncate leading-none"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
@@ -96,7 +96,7 @@ export function BlurRushLiveScoreboard({
                 </div>
                 <div
                   className="flex items-center gap-1 text-[10px] mt-0.5 font-bold text-white/50"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   <Timer className="w-3 h-3" />
                   <span>
@@ -109,7 +109,7 @@ export function BlurRushLiveScoreboard({
               <span
                 className="text-base font-black flex-shrink-0 leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   color: r.solved
                     ? '#34d399'
                     : isMe

@@ -72,10 +72,10 @@ export const QuizCategorySelector = ({
               background: isSelected
                 ? `linear-gradient(180deg, ${cat.color}, ${cat.color}cc)`
                 : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-              border: '3px solid #0a0810',
+              border: '1px solid var(--ink-line)',
               boxShadow: isSelected
-                ? `0 4px 0 #0a0810, 0 0 12px ${cat.color}66`
-                : '0 4px 0 #0a0810',
+                ? `0 0 0 rgba(0,0,0,0), 0 0 12px ${cat.color}66`
+                : '0 0 0 rgba(0,0,0,0)',
             }}
           >
             <span
@@ -87,7 +87,7 @@ export const QuizCategorySelector = ({
             <p
               className="text-sm font-black truncate w-full text-center text-white leading-none"
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW_SM,
               }}
             >
@@ -100,8 +100,8 @@ export const QuizCategorySelector = ({
                 className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center"
                 style={{
                   background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                  border: '2.5px solid #0a0810',
-                  boxShadow: '0 3px 0 #0a0810',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />

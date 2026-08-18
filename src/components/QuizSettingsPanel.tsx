@@ -78,9 +78,9 @@ const InkPill = ({
       background: active
         ? `linear-gradient(180deg, ${color}, ${color}cc)`
         : 'rgba(255,255,255,0.05)',
-      border: '2.5px solid #0a0810',
-      boxShadow: '0 3px 0 #0a0810',
-      fontFamily: "'Caveat', cursive",
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
+      fontFamily: "'Outfit', sans-serif",
       textShadow: active ? GRAFFITI_TEXT_SHADOW_SM : undefined,
       color: active ? 'white' : 'rgba(255,255,255,0.65)',
     }}
@@ -116,8 +116,8 @@ const InkToggle = ({
       background: on
         ? 'linear-gradient(180deg, rgba(52,211,153,0.18), rgba(5,150,105,0.05))'
         : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-      border: '2.5px solid #0a0810',
-      boxShadow: '0 3px 0 #0a0810',
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
     }}
   >
     <span className="flex items-center gap-2">
@@ -125,7 +125,7 @@ const InkToggle = ({
       <span
         className="text-base font-black text-white leading-none"
         style={{
-          fontFamily: "'Caveat', cursive",
+          fontFamily: "'Outfit', sans-serif",
           textShadow: GRAFFITI_TEXT_SHADOW_SM,
         }}
       >
@@ -138,15 +138,15 @@ const InkToggle = ({
         background: on
           ? 'linear-gradient(180deg, #34d399, #059669)'
           : 'rgba(0,0,0,0.5)',
-        border: '2.5px solid #0a0810',
-        boxShadow: '0 2px 0 #0a0810',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
       }}
     >
       <span
         className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
         style={{
           left: on ? 'calc(100% - 22px)' : '2px',
-          boxShadow: '0 1.5px 0 #0a0810',
+          boxShadow: 'none',
         }}
       />
     </span>
@@ -163,7 +163,7 @@ const SectionHeader = ({
   <div
     className="flex items-center gap-1.5 text-base font-black uppercase tracking-wider text-white/85"
     style={{
-      fontFamily: "'Caveat', cursive",
+      fontFamily: "'Outfit', sans-serif",
       textShadow: GRAFFITI_TEXT_SHADOW_SM,
     }}
   >

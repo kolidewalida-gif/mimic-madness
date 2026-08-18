@@ -15,9 +15,9 @@ import {
 import { cn } from '@/lib/utils';
 
 const GRAFFITI_TEXT_SHADOW =
-  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
+  'none';
 const GRAFFITI_TEXT_SHADOW_SM =
-  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
+  'none';
 
 interface UndercoverPreGameSettingsProps {
   totalPlayers: number;
@@ -56,9 +56,9 @@ const CartoonCard = ({
     style={{
       background:
         'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-      border: '4px solid #0a0810',
+      border: '1px solid var(--ink-line)',
       boxShadow:
-        '0 8px 0 #0a0810, 0 14px 30px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.06)',
+        'none',
     }}
   >
     {innerAccent && accent && (
@@ -94,8 +94,8 @@ const StepperButton = ({
     )}
     style={{
       background: `linear-gradient(180deg, ${color}, ${color}cc)`,
-      border: '3px solid #0a0810',
-      boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)',
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
       color: 'white',
     }}
   >
@@ -124,16 +124,16 @@ const Pill = ({
       background: active
         ? `linear-gradient(180deg, ${color}, ${color}cc)`
         : 'rgba(255,255,255,0.05)',
-      border: active ? '3px solid #0a0810' : '3px solid rgba(255,255,255,0.15)',
+      border: active ? '3px solid var(--ink-line)' : '3px solid rgba(255,255,255,0.15)',
       boxShadow: active
-        ? '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)'
+        ? '0 0 0 rgba(0,0,0,0), inset 0 0 0 rgba(255,255,255,0.25)'
         : 'none',
     }}
   >
     <span
       className="text-xl font-black leading-none text-white"
       style={{
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "'Outfit', sans-serif",
         textShadow: active ? GRAFFITI_TEXT_SHADOW_SM : undefined,
       }}
     >
@@ -160,8 +160,8 @@ const ToggleSwitch = ({
       background: active
         ? `linear-gradient(180deg, ${color}, ${color}cc)`
         : 'rgba(255,255,255,0.08)',
-      border: '3px solid #0a0810',
-      boxShadow: '0 3px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.18)',
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
     }}
   >
     <motion.div
@@ -170,8 +170,8 @@ const ToggleSwitch = ({
       className="absolute top-[1px] left-[1px] w-6 h-6 rounded-full"
       style={{
         background: 'linear-gradient(180deg, #fff, #e5e7eb)',
-        border: '2px solid #0a0810',
-        boxShadow: '0 2px 0 #0a0810',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
       }}
     />
   </motion.button>
@@ -239,8 +239,8 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
             className="w-14 h-14 rounded-2xl flex items-center justify-center"
             style={{
               background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-              border: '4px solid #0a0810',
-              boxShadow: '0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
           >
             <SettingsIcon className="w-7 h-7 text-white" strokeWidth={2.5} />
@@ -248,14 +248,14 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
           <div>
             <p
               className="text-[11px] uppercase tracking-[0.3em] text-white/55 font-black"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Avant de jouer
             </p>
             <h1
               className="text-4xl font-black leading-none text-white"
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW,
               }}
             >
@@ -268,15 +268,15 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
               style={{
                 background:
                   'linear-gradient(180deg, rgba(6,182,212,0.18), rgba(8,145,178,0.05))',
-                border: '2.5px solid #0a0810',
-                boxShadow: '0 3px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <Users className="w-4 h-4 text-cyan-300" strokeWidth={2.5} />
               <span
                 className="text-base font-black leading-none text-cyan-300"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -290,7 +290,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
         <CartoonCard accent="#ef4444" className="px-5 py-4">
           <Sparkles
             className="absolute top-3 right-3 w-4 h-4 z-10"
-            style={{ color: '#ef4444', filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+            style={{ color: '#ef4444', filter: 'none' }}
           />
           <div className="relative space-y-3">
             <div className="flex items-center gap-2">
@@ -298,8 +298,8 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 className="w-9 h-9 rounded-xl flex items-center justify-center"
                 style={{
                   background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                  border: '2.5px solid #0a0810',
-                  boxShadow: '0 3px 0 #0a0810',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <UserX className="w-4 h-4 text-white" strokeWidth={2.5} />
@@ -308,7 +308,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 <p
                   className="text-2xl font-black leading-none text-white"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW_SM,
                   }}
                 >
@@ -316,7 +316,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 </p>
                 <p
                   className="text-xs text-white/55 font-bold leading-none"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   Combien d'imposteurs dans la partie ?
                 </p>
@@ -339,14 +339,14 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 className="w-20 h-16 rounded-2xl flex items-center justify-center"
                 style={{
                   background: 'rgba(0,0,0,0.45)',
-                  border: '3px solid #0a0810',
+                  border: '1px solid var(--ink-line)',
                   boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5)',
                 }}
               >
                 <span
                   className="text-5xl font-black leading-none text-white"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,
                   }}
                 >
@@ -363,7 +363,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
             </div>
             <p
               className="text-center text-xs text-white/40 italic font-bold"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               max {maxUndercover} pour {totalPlayers} joueurs
             </p>
@@ -374,7 +374,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
         <CartoonCard accent="#fbbf24" className="px-5 py-4">
           <Sparkles
             className="absolute top-3 right-3 w-4 h-4 z-10"
-            style={{ color: '#fbbf24', filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+            style={{ color: '#fbbf24', filter: 'none' }}
           />
           <div className="relative space-y-3">
             <div className="flex items-center gap-2">
@@ -382,8 +382,8 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 className="w-9 h-9 rounded-xl flex items-center justify-center"
                 style={{
                   background: 'linear-gradient(135deg, #fbbf24, #d97706)',
-                  border: '2.5px solid #0a0810',
-                  boxShadow: '0 3px 0 #0a0810',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <Trophy className="w-4 h-4 text-white" strokeWidth={2.5} />
@@ -392,7 +392,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 <p
                   className="text-2xl font-black leading-none text-white"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW_SM,
                   }}
                 >
@@ -400,7 +400,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 </p>
                 <p
                   className="text-xs text-white/55 font-bold leading-none"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   Best of (jusqu'à éliminer tous les undercovers)
                 </p>
@@ -425,15 +425,15 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
         <CartoonCard accent="#06b6d4" className="px-5 py-4">
           <Sparkles
             className="absolute top-3 right-3 w-4 h-4 z-10"
-            style={{ color: '#06b6d4', filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+            style={{ color: '#06b6d4', filter: 'none' }}
           />
           <div className="relative flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{
                 background: 'linear-gradient(135deg, #06b6d4, #0e7490)',
-                border: '2.5px solid #0a0810',
-                boxShadow: '0 3px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <Eye className="w-4 h-4 text-white" strokeWidth={2.5} />
@@ -442,7 +442,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
               <p
                 className="text-2xl font-black leading-none text-white"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -450,7 +450,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
               </p>
               <p
                 className="text-xs text-white/55 font-bold leading-none"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 {canEnableMrWhite
                   ? "Joueur sans mot, doit improviser"
@@ -484,9 +484,9 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
               )}
               style={{
                 background: `linear-gradient(180deg, ${accent}, ${accent}cc)`,
-                border: '4px solid #0a0810',
+                border: '1px solid var(--ink-line)',
                 boxShadow:
-                  '0 6px 0 #0a0810, 0 10px 24px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.25)',
+                  'none',
               }}
             >
               <div className="relative flex items-center justify-center gap-3">
@@ -501,7 +501,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 <span
                   className="text-3xl font-black text-white leading-none"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,
                   }}
                 >
@@ -516,7 +516,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
               <p
                 className="text-2xl font-black leading-none text-white"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -524,7 +524,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
               </p>
               <p
                 className="mt-1 text-sm text-white/55 italic font-bold"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 Les paramètres se règlent côté admin.
               </p>

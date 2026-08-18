@@ -329,9 +329,9 @@ export const ResultsPhase = ({
     }
   };
 
-  const SHADOW = "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810";
-  const SHADOW_SM = "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810";
-  const FONT = "'Caveat', cursive";
+  const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
+  const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
+  const FONT = "'Outfit', sans-serif";
 
   // Podium order: 2nd (left), 1st (center), 3rd (right)
   const podium = [results[1] ?? null, results[0] ?? null, results[2] ?? null];
@@ -374,8 +374,8 @@ export const ResultsPhase = ({
               width: isCenter ? 100 : 80,
               height: isCenter ? 100 : 80,
               background: `linear-gradient(135deg, ${color}, ${color}88)`,
-              border: `4px solid #0a0810`,
-              boxShadow: `0 5px 0 #0a0810, 0 0 20px ${color}66`,
+              border: `4px solid var(--ink-line)`,
+              boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 20px ${color}66`,
             }}
           >
             <PlayerAvatar playerId={result.playerId} playerName={result.playerName}
@@ -384,7 +384,7 @@ export const ResultsPhase = ({
           {/* Rank badge */}
           <div
             className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center"
-            style={{ background: `linear-gradient(135deg, ${color}, ${color}cc)`, border: "2.5px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}
+            style={{ background: `linear-gradient(135deg, ${color}, ${color}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}
           >
             <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
               {rank}
@@ -399,10 +399,10 @@ export const ResultsPhase = ({
             background: isCenter
               ? "linear-gradient(180deg, #2a1a0e, #1a0d2e)"
               : "linear-gradient(180deg, #1a0d2e, #0f0820)",
-            border: `4px solid ${isCenter ? color : "#0a0810"}`,
+            border: `4px solid ${isCenter ? color : "var(--ink-line)"}`,
             boxShadow: isCenter
-              ? `0 8px 0 #0a0810, 0 0 30px ${color}55`
-              : "0 6px 0 #0a0810",
+              ? `0 0 0 rgba(0,0,0,0), 0 0 30px ${color}55`
+              : "0 0 0 rgba(0,0,0,0)",
             minHeight: height,
           }}
         >
@@ -429,8 +429,8 @@ export const ResultsPhase = ({
                       className="w-14 h-14 rounded-full flex items-center justify-center"
                       style={{
                         background: `linear-gradient(135deg, ${color}, ${color}88)`,
-                        border: "3px solid #0a0810",
-                        boxShadow: `0 4px 0 #0a0810, 0 0 16px ${color}66`,
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 16px ${color}66`,
                       }}
                     >
                       <Play className="w-6 h-6 text-white" strokeWidth={2.5} />
@@ -484,7 +484,7 @@ export const ResultsPhase = ({
                 <motion.button type="button" onClick={() => toggleExpand(result.playerId)}
                   whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
                   className="flex-1 py-1.5 rounded-xl flex items-center justify-center gap-1"
-                  style={{ background: "rgba(168,85,247,0.2)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                  style={{ background: "rgba(168,85,247,0.2)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   <ChevronUp className="w-3.5 h-3.5 text-purple-300" strokeWidth={2.5} />
                   <span className="text-xs font-black text-purple-300" style={{ fontFamily: FONT }}>Cacher</span>
                 </motion.button>
@@ -492,7 +492,7 @@ export const ResultsPhase = ({
                 <motion.button type="button" onClick={() => toggleExpand(result.playerId)}
                   whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
                   className="flex-1 py-1.5 rounded-xl flex items-center justify-center gap-1"
-                  style={{ background: `${color}22`, border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                  style={{ background: `${color}22`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   <Play className="w-3 h-3" style={{ color }} strokeWidth={2.5} />
                   <span className="text-xs font-black" style={{ fontFamily: FONT, color }}>Rejouer</span>
                 </motion.button>
@@ -502,7 +502,7 @@ export const ResultsPhase = ({
                 disabled={downloadingPlayer === result.playerId}
                 whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
                 className="w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-50"
-                style={{ background: "rgba(255,255,255,0.06)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                style={{ background: "rgba(255,255,255,0.06)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                 {downloadingPlayer === result.playerId
                   ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
                   : <Download className="w-3.5 h-3.5 text-white/70" strokeWidth={2.5} />}
@@ -513,7 +513,7 @@ export const ResultsPhase = ({
                   disabled={sharingPlayer === result.playerId}
                   whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
                   className="w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-50"
-                  style={{ background: "rgba(251,191,36,0.15)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                  style={{ background: "rgba(251,191,36,0.15)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   {sharingPlayer === result.playerId
                     ? <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
                     : sharedClipIds.size > 0
@@ -531,9 +531,9 @@ export const ResultsPhase = ({
           style={{
             height: isCenter ? 48 : rank === 2 ? 36 : 28,
             background: `linear-gradient(180deg, ${color}33, ${color}11)`,
-            border: `3px solid #0a0810`,
+            border: `3px solid var(--ink-line)`,
             borderTop: "none",
-            boxShadow: "0 4px 0 #0a0810",
+            boxShadow: 'none',
           }}
         >
           <span className="text-2xl font-black" style={{ fontFamily: FONT, color, textShadow: SHADOW_SM }}>
@@ -568,7 +568,7 @@ export const ResultsPhase = ({
             <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: -2 }}
               transition={{ type: "spring", stiffness: 280, damping: 16 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
-              style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+              style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
               <Trophy className="w-4 h-4 text-white" strokeWidth={2.5} />
               <span className="text-sm font-black uppercase tracking-wider text-white"
                 style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
@@ -607,7 +607,7 @@ export const ResultsPhase = ({
                   initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 + i * 0.05 }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-2xl"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                  style={{ background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   <span className="text-base font-black text-white/40 w-6 text-center" style={{ fontFamily: FONT }}>
                     {i + 4}
                   </span>
@@ -640,7 +640,7 @@ export const ResultsPhase = ({
               <motion.button type="button" onClick={onEndGame}
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 className="flex-1 py-3 rounded-2xl flex items-center justify-center"
-                style={{ background: "rgba(255,255,255,0.05)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+                style={{ background: "rgba(255,255,255,0.05)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                 <span className="text-xl font-black text-white/70" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
                   Terminer
                 </span>
@@ -648,7 +648,7 @@ export const ResultsPhase = ({
               <motion.button type="button" onClick={onNextRound}
                 whileHover={{ scale: 1.03, rotate: -1 }} whileTap={{ scale: 0.97 }}
                 className="flex-1 py-3 rounded-2xl flex items-center justify-center gap-2"
-                style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "3px solid #0a0810", boxShadow: "0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)" }}>
+                style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                 <span className="text-xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
                   Manche suivante
                 </span>
@@ -659,7 +659,7 @@ export const ResultsPhase = ({
 
           {!currentPlayer.isHost && (
             <div className="flex items-center justify-center gap-2 py-3 rounded-2xl"
-              style={{ background: "rgba(255,255,255,0.03)", border: "2.5px solid #0a0810" }}>
+              style={{ background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)' }}>
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <p className="text-sm font-black text-white/60" style={{ fontFamily: FONT }}>
                 En attente de l'hôte pour la suite…

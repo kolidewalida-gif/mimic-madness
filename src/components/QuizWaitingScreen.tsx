@@ -37,9 +37,9 @@ interface QuizWaitingScreenProps {
 
 const ACCENT = '#84cc16'; // green/lime — matches the QUIZ card color
 const GRAFFITI_TEXT_SHADOW =
-  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
+  'none';
 const GRAFFITI_TEXT_SHADOW_SM =
-  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
+  'none';
 
 export const QuizWaitingScreen = memo(
   ({
@@ -94,15 +94,15 @@ export const QuizWaitingScreen = memo(
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
               style={{
                 background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
-                border: '3px solid #0a0810',
-                boxShadow: '0 4px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <Brain className="w-4 h-4 text-white" strokeWidth={2.5} />
               <span
                 className="text-sm font-black uppercase tracking-wider text-white leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -113,7 +113,7 @@ export const QuizWaitingScreen = memo(
             <h1
               className="text-6xl md:text-7xl font-black tracking-tight leading-none text-white"
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW,
               }}
             >
@@ -121,7 +121,7 @@ export const QuizWaitingScreen = memo(
             </h1>
             <p
               className="text-base text-white/70 max-w-md mx-auto font-bold"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               <span
                 className="text-lime-300"
@@ -144,7 +144,7 @@ export const QuizWaitingScreen = memo(
               <Users className="w-3.5 h-3.5 text-white/55" />
               <span
                 className="text-xs uppercase tracking-[0.25em] font-black text-white/65"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 {players.length} joueur{players.length > 1 ? 's' : ''}
               </span>
@@ -177,21 +177,21 @@ export const QuizWaitingScreen = memo(
                         background: isMe
                           ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`
                           : 'linear-gradient(135deg, #a855f7, #6b21a8)',
-                        border: '3.5px solid #0a0810',
-                        boxShadow: '0 4px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       {hasImage ? (
                         <img
                           src={av.imageUrl}
                           alt={p.name}
-                          className="w-12 h-12 rounded-full object-cover ring-2 ring-[#0a0810]"
+                          className="w-12 h-12 rounded-full object-cover ring-2 ring-[var(--ink-line)]"
                         />
                       ) : (
                         <span
                           className="text-2xl font-black text-white leading-none"
                           style={{
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: "'Outfit', sans-serif",
                             textShadow: GRAFFITI_TEXT_SHADOW_SM,
                           }}
                         >
@@ -204,7 +204,7 @@ export const QuizWaitingScreen = memo(
                           fill="currentColor"
                           style={{
                             transform: 'rotate(15deg)',
-                            filter: 'drop-shadow(1.5px 1.5px 0 #0a0810)',
+                            filter: 'none',
                           }}
                         />
                       )}
@@ -212,7 +212,7 @@ export const QuizWaitingScreen = memo(
                     <p
                       className="text-center text-base font-black text-white truncate mt-1.5 leading-none"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW_SM,
                       }}
                     >
@@ -221,7 +221,7 @@ export const QuizWaitingScreen = memo(
                     {isMe && (
                       <span
                         className="block text-[10px] uppercase tracking-wider font-black text-lime-300 text-center"
-                        style={{ fontFamily: "'Caveat', cursive" }}
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
                       >
                         Vous
                       </span>
@@ -290,9 +290,9 @@ export const QuizWaitingScreen = memo(
                 )}
                 style={{
                   background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
-                  border: '4px solid #0a0810',
+                  border: '1px solid var(--ink-line)',
                   boxShadow:
-                    '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                    'none',
                 }}
               >
                 {isLoading ? (
@@ -301,7 +301,7 @@ export const QuizWaitingScreen = memo(
                     <span
                       className="text-2xl font-black text-white leading-none"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW,
                       }}
                     >
@@ -314,7 +314,7 @@ export const QuizWaitingScreen = memo(
                     <span
                       className="text-3xl font-black text-white leading-none"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW,
                       }}
                     >
@@ -333,15 +333,15 @@ export const QuizWaitingScreen = memo(
                 style={{
                   background:
                     'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                  border: '3px solid #0a0810',
-                  boxShadow: '0 4px 0 #0a0810',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <Loader2 className="w-4 h-4 animate-spin text-white/60" />
                 <span
                   className="text-xl font-black text-white/75 leading-none"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW_SM,
                   }}
                 >
@@ -359,8 +359,8 @@ export const QuizWaitingScreen = memo(
               style={{
                 background:
                   'linear-gradient(180deg, rgba(239,68,68,0.18), rgba(127,29,29,0.05))',
-                border: '2.5px solid #0a0810',
-                boxShadow: '0 3px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
                 color: 'white',
               }}
             >
@@ -368,7 +368,7 @@ export const QuizWaitingScreen = memo(
               <span
                 className="text-base font-black uppercase tracking-wider text-red-300 leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -405,8 +405,8 @@ const CartoonSection = ({
     style={{
       background:
         'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-      border: '3px solid #0a0810',
-      boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.06)',
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
     }}
   >
     <div
@@ -419,7 +419,7 @@ const CartoonSection = ({
       className="absolute -top-2 -right-2 w-4 h-4"
       style={{
         color: accent,
-        filter: 'drop-shadow(1px 1px 0 #0a0810)',
+        filter: 'none',
       }}
     />
     <header className="relative flex items-center gap-2 mb-3">
@@ -429,8 +429,8 @@ const CartoonSection = ({
         className="w-8 h-8 rounded-xl flex items-center justify-center"
         style={{
           background: `linear-gradient(135deg, ${accent}, ${accent}aa)`,
-          border: '2.5px solid #0a0810',
-          boxShadow: '0 2px 0 #0a0810',
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}
       >
         <Icon className="h-4 w-4 text-white" strokeWidth={2.5} />
@@ -438,7 +438,7 @@ const CartoonSection = ({
       <span
         className="text-xl font-black uppercase tracking-wider text-white leading-none"
         style={{
-          fontFamily: "'Caveat', cursive",
+          fontFamily: "'Outfit', sans-serif",
           textShadow: GRAFFITI_TEXT_SHADOW_SM,
         }}
       >

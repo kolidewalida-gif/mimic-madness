@@ -131,7 +131,7 @@ export function decorRateUnder(
 // ---------------------------------------------------------------------------
 
 /** Black "ink outline" colour reused by the existing scene aesthetic. */
-const INK = '#0a0810';
+const INK = 'var(--ink-line)';
 
 /** Base emissive intensity used by every neon/glow variant. */
 const NEON_BASE_INTENSITY = 0.6;

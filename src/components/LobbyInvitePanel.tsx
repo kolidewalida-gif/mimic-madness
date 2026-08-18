@@ -41,7 +41,7 @@ interface LobbyInvitePanelProps {
    GRAFFITI CARTOON PALETTE — used when isInkMode is active
 ============================================================ */
 const GRAFFITI_TEXT_SHADOW =
-  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
+  'none';
 
 const LobbyInvitePanelComponent = ({
   lobbyCode,
@@ -110,7 +110,7 @@ const LobbyInvitePanelComponent = ({
         <div className="flex flex-col gap-3">
           <p
             className="text-sm text-purple-200/80 font-bold"
-            style={{ fontFamily: "'Caveat', cursive" }}
+            style={{ fontFamily: "'Outfit', sans-serif" }}
           >
             {emptySlots} place{emptySlots > 1 ? 's' : ''} dispo
             {emptySlots > 1 ? 's' : ''} dans le lobby !
@@ -123,8 +123,8 @@ const LobbyInvitePanelComponent = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-black/40 text-white placeholder:text-purple-200/40 font-bold rounded-xl h-11"
               style={{
-                fontFamily: "'Caveat', cursive",
-                border: '3px solid #0a0810',
+                fontFamily: "'Outfit', sans-serif",
+                border: '1px solid var(--ink-line)',
                 boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
               }}
             />
@@ -147,7 +147,7 @@ const LobbyInvitePanelComponent = ({
                 <p
                   className="text-lg font-black text-white/80"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,
                   }}
                 >
@@ -156,7 +156,7 @@ const LobbyInvitePanelComponent = ({
                 {!searchQuery && (
                   <p
                     className="text-sm text-white/50 mt-1"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     Ajoute-en depuis le panneau Amis 👋
                   </p>
@@ -183,13 +183,13 @@ const LobbyInvitePanelComponent = ({
                     style={{
                       background:
                         'linear-gradient(180deg, rgba(168,85,247,0.12), rgba(168,85,247,0.04))',
-                      border: '2.5px solid #0a0810',
+                      border: '1px solid var(--ink-line)',
                       boxShadow:
-                        '0 3px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.06)',
+                        'none',
                     }}
                   >
                     <div className="relative flex-shrink-0">
-                      <Avatar className="h-11 w-11 ring-2 ring-[#0a0810]">
+                      <Avatar className="h-11 w-11 ring-2 ring-[var(--ink-line)]">
                         <AvatarImage src={friend.avatar_url || undefined} />
                         <AvatarFallback
                           className="font-black text-white text-base"
@@ -203,7 +203,7 @@ const LobbyInvitePanelComponent = ({
                       </Avatar>
                       <div
                         className={cn(
-                          'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0a0810]',
+                          'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-line)]',
                           isInGame
                             ? 'bg-amber-400'
                             : isOnline
@@ -222,7 +222,7 @@ const LobbyInvitePanelComponent = ({
                     <div className="flex-1 min-w-0">
                       <div
                         className="font-black text-lg text-white truncate leading-none"
-                        style={{ fontFamily: "'Caveat', cursive" }}
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
                       >
                         {friend.display_name || 'Joueur'}
                       </div>
@@ -269,12 +269,12 @@ const LobbyInvitePanelComponent = ({
                         background: isInvited
                           ? 'linear-gradient(180deg, #34d399, #059669)'
                           : 'linear-gradient(180deg, #fbbf24, #d97706)',
-                        border: '2.5px solid #0a0810',
-                        boxShadow: '0 3px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                         color: 'white',
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow:
-                          '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                          'none',
                       }}
                     >
                       {isInvited ? (
@@ -308,7 +308,7 @@ const LobbyInvitePanelComponent = ({
             <Users className="w-3.5 h-3.5 text-purple-300" />
             <span
               className="text-base font-black text-white/90"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               ÉQUIPE ({players.length}/{maxPlayers})
             </span>
@@ -326,13 +326,13 @@ const LobbyInvitePanelComponent = ({
                 style={{
                   background:
                     'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(126,34,206,0.4))',
-                  border: '3px solid #0a0810',
+                  border: '1px solid var(--ink-line)',
                   boxShadow:
-                    '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.08)',
+                    'none',
                 }}
               >
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
-                  <Avatar className="h-8 w-8 mb-1 ring-2 ring-[#0a0810]">
+                  <Avatar className="h-8 w-8 mb-1 ring-2 ring-[var(--ink-line)]">
                     <AvatarFallback
                       className="text-xs font-black text-white"
                       style={{
@@ -344,7 +344,7 @@ const LobbyInvitePanelComponent = ({
                   </Avatar>
                   <span
                     className="text-[11px] font-black text-center line-clamp-1 w-full text-white"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     {player.name}
                   </span>
@@ -352,7 +352,7 @@ const LobbyInvitePanelComponent = ({
                 {/* Connection dot */}
                 <div
                   className={cn(
-                    'absolute top-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-[#0a0810]',
+                    'absolute top-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-[var(--ink-line)]',
                     player.isDisconnected
                       ? 'bg-amber-400 animate-pulse'
                       : 'bg-emerald-400',
@@ -389,7 +389,7 @@ const LobbyInvitePanelComponent = ({
                   </div>
                   <span
                     className="text-[11px] mt-1 font-black text-purple-300 group-hover:text-white transition-colors"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     Inviter
                   </span>
@@ -423,9 +423,9 @@ const LobbyInvitePanelComponent = ({
                   style={{
                     background:
                       'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-                    border: '4px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                     boxShadow:
-                      '0 12px 0 #0a0810, 0 18px 40px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
+                      'none',
                   }}
                 >
                   {/* Inner accent border */}
@@ -439,11 +439,11 @@ const LobbyInvitePanelComponent = ({
                   {/* Decorative graffiti stars */}
                   <Sparkles
                     className="absolute top-3 left-3 w-4 h-4 text-amber-400 z-10 select-none pointer-events-none"
-                    style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+                    style={{ filter: 'none' }}
                   />
                   <Sparkles
                     className="absolute top-3 right-12 w-3.5 h-3.5 text-pink-400 z-10 select-none pointer-events-none"
-                    style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }}
+                    style={{ filter: 'none' }}
                   />
 
                   {/* HEADER */}
@@ -452,7 +452,7 @@ const LobbyInvitePanelComponent = ({
                     style={{
                       background:
                         'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
-                      borderBottom: '3px solid #0a0810',
+                      borderBottom: '1px solid var(--ink-line)',
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -463,9 +463,9 @@ const LobbyInvitePanelComponent = ({
                         style={{
                           background:
                             'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
-                          border: '3px solid #0a0810',
+                          border: '1px solid var(--ink-line)',
                           boxShadow:
-                            '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                            'none',
                         }}
                       >
                         <Users className="h-6 w-6 text-white" strokeWidth={2.5} />
@@ -474,7 +474,7 @@ const LobbyInvitePanelComponent = ({
                         <h3
                           className="font-black text-2xl leading-none text-white"
                           style={{
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: "'Outfit', sans-serif",
                             textShadow: GRAFFITI_TEXT_SHADOW,
                           }}
                         >
@@ -482,7 +482,7 @@ const LobbyInvitePanelComponent = ({
                         </h3>
                         <p
                           className="text-sm text-purple-200/80 font-bold mt-0.5"
-                          style={{ fontFamily: "'Caveat', cursive" }}
+                          style={{ fontFamily: "'Outfit', sans-serif" }}
                         >
                           {emptySlots} place{emptySlots > 1 ? 's' : ''} dispo
                           {emptySlots > 1 ? 's' : ''} !
@@ -496,8 +496,8 @@ const LobbyInvitePanelComponent = ({
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
                       style={{
                         background: 'rgba(239,68,68,0.2)',
-                        border: '2.5px solid #0a0810',
-                        boxShadow: '0 3px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       <X className="h-5 w-5" strokeWidth={3} />
@@ -517,8 +517,8 @@ const LobbyInvitePanelComponent = ({
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10 bg-black/40 text-white placeholder:text-purple-200/40 font-bold rounded-xl h-11"
                         style={{
-                          fontFamily: "'Caveat', cursive",
-                          border: '3px solid #0a0810',
+                          fontFamily: "'Outfit', sans-serif",
+                          border: '1px solid var(--ink-line)',
                           boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
                         }}
                       />
@@ -548,7 +548,7 @@ const LobbyInvitePanelComponent = ({
                           <p
                             className="text-lg font-black text-white/80"
                             style={{
-                              fontFamily: "'Caveat', cursive",
+                              fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW,
                             }}
                           >
@@ -578,13 +578,13 @@ const LobbyInvitePanelComponent = ({
                               style={{
                                 background:
                                   'linear-gradient(180deg, rgba(168,85,247,0.12), rgba(168,85,247,0.04))',
-                                border: '2.5px solid #0a0810',
+                                border: '1px solid var(--ink-line)',
                                 boxShadow:
-                                  '0 3px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.06)',
+                                  'none',
                               }}
                             >
                               <div className="relative flex-shrink-0">
-                                <Avatar className="h-11 w-11 ring-2 ring-[#0a0810]">
+                                <Avatar className="h-11 w-11 ring-2 ring-[var(--ink-line)]">
                                   <AvatarImage src={friend.avatar_url || undefined} />
                                   <AvatarFallback
                                     className="font-black text-white text-base"
@@ -599,7 +599,7 @@ const LobbyInvitePanelComponent = ({
                                 </Avatar>
                                 <div
                                   className={cn(
-                                    'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0a0810]',
+                                    'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-line)]',
                                     isInGame
                                       ? 'bg-amber-400'
                                       : isOnline
@@ -618,7 +618,7 @@ const LobbyInvitePanelComponent = ({
                               <div className="flex-1 min-w-0">
                                 <div
                                   className="font-black text-lg text-white truncate leading-none"
-                                  style={{ fontFamily: "'Caveat', cursive" }}
+                                  style={{ fontFamily: "'Outfit', sans-serif" }}
                                 >
                                   {friend.display_name || 'Joueur'}
                                 </div>
@@ -674,12 +674,12 @@ const LobbyInvitePanelComponent = ({
                                   background: isInvited
                                     ? 'linear-gradient(180deg, #34d399, #059669)'
                                     : 'linear-gradient(180deg, #fbbf24, #d97706)',
-                                  border: '2.5px solid #0a0810',
-                                  boxShadow: '0 3px 0 #0a0810',
+                                  border: '1px solid var(--ink-line)',
+                                  boxShadow: 'none',
                                   color: 'white',
-                                  fontFamily: "'Caveat', cursive",
+                                  fontFamily: "'Outfit', sans-serif",
                                   textShadow:
-                                    '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                                    'none',
                                 }}
                               >
                                 {isInvited ? (

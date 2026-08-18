@@ -70,17 +70,17 @@ const CartoonDice = ({ value, rolling }: { value: number; rolling: boolean }) =>
       className="relative w-14 h-14 rounded-2xl flex items-center justify-center select-none"
       style={{
         background: 'linear-gradient(180deg, #fff 0%, #e2e8f0 100%)',
-        border: '3px solid #0a0810',
+        border: '1px solid var(--ink-line)',
         boxShadow:
-          '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(0,0,0,0.1)',
+          'none',
       }}
     >
       <span
         className="text-3xl font-black leading-none"
         style={{
-          fontFamily: "'Caveat', cursive",
-          color: '#0a0810',
-          textShadow: '0 2px 0 rgba(0,0,0,0.15)',
+          fontFamily: "'Outfit', sans-serif",
+          color: 'var(--ink-line)',
+          textShadow: '0 0 0 rgba(0,0,0,0.15)',
         }}
       >
         {value}
@@ -119,10 +119,10 @@ const MoneyChip = ({
       )}
       style={{
         background: `linear-gradient(180deg, ${color}, ${color}cc)`,
-        border: '2.5px solid #0a0810',
-        boxShadow: '0 3px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.4)',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
         color: 'white',
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "'Outfit', sans-serif",
         textShadow: GRAFFITI_TEXT_SHADOW_SM,
       }}
     >
@@ -336,8 +336,8 @@ export const MonopolyGameScreen = ({
               className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
               style={{
                 background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT_2})`,
-                border: '3px solid #0a0810',
-                boxShadow: '0 4px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <Landmark className="w-8 h-8 text-white" strokeWidth={2.5} />
@@ -345,7 +345,7 @@ export const MonopolyGameScreen = ({
             <InkTitle size="lg">PRÉPARATION</InkTitle>
             <p
               className="text-base text-white/70 mt-2 font-bold"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Le plateau se met en place...
             </p>
@@ -358,7 +358,7 @@ export const MonopolyGameScreen = ({
               >
                 <p
                   className="text-sm text-amber-300 font-bold"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   ⚠️ Ça prend trop longtemps...
                 </p>
@@ -410,8 +410,8 @@ export const MonopolyGameScreen = ({
                 className="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center"
                 style={{
                   background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                  border: '4px solid #0a0810',
-                  boxShadow: '0 8px 0 #0a0810, 0 14px 30px rgba(251,191,36,0.6)',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <Trophy className="w-12 h-12 text-white" strokeWidth={2.5} />
@@ -422,7 +422,7 @@ export const MonopolyGameScreen = ({
               <p
                 className="text-3xl font-black"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   color: '#fbbf24',
                   textShadow: GRAFFITI_TEXT_SHADOW,
                 }}
@@ -441,14 +441,14 @@ export const MonopolyGameScreen = ({
                     style={{
                       background:
                         'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-                      border: '2.5px solid #0a0810',
-                      boxShadow: '0 3px 0 #0a0810',
+                      border: '1px solid var(--ink-line)',
+                      boxShadow: 'none',
                     }}
                   >
                     <span
                       className="text-2xl font-black"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         color: i === 0 ? '#fbbf24' : '#fff',
                         textShadow: GRAFFITI_TEXT_SHADOW_SM,
                       }}
@@ -458,7 +458,7 @@ export const MonopolyGameScreen = ({
                     {i === 0 && <Crown className="w-5 h-5 text-amber-400" fill="currentColor" />}
                     <span
                       className="flex-1 font-black text-lg text-white text-left truncate"
-                      style={{ fontFamily: "'Caveat', cursive" }}
+                      style={{ fontFamily: "'Outfit', sans-serif" }}
                     >
                       {p.player_name}
                     </span>
@@ -513,7 +513,7 @@ export const MonopolyGameScreen = ({
           <h1
             className="text-3xl md:text-4xl font-black leading-none"
             style={{
-              fontFamily: "'Caveat', cursive",
+              fontFamily: "'Outfit', sans-serif",
               color: '#fff',
               textShadow: GRAFFITI_TEXT_SHADOW,
             }}
@@ -571,15 +571,15 @@ export const MonopolyGameScreen = ({
                   className="px-3 py-1.5 rounded-2xl"
                   style={{
                     background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                    border: '3px solid #0a0810',
-                    boxShadow: '0 4px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                     transform: 'rotate(-4deg)',
                   }}
                 >
                   <span
                     className="text-sm font-black text-white uppercase tracking-wider"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
@@ -618,14 +618,14 @@ export const MonopolyGameScreen = ({
                       <div>
                         <p
                           className="text-[10px] font-black uppercase tracking-widest text-white/60 leading-none"
-                          style={{ fontFamily: "'Caveat', cursive" }}
+                          style={{ fontFamily: "'Outfit', sans-serif" }}
                         >
                           {isMyTurn ? 'TON TOUR' : 'TOUR DE'}
                         </p>
                         <p
                           className="text-2xl md:text-3xl font-black leading-none mt-1 truncate max-w-[260px]"
                           style={{
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: "'Outfit', sans-serif",
                             color: turnPlayerColor,
                             textShadow: GRAFFITI_TEXT_SHADOW_SM,
                           }}
@@ -653,13 +653,13 @@ export const MonopolyGameScreen = ({
                       className="px-4 py-3 rounded-2xl text-center"
                       style={{
                         background: 'rgba(0,0,0,0.4)',
-                        border: '2.5px solid #0a0810',
+                        border: '1px solid var(--ink-line)',
                       }}
                     >
                       <p
                         className="text-lg md:text-xl font-black text-white leading-tight"
                         style={{
-                          fontFamily: "'Caveat', cursive",
+                          fontFamily: "'Outfit', sans-serif",
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                         }}
                       >
@@ -674,7 +674,7 @@ export const MonopolyGameScreen = ({
                       <CartoonDice value={game.last_dice_1} rolling={diceRolling} />
                       <span
                         className="text-2xl font-black text-white/40"
-                        style={{ fontFamily: "'Caveat', cursive" }}
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
                       >
                         +
                       </span>
@@ -684,7 +684,7 @@ export const MonopolyGameScreen = ({
                         animate={{ scale: 1 }}
                         className="text-2xl font-black ml-2"
                         style={{
-                          fontFamily: "'Caveat', cursive",
+                          fontFamily: "'Outfit', sans-serif",
                           color: '#fbbf24',
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                         }}
@@ -699,14 +699,14 @@ export const MonopolyGameScreen = ({
                           className="px-3 py-1 rounded-2xl ml-1"
                           style={{
                             background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                            border: '2.5px solid #0a0810',
-                            boxShadow: '0 3px 0 #0a0810',
+                            border: '1px solid var(--ink-line)',
+                            boxShadow: 'none',
                           }}
                         >
                           <span
                             className="text-base font-black text-white uppercase tracking-wider"
                             style={{
-                              fontFamily: "'Caveat', cursive",
+                              fontFamily: "'Outfit', sans-serif",
                               textShadow: GRAFFITI_TEXT_SHADOW_SM,
                             }}
                           >
@@ -808,7 +808,7 @@ export const MonopolyGameScreen = ({
                       />
                       <span
                         className="text-base font-bold ml-2"
-                        style={{ fontFamily: "'Caveat', cursive" }}
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
                       >
                         En attente du joueur...
                       </span>

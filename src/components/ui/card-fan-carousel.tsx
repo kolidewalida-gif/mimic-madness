@@ -311,7 +311,7 @@ export default function SocialCards({ cards, onCardClick, selectedIndex }: Socia
                   {card.label && (
                     <span
                       className="text-center text-lg font-black text-white leading-tight"
-                      style={{ fontFamily: "'Caveat', cursive", textShadow: "2px 2px 0 #0a0810" }}
+                      style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}
                     >
                       {card.label}
                     </span>
@@ -332,7 +332,7 @@ export default function SocialCards({ cards, onCardClick, selectedIndex }: Socia
                   <div className="absolute inset-x-0 bottom-0 z-20 p-3 bg-gradient-to-t from-black/80 to-transparent">
                     <span
                       className="block text-center text-base font-black text-white leading-tight"
-                      style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}
+                      style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}
                     >
                       {card.label}
                     </span>
@@ -342,8 +342,8 @@ export default function SocialCards({ cards, onCardClick, selectedIndex }: Socia
                 {isSelected && (
                   <>
                     <div className="absolute inset-0 z-30 rounded-[1.25rem] ring-4 ring-amber-400 pointer-events-none" />
-                    <div className="absolute top-2 right-2 z-30 w-8 h-8 rounded-full bg-amber-400 border-2 border-[#0a0810] flex items-center justify-center">
-                      <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#0a0810]" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                    <div className="absolute top-2 right-2 z-30 w-8 h-8 rounded-full bg-amber-400 border-2 border-[var(--ink-line)] flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" className="w-4 h-4 text-[var(--ink-line)]" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     </div>

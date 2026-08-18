@@ -10,7 +10,7 @@ interface LevelProgressBarProps {
 }
 
 const GRAFFITI_TEXT_SHADOW_SM =
-  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
+  'none';
 
 const getLevelGradient = (level: number) => {
   if (level >= 25) return 'linear-gradient(180deg, #fde047, #fbbf24, #f97316)';
@@ -59,10 +59,10 @@ export const LevelProgressBar = ({
             )}
             style={{
               background: getLevelGradient(level),
-              border: '3px solid #0a0810',
+              border: '1px solid var(--ink-line)',
               borderRadius: '0.85rem',
-              boxShadow: '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.3)',
-              fontFamily: "'Caveat', cursive",
+              boxShadow: 'none',
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
@@ -89,7 +89,7 @@ export const LevelProgressBar = ({
               <div
                 className="text-base font-black text-white flex items-center gap-1 leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -103,7 +103,7 @@ export const LevelProgressBar = ({
               </div>
               <div
                 className="text-[10px] text-white/55 font-bold mt-1"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 {isMaxLevel
                   ? '🔥 Niveau Max !'
@@ -117,7 +117,7 @@ export const LevelProgressBar = ({
           <div className="text-right">
             <div
               className="text-[10px] uppercase tracking-wider text-white/55 font-bold"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               XP Total
             </div>
@@ -125,7 +125,7 @@ export const LevelProgressBar = ({
               className="text-base font-black flex items-center gap-1 justify-end leading-none mt-0.5"
               style={{
                 color: '#f87171',
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW_SM,
               }}
             >
@@ -149,7 +149,7 @@ export const LevelProgressBar = ({
           )}
           style={{
             background: 'rgba(0,0,0,0.5)',
-            border: '2.5px solid #0a0810',
+            border: '1px solid var(--ink-line)',
             boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)',
           }}
         >
@@ -205,9 +205,9 @@ export const LevelProgressBar = ({
               className="px-2 py-0.5 rounded-full text-[10px] font-black text-white"
               style={{
                 background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
-                border: '2px solid #0a0810',
-                boxShadow: '0 2px 0 #0a0810',
-                fontFamily: "'Caveat', cursive",
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
+                fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW_SM,
               }}
             >
@@ -221,7 +221,7 @@ export const LevelProgressBar = ({
       {!compact && !isMaxLevel && (
         <div
           className="flex items-center justify-between text-[10px] text-white/55 font-bold pt-1"
-          style={{ fontFamily: "'Caveat', cursive" }}
+          style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           <span>
             Prochain niveau dans {(xpNeeded - xpProgress).toLocaleString()} XP

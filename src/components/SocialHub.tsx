@@ -112,9 +112,9 @@ const SocialHubComponent = ({
             background: isOpen
               ? 'linear-gradient(180deg, #ef4444, #b91c1c)'
               : 'linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)',
-            border: '4px solid #0a0810',
+            border: '1px solid var(--ink-line)',
             boxShadow:
-              '0 6px 0 #0a0810, 0 10px 24px rgba(168,85,247,0.5), inset 0 2px 0 rgba(255,255,255,0.25)',
+              'none',
           }}
         >
           <AnimatePresence mode="wait">
@@ -153,11 +153,11 @@ const SocialHubComponent = ({
                 style={{
                   background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
                   color: 'white',
-                  border: '3px solid #0a0810',
-                  boxShadow: '0 3px 0 #0a0810',
-                  fontFamily: "'Caveat', cursive",
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow:
-                    '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
+                    'none',
                 }}
               >
                 {totalNotifications > 99 ? '99+' : totalNotifications}

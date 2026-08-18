@@ -469,7 +469,7 @@ export const AudioPhoneImitationPhase = ({
                         border: `4px solid ${PULP.ink}`,
                         boxShadow: isRecording
                           ? `0 0 ${40 + audioLevel * 60}px ${audioLevel * 30}px ${PULP.red}77`
-                          : `0 6px 0 ${PULP.ink}, 0 12px 24px ${BLUE}55`,
+                          : `0 0 0 ${PULP.ink}, 0 12px 24px ${BLUE}55`,
                       }}
                     >
                       {isRecording ? (

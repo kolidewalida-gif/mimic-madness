@@ -18,9 +18,9 @@ interface UndercoverGameScreenProps {
   currentPlayer: Player; players: Player[]; lobbyId: string; onEndGame: () => void;
 }
 
-const SHADOW = '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810';
-const SHADOW_SM = '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810';
-const FONT = "'Caveat', cursive";
+const SHADOW = '2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)';
+const SHADOW_SM = '1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)';
+const FONT = "'Outfit', sans-serif";
 
 const PHASE_COLORS: Record<string, string> = {
   word_reveal: '#a855f7', clue_giving: '#06b6d4', discussion: '#f59e0b',
@@ -196,7 +196,7 @@ export const UndercoverGameScreen = memo(
           {/* Phase label */}
           <motion.div key={game.phase} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
             className="px-5 py-2.5 rounded-2xl"
-            style={{ background: 'rgba(0,0,0,0.5)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810' }}>
+            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
             <span className="text-xl font-black" style={{ fontFamily: FONT, color: accent, textShadow: SHADOW_SM }}>
               {PHASE_LABELS[game.phase] ?? game.phase}
               {game.phase === 'clue_giving' && (
@@ -208,7 +208,7 @@ export const UndercoverGameScreen = memo(
           </motion.div>
 
           {/* Round counter */}
-          <div className="px-4 py-2 rounded-2xl" style={{ background: 'rgba(0,0,0,0.5)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810' }}>
+          <div className="px-4 py-2 rounded-2xl" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
             <span className="text-2xl font-black" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
               {game.current_round}/{game.total_rounds > 90 ? '∞' : game.total_rounds}
             </span>
@@ -261,8 +261,8 @@ export const UndercoverGameScreen = memo(
                         : isCurrent ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
                         : isMe ? 'linear-gradient(135deg, #06b6d4, #0891b2)'
                         : 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                      border: '4px solid #0a0810',
-                      boxShadow: isCurrent ? `0 5px 0 #0a0810, 0 0 20px ${accent}66` : '0 4px 0 #0a0810',
+                      border: '1px solid var(--ink-line)',
+                      boxShadow: isCurrent ? `0 0 0 rgba(0,0,0,0), 0 0 20px ${accent}66` : '0 0 0 rgba(0,0,0,0)',
                     }}
                   >
                     {isEliminated ? <Skull className="w-14 h-14 text-white/70" /> :
@@ -271,12 +271,12 @@ export const UndercoverGameScreen = memo(
                     {isCurrent && (
                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                         className="absolute -top-2 -right-1 px-1.5 py-0.5 rounded text-[10px] font-black text-white"
-                        style={{ background: accent, border: '1.5px solid #0a0810' }}>
+                        style={{ background: accent, border: '1px solid var(--ink-line)' }}>
                         💬
                       </motion.div>
                     )}
                     {isSelected && (
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 border-2 border-[#0a0810] flex items-center justify-center">
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 border-2 border-[var(--ink-line)] flex items-center justify-center">
                         <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                       </div>
                     )}
@@ -338,7 +338,7 @@ export const UndercoverGameScreen = memo(
                       {currentPlayer.isHost && (
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={startCluePhase}
                           className="px-5 py-2.5 rounded-2xl font-black text-white"
-                          style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: FONT, textShadow: SHADOW_SM }}>
+                          style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
                           Lancer les indices 🚀
                         </motion.button>
                       )}
@@ -360,11 +360,11 @@ export const UndercoverGameScreen = memo(
                       <Input value={clueInput} onChange={(e) => setClueInput(e.target.value)} placeholder="Ton indice…"
                         maxLength={30} autoFocus onKeyDown={(e) => e.key === 'Enter' && handleSubmitClue()}
                         className="flex-1 h-11 bg-black/50 text-center text-lg font-black text-white placeholder:text-white/30 rounded-2xl"
-                        style={{ fontFamily: FONT, border: '3px solid #0a0810', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)' }} />
+                        style={{ fontFamily: FONT, border: '1px solid var(--ink-line)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)' }} />
                       <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleSubmitClue}
                         disabled={!clueInput.trim()}
                         className="w-11 h-11 rounded-2xl flex items-center justify-center disabled:opacity-40"
-                        style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '3px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}>
+                        style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                         <Send className="w-5 h-5 text-white" />
                       </motion.button>
                     </div>
@@ -394,7 +394,7 @@ export const UndercoverGameScreen = memo(
                   {currentPlayer.isHost && (
                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={startVoting}
                       className="px-5 py-2.5 rounded-2xl font-black text-white"
-                      style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: FONT, textShadow: SHADOW_SM }}>
+                      style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
                       Passer au vote ⚡
                     </motion.button>
                   )}
@@ -418,7 +418,7 @@ export const UndercoverGameScreen = memo(
                       </motion.button>
                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleVote}
                         className="px-4 py-2 rounded-2xl font-black text-white"
-                        style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '3px solid #0a0810', boxShadow: '0 3px 0 #0a0810', fontFamily: FONT, textShadow: SHADOW_SM }}>
+                        style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
                         Éliminer 💀
                       </motion.button>
                     </div>
@@ -470,7 +470,7 @@ export const UndercoverGameScreen = memo(
                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                       onClick={() => { nextRound(); setHasVoted(false); setSelectedVote(null); }}
                       className="px-5 py-2.5 rounded-2xl font-black text-white"
-                      style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: FONT, textShadow: SHADOW_SM }}>
+                      style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
                       Continuer ➡️
                     </motion.button>
                   )}
@@ -507,7 +507,7 @@ export const UndercoverGameScreen = memo(
 
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={onEndGame}
                     className="px-5 py-2.5 rounded-2xl font-black text-white"
-                    style={{ background: 'linear-gradient(180deg, #fbbf24, #d97706)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: FONT, textShadow: SHADOW_SM }}>
+                    style={{ background: 'linear-gradient(180deg, #fbbf24, #d97706)', border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
                     Retour au lobby 🏠
                   </motion.button>
                 </motion.div>
@@ -521,7 +521,7 @@ export const UndercoverGameScreen = memo(
               <motion.button type="button" onClick={() => setShowWordModal(true)}
                 whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
                 className="px-6 py-3 rounded-2xl font-black text-lg text-white flex items-center gap-2"
-                style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '3px solid #0a0810', boxShadow: `0 5px 0 #0a0810, 0 0 16px ${accent}44`, fontFamily: FONT, textShadow: SHADOW_SM }}>
+                style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 16px ${accent}44`, fontFamily: FONT, textShadow: SHADOW_SM }}>
                 <Eye className="w-5 h-5" /> Voir mon mot
               </motion.button>
             </div>
@@ -549,7 +549,7 @@ export const UndercoverGameScreen = memo(
               <motion.div initial={{ scale: 0.7, rotate: -5 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0.7 }}
                 transition={{ type: 'spring', damping: 14 }} onClick={(e) => e.stopPropagation()}
                 className="w-full max-w-sm rounded-3xl p-8 text-center"
-                style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '4px solid #0a0810', boxShadow: `0 8px 0 #0a0810, 0 0 40px ${accent}33` }}>
+                style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 40px ${accent}33` }}>
                 <p className="text-xs uppercase tracking-widest text-white/40 font-black mb-4" style={{ fontFamily: FONT }}>🤫 Ton mot secret</p>
                 {myPlayer?.word ? (
                   <motion.p initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 10 }}
@@ -563,7 +563,7 @@ export const UndercoverGameScreen = memo(
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={() => { setShowWordModal(false); if (game.phase === 'word_reveal' && !hasSeenWord) confirmWordSeen(); }}
                   className="w-full px-5 py-3 rounded-2xl font-black text-lg text-white flex items-center justify-center gap-2"
-                  style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: FONT, textShadow: SHADOW_SM }}>
+                  style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
                   <EyeOff className="w-5 h-5" />
                   {game.phase === 'word_reveal' && !hasSeenWord ? "C'est noté !" : 'Cacher'}
                 </motion.button>
@@ -650,8 +650,8 @@ const EliminationOverlay = ({
         className="relative flex flex-col items-center gap-4 px-8 py-7 rounded-3xl"
         style={{
           background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
-          border: '4px solid #0a0810',
-          boxShadow: `0 8px 0 #0a0810, 0 0 50px ${tint}66`,
+          border: '1px solid var(--ink-line)',
+          boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 50px ${tint}66`,
         }}
       >
         {/* Skull stamp on top */}
@@ -662,8 +662,8 @@ const EliminationOverlay = ({
           className="absolute -top-4 -right-4 w-14 h-14 rounded-full flex items-center justify-center"
           style={{
             background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
-            border: '3px solid #0a0810',
-            boxShadow: '0 4px 0 #0a0810',
+            border: '1px solid var(--ink-line)',
+            boxShadow: 'none',
           }}
         >
           <Skull className="w-7 h-7 text-white" strokeWidth={2.5} />
@@ -676,8 +676,8 @@ const EliminationOverlay = ({
           className="w-32 h-32 rounded-full flex items-center justify-center grayscale"
           style={{
             background: `linear-gradient(135deg, ${tint}, ${tint}88)`,
-            border: '5px solid #0a0810',
-            boxShadow: `0 6px 0 #0a0810, 0 0 30px ${tint}66`,
+            border: '1px solid var(--ink-line)',
+            boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${tint}66`,
           }}
         >
           {avatar?.type === 'image' && avatar.imageUrl ? (
@@ -750,10 +750,10 @@ const RoundEndRecap = ({
       className="flex-1 px-3 py-3 rounded-2xl text-center"
       style={{
         background: `linear-gradient(180deg, ${color}33, ${color}11)`,
-        border: `3px solid ${isWinner ? color : '#0a0810'}`,
+        border: `3px solid ${isWinner ? color : 'var(--ink-line)'}`,
         boxShadow: isWinner
-          ? `0 4px 0 #0a0810, 0 0 24px ${color}66`
-          : '0 4px 0 #0a0810',
+          ? `0 0 0 rgba(0,0,0,0), 0 0 24px ${color}66`
+          : '0 0 0 rgba(0,0,0,0)',
       }}
     >
       <p className="text-[10px] uppercase tracking-widest font-black"
@@ -809,7 +809,7 @@ const RoundEndRecap = ({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
           className="rounded-2xl p-3 space-y-1.5"
-          style={{ background: 'rgba(0,0,0,0.5)', border: '2.5px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}
+          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
         >
           <p className="text-[10px] uppercase tracking-widest font-black text-white/60 text-center"
             style={{ fontFamily: FONT }}>
@@ -898,14 +898,14 @@ const TimerBar = ({ accent, total = 28 }: { accent: string; total?: number }) =>
 
   return (
     <div className="max-w-xl mx-auto flex items-center gap-3 px-4 py-2 rounded-full"
-      style={{ background: 'rgba(0,0,0,0.5)', border: '3px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}>
+      style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
       <Timer className="w-4 h-4 flex-shrink-0" style={{ color }} />
       <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.5)' }}>
         <motion.div className="h-full rounded-full" animate={{ width: `${pct}%` }} transition={{ duration: 1, ease: 'linear' }}
           style={{ background: urgent ? 'linear-gradient(90deg, #fbbf24, #ef4444)' : `linear-gradient(90deg, ${color}, ${color}88)` }} />
       </div>
       <span className={cn('text-lg font-black tabular-nums', urgent && 'text-red-400')}
-        style={{ fontFamily: "'Caveat', cursive", textShadow: SHADOW_SM }}>
+        style={{ fontFamily: "'Outfit', sans-serif", textShadow: SHADOW_SM }}>
         {seconds}s
       </span>
     </div>

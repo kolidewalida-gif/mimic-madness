@@ -326,7 +326,7 @@ function DieMesh({ fadeIn, fadeProgress }: DieMeshProps): React.ReactElement {
       <mesh>
         <boxGeometry args={[0.74, 0.74, 0.74]} />
         <meshBasicMaterial
-          color="#0a0810"
+          color="var(--ink-line)"
           wireframe
           transparent={transparent}
           opacity={opacity}
@@ -356,11 +356,11 @@ function FaceDecal({ value, position, rotation, opacity }: FaceDecalProps): Reac
       position={position}
       rotation={rotation}
       fontSize={0.42}
-      color="#0a0810"
+      color="var(--ink-line)"
       anchorX="center"
       anchorY="middle"
       outlineWidth={0.012}
-      outlineColor="#0a0810"
+      outlineColor="var(--ink-line)"
       fontWeight="bold"
       fillOpacity={opacity}
       strokeOpacity={opacity}
@@ -668,7 +668,7 @@ export function DiceSet(props: DiceSetProps): React.ReactElement | null {
             anchorX="center"
             anchorY="middle"
             outlineWidth={0.05}
-            outlineColor="#0a0810"
+            outlineColor="var(--ink-line)"
             fontWeight="bold"
           >
             DOUBLE !

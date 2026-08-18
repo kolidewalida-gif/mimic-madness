@@ -32,17 +32,18 @@ const INK_TRANSITIONS: InkTransitionStyle[] = [
 const ScreenTransitionComponent = ({ children, screenKey, className }: ScreenTransitionProps) => {
   const { isInkMode } = useInkMode();
 
-  // Ink mode: soft, clean cross-fade (no punchy overlay)
+  // Ink mode: a plain, fast cross-fade. No canvas splatter, no slide, no
+  // sound — screen changes should feel instant, like Gartic Phone.
   if (isInkMode) {
     return (
       <div className={cn('relative', className)}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={screenKey}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12, ease: 'linear' }}
           >
             {children}
           </motion.div>

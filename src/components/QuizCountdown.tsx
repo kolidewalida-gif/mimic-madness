@@ -71,7 +71,7 @@ export const QuizCountdown = ({
           <p
             className="text-6xl md:text-7xl font-black leading-none text-white"
             style={{
-              fontFamily: "'Caveat', cursive",
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW,
             }}
           >
@@ -88,14 +88,14 @@ export const QuizCountdown = ({
           className="relative inline-flex items-center gap-2 px-5 py-2 rounded-2xl"
           style={{
             background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-            border: '3.5px solid #0a0810',
-            boxShadow: '0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+            border: '1px solid var(--ink-line)',
+            boxShadow: 'none',
           }}
         >
           <span
             className="text-2xl md:text-3xl font-black text-white leading-none"
             style={{
-              fontFamily: "'Caveat', cursive",
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW,
             }}
           >
@@ -105,14 +105,14 @@ export const QuizCountdown = ({
             className="absolute -top-2 -left-2 w-4 h-4 text-amber-200"
             style={{
               transform: 'rotate(-20deg)',
-              filter: 'drop-shadow(1px 1px 0 #0a0810)',
+              filter: 'none',
             }}
           />
           <Sparkles
             className="absolute -bottom-1 -right-1 w-3.5 h-3.5 text-amber-200"
             style={{
               transform: 'rotate(20deg)',
-              filter: 'drop-shadow(1px 1px 0 #0a0810)',
+              filter: 'none',
             }}
           />
         </motion.div>
@@ -166,8 +166,8 @@ export const QuizCountdown = ({
               className="relative w-52 h-52 md:w-60 md:h-60 rounded-full flex items-center justify-center"
               style={{
                 background: `linear-gradient(135deg, ${numberColor}, ${numberColor}cc)`,
-                border: '6px solid #0a0810',
-                boxShadow: `0 8px 0 #0a0810, 0 14px 30px ${numberColor}88, inset 0 4px 0 rgba(255,255,255,0.25)`,
+                border: '1px solid var(--ink-line)',
+                boxShadow: `0 0 0 rgba(0,0,0,0), 0 14px 30px ${numberColor}88, inset 0 0 0 rgba(255,255,255,0.25)`,
               }}
             >
               <span
@@ -178,7 +178,7 @@ export const QuizCountdown = ({
                     : 'text-8xl md:text-9xl',
                 )}
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW,
                 }}
               >
@@ -215,7 +215,7 @@ export const QuizCountdown = ({
           transition={{ delay: 0.3 }}
           className="text-xl md:text-2xl text-white/65 font-bold leading-none"
           style={{
-            fontFamily: "'Caveat', cursive",
+            fontFamily: "'Outfit', sans-serif",
             textShadow: GRAFFITI_TEXT_SHADOW_SM,
           }}
         >

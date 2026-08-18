@@ -302,7 +302,7 @@ function HouseMesh({ lod, desaturated }: MeshLodProps): React.ReactElement {
       {/* Black wireframe outline for a "drawn" silhouette. */}
       <mesh>
         <boxGeometry args={[0.222, 0.222, 0.222]} />
-        <meshBasicMaterial color="#0a0810" wireframe />
+        <meshBasicMaterial color="var(--ink-line)" wireframe />
       </mesh>
     </group>
   );
@@ -358,16 +358,16 @@ function TerrainBadge({ color }: TerrainBadgeProps): React.ReactElement {
       {/* Thin black ink outline (slightly larger wireframe). */}
       <mesh>
         <boxGeometry args={[0.61, 0.052, 0.41]} />
-        <meshBasicMaterial color="#0a0810" wireframe />
+        <meshBasicMaterial color="var(--ink-line)" wireframe />
       </mesh>
       {/* Two small fence posts on the top (back) edge. */}
       <mesh position={[-0.18, 0.07, -0.18]}>
         <boxGeometry args={[0.04, 0.1, 0.04]} />
-        <meshStandardMaterial color="#0a0810" roughness={0.9} />
+        <meshStandardMaterial color="var(--ink-line)" roughness={0.9} />
       </mesh>
       <mesh position={[0.18, 0.07, -0.18]}>
         <boxGeometry args={[0.04, 0.1, 0.04]} />
-        <meshStandardMaterial color="#0a0810" roughness={0.9} />
+        <meshStandardMaterial color="var(--ink-line)" roughness={0.9} />
       </mesh>
     </group>
   );
@@ -388,7 +388,7 @@ function ChainedIcon(): React.ReactElement {
       anchorX="center"
       anchorY="middle"
       outlineWidth={0.015}
-      outlineColor="#0a0810"
+      outlineColor="var(--ink-line)"
       color="#ffffff"
     >
       ⛓

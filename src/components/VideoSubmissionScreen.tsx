@@ -39,9 +39,9 @@ interface VideoSubmissionScreenProps {
 
 const ACCENT = "#a855f7"; // purple — matches the IMITATION/2v2 menu
 const GRAFFITI_TEXT_SHADOW =
-  "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810";
+  "none";
 const GRAFFITI_TEXT_SHADOW_SM =
-  "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810";
+  "none";
 
 export const VideoSubmissionScreen = ({
   currentPlayer,
@@ -297,15 +297,15 @@ export const VideoSubmissionScreen = ({
               style={{
                 background:
                   "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))",
-                border: "2.5px solid #0a0810",
-                boxShadow: "0 3px 0 #0a0810",
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <ArrowLeft className="w-4 h-4" strokeWidth={2.5} />
               <span
                 className="text-base font-black uppercase tracking-wider leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -325,15 +325,15 @@ export const VideoSubmissionScreen = ({
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-2"
                 style={{
                   background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
-                  border: "3px solid #0a0810",
-                  boxShadow: "0 4px 0 #0a0810",
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <Clapperboard className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
                 <span
                   className="text-xs font-black uppercase tracking-wider text-white leading-none"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW_SM,
                   }}
                 >
@@ -343,7 +343,7 @@ export const VideoSubmissionScreen = ({
               <h1
                 className="font-black leading-none tracking-tight text-white"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW,
                   fontSize: "clamp(1.75rem, 3vw, 3rem)",
                 }}
@@ -357,7 +357,7 @@ export const VideoSubmissionScreen = ({
 
           <p
             className="text-center text-base text-white/70 max-w-xl mx-auto font-bold"
-            style={{ fontFamily: "'Caveat', cursive" }}
+            style={{ fontFamily: "'Outfit', sans-serif" }}
           >
             Importe tes vidéos puis choisis-en jusqu'à{" "}
             <span
@@ -386,21 +386,21 @@ export const VideoSubmissionScreen = ({
                       className="w-9 h-9 rounded-xl flex items-center justify-center"
                       style={{
                         background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
-                        border: "2.5px solid #0a0810",
-                        boxShadow: "0 3px 0 #0a0810",
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       <ListChecks className="w-4 h-4 text-white" strokeWidth={2.5} />
                     </motion.div>
                     <span
                       className="text-2xl font-black text-white leading-none"
-                      style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}
+                      style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW }}
                     >
                       Tes vidéos
                     </span>
                     <span
                       className="ml-auto px-2 py-0.5 rounded-full text-sm font-black"
-                      style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810", color: "white", fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                      style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none', color: "white", fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                     >
                       {selectedClips.length}/3
                     </span>
@@ -430,10 +430,10 @@ export const VideoSubmissionScreen = ({
                     ) : (
                       <Upload className="w-8 h-8 text-purple-300" strokeWidth={2} />
                     )}
-                    <span className="text-base font-black text-purple-200" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
+                    <span className="text-base font-black text-purple-200" style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
                       {isUploading ? "Upload en cours..." : isDragging ? "Lâche ici !" : "Glisse tes vidéos ici ou clique"}
                     </span>
-                    <span className="text-xs text-white/40" style={{ fontFamily: "'Caveat', cursive" }}>
+                    <span className="text-xs text-white/40" style={{ fontFamily: "'Outfit', sans-serif" }}>
                       MP4, WebM, MOV, MKV — plusieurs fichiers à la fois
                     </span>
                   </div>
@@ -460,7 +460,7 @@ export const VideoSubmissionScreen = ({
                             acc[i] = (
                               <span
                                 className="text-base font-black text-white leading-none"
-                                style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                                style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                               >
                                 {slot + 1}
                               </span>
@@ -472,7 +472,7 @@ export const VideoSubmissionScreen = ({
                       />
                       <p
                         className="text-center text-xs text-white/50"
-                        style={{ fontFamily: "'Caveat', cursive" }}
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
                       >
                         Glisse avec la souris pour parcourir · clique sur la vidéo centrale pour la (dé)sélectionner
                       </p>
@@ -487,7 +487,7 @@ export const VideoSubmissionScreen = ({
                         className="px-3 py-2.5 rounded-2xl flex items-center gap-1.5"
                         style={{ background: "rgba(239,68,68,0.1)", border: "2.5px solid rgba(239,68,68,0.4)" }}>
                         <Trash2 className="w-4 h-4 text-red-300" />
-                        <span className="text-sm font-black text-red-300" style={{ fontFamily: "'Caveat', cursive" }}>Vider</span>
+                        <span className="text-sm font-black text-red-300" style={{ fontFamily: "'Outfit', sans-serif" }}>Vider</span>
                       </motion.button>
                     )}
                     <motion.button
@@ -499,11 +499,11 @@ export const VideoSubmissionScreen = ({
                       className={cn("flex-1 py-3 rounded-2xl flex items-center justify-center gap-2", (selectedClips.length === 0 || isSubmitting) && "opacity-50 cursor-not-allowed")}
                       style={{
                         background: selectedClips.length > 0 ? "linear-gradient(180deg, #fbbf24, #d97706)" : "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))",
-                        border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810",
+                        border: '1px solid var(--ink-line)', boxShadow: 'none',
                       }}
                     >
                       <Send className="w-5 h-5 text-white" strokeWidth={2.5} />
-                      <span className="text-xl font-black text-white leading-none" style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}>
+                      <span className="text-xl font-black text-white leading-none" style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW }}>
                         {isSubmitting ? "Envoi…" : `Soumettre ${selectedClips.length} défi${selectedClips.length > 1 ? "s" : ""}`}
                       </span>
                     </motion.button>
@@ -531,8 +531,8 @@ export const VideoSubmissionScreen = ({
                       className="w-9 h-9 rounded-xl flex items-center justify-center"
                       style={{
                         background: "linear-gradient(135deg, #06b6d4, #0e7490)",
-                        border: "2.5px solid #0a0810",
-                        boxShadow: "0 3px 0 #0a0810",
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       <Users className="w-4 h-4 text-white" strokeWidth={2.5} />
@@ -540,7 +540,7 @@ export const VideoSubmissionScreen = ({
                     <span
                       className="text-2xl font-black text-white leading-none"
                       style={{
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW,
                       }}
                     >
@@ -551,10 +551,10 @@ export const VideoSubmissionScreen = ({
                         className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black"
                         style={{
                           background: "linear-gradient(180deg, #fbbf24, #d97706)",
-                          border: "2px solid #0a0810",
-                          boxShadow: "0 2px 0 #0a0810",
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
                           color: "white",
-                          fontFamily: "'Caveat', cursive",
+                          fontFamily: "'Outfit', sans-serif",
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                         }}
                       >
@@ -614,10 +614,10 @@ const CartoonCard = ({
     style={{
       background:
         "linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)",
-      border: "4px solid #0a0810",
+      border: '1px solid var(--ink-line)',
       boxShadow: highlighted
-        ? `0 8px 0 #0a0810, 0 14px 30px ${accent}55, inset 0 2px 0 rgba(255,255,255,0.08)`
-        : "0 6px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.06)",
+        ? `0 0 0 rgba(0,0,0,0), 0 14px 30px ${accent}55, inset 0 0 0 rgba(255,255,255,0.08)`
+        : "0 0 0 rgba(0,0,0,0), inset 0 0 0 rgba(255,255,255,0.06)",
     }}
   >
     <div
@@ -628,7 +628,7 @@ const CartoonCard = ({
       className="absolute -top-1 -right-1 w-4 h-4"
       style={{
         color: accent,
-        filter: "drop-shadow(1px 1px 0 #0a0810)",
+        filter: "none",
       }}
     />
     <div className="relative">{children}</div>

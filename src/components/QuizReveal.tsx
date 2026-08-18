@@ -96,14 +96,14 @@ export const QuizReveal = ({
               <HelpCircle className="w-4 h-4" style={{ color: '#a855f7' }} strokeWidth={2.5} />
               <span
                 className="text-sm uppercase tracking-wider font-black text-white/60"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 Question
               </span>
             </div>
             <p
               className="text-center text-xl md:text-2xl font-black text-white leading-tight"
-              style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+              style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
             >
               {question}
             </p>
@@ -123,15 +123,15 @@ export const QuizReveal = ({
                 className="w-8 h-8 rounded-xl flex items-center justify-center"
                 style={{
                   background: `linear-gradient(135deg, ${CORRECT}, ${CORRECT}cc)`,
-                  border: '2.5px solid #0a0810',
-                  boxShadow: '0 3px 0 #0a0810',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <Check className="w-5 h-5 text-white" strokeWidth={3} />
               </span>
               <span
                 className="text-base uppercase tracking-widest font-black"
-                style={{ fontFamily: "'Caveat', cursive", color: CORRECT, textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                style={{ fontFamily: "'Outfit', sans-serif", color: CORRECT, textShadow: GRAFFITI_TEXT_SHADOW_SM }}
               >
                 La bonne réponse
               </span>
@@ -154,7 +154,7 @@ export const QuizReveal = ({
               <Zap className="w-5 h-5" style={{ color: ACCENT }} fill={ACCENT} />
               <h3
                 className="text-2xl font-black text-white leading-none"
-                style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
               >
                 Réponses des joueurs
               </h3>
@@ -180,8 +180,8 @@ export const QuizReveal = ({
                       className="flex items-center justify-between rounded-2xl px-3.5 py-3"
                       style={{
                         background: `linear-gradient(180deg, ${color}26, ${color}10)`,
-                        border: '3px solid #0a0810',
-                        boxShadow: '0 4px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -192,8 +192,8 @@ export const QuizReveal = ({
                           className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                           style={{
                             background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-                            border: '2.5px solid #0a0810',
-                            boxShadow: '0 3px 0 #0a0810',
+                            border: '1px solid var(--ink-line)',
+                            boxShadow: 'none',
                           }}
                         >
                           {answer.is_correct ? (
@@ -205,13 +205,13 @@ export const QuizReveal = ({
                         <div className="min-w-0">
                           <p
                             className="font-black text-white text-lg leading-none truncate"
-                            style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                            style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                           >
                             {answer.player_name}
                           </p>
                           <p
                             className="text-sm font-bold truncate max-w-[160px]"
-                            style={{ color, fontFamily: "'Caveat', cursive" }}
+                            style={{ color, fontFamily: "'Outfit', sans-serif" }}
                           >
                             {answer.answer || '(pas de réponse)'}
                           </p>
@@ -221,7 +221,7 @@ export const QuizReveal = ({
                         <p
                           className="text-2xl font-black leading-none"
                           style={{
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: "'Outfit', sans-serif",
                             color: answer.is_correct ? CORRECT : 'rgba(255,255,255,0.45)',
                             textShadow: GRAFFITI_TEXT_SHADOW_SM,
                           }}
@@ -239,7 +239,7 @@ export const QuizReveal = ({
               ) : (
                 <p
                   className="text-center text-white/55 py-6 text-lg font-bold"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   Aucune réponse reçue
                 </p>

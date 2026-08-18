@@ -80,8 +80,8 @@ export const NotificationCenter = () => {
         className="menu-focus relative h-12 w-12 rounded-xl flex items-center justify-center text-white"
         style={{
           background: 'linear-gradient(180deg, rgba(168,85,247,0.3), rgba(126,34,206,0.3))',
-          border: '2.5px solid #0a0810',
-          boxShadow: '0 4px 0 #0a0810',
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} non lues` : ''}`}
         aria-expanded={open}
@@ -90,7 +90,7 @@ export const NotificationCenter = () => {
         {unreadCount > 0 && (
           <span
             className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center text-white"
-            style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '2px solid #0a0810' }}
+            style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '1px solid var(--ink-line)' }}
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
@@ -109,8 +109,8 @@ export const NotificationCenter = () => {
             className="absolute right-0 top-14 z-[120] w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl"
             style={{
               background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 60%, #0f0820 100%)',
-              border: '3px solid #0a0810',
-              boxShadow: '0 10px 0 #0a0810, 0 18px 40px rgba(0,0,0,0.5)',
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">

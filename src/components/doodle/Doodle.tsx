@@ -135,7 +135,7 @@ export const StampBadge = ({
     <DoodleBorder color={color} filled rotation={2} />
     <span
       className="relative text-[10px] font-black uppercase tracking-[0.15em]"
-      style={{ color, fontFamily: "'Caveat', cursive" }}
+      style={{ color, fontFamily: "'Outfit', sans-serif" }}
     >
       {children}
     </span>
@@ -185,7 +185,7 @@ export const DoodleButton = ({
       <span
         className="relative font-black flex items-center gap-2"
         style={{
-          fontFamily: "'Caveat', cursive",
+          fontFamily: "'Outfit', sans-serif",
           color,
         }}
       >
@@ -208,10 +208,10 @@ export const DoodleStage = ({
   children: ReactNode;
   className?: string;
 }) => (
-  <div className={cn('min-h-screen bg-[#0a0810] text-white relative overflow-x-hidden', className)}>
+  <div className={cn('min-h-screen bg-[var(--ink-line)] text-white relative overflow-x-hidden', className)}>
     {/* Phase-tinted background — subtle, single soft halo */}
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0c0813] via-[#0a0810] to-[#0c0814]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0c0813] via-[var(--ink-line)] to-[#0c0814]" />
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.35 }}

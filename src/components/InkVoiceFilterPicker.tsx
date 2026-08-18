@@ -5,9 +5,9 @@ import { VOICE_FILTERS, VoiceFilterId } from '@/lib/voiceFilters';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
-const SHADOW = "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810";
-const SHADOW_SM = "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810";
-const FONT = "'Caveat', cursive";
+const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
+const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
+const FONT = "'Outfit', sans-serif";
 
 interface InkVoiceFilterPickerProps {
   value: VoiceFilterId;
@@ -54,8 +54,8 @@ const InkVoiceFilterPickerComponent = ({
                 background: active
                   ? `linear-gradient(180deg, ${filter.color}, ${filter.color}cc)`
                   : 'rgba(255,255,255,0.04)',
-                border: '3px solid #0a0810',
-                boxShadow: active ? `0 4px 0 #0a0810, 0 0 16px ${filter.color}88` : '0 3px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: active ? `0 0 0 rgba(0,0,0,0), 0 0 16px ${filter.color}88` : '0 0 0 rgba(0,0,0,0)',
               }}
               title={filter.description}
             >
@@ -71,7 +71,7 @@ const InkVoiceFilterPickerComponent = ({
                   className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
                   style={{
                     background: 'linear-gradient(180deg, #34d399, #059669)',
-                    border: '2px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                   }}
                 >
                   <Check className="w-3 h-3 text-white" strokeWidth={3} />

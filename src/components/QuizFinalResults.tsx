@@ -127,7 +127,7 @@ export const QuizFinalResults = ({
             >
               <Crown
                 className="relative h-16 w-16 md:h-20 md:w-20 mx-auto"
-                style={{ color: ACCENT, filter: 'drop-shadow(2px 3px 0 #0a0810)' }}
+                style={{ color: ACCENT, filter: 'none' }}
                 fill={ACCENT}
               />
             </motion.div>
@@ -135,7 +135,7 @@ export const QuizFinalResults = ({
 
           <h1
             className="text-4xl md:text-6xl font-black uppercase leading-none text-white"
-            style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}
+            style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW }}
           >
             {isWinner ? 'Victoire !' : `${winner?.player_name} gagne !`}
           </h1>
@@ -143,7 +143,7 @@ export const QuizFinalResults = ({
             <Flame className="h-5 w-5 text-orange-400 animate-bounce" />
             <span
               className="font-black"
-              style={{ fontFamily: "'Caveat', cursive", color: ACCENT, textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+              style={{ fontFamily: "'Outfit', sans-serif", color: ACCENT, textShadow: GRAFFITI_TEXT_SHADOW_SM }}
             >
               {winner?.total_points} points
             </span>
@@ -177,7 +177,7 @@ export const QuizFinalResults = ({
                   className={cn('p-4 rounded-t-2xl text-center', width)}
                   style={{
                     background: `linear-gradient(180deg, ${cfg.color}3a, ${cfg.color}18)`,
-                    border: '3px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                     borderBottom: 'none',
                     boxShadow: isMe ? `0 0 0 3px ${cfg.color}` : undefined,
                   }}
@@ -185,13 +185,13 @@ export const QuizFinalResults = ({
                   <div className="text-3xl mb-1">{cfg.medal}</div>
                   <p
                     className="font-black text-white text-sm truncate leading-none"
-                    style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                    style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                   >
                     {score.player_name}
                   </p>
                   <p
                     className="font-black text-xl leading-none mt-1"
-                    style={{ fontFamily: "'Caveat', cursive", color: cfg.color, textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                    style={{ fontFamily: "'Outfit', sans-serif", color: cfg.color, textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                   >
                     {score.total_points}
                   </p>
@@ -201,13 +201,13 @@ export const QuizFinalResults = ({
                   className={cn('flex items-center justify-center rounded-b-lg', width, podiumHeights[rank])}
                   style={{
                     background: `linear-gradient(180deg, ${cfg.color}55, ${cfg.color}33)`,
-                    border: '3px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                     borderTop: 'none',
                   }}
                 >
                   <span
                     className="text-4xl font-black"
-                    style={{ fontFamily: "'Caveat', cursive", color: cfg.color, textShadow: GRAFFITI_TEXT_SHADOW }}
+                    style={{ fontFamily: "'Outfit', sans-serif", color: cfg.color, textShadow: GRAFFITI_TEXT_SHADOW }}
                   >
                     {rank + 1}
                   </span>
@@ -225,12 +225,12 @@ export const QuizFinalResults = ({
           className="max-w-xl w-full rounded-3xl p-5"
           style={{
             background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 60%, #0f0820 100%)',
-            border: '4px solid #0a0810',
-            boxShadow: '0 6px 0 #0a0810',
+            border: '1px solid var(--ink-line)',
+            boxShadow: 'none',
           }}
         >
           <h3 className="text-2xl font-black mb-4 text-center flex items-center justify-center gap-2 text-white"
-            style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+            style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
           >
             <Award className="h-5 w-5" style={{ color: ACCENT }} />
             Classement complet
@@ -249,7 +249,7 @@ export const QuizFinalResults = ({
                     background: isTop
                       ? `linear-gradient(180deg, ${color}26, ${color}0d)`
                       : 'rgba(255,255,255,0.04)',
-                    border: '2.5px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                     boxShadow: isMe ? `0 0 0 2.5px ${color}88` : undefined,
                   }}
                 >
@@ -258,7 +258,7 @@ export const QuizFinalResults = ({
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
                       style={{
                         background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-                        border: '2px solid #0a0810',
+                        border: '1px solid var(--ink-line)',
                       }}
                     >
                       {isTop ? (
@@ -266,7 +266,7 @@ export const QuizFinalResults = ({
                       ) : (
                         <span
                           className="font-black text-white text-sm"
-                          style={{ fontFamily: "'Caveat', cursive" }}
+                          style={{ fontFamily: "'Outfit', sans-serif" }}
                         >
                           {index + 1}
                         </span>
@@ -274,7 +274,7 @@ export const QuizFinalResults = ({
                     </span>
                     <span
                       className="font-black text-white truncate"
-                      style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                      style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                     >
                       {score.player_name}
                       {isMe && <span className="ml-2 text-xs" style={{ color }}>(vous)</span>}
@@ -283,7 +283,7 @@ export const QuizFinalResults = ({
                   <div className="text-right flex-shrink-0">
                     <span
                       className="font-black text-lg text-white"
-                      style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                      style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                     >
                       {score.total_points} pts
                     </span>

@@ -13,7 +13,6 @@ import { RewardNotification } from "@/components/RewardNotification";
 import { AdminPanel } from "@/components/AdminPanel";
 import { AdminGateOverlays } from "@/components/AdminGateOverlays";
 import { GameCursor } from "@/components/GameCursor";
-import { InkCursorParticles } from "@/components/InkCursorParticles";
 import { JuiceFxHost } from "@/components/JuiceFxHost";
 import { PerfHud } from "@/components/PerfHud";
 import { GamepadNavigation } from "@/hooks/useGamepadNavigation";
@@ -48,7 +47,6 @@ const App = () => (
                 <XpGainPopup />
                 <RewardNotification />
                 <GameCursor />
-                <InkCursorParticles />
                 <JuiceFxHost />
                 <AdminPanel />
                 <AdminGateOverlays />

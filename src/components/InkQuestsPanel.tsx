@@ -11,9 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 
-const SHADOW = "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810";
-const SHADOW_SM = "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810";
-const FONT = "'Caveat', cursive";
+const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
+const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
+const FONT = "'Outfit', sans-serif";
 
 const ICON_MAP: Record<string, any> = {
   eye: Eye, 'thumbs-up': ThumbsUp, 'message-circle': MessageCircle,
@@ -39,8 +39,8 @@ const QuestRow = memo(({ quest, onClaim, claiming }: {
         background: quest.isClaimed
           ? 'linear-gradient(180deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))'
           : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-        border: '3px solid #0a0810',
-        boxShadow: '0 3px 0 #0a0810',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
       }}
     >
       {/* Icon badge */}
@@ -48,8 +48,8 @@ const QuestRow = memo(({ quest, onClaim, claiming }: {
         className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
         style={{
           background: `linear-gradient(135deg, ${quest.color}, ${quest.color}cc)`,
-          border: '3px solid #0a0810',
-          boxShadow: '0 3px 0 #0a0810',
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}
       >
         <Icon className="w-6 h-6 text-white" strokeWidth={2.5} />
@@ -77,7 +77,7 @@ const QuestRow = memo(({ quest, onClaim, claiming }: {
         {/* Progress bar */}
         <div
           className="mt-1.5 h-2 rounded-full overflow-hidden"
-          style={{ background: 'rgba(0,0,0,0.4)', border: '1.5px solid #0a0810' }}
+          style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid var(--ink-line)' }}
         >
           <motion.div
             className="h-full rounded-full"
@@ -96,8 +96,8 @@ const QuestRow = memo(({ quest, onClaim, claiming }: {
             className="w-12 h-12 rounded-2xl flex items-center justify-center"
             style={{
               background: 'linear-gradient(180deg, #34d399, #059669)',
-              border: '2.5px solid #0a0810',
-              boxShadow: '0 3px 0 #0a0810',
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
           >
             <Check className="w-5 h-5 text-white" strokeWidth={3} />
@@ -114,8 +114,8 @@ const QuestRow = memo(({ quest, onClaim, claiming }: {
             className="menu-focus px-3 py-2 rounded-2xl flex items-center gap-1.5 disabled:opacity-50"
             style={{
               background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-              border: '3px solid #0a0810',
-              boxShadow: '0 3px 0 #0a0810',
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
           >
             {claiming ? (
@@ -192,8 +192,8 @@ const InkQuestsPanelComponent = () => {
       className="relative rounded-3xl overflow-hidden"
       style={{
         background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
-        border: '4px solid #0a0810',
-        boxShadow: '0 8px 0 #0a0810',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
       }}
     >
       {/* Header with streak badge */}
@@ -201,7 +201,7 @@ const InkQuestsPanelComponent = () => {
         className="relative px-4 py-3 flex items-center justify-between"
         style={{
           background: 'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))',
-          borderBottom: '3px solid #0a0810',
+          borderBottom: '1px solid var(--ink-line)',
         }}
       >
         <div className="flex items-center gap-2.5">
@@ -211,8 +211,8 @@ const InkQuestsPanelComponent = () => {
             className="w-10 h-10 rounded-xl flex items-center justify-center"
             style={{
               background: 'linear-gradient(135deg, #a855f7, #7e22ce)',
-              border: '2.5px solid #0a0810',
-              boxShadow: '0 3px 0 #0a0810',
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
           >
             <Calendar className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -239,8 +239,8 @@ const InkQuestsPanelComponent = () => {
             background: streakDays > 0
               ? 'linear-gradient(180deg, #ef4444, #b91c1c)'
               : 'rgba(255,255,255,0.05)',
-            border: '2.5px solid #0a0810',
-            boxShadow: '0 3px 0 #0a0810',
+            border: '1px solid var(--ink-line)',
+            boxShadow: 'none',
           }}
         >
           <Flame className="w-4 h-4 text-white" />
@@ -277,8 +277,8 @@ const InkQuestsPanelComponent = () => {
               background: tab === t
                 ? 'linear-gradient(180deg, #fbbf24, #d97706)'
                 : 'rgba(255,255,255,0.04)',
-              border: '2.5px solid #0a0810',
-              boxShadow: tab === t ? '0 3px 0 #0a0810' : 'none',
+              border: '1px solid var(--ink-line)',
+              boxShadow: tab === t ? '0 0 0 rgba(0,0,0,0)' : 'none',
               fontFamily: FONT,
               textShadow: tab === t ? SHADOW_SM : 'none',
             }}

@@ -372,7 +372,7 @@ export function CenterPlaza(props: CenterPlazaProps = {}): React.ReactElement {
           anchorX="center"
           anchorY="middle"
           outlineWidth={0.05}
-          outlineColor="#0a0810"
+          outlineColor="var(--ink-line)"
           fontWeight="bold"
           rotation={[-Math.PI / 2, 0, 0]}
         >
@@ -388,7 +388,7 @@ export function CenterPlaza(props: CenterPlazaProps = {}): React.ReactElement {
         anchorX="center"
         anchorY="middle"
         outlineWidth={0.018}
-        outlineColor="#0a0810"
+        outlineColor="var(--ink-line)"
         fontWeight="bold"
       >
         Mimic Master Edition

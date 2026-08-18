@@ -210,7 +210,7 @@ export function Tile(props: TileProps): React.ReactElement {
           the silhouette under each cell matches exactly. */}
       <mesh position={[0, -0.05, 0]}>
         <boxGeometry args={[tileWidth + 0.1, 0.1, tileDepth + 0.1]} />
-        <meshStandardMaterial color="#0a0810" roughness={1} />
+        <meshStandardMaterial color="var(--ink-line)" roughness={1} />
       </mesh>
 
       <group ref={groupRef}>
@@ -286,13 +286,13 @@ export function Tile(props: TileProps): React.ReactElement {
         <Text
           position={[0, 0.13, 0.35]}
           fontSize={0.13}
-          color="#0a0810"
+          color="var(--ink-line)"
           anchorX="center"
           anchorY="middle"
           maxWidth={tileWidth - 0.2}
           textAlign="center"
           outlineWidth={0.005}
-          outlineColor="#0a0810"
+          outlineColor="var(--ink-line)"
           fontWeight="bold"
         >
           {space.nameFr.length > 14
@@ -309,7 +309,7 @@ export function Tile(props: TileProps): React.ReactElement {
             anchorX="center"
             anchorY="middle"
             outlineWidth={0.004}
-            outlineColor="#0a0810"
+            outlineColor="var(--ink-line)"
             fontWeight="bold"
           >
             {`${space.price}$`}

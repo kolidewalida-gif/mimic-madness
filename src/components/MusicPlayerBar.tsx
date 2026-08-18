@@ -134,7 +134,7 @@ const VolumeRow = ({ label, icon, value, onChange, accent }: {
 }) => (
   <div className="space-y-1.5">
     <div className="flex items-center justify-between">
-      <span className="flex items-center gap-2 text-base font-black text-white" style={{ fontFamily: "'Caveat', cursive" }}>
+      <span className="flex items-center gap-2 text-base font-black text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
         <span style={{ color: accent }} aria-hidden="true">{icon}</span>
         {label}
       </span>
@@ -396,7 +396,7 @@ const MusicPlayerBarComponent = () => {
                         background: muted ? "linear-gradient(180deg,#ef4444,#b91c1c)" : "rgba(255,255,255,0.05)",
                         border: "var(--ink-border-thin)",
                         boxShadow: "0 3px 0 var(--ink-outline)",
-                        fontFamily: "'Caveat', cursive",
+                        fontFamily: "'Outfit', sans-serif",
                       }}
                     >
                       {muted ? <VolumeX className="h-5 w-5" aria-hidden="true" /> : <Volume2 className="h-5 w-5" aria-hidden="true" />}
@@ -418,7 +418,7 @@ const MusicPlayerBarComponent = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="ink-title text-2xl">Mode adaptatif</h3>
-                        <p className="text-sm font-bold text-white/60" style={{ fontFamily: "'Caveat', cursive" }}>
+                        <p className="text-sm font-bold text-white/60" style={{ fontFamily: "'Outfit', sans-serif" }}>
                           La musique suit automatiquement la phase de jeu
                         </p>
                       </div>
@@ -489,7 +489,7 @@ const MusicPlayerBarComponent = () => {
                               background: selected ? "linear-gradient(180deg,#fbbf24,#d97706)" : "rgba(255,255,255,0.05)",
                               border: "var(--ink-border-thin)",
                               boxShadow: selected ? "0 3px 0 var(--ink-outline)" : "none",
-                              fontFamily: "'Caveat', cursive",
+                              fontFamily: "'Outfit', sans-serif",
                             }}
                           >
                             {mood === "all" ? "Tout" : MOOD_LABEL[mood as MusicMood]}
@@ -523,7 +523,7 @@ const MusicPlayerBarComponent = () => {
                                 <Cover track={track} size={42} />
                                 <span className="min-w-0 flex-1">
                                   <span className={cn("block truncate text-base font-black", active ? "text-purple-300" : "text-white")}
-                                    style={{ fontFamily: "'Caveat', cursive" }}>
+                                    style={{ fontFamily: "'Outfit', sans-serif" }}>
                                     {titleOf(track.name)}
                                   </span>
                                   <span className="block truncate font-mono text-[10px] uppercase tracking-wider text-white/40">
@@ -606,7 +606,7 @@ const MusicPlayerBarComponent = () => {
               <span className="min-w-0 flex-1">
                 <span
                   className="block truncate text-xl font-black leading-tight text-white transition-colors group-hover:text-purple-200"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   {trackLabel}
                 </span>

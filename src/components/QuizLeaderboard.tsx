@@ -47,8 +47,8 @@ const ACCENT = '#fbbf24';
 /* Ink-styled bordered block */
 const inkBlock = (accent: string, strong = false) => ({
   background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 60%, #0f0820 100%)',
-  border: '3px solid #0a0810',
-  boxShadow: strong ? `0 5px 0 #0a0810, inset 0 1px 0 ${accent}33` : '0 4px 0 #0a0810',
+  border: '1px solid var(--ink-line)',
+  boxShadow: strong ? `0 0 0 rgba(0,0,0,0), inset 0 0 0 ${accent}33` : '0 0 0 rgba(0,0,0,0)',
 });
 
 const RANK_COLORS = ['#fbbf24', '#cbd5e1', '#d97706'];
@@ -123,14 +123,14 @@ export const QuizLeaderboard = ({
             <Crown className="relative w-3.5 h-3.5" style={{ color: ACCENT }} fill="currentColor" />
             <span
               className="relative text-xs uppercase tracking-[0.25em] font-bold"
-              style={{ color: ACCENT, fontFamily: "'Caveat', cursive" }}
+              style={{ color: ACCENT, fontFamily: "'Outfit', sans-serif" }}
             >
               Classement
             </span>
           </div>
           <h1
             className="text-3xl md:text-5xl font-black leading-none text-white"
-            style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW }}
+            style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW }}
           >
             Classement
           </h1>
@@ -167,10 +167,10 @@ export const QuizLeaderboard = ({
                     background: isTop
                       ? `linear-gradient(180deg, ${rankColor}2e, ${rankColor}10)`
                       : 'linear-gradient(180deg, #1a0d2e, #0f0820)',
-                    border: '3px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                     boxShadow: isCurrentPlayer
-                      ? `0 4px 0 #0a0810, 0 0 0 3px ${rankColor}88`
-                      : '0 4px 0 #0a0810',
+                      ? `0 0 0 rgba(0,0,0,0), 0 0 0 3px ${rankColor}88`
+                      : '0 0 0 rgba(0,0,0,0)',
                   }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -178,8 +178,8 @@ export const QuizLeaderboard = ({
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
                       style={{
                         background: `linear-gradient(135deg, ${rankColor}, ${rankColor}cc)`,
-                        border: '2.5px solid #0a0810',
-                        boxShadow: '0 3px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       {isTop ? (
@@ -187,7 +187,7 @@ export const QuizLeaderboard = ({
                       ) : (
                         <span
                           className="font-black text-white text-base"
-                          style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                          style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                         >
                           {index + 1}
                         </span>
@@ -196,7 +196,7 @@ export const QuizLeaderboard = ({
                     <div className="min-w-0">
                       <p
                         className="text-lg font-black text-white leading-none truncate"
-                        style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                        style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                       >
                         {score.player_name}
                         {isCurrentPlayer && (
@@ -215,7 +215,7 @@ export const QuizLeaderboard = ({
                   <div className="text-right flex-shrink-0">
                     <p
                       className="text-2xl font-black text-white leading-none"
-                      style={{ fontFamily: "'Caveat', cursive", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
+                      style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}
                     >
                       {displayedScore}
                     </p>
@@ -245,7 +245,7 @@ export const QuizLeaderboard = ({
               <Zap className="h-4 w-4" style={{ color: ACCENT }} />
               <span
                 className="text-xs font-black uppercase tracking-wider text-white/60"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 Insight du round
               </span>
@@ -253,12 +253,12 @@ export const QuizLeaderboard = ({
             <div className="space-y-3">
               <div
                 className="rounded-xl px-3 py-3"
-                style={{ background: '#a855f71a', border: '2px solid #0a0810' }}
+                style={{ background: '#a855f71a', border: '1px solid var(--ink-line)' }}
               >
                 <div className="text-xs uppercase tracking-wider text-white/50">MVP vitesse</div>
                 <div
                   className="mt-1 font-black text-white"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   {roundInsight.fastestCorrectAnswer
                     ? `${roundInsight.fastestCorrectAnswer.player_name} en ${(roundInsight.fastestCorrectAnswer.response_time_ms / 1000).toFixed(1)}s`
@@ -274,14 +274,14 @@ export const QuizLeaderboard = ({
                   <div
                     key={stat.label}
                     className="rounded-xl px-2 py-2"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '2px solid #0a0810' }}
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--ink-line)' }}
                   >
                     <div className="text-[11px] uppercase tracking-wider text-white/50">
                       {stat.label}
                     </div>
                     <div
                       className="mt-1 font-black text-white"
-                      style={{ fontFamily: "'Caveat', cursive" }}
+                      style={{ fontFamily: "'Outfit', sans-serif" }}
                     >
                       {stat.value}
                     </div>
@@ -302,7 +302,7 @@ export const QuizLeaderboard = ({
               <Timer className="h-4 w-4" style={{ color: ACCENT }} />
               <span
                 className="text-xs font-black uppercase tracking-wider text-white/60"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 Système de points
               </span>
@@ -319,9 +319,9 @@ export const QuizLeaderboard = ({
                   className="rounded-xl px-2 py-1.5 text-xs font-black"
                   style={{
                     background: `${tier.color}22`,
-                    border: '2px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                     color: tier.color,
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                   }}
                 >
                   <div className="text-sm">{tier.time}</div>

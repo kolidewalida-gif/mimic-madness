@@ -243,7 +243,7 @@ function Scene(props: MonopolyBoard3DProps) {
         smoothness={4}
         position={[0, -0.5, 0]}
       >
-        <meshBasicMaterial color="#0a0810" />
+        <meshBasicMaterial color="var(--ink-line)" />
       </RoundedBox>
 
       {/* ===== Zones ===== */}
@@ -285,7 +285,7 @@ function Scene(props: MonopolyBoard3DProps) {
         anchorX="center"
         anchorY="middle"
         outlineWidth={0.014}
-        outlineColor="#0a0810"
+        outlineColor="var(--ink-line)"
         fontWeight="bold"
         rotation={[-Math.PI / 2, 0, 0]}
       >
@@ -350,9 +350,9 @@ export function MonopolyBoard3DCanvas(props: MonopolyBoard3DProps) {
       style={{
         background:
           'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0a0510 100%)',
-        border: '4px solid #0a0810',
+        border: '1px solid var(--ink-line)',
         boxShadow:
-          '0 8px 0 #0a0810, 0 14px 32px rgba(168,85,247,0.35), inset 0 2px 0 rgba(255,255,255,0.05)',
+          'none',
       }}
     >
       {/* Corner badge */}
@@ -360,17 +360,17 @@ export function MonopolyBoard3DCanvas(props: MonopolyBoard3DProps) {
         className="absolute top-3 right-3 z-10 pointer-events-none px-2.5 py-1 rounded-lg"
         style={{
           background: 'linear-gradient(180deg, #a855f7, #7e22ce)',
-          border: '2.5px solid #0a0810',
-          boxShadow: '0 3px 0 #0a0810',
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
           transform: 'rotate(4deg)',
         }}
       >
         <span
           className="text-xs font-black text-white uppercase tracking-wider"
           style={{
-            fontFamily: "'Caveat', cursive",
+            fontFamily: "'Outfit', sans-serif",
             textShadow:
-              '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810',
+              'none',
           }}
         >
           🎲 3D BOARD

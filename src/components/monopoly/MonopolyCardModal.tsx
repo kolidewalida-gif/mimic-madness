@@ -136,9 +136,9 @@ export function MonopolyCardModal({ card, onClose, isMyTurn }: Props) {
               style={{
                 background:
                   'linear-gradient(135deg, #1a0d2e 0%, #4c1d95 50%, #1a0d2e 100%)',
-                border: '4px solid #0a0810',
+                border: '1px solid var(--ink-line)',
                 boxShadow:
-                  '0 12px 0 #0a0810, 0 18px 50px rgba(168,85,247,0.6)',
+                  'none',
                 backfaceVisibility: 'hidden',
                 minHeight: '400px',
               }}
@@ -158,7 +158,7 @@ export function MonopolyCardModal({ card, onClose, isMyTurn }: Props) {
                 <p
                   className="text-3xl font-black uppercase tracking-widest"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     color: '#fbbf24',
                     textShadow: GRAFFITI_TEXT_SHADOW,
                   }}
@@ -181,8 +181,8 @@ export function MonopolyCardModal({ card, onClose, isMyTurn }: Props) {
               style={{
                 background:
                   'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-                border: '4px solid #0a0810',
-                boxShadow: `0 12px 0 #0a0810, 0 18px 50px ${accent}99`,
+                border: '1px solid var(--ink-line)',
+                boxShadow: `0 0 0 rgba(0,0,0,0), 0 18px 50px ${accent}99`,
                 transform: 'rotate(-2deg)',
               }}
             >
@@ -209,8 +209,8 @@ export function MonopolyCardModal({ card, onClose, isMyTurn }: Props) {
                   className="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center"
                   style={{
                     background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-                    border: '4px solid #0a0810',
-                    boxShadow: `0 8px 0 #0a0810, 0 12px 24px ${accent}88`,
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: `0 0 0 rgba(0,0,0,0), 0 12px 24px ${accent}88`,
                   }}
                 >
                   <motion.span
@@ -233,7 +233,7 @@ export function MonopolyCardModal({ card, onClose, isMyTurn }: Props) {
                   transition={{ delay: 0.15 }}
                   className="text-3xl font-black uppercase tracking-wider leading-none"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     color: accent,
                     textShadow: GRAFFITI_TEXT_SHADOW,
                   }}
@@ -249,13 +249,13 @@ export function MonopolyCardModal({ card, onClose, isMyTurn }: Props) {
                   className="px-3 py-3 rounded-2xl"
                   style={{
                     background: 'rgba(0,0,0,0.4)',
-                    border: '2.5px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                   }}
                 >
                   <p
                     className="text-lg md:text-xl font-black text-white leading-snug"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
@@ -284,7 +284,7 @@ export function MonopolyCardModal({ card, onClose, isMyTurn }: Props) {
                 {!isMyTurn && (
                   <p
                     className="text-sm text-white/60 font-bold"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     En attente du joueur...
                   </p>

@@ -15,9 +15,9 @@ interface ChallengePreviewPhaseProps {
   players: Player[]; currentChallenge: Challenge; onAllReady: () => void;
 }
 
-const SHADOW = "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810";
-const SHADOW_SM = "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810";
-const FONT = "'Caveat', cursive";
+const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
+const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
+const FONT = "'Outfit', sans-serif";
 const ACCENT = "#06b6d4";
 
 export const ChallengePreviewPhase = ({
@@ -128,7 +128,7 @@ export const ChallengePreviewPhase = ({
             <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: -2 }}
               transition={{ type: "spring", stiffness: 280, damping: 16 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
-              style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+              style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
               <Eye className="w-4 h-4 text-white" strokeWidth={2.5} />
               <span className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
                 👁️ Observation · Manche {roundNumber}
@@ -146,22 +146,22 @@ export const ChallengePreviewPhase = ({
           <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: 0.1, type: "spring", damping: 22 }}
             className="relative rounded-3xl overflow-hidden"
-            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: `0 8px 0 #0a0810, 0 0 30px ${ACCENT}33` }}>
+            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}33` }}>
             <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}44` }} />
-            <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "drop-shadow(1px 1px 0 #0a0810)" }} />
-            <Sparkles className="absolute top-3 right-4 w-4 h-4 text-pink-400 z-10" style={{ filter: "drop-shadow(1px 1px 0 #0a0810)" }} />
+            <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "none" }} />
+            <Sparkles className="absolute top-3 right-4 w-4 h-4 text-pink-400 z-10" style={{ filter: "none" }} />
 
             <div className="relative p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <motion.div animate={{ rotate: [-5, 5, -5] }} transition={{ duration: 2, repeat: Infinity }}
                   className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`, border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                  style={{ background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   <Play className="w-4 h-4 text-white" strokeWidth={2.5} />
                 </motion.div>
                 <h3 className="text-2xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Vidéo à imiter</h3>
               </div>
 
-              <div className="rounded-2xl overflow-hidden" style={{ border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+              <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                 <VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" />
               </div>
 
@@ -172,7 +172,7 @@ export const ChallengePreviewPhase = ({
                 className={cn("relative w-full py-4 rounded-2xl flex items-center justify-center gap-3", isReady && "cursor-not-allowed")}
                 style={{
                   background: isReady ? "linear-gradient(180deg, #34d399, #059669)" : "linear-gradient(180deg, #fbbf24, #d97706)",
-                  border: "4px solid #0a0810", boxShadow: "0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)",
+                  border: '1px solid var(--ink-line)', boxShadow: 'none',
                 }}>
                 {isReady ? <Check className="w-6 h-6 text-white" strokeWidth={3} /> : <Sparkles className="w-5 h-5 text-white" strokeWidth={2.5} />}
                 <span className="text-2xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
@@ -194,7 +194,7 @@ export const ChallengePreviewPhase = ({
           {/* Players grid */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="relative rounded-3xl overflow-hidden p-4"
-            style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+            style={{ background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
             <div className="flex items-center gap-2 mb-3">
               <Users className="w-4 h-4 text-white/70" />
               <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Statut des joueurs</span>
@@ -210,19 +210,19 @@ export const ChallengePreviewPhase = ({
                     className="relative rounded-2xl p-3 flex flex-col items-center gap-2"
                     style={{
                       background: ready ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.03)",
-                      border: "3px solid #0a0810",
-                      boxShadow: ready ? "0 3px 0 #0a0810, 0 0 12px rgba(52,211,153,0.3)" : "0 3px 0 #0a0810",
+                      border: '1px solid var(--ink-line)',
+                      boxShadow: ready ? "0 0 0 rgba(0,0,0,0), 0 0 12px rgba(52,211,153,0.3)" : "0 0 0 rgba(0,0,0,0)",
                     }}>
                     <div className="relative w-12 h-12 rounded-full flex items-center justify-center"
-                      style={{ background: isMe ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "linear-gradient(135deg, #a855f7, #6b21a8)", border: "3px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                      style={{ background: isMe ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "linear-gradient(135deg, #a855f7, #6b21a8)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                       {av.type === "image" && av.imageUrl
                         ? <img src={av.imageUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover" />
                         : <span className="text-xl font-black text-white" style={{ fontFamily: FONT }}>{player.name[0]?.toUpperCase()}</span>}
-                      {player.isHost && <Crown className="absolute -top-2 -right-1 w-4 h-4 text-amber-400" fill="currentColor" style={{ filter: "drop-shadow(1.5px 1.5px 0 #0a0810)" }} />}
+                      {player.isHost && <Crown className="absolute -top-2 -right-1 w-4 h-4 text-amber-400" fill="currentColor" style={{ filter: "none" }} />}
                     </div>
                     <p className="text-sm font-black truncate text-white text-center max-w-full" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>{player.name}</p>
                     <span className="text-[10px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full"
-                      style={{ background: ready ? "linear-gradient(180deg, #34d399, #059669)" : "rgba(255,255,255,0.08)", border: "2px solid #0a0810", color: "white", boxShadow: "0 2px 0 #0a0810", fontFamily: FONT, textShadow: SHADOW_SM }}>
+                      style={{ background: ready ? "linear-gradient(180deg, #34d399, #059669)" : "rgba(255,255,255,0.08)", border: '1px solid var(--ink-line)', color: "white", boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
                       {ready ? "✓ Prêt" : "En cours"}
                     </span>
                   </motion.div>

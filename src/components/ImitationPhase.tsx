@@ -48,9 +48,9 @@ interface ImitationPhaseProps {
 }
 
 const ACCENT = '#f87171';
-const SHADOW = "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810";
-const SHADOW_SM = "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810";
-const FONT = "'Caveat', cursive";
+const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
+const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
+const FONT = "'Outfit', sans-serif";
 
 export const ImitationPhase = ({
   lobbyId,
@@ -326,7 +326,7 @@ export const ImitationPhase = ({
         <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4 mb-4">
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
             <div className="px-4 py-2 rounded-full flex items-center gap-2"
-              style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+              style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
               <Mic className={cn("w-4 h-4 text-white", isRecording && "animate-pulse")} strokeWidth={2.5} />
               <span className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
                 🎤 Imitation {gameMode === '2v2' && '· 2v2'} · Manche {roundNumber}
@@ -348,7 +348,7 @@ export const ImitationPhase = ({
           <motion.button type="button" onClick={() => setShowSettings(!showSettings)}
             whileHover={{ scale: 1.05, rotate: showSettings ? -90 : 90 }} whileTap={{ scale: 0.95 }}
             className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: showSettings ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "rgba(255,255,255,0.08)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+            style={{ background: showSettings ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "rgba(255,255,255,0.08)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
             <Settings className="w-4 h-4 text-white" strokeWidth={2.5} />
           </motion.button>
         </div>
@@ -357,7 +357,7 @@ export const ImitationPhase = ({
           {showSettings && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
               className="max-w-[1600px] mx-auto mb-4 overflow-hidden rounded-2xl"
-              style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+              style={{ background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
               <div className="p-4">
                 <DeviceSettings onClose={() => setShowSettings(false)} showPreview={false} />
               </div>
@@ -371,13 +371,13 @@ export const ImitationPhase = ({
           className="max-w-[1600px] mx-auto grid lg:grid-cols-[1.55fr_1fr] gap-4 items-start pt-4">
           {/* LEFT — Video to imitate (big) */}
           <div className="relative rounded-3xl"
-            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: `0 8px 0 #0a0810, 0 0 30px ${ACCENT}22` }}>
+            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}22` }}>
             <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />
             <div className="absolute -top-3 left-6 z-20">
               <motion.div initial={{ scale: 0, rotate: -8 }} animate={{ scale: 1, rotate: -4 }}
                 transition={{ type: "spring", stiffness: 200, damping: 14 }}
                 className="px-3 py-1 rounded-full flex items-center gap-1.5"
-                style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>🎬 Vidéo à imiter</span>
               </motion.div>
             </div>
@@ -385,7 +385,7 @@ export const ImitationPhase = ({
               {isRecording && (
                 <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, rotate: 6, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
                   className="absolute -top-3 right-6 z-20 px-3 py-1 rounded-full flex items-center gap-1.5"
-                  style={{ background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                  style={{ background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75 animate-ping" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
@@ -396,7 +396,7 @@ export const ImitationPhase = ({
             </AnimatePresence>
             <div className="relative p-4 pt-6">
               <div className="rounded-2xl overflow-hidden"
-                style={{ border: "3px solid #0a0810", boxShadow: `0 4px 0 #0a0810${isRecording ? ", 0 0 0 3px #ef4444" : ""}` }}>
+                style={{ border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0)${isRecording ? ", 0 0 0 3px #ef4444" : ""}` }}>
                 <VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" videoRef={challengeVideoRef} />
               </div>
             </div>
@@ -404,13 +404,13 @@ export const ImitationPhase = ({
 
           {/* RIGHT — Imitation panel */}
           <div className="relative rounded-3xl"
-            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: `0 8px 0 #0a0810, 0 0 30px ${ACCENT}22` }}>
+            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}22` }}>
             <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />
             <div className="absolute -top-3 left-6 z-20">
               <motion.div initial={{ scale: 0, rotate: 8 }} animate={{ scale: 1, rotate: 4 }}
                 transition={{ type: "spring", stiffness: 200, damping: 14 }}
                 className="px-3 py-1 rounded-full flex items-center gap-1.5"
-                style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                 <Mic className="w-3 h-3 text-white" strokeWidth={2.5} />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Imitation</span>
               </motion.div>
@@ -424,7 +424,7 @@ export const ImitationPhase = ({
               ) : (
                 <>
                   <div className="rounded-2xl p-3 space-y-2"
-                    style={{ background: "rgba(52,211,153,0.08)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+                    style={{ background: "rgba(52,211,153,0.08)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-emerald-400" />
@@ -433,20 +433,20 @@ export const ImitationPhase = ({
                       <motion.button type="button" onClick={handleRetry} disabled={hasSubmitted}
                         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         className="flex items-center gap-1 px-2.5 py-1 rounded-xl disabled:opacity-40"
-                        style={{ background: "rgba(255,255,255,0.06)", border: "2px solid #0a0810", boxShadow: "0 2px 0 #0a0810" }}>
+                        style={{ background: "rgba(255,255,255,0.06)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                         <RotateCcw className="w-3 h-3 text-white/70" />
                         <span className="text-xs font-black text-white/70" style={{ fontFamily: FONT }}>Rejouer</span>
                       </motion.button>
                     </div>
                     {recordedClipId && (
-                      <div className="rounded-xl overflow-hidden" style={{ border: "2px solid #0a0810" }}>
+                      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--ink-line)' }}>
                         <VideoWithAudioOverlay videoClipId={currentChallenge.id} audioClipId={recordedClipId}
                           includeOriginalAudio={includeOriginalAudio} originalAudioVolume={originalAudioVolume} />
                       </div>
                     )}
                   </div>
                   <div className="rounded-2xl p-3 space-y-2"
-                    style={{ background: "rgba(255,255,255,0.03)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+                    style={{ background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
                         {includeOriginalAudio ? <Volume2 className="w-4 h-4" style={{ color: ACCENT }} /> : <VolumeX className="w-4 h-4 text-white/40" />}
@@ -465,7 +465,7 @@ export const ImitationPhase = ({
                     className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70"
                     style={{
                       background: hasSubmitted ? "linear-gradient(180deg, #34d399, #059669)" : `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
-                      border: "4px solid #0a0810", boxShadow: "0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)",
+                      border: '1px solid var(--ink-line)', boxShadow: 'none',
                     }}>
                     <Check className="w-5 h-5 text-white" strokeWidth={3} />
                     <span className="text-xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
@@ -504,8 +504,8 @@ export const ImitationPhase = ({
           className="pointer-events-auto rounded-2xl px-3 py-2 flex items-center gap-2 max-w-[calc(50%-300px)] min-w-[200px]"
           style={{
             background: "linear-gradient(180deg, rgba(26,13,46,0.95), rgba(15,8,32,0.95))",
-            border: "3px solid #0a0810",
-            boxShadow: "0 4px 0 #0a0810",
+            border: '1px solid var(--ink-line)',
+            boxShadow: 'none',
             backdropFilter: "blur(8px)",
           }}
         >
@@ -531,7 +531,7 @@ export const ImitationPhase = ({
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg flex-shrink-0"
                   style={{
                     background: ready ? "rgba(52,211,153,0.18)" : isMe ? `${ACCENT}22` : "rgba(255,255,255,0.04)",
-                    border: ready ? "1.5px solid #34d399" : "1.5px solid #0a0810",
+                    border: ready ? "1.5px solid #34d399" : "1.5px solid var(--ink-line)",
                   }}
                   title={player.name}
                 >
@@ -560,8 +560,8 @@ export const ImitationPhase = ({
             className="pointer-events-auto px-3 py-2 rounded-2xl flex items-center gap-1.5 flex-shrink-0"
             style={{
               background: "linear-gradient(180deg, #fbbf24, #d97706)",
-              border: "3px solid #0a0810",
-              boxShadow: "0 4px 0 #0a0810",
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
               backdropFilter: "blur(8px)",
             }}
             title="Ignorer les joueurs bloqués et passer au vote"

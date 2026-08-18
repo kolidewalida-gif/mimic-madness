@@ -247,7 +247,7 @@ function NeonShape({ kind, color }: NeonShapeProps): React.ReactElement {
               backdrop without requiring a second material. */}
           <mesh position={[0, 0.11, 0]}>
             <boxGeometry args={[0.7, 0.02, 0.7]} />
-            <meshBasicMaterial color="#0a0810" toneMapped={false} />
+            <meshBasicMaterial color="var(--ink-line)" toneMapped={false} />
           </mesh>
         </group>
       );
@@ -399,7 +399,7 @@ export function NeonCorner(props: NeonCornerProps): React.ReactElement {
         anchorX="center"
         anchorY="middle"
         outlineWidth={0.025}
-        outlineColor="#0a0810"
+        outlineColor="var(--ink-line)"
         fontWeight="bold"
       >
         {spec.label}

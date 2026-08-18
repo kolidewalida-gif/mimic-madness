@@ -9,9 +9,9 @@ import { VideoPreview } from '@/components/VideoPreview';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
-const FONT = "'Caveat', cursive";
-const SHADOW = "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810";
-const SHADOW_SM = "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810";
+const FONT = "'Outfit', sans-serif";
+const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
+const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
 
 interface Props {
   posts: SocialPost[];
@@ -112,8 +112,8 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         borderRadius: 28,
         overflow: 'hidden',
         background: '#0a0510',
-        border: '5px solid #0a0810',
-        boxShadow: '0 14px 0 #0a0810, 0 20px 60px rgba(168,85,247,0.4)',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
       }}
     >
       {/* ═══ LEFT: Video ═══ */}
@@ -157,7 +157,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
               transition={{ duration: 0.85, ease: 'easeOut' }}
             >
               <Heart className="w-24 h-24 fill-current text-red-500" strokeWidth={1}
-                style={{ filter: 'drop-shadow(3px 3px 0 #0a0810)' }} />
+                style={{ filter: 'none' }} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -170,7 +170,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
 
         {/* Counter badge */}
         <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-2xl"
-          style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '3px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}>
+          style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
           <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
             {index + 1} / {posts.length}
           </span>
@@ -190,17 +190,17 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         style={{
           width: 380,
           maxWidth: '36%',
-          borderLeft: '4px solid #0a0810',
+          borderLeft: '1px solid var(--ink-line)',
           background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
           cursor: 'auto',
         }}
       >
         {/* Author header */}
-        <div className="p-4 flex-shrink-0" style={{ borderBottom: '3px solid #0a0810', background: 'linear-gradient(180deg, rgba(168,85,247,0.15), transparent)' }}>
+        <div className="p-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--ink-line)', background: 'linear-gradient(180deg, rgba(168,85,247,0.15), transparent)' }}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" style={{ filter: 'drop-shadow(1px 1px 0 #0a0810)' }} />
+                <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" style={{ filter: 'none' }} />
                 <h3 className="text-2xl font-black text-white truncate leading-none"
                   style={{ fontFamily: FONT, textShadow: SHADOW }}>
                   {post.owner_name}
@@ -227,10 +227,10 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                     background: post.liked_by_me
                       ? 'linear-gradient(180deg, #ef4444, #b91c1c)'
                       : 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))',
-                    border: '3px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                     boxShadow: post.liked_by_me
-                      ? '0 4px 0 #0a0810, 0 0 20px rgba(239,68,68,0.5)'
-                      : '0 4px 0 #0a0810',
+                      ? '0 0 0 rgba(0,0,0,0), 0 0 20px rgba(239,68,68,0.5)'
+                      : '0 0 0 rgba(0,0,0,0)',
                   }}
                 >
                   <Heart className={cn('w-6 h-6 text-white', post.liked_by_me && 'fill-current')} strokeWidth={2.5} />
@@ -245,7 +245,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                   whileHover={{ scale: 1.1, rotate: 8 }} whileTap={{ scale: 0.9 }}
                   onClick={() => { playInkSound('cartoonZap', 0.3); onDelete(post.id); onClose(); }}
                   className="w-10 h-10 rounded-full flex items-center justify-center self-start"
-                  style={{ background: 'rgba(239,68,68,0.2)', border: '2.5px solid #0a0810', boxShadow: '0 3px 0 #0a0810' }}
+                  style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
                 >
                   <Trash2 className="w-4 h-4 text-red-300" strokeWidth={2.5} />
                 </motion.button>
@@ -292,14 +292,14 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{
                     background: `linear-gradient(135deg, hsl(${(c.user_name.charCodeAt(0) * 37) % 360}, 70%, 50%), hsl(${(c.user_name.charCodeAt(0) * 37 + 60) % 360}, 70%, 35%))`,
-                    border: '2px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                   }}>
                   <span className="text-sm font-black text-white" style={{ fontFamily: FONT }}>
                     {c.user_name?.[0]?.toUpperCase() || '?'}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0 px-3 py-2 rounded-2xl rounded-tl-sm"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '2px solid #0a0810' }}>
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--ink-line)' }}>
                   <span className="text-xs font-black text-purple-300 mr-2" style={{ fontFamily: FONT }}>{c.user_name}</span>
                   <span className="text-sm text-white/85 break-words" style={{ fontFamily: FONT }}>{c.body}</span>
                 </div>
@@ -310,7 +310,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         </div>
 
         {/* Input */}
-        <div className="p-3 flex-shrink-0" style={{ borderTop: '3px solid #0a0810' }}>
+        <div className="p-3 flex-shrink-0" style={{ borderTop: '1px solid var(--ink-line)' }}>
           {user ? (
             <div className="flex gap-2">
               <input
@@ -319,7 +319,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSend(); } }}
                 placeholder="Envoie un message..."
                 className="flex-1 h-11 px-4 rounded-2xl bg-black/50 text-white text-base placeholder:text-white/30 outline-none"
-                style={{ fontFamily: FONT, border: '3px solid #0a0810', cursor: 'text' }}
+                style={{ fontFamily: FONT, border: '1px solid var(--ink-line)', cursor: 'text' }}
               />
               <motion.button
                 whileHover={draft.trim() ? { scale: 1.08, rotate: -5 } : undefined}
@@ -327,7 +327,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                 onClick={handleSend}
                 disabled={!draft.trim() || posting}
                 className={cn('h-11 w-11 rounded-2xl flex items-center justify-center flex-shrink-0', !draft.trim() && 'opacity-40')}
-                style={{ background: 'linear-gradient(180deg, #a855f7, #7c3aed)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810' }}
+                style={{ background: 'linear-gradient(180deg, #a855f7, #7c3aed)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
               >
                 <Send className="w-4 h-4 text-white" strokeWidth={2.5} />
               </motion.button>
@@ -346,7 +346,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
           whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
           onClick={onClose}
           className="absolute top-4 right-4 w-11 h-11 rounded-2xl flex items-center justify-center z-30 force-cursor"
-          style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', cursor: 'pointer' }}
+          style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '1px solid var(--ink-line)', boxShadow: 'none', cursor: 'pointer' }}
         >
           <X className="w-5 h-5 text-white" strokeWidth={3} />
         </motion.button>
@@ -364,8 +364,8 @@ const NavBtn = ({ icon: Icon, disabled, onClick }: { icon: any; disabled: boolea
     className={cn('w-12 h-12 rounded-2xl flex items-center justify-center', disabled && 'opacity-25')}
     style={{
       background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
-      border: '3px solid #0a0810',
-      boxShadow: '0 4px 0 #0a0810',
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
       cursor: disabled ? 'default' : 'pointer',
     }}
   >

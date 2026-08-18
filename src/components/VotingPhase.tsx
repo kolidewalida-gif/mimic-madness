@@ -649,15 +649,15 @@ export const VotingPhase = ({
           <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: -2 }}
             transition={{ type: "spring", stiffness: 280, damping: 16 }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
-            style={{ background: "linear-gradient(180deg, #f87171, #ef4444)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
-            <span className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>
+            style={{ background: "linear-gradient(180deg, #f87171, #ef4444)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+            <span className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
               ⚡ Phase de vote {gameMode === '2v2' && '· 2v2'}
             </span>
           </motion.div>
-          <h2 className="text-5xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810" }}>
+          <h2 className="text-5xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
             Votez {gameMode === '2v2' && 'pour les équipes'} !
           </h2>
-          <p className="text-sm text-white/60" style={{ fontFamily: "'Caveat', cursive" }}>
+          <p className="text-sm text-white/60" style={{ fontFamily: "'Outfit', sans-serif" }}>
             {gameMode === '2v2' ? 'Équipe' : 'Imitation'}{' '}
             <span className="font-black text-red-400">{currentIndex + 1}</span>/{displayLength}
           </p>
@@ -667,9 +667,9 @@ export const VotingPhase = ({
         <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: "spring", damping: 22 }}
           className="relative rounded-3xl overflow-hidden"
-          style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: "4px solid #0a0810", boxShadow: "0 8px 0 #0a0810, 0 0 30px rgba(248,113,113,0.2)" }}>
+          style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
           <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: "2px solid rgba(248,113,113,0.3)" }} />
-          <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "drop-shadow(1px 1px 0 #0a0810)" }} />
+          <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "none" }} />
 
           <div className="relative p-5 space-y-4">
             {/* Player/team name */}
@@ -680,16 +680,16 @@ export const VotingPhase = ({
                     {currentTeamImitation.players.map((p) => (
                       <div key={p.id} className="flex flex-col items-center gap-1">
                         <div className="w-12 h-12 rounded-full flex items-center justify-center"
-                          style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)", border: "3px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
-                          <span className="text-xl font-black text-white" style={{ fontFamily: "'Caveat', cursive" }}>{p.name[0]?.toUpperCase()}</span>
+                          style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                          <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>{p.name[0]?.toUpperCase()}</span>
                         </div>
-                        <span className="text-sm font-black text-white" style={{ fontFamily: "'Caveat', cursive" }}>{p.name}</span>
+                        <span className="text-sm font-black text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>{p.name}</span>
                       </div>
                     ))}
                   </div>
                   <div className="flex items-center justify-center gap-2">
                     <Swords className="w-4 h-4 text-red-400" />
-                    <h3 className="text-2xl font-black text-red-400" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>
+                    <h3 className="text-2xl font-black text-red-400" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
                       {isOwnVideo ? "Votre équipe" : `Équipe ${currentTeamImitation.teamNumber}`}
                     </h3>
                   </div>
@@ -697,19 +697,19 @@ export const VotingPhase = ({
               ) : currentImitation ? (
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
-                    <span className="text-2xl font-black text-white" style={{ fontFamily: "'Caveat', cursive" }}>{currentImitation.playerName[0]?.toUpperCase()}</span>
+                    style={{ background: "linear-gradient(135deg, #a855f7, #7c3aed)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                    <span className="text-2xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>{currentImitation.playerName[0]?.toUpperCase()}</span>
                   </div>
-                  <h3 className="text-2xl font-black" style={{ fontFamily: "'Caveat', cursive", color: isOwnVideo ? "#34d399" : "white", textShadow: "1.5px 1.5px 0 #0a0810" }}>
+                  <h3 className="text-2xl font-black" style={{ fontFamily: "'Outfit', sans-serif", color: isOwnVideo ? "#34d399" : "white", textShadow: 'none' }}>
                     {isOwnVideo ? "Votre imitation" : currentImitation.playerName}
                   </h3>
-                  {isOwnVideo && <p className="text-sm text-white/50" style={{ fontFamily: "'Caveat', cursive" }}>Vous ne pouvez pas voter pour vous-même</p>}
+                  {isOwnVideo && <p className="text-sm text-white/50" style={{ fontFamily: "'Outfit', sans-serif" }}>Vous ne pouvez pas voter pour vous-même</p>}
                 </div>
               ) : null}
             </div>
 
             {/* Video */}
-            <div className="rounded-2xl overflow-hidden" style={{ border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810" }}>
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
               {gameMode === '2v2' && currentTeamImitation?.clipIds[0] ? (
                 <TeamVideoOverlay ref={teamVideoRef} videoClipId={challengeVideoClipId}
                   audioClipId1={currentTeamImitation.clipIds[0]} audioClipId2={currentTeamImitation.clipIds[1] || null}
@@ -734,7 +734,7 @@ export const VotingPhase = ({
                   }} />
               ) : (
                 <div className="aspect-video flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
-                  <p className="text-white/50 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>Aucun audio disponible</p>
+                  <p className="text-white/50 font-bold" style={{ fontFamily: "'Outfit', sans-serif" }}>Aucun audio disponible</p>
                 </div>
               )}
             </div>
@@ -745,9 +745,9 @@ export const VotingPhase = ({
                 <motion.button onClick={handleTogglePlay} disabled={!votingSessionId || pendingPlay || showCountdown}
                   whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
                   className="flex items-center gap-2 px-5 py-3 rounded-2xl disabled:opacity-50"
-                  style={{ background: isPlayingSynced ? "linear-gradient(180deg, #6b7280, #4b5563)" : "linear-gradient(180deg, #a855f7, #7c3aed)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)" }}>
+                  style={{ background: isPlayingSynced ? "linear-gradient(180deg, #6b7280, #4b5563)" : "linear-gradient(180deg, #a855f7, #7c3aed)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   {isPlayingSynced ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white" />}
-                  <span className="text-lg font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>
+                  <span className="text-lg font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
                     {isPlayingSynced ? "Pause" : "Lancer pour tous 🎬"}
                   </span>
                 </motion.button>
@@ -761,25 +761,25 @@ export const VotingPhase = ({
                   <motion.button onClick={(e) => handleVote('dislike', e)} disabled={!votingSessionId}
                     whileHover={{ scale: 1.05, rotate: 2 }} whileTap={{ scale: 0.95 }}
                     className="flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
-                    style={{ background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: "3px solid #0a0810", boxShadow: "0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)" }}>
+                    style={{ background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <ThumbsDown className="w-6 h-6 text-white" />
-                    <span className="text-xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>Bof</span>
+                    <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>Bof</span>
                   </motion.button>
                   <motion.button onClick={(e) => handleVote('like', e)} disabled={!votingSessionId}
                     whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
                     className="flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
-                    style={{ background: "linear-gradient(180deg, #34d399, #059669)", border: "3px solid #0a0810", boxShadow: "0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)" }}>
+                    style={{ background: "linear-gradient(180deg, #34d399, #059669)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <ThumbsUp className="w-6 h-6 text-white" />
-                    <span className="text-xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>Top !</span>
+                    <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>Top !</span>
                   </motion.button>
                 </div>
               )}
 
               {(hasVotedCurrent || isOwnVideo) && !currentPlayer.isHost && (
                 <div className="flex items-center gap-2 px-4 py-3 rounded-2xl"
-                  style={{ background: "rgba(52,211,153,0.12)", border: "2.5px solid #0a0810", boxShadow: "0 3px 0 #0a0810" }}>
+                  style={{ background: "rgba(52,211,153,0.12)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-sm font-black text-emerald-300" style={{ fontFamily: "'Caveat', cursive" }}>
+                  <span className="text-sm font-black text-emerald-300" style={{ fontFamily: "'Outfit', sans-serif" }}>
                     {isOwnVideo ? "Votre imitation" : "Vote enregistré"} — En attente de l'hôte
                   </span>
                 </div>
@@ -789,8 +789,8 @@ export const VotingPhase = ({
                 <motion.button onClick={handleNext} disabled={!votingSessionId}
                   whileHover={{ scale: 1.05, rotate: -1 }} whileTap={{ scale: 0.97 }}
                   className="flex items-center gap-2 px-6 py-3 rounded-2xl disabled:opacity-50"
-                  style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: "3px solid #0a0810", boxShadow: "0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)" }}>
-                  <span className="text-xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: "1.5px 1.5px 0 #0a0810" }}>Suivant</span>
+                  style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                  <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>Suivant</span>
                   <ChevronRight className="w-5 h-5 text-white" />
                 </motion.button>
               )}
@@ -806,7 +806,7 @@ export const VotingPhase = ({
               style={{
                 width: i === currentIndex ? 32 : 20,
                 background: i < currentIndex ? "#34d399" : i === currentIndex ? "#f87171" : "rgba(255,255,255,0.15)",
-                border: "1.5px solid #0a0810",
+                border: '1px solid var(--ink-line)',
                 boxShadow: i === currentIndex ? "0 0 8px rgba(248,113,113,0.6)" : "none",
               }} />
           ))}

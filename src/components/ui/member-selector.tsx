@@ -149,7 +149,7 @@ function MemberRow({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-sm font-black text-white truncate" style={{ fontFamily: "'Caveat', cursive" }}>
+            <span className="text-sm font-black text-white truncate" style={{ fontFamily: "'Outfit', sans-serif" }}>
               {member.name}
             </span>
             {badge}
@@ -254,7 +254,7 @@ function AddButton({ onClick, isOpen, label, vertical }: { onClick: () => void; 
         <div className="w-10 h-10 rounded-full border-2 border-dashed border-amber-400/60 flex items-center justify-center flex-shrink-0">
           <Plus className="w-5 h-5 text-amber-400" strokeWidth={2.5} />
         </div>
-        <span className="text-sm font-black text-amber-300" style={{ fontFamily: "'Caveat', cursive" }}>
+        <span className="text-sm font-black text-amber-300" style={{ fontFamily: "'Outfit', sans-serif" }}>
           {label}
         </span>
       </motion.button>

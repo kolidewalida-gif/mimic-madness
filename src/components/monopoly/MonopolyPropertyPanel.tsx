@@ -60,8 +60,8 @@ export function MonopolyPropertyPanel({
       style={{
         background:
           'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-        border: '4px solid #0a0810',
-        boxShadow: '0 6px 0 #0a0810',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
       }}
     >
       {/* HEADER */}
@@ -69,7 +69,7 @@ export function MonopolyPropertyPanel({
         className="px-3 py-2.5 flex items-center justify-between"
         style={{
           background: 'linear-gradient(180deg, rgba(168,85,247,0.25), rgba(168,85,247,0.08))',
-          borderBottom: '3px solid #0a0810',
+          borderBottom: '1px solid var(--ink-line)',
         }}
       >
         <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export function MonopolyPropertyPanel({
           <h3
             className="text-lg font-black text-white uppercase tracking-wider leading-none"
             style={{
-              fontFamily: "'Caveat', cursive",
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
@@ -88,9 +88,9 @@ export function MonopolyPropertyPanel({
           className="px-2 py-0.5 rounded-md text-sm font-black leading-none"
           style={{
             background: '#fbbf24',
-            color: '#0a0810',
-            border: '2px solid #0a0810',
-            fontFamily: "'Caveat', cursive",
+            color: 'var(--ink-line)',
+            border: '1px solid var(--ink-line)',
+            fontFamily: "'Outfit', sans-serif",
           }}
         >
           {myProps.length}
@@ -104,7 +104,7 @@ export function MonopolyPropertyPanel({
               <div className="text-4xl mb-2">🏚️</div>
               <p
                 className="text-base text-white/50 font-bold"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 Aucune propriété pour l'instant
               </p>
@@ -153,19 +153,19 @@ export function MonopolyPropertyPanel({
                   }
                   style={{
                     background: `linear-gradient(180deg, ${color}33, ${color}11)`,
-                    border: '2px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                   }}
                 >
                   <div
                     className="w-4 h-4 rounded"
                     style={{
                       background: color,
-                      border: '1.5px solid #0a0810',
+                      border: '1px solid var(--ink-line)',
                     }}
                   />
                   <span
                     className="text-xs font-black text-white uppercase tracking-wider leading-none flex-1"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     {group}
                   </span>
@@ -176,14 +176,14 @@ export function MonopolyPropertyPanel({
                       className="flex items-center gap-1 px-1.5 py-0.5 rounded-md"
                       style={{
                         background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                        border: '1.5px solid #0a0810',
+                        border: '1px solid var(--ink-line)',
                       }}
                     >
                       <Star className="w-3 h-3 text-white" fill="currentColor" />
                       <span
                         className="text-[10px] font-black text-white uppercase leading-none"
                         style={{
-                          fontFamily: "'Caveat', cursive",
+                          fontFamily: "'Outfit', sans-serif",
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                         }}
                       >
@@ -217,12 +217,12 @@ export function MonopolyPropertyPanel({
                         showPulse
                           ? {
                               boxShadow: [
-                                `0 3px 0 #0a0810, 0 0 0 ${color}00`,
-                                `0 3px 0 #0a0810, 0 0 24px ${color}cc`,
-                                `0 3px 0 #0a0810, 0 0 0 ${color}00`,
+                                `0 0 0 rgba(0,0,0,0), 0 0 0 ${color}00`,
+                                `0 0 0 rgba(0,0,0,0), 0 0 24px ${color}cc`,
+                                `0 0 0 rgba(0,0,0,0), 0 0 0 ${color}00`,
                               ],
                             }
-                          : { boxShadow: '0 3px 0 #0a0810' }
+                          : { boxShadow: 'none' }
                       }
                       transition={
                         showPulse
@@ -235,7 +235,7 @@ export function MonopolyPropertyPanel({
                       )}
                       style={{
                         background: 'rgba(0,0,0,0.4)',
-                        border: '2.5px solid #0a0810',
+                        border: '1px solid var(--ink-line)',
                       }}
                     >
                       {/* color stripe + name */}
@@ -248,7 +248,7 @@ export function MonopolyPropertyPanel({
                         <span
                           className="text-sm font-black text-white truncate flex-1 leading-none"
                           style={{
-                            fontFamily: "'Caveat', cursive",
+                            fontFamily: "'Outfit', sans-serif",
                             textShadow: GRAFFITI_TEXT_SHADOW_SM,
                           }}
                         >
@@ -260,8 +260,8 @@ export function MonopolyPropertyPanel({
                             style={{
                               background: '#ef4444',
                               color: 'white',
-                              border: '1.5px solid #0a0810',
-                              fontFamily: "'Caveat', cursive",
+                              border: '1px solid var(--ink-line)',
+                              fontFamily: "'Outfit', sans-serif",
                             }}
                           >
                             HYPO.
@@ -279,8 +279,8 @@ export function MonopolyPropertyPanel({
                                 background:
                                   'linear-gradient(180deg, #ef4444, #b91c1c)',
                                 color: 'white',
-                                border: '2px solid #0a0810',
-                                fontFamily: "'Caveat', cursive",
+                                border: '1px solid var(--ink-line)',
+                                fontFamily: "'Outfit', sans-serif",
                                 textShadow: GRAFFITI_TEXT_SHADOW_SM,
                               }}
                             >
@@ -301,7 +301,7 @@ export function MonopolyPropertyPanel({
                                       : 'rgba(255,255,255,0.06)',
                                   border:
                                     i < prop.houses
-                                      ? '1.5px solid #0a0810'
+                                      ? '1.5px solid var(--ink-line)'
                                       : '1.5px solid rgba(255,255,255,0.15)',
                                 }}
                               />
@@ -310,7 +310,7 @@ export function MonopolyPropertyPanel({
                           {prop.houses === 0 && (
                             <span
                               className="ml-1 text-[10px] font-bold text-white/40"
-                              style={{ fontFamily: "'Caveat', cursive" }}
+                              style={{ fontFamily: "'Outfit', sans-serif" }}
                             >
                               terrain vide
                             </span>

@@ -3,7 +3,6 @@ import { DynamicBackground } from "@/components/DynamicBackground";
 import { ScreenTransition } from "@/components/ScreenTransition";
 import { MusicPlayerBar } from "@/components/MusicPlayerBar";
 import { GameInvitationNotification } from "@/components/GameInvitationNotification";
-import { InkSplashAnimation } from "@/components/InkSplashAnimation";
 import { SocialHub } from "@/components/SocialHub";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
@@ -116,8 +115,6 @@ const Index = () => {
   const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>("normal");
   const [activeInvitation, setActiveInvitation] = useState<GameInvitation | null>(null);
-  const [showInkAnimation, setShowInkAnimation] = useState(false);
-  const [inkAnimationCompleted, setInkAnimationCompleted] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -142,24 +139,9 @@ const Index = () => {
     setSituation(map[gameState] ?? "home");
   }, [gameState, gameMode, setSituation]);
   
-  // Check if we need to show ink animation (fresh load with ink mode)
-  useEffect(() => {
-    if (inkModeEnabled && theme === 'ink') {
-      setShowInkAnimation(true);
-      setInkAnimationCompleted(false);
-    } else {
-      setShowInkAnimation(false);
-      setInkAnimationCompleted(true);
-    }
-  }, [inkModeEnabled, theme]);
-  
-  const handleInkAnimationComplete = useCallback(() => {
-    setShowInkAnimation(false);
-    setInkAnimationCompleted(true);
-  }, []);
-  
-  // Determine if we should show Ink UI
-  const useInkMode = inkModeEnabled && theme === 'ink' && inkAnimationCompleted;
+  // Determine if we should show Ink UI. There is no intro splash any more:
+  // the menu is the first thing the player sees.
+  const useInkMode = inkModeEnabled && theme === 'ink';
   // Neon Hub désactivé — on reste sur l'Ink polish
   const useNeonHub = false;
   const { 
@@ -195,7 +177,7 @@ const Index = () => {
   }, [connectionState, currentPlayer, lobby, routeFromLobbySnapshot]);
 
   // ── Resume session (crash/reload recovery) ──────────────────────────────
-  const resumeStatus = useResumeSession({ enabled: gameState === 'home' && inkAnimationCompleted });
+  const resumeStatus = useResumeSession({ enabled: gameState === 'home' });
   const [showResumeModal, setShowResumeModal] = useState(false);
 
   useEffect(() => {
@@ -740,17 +722,15 @@ const Index = () => {
     // For ink mode, we need user to be logged in (even before the ink intro animation)
     if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="text-center space-y-6 max-w-md">
-            <h1 className="text-4xl font-black text-primary" style={{ fontFamily: "'Caveat', cursive" }}>
-              MIMIC MASTER
-            </h1>
-            <p className="text-muted-foreground">
-              Connectez-vous avec Google pour accéder au jeu
+        <div className="if-root min-h-screen flex items-center justify-center p-4">
+          <div className="text-center space-y-5 max-w-sm">
+            <h1 className="if-h1">MIMIC MASTER</h1>
+            <p className="if-muted text-sm">
+              Connecte-toi avec Google pour accéder au jeu.
             </p>
             <button
               onClick={signInWithGoogle}
-              className="px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary-hover transition-colors shadow-lg"
+              className="if-btn if-btn--primary if-btn--lg menu-focus w-full"
             >
               Connexion avec Google
             </button>
@@ -912,39 +892,26 @@ const Index = () => {
 
       </React.Suspense>
     );
-  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, theme, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, inkModeEnabled, theme, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   // Enforce login before Ink intro animation
   if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
     return (
-      <div className="h-screen bg-background flex items-center justify-center p-4 overflow-hidden">
-        <div className="text-center space-y-6 max-w-md">
-          <h1 
-            className="text-5xl font-black text-primary" 
-            style={{ 
-              fontFamily: "'Caveat', cursive",
-              textShadow: '-2px -2px 0 hsl(var(--background)), 2px -2px 0 hsl(var(--background)), -2px 2px 0 hsl(var(--background)), 2px 2px 0 hsl(var(--background))'
-            }}
-          >
-            MIMIC MASTER
-          </h1>
-          <p className="text-muted-foreground">
-            Connectez-vous avec Google pour accéder au mode Ink
+      <div className="if-root h-screen flex items-center justify-center p-4 overflow-hidden">
+        <div className="text-center space-y-5 max-w-sm">
+          <h1 className="if-h1">MIMIC MASTER</h1>
+          <p className="if-muted text-sm">
+            Connecte-toi avec Google pour accéder au jeu.
           </p>
           <button
             onClick={signInWithGoogle}
-            className="px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-lg"
+            className="if-btn if-btn--primary if-btn--lg menu-focus w-full"
           >
             Connexion avec Google
           </button>
         </div>
       </div>
     );
-  }
-
-  // Show ink animation if needed
-  if (showInkAnimation) {
-    return <InkSplashAnimation onComplete={handleInkAnimationComplete} />;
   }
 
   return (
@@ -969,27 +936,32 @@ const Index = () => {
       
       {/* Resume session modal — shown when a player reloads/crashes and comes back */}
       {showResumeModal && resumeStatus.kind === 'ready' && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#1a0d2e] border-4 border-[#0a0810] rounded-3xl p-6 max-w-sm mx-4 text-center space-y-4"
-            style={{ boxShadow: '0 8px 0 #0a0810, 0 0 40px rgba(168,85,247,0.3)' }}>
-            <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: '2px 2px 0 #0a0810' }}>
-              🎮 Partie en cours
-            </h2>
-            <p className="text-white/70 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>
-              Tu étais dans une partie avec le code <span className="text-purple-300 font-black">{resumeStatus.session.lobbyCode}</span>. Veux-tu revenir ?
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Reprendre la partie en cours"
+            className="if-panel if-fade menu-dialog w-full max-w-sm p-5 space-y-3"
+          >
+            <h2 className="if-h2">Partie en cours</h2>
+            <p className="if-muted text-sm">
+              Tu étais dans le salon{' '}
+              <span className="font-mono font-bold text-[var(--ink-text)]">
+                {resumeStatus.session.lobbyCode}
+              </span>
+              . Veux-tu y revenir ?
             </p>
             {resumeError && (
-              <p role="alert" className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm font-bold text-rose-200">
+              <p role="alert" className="rounded-[var(--ink-radius-sm)] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
                 {resumeError}
               </p>
             )}
-            <div className="flex gap-3">
+            <div className="flex gap-2 pt-1">
               <button
                 type="button"
                 onClick={handleResumeNo}
                 disabled={isResuming}
-                className="flex-1 py-3 rounded-2xl text-lg font-black text-white/70 disabled:cursor-not-allowed disabled:opacity-45"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: "'Caveat', cursive" }}
+                className="if-btn if-btn--ghost menu-focus flex-1"
               >
                 Non
               </button>
@@ -998,10 +970,9 @@ const Index = () => {
                 onClick={handleResumeYes}
                 disabled={isResuming}
                 aria-busy={isResuming}
-                className="flex-1 py-3 rounded-2xl text-lg font-black text-white disabled:cursor-wait disabled:opacity-70 inline-flex items-center justify-center gap-2"
-                style={{ background: 'linear-gradient(180deg, #a855f7, #7c3aed)', border: '3px solid #0a0810', boxShadow: '0 4px 0 #0a0810', fontFamily: "'Caveat', cursive" }}
+                className="if-btn if-btn--primary menu-focus flex-1"
               >
-                {isResuming ? <><Loader2 className="h-5 w-5 animate-spin" /> Reprise…</> : 'Oui'}
+                {isResuming ? <><Loader2 className="h-4 w-4 animate-spin" /> Reprise…</> : 'Oui'}
               </button>
             </div>
           </div>

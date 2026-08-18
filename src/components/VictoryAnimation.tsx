@@ -65,7 +65,7 @@ export const VictoryAnimation = ({ winnerName, isTeam, teamPlayers }: VictoryAni
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="absolute inset-0 bg-[#0a0810]/95 backdrop-blur-sm"
+        className="absolute inset-0 bg-[var(--ink-line)]/95 backdrop-blur-sm"
       />
 
       {/* Confetti */}
@@ -142,7 +142,7 @@ export const VictoryAnimation = ({ winnerName, isTeam, teamPlayers }: VictoryAni
               transition={{ type: 'spring', stiffness: 200, damping: 14 }}
               className="text-7xl md:text-8xl font-black leading-none"
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 color: '#fbbf24',
                 textShadow:
                   '0 0 20px rgba(251,191,36,0.5), 4px 4px 0 rgba(0,0,0,0.4)',
@@ -167,7 +167,7 @@ export const VictoryAnimation = ({ winnerName, isTeam, teamPlayers }: VictoryAni
                 <p
                   className="text-2xl md:text-4xl font-black truncate"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     color: '#fbbf24',
                   }}
                 >

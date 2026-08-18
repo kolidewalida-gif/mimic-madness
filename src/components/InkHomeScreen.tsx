@@ -1,49 +1,46 @@
-import { useState, memo, useCallback, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { InkStripesBackground } from '@/components/InkStripesBackground';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/hooks/useAuth';
-import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { useState, memo, useCallback, useEffect, type ReactNode } from 'react';
 import {
-  Phone,
+  Bell,
+  Check,
   Copy,
-  Swords,
-  Brain,
-  Zap,
-  X,
+  Hash,
+  Keyboard,
+  LogIn,
+  Play,
   Settings,
-  UserX,
-  Volume2,
-  VolumeX,
-  ChevronLeft,
+  Trash2,
   User,
   UsersRound,
-  Hash,
-  Crown,
-  Play,
-  Check,
-  Sparkles,
-  Music,
-  Mic2,
-  Dices,
+  Volume2,
+  VolumeX,
+  X,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
-import { DeviceSettings } from '@/components/DeviceSettings';
-import { GAME_MODE_META, INK_GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
+import { useAuth } from '@/hooks/useAuth';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { usePlayerLevel } from '@/hooks/usePlayerLevel';
+import { useRecentLobbies } from '@/hooks/useRecentLobbies';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { GAME_MODE_META, INK_GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
+import { DeviceSettings } from '@/components/DeviceSettings';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkQuestsPanel } from '@/components/InkQuestsPanel';
 import { InkChatColorPicker } from '@/components/InkChatColorPicker';
-import { InkDrawer } from '@/components/menu/InkOverlay';
+import { InkDrawer, InkModal } from '@/components/menu/InkOverlay';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import {
+  FlatAvatar,
+  FlatButton,
+  FlatIconButton,
+  FlatImage,
+  FlatLabel,
+  FlatPanel,
+  FlatTile,
+} from '@/components/ink/InkFlat';
 import { toast } from 'sonner';
-
 
 interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
@@ -56,33 +53,14 @@ interface GameModeInfo {
   shortLabel: string;
   tagline: string;
   description: string;
-  icon: React.ReactNode;
-  /** Mini card image candidates (small bottom row) */
-  cardImageCandidates: string[];
-  /** Hero banner image candidates (big top card) */
-  bannerImageCandidates: string[];
+  minPlayers: number;
+  imageCandidates: string[];
   fallbackEmoji: string;
-  fallbackColor: string;
-  accent: string;
 }
 
-/** Lucide icon per mode — kept here so GAME_MODES stays data-only. */
-const MODE_ICONS: Record<LobbyGameMode, React.ReactNode> = {
-  normal: <Copy className="w-7 h-7" />,
-  audiophone: <Phone className="w-7 h-7" />,
-  '2v2': <Swords className="w-7 h-7" />,
-  quiz: <Brain className="w-7 h-7" />,
-  pixoguess: <Zap className="w-7 h-7" />,
-  undercover: <UserX className="w-7 h-7" />,
-  memorise: <Music className="w-7 h-7" />,
-  mimic: <Mic2 className="w-7 h-7" />,
-  monopoly: <Dices className="w-7 h-7" />,
-};
-
 /**
- * All game modes for the home hero carousel. Derived from GAME_MODE_META
- * (single source of truth) via GAME_MODE_ORDER so every mode — including
- * `mimic` and `memorise` (Blindtest) — is present and stays consistent.
+ * Home mode list. Derived from GAME_MODE_META (single source of truth) via
+ * INK_GAME_MODE_ORDER so the home and the lobby always offer the same modes.
  */
 const GAME_MODES: GameModeInfo[] = INK_GAME_MODE_ORDER.map((id) => {
   const meta = GAME_MODE_META[id];
@@ -92,62 +70,39 @@ const GAME_MODES: GameModeInfo[] = INK_GAME_MODE_ORDER.map((id) => {
     shortLabel: meta.shortLabel,
     tagline: meta.tagline,
     description: meta.description,
-    icon: MODE_ICONS[id],
-    cardImageCandidates: meta.imageCandidates,
-    bannerImageCandidates: [`/home/banners/${id}.png`, `/home/banners/${id}.jpg`],
+    minPlayers: meta.minPlayers,
+    imageCandidates: meta.imageCandidates,
     fallbackEmoji: meta.fallbackEmoji,
-    fallbackColor: meta.fallbackColor,
-    accent: meta.accent,
   };
 });
 
-/* ============================================================
-   Image with multi-candidate fallback
-============================================================ */
-const ImageWithFallback = ({
-  src,
-  alt,
-  className,
-  fallback,
-  style,
+/** Headerless overlay used for panels that already render their own header. */
+const BareOverlay = ({
+  onClose,
+  label,
+  children,
 }: {
-  src: string | string[];
-  alt: string;
-  className?: string;
-  fallback: React.ReactNode;
-  style?: React.CSSProperties;
-}) => {
-  const candidates = useMemo(() => {
-    if (Array.isArray(src)) return src;
-    if (src.endsWith('.png')) return [src, src.replace(/\.png$/, '.jpg')];
-    if (src.endsWith('.jpg')) return [src, src.replace(/\.jpg$/, '.png')];
-    return [src];
-  }, [src]);
-
-  const [idx, setIdx] = useState(0);
-  const [allFailed, setAllFailed] = useState(false);
-
-  // Reset on src change
-  useEffect(() => {
-    setIdx(0);
-    setAllFailed(false);
-  }, [JSON.stringify(candidates)]);
-
-  if (allFailed) return <>{fallback}</>;
-  return (
-    <img
-      key={candidates[idx]}
-      src={candidates[idx]}
-      alt={alt}
-      className={className}
-      style={style}
-      onError={() => {
-        if (idx + 1 < candidates.length) setIdx(idx + 1);
-        else setAllFailed(true);
-      }}
+  onClose: () => void;
+  label: string;
+  children: ReactNode;
+}) => (
+  <div className="ink-z-modal fixed inset-0 flex items-center justify-center p-4">
+    <button
+      type="button"
+      onClick={onClose}
+      aria-label={label}
+      className="absolute inset-0 h-full w-full cursor-default bg-black/70"
     />
-  );
-};
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      className="menu-dialog menu-dialog-safe if-panel if-fade relative flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden"
+    >
+      {children}
+    </div>
+  </div>
+);
 
 const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps) => {
   const { profile, friendCode } = useAuth();
@@ -163,7 +118,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
-  const [modeIndex, setModeIndex] = useState(1); // start on AUDIO PHONE like mockup
+  const [modeIndex, setModeIndex] = useState(1); // Audio Phone by default
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
   const { level } = usePlayerLevel();
@@ -176,12 +131,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
 
   const selectedMode = GAME_MODES[modeIndex];
 
-  /**
-   * Switch to a mode index using shortest-path direction with wrap-around.
-   * Drives the hero banner horizontal swipe direction:
-   *   +1 = swipe right (new card slides in from right)
-   *   -1 = swipe left  (new card slides in from left)
-   */
+  /** Select a mode by index, wrapping around at both ends. */
   const goToMode = useCallback((next: number) => {
     const len = GAME_MODES.length;
     setModeIndex(((next % len) + len) % len);
@@ -250,7 +200,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     return () => window.removeEventListener('mimic:open-friends', openFriends);
   }, []);
 
-  // Close modals on Escape (already handled per-modal but extra safety)
   const anyModalOpen =
     showJoinDialog ||
     showSettings ||
@@ -286,7 +235,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       enabled: !anyModalOpen,
       handler: () => {
         toggleMute();
-        toast(isMuted ? '🔊 Son activé' : '🔇 Son coupé', { duration: 1500 });
+        toast(isMuted ? 'Son activé' : 'Son coupé', { duration: 1500 });
       },
       label: 'Couper / activer le son',
     },
@@ -372,674 +321,226 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     setTimeout(() => setCodeCopied(false), 1500);
   }, [friendCode]);
 
-  return (
-    <div className="ibs-shell ibs-home menu-surface menu-screen-safe h-screen w-full flex flex-col bg-[#0b0708] text-white relative overflow-hidden">
-      {/* ============== BACKGROUND ============== */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <InkStripesBackground />
-      </div>
+  const nameReady = !!playerName.trim();
+  const joinReady = nameReady && lobbyCode.trim().length === 4;
+  const displayName = profile?.display_name || playerName || 'Joueur';
 
+  return (
+    <div className="ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden">
       {/* ============== TOP BAR ============== */}
-      <header className="relative z-30 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 gap-2 flex-shrink-0">
-        {/* PROFILE PILL */}
-        <motion.button
+      <header className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-[var(--ink-line)] px-4 py-3 sm:px-6">
+        <button
+          type="button"
           onClick={() => {
             playInkSound('inkClick', 0.3);
             setShowProfileDrawer(true);
           }}
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
-          className="relative flex items-center gap-3 pl-1.5 pr-4 py-1.5 rounded-2xl"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(220,38,38,0.25), rgba(127,29,29,0.25))',
-            border: '2.5px solid #0a0810',
-            boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.1)',
-          }}
+          className="if-row menu-focus -ml-2 min-w-0"
         >
-          <div className="relative">
-            <div
-              className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center text-white font-bold text-base"
-              style={{
-                background: 'linear-gradient(135deg, #dc2626, #7f1d1d)',
-                border: '2px solid #0a0810',
-              }}
-            >
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                (profile?.display_name?.[0] || playerName[0] || 'M').toUpperCase()
-              )}
-            </div>
-          </div>
-          <div className="text-left hidden sm:block">
-            <div className="flex items-center gap-1">
-              <ImageWithFallback
-                src={['/home/buttons/profil.png']}
-                alt="Profil"
-                className="h-6 w-auto select-none"
-                style={{ filter: 'drop-shadow(1px 2px 0 #0a0810)' }}
-                fallback={
-                  <span
-                    className="text-lg font-black text-white leading-none truncate max-w-[110px]"
-                    style={{
-                      fontFamily: "'Caveat', cursive",
-                      textShadow:
-                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-                    }}
-                  >
-                    {profile?.display_name || 'Joueur'}
-                  </span>
-                }
-              />
-              <Crown className="w-3.5 h-3.5 text-amber-400" fill="currentColor" />
-            </div>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
-                Niveau {level}
-              </span>
-              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[9px] font-black text-emerald-300 uppercase">EN LIGNE</span>
-              </span>
-            </div>
-          </div>
-        </motion.button>
+          <FlatAvatar name={displayName} src={profile?.avatar_url ?? undefined} />
+          <span className="min-w-0 text-left">
+            <span className="block max-w-[150px] truncate text-sm font-semibold">
+              {displayName}
+            </span>
+            <span className="if-mute block text-xs">Niveau {level}</span>
+          </span>
+        </button>
 
-        {/* CENTER LOGO */}
-        <div className="flex flex-col items-center pointer-events-none">
-          <ImageWithFallback
-            src={['/home/logo.png', '/lobby/logo.png']}
-            alt="C2TV MIMIC MASTER"
-            className="h-14 sm:h-20 md:h-24 w-auto max-w-[32vw] sm:max-w-none select-none"
-            style={{ filter: 'drop-shadow(0 4px 12px rgba(220,38,38,0.5))' }}
-            fallback={
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-0.5">
-                  <Crown className="w-4 h-4 text-amber-400" fill="currentColor" />
-                </div>
-                <h1
-                  className="text-3xl md:text-4xl font-black tracking-wider leading-none"
-                  style={{
-                    fontFamily: "'Caveat', cursive",
-                    background:
-                      'linear-gradient(180deg, #ffffff 0%, #d4d4d4 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    filter: 'drop-shadow(0 2px 8px rgba(220,38,38,0.6))',
-                  }}
-                >
-                  C2TV
-                </h1>
-                <h2
-                  className="text-xl md:text-2xl font-black tracking-wider leading-none mt-1"
-                  style={{
-                    fontFamily: "'Caveat', cursive",
-                    color: '#fbbf24',
-                    textShadow:
-                      '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
-                  }}
-                >
-                  MIMIC MASTER
-                </h2>
-              </div>
-            }
-          />
-        </div>
-
-        {/* RIGHT — NAV BUTTONS (notifs / amis / social / paramètres) */}
-        <div className="flex items-center gap-1 sm:gap-2.5">
+        <div className="flex items-center gap-2">
+          <span className="if-mute mr-1 hidden text-sm font-semibold tracking-tight sm:block">
+            MIMIC MASTER
+          </span>
           <NotificationCenter />
-          {/* MES AMIS */}
-          <motion.button
+          <FlatIconButton
+            label="Mes amis"
             onClick={() => {
               playInkSound('inkClick', 0.3);
               setShowFriendsDrawer(true);
             }}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative h-12 flex items-center"
-            style={{ filter: 'drop-shadow(0 4px 10px rgba(220,38,38,0.35))' }}
-            aria-label="Mes amis"
           >
-            <ImageWithFallback
-              src={['/home/buttons/friends.png']}
-              alt="Mes amis"
-              className="h-12 w-auto select-none"
-              fallback={
-                <div
-                  className="h-12 flex items-center gap-2 px-4 rounded-2xl"
-                  style={{
-                    background:
-                      'linear-gradient(180deg, rgba(220,38,38,0.25), rgba(127,29,29,0.25))',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.1)',
-                  }}
-                >
-                  <UsersRound className="w-4 h-4 text-white" />
-                  <span
-                    className="text-base font-black text-white uppercase tracking-wider"
-                    style={{
-                      fontFamily: "'Caveat', cursive",
-                      textShadow:
-                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-                    }}
-                  >
-                    MES AMIS
-                  </span>
-                </div>
-              }
-            />
-          </motion.button>
-
-          {/* SOCIAL */}
-          <motion.button
+            <UsersRound className="h-4 w-4" />
+          </FlatIconButton>
+          <FlatIconButton
+            label="Social"
             onClick={() => {
               playInkSound('inkClick', 0.3);
               window.dispatchEvent(new CustomEvent('mimic:open-social'));
             }}
-            whileHover={{ scale: 1.08, y: -2 }}
-            whileTap={{ scale: 0.94 }}
-            className="relative h-12 flex items-center"
-            style={{ filter: 'drop-shadow(0 4px 10px rgba(220,38,38,0.35))' }}
-            aria-label="Social"
           >
-            <ImageWithFallback
-              src={['/home/buttons/social.png']}
-              alt="Social"
-              className="h-12 w-auto select-none"
-              fallback={
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
-                  style={{
-                    background:
-                      'linear-gradient(180deg, rgba(220,38,38,0.3), rgba(127,29,29,0.3))',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 4px 0 #0a0810',
-                  }}
-                >
-                  <Sparkles className="w-5 h-5" />
-                </div>
-              }
-            />
-          </motion.button>
-
-          {/* PARAMÈTRES */}
-          <motion.button
+            <Bell className="h-4 w-4" />
+          </FlatIconButton>
+          <FlatIconButton
+            label="Paramètres"
             onClick={() => {
               playInkSound('inkClick', 0.3);
               setShowSettings(true);
             }}
-            whileHover={{ scale: 1.08, rotate: 12 }}
-            whileTap={{ scale: 0.94 }}
-            className="relative h-12 flex items-center"
-            style={{ filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.4))' }}
-            aria-label="Paramètres"
           >
-            <ImageWithFallback
-              src={['/home/buttons/setting.png']}
-              alt="Paramètres"
-              className="h-12 w-auto select-none"
-              fallback={
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 4px 0 #0a0810',
-                  }}
-                >
-                  <Settings className="w-5 h-5" />
-                </div>
-              }
-            />
-          </motion.button>
+            <Settings className="h-4 w-4" />
+          </FlatIconButton>
         </div>
       </header>
 
-      {/* ============== MAIN CONTENT — 4 colonnes (profil / modes / hub / amis) ============== */}
-      <main className="ibs-home-main relative z-10 flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 pb-24">
-        <div className="mx-auto flex h-full w-full max-w-[1600px] items-stretch justify-center gap-4">
-        {/* COLONNE 1 — PROFIL */}
-        <aside className="hidden xl:flex w-[290px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar rounded-[24px] p-3"
-          style={{
-            background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
-            border: '4px solid #0a0810',
-            boxShadow: '0 10px 0 #0a0810',
-          }}
-        >
-          <InkProfileSidebar />
-          <div className="mt-3 space-y-3">
-            <InkQuestsPanel />
-            <InkChatColorPicker />
-          </div>
-        </aside>
+      {/* ============== MAIN ============== */}
+      <main className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+        <div className="mx-auto flex w-full max-w-[880px] flex-col gap-4">
+          {/* Identity + actions */}
+          <FlatPanel className="p-5">
+            <label htmlFor="ink-player-name" className="if-label mb-2 block">
+              Ton pseudo
+            </label>
+            <input
+              id="ink-player-name"
+              className="if-input"
+              placeholder="Entre ton pseudo"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              maxLength={20}
+              autoComplete="nickname"
+            />
 
-        {/* COLONNE 2 — LISTE VERTICALE DES MODES */}
-        <nav className="hidden lg:flex w-[230px] flex-shrink-0 flex-col gap-2 overflow-y-auto custom-scrollbar rounded-[24px] p-3"
-          style={{
-            background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
-            border: '4px solid #0a0810',
-            boxShadow: '0 10px 0 #0a0810',
-          }}
-        >
-          <div
-            className="px-1 pb-1 text-lg font-black uppercase tracking-wide text-white/80"
-            style={{ fontFamily: "'Caveat', cursive" }}
-          >
-            Modes de jeu
-          </div>
-          {GAME_MODES.map((mode, idx) => {
-            const isActive = idx === modeIndex;
-            return (
-              <motion.button
-                key={mode.id}
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <FlatButton
+                variant="primary"
+                size="lg"
+                block
+                disabled={!nameReady}
+                onClick={handleCreateGame}
+                icon={<Play className="h-4 w-4" />}
+              >
+                Créer une partie
+              </FlatButton>
+              <FlatButton
+                variant="neutral"
+                size="lg"
+                block
+                disabled={!nameReady}
                 onClick={() => {
                   playInkSound('brushTap', 0.3);
-                  goToMode(idx);
+                  setShowJoinDialog(true);
                 }}
-                whileHover={{ x: 3 }}
-                whileTap={{ scale: 0.97 }}
-                aria-pressed={isActive}
-                className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors"
-                style={{
-                  background: isActive
-                    ? 'linear-gradient(90deg, rgba(220,38,38,0.45), rgba(127,29,29,0.15))'
-                    : 'rgba(255,255,255,0.04)',
-                  border: isActive ? '2.5px solid #fbbf24' : '2.5px solid #0a0810',
-                  boxShadow: isActive ? '0 3px 0 #0a0810' : 'none',
-                }}
+                icon={<LogIn className="h-4 w-4" />}
               >
-                <span
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white [&>svg]:h-4 [&>svg]:w-4"
-                  style={{ background: mode.fallbackColor, border: '2px solid #0a0810' }}
-                >
-                  {mode.icon}
-                </span>
-                <span
-                  className={cn(
-                    'truncate text-base font-black uppercase leading-none',
-                    isActive ? 'text-white' : 'text-white/70',
-                  )}
-                  style={{ fontFamily: "'Caveat', cursive" }}
-                >
-                  {mode.shortLabel}
-                </span>
-                {isActive && <Check className="ml-auto h-4 w-4 flex-shrink-0 text-amber-400" strokeWidth={4} />}
-              </motion.button>
-            );
-          })}
-        </nav>
+                Rejoindre avec un code
+              </FlatButton>
+            </div>
 
-        {/* COLONNE 3 — HUB CENTRAL */}
-        <div
-          className="w-full max-w-2xl flex flex-col gap-4 p-4 sm:p-6 rounded-[28px] self-center"
-          style={{
-            background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
-            border: '4px solid #0a0810',
-            boxShadow: '0 10px 0 #0a0810, 0 22px 40px rgba(220,38,38,0.25)',
-          }}
-        >
-        {/* PSEUDO INPUT — first and only required step */}
-        <div className="w-full">
-          <Input
-            placeholder="Votre pseudo"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            className="h-14 bg-white border-[3px] border-[#0a0810] rounded-2xl text-center text-2xl font-black text-[#1a0a0a] placeholder:text-[#1a0a0a]/35 focus-visible:ring-0 focus:border-[#dc2626] transition-all"
-            style={{ fontFamily: "'Caveat', cursive" }}
-            maxLength={20}
-          />
-        </div>
-
-        {/* ACTION BUTTONS — JOUER + REJOINDRE */}
-        <div className="w-full flex flex-col sm:flex-row items-stretch gap-3">
-          {/* JOUER — yellow image button (with code fallback) */}
-          <motion.button
-            onClick={handleCreateGame}
-            disabled={!playerName.trim()}
-            whileHover={!playerName.trim() ? undefined : { scale: 1.03, y: -2 }}
-            whileTap={!playerName.trim() ? undefined : { scale: 0.97 }}
-            className={cn(
-              'relative flex-[1.4] h-20 rounded-2xl overflow-hidden group transition-opacity',
-              !playerName.trim() && 'opacity-40 cursor-not-allowed grayscale',
+            {!nameReady && (
+              <p className="if-mute mt-3 text-xs">
+                Choisis un pseudo pour créer ou rejoindre une partie.
+              </p>
             )}
-            style={{
-              filter: playerName.trim()
-                ? 'drop-shadow(0 8px 20px rgba(251,191,36,0.45))'
-                : undefined,
-            }}
-          >
-            <ImageWithFallback
-              src={['/home/buttons/jouer.png', '/home/buttons/jouer.jpg']}
-              alt="JOUER"
-              className="absolute inset-0 w-full h-full object-cover"
-              fallback={
-                <div
-                  className="absolute inset-0 flex items-center justify-center gap-3"
-                  style={{
-                    background:
-                      'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #7f1d1d 100%)',
-                    border: '4px solid #0a0810',
-                    borderRadius: '1rem',
-                    boxShadow: '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.4)',
-                  }}
-                >
-                  {/* Ink splatter behind play icon */}
-                  <div className="relative w-14 h-14 flex items-center justify-center">
-                    <svg viewBox="0 0 60 60" className="absolute inset-0 w-full h-full">
-                      <path
-                        d="M30,8 Q42,4 48,12 Q56,18 52,30 Q56,44 44,50 Q34,58 22,52 Q8,50 6,38 Q2,24 12,16 Q20,8 30,8 Z"
-                        fill="#0a0810"
-                      />
-                    </svg>
-                    <Play
-                      className="relative w-7 h-7 text-white fill-white"
-                      strokeWidth={2}
-                    />
-                  </div>
-                  <span
-                    className="text-4xl md:text-5xl font-black text-white leading-none tracking-wide"
-                    style={{
-                      fontFamily: "'Caveat', cursive",
-                      textShadow:
-                        '3px 3px 0 #0a0810, -2px -2px 0 #0a0810, 2px -2px 0 #0a0810, -2px 2px 0 #0a0810, 2px 2px 0 #0a0810',
-                    }}
-                  >
-                    JOUER
-                  </span>
-                </div>
-              }
-            />
-            {/* Shine sweep on hover (over the image) */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
-          </motion.button>
+          </FlatPanel>
 
-          {/* REJOINDRE UN LOBBY — purple image button */}
-          <motion.button
-            onClick={() => {
-              playInkSound('brushTap', 0.3);
-              setShowJoinDialog(true);
-            }}
-            disabled={!playerName.trim()}
-            whileHover={!playerName.trim() ? undefined : { scale: 1.02, y: -2 }}
-            whileTap={!playerName.trim() ? undefined : { scale: 0.98 }}
-            className={cn(
-              'relative flex-1 h-20 rounded-2xl overflow-hidden transition-opacity',
-              !playerName.trim() && 'opacity-40 cursor-not-allowed grayscale',
-            )}
-            style={{
-              filter: playerName.trim()
-                ? 'drop-shadow(0 8px 20px rgba(220,38,38,0.4))'
-                : undefined,
-            }}
-          >
-            <ImageWithFallback
-              src={['/home/buttons/rejoindre.png', '/home/buttons/rejoindre.jpg']}
-              alt="REJOINDRE UN LOBBY"
-              className="absolute inset-0 w-full h-full object-cover"
-              fallback={
-                <div
-                  className="absolute inset-0 flex items-center justify-center gap-3"
-                  style={{
-                    background:
-                      'linear-gradient(180deg, #dc2626 0%, #991b1b 50%, #450a0a 100%)',
-                    border: '4px solid #0a0810',
-                    borderRadius: '1rem',
-                    boxShadow: '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)',
-                  }}
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{
-                      background: '#0a0810',
-                      border: '2.5px solid rgba(255,255,255,0.15)',
-                    }}
-                  >
-                    <Hash className="w-6 h-6 text-white" strokeWidth={3} />
-                  </div>
-                  <span
-                    className="text-2xl md:text-3xl font-black text-white leading-none tracking-wide"
-                    style={{
-                      fontFamily: "'Caveat', cursive",
-                      textShadow:
-                        '2.5px 2.5px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
-                    }}
-                  >
-                    REJOINDRE UN LOBBY
-                  </span>
-                </div>
-              }
-            />
-          </motion.button>
-        </div>
+          {/* Mode picker */}
+          <FlatPanel className="p-5">
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <FlatLabel>Mode de jeu</FlatLabel>
+              <span className="if-mute text-xs">
+                {selectedMode.minPlayers}+ joueurs
+              </span>
+            </div>
 
-        {/* MODE PREVIEW — description du mode sélectionné */}
-        <div className="w-full text-center">
-          <h2
-            className="text-3xl font-black text-white leading-none"
-            style={{
-              fontFamily: "'Caveat', cursive",
-              textShadow: 'none',
-            }}
-          >
-            {selectedMode.name.toUpperCase()}
-          </h2>
-          <p className="text-xs text-white/60 mt-1">{selectedMode.tagline}</p>
-          <p className="mx-auto mt-2 hidden max-w-md text-xs leading-relaxed text-white/45 lg:block">
-            {selectedMode.description}
-          </p>
-        </div>
-
-        {/* MINI MODE CARDS ROW — remplacée par la colonne de modes en lg+ */}
-        <div className="w-full lg:hidden">
-          <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-            {GAME_MODES.map((mode, idx) => {
-              const isActive = idx === modeIndex;
-              return (
-                <motion.button
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {GAME_MODES.map((mode, idx) => (
+                <FlatTile
                   key={mode.id}
+                  selected={idx === modeIndex}
                   onClick={() => {
                     playInkSound('brushTap', 0.3);
                     goToMode(idx);
                   }}
-                  whileHover={{ y: -4, scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="relative aspect-[3/4] rounded-2xl overflow-hidden group"
-                  aria-label={mode.name}
-                  aria-pressed={isActive}
-                  style={{
-                    border: isActive ? '3.5px solid #fbbf24' : '3px solid #0a0810',
-                    boxShadow: isActive
-                      ? `0 0 24px ${mode.accent}cc, 0 6px 0 #0a0810`
-                      : '0 4px 0 #0a0810',
-                  }}
-                >
-                  {/* Card image with fallback */}
-                  <ImageWithFallback
-                    src={mode.cardImageCandidates}
-                    alt={mode.shortLabel}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    fallback={
-                      <div
-                        className="absolute inset-0 flex flex-col items-center justify-between p-1.5"
-                        style={{
-                          background: `linear-gradient(180deg, ${mode.fallbackColor}, ${mode.fallbackColor}cc)`,
-                        }}
-                      >
-                        <div className="flex-1 flex items-center justify-center">
-                          <span className="text-3xl">{mode.fallbackEmoji}</span>
-                        </div>
-                      </div>
-                    }
-                  />
-                  {/* Bottom label overlay */}
-                  <div
-                    className="absolute bottom-0 inset-x-0 px-1 py-1 text-center"
-                    style={{
-                      background:
-                        'linear-gradient(180deg, transparent, rgba(0,0,0,0.85))',
-                    }}
-                  >
-                    <div
-                      className="text-[10px] font-black text-white uppercase leading-tight tracking-wide"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        textShadow:
-                          '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810',
-                      }}
-                    >
-                      {mode.shortLabel}
-                    </div>
-                  </div>
-                  {/* Active checkmark */}
-                  {isActive && (
-                    <motion.div
-                      initial={{ scale: 0, rotate: -45 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 border-[3px] border-[#0a0810] flex items-center justify-center z-10"
-                      style={{ boxShadow: '0 3px 0 #0a0810' }}
-                    >
-                      <Check className="w-3 h-3 text-[#0a0810]" strokeWidth={4} />
-                    </motion.div>
-                  )}
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
-        </div>
+                  title={mode.shortLabel}
+                  subtitle={mode.tagline}
+                  art={
+                    <FlatImage
+                      candidates={mode.imageCandidates}
+                      alt=""
+                      fallback={<span aria-hidden="true">{mode.fallbackEmoji}</span>}
+                    />
+                  }
+                  trailing={
+                    idx === modeIndex ? (
+                      <Check
+                        className="h-4 w-4 flex-shrink-0 text-[var(--ink-accent)]"
+                        aria-hidden="true"
+                      />
+                    ) : null
+                  }
+                />
+              ))}
+            </div>
 
-        {/* COLONNE 4 — AMIS */}
-        <aside className="hidden xl:flex w-[290px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar rounded-[24px] p-3"
-          style={{
-            background: 'linear-gradient(180deg, #17090b 0%, #0c0507 100%)',
-            border: '4px solid #0a0810',
-            boxShadow: '0 10px 0 #0a0810',
-          }}
-        >
-          <InkFriendsSidebar
-            onJoinFriend={(code) => {
-              setLobbyCode(code);
-              if (playerName.trim()) {
-                onJoinGame(playerName.trim(), code);
-              } else {
-                setShowJoinDialog(true);
-              }
-            }}
-          />
-        </aside>
+            <p className="if-muted mt-3 text-sm">{selectedMode.description}</p>
+          </FlatPanel>
         </div>
       </main>
 
-      {/* ============== BOTTOM UTILITY BAR ============== */}
-      <div className="absolute bottom-0 inset-x-0 z-20 flex items-center justify-center gap-3 px-6 py-3 pointer-events-none">
-        <div
-          className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-2xl"
-          style={{
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            backgroundImage:
-              'linear-gradient(rgba(10,5,16,0.62), rgba(10,5,16,0.62)), url(/home/musiclecteurandfriendcode.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backdropFilter: 'blur(8px)',
-            border: '2.5px solid #0a0810',
-            boxShadow: '0 4px 0 #0a0810',
-          }}
-        >
+      {/* ============== FOOTER ============== */}
+      <footer className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 border-t border-[var(--ink-line)] px-4 py-2 sm:px-6">
+        <div className="flex items-center gap-2">
           {friendCode && (
-            <motion.button
+            <button
+              type="button"
               onClick={handleCopyFriendCode}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              className="flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-white/5 transition-colors"
+              className="if-btn if-btn--ghost if-btn--sm menu-focus"
               title="Copier mon code ami"
             >
-              <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">
-                Code ami
-              </span>
-              <span className="font-mono font-black tracking-wider text-amber-300 text-sm">
+              <FlatLabel>Code ami</FlatLabel>
+              <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
                 {friendCode}
               </span>
               {codeCopied ? (
-                <Check className="w-3 h-3 text-emerald-400" />
+                <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
               ) : (
-                <Copy className="w-3 h-3 text-white/40" />
+                <Copy className="h-3.5 w-3.5" aria-hidden="true" />
               )}
-            </motion.button>
+            </button>
           )}
+        </div>
 
-          <div className="w-px h-5 bg-white/10" />
-
-          <motion.button
+        <div className="flex items-center gap-1">
+          <FlatIconButton
+            label={isMuted ? 'Activer le son' : 'Couper le son'}
+            className="h-9 w-9 min-w-0 border-transparent"
             onClick={() => {
               playInkSound('inkClick', 0.3);
               toggleMute();
             }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-            aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </motion.button>
-
-          <motion.button
-            onClick={() => {
-              playInkSound('inkClick', 0.3);
-              setShowSettings(true);
-            }}
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-            aria-label="Paramètres"
-          >
-            <Settings className="w-4 h-4" />
-          </motion.button>
-
-          <motion.button
+            {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </FlatIconButton>
+          <FlatIconButton
+            label="Raccourcis clavier"
+            className="h-9 w-9 min-w-0 border-transparent"
             onClick={() => {
               playInkSound('inkClick', 0.3);
               setShowShortcuts(true);
             }}
-            whileHover={{ scale: 1.15, rotate: -10 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-            aria-label="Raccourcis clavier"
-            title="Raccourcis (?)"
           >
-            <span
-              className="text-base font-black"
-              style={{ fontFamily: "'Caveat', cursive" }}
-            >
-              ?
-            </span>
-          </motion.button>
-
+            <Keyboard className="h-4 w-4" />
+          </FlatIconButton>
           <button
             type="button"
             onClick={() => {
               playInkSound('brushTap', 0.2);
               setShowPatchNote(true);
             }}
-            className="px-2 text-[10px] font-mono text-white/40 hover:text-white/70 transition-colors"
+            className="if-btn if-btn--ghost if-btn--sm menu-focus"
           >
             v{CURRENT_VERSION}
           </button>
         </div>
-      </div>
+      </footer>
 
       {/* ============== PROFILE DRAWER ============== */}
-      {/* Quests and chat colour used to live in an unreachable carousel panel,
-          so both features were invisible in game. They belong here. */}
       <InkDrawer
         isOpen={showProfileDrawer}
         onClose={() => setShowProfileDrawer(false)}
         side="left"
         title="Mon profil"
         subtitle={`Niveau ${level}`}
-        icon={<User className="w-5 h-5" strokeWidth={2.5} />}
+        icon={<User className="h-5 w-5" />}
       >
         <div className="flex flex-col gap-3">
           <InkProfileSidebar />
@@ -1053,8 +554,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         isOpen={showFriendsDrawer}
         onClose={() => setShowFriendsDrawer(false)}
         title="Mes amis"
-        icon={<UsersRound className="w-5 h-5" strokeWidth={2.5} />}
-        iconGradient="linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)"
+        icon={<UsersRound className="h-5 w-5" />}
       >
         <InkFriendsSidebar
           onJoinFriend={(code) => {
@@ -1068,262 +568,111 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       </InkDrawer>
 
       {/* ============== JOIN DIALOG ============== */}
-      <AnimatePresence>
-        {showJoinDialog && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
-            onClick={() => setShowJoinDialog(false)}
-          >
-            <motion.form
-              initial={{ opacity: 0, scale: 0.85, y: 20, rotate: -2 }}
-              animate={{ opacity: 1, scale: 1, y: 0, rotate: -1 }}
-              exit={{ opacity: 0, scale: 0.85, y: 20, rotate: 2 }}
-              transition={{ type: 'spring', damping: 22, stiffness: 260 }}
-              onClick={(e) => e.stopPropagation()}
-              onSubmit={(e) => { e.preventDefault(); handleJoinGame(); }}
-              className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl overflow-hidden"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="join-lobby-title"
-              style={{
-                background:
-                  'linear-gradient(180deg, #1a0a0a 0%, #140707 50%, #0a0404 100%)',
-                border: '4px solid #0a0810',
-                boxShadow:
-                  '0 12px 0 #0a0810, 0 18px 40px rgba(220,38,38,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
-              }}
-            >
-              <div
-                className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
-                style={{ border: '2px solid rgba(220,38,38,0.4)' }}
-              />
-              <div className="relative p-6 space-y-4 overflow-y-auto custom-scrollbar">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      animate={{ rotate: [-5, 5, -5] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                      className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                      style={{
-                        background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-                        border: '3px solid #0a0810',
-                        boxShadow: '0 4px 0 #0a0810',
+      <InkModal
+        isOpen={showJoinDialog}
+        onClose={() => setShowJoinDialog(false)}
+        title="Rejoindre une partie"
+        subtitle="Code à 4 caractères"
+        icon={<Hash className="h-5 w-5" />}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleJoinGame();
+          }}
+          className="flex flex-col gap-4"
+        >
+          <div>
+            <label htmlFor="ink-lobby-code" className="if-label mb-2 block">
+              Code du lobby
+            </label>
+            <input
+              id="ink-lobby-code"
+              data-autofocus
+              className="if-input if-code-input"
+              placeholder="XXXX"
+              value={lobbyCode}
+              onChange={(e) =>
+                setLobbyCode(
+                  e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4),
+                )
+              }
+              inputMode="text"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+
+          {recentLobbies.length > 0 && (
+            <div>
+              <FlatLabel className="mb-2 block">Lobbies récents</FlatLabel>
+              <ul className="flex flex-col gap-1">
+                {recentLobbies.map((it) => (
+                  <li key={it.code} className="if-row justify-between gap-2 p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLobbyCode(it.code);
+                        playInkSound('brushTap', 0.3);
                       }}
+                      className="menu-focus flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left"
                     >
-                      <Hash className="h-5 w-5 text-white" strokeWidth={3} />
-                    </motion.div>
-                    <h3
-                      id="join-lobby-title"
-                      className="text-3xl font-black text-white leading-none"
-                      style={{
-                        fontFamily: "'Caveat', cursive",
-                        textShadow:
-                          '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810',
-                      }}
+                      <span className="font-mono text-sm font-bold tracking-widest">
+                        {it.code}
+                      </span>
+                      <span className="if-mute truncate text-xs">
+                        {new Date(it.joinedAt).toLocaleDateString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                        })}
+                      </span>
+                    </button>
+                    <FlatIconButton
+                      label={`Supprimer le lobby récent ${it.code}`}
+                      className="h-8 w-8 min-w-0 border-transparent"
+                      onClick={() => removeRecentLobby(it.code)}
                     >
-                      Rejoindre
-                    </h3>
-                  </div>
-                  <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setShowJoinDialog(false)}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                    style={{
-                      background: 'rgba(239,68,68,0.2)',
-                      border: '2.5px solid #0a0810',
-                      boxShadow: '0 3px 0 #0a0810',
-                    }}
-                  >
-                    <X className="w-5 h-5" strokeWidth={3} />
-                  </motion.button>
-                </div>
-                <div className="space-y-2">
-                  <label
-                    className="text-sm font-black text-white/80 flex items-center gap-2 px-1"
-                    style={{ fontFamily: "'Caveat', cursive" }}
-                  >
-                    <Hash className="h-3.5 w-3.5" />
-                    Code du Lobby
-                  </label>
-                  <Input
-                    placeholder="XXXX"
-                    value={lobbyCode}
-                    onChange={(e) => setLobbyCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4))}
-                    maxLength={4}
-                    className="text-center text-4xl tracking-[0.4em] uppercase font-black h-16 bg-black/50 rounded-2xl text-white"
-                    style={{
-                      fontFamily: "'Caveat', cursive",
-                      border: '3px solid #0a0810',
-                      boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5)',
-                    }}
-                    autoFocus
-                  />
-                </div>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </FlatIconButton>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-                {/* RECENT LOBBIES — quick rejoin */}
-                {recentLobbies.length > 0 && (
-                  <div className="space-y-2">
-                    <label
-                      className="text-sm font-black text-white/70 flex items-center gap-2 px-1"
-                      style={{ fontFamily: "'Caveat', cursive" }}
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                      Récents
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {recentLobbies.slice(0, 6).map((it, idx) => (
-                        <motion.div
-                          key={it.code}
-                          initial={{ opacity: 0, scale: 0.8, rotate: -4 }}
-                          animate={{
-                            opacity: 1,
-                            scale: 1,
-                            rotate: idx % 2 === 0 ? -1.5 : 1.5,
-                          }}
-                          transition={{ delay: idx * 0.04 }}
-                          whileHover={{ scale: 1.05, rotate: 0, y: -2 }}
-                          className="group relative flex items-center rounded-xl"
-                          style={{
-                            background:
-                              'linear-gradient(180deg, rgba(220,38,38,0.18), rgba(127,29,29,0.05))',
-                            border: '2.5px solid #0a0810',
-                            boxShadow: '0 3px 0 #0a0810',
-                          }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLobbyCode(it.code);
-                              playInkSound('brushTap', 0.3);
-                            }}
-                            className="menu-focus px-3 py-1.5"
-                            title={`Rejoindre ${it.code}`}
-                          >
-                            <span
-                              className="font-mono text-base font-black tracking-wider text-white"
-                              style={{
-                                fontFamily: "'Caveat', cursive",
-                                textShadow:
-                                  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-                              }}
-                            >
-                              {it.code}
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeRecentLobby(it.code)}
-                            className="menu-icon-control mr-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500/30 opacity-60 transition-opacity hover:bg-red-500/50 hover:opacity-100 group-hover:opacity-100"
-                            aria-label={`Supprimer le lobby récent ${it.code}`}
-                          >
-                            <X className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.04, rotate: -2 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => setShowJoinDialog(false)}
-                    className="flex-1 py-3 rounded-2xl text-xl font-black text-white flex items-center justify-center gap-2"
-                    style={{
-                      background: 'linear-gradient(180deg, #4b5563, #1f2937)',
-                      border: '3px solid #0a0810',
-                      boxShadow: '0 4px 0 #0a0810',
-                      fontFamily: "'Caveat', cursive",
-                      textShadow:
-                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4" strokeWidth={3} />
-                    Annuler
-                  </motion.button>
-                  <motion.button
-                    type="submit"
-                    whileHover={
-                      playerName.trim() && lobbyCode.length === 4
-                        ? { scale: 1.04, rotate: 2 }
-                        : undefined
-                    }
-                    whileTap={
-                      playerName.trim() && lobbyCode.length === 4
-                        ? { scale: 0.96 }
-                        : undefined
-                    }
-                    disabled={!playerName.trim() || lobbyCode.length !== 4}
-                    className={cn(
-                      'flex-1 py-3 rounded-2xl text-xl font-black text-white transition-opacity',
-                      (!playerName.trim() || lobbyCode.length !== 4) && 'opacity-50',
-                    )}
-                    style={{
-                      background: 'linear-gradient(180deg, #dc2626, #7f1d1d)',
-                      border: '3px solid #0a0810',
-                      boxShadow: '0 4px 0 #0a0810',
-                      fontFamily: "'Caveat', cursive",
-                      textShadow:
-                        '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810',
-                    }}
-                  >
-                    Rejoindre
-                  </motion.button>
-                </div>
-              </div>
-            </motion.form>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ============== SETTINGS MODAL ============== */}
-      <AnimatePresence>
-        {showSettings && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
-            onClick={() => setShowSettings(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 20, rotate: -1 }}
-              animate={{ opacity: 1, scale: 1, y: 0, rotate: -0.5 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20, rotate: 1 }}
-              transition={{ type: 'spring', damping: 22, stiffness: 240 }}
-              className="relative w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex flex-col rounded-3xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background:
-                  'linear-gradient(180deg, #1a0a0a 0%, #140707 50%, #0a0404 100%)',
-                border: '4px solid #0a0810',
-                boxShadow:
-                  '0 12px 0 #0a0810, 0 18px 40px rgba(220,38,38,0.35), inset 0 2px 0 rgba(255,255,255,0.08)',
-              }}
+          <div className="flex gap-2">
+            <FlatButton
+              variant="ghost"
+              block
+              onClick={() => setShowJoinDialog(false)}
+              icon={<X className="h-4 w-4" />}
             >
-              <div
-                className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none z-[1]"
-                style={{ border: '2px solid rgba(220,38,38,0.4)' }}
-              />
-              <div className="relative z-[2] flex flex-col min-h-0 flex-1">
-                <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              Annuler
+            </FlatButton>
+            <FlatButton variant="primary" type="submit" block disabled={!joinReady}>
+              Rejoindre
+            </FlatButton>
+          </div>
 
-      {/* PATCH NOTE MODAL */}
+          {!joinReady && lobbyCode.length > 0 && (
+            <p className="if-mute text-xs">Le code doit contenir 4 caractères.</p>
+          )}
+        </form>
+      </InkModal>
+
+      {/* ============== SETTINGS ============== */}
+      {showSettings && (
+        <BareOverlay label="Paramètres" onClose={() => setShowSettings(false)}>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
+          </div>
+        </BareOverlay>
+      )}
+
+      {/* ============== PATCH NOTE ============== */}
       <InkPatchNoteModal forceOpen={showPatchNote} onClose={() => setShowPatchNote(false)} />
 
-      {/* SHORTCUTS HELP MODAL */}
+      {/* ============== SHORTCUTS ============== */}
       <InkShortcutsModal
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
@@ -1337,14 +686,6 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           { keys: ['Enter'], label: 'Lancer la partie' },
         ]}
       />
-
-      {/* SCROLLBAR STYLE */}
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(220,38,38,0.4); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(220,38,38,0.6); }
-      `}</style>
     </div>
   );
 };

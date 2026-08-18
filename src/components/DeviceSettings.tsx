@@ -36,9 +36,9 @@ interface DeviceSettingsProps {
 }
 
 const GRAFFITI_TEXT_SHADOW =
-  "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810";
+  "none";
 const GRAFFITI_TEXT_SHADOW_SM =
-  "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810";
+  "none";
 
 type Tab = "audio" | "volume" | "avatar" | "theme";
 
@@ -144,7 +144,7 @@ export const DeviceSettings = ({
         style={{
           background:
             "linear-gradient(180deg, rgba(168,85,247,0.18), rgba(168,85,247,0.05))",
-          borderBottom: "3px solid #0a0810",
+          borderBottom: '1px solid var(--ink-line)',
         }}
       >
         <div className="flex items-center gap-3">
@@ -154,9 +154,9 @@ export const DeviceSettings = ({
             className="w-12 h-12 rounded-2xl flex items-center justify-center"
             style={{
               background: "linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)",
-              border: "3px solid #0a0810",
+              border: '1px solid var(--ink-line)',
               boxShadow:
-                "0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)",
+                'none',
             }}
           >
             <SettingsIcon className="h-5 w-5 text-white" strokeWidth={2.5} />
@@ -165,7 +165,7 @@ export const DeviceSettings = ({
             <h3
               className="text-3xl font-black text-white leading-none"
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW,
               }}
             >
@@ -173,7 +173,7 @@ export const DeviceSettings = ({
             </h3>
             <p
               className="text-sm text-purple-200/80 font-bold mt-0.5"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Audio · Volume · Thème{showAvatarTab ? " · Avatar" : ""}
             </p>
@@ -191,8 +191,8 @@ export const DeviceSettings = ({
             className="menu-icon-control menu-focus w-10 h-10 rounded-xl flex items-center justify-center text-white"
             style={{
               background: "rgba(168,85,247,0.18)",
-              border: "2.5px solid #0a0810",
-              boxShadow: "0 3px 0 #0a0810",
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
             title="Recharger les appareils"
           >
@@ -212,8 +212,8 @@ export const DeviceSettings = ({
               className="menu-icon-control menu-focus w-10 h-10 rounded-xl flex items-center justify-center text-white"
               style={{
                 background: "rgba(239,68,68,0.25)",
-                border: "2.5px solid #0a0810",
-                boxShadow: "0 3px 0 #0a0810",
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
               title="Fermer (Esc)"
             >
@@ -226,7 +226,7 @@ export const DeviceSettings = ({
       {/* TABS — graffiti pills */}
       <div
         className="relative flex gap-1.5 px-3 py-2.5 flex-shrink-0"
-        style={{ borderBottom: "3px solid #0a0810" }}
+        style={{ borderBottom: '1px solid var(--ink-line)' }}
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -245,8 +245,8 @@ export const DeviceSettings = ({
                 background: isActive
                   ? `linear-gradient(180deg, ${tab.color}, ${tab.color}cc)`
                   : "rgba(255,255,255,0.04)",
-                border: "2.5px solid #0a0810",
-                boxShadow: isActive ? "0 4px 0 #0a0810" : "0 2px 0 #0a0810",
+                border: '1px solid var(--ink-line)',
+                boxShadow: isActive ? "0 0 0 rgba(0,0,0,0)" : "0 0 0 rgba(0,0,0,0)",
               }}
             >
               <Icon
@@ -263,7 +263,7 @@ export const DeviceSettings = ({
                   isActive ? "text-white" : "text-white/60",
                 )}
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: isActive ? GRAFFITI_TEXT_SHADOW_SM : "none",
                 }}
               >
@@ -331,8 +331,8 @@ export const DeviceSettings = ({
               style={{
                 background:
                   "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-                border: "3px solid #0a0810",
-                boxShadow: "0 3px 0 #0a0810",
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <AvatarSettings playerId={playerId} playerName={playerName} />
@@ -343,7 +343,7 @@ export const DeviceSettings = ({
 
       {/* FOOTER — close button */}
       {onClose && (
-        <div className="px-5 py-3" style={{ borderTop: "3px solid #0a0810" }}>
+        <div className="px-5 py-3" style={{ borderTop: '1px solid var(--ink-line)' }}>
           <motion.button
             type="button"
             whileHover={{ scale: 1.02, rotate: -1 }}
@@ -353,10 +353,10 @@ export const DeviceSettings = ({
             style={{
               background:
                 "linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)",
-              border: "3px solid #0a0810",
+              border: '1px solid var(--ink-line)',
               boxShadow:
-                "0 5px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.2)",
-              fontFamily: "'Caveat', cursive",
+                'none',
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
@@ -413,14 +413,14 @@ const AudioSection = ({
         style={{
           background:
             "linear-gradient(180deg, rgba(239,68,68,0.18), rgba(127,29,29,0.05))",
-          border: "3px solid #0a0810",
-          boxShadow: "0 3px 0 #0a0810",
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}
       >
         <p
           className="text-sm font-black text-red-300"
           style={{
-            fontFamily: "'Caveat', cursive",
+            fontFamily: "'Outfit', sans-serif",
             textShadow: GRAFFITI_TEXT_SHADOW_SM,
           }}
         >
@@ -439,7 +439,7 @@ const AudioSection = ({
       <div className="flex items-center justify-between gap-3">
         <span
           className="text-base font-bold text-white/80"
-          style={{ fontFamily: "'Caveat', cursive" }}
+          style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           Choisis ton entrée audio
         </span>
@@ -456,9 +456,9 @@ const AudioSection = ({
           className="menu-focus px-3 py-1.5 rounded-xl text-base font-black text-white disabled:opacity-50"
           style={{
             background: "linear-gradient(180deg, #a855f7 0%, #6b21a8 100%)",
-            border: "2.5px solid #0a0810",
-            boxShadow: "0 3px 0 #0a0810",
-            fontFamily: "'Caveat', cursive",
+            border: '1px solid var(--ink-line)',
+            boxShadow: 'none',
+            fontFamily: "'Outfit', sans-serif",
             textShadow: GRAFFITI_TEXT_SHADOW_SM,
           }}
         >
@@ -470,7 +470,7 @@ const AudioSection = ({
         className="rounded-xl"
         style={{
           background: "rgba(0,0,0,0.4)",
-          border: "3px solid #0a0810",
+          border: '1px solid var(--ink-line)',
           boxShadow: "inset 0 2px 4px rgba(0,0,0,0.4)",
         }}
       >
@@ -502,8 +502,8 @@ const AudioSection = ({
           background: noiseSuppressionEnabled
             ? "linear-gradient(180deg, rgba(52,211,153,0.18), rgba(5,150,105,0.05))"
             : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-          border: "2.5px solid #0a0810",
-          boxShadow: "0 3px 0 #0a0810",
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}
       >
         <div className="flex items-center gap-2">
@@ -515,7 +515,7 @@ const AudioSection = ({
           <span
             className="text-base font-black text-white"
             style={{
-              fontFamily: "'Caveat', cursive",
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
@@ -538,9 +538,9 @@ const AudioSection = ({
           background: isMicTesting
             ? "linear-gradient(180deg, #ef4444, #b91c1c)"
             : "linear-gradient(180deg, #fbbf24, #d97706)",
-          border: "3px solid #0a0810",
-          boxShadow: "0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.25)",
-          fontFamily: "'Caveat', cursive",
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
+          fontFamily: "'Outfit', sans-serif",
           textShadow: GRAFFITI_TEXT_SHADOW_SM,
         }}
       >
@@ -566,7 +566,7 @@ const AudioSection = ({
             className="flex items-center gap-2 text-sm uppercase tracking-wider font-black"
             style={{
               color: "#a855f7",
-              fontFamily: "'Caveat', cursive",
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
@@ -577,7 +577,7 @@ const AudioSection = ({
             className="relative h-5 rounded-full overflow-hidden"
             style={{
               background: "rgba(0,0,0,0.5)",
-              border: "2.5px solid #0a0810",
+              border: '1px solid var(--ink-line)',
               boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)",
             }}
           >
@@ -597,7 +597,7 @@ const AudioSection = ({
           </div>
           <p
             className="text-center text-sm font-bold text-white/70"
-            style={{ fontFamily: "'Caveat', cursive" }}
+            style={{ fontFamily: "'Outfit', sans-serif" }}
           >
             🎤 Parle dans le micro pour voir le niveau
           </p>
@@ -608,14 +608,14 @@ const AudioSection = ({
       <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl p-3"
         style={{
           background: 'linear-gradient(180deg, rgba(52,211,153,0.06), rgba(52,211,153,0.02))',
-          border: '2.5px solid #0a0810',
-          boxShadow: '0 2px 0 #0a0810',
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}>
         <div className="flex-1 min-w-0">
-          <p className="text-base font-black text-white" style={{ fontFamily: "'Caveat', cursive", textShadow: '1.5px 1.5px 0 #0a0810' }}>
+          <p className="text-base font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
             🔇 Suppression de bruit
           </p>
-          <p className="text-xs text-white/55 font-bold" style={{ fontFamily: "'Caveat', cursive" }}>
+          <p className="text-xs text-white/55 font-bold" style={{ fontFamily: "'Outfit', sans-serif" }}>
             Enlève le bruit ambiant en temps réel (RNNoise)
           </p>
         </div>
@@ -629,9 +629,9 @@ const AudioSection = ({
       style={{
         background:
           "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-        border: "2.5px solid #0a0810",
-        boxShadow: "0 2px 0 #0a0810",
-        fontFamily: "'Caveat', cursive",
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
+        fontFamily: "'Outfit', sans-serif",
       }}
     >
       🎙️ {audioInputs.length} microphone{audioInputs.length > 1 ? "s" : ""}{" "}
@@ -665,7 +665,7 @@ const ThemeSection = () => {
     >
       <p
         className="text-base font-bold text-white/65"
-        style={{ fontFamily: "'Caveat', cursive" }}
+        style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         Choisis l'ambiance visuelle du jeu
       </p>
@@ -687,18 +687,18 @@ const ThemeSection = () => {
                 background: isSelected
                   ? `linear-gradient(135deg, hsl(${config.colors.primary}), hsl(${config.colors.secondary}))`
                   : "rgba(255,255,255,0.04)",
-                border: "3px solid #0a0810",
+                border: '1px solid var(--ink-line)',
                 boxShadow: isSelected
-                  ? `0 4px 0 #0a0810, 0 0 18px hsl(${config.colors.primary} / 0.6)`
-                  : "0 3px 0 #0a0810",
+                  ? `0 0 0 rgba(0,0,0,0), 0 0 18px hsl(${config.colors.primary} / 0.6)`
+                  : "0 0 0 rgba(0,0,0,0)",
               }}
             >
               <span
                 className="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                 style={{
                   background: `linear-gradient(135deg, hsl(${config.colors.primary}), hsl(${config.colors.secondary}))`,
-                  border: "2.5px solid #0a0810",
-                  boxShadow: "0 2px 0 #0a0810",
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 {config.emoji}
@@ -709,7 +709,7 @@ const ThemeSection = () => {
                   isSelected ? "text-white" : "text-white/80",
                 )}
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -718,9 +718,9 @@ const ThemeSection = () => {
               {isSelected && (
                 <span
                   className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white flex items-center justify-center"
-                  style={{ boxShadow: "0 1.5px 0 #0a0810" }}
+                  style={{ boxShadow: 'none' }}
                 >
-                  <Check className="w-3.5 h-3.5 text-[#0a0810]" strokeWidth={3} aria-hidden="true" />
+                  <Check className="w-3.5 h-3.5 text-[var(--ink-line)]" strokeWidth={3} aria-hidden="true" />
                 </span>
               )}
             </motion.button>
@@ -731,7 +731,7 @@ const ThemeSection = () => {
       {inkModeEnabled && theme !== 'ink' && (
         <p
           className="text-sm font-bold text-amber-300/80 flex items-center gap-1.5"
-          style={{ fontFamily: "'Caveat', cursive" }}
+          style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Mode Ink toujours actif — choisis « Ink » pour y revenir
@@ -762,7 +762,7 @@ const VolumeSection = () => {
           <label
             className="text-lg font-black flex items-center gap-2 text-white"
             style={{
-              fontFamily: "'Caveat', cursive",
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
@@ -788,7 +788,7 @@ const VolumeSection = () => {
           <label
             className="text-lg font-black flex items-center gap-2 text-white"
             style={{
-              fontFamily: "'Caveat', cursive",
+              fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
             }}
           >
@@ -864,9 +864,9 @@ const CartoonPresetButton = ({
     className="menu-focus flex-1 py-2 rounded-xl text-base font-black text-white"
     style={{
       background: `linear-gradient(180deg, ${color}, ${color}cc)`,
-      border: "2.5px solid #0a0810",
-      boxShadow: "0 3px 0 #0a0810",
-      fontFamily: "'Caveat', cursive",
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
+      fontFamily: "'Outfit', sans-serif",
       textShadow: GRAFFITI_TEXT_SHADOW_SM,
     }}
   >
@@ -897,8 +897,8 @@ const CartoonSection = ({
     style={{
       background:
         "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-      border: "3px solid #0a0810",
-      boxShadow: `0 4px 0 #0a0810, inset 0 1px 0 rgba(255,255,255,0.06)`,
+      border: '1px solid var(--ink-line)',
+      boxShadow: `0 0 0 rgba(0,0,0,0), inset 0 0 0 rgba(255,255,255,0.06)`,
     }}
   >
     {/* Glow halo */}
@@ -912,7 +912,7 @@ const CartoonSection = ({
       className="absolute -top-2 -right-2 w-4 h-4"
       style={{
         color: accent,
-        filter: "drop-shadow(1px 1px 0 #0a0810)",
+        filter: "none",
       }}
     />
     <header className="relative flex items-center gap-2">
@@ -922,8 +922,8 @@ const CartoonSection = ({
         className="w-8 h-8 rounded-xl flex items-center justify-center"
         style={{
           background: `linear-gradient(135deg, ${accent}, ${accent}aa)`,
-          border: "2.5px solid #0a0810",
-          boxShadow: "0 2px 0 #0a0810",
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}
       >
         <Icon className="h-4 w-4 text-white" strokeWidth={2.5} />
@@ -931,7 +931,7 @@ const CartoonSection = ({
       <span
         className="text-2xl font-black uppercase tracking-wider text-white leading-none"
         style={{
-          fontFamily: "'Caveat', cursive",
+          fontFamily: "'Outfit', sans-serif",
           textShadow: GRAFFITI_TEXT_SHADOW_SM,
         }}
       >
@@ -952,15 +952,15 @@ const CartoonSwitch = ({ enabled }: { enabled: boolean }) => (
       background: enabled
         ? "linear-gradient(180deg, #34d399, #059669)"
         : "rgba(0,0,0,0.5)",
-      border: "2.5px solid #0a0810",
-      boxShadow: "0 2px 0 #0a0810",
+      border: '1px solid var(--ink-line)',
+      boxShadow: 'none',
     }}
   >
     <span
       className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
       style={{
         left: enabled ? "calc(100% - 22px)" : "2px",
-        boxShadow: "0 1.5px 0 #0a0810",
+        boxShadow: 'none',
       }}
     />
   </span>

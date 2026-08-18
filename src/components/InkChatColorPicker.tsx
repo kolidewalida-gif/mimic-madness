@@ -6,9 +6,9 @@ import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 
-const SHADOW = "2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810";
-const SHADOW_SM = "1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810";
-const FONT = "'Caveat', cursive";
+const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
+const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
+const FONT = "'Outfit', sans-serif";
 
 const Swatch = memo(({
   option, current, unlocked, onPick, level,
@@ -38,8 +38,8 @@ const Swatch = memo(({
           : isAuto
             ? 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02))'
             : option.hex,
-        border: '3px solid #0a0810',
-        boxShadow: current ? `0 4px 0 #0a0810, 0 0 18px ${isRainbow ? '#fbbf24' : option.hex}aa` : '0 3px 0 #0a0810',
+        border: '1px solid var(--ink-line)',
+        boxShadow: current ? `0 0 0 rgba(0,0,0,0), 0 0 18px ${isRainbow ? '#fbbf24' : option.hex}aa` : '0 0 0 rgba(0,0,0,0)',
         opacity: unlocked ? 1 : 0.45,
       }}
       title={`${option.label} · niveau ${option.minLevel}`}
@@ -65,7 +65,7 @@ const Swatch = memo(({
           className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
           style={{
             background: 'linear-gradient(180deg, #34d399, #059669)',
-            border: '2px solid #0a0810',
+            border: '1px solid var(--ink-line)',
           }}
         >
           <Check className="w-3 h-3 text-white" strokeWidth={3} />
@@ -90,8 +90,8 @@ const InkChatColorPickerComponent = () => {
       className="relative rounded-3xl p-4 space-y-3"
       style={{
         background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
-        border: '4px solid #0a0810',
-        boxShadow: '0 8px 0 #0a0810',
+        border: '1px solid var(--ink-line)',
+        boxShadow: 'none',
       }}
     >
       <div className="flex items-center justify-between">

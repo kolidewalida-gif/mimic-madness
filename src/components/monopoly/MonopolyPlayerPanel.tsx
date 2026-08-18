@@ -80,7 +80,7 @@ function AnimatedMoney({ money }: { money: number }) {
       transition={{ duration: 0.45 }}
       className="text-sm font-black leading-none"
       style={{
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "'Outfit', sans-serif",
         color,
         textShadow: GRAFFITI_TEXT_SHADOW_SM,
       }}
@@ -104,14 +104,14 @@ export function MonopolyPlayerPanel({
         style={{
           background:
             'linear-gradient(180deg, rgba(168,85,247,0.2), rgba(168,85,247,0.05))',
-          border: '3px solid #0a0810',
-          boxShadow: '0 4px 0 #0a0810',
+          border: '1px solid var(--ink-line)',
+          boxShadow: 'none',
         }}
       >
         <h3
           className="text-lg font-black uppercase tracking-wider text-white text-center"
           style={{
-            fontFamily: "'Caveat', cursive",
+            fontFamily: "'Outfit', sans-serif",
             textShadow: GRAFFITI_TEXT_SHADOW_SM,
           }}
         >
@@ -154,10 +154,10 @@ export function MonopolyPlayerPanel({
                 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))',
               border: isCurrentTurn
                 ? `3.5px solid ${color}`
-                : '3px solid #0a0810',
+                : '3px solid var(--ink-line)',
               boxShadow: isCurrentTurn
-                ? `0 5px 0 #0a0810, 0 0 22px ${color}aa`
-                : '0 4px 0 #0a0810',
+                ? `0 0 0 rgba(0,0,0,0), 0 0 22px ${color}aa`
+                : '0 0 0 rgba(0,0,0,0)',
             }}
           >
             {/* Active-turn spotlight overlay — soft animated glow ribbon. */}
@@ -199,14 +199,14 @@ export function MonopolyPlayerPanel({
                 className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{
                   background: color,
-                  border: '2.5px solid #0a0810',
-                  boxShadow: '0 3px 0 #0a0810',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <span
                   className="text-base font-black text-white leading-none uppercase"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW_SM,
                   }}
                 >
@@ -222,7 +222,7 @@ export function MonopolyPlayerPanel({
                       player.is_bankrupt && 'line-through',
                     )}
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       color: '#fff',
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
@@ -234,8 +234,8 @@ export function MonopolyPlayerPanel({
                       className="text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wide leading-none"
                       style={{
                         background: '#fbbf24',
-                        color: '#0a0810',
-                        border: '1.5px solid #0a0810',
+                        color: 'var(--ink-line)',
+                        border: '1px solid var(--ink-line)',
                       }}
                     >
                       VOUS
@@ -255,8 +255,8 @@ export function MonopolyPlayerPanel({
                   className="px-2 py-1 rounded-lg flex items-center gap-1"
                   style={{
                     background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                    border: '2px solid #0a0810',
-                    boxShadow: '0 2px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <Crown
@@ -266,7 +266,7 @@ export function MonopolyPlayerPanel({
                   <span
                     className="text-[10px] font-black text-white uppercase leading-none"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
@@ -292,7 +292,7 @@ export function MonopolyPlayerPanel({
                 />
                 <span
                   className="text-sm font-black text-white/80 leading-none"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   {ownedProps.length}p
                   {totalHouses > 0 && ` · ${totalHouses}🏠`}
@@ -305,7 +305,7 @@ export function MonopolyPlayerPanel({
                 />
                 <span
                   className="text-xs font-bold text-white/60 leading-none truncate"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   {space?.nameFr || '?'}
                 </span>
@@ -324,7 +324,7 @@ export function MonopolyPlayerPanel({
                   />
                   <span
                     className="text-[11px] font-black text-red-300 uppercase tracking-wider leading-none"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     EN PRISON
                   </span>
@@ -334,7 +334,7 @@ export function MonopolyPlayerPanel({
                 <div className="col-span-2 text-center">
                   <span
                     className="text-[11px] font-black text-red-400 uppercase tracking-wider"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     💀 FAILLITE
                   </span>

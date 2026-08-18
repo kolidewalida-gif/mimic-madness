@@ -205,14 +205,14 @@ export const QuizQuestion = ({
           className="w-full flex items-center justify-between rounded-2xl px-5 py-3 animate-fadeInDown"
           style={{
             background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
-            border: '3px solid #0a0810',
-            boxShadow: '0 4px 0 #0a0810',
+            border: '1px solid var(--ink-line)',
+            boxShadow: 'none',
           }}
         >
           <div className="flex items-center gap-3">
             <div
               className="p-2 rounded-xl"
-              style={{ background: 'linear-gradient(135deg, #84cc16, #65a30d)', border: '2.5px solid #0a0810' }}
+              style={{ background: 'linear-gradient(135deg, #84cc16, #65a30d)', border: '1px solid var(--ink-line)' }}
             >
               <Brain className="h-5 w-5 text-white" strokeWidth={2.5} />
             </div>
@@ -220,7 +220,7 @@ export const QuizQuestion = ({
               <span className="text-white/50 text-xs uppercase tracking-wider">Question</span>
               <p
                 className="font-black text-2xl leading-none text-white"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 {roundNumber}<span className="text-white/40 text-lg">/{totalRounds}</span>
               </p>
@@ -305,13 +305,13 @@ export const QuizQuestion = ({
           className="w-full p-6 text-center transition-all duration-500 animate-zoomInBounce rounded-3xl"
           style={{
             background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 60%, #0f0820 100%)',
-            border: `4px solid ${isCritical ? '#ef4444' : '#0a0810'}`,
-            boxShadow: isCritical ? '0 6px 0 #0a0810, 0 0 24px #ef444466' : '0 6px 0 #0a0810',
+            border: `4px solid ${isCritical ? '#ef4444' : 'var(--ink-line)'}`,
+            boxShadow: isCritical ? '0 0 0 rgba(0,0,0,0), 0 0 24px #ef444466' : '0 0 0 rgba(0,0,0,0)',
           }}
         >
           <h2
             className="text-2xl md:text-3xl font-black leading-tight text-white"
-            style={{ fontFamily: "'Caveat', cursive", textShadow: '1.5px 1.5px 0 #0a0810' }}
+            style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}
           >
             {question}
           </h2>
@@ -388,10 +388,10 @@ export const QuizQuestion = ({
                   )}
                   style={{
                     background: style.grad,
-                    border: `4px solid #0a0810`,
+                    border: `4px solid var(--ink-line)`,
                     boxShadow: isSelected
-                      ? '0 6px 0 #0a0810, 0 0 0 4px rgba(255,255,255,0.5)'
-                      : '0 5px 0 #0a0810',
+                      ? '0 0 0 rgba(0,0,0,0), 0 0 0 4px rgba(255,255,255,0.5)'
+                      : '0 0 0 rgba(0,0,0,0)',
                     animationDelay: `${index * 80}ms`,
                   }}
                 >
@@ -400,9 +400,9 @@ export const QuizQuestion = ({
                     className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-black text-xl text-white"
                     style={{
                       background: 'rgba(0,0,0,0.25)',
-                      border: '2.5px solid #0a0810',
-                      fontFamily: "'Caveat', cursive",
-                      textShadow: '1.5px 1.5px 0 #0a0810',
+                      border: '1px solid var(--ink-line)',
+                      fontFamily: "'Outfit', sans-serif",
+                      textShadow: 'none',
                     }}
                   >
                     {style.letter}
@@ -411,7 +411,7 @@ export const QuizQuestion = ({
                   {/* Option text */}
                   <span
                     className="text-lg md:text-xl font-black line-clamp-3 flex-1 text-white"
-                    style={{ fontFamily: "'Caveat', cursive", textShadow: '1.5px 1.5px 0 #0a0810' }}
+                    style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}
                   >
                     {option}
                   </span>
@@ -420,7 +420,7 @@ export const QuizQuestion = ({
                   {isSelected && (
                     <div
                       className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center animate-scaleIn"
-                      style={{ background: '#84cc16', border: '2.5px solid #0a0810', boxShadow: '0 2px 0 #0a0810' }}
+                      style={{ background: '#84cc16', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
                     >
                       <Check className="h-4 w-4 text-white" strokeWidth={3} />
                     </div>

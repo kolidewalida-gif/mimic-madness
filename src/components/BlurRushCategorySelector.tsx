@@ -24,9 +24,9 @@ interface BlurRushCategorySelectorProps {
 
 const ACCENT = '#06b6d4'; // cyan — matches BlurRush card
 const GRAFFITI_TEXT_SHADOW =
-  '2px 2px 0 #0a0810, -1.5px -1.5px 0 #0a0810, 1.5px -1.5px 0 #0a0810, -1.5px 1.5px 0 #0a0810, 1.5px 1.5px 0 #0a0810';
+  'none';
 const GRAFFITI_TEXT_SHADOW_SM =
-  '1.5px 1.5px 0 #0a0810, -1px -1px 0 #0a0810, 1px -1px 0 #0a0810, -1px 1px 0 #0a0810, 1px 1px 0 #0a0810';
+  'none';
 
 const CATEGORY_ICONS: Record<BlurRushCategory, React.ReactNode> = {
   Anime: <Tv className="h-5 w-5 text-white" strokeWidth={2.5} />,
@@ -127,15 +127,15 @@ export const BlurRushCategorySelector = ({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
               style={{
                 background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
-                border: '3px solid #0a0810',
-                boxShadow: '0 4px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <Zap className="w-4 h-4 text-white" strokeWidth={2.5} />
               <span
                 className="text-sm font-black uppercase tracking-wider text-white leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -146,7 +146,7 @@ export const BlurRushCategorySelector = ({
             <h1
               className="text-5xl md:text-6xl font-black tracking-tight leading-none text-white"
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW,
               }}
             >
@@ -154,7 +154,7 @@ export const BlurRushCategorySelector = ({
             </h1>
             <p
               className="text-base text-white/70 font-bold"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               {isHost
                 ? 'Sélectionne les catégories pour cette partie'
@@ -176,8 +176,8 @@ export const BlurRushCategorySelector = ({
               background: selected.includes('Mix')
                 ? `linear-gradient(180deg, ${CATEGORY_COLORS.Mix}, ${CATEGORY_COLORS.Mix}cc)`
                 : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-              border: '3px solid #0a0810',
-              boxShadow: '0 5px 0 #0a0810',
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
           >
             <motion.div
@@ -186,8 +186,8 @@ export const BlurRushCategorySelector = ({
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
               style={{
                 background: `linear-gradient(135deg, ${CATEGORY_COLORS.Mix}, ${CATEGORY_COLORS.Mix}aa)`,
-                border: '3px solid #0a0810',
-                boxShadow: '0 4px 0 #0a0810',
+                border: '1px solid var(--ink-line)',
+                boxShadow: 'none',
               }}
             >
               <Shuffle className="w-6 h-6 text-white" strokeWidth={2.5} />
@@ -196,7 +196,7 @@ export const BlurRushCategorySelector = ({
               <span
                 className="block text-2xl font-black text-white leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -204,7 +204,7 @@ export const BlurRushCategorySelector = ({
               </span>
               <p
                 className="text-sm text-white/70 font-bold mt-1"
-                style={{ fontFamily: "'Caveat', cursive" }}
+                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 {getImagesByCategory('Mix').length} images au total
               </p>
@@ -216,8 +216,8 @@ export const BlurRushCategorySelector = ({
                 className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{
                   background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                  border: '2.5px solid #0a0810',
-                  boxShadow: '0 3px 0 #0a0810',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 <Check className="w-4 h-4 text-white" strokeWidth={3} />
@@ -230,7 +230,7 @@ export const BlurRushCategorySelector = ({
             <div className="flex-1 h-0.5 bg-white/10" />
             <span
               className="text-sm font-black uppercase tracking-wider text-white/55"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               ou choisis tes catégories
             </span>
@@ -268,16 +268,16 @@ export const BlurRushCategorySelector = ({
                     background: isSelected
                       ? `linear-gradient(180deg, ${color}, ${color}cc)`
                       : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                    border: '3px solid #0a0810',
-                    boxShadow: '0 4px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center"
                     style={{
                       background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-                      border: '2.5px solid #0a0810',
-                      boxShadow: '0 3px 0 #0a0810',
+                      border: '1px solid var(--ink-line)',
+                      boxShadow: 'none',
                     }}
                   >
                     {CATEGORY_ICONS[category]}
@@ -285,7 +285,7 @@ export const BlurRushCategorySelector = ({
                   <span
                     className="text-base font-black text-white leading-none"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
@@ -293,7 +293,7 @@ export const BlurRushCategorySelector = ({
                   </span>
                   <span
                     className="text-xs font-bold text-white/70"
-                    style={{ fontFamily: "'Caveat', cursive" }}
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
                   >
                     {count} images
                   </span>
@@ -304,8 +304,8 @@ export const BlurRushCategorySelector = ({
                       className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center"
                       style={{
                         background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                        border: '2.5px solid #0a0810',
-                        boxShadow: '0 3px 0 #0a0810',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
                       }}
                     >
                       <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
@@ -324,20 +324,20 @@ export const BlurRushCategorySelector = ({
             style={{
               background:
                 'linear-gradient(180deg, rgba(6,182,212,0.15), rgba(14,116,144,0.04))',
-              border: '3px solid #0a0810',
-              boxShadow: '0 3px 0 #0a0810',
+              border: '1px solid var(--ink-line)',
+              boxShadow: 'none',
             }}
           >
             <span
               className="text-base font-bold text-white/70"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              style={{ fontFamily: "'Outfit', sans-serif" }}
             >
               Images dispo :{' '}
             </span>
             <span
               className="text-2xl font-black text-cyan-300"
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW_SM,
               }}
             >
@@ -354,16 +354,16 @@ export const BlurRushCategorySelector = ({
               className="relative w-full py-4 rounded-2xl flex items-center justify-center gap-3"
               style={{
                 background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
-                border: '4px solid #0a0810',
+                border: '1px solid var(--ink-line)',
                 boxShadow:
-                  '0 6px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                  'none',
               }}
             >
               <Sparkles className="w-6 h-6 text-white" strokeWidth={2.5} />
               <span
                 className="text-2xl font-black text-white leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW,
                 }}
               >

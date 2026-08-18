@@ -84,7 +84,7 @@ export const AudioPhoneWaitingPhase = memo(({
           <InkTitle size="xl">La chaîne continue…</InkTitle>
           <p
             className="text-base text-white/70 max-w-md mx-auto font-bold"
-            style={{ fontFamily: "'Caveat', cursive" }}
+            style={{ fontFamily: "'Outfit', sans-serif" }}
           >
             Patiente pendant que les autres joueurs participent.
           </p>
@@ -105,8 +105,8 @@ export const AudioPhoneWaitingPhase = memo(({
                 className="relative w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0"
                 style={{
                   background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
-                  border: '3px solid #0a0810',
-                  boxShadow: '0 4px 0 #0a0810, inset 0 2px 0 rgba(255,255,255,0.25)',
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'none',
                 }}
               >
                 {currentPhase === 'recording' ? (
@@ -118,8 +118,8 @@ export const AudioPhoneWaitingPhase = memo(({
                   className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
                   style={{
                     background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                    border: '2.5px solid #0a0810',
-                    boxShadow: '0 2px 0 #0a0810',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
                   <Loader2 className="w-3.5 h-3.5 text-white animate-spin" strokeWidth={3} />
@@ -129,14 +129,14 @@ export const AudioPhoneWaitingPhase = memo(({
               <div className="flex-1 min-w-0">
                 <p
                   className="text-sm text-white/60 font-bold leading-none"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   C'est au tour de
                 </p>
                 <p
                   className="text-3xl font-black text-white truncate leading-none mt-1"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,
                   }}
                 >
@@ -144,7 +144,7 @@ export const AudioPhoneWaitingPhase = memo(({
                 </p>
                 <p
                   className="text-sm text-amber-300 font-bold mt-1"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                   {currentPhase === 'recording'
                     ? '🎤 Enregistrement…'
@@ -182,7 +182,7 @@ export const AudioPhoneWaitingPhase = memo(({
               <span
                 className="text-base font-black text-white leading-none"
                 style={{
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
               >
@@ -209,7 +209,7 @@ export const AudioPhoneWaitingPhase = memo(({
             <h3
               className="text-base font-black uppercase tracking-wider text-white/80 mb-3"
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW_SM,
               }}
             >
@@ -232,10 +232,10 @@ export const AudioPhoneWaitingPhase = memo(({
                       : status.isCurrent
                         ? `linear-gradient(180deg, ${ACCENT}33, ${ACCENT}10)`
                         : 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                    border: '2.5px solid #0a0810',
+                    border: '1px solid var(--ink-line)',
                     boxShadow: status.isCurrent
-                      ? `0 3px 0 #0a0810, 0 0 12px ${ACCENT}55`
-                      : '0 3px 0 #0a0810',
+                      ? `0 0 0 rgba(0,0,0,0), 0 0 12px ${ACCENT}55`
+                      : '0 0 0 rgba(0,0,0,0)',
                   }}
                 >
                   <div
@@ -246,8 +246,8 @@ export const AudioPhoneWaitingPhase = memo(({
                         : status.isCurrent
                           ? `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`
                           : 'rgba(255,255,255,0.06)',
-                      border: '2.5px solid #0a0810',
-                      boxShadow: '0 2px 0 #0a0810',
+                      border: '1px solid var(--ink-line)',
+                      boxShadow: 'none',
                     }}
                   >
                     {status.isCompleted ? (
@@ -256,7 +256,7 @@ export const AudioPhoneWaitingPhase = memo(({
                       <span
                         className="text-base font-black text-white leading-none"
                         style={{
-                          fontFamily: "'Caveat', cursive",
+                          fontFamily: "'Outfit', sans-serif",
                           textShadow: GRAFFITI_TEXT_SHADOW_SM,
                         }}
                       >
@@ -267,7 +267,7 @@ export const AudioPhoneWaitingPhase = memo(({
                   <p
                     className="text-base font-black flex-1 truncate text-white leading-none"
                     style={{
-                      fontFamily: "'Caveat', cursive",
+                      fontFamily: "'Outfit', sans-serif",
                       textShadow: GRAFFITI_TEXT_SHADOW_SM,
                     }}
                   >
