@@ -14,7 +14,13 @@ import {
   Loader2,
   Mic,
 } from "lucide-react";
-import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
+import {
+  videoStorage,
+  VideoClip,
+  MAX_UPLOAD_BYTES,
+  formatMb,
+  UploadTooLargeError,
+} from "@/lib/videoStorageSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
@@ -23,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { CircularGallery } from "@/components/ui/circular-gallery";
 import { generateRhythmoTrack, releaseRhythmoWorker } from "@/lib/rhythmo/generate";
 import { isLikelyDecodable } from "@/lib/rhythmo/audio";
-import { hasRhythmoTrack } from "@/lib/rhythmo/store";
+import { listRhythmoTracks } from "@/lib/rhythmo/store";
 import { RhythmoError, rhythmoErrorLabel, type RhythmoProgress } from "@/lib/rhythmo/types";
 
 interface Player {
@@ -135,26 +141,20 @@ export const VideoSubmissionScreen = ({
     releaseRhythmoWorker();
   }, []);
 
-  // Which clips already have a band. Checked once per clip; `loadRhythmoTrack`
-  // caches the answer, so revisiting this screen costs nothing.
+  // Which clips already have a band. One folder listing answers for the whole
+  // library, instead of one request per clip.
   useEffect(() => {
     let cancelled = false;
-    const unknown = savedClips.filter((clip) => rhythmoReady[clip.id] === undefined);
-    if (unknown.length === 0) return;
+    if (savedClips.length === 0) return;
     (async () => {
-      const entries = await Promise.all(
-        unknown.map(async (clip) => [clip.id, await hasRhythmoTrack(clip.id)] as const),
-      );
+      const withBand = await listRhythmoTracks(currentPlayer.id);
       if (cancelled) return;
-      setRhythmoReady((prev) => {
-        const next = { ...prev };
-        for (const [id, ready] of entries) next[id] = ready;
-        return next;
-      });
+      setRhythmoReady(
+        Object.fromEntries(savedClips.map((clip) => [clip.id, withBand.has(clip.id)])),
+      );
     })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedClips]);
+  }, [savedClips, currentPlayer.id]);
 
   useEffect(() => {
     loadPlayerClips();
@@ -205,11 +205,29 @@ export const VideoSubmissionScreen = ({
     }
     // Dedup by name against existing clips
     const existingNames = new Set(savedClips.map((c) => c.name));
-    const newFiles = videoFiles.filter((f) => !existingNames.has(f.name.replace(/\.[^/.]+$/, '')));
-    if (newFiles.length === 0) {
+    const deduped = videoFiles.filter((f) => !existingNames.has(f.name.replace(/\.[^/.]+$/, '')));
+    if (deduped.length === 0) {
       toast({ title: '✅ Déjà importées', description: 'Toutes ces vidéos sont déjà dans ta bibliothèque.' });
       return;
     }
+
+    // Told up-front, before any request. The server does not answer on an
+    // oversized upload, it drops the connection, which the browser reports as
+    // a bare "NetworkError" — indistinguishable from a hang.
+    const tooBig = deduped.filter((f) => f.size > MAX_UPLOAD_BYTES);
+    const newFiles = deduped.filter((f) => f.size <= MAX_UPLOAD_BYTES);
+
+    if (tooBig.length > 0) {
+      toast({
+        title: `📦 ${tooBig.length} vidéo${tooBig.length > 1 ? 's' : ''} trop lourde${tooBig.length > 1 ? 's' : ''}`,
+        description: `Limite ${formatMb(MAX_UPLOAD_BYTES)} par vidéo. ${tooBig
+          .map((f) => `${f.name.replace(/\.[^/.]+$/, '')} (${formatMb(f.size)})`)
+          .join(', ')} — découpe la vidéo ou réduis sa qualité.`,
+        variant: 'destructive',
+      });
+    }
+
+    if (newFiles.length === 0) return;
 
     setIsUploading(true);
     setUploadStatus({ done: 0, total: newFiles.length, current: newFiles[0].name });
@@ -218,6 +236,7 @@ export const VideoSubmissionScreen = ({
       // uplink and make every one of them slow, with no way to show which is
       // progressing. One at a time gives a real "3/5" and a name.
       const results: ({ clip: VideoClip; file: File } | null)[] = [];
+      let firstFailure: string | null = null;
 
       for (const [index, file] of newFiles.entries()) {
         setUploadStatus({ done: index, total: newFiles.length, current: file.name });
@@ -245,8 +264,16 @@ export const VideoSubmissionScreen = ({
           );
           results.push({ clip, file });
         } catch (err) {
-          console.error('[import] échec pour', file.name, err);
+          console.error('[import] échec pour', file.name, `(${formatMb(file.size)})`, err);
           results.push(null);
+          if (!firstFailure) {
+            firstFailure =
+              err instanceof UploadTooLargeError
+                ? err.message
+                : err instanceof Error
+                  ? err.message
+                  : 'Erreur inconnue.';
+          }
         }
       }
 
@@ -264,7 +291,9 @@ export const VideoSubmissionScreen = ({
       if (failed > 0) {
         toast({
           title: `⚠️ ${failed} échec${failed > 1 ? 's' : ''}`,
-          description: "Regarde la console pour la raison exacte (taille du fichier, format refusé par le bucket…).",
+          description:
+            firstFailure ??
+            "Regarde la console pour la raison exacte (taille du fichier, format refusé par le bucket…).",
           variant: 'destructive',
         });
       }

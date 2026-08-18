@@ -91,10 +91,6 @@ export const rhythmoErrorLabel = (reason: RhythmoErrorReason): string => {
   }
 };
 
-/** Total number of words in a track — used for empty-state checks. */
-export const countWords = (track: RhythmoTrack | null | undefined): number =>
-  track?.cues.reduce((sum, cue) => sum + cue.words.length, 0) ?? 0;
-
 /**
  * Flatten a track to a single word list. The band renders from this: one
  * absolutely-positioned run of words is far cheaper than nested cue elements.

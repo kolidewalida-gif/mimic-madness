@@ -14,23 +14,17 @@ import { videoStorage } from '@/lib/videoStorageSupabase';
 import type { RhythmoTrack } from './types';
 
 const BUCKET = 'video-challenges';
+const CUES_SUFFIX = '.cues.json';
 
 /** `abc/clip-1.mp4` -> `abc/clip-1.cues.json` */
 export const cuesPathFor = (storagePath: string): string =>
-  `${storagePath.replace(/\.[^./]+$/, '')}.cues.json`;
+  `${storagePath.replace(/\.[^./]+$/, '')}${CUES_SUFFIX}`;
 
 /**
  * Cache keyed by clip id. `null` is cached too: a clip with no band is the
  * common case, and we must not re-request a 404 on every render.
  */
 const trackCache = new Map<string, RhythmoTrack | null>();
-
-export const peekCachedTrack = (clipId: string): RhythmoTrack | null | undefined =>
-  trackCache.get(clipId);
-
-export const invalidateTrack = (clipId: string): void => {
-  trackCache.delete(clipId);
-};
 
 const isTrack = (value: unknown): value is RhythmoTrack => {
   if (!value || typeof value !== 'object') return false;
@@ -73,10 +67,30 @@ export async function loadRhythmoTrack(clipId: string): Promise<RhythmoTrack | n
   }
 }
 
-/** True when a band already exists, without downloading it. */
-export async function hasRhythmoTrack(clipId: string): Promise<boolean> {
-  if (trackCache.get(clipId)) return true;
-  return (await loadRhythmoTrack(clipId)) !== null;
+/**
+ * Which of a player's clips have a band, in a single request.
+ *
+ * Asking per clip meant one `download()` each, and a missing cue file answers
+ * 400 — so a library of ten clips produced ten failed requests on every mount.
+ * Listing the player's folder once answers for all of them.
+ *
+ * Clip ids are recovered from the file names, so this needs no clip metadata.
+ */
+export async function listRhythmoTracks(playerId: string): Promise<Set<string>> {
+  const found = new Set<string>();
+  try {
+    const { data, error } = await supabase.storage.from(BUCKET).list(playerId, { limit: 1000 });
+    if (error || !data) return found;
+
+    for (const entry of data) {
+      if (entry.name.endsWith(CUES_SUFFIX)) {
+        found.add(entry.name.slice(0, -CUES_SUFFIX.length));
+      }
+    }
+  } catch {
+    /* treated as "none known" — the band is optional everywhere */
+  }
+  return found;
 }
 
 /**
@@ -104,16 +118,6 @@ export async function saveRhythmoTrack(track: RhythmoTrack): Promise<void> {
   trackCache.set(track.clipId, track);
 }
 
-/** Remove a band. Called when its clip is deleted. */
-export async function deleteRhythmoTrack(clipId: string): Promise<void> {
-  try {
-    const clip = await videoStorage.getVideoClip(clipId);
-    if (clip?.storagePath) {
-      await supabase.storage.from(BUCKET).remove([cuesPathFor(clip.storagePath)]);
-    }
-  } catch {
-    /* a leftover cue file is harmless */
-  } finally {
-    trackCache.delete(clipId);
-  }
-}
+/* Deleting a band is not exposed here on purpose: `videoStorage.deleteVideoClip`
+   removes the `.cues.json` sibling itself, so it can never be forgotten by a
+   caller that deletes a clip. */

@@ -14,6 +14,33 @@ export interface VideoClip {
   lobbyId?: string;
 }
 
+/**
+ * Largest file the project accepts, in bytes.
+ *
+ * The `video-challenges` bucket asks for 400 MB, but a bucket can never exceed
+ * the project-wide limit, and that is capped at 50 MB on Supabase's free plan.
+ * So 50 MB is the real ceiling regardless of what the bucket says.
+ *
+ * Raise this if the project moves to a paid plan *and* the global limit in
+ * Storage Settings is raised to match.
+ */
+export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
+export const formatMb = (bytes: number): string => `${(bytes / (1024 * 1024)).toFixed(0)} Mo`;
+
+/** Thrown before any request when a file cannot possibly be accepted. */
+export class UploadTooLargeError extends Error {
+  size: number;
+  limit = MAX_UPLOAD_BYTES;
+  constructor(size: number) {
+    super(
+      `Vidéo trop lourde : ${formatMb(size)} pour une limite de ${formatMb(MAX_UPLOAD_BYTES)}.`,
+    );
+    this.name = 'UploadTooLargeError';
+    this.size = size;
+  }
+}
+
 // In-memory signed URL cache — avoids re-creating URLs when multiple components
 // request the same clip (VideoPreview, VideoWithAudioOverlay, thumbnails).
 // Entries expire after 50 min (signed URLs are valid 1h).
@@ -33,6 +60,13 @@ class VideoStorageSupabase {
       lobbyId?: string;
     }
   ): Promise<VideoClip> {
+    // Refuse oversized files up-front. The server cuts the connection partway
+    // through instead of answering, which surfaces as an opaque "NetworkError"
+    // and looks exactly like a hang. Better to say so before uploading.
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw new UploadTooLargeError(file.size);
+    }
+
     // Upload video/audio to Supabase Storage
     // Override contentType to bypass bucket allowed_mime_types restrictions
     // (e.g. .mkv, .avi, .wav are not in the default allow-list)
@@ -49,7 +83,7 @@ class VideoStorageSupabase {
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      console.error('Upload error:', uploadError, `(${formatMb(file.size)})`);
       throw new Error(`Failed to upload video: ${uploadError.message}`);
     }
 
