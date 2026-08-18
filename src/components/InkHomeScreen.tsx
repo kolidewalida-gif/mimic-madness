@@ -919,7 +919,16 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             boxShadow: '0 10px 0 #0a0810',
           }}
         >
-          <InkFriendsSidebar onJoinFriend={handleJoinFriendLobby} />
+          <InkFriendsSidebar
+            onJoinFriend={(code) => {
+              setLobbyCode(code);
+              if (playerName.trim()) {
+                onJoinGame(playerName.trim(), code);
+              } else {
+                setShowJoinDialog(true);
+              }
+            }}
+          />
         </aside>
         </div>
       </main>
