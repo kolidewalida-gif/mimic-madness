@@ -24,8 +24,9 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    // Pre-bundling the ONNX runtime is slow and unnecessary: it is only ever
-    // reached from inside the worker chunk.
-    exclude: ["@huggingface/transformers"],
+    // Must be pre-bundled: the ONNX runtime it pulls in ships CommonJS, which
+    // the browser cannot load unless Vite converts it first. Excluding it made
+    // the worker's dynamic import never settle in dev.
+    include: ["@huggingface/transformers"],
   },
 }));

@@ -44,6 +44,22 @@ interface VideoSubmissionScreenProps {
 
 const ACCENT = "var(--ink-accent)"; // purple — matches the IMITATION/2v2 menu
 
+/**
+ * Reject a promise that takes too long.
+ *
+ * Neither the Supabase client nor `fetch` has a timeout, so a stalled request
+ * hangs for ever and the UI has no way to tell. The original promise is not
+ * cancelled — it just stops being awaited.
+ */
+const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+
 /** Player-facing label for a rythmo generation stage. */
 const rhythmoLabel = (progress: RhythmoProgress): string => {
   switch (progress.phase) {
@@ -79,6 +95,12 @@ export const VideoSubmissionScreen = ({
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  /** Which file is uploading and how far along the batch is. */
+  const [uploadStatus, setUploadStatus] = useState<{
+    done: number;
+    total: number;
+    current: string;
+  } | null>(null);
   const [clipUrls, setClipUrls] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -190,8 +212,16 @@ export const VideoSubmissionScreen = ({
     }
 
     setIsUploading(true);
+    setUploadStatus({ done: 0, total: newFiles.length, current: newFiles[0].name });
     try {
-      const results = await Promise.all(newFiles.map(async (file) => {
+      // Sequential, not parallel: several large videos at once saturate the
+      // uplink and make every one of them slow, with no way to show which is
+      // progressing. One at a time gives a real "3/5" and a name.
+      const results: ({ clip: VideoClip; file: File } | null)[] = [];
+
+      for (const [index, file] of newFiles.entries()) {
+        setUploadStatus({ done: index, total: newFiles.length, current: file.name });
+
         const baseName = file.name.replace(/\.[^/.]+$/, '');
         const clipData = {
           id: `${currentPlayer.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -202,16 +232,24 @@ export const VideoSubmissionScreen = ({
           endTime: 0,
           isMuted: false,
         };
+
         try {
-          const clip = await videoStorage.uploadVideo(file, clipData);
-          // The File is kept alongside the clip so the rythmo pass can read
-          // the audio locally instead of downloading the video back.
-          return { clip, file };
+          // Bounded so a stalled request cannot leave the screen spinning for
+          // ever. Scaled to the file size, because a big video legitimately
+          // takes minutes on a slow connection.
+          const budgetMs = Math.max(60_000, Math.ceil(file.size / (20 * 1024)) * 1000);
+          const clip = await withTimeout(
+            videoStorage.uploadVideo(file, clipData),
+            budgetMs,
+            `L'upload de « ${baseName} » n'a pas abouti. Fichier trop lourd ou connexion trop lente.`,
+          );
+          results.push({ clip, file });
         } catch (err) {
-          console.error('[import] error for', file.name, err);
-          return null;
+          console.error('[import] échec pour', file.name, err);
+          results.push(null);
         }
-      }));
+      }
+
       const imported = results.filter((r): r is { clip: VideoClip; file: File } => r !== null);
       if (imported.length > 0) {
         // Keep the File around so a band asked for later in this session can
@@ -224,10 +262,15 @@ export const VideoSubmissionScreen = ({
       }
       const failed = newFiles.length - imported.length;
       if (failed > 0) {
-        toast({ title: `⚠️ ${failed} échec${failed > 1 ? 's' : ''}`, description: 'Certains fichiers n\'ont pas pu être uploadés.', variant: 'destructive' });
+        toast({
+          title: `⚠️ ${failed} échec${failed > 1 ? 's' : ''}`,
+          description: "Regarde la console pour la raison exacte (taille du fichier, format refusé par le bucket…).",
+          variant: 'destructive',
+        });
       }
     } finally {
       setIsUploading(false);
+      setUploadStatus(null);
     }
   };
 
@@ -243,7 +286,12 @@ export const VideoSubmissionScreen = ({
     const url = clipUrls[clip.id] ?? (await videoStorage.getVideoUrl(clip.id));
     if (!url) throw new RhythmoError('engine', 'Vidéo introuvable.');
 
-    const response = await fetch(url);
+    console.info('[rythmo] téléchargement de la vidéo depuis le stockage', clip.name);
+    const response = await withTimeout(
+      fetch(url),
+      120_000,
+      'Téléchargement de la vidéo trop long.',
+    );
     if (!response.ok) throw new RhythmoError('engine', 'Téléchargement de la vidéo impossible.');
     // The stored path carries the real extension; the clip name does not.
     return { blob: await response.blob(), fileName: clip.storagePath };
@@ -277,6 +325,7 @@ export const VideoSubmissionScreen = ({
       });
 
       try {
+        console.info('[rythmo] début', clip.name);
         const { blob, fileName } = await getClipMedia(clip);
 
         // Containers the browser cannot decode are rejected here rather than
@@ -294,6 +343,7 @@ export const VideoSubmissionScreen = ({
             setRhythmo((prev) => (prev ? { ...prev, progress } : prev)),
         });
 
+        console.info('[rythmo] terminé', clip.name);
         setRhythmoReady((prev) => ({ ...prev, [clip.id]: true }));
         done += 1;
       } catch (error) {
@@ -301,6 +351,14 @@ export const VideoSubmissionScreen = ({
         failures += 1;
         if (error instanceof RhythmoError) lastReason = error;
         console.warn('[rythmo] échec pour', clip.name, error);
+        // A non-typed failure would otherwise be reported as a generic
+        // problem; keep its message so the player can act on it.
+        if (!(error instanceof RhythmoError)) {
+          lastReason = new RhythmoError(
+            'engine',
+            error instanceof Error ? error.message : 'Erreur inconnue.',
+          );
+        }
       }
     }
 
@@ -314,12 +372,16 @@ export const VideoSubmissionScreen = ({
       });
     } else if (failures > 0 && !controller.signal.aborted) {
       // Report the actual reason: a container we cannot decode is a very
-      // different problem from a clip with no speech.
+      // different problem from a clip with no speech. Engine failures carry a
+      // specific message worth showing verbatim.
       toast({
         title: '🎤 Bande rythmo impossible',
         description: lastReason
-          ? rhythmoErrorLabel(lastReason.reason)
+          ? lastReason.reason === 'engine'
+            ? lastReason.message
+            : rhythmoErrorLabel(lastReason.reason)
           : 'Les vidéos restent jouables, sans texte défilant.',
+        variant: 'destructive',
       });
     }
   };
@@ -618,10 +680,16 @@ export const VideoSubmissionScreen = ({
                       <Upload className="w-8 h-8 text-[var(--ink-accent-text)]" strokeWidth={2} />
                     )}
                     <span className="text-base font-black text-[var(--ink-accent-text)]" style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
-                      {isUploading ? "Upload en cours..." : isDragging ? "Lâche ici !" : "Glisse tes vidéos ici ou clique"}
+                      {isUploading
+                        ? uploadStatus
+                          ? `Upload ${uploadStatus.done + 1}/${uploadStatus.total}…`
+                          : "Upload en cours..."
+                        : isDragging ? "Lâche ici !" : "Glisse tes vidéos ici ou clique"}
                     </span>
-                    <span className="text-xs text-white/40" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                      MP4, WebM, MOV, MKV — plusieurs fichiers à la fois
+                    <span className="max-w-full truncate px-4 text-xs text-white/40" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                      {isUploading && uploadStatus
+                        ? uploadStatus.current
+                        : "MP4, WebM, MOV, MKV — plusieurs fichiers à la fois"}
                     </span>
                   </div>
 

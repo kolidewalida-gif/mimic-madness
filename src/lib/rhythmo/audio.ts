@@ -67,8 +67,19 @@ export async function extractMonoPcm(file: Blob, fileName = ''): Promise<{
   const decodeCtx = new Ctor();
   let decoded: AudioBuffer;
   try {
-    decoded = await decodeCtx.decodeAudioData(bytes.slice(0));
-  } catch {
+    // Bounded: `decodeAudioData` neither resolves nor rejects on some
+    // malformed files, which would hang the whole pipeline silently.
+    decoded = await Promise.race([
+      decodeCtx.decodeAudioData(bytes.slice(0)),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new RhythmoError('unsupported-container', 'Décodage audio trop long.')),
+          90_000,
+        ),
+      ),
+    ]);
+  } catch (error) {
+    if (error instanceof RhythmoError) throw error;
     throw new RhythmoError(
       'unsupported-container',
       "Le navigateur n'a pas réussi à décoder l'audio de ce fichier.",

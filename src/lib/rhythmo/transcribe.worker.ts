@@ -29,6 +29,8 @@ export interface TranscribeRequest {
 
 export type WorkerOutbound =
   | { type: 'model-progress'; ratio: number; file?: string }
+  /** Any sign of life. Also resets the caller's watchdog. */
+  | { type: 'log'; message: string }
   | { type: 'ready'; device: 'webgpu' | 'wasm' }
   | { type: 'transcribing' }
   | {
@@ -52,11 +54,22 @@ type Transcriber = (
 
 let transcriberPromise: Promise<{ run: Transcriber; device: 'webgpu' | 'wasm' }> | null = null;
 
+/**
+ * Probe for a usable WebGPU adapter.
+ *
+ * `requestAdapter()` never rejects on some drivers, it just never settles, so
+ * it is raced against a timer. Losing the race only costs the WASM path, which
+ * is slower but always works.
+ */
 const hasWebGPU = async (): Promise<boolean> => {
   const gpu = (navigator as unknown as { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
   if (!gpu) return false;
   try {
-    return (await gpu.requestAdapter()) != null;
+    const adapter = await Promise.race([
+      gpu.requestAdapter(),
+      new Promise((resolve) => setTimeout(() => resolve(null), 2_000)),
+    ]);
+    return adapter != null;
   } catch {
     return false;
   }
@@ -66,15 +79,24 @@ async function getTranscriber() {
   if (transcriberPromise) return transcriberPromise;
 
   transcriberPromise = (async () => {
+    post({ type: 'log', message: 'chargement du moteur…' });
+
     const { pipeline, env } = await import('@huggingface/transformers');
 
     // Models come from the hub; there is no local model directory to probe.
     env.allowLocalModels = false;
 
+    post({ type: 'log', message: 'moteur chargé, préparation du modèle…' });
+
+    // Every status is forwarded, not just `progress`. When the model comes
+    // from cache there are no progress events at all, and a bar frozen at 0 %
+    // is indistinguishable from a hang.
     const reportProgress = (event: unknown) => {
-      const e = event as { status?: string; progress?: number; file?: string };
+      const e = event as { status?: string; progress?: number; file?: string; name?: string };
       if (e.status === 'progress' && typeof e.progress === 'number') {
         post({ type: 'model-progress', ratio: Math.max(0, Math.min(1, e.progress / 100)), file: e.file });
+      } else if (e.status) {
+        post({ type: 'log', message: `${e.status}${e.file ? ` ${e.file}` : ''}` });
       }
     };
 
@@ -83,6 +105,7 @@ async function getTranscriber() {
 
     for (const device of devices) {
       try {
+        post({ type: 'log', message: `initialisation ${device}…` });
         const run = (await pipeline('automatic-speech-recognition', MODEL_ID, {
           device,
           dtype: 'q8',
@@ -94,6 +117,10 @@ async function getTranscriber() {
         // WebGPU can fail on unsupported adapters or missing ops; WASM always
         // works, so a failure here is not fatal.
         lastError = error;
+        post({
+          type: 'log',
+          message: `${device} indisponible: ${error instanceof Error ? error.message : 'erreur'}`,
+        });
       }
     }
 
