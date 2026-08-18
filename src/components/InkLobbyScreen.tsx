@@ -16,6 +16,7 @@ import {
   WifiOff,
   X,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useGameTeams } from '@/hooks/useGameTeams';
@@ -47,8 +48,10 @@ import {
   ModeChip,
   ModeHero,
   ModeShelf,
-  PlayerCard,
 } from '@/components/game-ui/GameUI';
+
+/** Room capacity, matching the default used by LobbyInvitePanel. */
+const MAX_PLAYERS = 8;
 
 interface Player {
   id: string;
@@ -392,142 +395,10 @@ export const InkLobbyScreen = ({
       {/* ============== MAIN GRID ==============
           pb-32 clears the floating music bar. */}
       <div className="min-h-0 flex-1 px-4 pb-28 sm:px-8 lg:overflow-hidden">
-      <div className="custom-scrollbar mx-auto grid h-full max-w-[1600px] grid-cols-1 gap-4 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_340px] lg:overflow-hidden">
-        {/* ---------- RIGHT RAIL: players + mascot + chat ---------- */}
-        <aside className="order-2 flex min-h-[28rem] flex-col gap-3.5 lg:order-2 lg:min-h-0">
-          <GameCard className="flex flex-shrink-0 flex-col overflow-hidden">
-            <div className="flex items-center justify-between gap-2 border-b border-[var(--ink-line)] px-4 py-3">
-              <GameLabel className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                Joueurs
-              </GameLabel>
-              <GameTag>
-                {connectedCount}/{players.length}
-              </GameTag>
-            </div>
-
-            <ul className="custom-scrollbar max-h-[260px] overflow-y-auto p-2">
-              {players.map((p) => {
-                const av = getAvatar(p.id);
-                const canModerate =
-                  isHost && p.id !== currentPlayer.id && (!!onKickPlayer || !!onTransferHost);
-                return (
-                  <PlayerCard
-                    key={p.id}
-                    name={p.name}
-                    avatarUrl={av.type === 'image' ? av.imageUrl : undefined}
-                    isSelf={p.id === currentPlayer.id}
-                    badge={
-                      p.isHost ? (
-                        <Crown
-                          className="h-3.5 w-3.5 flex-shrink-0 text-[var(--c-yellow)]"
-                          fill="currentColor"
-                          aria-label="Hôte"
-                        />
-                      ) : null
-                    }
-                    meta={
-                      p.isDisconnected ? (
-                        <span className="flex items-center gap-1 text-[var(--c-orange)]">
-                          <WifiOff className="h-3 w-3" aria-hidden="true" />
-                          Reconnexion
-                        </span>
-                      ) : (
-                        <span className="if-mute">En ligne</span>
-                      )
-                    }
-                    action={
-                      canModerate ? (
-                        <span className="relative flex-shrink-0">
-                          <GameIconButton
-                            label={`Actions pour ${p.name}`}
-                            className="h-8 w-8 min-w-0 border-transparent bg-transparent"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              playInkSound('cartoonPop', 0.3);
-                              setOpenMenuFor(openMenuFor === p.id ? null : p.id);
-                            }}
-                          >
-                            <MoreVertical className="h-3.5 w-3.5" />
-                          </GameIconButton>
-                          {openMenuFor === p.id && (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="if-panel if-fade absolute right-0 top-9 z-50 w-44 overflow-hidden p-1"
-                            >
-                              {onTransferHost && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    playInkSound('cartoonDing', 0.3);
-                                    onTransferHost(p.id);
-                                    setOpenMenuFor(null);
-                                  }}
-                                  className="menu-focus flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-[var(--ink-text-dim)] transition-colors hover:bg-white/8 hover:text-[var(--ink-text)]"
-                                >
-                                  <Crown className="h-3.5 w-3.5" aria-hidden="true" />
-                                  Transférer l'hôte
-                                </button>
-                              )}
-                              {onKickPlayer && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    playInkSound('cartoonZap', 0.3);
-                                    onKickPlayer(p.id);
-                                    setOpenMenuFor(null);
-                                  }}
-                                  className="menu-focus flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-[var(--ink-text-dim)] transition-colors hover:bg-[rgba(255,107,91,0.14)] hover:text-[var(--c-coral)]"
-                                >
-                                  <X className="h-3.5 w-3.5" aria-hidden="true" />
-                                  Exclure
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </span>
-                      ) : null
-                    }
-                  />
-                );
-              })}
-            </ul>
-
-            <div className="border-t border-[var(--ink-line)] p-2.5">
-              <GameButton
-                variant="neutral"
-                size="sm"
-                block
-                onClick={() => {
-                  playInkSound('cartoonPop', 0.3);
-                  setShowInvitePanel(true);
-                }}
-                icon={<UserPlus className="h-4 w-4" />}
-              >
-                Inviter des amis
-              </GameButton>
-            </div>
-          </GameCard>
-
-          {/* Waiting state — the project's mascot earns its keep here instead of
-              leaving an empty rail while the host waits for players. */}
-          {players.length <= 1 && (
-            <GameCard inset className="hidden flex-shrink-0 flex-col items-center gap-1 p-4 text-center lg:flex">
-              <GameImage
-                candidates={['/lobby/mascot.png']}
-                alt=""
-                className="gm-mascot max-w-[128px]"
-                fallback={<span className="text-4xl">🎤</span>}
-              />
-              <p className="if-h2">Encore tout seul&nbsp;!</p>
-              <p className="if-mute text-xs">
-                Partage le code {lobbyCode} pour remplir le salon.
-              </p>
-            </GameCard>
-          )}
-
-          {/* Chat */}
-          <GameCard className="flex min-h-[16rem] flex-1 flex-col overflow-hidden">
+      <div className="gm-lobby mx-auto max-w-[1600px]">
+        {/* ---------- RIGHT: chat, full column height ---------- */}
+        <aside className="order-2 flex min-h-[22rem] flex-col lg:order-2 lg:min-h-0">
+          <GameCard className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <TwitchStyleLobbyChat
               lobbyId={lobbyId}
               playerId={currentPlayer.id}
@@ -538,8 +409,9 @@ export const InkLobbyScreen = ({
         </aside>
 
         {/* ---------- MAIN STAGE: featured mode, start, shelf ---------- */}
-        <section className="order-1 flex min-h-0 flex-col gap-4 lg:order-1 lg:overflow-y-auto lg:pr-1 custom-scrollbar">
+        <section className="order-1 flex min-h-0 flex-col gap-4 lg:order-1">
           <motion.div
+            className="flex-shrink-0"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.26, ease: 'easeOut' }}
@@ -611,7 +483,7 @@ export const InkLobbyScreen = ({
           </motion.div>
 
           {/* Mode shelf */}
-          <div>
+          <div className="flex-shrink-0">
             <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
               <GameLabel>{isHost ? 'Change de mode' : 'Modes du salon'}</GameLabel>
               <span className="if-mute text-xs">{MODE_CARDS.length} modes</span>
@@ -636,6 +508,164 @@ export const InkLobbyScreen = ({
               ))}
             </ModeShelf>
           </div>
+
+          {/* ---------- Roster — grows into the remaining space ---------- */}
+          <GameCard className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--ink-line)] px-4 py-3">
+              <GameLabel className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                Joueurs {players.length}/{MAX_PLAYERS}
+                {connectedCount !== players.length && (
+                  <span className="text-[var(--c-orange)]">
+                    · {players.length - connectedCount} en reconnexion
+                  </span>
+                )}
+              </GameLabel>
+              <GameButton
+                variant="neutral"
+                size="sm"
+                onClick={() => {
+                  playInkSound('cartoonPop', 0.3);
+                  setShowInvitePanel(true);
+                }}
+                icon={<UserPlus className="h-4 w-4" />}
+              >
+                Inviter des amis
+              </GameButton>
+            </div>
+
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3.5">
+              <div className="gm-players-grid">
+                {players.map((p) => {
+                  const av = getAvatar(p.id);
+                  const canModerate =
+                    isHost && p.id !== currentPlayer.id && (!!onKickPlayer || !!onTransferHost);
+                  return (
+                    <div
+                      key={p.id}
+                      className={cn(
+                        'gm-player',
+                        p.id === currentPlayer.id && 'is-self',
+                        p.isDisconnected && 'is-away',
+                      )}
+                    >
+                      {p.isHost && (
+                        <Crown
+                          className="gm-player-crown h-3.5 w-3.5"
+                          fill="currentColor"
+                          aria-label="Hôte"
+                        />
+                      )}
+
+                      {canModerate && (
+                        <span className="gm-player-actions">
+                          <GameIconButton
+                            label={`Actions pour ${p.name}`}
+                            className="h-7 w-7 min-w-0 border-transparent bg-transparent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playInkSound('cartoonPop', 0.3);
+                              setOpenMenuFor(openMenuFor === p.id ? null : p.id);
+                            }}
+                          >
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </GameIconButton>
+                          {openMenuFor === p.id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="if-panel if-fade absolute right-0 top-8 z-50 w-44 overflow-hidden p-1 text-left"
+                            >
+                              {onTransferHost && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    playInkSound('cartoonDing', 0.3);
+                                    onTransferHost(p.id);
+                                    setOpenMenuFor(null);
+                                  }}
+                                  className="menu-focus flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-[var(--ink-text-dim)] transition-colors hover:bg-white/10 hover:text-[var(--ink-text)]"
+                                >
+                                  <Crown className="h-3.5 w-3.5" aria-hidden="true" />
+                                  Transférer l'hôte
+                                </button>
+                              )}
+                              {onKickPlayer && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    playInkSound('cartoonZap', 0.3);
+                                    onKickPlayer(p.id);
+                                    setOpenMenuFor(null);
+                                  }}
+                                  className="menu-focus flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-[var(--ink-text-dim)] transition-colors hover:bg-[rgba(255,107,91,0.14)] hover:text-[var(--c-coral)]"
+                                >
+                                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                                  Exclure
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </span>
+                      )}
+
+                      <span className="gm-player-avatar">
+                        {av.type === 'image' && av.imageUrl ? (
+                          <img src={av.imageUrl} alt="" draggable={false} />
+                        ) : (
+                          (p.name[0] ?? '?').toUpperCase()
+                        )}
+                      </span>
+
+                      <span className="gm-player-name">{p.name}</span>
+                      <span className="gm-player-meta">
+                        {p.isDisconnected ? (
+                          <span className="flex items-center gap-1 text-[var(--c-orange)]">
+                            <WifiOff className="h-3 w-3" aria-hidden="true" />
+                            Absent
+                          </span>
+                        ) : p.id === currentPlayer.id ? (
+                          'Toi'
+                        ) : (
+                          'Prêt'
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                {/* Free seats, so the room reads as "waiting" rather than empty */}
+                {Array.from({ length: Math.max(0, MAX_PLAYERS - players.length) }).map((_, i) => (
+                  <div key={`slot-${i}`} className="gm-slot">
+                    <span className="gm-slot-ring" aria-hidden="true">
+                      <UserPlus className="h-4 w-4" />
+                    </span>
+                    <span>Libre</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {players.length <= 1 && (
+              <div className="flex flex-shrink-0 items-center gap-3 border-t border-[var(--ink-line)] px-4 py-3">
+                <GameImage
+                  candidates={['/lobby/mascot.png']}
+                  alt=""
+                  className="h-14 w-auto flex-shrink-0"
+                  fallback={<span className="text-3xl">🎤</span>}
+                />
+                <div className="min-w-0">
+                  <p className="if-h2">Encore tout seul&nbsp;!</p>
+                  <p className="if-mute text-xs">
+                    Partage le code{' '}
+                    <span className="font-mono font-bold text-[var(--ink-text)]">
+                      {lobbyCode}
+                    </span>{' '}
+                    pour remplir le salon.
+                  </p>
+                </div>
+              </div>
+            )}
+          </GameCard>
         </section>
       </div>
       </div>
@@ -658,6 +688,7 @@ export const InkLobbyScreen = ({
               lobbyCode={lobbyCode}
               lobbyId={lobbyId}
               players={players}
+              maxPlayers={MAX_PLAYERS}
               isHost={isHost}
               inlineMode
             />

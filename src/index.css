@@ -3132,6 +3132,13 @@ html.low-power .if-root > .gm-backdrop { display: none; }
   .gm-stage { grid-template-columns: minmax(0, 1fr); align-items: start; }
 }
 
+/* Only the home stage stretches its hero to fill the column. In the lobby the
+   hero is a fixed-height block above the roster, so it must not grow. */
+.gm-stage > .gm-hero {
+  height: 100%;
+  min-height: clamp(230px, 30vh, 380px);
+}
+
 /* ---- Featured mode panel ---- */
 .gm-hero {
   --accent: var(--c-violet);
@@ -3140,8 +3147,6 @@ html.low-power .if-root > .gm-backdrop { display: none; }
   grid-template-columns: auto minmax(0, 1fr);
   gap: clamp(1.25rem, 2.5vw, 2.25rem);
   align-items: center;
-  height: 100%;
-  min-height: clamp(230px, 30vh, 380px);
   overflow: hidden;
   padding: clamp(1.25rem, 2.2vw, 2rem);
   border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--ink-line-strong));
@@ -3370,4 +3375,124 @@ html.low-power .if-root > .gm-backdrop { display: none; }
      transparent. Fall back to plain text. */
   .gm-hero-name { background: none; color: var(--ink-text); }
   .gm-chip.is-selected { background: var(--ink-surface-2); }
+}
+
+/* ============================================================
+   LOBBY LAYOUT
+
+   A lobby is about who is in the room. The previous version buried the
+   roster in a small box and stacked five separate cards down a narrow rail,
+   leaving the bottom half of the screen empty. Now: two full-height zones,
+   the roster as a grid of tiles that grows into the free space, and the chat
+   filling its column instead of floating in a short box.
+   ============================================================ */
+.gm-lobby {
+  display: grid;
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+@media (max-width: 1100px) {
+  .gm-lobby { grid-template-columns: minmax(0, 1fr); height: auto; }
+}
+
+/* ---- Roster ---- */
+.gm-players-grid {
+  display: grid;
+  gap: 0.625rem;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  align-content: start;
+}
+
+.gm-player {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.875rem 0.5rem 0.75rem;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--ink-radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  text-align: center;
+}
+.gm-player.is-self {
+  border-color: var(--ink-accent-line);
+  background: var(--ink-accent-soft);
+}
+.gm-player.is-away { opacity: 0.6; }
+
+.gm-player-avatar {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(150deg, var(--c-violet), var(--c-pink));
+  color: #fff;
+  font-family: var(--ink-font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.gm-player-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.gm-player-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--ink-font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-player-meta {
+  color: var(--ink-text-mute);
+  font-size: 0.6875rem;
+}
+
+/* Host crown, top-left so it never collides with the actions button. */
+.gm-player-crown {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  color: var(--c-yellow);
+}
+
+.gm-player-actions {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+}
+
+/* Free seat: communicates "we are waiting" and fills the grid honestly. */
+.gm-slot {
+  display: flex;
+  min-height: 118px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px dashed var(--ink-line-strong);
+  border-radius: var(--ink-radius-sm);
+  color: var(--ink-text-mute);
+  background: rgba(255, 255, 255, 0.015);
+}
+.gm-slot-ring {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px dashed var(--ink-line-strong);
+  border-radius: 999px;
+}
+.gm-slot span { font-size: 0.6875rem; }
+
+@media (max-width: 560px) {
+  .gm-players-grid { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+  .gm-player-avatar,
+  .gm-slot-ring { width: 44px; height: 44px; }
+  .gm-slot { min-height: 96px; }
 }
