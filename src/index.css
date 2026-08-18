@@ -2714,38 +2714,26 @@ body.ink-mode {
 
 /* Music player animations. Previously injected as an inline <style> block on
    every render of MusicPlayerBar. */
-@keyframes mpFloat {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-10px) rotate(1deg); }
-}
 /* Scales instead of animating `height`: height is a layout property, so the
-   old version reflowed the whole capsule ~60 times a second and made the
-   music bar flicker. transform is composited and costs nothing. */
+   old version reflowed the whole bar ~60 times a second and made it flicker.
+   transform is composited and costs nothing.
+   (`mpFloat` and `mpSpin` belonged to the full-screen music menu, which was
+   removed in favour of a single self-contained bar.) */
 @keyframes mpEqBar {
   0%, 100% { transform: scaleY(0.25); }
   50% { transform: scaleY(1); }
 }
-.mp-float { animation: mpFloat 5s ease-in-out infinite; }
 .mp-eq-bar {
   height: 100%;
   transform-origin: bottom;
-  will-change: transform;
   animation: mpEqBar 0.9s ease-in-out infinite;
 }
 
-html.low-power .mp-float,
 html.low-power .mp-eq-bar { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .mp-float,
   .mp-eq-bar { animation: none; }
 }
-
-/* Vinyl label rotation on the studio cover art. */
-@keyframes mpSpin { to { transform: rotate(360deg); } }
-.mp-spin { animation: mpSpin 6s linear infinite; }
-html.low-power .mp-spin { animation: none; }
-@media (prefers-reduced-motion: reduce) { .mp-spin { animation: none; } }
 
 
 /* ============================================================
@@ -2760,6 +2748,13 @@ html.low-power .mp-spin { animation: none; }
 
 .if-root {
   position: relative;
+  /* `isolation: isolate` makes this a stacking context, which is what the
+     `z-index: -1` decoration layers below need: without it they escape to the
+     ancestor's context and get painted *behind* this element's own opaque
+     background, so the gradient was invisible. Unlike `transform`, isolation
+     does not become a containing block, so `position: fixed` descendants keep
+     positioning against the viewport. */
+  isolation: isolate;
   background: var(--ink-bg);
   color: var(--ink-text);
   font-family: var(--ink-font-body);
@@ -2787,17 +2782,17 @@ html.low-power .mp-spin { animation: none; }
   z-index: -1;
   pointer-events: none;
   transform: translateZ(0);
-  will-change: transform;
   background:
     radial-gradient(
       120% 62% at 50% -12%,
-      color-mix(in srgb, var(--accent, var(--c-violet)) 30%, transparent),
+      color-mix(in srgb, var(--accent, var(--c-violet)) 34%, transparent),
       transparent 68%
     ),
-    radial-gradient(60% 40% at 6% 4%, rgba(160, 107, 255, 0.16), transparent 70%),
-    radial-gradient(55% 38% at 96% 10%, rgba(64, 201, 255, 0.12), transparent 70%),
-    linear-gradient(180deg, transparent 30%, var(--ink-bg-deep) 96%);
-  transition: background 420ms ease;
+    radial-gradient(62% 42% at 4% 2%, rgba(160, 107, 255, 0.2), transparent 70%),
+    radial-gradient(58% 40% at 97% 8%, rgba(64, 201, 255, 0.15), transparent 70%),
+    linear-gradient(180deg, transparent 26%, var(--ink-bg-deep) 94%);
+  /* No transition: `background` holds gradients, which browsers cannot
+     interpolate. Declaring one only produced repaint churn on accent change. */
 }
 
 html.low-power .if-root::before { display: none; }
@@ -3140,7 +3135,6 @@ html.low-power .if-root::before { display: none; }
   background-size: cover;
   opacity: 0.14;
   transform: translateZ(0);
-  will-change: transform;
 }
 html.low-power .if-root > .gm-backdrop { display: none; }
 
@@ -3172,7 +3166,8 @@ html.low-power .if-root > .gm-backdrop { display: none; }
     ),
     var(--ink-surface);
   box-shadow: var(--ink-shadow-card), 0 0 42px color-mix(in srgb, var(--accent) 16%, transparent);
-  transition: border-color 260ms ease, background 260ms ease;
+  /* Only border-color: `background` is a gradient and cannot be interpolated. */
+  transition: border-color 260ms ease;
 }
 
 .gm-hero-art {
@@ -3526,11 +3521,11 @@ html.low-power .if-root > .gm-backdrop { display: none; }
 }
 
 /* ============================================================
-   MUSIC BAR — "now playing" card
+   MUSIC BAR — one self-contained player
 
-   A rounded card rather than a full pill: the progress line can then run
-   flush along the bottom edge instead of being clipped by a 999px radius.
-   Deliberately quiet, since it is permanently on screen.
+   Everything is in this card: transport, volume, playback modes, adaptive
+   mode and the track list. The list expands in place above the controls
+   instead of opening a second full-screen menu.
    ============================================================ */
 .mp-bar {
   border: 1px solid var(--ink-line-strong);
@@ -3538,6 +3533,148 @@ html.low-power .if-root > .gm-backdrop { display: none; }
   background: rgba(34, 28, 72, 0.97);
   box-shadow: var(--ink-shadow-pop), inset 0 1px 0 rgba(255, 255, 255, 0.09);
   transform: translateZ(0);
+}
+
+.mp-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem 0.7rem;
+}
+@media (min-width: 640px) { .mp-row { gap: 0.7rem; padding: 0.6rem 0.85rem 0.75rem; } }
+
+/* ---- Progress ---- */
+.mp-seek {
+  position: relative;
+  width: 100%;
+  height: 6px;
+}
+.mp-seek-track {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+.mp-seek-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: var(--c-violet);
+}
+.mp-seek:hover .mp-seek-track,
+.mp-seek:focus-within .mp-seek-track { height: 6px; }
+
+/* ---- Volume ---- */
+.mp-vol { align-items: center; gap: 0.25rem; }
+
+.mp-vol-range {
+  width: 74px;
+  height: 4px;
+  appearance: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+}
+.mp-vol-range::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  background: var(--ink-text);
+}
+.mp-vol-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ink-text);
+}
+
+/* ---- Track list, inline ---- */
+.mp-list {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--ink-line);
+}
+
+.mp-list-head { padding: 0.65rem 0.7rem 0.5rem; }
+
+.mp-search {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 38px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--ink-radius-sm);
+  background: rgba(10, 7, 26, 0.5);
+  color: var(--ink-text-dim);
+}
+.mp-search:focus-within { border-color: var(--c-violet); }
+
+.mp-moods {
+  display: flex;
+  gap: 0.3rem;
+  overflow-x: auto;
+  padding: 0 0.7rem 0.5rem;
+}
+.mp-mood {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--ink-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-text-mute);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+.mp-mood:hover { color: var(--ink-text-dim); background: rgba(255, 255, 255, 0.05); }
+.mp-mood.is-on {
+  border-color: transparent;
+  background: var(--c-violet);
+  color: #fff;
+}
+
+.mp-tracks {
+  max-height: min(38vh, 250px);
+  overflow-y: auto;
+  padding: 0 0.45rem 0.45rem;
+}
+
+.mp-track {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: var(--ink-radius-xs);
+  color: var(--ink-text-dim);
+  transition: background 140ms ease, color 140ms ease;
+}
+.mp-track:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink-text); }
+.mp-track.is-on { background: var(--ink-accent-soft); color: var(--ink-text); }
+
+.mp-track-name {
+  display: block;
+  overflow: hidden;
+  font-family: var(--ink-font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mp-track-meta {
+  display: block;
+  overflow: hidden;
+  color: var(--ink-text-mute);
+  font-size: 0.6875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mp-title {
@@ -3587,6 +3724,15 @@ html.low-power .if-root > .gm-backdrop { display: none; }
   border-radius: 999px;
   background: #fff;
 }
+
+/* Same indicator, inline in the track list rather than pinned to a cover. */
+.mp-eq--inline {
+  position: static;
+  flex-shrink: 0;
+  background: transparent;
+  padding: 0;
+}
+.mp-eq--inline .mp-eq-bar { background: var(--c-violet); }
 
 /* Transport buttons */
 .mp-ghost {
