@@ -93,6 +93,25 @@ describe('saving a rhythmo track', () => {
     await expect(saveRhythmoTrack(track)).rejects.toMatchObject({ reason: 'storage' });
   });
 
+  it('retries under an allowed MIME type when the bucket refuses application/json', async () => {
+    mocks.upload
+      .mockResolvedValueOnce({ error: { message: 'mime type application/json is not supported' } })
+      .mockResolvedValueOnce({ error: null });
+
+    await saveRhythmoTrack(track);
+
+    expect(mocks.upload).toHaveBeenCalledTimes(2);
+    expect(mocks.upload.mock.calls[0][2]).toMatchObject({ contentType: 'application/json' });
+    // The fallback type is in the bucket allow-list; cues are read with .text().
+    expect(mocks.upload.mock.calls[1][2]).toMatchObject({ contentType: 'audio/mpeg' });
+  });
+
+  it('does not retry a non-MIME storage failure under a different type', async () => {
+    mocks.upload.mockResolvedValue({ error: { message: 'bucket not found' } });
+    await expect(saveRhythmoTrack(track)).rejects.toMatchObject({ reason: 'storage' });
+    expect(mocks.upload).toHaveBeenCalledTimes(1);
+  });
+
   it('refuses to save when the clip no longer exists', async () => {
     mocks.getVideoClip.mockResolvedValue(null);
     await expect(saveRhythmoTrack(track)).rejects.toMatchObject({ reason: 'storage' });

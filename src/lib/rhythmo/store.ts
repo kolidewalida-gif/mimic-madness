@@ -109,36 +109,51 @@ export async function saveRhythmoTrack(
   }
   if (options.signal?.aborted) throw new RhythmoError('cancelled', 'Annulé.');
 
-  const blob = new Blob([JSON.stringify(track)], { type: 'application/json' });
-  const operation = supabase.storage
-    .from(BUCKET)
-    .upload(cuesPathFor(clip.storagePath), blob, {
-      upsert: true,
-      contentType: 'application/json',
-      cacheControl: '3600',
+  const path = cuesPathFor(clip.storagePath);
+  const payload = JSON.stringify(track);
+  const deadline = options.timeoutMs ?? DEFAULT_SAVE_TIMEOUT_MS;
+
+  const uploadAs = (contentType: string) => {
+    const blob = new Blob([payload], { type: contentType });
+    const operation = supabase.storage
+      .from(BUCKET)
+      .upload(path, blob, { upsert: true, contentType, cacheControl: '3600' });
+
+    return new Promise<Awaited<typeof operation>>((resolve, reject) => {
+      let settled = false;
+      const finish = (callback: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        options.signal?.removeEventListener('abort', onAbort);
+        callback();
+      };
+      const onAbort = () => finish(() => reject(new RhythmoError('cancelled', 'Annulé.')));
+      const timer = setTimeout(
+        () => finish(() => reject(new RhythmoError('storage', "L'enregistrement de la bande a expiré."))),
+        deadline,
+      );
+
+      options.signal?.addEventListener('abort', onAbort, { once: true });
+      operation.then(
+        (value) => finish(() => resolve(value)),
+        (error: unknown) => finish(() => reject(error)),
+      );
     });
+  };
 
-  const result = await new Promise<Awaited<typeof operation>>((resolve, reject) => {
-    let settled = false;
-    const finish = (callback: () => void) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      options.signal?.removeEventListener('abort', onAbort);
-      callback();
-    };
-    const onAbort = () => finish(() => reject(new RhythmoError('cancelled', 'Annulé.')));
-    const timer = setTimeout(
-      () => finish(() => reject(new RhythmoError('storage', "L'enregistrement de la bande a expiré."))),
-      options.timeoutMs ?? DEFAULT_SAVE_TIMEOUT_MS,
-    );
+  // application/json is the correct type, but the bucket only allows it once
+  // the cue-upsert migration is applied. When it is not, Storage answers "mime
+  // type application/json is not supported"; audio/mpeg is always in the
+  // bucket's allow-list and the cue file is read back with `.text()`, so the
+  // stored content-type never affects parsing.
+  const isUnsupportedMime = (message?: string) =>
+    !!message && /mime type .* is not supported/i.test(message);
 
-    options.signal?.addEventListener('abort', onAbort, { once: true });
-    operation.then(
-      (value) => finish(() => resolve(value)),
-      (error: unknown) => finish(() => reject(error)),
-    );
-  });
+  let result = await uploadAs('application/json');
+  if (result.error && isUnsupportedMime(result.error.message)) {
+    result = await uploadAs('audio/mpeg');
+  }
 
   if (result.error) {
     throw new RhythmoError(
