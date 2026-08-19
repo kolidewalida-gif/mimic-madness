@@ -91,27 +91,45 @@ const reportModelProgress = (progress: TransformerProgress): void => {
   }
 };
 
+/**
+ * Precision ladder, fastest/smallest first.
+ *
+ * `q8` is the quick path, but some `_timestamped` ONNX exports quantize the
+ * decoder embeddings with MatMulNBits blocks that the onnxruntime-web build
+ * bundled in transformers.js cannot turn into a session — it fails at
+ * `TransposeDQWeightsForMatMulNBits` with a missing `_scale`. When session
+ * creation fails we retry the same model in a precision the runtime always
+ * accepts, trading download size and speed for actually working.
+ */
+const DTYPES = ['q8', 'fp32'] as const;
+
 async function initialiseTranscriber(): Promise<LoadedTranscriber> {
   const transformers = await import('@huggingface/transformers');
   transformers.env.allowLocalModels = false;
 
   let lastError: unknown;
+  // Try every precision for a model before moving on: a runtime that rejects
+  // one model's q8 session usually rejects the other's too, so falling back in
+  // precision first avoids two useless model downloads.
   for (const model of MODELS) {
-    try {
-      const loaded = await transformers.pipeline('automatic-speech-recognition', model, {
-        dtype: 'q8',
-        device: 'wasm',
-        progress_callback: reportModelProgress,
-      });
-      return { transcriber: loaded as unknown as Transcriber, model };
-    } catch (error) {
-      lastError = error;
+    for (const dtype of DTYPES) {
+      try {
+        const loaded = await transformers.pipeline('automatic-speech-recognition', model, {
+          dtype,
+          device: 'wasm',
+          progress_callback: reportModelProgress,
+        });
+        return { transcriber: loaded as unknown as Transcriber, model };
+      } catch (error) {
+        lastError = error;
+        console.warn(`[rythmo] session ${model} @ ${dtype} refusee`, error);
+      }
     }
   }
 
   throw lastError instanceof Error
     ? lastError
-    : new Error('Aucun modèle Whisper compatible ne peut être chargé.');
+    : new Error('Aucun modele Whisper compatible ne peut etre charge.');
 }
 
 /** Any import/init/fallback failure clears the singleton so Retry is genuine. */
