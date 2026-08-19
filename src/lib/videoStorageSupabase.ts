@@ -17,14 +17,11 @@ export interface VideoClip {
 /**
  * Largest file the project accepts, in bytes.
  *
- * The `video-challenges` bucket asks for 400 MB, but a bucket can never exceed
- * the project-wide limit, and that is capped at 50 MB on Supabase's free plan.
- * So 50 MB is the real ceiling regardless of what the bucket says.
- *
- * Raise this if the project moves to a paid plan *and* the global limit in
- * Storage Settings is raised to match.
+ * Matches the `video-challenges` bucket limit (400 MB), which was verified
+ * against the live project — the old 50 MB client-side cap was the only thing
+ * blocking bigger clips.
  */
-export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 400 * 1024 * 1024;
 
 export const formatMb = (bytes: number): string => `${(bytes / (1024 * 1024)).toFixed(0)} Mo`;
 
