@@ -51,8 +51,9 @@ export type RhythmoProgress =
   | { phase: 'idle' }
   | { phase: 'extracting' }
   /** Model files are downloading. `ratio` is 0..1 when known. */
-  | { phase: 'loading-model'; ratio: number; file?: string }
-  | { phase: 'transcribing' }
+  | { phase: 'loading-model'; ratio: number; file?: string; etaMs?: number }
+  /** `etaMs` is an estimate based on the clip duration and the backend used. */
+  | { phase: 'transcribing'; etaMs?: number }
   | { phase: 'done' }
   | { phase: 'error'; reason: RhythmoErrorReason; message: string };
 

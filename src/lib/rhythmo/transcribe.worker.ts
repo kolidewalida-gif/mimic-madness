@@ -16,8 +16,15 @@
  * phrase-level spans, which is not precise enough for a rhythmo band.
  */
 
-/** Multilingual, ~80 MB quantised, word-level capable. Good French support. */
-const MODEL_ID = 'onnx-community/whisper-base_timestamped';
+/**
+ * Multilingual, word-level capable models, fastest first.
+ *
+ * `tiny` is ~40 MB and runs 3-4x faster than `base` — on the WASM path that
+ * is the difference between a minute and fifteen seconds for a short clip.
+ * `base` stays as a fallback if the tiny export cannot be loaded.
+ */
+const MODEL_IDS = ['onnx-community/whisper-tiny_timestamped', 'onnx-community/whisper-base_timestamped'];
+let MODEL_ID = MODEL_IDS[0];
 
 export interface TranscribeRequest {
   type: 'transcribe';
@@ -26,6 +33,13 @@ export interface TranscribeRequest {
   /** Forced language code (e.g. 'fr'), or undefined to auto-detect. */
   language?: string;
 }
+
+/** Preload the model without transcribing anything. */
+export interface WarmupRequest {
+  type: 'warmup';
+}
+
+export type WorkerInbound = TranscribeRequest | WarmupRequest;
 
 export type WorkerOutbound =
   | { type: 'model-progress'; ratio: number; file?: string }
@@ -103,24 +117,27 @@ async function getTranscriber() {
     const devices: ('webgpu' | 'wasm')[] = (await hasWebGPU()) ? ['webgpu', 'wasm'] : ['wasm'];
     let lastError: unknown = null;
 
-    for (const device of devices) {
-      try {
-        post({ type: 'log', message: `initialisation ${device}…` });
-        const run = (await pipeline('automatic-speech-recognition', MODEL_ID, {
-          device,
-          dtype: 'q8',
-          progress_callback: reportProgress,
-        })) as unknown as Transcriber;
-        post({ type: 'ready', device });
-        return { run, device };
-      } catch (error) {
-        // WebGPU can fail on unsupported adapters or missing ops; WASM always
-        // works, so a failure here is not fatal.
-        lastError = error;
-        post({
-          type: 'log',
-          message: `${device} indisponible: ${error instanceof Error ? error.message : 'erreur'}`,
-        });
+    for (const modelId of MODEL_IDS) {
+      for (const device of devices) {
+        try {
+          post({ type: 'log', message: `initialisation ${device}…` });
+          const run = (await pipeline('automatic-speech-recognition', modelId, {
+            device,
+            dtype: 'q8',
+            progress_callback: reportProgress,
+          })) as unknown as Transcriber;
+          MODEL_ID = modelId;
+          post({ type: 'ready', device });
+          return { run, device };
+        } catch (error) {
+          // WebGPU can fail on unsupported adapters or missing ops; WASM always
+          // works, so a failure here is not fatal.
+          lastError = error;
+          post({
+            type: 'log',
+            message: `${device} indisponible: ${error instanceof Error ? error.message : 'erreur'}`,
+          });
+        }
       }
     }
 
@@ -184,8 +201,23 @@ function normaliseWords(output: unknown): { text: string; start: number; end: nu
 /* ============================================================
    Message handling
 ============================================================ */
-self.onmessage = async (event: MessageEvent<TranscribeRequest>) => {
+self.onmessage = async (event: MessageEvent<WorkerInbound>) => {
   const request = event.data;
+
+  // Preload only: lets the model download overlap with the video upload, so
+  // the player does not pay that wait twice.
+  if (request?.type === 'warmup') {
+    try {
+      await getTranscriber();
+    } catch (error) {
+      post({
+        type: 'log',
+        message: `préchargement échoué: ${error instanceof Error ? error.message : 'erreur'}`,
+      });
+    }
+    return;
+  }
+
   if (request?.type !== 'transcribe') return;
 
   try {

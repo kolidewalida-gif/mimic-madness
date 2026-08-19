@@ -27,7 +27,7 @@ import { SubmissionStatus } from "@/components/SubmissionStatus";
 import { LobbyChat } from "@/components/LobbyChat";
 import { cn } from "@/lib/utils";
 import { CircularGallery } from "@/components/ui/circular-gallery";
-import { generateRhythmoTrack, releaseRhythmoWorker } from "@/lib/rhythmo/generate";
+import { generateRhythmoTrack, releaseRhythmoWorker, warmRhythmoWorker } from "@/lib/rhythmo/generate";
 import { isLikelyDecodable } from "@/lib/rhythmo/audio";
 import { listRhythmoTracks } from "@/lib/rhythmo/store";
 import { RhythmoError, rhythmoErrorLabel, type RhythmoProgress } from "@/lib/rhythmo/types";
@@ -65,6 +65,12 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string): Prom
       (error) => { clearTimeout(timer); reject(error); },
     );
   });
+
+/** "1 min 20 s" / "35 s" from milliseconds. */
+const formatEta = (ms: number): string => {
+  const s = Math.max(1, Math.round(ms / 1000));
+  return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`;
+};
 
 /** Player-facing label for a rythmo generation stage. */
 const rhythmoLabel = (progress: RhythmoProgress): string => {
