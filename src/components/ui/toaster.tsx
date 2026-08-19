@@ -9,7 +9,11 @@ export function Toaster() {
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
-            <div className="grid gap-1">
+            {/* min-w-0: without it a flex child refuses to shrink below its
+                content's natural width, which defeats break-words entirely
+                and pushes the toast wider than its container instead of
+                wrapping a long error message onto more lines. */}
+            <div className="grid min-w-0 flex-1 gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && <ToastDescription>{description}</ToastDescription>}
             </div>
