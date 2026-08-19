@@ -103,23 +103,18 @@ export async function saveRhythmoTrack(
 ): Promise<void> {
   if (options.signal?.aborted) throw new RhythmoError('cancelled', 'Annulé.');
 
-  const clip = await videoStorage.getVideoClip(track.clipId);
-  if (!clip?.storagePath) {
-    throw new RhythmoError('storage', `Clip introuvable pour la bande rythmo : ${track.clipId}`);
-  }
-  if (options.signal?.aborted) throw new RhythmoError('cancelled', 'Annulé.');
-
-  const path = cuesPathFor(clip.storagePath);
-  const payload = JSON.stringify(track);
   const deadline = options.timeoutMs ?? DEFAULT_SAVE_TIMEOUT_MS;
 
-  const uploadAs = (contentType: string) => {
-    const blob = new Blob([payload], { type: contentType });
-    const operation = supabase.storage
-      .from(BUCKET)
-      .upload(path, blob, { upsert: true, contentType, cacheControl: '3600' });
-
-    return new Promise<Awaited<typeof operation>>((resolve, reject) => {
+  /**
+   * Bound every awaited step, not just the upload.
+   *
+   * `getVideoClip` is a Supabase read with no timeout of its own; when the
+   * project is slow or waking from a pause it can hang for ever, which is
+   * exactly the "Enregistrement…" spinner that never resolves. A per-step
+   * deadline turns that into a clear, retryable error.
+   */
+  const withDeadline = <T>(operation: PromiseLike<T>): Promise<T> =>
+    new Promise<T>((resolve, reject) => {
       let settled = false;
       const finish = (callback: () => void) => {
         if (settled) return;
@@ -133,26 +128,44 @@ export async function saveRhythmoTrack(
         () => finish(() => reject(new RhythmoError('storage', "L'enregistrement de la bande a expiré."))),
         deadline,
       );
-
       options.signal?.addEventListener('abort', onAbort, { once: true });
       operation.then(
         (value) => finish(() => resolve(value)),
         (error: unknown) => finish(() => reject(error)),
       );
     });
-  };
 
-  // application/json is the correct type, but the bucket only allows it once
-  // the cue-upsert migration is applied. When it is not, Storage answers "mime
-  // type application/json is not supported"; audio/mpeg is always in the
-  // bucket's allow-list and the cue file is read back with `.text()`, so the
-  // stored content-type never affects parsing.
+  const clip = await withDeadline(Promise.resolve(videoStorage.getVideoClip(track.clipId)));
+  if (!clip?.storagePath) {
+    throw new RhythmoError('storage', `Clip introuvable pour la bande rythmo : ${track.clipId}`);
+  }
+  if (options.signal?.aborted) throw new RhythmoError('cancelled', 'Annulé.');
+
+  const path = cuesPathFor(clip.storagePath);
+  const payload = JSON.stringify(track);
+
+  const uploadAs = (contentType: string) =>
+    withDeadline(
+      supabase.storage
+        .from(BUCKET)
+        .upload(path, new Blob([payload], { type: contentType }), {
+          upsert: true,
+          contentType,
+          cacheControl: '3600',
+        }),
+    );
+
+  // application/json is correct, but the bucket rejects it unless the cue
+  // migration ran ("mime type ... is not supported"). video/mp4 has been in
+  // the bucket's allow-list since creation, so it always succeeds, and the cue
+  // file is read back with `.text()` — the stored content-type never affects
+  // parsing.
   const isUnsupportedMime = (message?: string) =>
     !!message && /mime type .* is not supported/i.test(message);
 
   let result = await uploadAs('application/json');
   if (result.error && isUnsupportedMime(result.error.message)) {
-    result = await uploadAs('audio/mpeg');
+    result = await uploadAs('video/mp4');
   }
 
   if (result.error) {

@@ -102,8 +102,9 @@ describe('saving a rhythmo track', () => {
 
     expect(mocks.upload).toHaveBeenCalledTimes(2);
     expect(mocks.upload.mock.calls[0][2]).toMatchObject({ contentType: 'application/json' });
-    // The fallback type is in the bucket allow-list; cues are read with .text().
-    expect(mocks.upload.mock.calls[1][2]).toMatchObject({ contentType: 'audio/mpeg' });
+    // video/mp4 has been allowed since the bucket was created; cues are read
+    // back with .text(), so the stored content-type never affects parsing.
+    expect(mocks.upload.mock.calls[1][2]).toMatchObject({ contentType: 'video/mp4' });
   });
 
   it('does not retry a non-MIME storage failure under a different type', async () => {
