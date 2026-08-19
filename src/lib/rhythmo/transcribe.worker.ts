@@ -4,9 +4,25 @@
  * runId, so a late WASM/model event can never mutate a newer generation.
  */
 
-const MODELS = [
-  'onnx-community/whisper-tiny_timestamped',
-  'onnx-community/whisper-base_timestamped',
+/**
+ * Loading attempts, most reliable first.
+ *
+ * The `Xenova/whisper-*` exports use plain int8 (`q8`) quantization and are the
+ * most widely deployed transformers.js config, so their session builds cleanly
+ * on the onnxruntime-web bundled here. They still produce word-level timestamps
+ * through cross-attention (`return_timestamps: 'word'`).
+ *
+ * The newer `onnx-community/..._timestamped` exports quantize the decoder with
+ * MatMulNBits blocks; the bundled runtime cannot turn those into a session and
+ * fails at `TransposeDQWeightsForMatMulNBits` with a missing `_scale`. They are
+ * kept only as an `fp32` fallback, where there is no dequantization step and so
+ * no NBits transpose to trip over.
+ */
+const LOAD_ATTEMPTS = [
+  { model: 'Xenova/whisper-tiny', dtype: 'q8' },
+  { model: 'Xenova/whisper-base', dtype: 'q8' },
+  { model: 'onnx-community/whisper-tiny_timestamped', dtype: 'fp32' },
+  { model: 'onnx-community/whisper-base_timestamped', dtype: 'fp32' },
 ] as const;
 
 export interface WarmupRequest {
@@ -91,39 +107,26 @@ const reportModelProgress = (progress: TransformerProgress): void => {
   }
 };
 
-/**
- * Precision ladder, fastest/smallest first.
- *
- * `q8` is the quick path, but some `_timestamped` ONNX exports quantize the
- * decoder embeddings with MatMulNBits blocks that the onnxruntime-web build
- * bundled in transformers.js cannot turn into a session — it fails at
- * `TransposeDQWeightsForMatMulNBits` with a missing `_scale`. When session
- * creation fails we retry the same model in a precision the runtime always
- * accepts, trading download size and speed for actually working.
- */
-const DTYPES = ['q8', 'fp32'] as const;
-
 async function initialiseTranscriber(): Promise<LoadedTranscriber> {
   const transformers = await import('@huggingface/transformers');
   transformers.env.allowLocalModels = false;
 
   let lastError: unknown;
-  // Try every precision for a model before moving on: a runtime that rejects
-  // one model's q8 session usually rejects the other's too, so falling back in
-  // precision first avoids two useless model downloads.
-  for (const model of MODELS) {
-    for (const dtype of DTYPES) {
-      try {
-        const loaded = await transformers.pipeline('automatic-speech-recognition', model, {
-          dtype,
+  for (const attempt of LOAD_ATTEMPTS) {
+    try {
+      const loaded = await transformers.pipeline(
+        'automatic-speech-recognition',
+        attempt.model,
+        {
+          dtype: attempt.dtype,
           device: 'wasm',
           progress_callback: reportModelProgress,
-        });
-        return { transcriber: loaded as unknown as Transcriber, model };
-      } catch (error) {
-        lastError = error;
-        console.warn(`[rythmo] session ${model} @ ${dtype} refusee`, error);
-      }
+        },
+      );
+      return { transcriber: loaded as unknown as Transcriber, model: attempt.model };
+    } catch (error) {
+      lastError = error;
+      console.warn(`[rythmo] session ${attempt.model} @ ${attempt.dtype} refusee`, error);
     }
   }
 
