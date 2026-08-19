@@ -80,6 +80,8 @@ export const useLobbySync = (): UseLobbyResult => {
     typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'connecting',
   );
   const snapshotStateRef = useRef<SnapshotState>('idle');
+  /** Only a player already seen in a snapshot can be reported as kicked. */
+  const hasSeenSelfRef = useRef(false);
 
   const updateSyncState = useCallback((
     transport?: TransportState,
@@ -109,6 +111,7 @@ export const useLobbySync = (): UseLobbyResult => {
     snapshotStateRef.current = 'idle';
     setConnectionState(deriveConnectionState(transport, 'idle'));
     currentPlayerIdRef.current = null;
+    hasSeenSelfRef.current = false;
     if (channel) {
       supabase.removeChannel(channel);
       setChannel(null);
@@ -571,6 +574,7 @@ export const useLobbySync = (): UseLobbyResult => {
     let presenceSynchronized = false;
     let snapshotRetryTimer: ReturnType<typeof setTimeout> | null = null;
     let snapshotRetryAttempt = 0;
+    hasSeenSelfRef.current = false;
 
     /**
      * Rebuild the channel after a failure, with a backoff.
@@ -648,7 +652,14 @@ export const useLobbySync = (): UseLobbyResult => {
 
         const rows = playersResult.data ?? [];
         const currentPlayerId = currentPlayerIdRef.current;
-        if (currentPlayerId && !rows.some((row) => row.player_id === currentPlayerId)) {
+        const selfPresent = currentPlayerId
+          ? rows.some((row) => row.player_id === currentPlayerId)
+          : false;
+
+        if (selfPresent) hasSeenSelfRef.current = true;
+        // Absence only means "kicked" once this client has actually been seen
+        // in the lobby: a join still committing must not eject the player.
+        else if (currentPlayerId && hasSeenSelfRef.current) {
           setWasKicked(true);
           updateSyncState('connected', 'synchronized');
           playSoundEffect('error', 0.5);

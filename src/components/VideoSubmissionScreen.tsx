@@ -171,6 +171,7 @@ export const VideoSubmissionScreen = ({
   const rhythmoAbortRef = useRef<AbortController | null>(null);
   /** Synchronous lock: React state alone does not stop two clicks in one tick. */
   const rhythmoLockRef = useRef(false);
+  const submitLockRef = useRef(false);
   /** Which clips already have a band. Drives the badges and the button state. */
   const [rhythmoReady, setRhythmoReady] = useState<Record<string, boolean>>({});
   /**
@@ -407,7 +408,27 @@ export const VideoSubmissionScreen = ({
     const local = importedFilesRef.current[clip.id];
     if (local) return { blob: local, fileName: local.name };
 
-    let url = clipUrls[clip.id] ?? (await videoStorage.getVideoUrl(clip.id));
+    /**
+     * Resolving a signed URL is a database read plus a Storage call, and
+     * neither has a timeout of its own. Unbounded, they left the panel sitting
+     * on "0 Mo reçus" for ever whenever Supabase was degraded, because the
+     * download watchdog had not started yet.
+     */
+    const resolveUrl = async (forceRefresh: boolean): Promise<string | null> => {
+      if (signal.aborted) throw new RhythmoError('cancelled', 'Annulé.');
+      return withTimeout(
+        videoStorage.getVideoUrl(clip.id, forceRefresh),
+        20_000,
+        "L'accès à la vidéo stockée n'a pas répondu.",
+      ).catch((error: unknown) => {
+        throw new RhythmoError(
+          'network',
+          error instanceof Error ? error.message : "Accès à la vidéo impossible.",
+        );
+      });
+    };
+
+    let url = clipUrls[clip.id] ?? (await resolveUrl(false));
     if (!url) throw new RhythmoError('network', 'Vidéo introuvable.');
 
     console.info('[rythmo] téléchargement de la vidéo depuis le stockage', clip.name);
@@ -423,7 +444,7 @@ export const VideoSubmissionScreen = ({
         /HTTP (401|403)/.test(error.message);
       if (!shouldRefresh) throw error;
 
-      url = await videoStorage.getVideoUrl(clip.id, true);
+      url = await resolveUrl(true);
       if (!url) throw error;
       setClipUrls((previous) => ({ ...previous, [clip.id]: url }));
       const blob = await downloadMediaBlob(url, { signal, onProgress });
@@ -604,6 +625,9 @@ export const VideoSubmissionScreen = ({
       });
       return;
     }
+    // A ref, not the state flag: two clicks in the same tick both passed.
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
 
     setIsSubmitting(true);
 
@@ -612,24 +636,40 @@ export const VideoSubmissionScreen = ({
         selectedClips.includes(clip.id),
       );
 
-      const { error: linkError } = await supabase
-        .from("video_clips")
-        .update({ lobby_id: lobbyId, round_number: null })
-        .in(
-          "id",
-          clipsToSubmit.map((c) => c.id),
-        );
+      // Both writes are bounded. The Supabase client has no timeout, so a
+      // degraded connection previously left this button on "Envoi…" for ever
+      // with no way to retry.
+      // Promise.resolve: the Supabase builder is a thenable, not a Promise.
+      const { error: linkError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("video_clips")
+            .update({ lobby_id: lobbyId, round_number: null })
+            .in(
+              "id",
+              clipsToSubmit.map((c) => c.id),
+            ),
+        ),
+        20_000,
+        "L'association des clips à la partie n'a pas abouti.",
+      );
 
       if (linkError) throw linkError;
 
-      const { error } = await supabase.from("player_submissions").upsert(
-        {
-          lobby_id: lobbyId,
-          player_id: currentPlayer.id,
-          player_name: currentPlayer.name,
-          challenges_count: clipsToSubmit.length,
-        },
-        { onConflict: "lobby_id,player_id" },
+      const { error } = await withTimeout(
+        Promise.resolve(
+          supabase.from("player_submissions").upsert(
+            {
+              lobby_id: lobbyId,
+              player_id: currentPlayer.id,
+              player_name: currentPlayer.name,
+              challenges_count: clipsToSubmit.length,
+            },
+            { onConflict: "lobby_id,player_id" },
+          ),
+        ),
+        20_000,
+        "L'enregistrement de ta soumission n'a pas abouti.",
       );
 
       if (error) throw error;
@@ -646,10 +686,15 @@ export const VideoSubmissionScreen = ({
       console.error("Error submitting challenges:", error);
       toast({
         title: "Erreur",
-        description: "Impossible d'envoyer les défis. Réessayez.",
+        // Say what actually failed: a timeout and a refused write need
+        // different reactions from the player.
+        description: error instanceof Error
+          ? `${error.message} Vérifie ta connexion puis réessaie.`
+          : "Impossible d'envoyer les défis. Réessayez.",
         variant: "destructive",
       });
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   };
