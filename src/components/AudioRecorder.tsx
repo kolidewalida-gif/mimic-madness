@@ -1,55 +1,64 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, StopCircle, Save, Trash2, Play, RotateCcw } from "lucide-react";
-import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
-import { applyVoiceFilter, postProcessRecordedBlob, requiresPostProcessing, VoiceFilterId } from "@/lib/voiceFilters";
+import { Mic, StopCircle, Save, Play, RotateCcw } from "lucide-react";
+import { videoStorage, type VideoClip } from "@/lib/videoStorageSupabase";
+import {
+  applyVoiceFilter,
+  postProcessRecordedBlob,
+  requiresPostProcessing,
+  type VoiceFilterId,
+} from "@/lib/voiceFilters";
 import { InkVoiceFilterPicker } from "@/components/InkVoiceFilterPicker";
 
 /**
  * Trim leading silence from an audio blob. Decodes to PCM, finds the first
- * sample above a threshold (0.01 amplitude ≈ -40 dB), then re-encodes from
- * that point as WAV. If the blob is already "loud" from the start, returns
- * it unchanged. Falls back gracefully on decode errors.
+ * sample above a threshold, then re-encodes from that point as WAV.
  */
-const trimLeadingSilence = async (blob: Blob): Promise<Blob> => {
-  const THRESHOLD = 0.01; // amplitude threshold for "not silence"
-  const MAX_TRIM_MS = 800; // never trim more than 800ms (safety)
+const trimLeadingSilence = async (blob: Blob, signal?: AbortSignal): Promise<Blob> => {
+  const THRESHOLD = 0.01;
+  const MAX_TRIM_MS = 800;
+
+  if (signal?.aborted) return blob;
 
   try {
     const arrayBuffer = await blob.arrayBuffer();
-    const ctx = new AudioContext();
+    if (signal?.aborted) return blob;
+
+    const context = new AudioContext();
+    const closeContext = () => {
+      if (context.state !== 'closed') void context.close().catch(() => {});
+    };
+    signal?.addEventListener('abort', closeContext, { once: true });
+
     let buffer: AudioBuffer;
     try {
-      buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-    } catch {
-      ctx.close().catch(() => {});
-      return blob;
+      buffer = await context.decodeAudioData(arrayBuffer.slice(0));
+    } finally {
+      signal?.removeEventListener('abort', closeContext);
+      closeContext();
     }
-    ctx.close().catch(() => {});
+    if (signal?.aborted) return blob;
 
-    // Find first non-silent sample across all channels
     const sampleRate = buffer.sampleRate;
     const maxTrimSamples = Math.floor((MAX_TRIM_MS / 1000) * sampleRate);
     let firstLoudSample = 0;
 
     outer:
-    for (let s = 0; s < Math.min(buffer.length, maxTrimSamples); s++) {
-      for (let c = 0; c < buffer.numberOfChannels; c++) {
-        if (Math.abs(buffer.getChannelData(c)[s]) > THRESHOLD) {
-          firstLoudSample = s;
+    for (let sampleIndex = 0; sampleIndex < Math.min(buffer.length, maxTrimSamples); sampleIndex += 1) {
+      if ((sampleIndex & 4095) === 0 && signal?.aborted) return blob;
+      for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+        if (Math.abs(buffer.getChannelData(channel)[sampleIndex]) > THRESHOLD) {
+          firstLoudSample = sampleIndex;
           break outer;
         }
       }
     }
 
-    // If silence is < 50ms, not worth trimming (avoids re-encoding overhead)
     const silenceMs = (firstLoudSample / sampleRate) * 1000;
-    if (silenceMs < 50) return blob;
+    if (silenceMs < 50 || signal?.aborted) return blob;
 
-    // Re-encode from firstLoudSample onwards as WAV
     const trimmedLength = buffer.length - firstLoudSample;
     const numChannels = buffer.numberOfChannels;
     const bytesPerSample = 2;
@@ -59,17 +68,18 @@ const trimLeadingSilence = async (blob: Blob): Promise<Blob> => {
     const headerSize = 44;
     const totalSize = headerSize + dataSize;
 
-    const ab = new ArrayBuffer(totalSize);
-    const view = new DataView(ab);
-
-    // WAV header
-    const writeStr = (offset: number, str: string) => {
-      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    const output = new ArrayBuffer(totalSize);
+    const view = new DataView(output);
+    const writeString = (offset: number, value: string) => {
+      for (let index = 0; index < value.length; index += 1) {
+        view.setUint8(offset + index, value.charCodeAt(index));
+      }
     };
-    writeStr(0, 'RIFF');
+
+    writeString(0, 'RIFF');
     view.setUint32(4, totalSize - 8, true);
-    writeStr(8, 'WAVE');
-    writeStr(12, 'fmt ');
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
     view.setUint32(16, 16, true);
     view.setUint16(20, 1, true);
     view.setUint16(22, numChannels, true);
@@ -77,23 +87,24 @@ const trimLeadingSilence = async (blob: Blob): Promise<Blob> => {
     view.setUint32(28, byteRate, true);
     view.setUint16(32, blockAlign, true);
     view.setUint16(34, 16, true);
-    writeStr(36, 'data');
+    writeString(36, 'data');
     view.setUint32(40, dataSize, true);
 
-    // PCM data (skip the silent prefix)
-    const channels: Float32Array[] = [];
-    for (let c = 0; c < numChannels; c++) channels.push(buffer.getChannelData(c));
-
+    const channels = Array.from(
+      { length: numChannels },
+      (_, channel) => buffer.getChannelData(channel),
+    );
     let offset = headerSize;
-    for (let i = firstLoudSample; i < buffer.length; i++) {
-      for (let c = 0; c < numChannels; c++) {
-        const sample = Math.max(-1, Math.min(1, channels[c][i]));
+    for (let index = firstLoudSample; index < buffer.length; index += 1) {
+      if ((index & 4095) === 0 && signal?.aborted) return blob;
+      for (let channel = 0; channel < numChannels; channel += 1) {
+        const sample = Math.max(-1, Math.min(1, channels[channel][index]));
         view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
         offset += 2;
       }
     }
 
-    return new Blob([ab], { type: 'audio/wav' });
+    return signal?.aborted ? blob : new Blob([output], { type: 'audio/wav' });
   } catch {
     return blob;
   }
@@ -106,11 +117,33 @@ interface AudioRecorderProps {
   lobbyId?: string;
   onRecordingStart?: () => void;
   onRecordingStop?: () => void;
-  /** Show the voice-filter picker above the mic button (Ink mode) */
+  /** Show the voice-filter picker above the mic button (Ink mode). */
   showVoiceFilters?: boolean;
 }
 
-export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
+export interface AudioRecorderHandle {
+  stopRecording: () => void;
+}
+
+interface RecordingSession {
+  controller: AbortController;
+}
+
+const stopStreamTracks = (...streams: Array<MediaStream | null | undefined>) => {
+  const tracks = new Set<MediaStreamTrack>();
+  for (const stream of streams) {
+    for (const track of stream?.getTracks() ?? []) tracks.add(track);
+  }
+  for (const track of tracks) {
+    try {
+      track.stop();
+    } catch {
+      // The track may already have ended.
+    }
+  }
+};
+
+export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorderProps>(({
   playerId,
   playerName,
   onAudioSaved,
@@ -125,259 +158,130 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [voiceFilter, setVoiceFilter] = useState<VoiceFilterId>('none');
-  const filterDisposeRef = useRef<(() => void) | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  
+
+  const mountedRef = useRef(false);
+  const startingRef = useRef(false);
+  const activeSessionRef = useRef<RecordingSession | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const rawStreamRef = useRef<MediaStream | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const filterDisposeRef = useRef<(() => void) | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  
+  const getUserMediaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordingStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callbacksRef = useRef({ onAudioSaved, onRecordingStart, onRecordingStop });
+  callbacksRef.current = { onAudioSaved, onRecordingStart, onRecordingStop };
+
   const { toast } = useToast();
 
-  // Expose stopRecording via ref
-  React.useImperativeHandle(ref, () => ({
-    stopRecording: () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-        mediaRecorderRef.current.stop();
-        setIsRecording(false);
+  const isSessionActive = (session: RecordingSession) =>
+    mountedRef.current &&
+    activeSessionRef.current === session &&
+    !session.controller.signal.aborted;
+
+  const clearGetUserMediaTimeout = useCallback(() => {
+    if (getUserMediaTimeoutRef.current === null) return;
+    clearTimeout(getUserMediaTimeoutRef.current);
+    getUserMediaTimeoutRef.current = null;
+  }, []);
+
+  const clearRecordingStartTimeout = useCallback(() => {
+    if (recordingStartTimeoutRef.current === null) return;
+    clearTimeout(recordingStartTimeoutRef.current);
+    recordingStartTimeoutRef.current = null;
+  }, []);
+
+  const releaseAudioResources = useCallback((recorder?: MediaRecorder | null) => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    const disposeFilter = filterDisposeRef.current;
+    filterDisposeRef.current = null;
+    try {
+      disposeFilter?.();
+    } catch {
+      // A partially-created WebAudio graph may already be disconnected.
+    }
+
+    stopStreamTracks(
+      rawStreamRef.current,
+      recordingStreamRef.current,
+      recorder?.stream,
+    );
+    rawStreamRef.current = null;
+    recordingStreamRef.current = null;
+    analyserRef.current = null;
+
+    const context = audioContextRef.current;
+    audioContextRef.current = null;
+    if (context && context.state !== 'closed') {
+      void context.close().catch(() => {});
+    }
+  }, []);
+
+  const cancelActiveSession = useCallback(() => {
+    const session = activeSessionRef.current;
+    activeSessionRef.current = null;
+    session?.controller.abort();
+    startingRef.current = false;
+    clearGetUserMediaTimeout();
+    clearRecordingStartTimeout();
+
+    const recorder = mediaRecorderRef.current;
+    mediaRecorderRef.current = null;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onerror = null;
+      recorder.onstop = null;
+      if (recorder.state !== 'inactive') {
+        try {
+          recorder.stop();
+        } catch {
+          // Recorder may already be stopping.
+        }
       }
     }
-  }));
+    releaseAudioResources(recorder);
+  }, [clearGetUserMediaTimeout, clearRecordingStartTimeout, releaseAudioResources]);
 
-  // Cleanup on unmount
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
-      stopStream();
-      if (filterDisposeRef.current) {
-        filterDisposeRef.current();
-        filterDisposeRef.current = null;
-      }
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close();
+      mountedRef.current = false;
+      cancelActiveSession();
     };
+  }, [cancelActiveSession]);
+
+  useEffect(() => () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
   }, [previewUrl]);
 
-  const stopStream = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
-
-  const updateAudioLevel = () => {
-    if (!analyserRef.current) return;
-
-    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-    analyserRef.current.getByteFrequencyData(dataArray);
-
-    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-    const normalizedLevel = Math.min(100, (average / 255) * 100);
-    setAudioLevel(normalizedLevel);
-
-    animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
-  };
-
-  const startRecording = async () => {
-    // Guard against double-clicks / stuck state
-    if (isRecording || mediaRecorderRef.current?.state === 'recording') {
+  const updateAudioLevel = (session: RecordingSession, recorder: MediaRecorder) => {
+    if (!isSessionActive(session) || recorder.state !== 'recording' || !analyserRef.current) {
+      animationFrameRef.current = null;
       return;
     }
 
-    try {
-      // Add a 10s safety timeout for getUserMedia — some browsers (notably
-      // certain mobile Chrome builds) hang the permission dialog silently.
-      const mediaStream = await Promise.race([
-        navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        }),
-        new Promise<MediaStream>((_, reject) =>
-          setTimeout(() => reject(new Error('TIMEOUT_GETUSERMEDIA')), 10000)
-        ),
-      ]);
-
-      setStream(mediaStream);
-
-      // Setup audio visualization
-      audioContextRef.current = new AudioContext();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      const source = audioContextRef.current.createMediaStreamSource(mediaStream);
-      source.connect(analyserRef.current);
-      analyserRef.current.fftSize = 256;
-
-      // Apply voice filter (if any) — produces a processed MediaStream that
-      // we feed to MediaRecorder. The original mediaStream still feeds the
-      // analyser so the level meter reacts to the user's actual mic.
-      const filtered = applyVoiceFilter(mediaStream, voiceFilter);
-      filterDisposeRef.current = filtered.dispose;
-      const recordingStream = filtered.stream;
-
-      // Setup MediaRecorder for audio
-      let options: MediaRecorderOptions = { mimeType: 'audio/webm;codecs=opus' };
-      
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'audio/webm' };
-      }
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'audio/ogg;codecs=opus' };
-      }
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        // Last resort: let the browser pick.
-        options = {};
-      }
-
-      mediaRecorderRef.current = new MediaRecorder(recordingStream, options);
-      chunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorderRef.current.onerror = (event: Event) => {
-        console.error('MediaRecorder error:', event);
-        toast({
-          title: 'Erreur d\'enregistrement',
-          description: 'Le microphone a rencontré un problème. Réessayez.',
-          variant: 'destructive',
-        });
-        // Cleanup and reset so the user can retry
-        try { mediaRecorderRef.current?.stop(); } catch { /* noop */ }
-        stopStream();
-        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-        setIsRecording(false);
-        setAudioLevel(0);
-        onRecordingStop?.();
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const rawBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-
-        // Stop the stream and visualizer immediately so the mic LED turns off
-        stopStream();
-        if (filterDisposeRef.current) {
-          filterDisposeRef.current();
-          filterDisposeRef.current = null;
-        }
-        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-        if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close();
-        setAudioLevel(0);
-
-        onRecordingStop?.();
-
-        // For post-process filters (helium / deep) we render the blob through
-        // OfflineAudioContext to actually pitch-shift the audio. Otherwise we
-        // use the raw blob as-is. The await is wrapped in an IIFE because
-        // onstop itself can't be async (MediaRecorder API).
-        const finalize = async () => {
-          let blob = rawBlob;
-          if (requiresPostProcessing(voiceFilter)) {
-            setIsLoading(true);
-            try {
-              blob = await postProcessRecordedBlob(rawBlob, voiceFilter);
-            } catch (err) {
-              console.warn('[recorder] post-process failed, using raw blob', err);
-            } finally {
-              setIsLoading(false);
-            }
-          }
-
-          // Trim leading silence: decode the blob, find the first sample
-          // above a noise threshold, and re-encode from that point. This
-          // removes the ~200-500ms of dead air that MediaRecorder's internal
-          // encoder adds at the start (varies by browser/codec).
-          try {
-            blob = await trimLeadingSilence(blob);
-          } catch (err) {
-            console.warn('[recorder] silence trim failed, using as-is', err);
-          }
-
-          setRecordedBlob(blob);
-          const url = URL.createObjectURL(blob);
-          setPreviewUrl(url);
-
-          const autoName = `Imitation ${new Date().toLocaleTimeString()}`;
-          setAudioName(autoName);
-
-          void autoSaveClip(blob, autoName);
-        };
-        void finalize();
-      };
-
-      mediaRecorderRef.current.start(100); // 100ms timeslice for responsive capture
-      setIsRecording(true);
-      updateAudioLevel();
-
-      // Notify parent AFTER a short warm-up delay. MediaRecorder needs
-      // ~150-250ms to initialize its internal encoder; if the challenge
-      // video starts playing immediately, the first fraction of the user's
-      // imitation is lost (appears as silence at the start of playback).
-      // This delay ensures the recorder is actively capturing before the
-      // video begins, so the audio and video stay aligned.
-      setTimeout(() => {
-        onRecordingStart?.();
-      }, 200);
-
-      toast({
-        title: '🎤 Enregistrement audio démarré',
-        description: 'Imitez maintenant !',
-      });
-
-    } catch (error: any) {
-      console.error('Error accessing microphone:', error);
-
-      // Cleanup any half-initialized resources so the user can retry
-      try { stopStream(); } catch { /* noop */ }
-      try { if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close(); } catch { /* noop */ }
-      setIsRecording(false);
-      setAudioLevel(0);
-
-      let errorMessage = 'Impossible d\'accéder au microphone.';
-
-      if (error?.message === 'TIMEOUT_GETUSERMEDIA') {
-        errorMessage = 'Le micro met trop de temps à répondre. Vérifiez les permissions.';
-      } else if (error?.name === 'NotAllowedError') {
-        errorMessage = 'Vous devez autoriser l\'accès au microphone.';
-      } else if (error?.name === 'NotFoundError') {
-        errorMessage = 'Aucun microphone détecté.';
-      } else if (error?.name === 'NotReadableError') {
-        errorMessage = 'Le microphone est utilisé par une autre application. Fermez-la et réessayez.';
-      } else if (error?.name === 'AbortError') {
-        errorMessage = 'L\'accès au microphone a été interrompu. Réessayez.';
-      }
-
-      toast({
-        title: 'Erreur',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    }
+    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+    analyserRef.current.getByteFrequencyData(dataArray);
+    const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+    setAudioLevel(Math.min(100, (average / 255) * 100));
+    animationFrameRef.current = requestAnimationFrame(() => updateAudioLevel(session, recorder));
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const autoSaveClip = async (blob: Blob, name: string) => {
+  const autoSaveClip = async (blob: Blob, name: string, session: RecordingSession) => {
+    if (!isSessionActive(session)) return;
     setIsLoading(true);
+
     try {
-      // Use the blob's actual MIME type — post-processed clips come back as
-      // audio/wav from the OfflineAudioContext renderer, while live-FX clips
-      // remain audio/webm. Hardcoding webm broke playback for helium / deep.
       const mimeType = blob.type || 'audio/webm';
-      const ext = mimeType.includes('wav') ? 'wav' : 'webm';
-      const file = new File([blob], `${name}.${ext}`, { type: mimeType });
+      const extension = mimeType.includes('wav') ? 'wav' : 'webm';
+      const file = new File([blob], `${name}.${extension}`, { type: mimeType });
       const clipData = {
         id: `${playerId}-${Date.now()}`,
         name,
@@ -389,9 +293,13 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
         isMuted: false,
         lobbyId,
       };
+
+      if (!isSessionActive(session)) return;
       const savedClip = await videoStorage.uploadVideo(file, clipData);
-      onAudioSaved?.(savedClip);
+      if (!isSessionActive(session)) return;
+      callbacksRef.current.onAudioSaved?.(savedClip);
     } catch (error) {
+      if (!isSessionActive(session)) return;
       console.error("Error auto-saving audio clip:", error);
       toast({
         title: "Erreur",
@@ -399,12 +307,221 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      if (isSessionActive(session)) setIsLoading(false);
     }
   };
 
+  const startRecording = async () => {
+    if (startingRef.current || mediaRecorderRef.current?.state === 'recording') return;
+
+    startingRef.current = true;
+    activeSessionRef.current?.controller.abort();
+    const session: RecordingSession = { controller: new AbortController() };
+    activeSessionRef.current = session;
+    const selectedFilter = voiceFilter;
+
+    try {
+      const mediaRequest = navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      void mediaRequest.then(
+        (lateStream) => {
+          if (!isSessionActive(session)) stopStreamTracks(lateStream);
+        },
+        () => undefined,
+      );
+
+      const timeoutPromise = new Promise<MediaStream>((_, reject) => {
+        getUserMediaTimeoutRef.current = setTimeout(
+          () => reject(new Error('TIMEOUT_GETUSERMEDIA')),
+          10_000,
+        );
+      });
+      const abortPromise = new Promise<MediaStream>((_, reject) => {
+        session.controller.signal.addEventListener(
+          'abort',
+          () => reject(new DOMException('Recording cancelled', 'AbortError')),
+          { once: true },
+        );
+      });
+
+      const mediaStream = await Promise.race([mediaRequest, timeoutPromise, abortPromise]);
+      clearGetUserMediaTimeout();
+      if (!isSessionActive(session)) {
+        stopStreamTracks(mediaStream);
+        return;
+      }
+      rawStreamRef.current = mediaStream;
+
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      const analyser = audioContext.createAnalyser();
+      analyserRef.current = analyser;
+      audioContext.createMediaStreamSource(mediaStream).connect(analyser);
+      analyser.fftSize = 256;
+
+      const filtered = applyVoiceFilter(mediaStream, selectedFilter);
+      if (!isSessionActive(session)) {
+        filtered.dispose();
+        stopStreamTracks(mediaStream, filtered.stream);
+        return;
+      }
+      filterDisposeRef.current = filtered.dispose;
+      recordingStreamRef.current = filtered.stream;
+
+      let options: MediaRecorderOptions = { mimeType: 'audio/webm;codecs=opus' };
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'audio/webm' };
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'audio/ogg;codecs=opus' };
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) options = {};
+
+      const recorder = new MediaRecorder(filtered.stream, options);
+      const chunks: Blob[] = [];
+      let shouldFinalize = true;
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (isSessionActive(session) && event.data?.size > 0) chunks.push(event.data);
+      };
+
+      recorder.onerror = (event) => {
+        if (!isSessionActive(session)) return;
+        console.error('MediaRecorder error:', event);
+        shouldFinalize = false;
+        clearRecordingStartTimeout();
+        recorder.onstop = null;
+        if (recorder.state !== 'inactive') {
+          try {
+            recorder.stop();
+          } catch {
+            // Recorder may already be stopping.
+          }
+        }
+        if (mediaRecorderRef.current === recorder) mediaRecorderRef.current = null;
+        releaseAudioResources(recorder);
+        session.controller.abort();
+        if (activeSessionRef.current === session) activeSessionRef.current = null;
+        setIsRecording(false);
+        setAudioLevel(0);
+        callbacksRef.current.onRecordingStop?.();
+        toast({
+          title: 'Erreur d\'enregistrement',
+          description: 'Le microphone a rencontré un problème. Réessayez.',
+          variant: 'destructive',
+        });
+      };
+
+      recorder.onstop = () => {
+        clearRecordingStartTimeout();
+        if (mediaRecorderRef.current === recorder) mediaRecorderRef.current = null;
+        releaseAudioResources(recorder);
+        if (!shouldFinalize || !isSessionActive(session)) return;
+
+        const rawBlob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        setIsRecording(false);
+        setAudioLevel(0);
+        callbacksRef.current.onRecordingStop?.();
+
+        const finalize = async () => {
+          let blob = rawBlob;
+          if (requiresPostProcessing(selectedFilter)) {
+            setIsLoading(true);
+            try {
+              blob = await postProcessRecordedBlob(
+                rawBlob,
+                selectedFilter,
+                session.controller.signal,
+              );
+            } catch (error) {
+              if (isSessionActive(session)) {
+                console.warn('[recorder] post-process failed, using raw blob', error);
+              }
+            } finally {
+              if (isSessionActive(session)) setIsLoading(false);
+            }
+          }
+          if (!isSessionActive(session)) return;
+
+          blob = await trimLeadingSilence(blob, session.controller.signal);
+          if (!isSessionActive(session)) return;
+
+          setRecordedBlob(blob);
+          const url = URL.createObjectURL(blob);
+          setPreviewUrl(url);
+          const autoName = `Imitation ${new Date().toLocaleTimeString()}`;
+          setAudioName(autoName);
+          await autoSaveClip(blob, autoName, session);
+        };
+        void finalize();
+      };
+
+      recorder.start(100);
+      if (!isSessionActive(session)) {
+        cancelActiveSession();
+        return;
+      }
+      setIsRecording(true);
+      updateAudioLevel(session, recorder);
+      recordingStartTimeoutRef.current = setTimeout(() => {
+        recordingStartTimeoutRef.current = null;
+        if (isSessionActive(session) && recorder.state === 'recording') {
+          callbacksRef.current.onRecordingStart?.();
+        }
+      }, 200);
+
+      toast({
+        title: '🎤 Enregistrement audio démarré',
+        description: 'Imitez maintenant !',
+      });
+    } catch (error: unknown) {
+      clearGetUserMediaTimeout();
+      if (!isSessionActive(session)) return;
+
+      session.controller.abort();
+      if (activeSessionRef.current === session) activeSessionRef.current = null;
+      releaseAudioResources(mediaRecorderRef.current);
+      mediaRecorderRef.current = null;
+      setIsRecording(false);
+      setAudioLevel(0);
+
+      const mediaError = error as { message?: string; name?: string };
+      let errorMessage = 'Impossible d\'accéder au microphone.';
+      if (mediaError.message === 'TIMEOUT_GETUSERMEDIA') {
+        errorMessage = 'Le micro met trop de temps à répondre. Vérifiez les permissions.';
+      } else if (mediaError.name === 'NotAllowedError') {
+        errorMessage = 'Vous devez autoriser l\'accès au microphone.';
+      } else if (mediaError.name === 'NotFoundError') {
+        errorMessage = 'Aucun microphone détecté.';
+      } else if (mediaError.name === 'NotReadableError') {
+        errorMessage = 'Le microphone est utilisé par une autre application. Fermez-la et réessayez.';
+      } else if (mediaError.name === 'AbortError') {
+        errorMessage = 'L\'accès au microphone a été interrompu. Réessayez.';
+      }
+
+      console.error('Error accessing microphone:', error);
+      toast({ title: 'Erreur', description: errorMessage, variant: 'destructive' });
+    } finally {
+      clearGetUserMediaTimeout();
+      startingRef.current = false;
+    }
+  };
+
+  function stopRecording() {
+    clearRecordingStartTimeout();
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+    }
+  }
+
+  React.useImperativeHandle(ref, () => ({ stopRecording }));
+
   const handleSaveClip = async () => {
-    if (!recordedBlob || !audioName.trim()) {
+    const session = activeSessionRef.current;
+    if (!recordedBlob || !audioName.trim() || !session || !isSessionActive(session)) {
       toast({
         title: "Informations manquantes",
         description: "Veuillez nommer votre audio",
@@ -414,11 +531,10 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
     }
 
     setIsLoading(true);
-
     try {
-      // Create a File from the Blob
-      const file = new File([recordedBlob], `${audioName}.webm`, { type: 'audio/webm' });
-      
+      const mimeType = recordedBlob.type || 'audio/webm';
+      const extension = mimeType.includes('wav') ? 'wav' : 'webm';
+      const file = new File([recordedBlob], `${audioName}.${extension}`, { type: mimeType });
       const clipData = {
         id: `${playerId}-${Date.now()}`,
         name: audioName,
@@ -428,21 +544,17 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
         endTime: 0,
         duration: 0,
         isMuted: false,
-        lobbyId
+        lobbyId,
       };
-
       const savedClip = await videoStorage.uploadVideo(file, clipData);
-      
-      onAudioSaved?.(savedClip);
-      
-      // Reset form
-      handleClear();
-      
+      if (!isSessionActive(session)) return;
+      callbacksRef.current.onAudioSaved?.(savedClip);
       toast({
         title: "✅ Audio sauvegardé !",
         description: `"${audioName}" a été ajouté avec succès`,
       });
     } catch (error) {
+      if (!isSessionActive(session)) return;
       console.error("Error saving audio clip:", error);
       toast({
         title: "Erreur",
@@ -450,16 +562,18 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      if (isSessionActive(session)) setIsLoading(false);
     }
   };
 
   const handleClear = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    cancelActiveSession();
     setPreviewUrl(null);
     setRecordedBlob(null);
     setAudioName("");
-    stopStream();
+    setAudioLevel(0);
+    setIsRecording(false);
+    setIsLoading(false);
   };
 
   return (
@@ -503,22 +617,16 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
                 <div className="w-32 h-32 rounded-full bg-destructive/20 flex items-center justify-center">
                   <Mic className="h-12 w-12 text-destructive animate-pulse" />
                 </div>
-                
-                {/* Animated waves */}
                 <span
                   className="absolute inset-0 rounded-full border-4 border-destructive animate-ping"
-                  style={{
-                    opacity: audioLevel / 100,
-                    animationDuration: '1s'
-                  }}
+                  style={{ opacity: audioLevel / 100, animationDuration: '1s' }}
                 />
               </div>
 
-              {/* Audio level bars */}
               <div className="flex gap-2 items-end h-16">
-                {[...Array(7)].map((_, i) => (
+                {[...Array(7)].map((_, index) => (
                   <div
-                    key={i}
+                    key={index}
                     className="w-3 bg-secondary rounded-full transition-all duration-100"
                     style={{
                       height: `${Math.max(12, (audioLevel / 100) * 64 * (0.4 + Math.random() * 0.6))}px`,
@@ -531,7 +639,6 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
                 🎤 Enregistrement en cours...
               </p>
 
-              {/* STOP BUTTON - clearly visible */}
               <Button
                 onClick={stopRecording}
                 variant="destructive"
@@ -551,21 +658,14 @@ export const AudioRecorder = React.forwardRef<any, AudioRecorderProps>(({
               ✅ Enregistrement terminé ! Écoutez et sauvegardez.
             </p>
 
-            {/* Audio preview with play button */}
             <div className="p-4 bg-background/50 rounded-lg space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium text-secondary">
                 <Play className="h-4 w-4" />
                 Écouter votre imitation
               </div>
-              <audio
-                src={previewUrl}
-                className="w-full"
-                controls
-                autoPlay={false}
-              />
+              <audio src={previewUrl} className="w-full" controls autoPlay={false} />
             </div>
 
-            {/* Action Buttons - Clear layout */}
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"

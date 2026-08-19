@@ -687,30 +687,27 @@ const Index = () => {
   const handleEndGame = useCallback(async () => {
     playSoundEffect('leave', 0.4);
 
-    // "Terminer la partie" — the host (or any player) wants to send everyone
-    // BACK to the lobby. We must NOT call leaveLobby here, otherwise the host
-    // is removed from lobby_players and host migration kicks in: everyone else
-    // stays, a new host is elected, and the original host ends up on the home
-    // screen alone. That was the "host gets kicked, others stay" bug.
+    // Unmount the active game synchronously. Network latency must never keep
+    // recording, voting or the rythmo animation alive after the user leaves.
+    setSubmittedChallenges([]);
+    setGameState('lobby');
+
+    // "Terminer la partie" sends every client back to the same lobby. Do not
+    // call leaveLobby here: that would remove the host and trigger migration.
     if (lobby && currentPlayer?.isHost) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('lobbies')
           .update({
             status: 'waiting',
             game_phase: 'lobby',
           })
           .eq('id', lobby.id);
+        if (error) throw error;
       } catch (error) {
         console.error('Error resetting lobby:', error);
       }
     }
-
-    // Local transition: every client receives the lobby phase change via
-    // realtime and routes itself back to the lobby; we still set the local
-    // state so the host (the one who clicked) doesn't wait a roundtrip.
-    setSubmittedChallenges([]);
-    setGameState('lobby');
 
     toast({
       title: 'Partie terminée',
@@ -926,9 +923,17 @@ const Index = () => {
         </React.Suspense>
       )}
       
-      <ScreenTransition screenKey={gameState}>
-        {renderContent}
-      </ScreenTransition>
+      {/* GamePlayScreen owns a strict durable-phase guard. Do not place it
+          inside ScreenTransition: that component intentionally retains its
+          previous child during exit animations, which would keep imitation
+          recording and the rythmo RAF alive after leaving the game. */}
+      {gameState === "playing" ? (
+        renderContent
+      ) : (
+        <ScreenTransition screenKey={gameState}>
+          {renderContent}
+        </ScreenTransition>
+      )}
 
       {currentPlayer && lobby && connectionState !== 'online' && (
         <ConnectionRecoveryOverlay state={connectionState} onRetry={retryConnection} />

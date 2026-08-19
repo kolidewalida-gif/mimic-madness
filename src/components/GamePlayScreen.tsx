@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { GameLogo } from "@/components/GameLogo";
 import { Button } from "@/components/ui/button";
 import { ChallengePreviewPhase } from "@/components/ChallengePreviewPhase";
@@ -12,6 +12,16 @@ import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useGameTeams } from "@/hooks/useGameTeams";
+import {
+  canCommitRoundSnapshot,
+  getRenderableGamePhase,
+  getRoundReconciliationMode,
+  isAllowedGamePhaseTransition,
+  parseDurableGameRound,
+  shouldInvalidateRoundRetry,
+  type DurableGameRound,
+  type GamePhase,
+} from "@/lib/gameRoundState";
 
 interface Player {
   id: string;
@@ -27,8 +37,6 @@ interface GamePlayScreenProps {
   onEndGame: () => void;
 }
 
-type GamePhase = "preview" | "imitation" | "voting" | "results";
-
 interface CurrentChallenge {
   id: string;
   playerId: string;
@@ -42,22 +50,40 @@ export const GamePlayScreen = ({
   gameMode = "normal",
   onEndGame
 }: GamePlayScreenProps) => {
-  const [gamePhase, setGamePhase] = useState<GamePhase>("preview");
-  const [roundNumber, setRoundNumber] = useState(1);
-  const [currentChallenge, setCurrentChallenge] = useState<CurrentChallenge | null>(null);
+  const [durableRound, setDurableRound] = useState<DurableGameRound | null>(null);
+  const [isRoundSynchronized, setIsRoundSynchronized] = useState(false);
   const [isInitializingRound, setIsInitializingRound] = useState(true);
   const [initializationError, setInitializationError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const { toast } = useToast();
   const { playSound } = useSoundEffects();
   const { teams, getTeammate } = useGameTeams(lobbyId);
-  const gamePhaseRef = useRef<GamePhase>("preview");
-  useEffect(() => { gamePhaseRef.current = gamePhase; }, [gamePhase]);
+  const durableRoundRef = useRef<DurableGameRound | null>(null);
+  const roundSynchronizedRef = useRef(false);
+  const isTransitioningRef = useRef(false);
+  const channelRestartAttemptsRef = useRef(0);
+  const reconcileLatestRoundRef = useRef<() => Promise<void>>(async () => undefined);
 
-  const buildChallenge = useCallback((challengeId: string, challengePlayerId: string) => ({
-    id: challengeId,
-    playerId: challengePlayerId,
-    playerName: players.find((player) => player.id === challengePlayerId)?.name || "Joueur",
+  const setRoundSynchronization = useCallback((isSynchronized: boolean) => {
+    roundSynchronizedRef.current = isSynchronized;
+    setIsRoundSynchronized(isSynchronized);
+  }, []);
+
+  const applyDurableRound = useCallback((round: DurableGameRound) => {
+    const previousRound = durableRoundRef.current;
+    if (previousRound && previousRound.phase !== round.phase) {
+      playSound("transition");
+    }
+
+    durableRoundRef.current = round;
+    setDurableRound(round);
+    setRoundSynchronization(true);
+  }, [playSound, setRoundSynchronization]);
+
+  const buildChallenge = useCallback((round: DurableGameRound): CurrentChallenge => ({
+    id: round.current_challenge_id,
+    playerId: round.challenge_player_id,
+    playerName: players.find((player) => player.id === round.challenge_player_id)?.name || "Joueur",
   }), [players]);
 
   const pickNextChallenge = useCallback(async (usedChallengeIds: Set<string>) => {
@@ -68,172 +94,263 @@ export const GamePlayScreen = ({
       return null;
     }
 
-    // Prefer clips from players who haven't been challenged yet in this game
+    // Prefer clips from players who haven't been challenged yet in this game.
     const usedPlayerIds = new Set<string>();
     for (const clip of playableClips) {
       if (usedChallengeIds.has(clip.id)) usedPlayerIds.add(clip.playerId);
     }
-    const freshPlayerClips = availableClips.filter((c) => !usedPlayerIds.has(c.playerId));
+    const freshPlayerClips = availableClips.filter((clip) => !usedPlayerIds.has(clip.playerId));
     const pool = freshPlayerClips.length > 0 ? freshPlayerClips : availableClips;
-    const randomClip = pool[Math.floor(Math.random() * pool.length)];
-    return {
-      clip: randomClip,
-      challenge: buildChallenge(randomClip.id, randomClip.playerId),
-    };
-  }, [buildChallenge, lobbyId]);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }, [lobbyId]);
+
+  const currentChallenge = useMemo(
+    () => (durableRound ? buildChallenge(durableRound) : null),
+    [buildChallenge, durableRound],
+  );
+  const roundNumber = durableRound?.round_number ?? 1;
+  const renderablePhase = getRenderableGamePhase(durableRound, isRoundSynchronized);
 
   useEffect(() => {
     let isMounted = true;
+    let latestRequest = 0;
+    let creationPromise: Promise<DurableGameRound> | null = null;
+    let reconciliationTimer: ReturnType<typeof setTimeout> | null = null;
+    let reconciliationMustInvalidate = false;
+    let channelRestartTimer: ReturnType<typeof setTimeout> | null = null;
+    let roundSubscribed = false;
+    let roundChannelEpoch = 0;
 
-    const initializeRound = async () => {
-      setIsInitializingRound(true);
-      setInitializationError(null);
+    if (durableRoundRef.current?.lobby_id !== lobbyId) {
+      durableRoundRef.current = null;
+      setDurableRound(null);
+    }
+    setRoundSynchronization(false);
+    setIsInitializingRound(true);
+    setInitializationError(null);
+
+    const readUsedChallengeIds = async () => {
+      const { data, error } = await supabase
+        .from("game_rounds")
+        .select("current_challenge_id")
+        .eq("lobby_id", lobbyId);
+
+      if (error) throw error;
+      return new Set(data?.map((round) => round.current_challenge_id) || []);
+    };
+
+    const createInitialRound = async (): Promise<DurableGameRound> => {
+      const usedChallengeIds = await readUsedChallengeIds();
+      const nextClip = await pickNextChallenge(usedChallengeIds);
+
+      if (!nextClip) {
+        throw new Error("Aucun defi disponible. Verifiez que chaque joueur a bien au moins un clip valide pour ce lobby.");
+      }
+
+      const { data, error } = await supabase
+        .from("game_rounds")
+        .upsert({
+          lobby_id: lobbyId,
+          round_number: 1,
+          current_challenge_id: nextClip.id,
+          challenge_player_id: nextClip.playerId,
+          phase: "preview",
+        }, {
+          onConflict: "lobby_id,round_number",
+        })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      const createdRound = parseDurableGameRound(data);
+      if (!createdRound || createdRound.lobby_id !== lobbyId) {
+        throw new Error("La manche creee contient un etat invalide.");
+      }
+      return createdRound;
+    };
+
+    const getOrCreateInitialRound = async () => {
+      if (creationPromise) return creationPromise;
+
+      creationPromise = createInitialRound();
+      try {
+        return await creationPromise;
+      } finally {
+        // Deduplicate only concurrent creation attempts. A rejected or stale
+        // result must never poison the next automatic retry.
+        creationPromise = null;
+      }
+    };
+
+    const ensurePlayableChallenge = async (
+      round: DurableGameRound,
+    ): Promise<DurableGameRound> => {
+      const currentRound = durableRoundRef.current;
+      if (
+        currentRound?.id === round.id &&
+        currentRound.current_challenge_id === round.current_challenge_id
+      ) {
+        return round;
+      }
+
+      const existingClip = await videoStorage.getVideoClip(round.current_challenge_id);
+      if (existingClip || !currentPlayer.isHost) return round;
+
+      const usedChallengeIds = await readUsedChallengeIds();
+      const replacementClip = await pickNextChallenge(usedChallengeIds);
+      if (!replacementClip) {
+        throw new Error("Aucun clip de defi jouable n'a ete trouve pour cette partie.");
+      }
+
+      const { data, error } = await supabase
+        .from("game_rounds")
+        .update({
+          current_challenge_id: replacementClip.id,
+          challenge_player_id: replacementClip.playerId,
+        })
+        .eq("id", round.id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      const repairedRound = parseDurableGameRound(data);
+      if (!repairedRound || repairedRound.lobby_id !== lobbyId) {
+        throw new Error("La manche reparee contient un etat invalide.");
+      }
+      return repairedRound;
+    };
+
+    const clearReconciliationTimer = () => {
+      if (!reconciliationTimer) return;
+      clearTimeout(reconciliationTimer);
+      reconciliationTimer = null;
+      reconciliationMustInvalidate = false;
+    };
+
+    const clearChannelRestartTimer = () => {
+      if (!channelRestartTimer) return;
+      clearTimeout(channelRestartTimer);
+      channelRestartTimer = null;
+    };
+
+    const markRoundChannelHealthy = () => {
+      if (!roundSubscribed) return;
+      clearChannelRestartTimer();
+      channelRestartAttemptsRef.current = 0;
+    };
+
+    const scheduleReconciliation = (requestedInvalidation: boolean) => {
+      reconciliationMustInvalidate ||= requestedInvalidation;
+      if (reconciliationTimer || !isMounted) return;
+      reconciliationTimer = setTimeout(() => {
+        reconciliationTimer = null;
+        const invalidateBeforeRetry = shouldInvalidateRoundRetry(
+          reconciliationMustInvalidate,
+          roundSynchronizedRef.current,
+          roundSubscribed,
+        );
+        reconciliationMustInvalidate = false;
+        if (isMounted) void reconcileLatestRound(false, invalidateBeforeRetry);
+      }, 1500);
+    };
+
+    const scheduleChannelRestart = () => {
+      if (channelRestartTimer || !isMounted) return;
+      const attempt = channelRestartAttemptsRef.current;
+      const delay = Math.min(1000 * (2 ** attempt), 10_000);
+      channelRestartAttemptsRef.current = Math.min(attempt + 1, 4);
+      channelRestartTimer = setTimeout(() => {
+        channelRestartTimer = null;
+        if (isMounted) setRetryKey((value) => value + 1);
+      }, delay);
+    };
+
+    async function reconcileLatestRound(showLoader: boolean, invalidateBeforeRead: boolean) {
+      const requestId = ++latestRequest;
+      const token = { requestId, channelEpoch: roundChannelEpoch };
+      const canCommitRequest = () =>
+        isMounted && canCommitRoundSnapshot(
+          token,
+          latestRequest,
+          roundChannelEpoch,
+          roundSubscribed,
+        );
+
+      if (invalidateBeforeRead) setRoundSynchronization(false);
+      if (showLoader) setIsInitializingRound(true);
 
       try {
-        // Fetch the LATEST round (highest round_number) — important after a
-        // page refresh: roundNumber state defaults to 1, but the game may be
-        // on round 2+. Querying the latest round keeps the refreshed client
-        // in sync with the actual game state.
-        const { data: latestRounds, error: roundLookupError } = await supabase
+        const { data: latestRounds, error } = await supabase
           .from("game_rounds")
           .select("*")
           .eq("lobby_id", lobbyId)
           .order("round_number", { ascending: false })
           .limit(1);
 
-        const existingRound = latestRounds?.[0] ?? null;
+        if (error) throw error;
+        if (!canCommitRequest()) return;
 
-        if (roundLookupError) {
-          throw roundLookupError;
-        }
-
-        if (!isMounted) return;
-
-        if (existingRound) {
-          // Sync local round number to the actual latest round
-          setRoundNumber(existingRound.round_number);
-
-          const existingClip = await videoStorage.getVideoClip(existingRound.current_challenge_id);
-
-          if (!existingClip && currentPlayer.isHost) {
-            const { data: previousRounds } = await supabase
-              .from("game_rounds")
-              .select("current_challenge_id")
-              .eq("lobby_id", lobbyId);
-
-            const usedChallengeIds = new Set(previousRounds?.map((round) => round.current_challenge_id) || []);
-            const replacement = await pickNextChallenge(usedChallengeIds);
-
-            if (!replacement) {
-              throw new Error("Aucun clip de defi jouable n'a ete trouve pour cette partie.");
-            }
-
-            const { error: repairError } = await supabase
-              .from("game_rounds")
-              .update({
-                current_challenge_id: replacement.clip.id,
-                challenge_player_id: replacement.clip.playerId,
-              })
-              .eq("lobby_id", lobbyId)
-              .eq("round_number", existingRound.round_number);
-
-            if (repairError) throw repairError;
-
-            if (!isMounted) return;
-            setCurrentChallenge(replacement.challenge);
-          } else {
-            setCurrentChallenge(buildChallenge(
-              existingRound.current_challenge_id,
-              existingRound.challenge_player_id
-            ));
+        let nextRound = parseDurableGameRound(latestRounds?.[0] ?? null);
+        if (!nextRound) {
+          setRoundSynchronization(false);
+          if (latestRounds?.[0]) {
+            throw new Error("La phase de la manche est invalide.");
           }
 
-          setGamePhase(existingRound.phase as GamePhase);
-          return;
+          if (!currentPlayer.isHost) {
+            setInitializationError("En attente de l'initialisation de la manche par l'hote...");
+            setIsInitializingRound(false);
+            scheduleReconciliation(true);
+            return;
+          }
+
+          nextRound = await getOrCreateInitialRound();
         }
 
-        if (!currentPlayer.isHost) {
-          setInitializationError("En attente de l'initialisation de la manche par l'hote...");
-          return;
+        if (!canCommitRequest()) return;
+        if (nextRound.lobby_id !== lobbyId) {
+          throw new Error("La manche recue ne correspond pas a ce lobby.");
         }
 
-        const { data: previousRounds } = await supabase
-          .from("game_rounds")
-          .select("current_challenge_id")
-          .eq("lobby_id", lobbyId);
+        nextRound = await ensurePlayableChallenge(nextRound);
+        if (!canCommitRequest()) return;
 
-        const usedChallengeIds = new Set(previousRounds?.map((round) => round.current_challenge_id) || []);
-        const nextChallenge = await pickNextChallenge(usedChallengeIds);
-
-        if (!nextChallenge) {
-          throw new Error("Aucun defi disponible. Verifiez que chaque joueur a bien au moins un clip valide pour ce lobby.");
-        }
-
-        const { error: insertError } = await supabase
-          .from("game_rounds")
-          .upsert({
-            lobby_id: lobbyId,
-            round_number: roundNumber,
-            current_challenge_id: nextChallenge.clip.id,
-            challenge_player_id: nextChallenge.clip.playerId,
-            phase: "preview"
-          }, {
-            onConflict: "lobby_id,round_number"
-          });
-
-        if (insertError) throw insertError;
-
-        if (!isMounted) return;
-        setCurrentChallenge(nextChallenge.challenge);
-        setGamePhase("preview");
+        clearReconciliationTimer();
+        setInitializationError(null);
+        applyDurableRound(nextRound);
+        setIsInitializingRound(false);
       } catch (error) {
-        console.error("Error initializing round:", error);
-        if (!isMounted) return;
+        if (!canCommitRequest()) return;
+        console.error("Error reconciling game round:", error);
 
         const message = error instanceof Error
           ? error.message
-          : "Impossible d'initialiser la manche";
-
+          : "Impossible de synchroniser la manche";
         setInitializationError(message);
-        toast({
-          title: "Erreur",
-          description: message,
-          variant: "destructive",
-        });
-      } finally {
-        if (isMounted) {
-          setIsInitializingRound(false);
+        setIsInitializingRound(false);
+        scheduleReconciliation(invalidateBeforeRead);
+
+        if (showLoader) {
+          toast({
+            title: "Erreur",
+            description: message,
+            variant: "destructive",
+          });
         }
       }
+    }
+
+    const reconcileFromSignal = (mode: ReturnType<typeof getRoundReconciliationMode>) => {
+      if (!isMounted || mode === 'ignore') return;
+      void reconcileLatestRound(false, mode === 'invalidate');
     };
 
-    initializeRound();
+    reconcileLatestRoundRef.current = () =>
+      reconcileLatestRound(false, !roundSynchronizedRef.current);
 
-    // Broadcast channel for instant phase transitions (< 50ms latency).
-    // The postgres_changes channel below is kept as a fallback for late-joiners
-    // and reconnections, but the broadcast fires first for connected clients.
-    const broadcastChannel = supabase
-      .channel(`game-sync:${lobbyId}`, { config: { broadcast: { self: true, ack: false } } })
-      .on('broadcast', { event: 'phase_change' }, (msg) => {
-        if (!isMounted) return;
-        const { phase, round, challengeId, challengePlayerId } = msg.payload ?? {};
-        if (phase && round) {
-          if (phase !== gamePhaseRef.current) playSound("transition");
-          setRoundNumber(round);
-          setGamePhase(phase as GamePhase);
-          setInitializationError(null);
-          setIsInitializingRound(false);
-          if (challengeId && challengePlayerId) {
-            setCurrentChallenge(buildChallenge(challengeId, challengePlayerId));
-          }
-        }
-      })
-      .subscribe(() => {
-        gameSyncChannelRef.current = broadcastChannel;
-      });
-
-    // Keep postgres realtime as fallback (handles reconnections, late-joiners)
-    const channel = supabase
+    // Database hints are filtered before invalidation. Delayed mutations from
+    // an older round cannot destroy current recording or voting state.
+    const roundChannel = supabase
       .channel(`game-round:${lobbyId}`)
       .on(
         "postgres_changes",
@@ -241,121 +358,198 @@ export const GamePlayScreen = ({
           event: "*",
           schema: "public",
           table: "game_rounds",
-          filter: `lobby_id=eq.${lobbyId}`
+          filter: `lobby_id=eq.${lobbyId}`,
         },
-        (payload: any) => {
-          if (!isMounted || !payload.new) return;
+        (payload) => {
+          if (!isMounted) return;
+          const changedRound = parseDurableGameRound(payload.new);
+          const deletedRound = parseDurableGameRound(payload.old);
 
-          const newRound = payload.new.round_number;
-          const newPhase = payload.new.phase as GamePhase;
-
-          if (newPhase !== gamePhaseRef.current) {
-            playSound("transition");
+          if (payload.eventType === 'DELETE' && deletedRound) {
+            const currentRound = durableRoundRef.current;
+            if (currentRound?.id === deletedRound.id) {
+              void reconcileLatestRound(false, true);
+              return;
+            }
+            reconcileFromSignal(getRoundReconciliationMode(currentRound, {
+              roundNumber: deletedRound.round_number,
+              phase: deletedRound.phase,
+              roundId: deletedRound.id,
+              challengeId: deletedRound.current_challenge_id,
+            }));
+            return;
           }
 
-          setRoundNumber(newRound);
-          setGamePhase(newPhase);
-          setInitializationError(null);
-          setIsInitializingRound(false);
-          setCurrentChallenge(buildChallenge(
-            payload.new.current_challenge_id,
-            payload.new.challenge_player_id
-          ));
-        }
+          if (!changedRound) {
+            // An unparseable database mutation could concern the active row;
+            // fail closed until the latest SQL snapshot is known.
+            void reconcileLatestRound(false, true);
+            return;
+          }
+
+          reconcileFromSignal(getRoundReconciliationMode(durableRoundRef.current, {
+            roundNumber: changedRound.round_number,
+            phase: changedRound.phase,
+            roundId: changedRound.id,
+            challengeId: changedRound.current_challenge_id,
+          }));
+        },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (!isMounted) return;
+        if (status === "SUBSCRIBED") {
+          roundSubscribed = true;
+          roundChannelEpoch += 1;
+          markRoundChannelHealthy();
+          // Subscription closes the fetch/subscribe race. Only this fresh
+          // epoch is allowed to commit a durable snapshot.
+          void reconcileLatestRound(
+            durableRoundRef.current === null,
+            !roundSynchronizedRef.current,
+          );
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          roundSubscribed = false;
+          roundChannelEpoch += 1;
+          latestRequest += 1;
+          clearReconciliationTimer();
+          setRoundSynchronization(false);
+          scheduleChannelRestart();
+        }
+      });
 
     return () => {
       isMounted = false;
-      gameSyncChannelRef.current = null;
-      supabase.removeChannel(channel);
-      supabase.removeChannel(broadcastChannel);
+      latestRequest += 1;
+      reconcileLatestRoundRef.current = async () => undefined;
+      clearReconciliationTimer();
+      clearChannelRestartTimer();
+      void supabase.removeChannel(roundChannel);
     };
+  }, [
+    applyDurableRound,
+    currentPlayer.isHost,
+    lobbyId,
+    pickNextChallenge,
+    retryKey,
+    setRoundSynchronization,
+    toast,
+  ]);
+
+  const transitionPhase = useCallback(async (
+    expectedPhase: GamePhase,
+    nextPhase: GamePhase,
+  ) => {
+    if (!currentPlayer.isHost || isTransitioningRef.current) return false;
+
+    const round = durableRoundRef.current;
+    if (
+      !round ||
+      !roundSynchronizedRef.current ||
+      round.phase !== expectedPhase ||
+      !isAllowedGamePhaseTransition(expectedPhase, nextPhase)
+    ) {
+      return false;
+    }
+
+    isTransitioningRef.current = true;
+    setRoundSynchronization(false);
+
+    try {
+      const { data, error } = await supabase
+        .from("game_rounds")
+        .update({ phase: nextPhase })
+        .eq("id", round.id)
+        .eq("lobby_id", lobbyId)
+        .eq("round_number", round.round_number)
+        .eq("phase", expectedPhase)
+        .select("*")
+        .maybeSingle();
+
+      if (error) throw error;
+      const persistedRound = parseDurableGameRound(data);
+      if (!persistedRound || persistedRound.phase !== nextPhase) {
+        throw new Error("Cette transition de phase n'est plus valide.");
+      }
+
+      await reconcileLatestRoundRef.current();
+      return true;
+    } catch (error) {
+      console.error("Error persisting phase transition:", error);
+      toast({
+        title: "Transition impossible",
+        description: "La manche a ete resynchronisee sans changer de phase.",
+        variant: "destructive",
+      });
+      await reconcileLatestRoundRef.current();
+      return false;
+    } finally {
+      isTransitioningRef.current = false;
+    }
   }, [
     currentPlayer.isHost,
     lobbyId,
-    retryKey,
-    roundNumber,
+    setRoundSynchronization,
+    toast,
   ]);
 
-  // Ref to the broadcast channel for instant phase transitions.
-  // Single channel used for both sending (host) and receiving (all clients).
-  // Created in the initializeRound effect alongside the postgres listener.
-  const gameSyncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
   const handlePreviewReady = async () => {
-    if (currentPlayer.isHost) {
-      try {
-        // IMPORTANT: Reset is_ready BEFORE broadcasting the phase change.
-        // Otherwise ImitationPhase mounts, fetches readyPlayers, sees them
-        // still at true (from the preview phase), and immediately fires
-        // onAllReady → skips straight to voting.
-        await supabase.from("player_imitations").update({ is_ready: false })
-          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
+    if (!currentPlayer.isHost || isTransitioningRef.current) return;
 
-        // Now broadcast + persist the phase change
-        gameSyncChannelRef.current?.send({
-          type: 'broadcast', event: 'phase_change',
-          payload: { phase: 'imitation', round: roundNumber, challengeId: currentChallenge?.id, challengePlayerId: currentChallenge?.playerId },
-        });
-        setGamePhase("imitation");
+    try {
+      // Reset readiness before the durable transition. Otherwise the newly
+      // mounted imitation phase can immediately reuse preview readiness.
+      const { error } = await supabase
+        .from("player_imitations")
+        .update({ is_ready: false })
+        .eq("lobby_id", lobbyId)
+        .eq("round_number", roundNumber);
 
-        await supabase.from("game_rounds").update({ phase: "imitation" })
-          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
-      } catch (error) {
-        console.error("Error updating phase:", error);
-      }
+      if (error) throw error;
+      await transitionPhase("preview", "imitation");
+    } catch (error) {
+      console.error("Error preparing imitation phase:", error);
+      toast({
+        title: "Transition impossible",
+        description: "Impossible de preparer la phase d'imitation.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleImitationReady = async () => {
-    if (currentPlayer.isHost) {
-      try {
-        gameSyncChannelRef.current?.send({
-          type: 'broadcast', event: 'phase_change',
-          payload: { phase: 'voting', round: roundNumber, challengeId: currentChallenge?.id, challengePlayerId: currentChallenge?.playerId },
-        });
-        setGamePhase("voting");
-
-        await supabase.from("game_rounds").update({ phase: "voting" })
-          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
-      } catch (error) {
-        console.error("Error updating phase:", error);
-      }
-    }
+    await transitionPhase("imitation", "voting");
   };
 
   const handleVotingComplete = async () => {
-    if (currentPlayer.isHost) {
-      try {
-        gameSyncChannelRef.current?.send({
-          type: 'broadcast', event: 'phase_change',
-          payload: { phase: 'results', round: roundNumber, challengeId: currentChallenge?.id, challengePlayerId: currentChallenge?.playerId },
-        });
-
-        await supabase.from("game_rounds").update({ phase: "results" })
-          .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
-      } catch (error) {
-        console.error("Error updating phase:", error);
-      }
-    }
+    await transitionPhase("voting", "results");
   };
 
   const handleNextRound = async () => {
-    if (!currentPlayer.isHost) return;
+    if (!currentPlayer.isHost || isTransitioningRef.current) return;
 
-    const newRoundNumber = roundNumber + 1;
+    const activeRound = durableRoundRef.current;
+    if (
+      !activeRound ||
+      !roundSynchronizedRef.current ||
+      activeRound.phase !== "results"
+    ) {
+      return;
+    }
+
+    isTransitioningRef.current = true;
+    let writeStarted = false;
 
     try {
-      const { data: previousRounds } = await supabase
+      const { data: previousRounds, error: previousRoundsError } = await supabase
         .from("game_rounds")
         .select("current_challenge_id")
         .eq("lobby_id", lobbyId);
 
+      if (previousRoundsError) throw previousRoundsError;
       const usedChallengeIds = new Set(previousRounds?.map((round) => round.current_challenge_id) || []);
-      const nextChallenge = await pickNextChallenge(usedChallengeIds);
+      const nextClip = await pickNextChallenge(usedChallengeIds);
 
-      if (!nextChallenge) {
+      if (!nextClip) {
         toast({
           title: "Partie terminee",
           description: "Tous les defis jouables ont deja ete utilises.",
@@ -363,29 +557,33 @@ export const GamePlayScreen = ({
         return;
       }
 
-      const { error } = await supabase
+      const newRoundNumber = activeRound.round_number + 1;
+      writeStarted = true;
+      setRoundSynchronization(false);
+
+      const { data, error } = await supabase
         .from("game_rounds")
-        .upsert({
+        .insert({
           lobby_id: lobbyId,
           round_number: newRoundNumber,
-          current_challenge_id: nextChallenge.clip.id,
-          challenge_player_id: nextChallenge.clip.playerId,
-          phase: "preview"
-        }, {
-          onConflict: "lobby_id,round_number"
-        });
+          current_challenge_id: nextClip.id,
+          challenge_player_id: nextClip.playerId,
+          phase: "preview",
+        })
+        .select("*")
+        .single();
 
       if (error) throw error;
+      const persistedRound = parseDurableGameRound(data);
+      if (
+        !persistedRound ||
+        persistedRound.round_number !== newRoundNumber ||
+        persistedRound.phase !== "preview"
+      ) {
+        throw new Error("La nouvelle manche contient un etat invalide.");
+      }
 
-      // Broadcast instant transition to all clients
-      gameSyncChannelRef.current?.send({
-        type: 'broadcast', event: 'phase_change',
-        payload: { phase: 'preview', round: newRoundNumber, challengeId: nextChallenge.clip.id, challengePlayerId: nextChallenge.clip.playerId },
-      });
-
-      setRoundNumber(newRoundNumber);
-      setGamePhase("preview");
-      setCurrentChallenge(nextChallenge.challenge);
+      await reconcileLatestRoundRef.current();
 
       toast({
         title: "Nouvelle manche !",
@@ -393,11 +591,14 @@ export const GamePlayScreen = ({
       });
     } catch (error) {
       console.error("Error creating next round:", error);
+      if (writeStarted) await reconcileLatestRoundRef.current();
       toast({
         title: "Erreur",
         description: "Impossible de creer la nouvelle manche",
         variant: "destructive",
       });
+    } finally {
+      isTransitioningRef.current = false;
     }
   };
 
@@ -420,7 +621,9 @@ export const GamePlayScreen = ({
               <Button
                 variant="hero"
                 onClick={() => {
-                  setCurrentChallenge(null);
+                  durableRoundRef.current = null;
+                  setDurableRound(null);
+                  setRoundSynchronization(false);
                   setInitializationError(null);
                   setIsInitializingRound(true);
                   setRetryKey((value) => value + 1);
@@ -445,7 +648,7 @@ export const GamePlayScreen = ({
           <GameLogo size="lg" />
           <div className="w-12 h-12 mx-auto rounded-full border-2 border-primary border-t-transparent animate-spin" />
           <p className="text-foreground-secondary font-body">
-            {initializationError || "Chargement de la manche..."}
+            {initializationError || "Synchronisation de la manche..."}
           </p>
           {!currentPlayer.isHost && (
             <p className="text-sm text-foreground-muted max-w-md">
@@ -457,7 +660,10 @@ export const GamePlayScreen = ({
     );
   };
 
-  if (isInitializingRound || !currentChallenge) {
+  // No phase subtree survives an uncertain authoritative connection or a
+  // possible forward phase change. Stale/unchanged hints reconcile in the
+  // background so local recording and voting state is preserved.
+  if (isInitializingRound || !currentChallenge || !renderablePhase) {
     return renderInitializationState();
   }
 
@@ -495,9 +701,9 @@ export const GamePlayScreen = ({
         </div>
       </header>
 
-      {/* Phase content — full width, each phase manages its own internal max-width */}
+      {/* Phase content — only the SQL-confirmed phase is allowed to mount. */}
       <div className="relative z-10 pt-16 animate-fadeIn">
-        {gamePhase === "preview" && (
+        {renderablePhase === "preview" && (
           <ChallengePreviewPhase
             key={`preview-${roundNumber}`}
             lobbyId={lobbyId}
@@ -509,7 +715,7 @@ export const GamePlayScreen = ({
           />
         )}
 
-        {gamePhase === "imitation" && (
+        {renderablePhase === "imitation" && (
           <ImitationPhase
             key={`imitation-${roundNumber}`}
             lobbyId={lobbyId}
@@ -523,7 +729,7 @@ export const GamePlayScreen = ({
           />
         )}
 
-        {gamePhase === "voting" && (
+        {renderablePhase === "voting" && (
           <VotingPhase
             key={`voting-${roundNumber}`}
             lobbyId={lobbyId}
@@ -537,7 +743,7 @@ export const GamePlayScreen = ({
           />
         )}
 
-        {gamePhase === "results" && (
+        {renderablePhase === "results" && (
           <ResultsPhase
             key={`results-${roundNumber}`}
             lobbyId={lobbyId}

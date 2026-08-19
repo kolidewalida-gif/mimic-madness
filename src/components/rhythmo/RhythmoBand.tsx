@@ -12,10 +12,15 @@
  * from React state would re-render the whole strip 60 times a second. The
  * transform is written straight to the DOM node instead.
  */
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { cn } from '@/lib/utils';
 import { flattenWords, type RhythmoTrack, type RhythmoWord } from '@/lib/rhythmo/types';
+import {
+  findActiveRhythmoWord,
+  getRhythmoStripOffset,
+  getRhythmoTimelineTime,
+} from '@/lib/rhythmo/timeline';
 
 interface RhythmoBandProps {
   track: RhythmoTrack | null;
@@ -24,6 +29,8 @@ interface RhythmoBandProps {
   pxPerSecond?: number;
   /** Playhead position as a fraction of the strip width. */
   playheadRatio?: number;
+  /** Seconds of visual lead over the video's media clock. */
+  leadSeconds?: number;
   /** Accent used for the playhead and the active word. */
   accent?: string;
   className?: string;
@@ -40,6 +47,7 @@ const RhythmoBandComponent = ({
   videoRef,
   pxPerSecond = 132,
   playheadRatio = 0.32,
+  leadSeconds = 0,
   accent = 'var(--c-violet)',
   className,
 }: RhythmoBandProps) => {
@@ -80,26 +88,6 @@ const RhythmoBandComponent = ({
     return () => query.removeEventListener('change', onChange);
   }, []);
 
-  /** Find the word under a given time. Linear from the last index: playback is
-   *  monotonic almost always, so this is O(1) in practice. */
-  const findActive = useCallback(
-    (time: number) => {
-      const from = activeRef.current >= 0 ? activeRef.current : 0;
-      for (let i = from; i < placed.length; i += 1) {
-        const word = placed[i];
-        if (time < word.start) break;
-        if (time <= word.end) return i;
-      }
-      // Seeked backwards — rescan from the top.
-      for (let i = 0; i < Math.min(from, placed.length); i += 1) {
-        const word = placed[i];
-        if (time >= word.start && time <= word.end) return i;
-      }
-      return -1;
-    },
-    [placed],
-  );
-
   useEffect(() => {
     if (placed.length === 0) return;
 
@@ -109,14 +97,16 @@ const RhythmoBandComponent = ({
       const viewport = viewportRef.current;
 
       if (video && strip && viewport) {
-        const time = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+        const timelineTime = getRhythmoTimelineTime(video.currentTime, leadSeconds);
         const playhead = viewport.clientWidth * playheadRatio;
 
         // Written directly to the node: this runs every frame and must not
-        // trigger a React render.
-        strip.style.transform = `translate3d(${playhead - time * pxPerSecond}px,0,0)`;
+        // trigger a React render. Position, highlighting and past state all
+        // use the exact same media-derived clock.
+        const stripOffset = getRhythmoStripOffset(playhead, timelineTime, pxPerSecond);
+        strip.style.transform = `translate3d(${stripOffset}px,0,0)`;
 
-        const next = findActive(time);
+        const next = findActiveRhythmoWord(placed, timelineTime, activeRef.current);
         if (next !== activeRef.current) {
           const previousNode = wordNodesRef.current[activeRef.current];
           previousNode?.classList.remove('is-live');
@@ -129,7 +119,7 @@ const RhythmoBandComponent = ({
         for (let i = 0; i < placed.length; i += 1) {
           const node = wordNodesRef.current[i];
           if (!node) continue;
-          const isPast = time > placed[i].end;
+          const isPast = timelineTime > placed[i].end;
           if (isPast !== node.classList.contains('is-past')) {
             node.classList.toggle('is-past', isPast);
           }
@@ -141,7 +131,7 @@ const RhythmoBandComponent = ({
 
     frameRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [placed, videoRef, pxPerSecond, playheadRatio, findActive]);
+  }, [placed, videoRef, pxPerSecond, playheadRatio, leadSeconds]);
 
   if (!track || placed.length === 0) return null;
 

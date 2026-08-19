@@ -310,81 +310,100 @@ export const requiresPostProcessing = (filter: VoiceFilterId): boolean => {
 export const postProcessRecordedBlob = async (
   blob: Blob,
   filter: VoiceFilterId,
+  signal?: AbortSignal,
 ): Promise<Blob> => {
-  if (!requiresPostProcessing(filter)) return blob;
+  if (!requiresPostProcessing(filter) || signal?.aborted) return blob;
 
-  // Semitone shifts: helium = +6 st, deep = -5 st
   const semitones = filter === 'helium' ? 6 : filter === 'deep' ? -5 : 0;
   if (semitones === 0) return blob;
 
   try {
     const arrayBuffer = await blob.arrayBuffer();
-    const decodeCtx = new AudioContext();
-    const sourceBuffer = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
-    decodeCtx.close().catch(() => {});
+    if (signal?.aborted) return blob;
 
-    // Use SoundTouchJS for proper pitch shifting that preserves duration.
-    // (Phase-vocoder-style time/pitch independent processing.)
+    const decodeContext = new AudioContext();
+    const closeDecodeContext = () => {
+      if (decodeContext.state !== 'closed') {
+        void decodeContext.close().catch(() => {});
+      }
+    };
+    signal?.addEventListener('abort', closeDecodeContext, { once: true });
+
+    let sourceBuffer: AudioBuffer;
+    try {
+      sourceBuffer = await decodeContext.decodeAudioData(arrayBuffer.slice(0));
+    } finally {
+      signal?.removeEventListener('abort', closeDecodeContext);
+      closeDecodeContext();
+    }
+    if (signal?.aborted) return blob;
+
+    // Use SoundTouchJS for pitch shifting that preserves duration.
     const { SoundTouch, SimpleFilter, WebAudioBufferSource } = await import('soundtouchjs');
+    if (signal?.aborted) return blob;
 
     const sampleRate = sourceBuffer.sampleRate;
     const numChannels = sourceBuffer.numberOfChannels;
     const originalLength = sourceBuffer.length;
 
-    const st = new SoundTouch(sampleRate);
-    st.pitchSemitones = semitones; // shifts pitch only, keeps tempo
-    st.tempo = 1;
-    st.rate = 1;
+    const soundTouch = new SoundTouch(sampleRate);
+    soundTouch.pitchSemitones = semitones;
+    soundTouch.tempo = 1;
+    soundTouch.rate = 1;
 
     const source = new WebAudioBufferSource(sourceBuffer);
-    const stFilter = new SimpleFilter(source, st);
-
-    // Pull processed samples. SoundTouchJS always works in stereo interleaved.
-    const BLOCK = 4096;
+    const filterNode = new SimpleFilter(source, soundTouch);
+    const blockSize = 4096;
     const interleaved: number[] = [];
-    const tmp = new Float32Array(BLOCK * 2);
-    let received = stFilter.extract(tmp, BLOCK);
+    const temporary = new Float32Array(blockSize * 2);
+    let received = filterNode.extract(temporary, blockSize);
     while (received > 0) {
-      for (let i = 0; i < received * 2; i++) interleaved.push(tmp[i]);
-      received = stFilter.extract(tmp, BLOCK);
+      if (signal?.aborted) return blob;
+      for (let index = 0; index < received * 2; index += 1) {
+        interleaved.push(temporary[index]);
+      }
+      received = filterNode.extract(temporary, blockSize);
     }
+    if (signal?.aborted) return blob;
 
-    // Clamp to original length so the output duration is identical.
-    const outFrames = Math.min(Math.floor(interleaved.length / 2), originalLength);
-    const outChannels = Math.min(numChannels, 2);
+    const outputFrames = Math.min(Math.floor(interleaved.length / 2), originalLength);
+    const outputChannels = Math.min(numChannels, 2);
     const shiftedBuffer = new AudioBuffer({
-      numberOfChannels: outChannels,
-      length: outFrames,
+      numberOfChannels: outputChannels,
+      length: outputFrames,
       sampleRate,
     });
-    for (let c = 0; c < outChannels; c++) {
-      const chan = shiftedBuffer.getChannelData(c);
-      for (let i = 0; i < outFrames; i++) {
-        chan[i] = interleaved[i * 2 + c] ?? 0;
+    for (let channel = 0; channel < outputChannels; channel += 1) {
+      const channelData = shiftedBuffer.getChannelData(channel);
+      for (let index = 0; index < outputFrames; index += 1) {
+        if ((index & 4095) === 0 && signal?.aborted) return blob;
+        channelData[index] = interleaved[index * 2 + channel] ?? 0;
       }
     }
 
-    // Subtle warmth pass for the deep voice.
     if (filter === 'deep') {
-      const enhCtx = new OfflineAudioContext(outChannels, outFrames, sampleRate);
-      const enhSrc = enhCtx.createBufferSource();
-      enhSrc.buffer = shiftedBuffer;
-      const shelf = enhCtx.createBiquadFilter();
+      const enhancementContext = new OfflineAudioContext(outputChannels, outputFrames, sampleRate);
+      const enhancementSource = enhancementContext.createBufferSource();
+      enhancementSource.buffer = shiftedBuffer;
+      const shelf = enhancementContext.createBiquadFilter();
       shelf.type = 'lowshelf';
       shelf.frequency.value = 300;
       shelf.gain.value = 5;
-      const gain = enhCtx.createGain();
+      const gain = enhancementContext.createGain();
       gain.gain.value = 1.2;
-      enhSrc.connect(shelf);
+      enhancementSource.connect(shelf);
       shelf.connect(gain);
-      gain.connect(enhCtx.destination);
-      enhSrc.start(0);
-      return audioBufferToWav(await enhCtx.startRendering());
+      gain.connect(enhancementContext.destination);
+      enhancementSource.start(0);
+      const rendered = await enhancementContext.startRendering();
+      return signal?.aborted ? blob : audioBufferToWav(rendered);
     }
 
-    return audioBufferToWav(shiftedBuffer);
-  } catch (err) {
-    console.error('[voiceFilters] post-process failed, falling back to original blob', err);
+    return signal?.aborted ? blob : audioBufferToWav(shiftedBuffer);
+  } catch (error) {
+    if (!signal?.aborted) {
+      console.error('[voiceFilters] post-process failed, falling back to original blob', error);
+    }
     return blob;
   }
 };

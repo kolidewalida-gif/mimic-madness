@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { videoStorage } from "@/lib/videoStorageSupabase";
+import { videoStorage, type VideoClip } from "@/lib/videoStorageSupabase";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { RhythmoBand } from "@/components/rhythmo/RhythmoBand";
 import { loadRhythmoTrack } from "@/lib/rhythmo/store";
 import type { RhythmoTrack } from "@/lib/rhythmo/types";
+import { sanitizeRhythmoLeadSeconds } from "@/lib/rhythmo/timeline";
 
 interface Player {
   id: string;
@@ -54,6 +55,30 @@ const ACCENT = '#f87171';
 const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
 const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
 const FONT = "'Outfit', sans-serif";
+const RHYTHMO_LEAD_STORAGE_KEY = 'mimic.rhythmo.lead-seconds';
+const MAX_RHYTHMO_LEAD_SECONDS = 2;
+const ALL_READY_DELAY_MS = 2000;
+
+const clampRhythmoLeadSeconds = (value: number) =>
+  Math.min(MAX_RHYTHMO_LEAD_SECONDS, sanitizeRhythmoLeadSeconds(value));
+
+const readRhythmoLeadSeconds = () => {
+  if (typeof window === 'undefined') return 0;
+  try {
+    return clampRhythmoLeadSeconds(Number(window.localStorage.getItem(RHYTHMO_LEAD_STORAGE_KEY)));
+  } catch {
+    return 0;
+  }
+};
+
+const saveRhythmoLeadSeconds = (value: number) => {
+  try {
+    window.localStorage.setItem(RHYTHMO_LEAD_STORAGE_KEY, value.toString());
+  } catch {
+    // Storage can be unavailable in private browsing; the in-memory setting
+    // remains usable for the current imitation.
+  }
+};
 
 export const ImitationPhase = ({
   lobbyId,
@@ -72,7 +97,7 @@ export const ImitationPhase = ({
   const [recordedClipId, setRecordedClipId] = useState<string | null>(null);
   const [uploadKey, setUploadKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
-  const [challengeClipData, setChallengeClipData] = useState<any>(null);
+  const [challengeClipData, setChallengeClipData] = useState<VideoClip | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [includeOriginalAudio, setIncludeOriginalAudio] = useState(false);
   const [originalAudioVolume, setOriginalAudioVolume] = useState(50);
@@ -86,6 +111,9 @@ export const ImitationPhase = ({
   // Players can hide the band — an imperfect transcription is more of a
   // distraction than a help, and only they can judge that.
   const [showRhythmo, setShowRhythmo] = useState(true);
+  // Per-device timing preference. Zero preserves exact media-time alignment;
+  // positive values bring words to the playhead slightly earlier.
+  const [rhythmoLeadSeconds, setRhythmoLeadSeconds] = useState(readRhythmoLeadSeconds);
 
   const teammate = gameMode === '2v2' && getTeammate ? getTeammate(currentPlayer.id) : null;
   const { broadcastStatus } = useBroadcastRecordingStatus(
@@ -177,21 +205,49 @@ export const ImitationPhase = ({
 
   // Guard: don't fire onAllReady in the first 2s after mount — gives time for
   // the host's reset (is_ready=false) to propagate before we check readiness.
-  // Without this, at round 2+ the ImitationPhase can mount, fetch stale
-  // is_ready=true from the preview phase, and immediately skip to voting.
+  // A reconnect can load every ready row during that window, so schedule the
+  // remaining delay instead of waiting for another database event.
   const mountedAtRef = useRef(Date.now());
-  useEffect(() => { mountedAtRef.current = Date.now(); }, [roundNumber]);
+  const allReadyNotifiedRoundRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (
+    mountedAtRef.current = Date.now();
+    allReadyNotifiedRoundRef.current = null;
+  }, [roundNumber]);
+
+  useEffect(() => {
+    const allPlayersReady =
       currentPlayer.isHost &&
       readyPlayers.length === players.length &&
-      readyPlayers.length > 0 &&
-      Date.now() - mountedAtRef.current > 2000
-    ) {
-      onAllReady();
+      readyPlayers.length > 0;
+
+    if (!allPlayersReady || allReadyNotifiedRoundRef.current === roundNumber) {
+      return;
     }
-  }, [readyPlayers.length, players.length, onAllReady, currentPlayer.isHost]);
+
+    const notifyAllReady = () => {
+      if (allReadyNotifiedRoundRef.current === roundNumber) return;
+      allReadyNotifiedRoundRef.current = roundNumber;
+      onAllReady();
+    };
+
+    const elapsedMs = Date.now() - mountedAtRef.current;
+    const remainingDelayMs = Math.max(0, ALL_READY_DELAY_MS - elapsedMs);
+
+    if (remainingDelayMs === 0) {
+      notifyAllReady();
+      return;
+    }
+
+    const timeoutId = window.setTimeout(notifyAllReady, remainingDelayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    currentPlayer.isHost,
+    onAllReady,
+    players.length,
+    readyPlayers.length,
+    roundNumber,
+  ]);
 
   const handleSubmit = async () => {
     if (hasSubmitted) return;
@@ -237,7 +293,7 @@ export const ImitationPhase = ({
     }
   };
 
-  const handleVideoSaved = (clip: any) => {
+  const handleVideoSaved = (clip: VideoClip) => {
     setHasRecorded(true);
     setRecordedClipId(clip.id);
     setIsRecording(false);
@@ -430,25 +486,53 @@ export const ImitationPhase = ({
                   transcription. */}
               {rhythmoTrack && (
                 <div className="mt-3">
-                  <div className="flex items-center justify-between mb-1.5 px-0.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 px-0.5">
                     <span className="text-[9px] font-black uppercase tracking-[0.2em]"
                       style={{ fontFamily: FONT, color: 'var(--c-violet)' }}>
                       Bande rythmo
                     </span>
-                    <button type="button"
-                      onClick={() => { playInkSound('cartoonPop', 0.35); setShowRhythmo((v) => !v); }}
-                      className="text-[9px] font-black uppercase tracking-[0.16em] px-2 py-0.5 rounded-full transition-colors"
-                      style={{
-                        fontFamily: FONT,
-                        color: showRhythmo ? 'rgba(255,255,255,0.5)' : 'var(--c-violet)',
-                        border: '1px solid var(--ink-line)',
-                      }}>
-                      {showRhythmo ? 'Masquer' : 'Afficher'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {showRhythmo && (
+                        <label className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.1em] text-white/50"
+                          style={{ fontFamily: FONT }}>
+                          <span>Avance {rhythmoLeadSeconds.toFixed(1)} s</span>
+                          <input
+                            type="range"
+                            aria-label="Avance de la bande rythmo"
+                            min="0"
+                            max={MAX_RHYTHMO_LEAD_SECONDS}
+                            step="0.1"
+                            value={rhythmoLeadSeconds}
+                            onChange={(event) => {
+                              const nextLead = clampRhythmoLeadSeconds(Number(event.target.value));
+                              setRhythmoLeadSeconds(nextLead);
+                              saveRhythmoLeadSeconds(nextLead);
+                            }}
+                            className="h-1 w-20 cursor-pointer"
+                            style={{ accentColor: 'var(--c-violet)' }}
+                          />
+                        </label>
+                      )}
+                      <button type="button"
+                        onClick={() => { playInkSound('cartoonPop', 0.35); setShowRhythmo((v) => !v); }}
+                        className="text-[9px] font-black uppercase tracking-[0.16em] px-2 py-0.5 rounded-full transition-colors"
+                        style={{
+                          fontFamily: FONT,
+                          color: showRhythmo ? 'rgba(255,255,255,0.5)' : 'var(--c-violet)',
+                          border: '1px solid var(--ink-line)',
+                        }}>
+                        {showRhythmo ? 'Masquer' : 'Afficher'}
+                      </button>
+                    </div>
                   </div>
 
                   {showRhythmo && (
-                    <RhythmoBand track={rhythmoTrack} videoRef={challengeVideoRef} accent="var(--c-violet)" />
+                    <RhythmoBand
+                      track={rhythmoTrack}
+                      videoRef={challengeVideoRef}
+                      leadSeconds={rhythmoLeadSeconds}
+                      accent="var(--c-violet)"
+                    />
                   )}
                 </div>
               )}
