@@ -14,7 +14,7 @@ import {
   type RhythmoTrack,
   type RhythmoWord,
 } from './types';
-import type { TranscribeRequest, WorkerOutbound } from './transcribe.worker';
+import type { TranscribeRequest, WarmupRequest, WorkerOutbound } from './transcribe.worker';
 
 /** A gap longer than this starts a new phrase. */
 const PHRASE_GAP_S = 0.7;
@@ -29,6 +29,18 @@ const INFERENCE_TIMEOUT_MS = 5 * 60_000;
 
 let worker: Worker | null = null;
 
+/**
+ * Rough seconds of compute per second of audio, per backend, for the tiny
+ * model. Only used to show an ETA — refined at runtime with the real speed
+ * measured on the last clip.
+ */
+const BASE_SPEED_FACTOR: Record<'webgpu' | 'wasm', number> = { webgpu: 0.08, wasm: 0.45 };
+const measuredFactor: Partial<Record<'webgpu' | 'wasm', number>> = {};
+
+/** Estimated milliseconds to transcribe `durationS` seconds of audio. */
+export const estimateTranscriptionMs = (durationS: number, device: 'webgpu' | 'wasm' = 'wasm'): number =>
+  Math.round(Math.max(2, durationS) * (measuredFactor[device] ?? BASE_SPEED_FACTOR[device]) * 1000) + 1_500;
+
 const getWorker = (): Worker => {
   if (!worker) {
     worker = new Worker(new URL('./transcribe.worker.ts', import.meta.url), {
@@ -37,6 +49,22 @@ const getWorker = (): Worker => {
     });
   }
   return worker;
+};
+
+/**
+ * Start loading the speech model in the background.
+ *
+ * Called as soon as the submission screen opens so the ~40 MB download and
+ * the engine init happen while the player is still importing videos, instead
+ * of adding a minute in front of the first band.
+ */
+export const warmRhythmoWorker = (): void => {
+  try {
+    const request: WarmupRequest = { type: 'warmup' };
+    getWorker().postMessage(request);
+  } catch (error) {
+    console.warn('[rythmo] préchargement impossible', error);
+  }
 };
 
 /** Drops the worker and the loaded model. Frees a few hundred MB of RAM. */
