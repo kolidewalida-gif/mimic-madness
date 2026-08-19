@@ -79,7 +79,10 @@ const formatEta = (ms: number): string => {
  * start and its end, so without it this line would sit unchanged for a minute
  * and read as frozen.
  */
-const rhythmoLabel = (progress: RhythmoProgress, remainingMs: number | null): string => {
+const rhythmoLabel = (
+  progress: RhythmoProgress,
+  timing: { remainingMs: number; elapsedMs: number } | null,
+): string => {
   switch (progress.phase) {
     case 'extracting':
       return "Extraction de l'audio…";
@@ -88,10 +91,13 @@ const rhythmoLabel = (progress: RhythmoProgress, remainingMs: number | null): st
         ? 'Modèle prêt…'
         : `Téléchargement du modèle vocal… ${Math.round(progress.ratio * 100)}%`;
     case 'transcribing':
-      // Past the estimate the run is not stuck, the guess was just short.
-      return remainingMs !== null && remainingMs > 0
-        ? `Création de la bande rythmo… ≈ ${formatEta(remainingMs)}`
-        : 'Création de la bande rythmo… presque fini';
+      if (!timing) return 'Création de la bande rythmo…';
+      // Once the estimate is spent, switch to counting up. Claiming "presque
+      // fini" indefinitely is worse than useless: the run may still have
+      // minutes to go, and a frozen line reads as a crash.
+      return timing.remainingMs > 0
+        ? `Création de la bande rythmo… ≈ ${formatEta(timing.remainingMs)}`
+        : `Création de la bande rythmo… ${formatEta(timing.elapsedMs)} écoulées`;
     case 'done':
       return 'Bande rythmo prête';
     default:
@@ -153,8 +159,11 @@ export const VideoSubmissionScreen = ({
     /** Estimated milliseconds for this file, from the measured throughput. */
     etaMs?: number;
   } | null>(null);
-  /** Live countdown for the file being sent. */
-  const [uploadRemainingMs, setUploadRemainingMs] = useState<number | null>(null);
+  /** Live timing for the file being sent: counts down, then counts up. */
+  const [uploadTiming, setUploadTiming] = useState<{
+    remainingMs: number;
+    elapsedMs: number;
+  } | null>(null);
   /** Rolling upload throughput, refined after every successful upload. */
   const uploadRateRef = useRef<number>(readStoredRate());
   const [clipUrls, setClipUrls] = useState<Record<string, string>>({});
@@ -184,8 +193,11 @@ export const VideoSubmissionScreen = ({
    * are not here and fall back to the signed URL.
    */
   const importedFilesRef = useRef<Record<string, File>>({});
-  /** Live countdown while transcribing. */
-  const [rhythmoRemainingMs, setRhythmoRemainingMs] = useState<number | null>(null);
+  /** Live timing while transcribing: counts down, then counts up. */
+  const [rhythmoTiming, setRhythmoTiming] = useState<{
+    remainingMs: number;
+    elapsedMs: number;
+  } | null>(null);
 
   // Start pulling the model as soon as this screen opens. The ~80 MB download
   // has nothing to do with the videos, so it may as well run while the player
@@ -199,32 +211,45 @@ export const VideoSubmissionScreen = ({
   // floor at zero: an estimate that runs out means the guess was short, not
   // that the work stopped.
   useEffect(() => {
-    const etaMs = rhythmo?.progress.phase === 'transcribing' ? rhythmo.progress.etaMs : undefined;
-    if (etaMs === undefined) {
-      setRhythmoRemainingMs(null);
+    if (rhythmo?.progress.phase !== 'transcribing') {
+      setRhythmoTiming(null);
       return;
     }
-    const deadline = Date.now() + etaMs;
-    setRhythmoRemainingMs(etaMs);
-    const timer = setInterval(() => {
-      setRhythmoRemainingMs(Math.max(0, deadline - Date.now()));
-    }, 500);
+
+    // No estimate available still gets a stopwatch: something visibly moving is
+    // the whole point.
+    const etaMs = rhythmo.progress.etaMs ?? 0;
+    const startedAt = Date.now();
+
+    const tick = () => {
+      const elapsedMs = Date.now() - startedAt;
+      setRhythmoTiming({ remainingMs: Math.max(0, etaMs - elapsedMs), elapsedMs });
+    };
+
+    tick();
+    const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
   }, [rhythmo?.progress]);
 
   useEffect(() => {
-    if (!uploadStatus?.etaMs) {
-      setUploadRemainingMs(null);
+    if (!uploadStatus) {
+      setUploadTiming(null);
       return;
     }
-    const deadline = Date.now() + uploadStatus.etaMs;
-    setUploadRemainingMs(uploadStatus.etaMs);
-    const timer = setInterval(() => {
-      setUploadRemainingMs(Math.max(0, deadline - Date.now()));
-    }, 500);
+
+    const etaMs = uploadStatus.etaMs ?? 0;
+    const startedAt = Date.now();
+
+    const tick = () => {
+      const elapsedMs = Date.now() - startedAt;
+      setUploadTiming({ remainingMs: Math.max(0, etaMs - elapsedMs), elapsedMs });
+    };
+
+    tick();
+    const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
     // The whole object, not its fields: it is replaced once per file, which is
-    // exactly when the countdown must restart.
+    // exactly when the timing must restart.
   }, [uploadStatus]);
 
   // Abort in-flight work and free the model if the player leaves this screen.
@@ -837,12 +862,12 @@ export const VideoSubmissionScreen = ({
                     {/* The transfer reports no progress of its own, so this
                         estimate from the measured throughput is the only sign
                         that it is moving. */}
-                    {isUploading && uploadRemainingMs !== null && (
+                    {isUploading && uploadTiming && (
                       <span className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35"
                         style={{ fontFamily: "'Outfit', sans-serif" }}>
-                        {uploadRemainingMs > 0
-                          ? `Encore ≈ ${formatEta(uploadRemainingMs)}`
-                          : 'Presque fini…'}
+                        {uploadTiming.remainingMs > 0
+                          ? `Encore ≈ ${formatEta(uploadTiming.remainingMs)}`
+                          : `${formatEta(uploadTiming.elapsedMs)} écoulées`}
                       </span>
                     )}
                   </div>
@@ -903,7 +928,7 @@ export const VideoSubmissionScreen = ({
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black truncate text-[var(--ink-accent-text)]"
                             style={{ fontFamily: "'Outfit', sans-serif" }}>
-                            {rhythmoLabel(rhythmo.progress, rhythmoRemainingMs)}
+                            {rhythmoLabel(rhythmo.progress, rhythmoTiming)}
                           </p>
                           <p className="text-[10px] text-white/45 truncate" style={{ fontFamily: "'Outfit', sans-serif" }}>
                             {rhythmo.clipName} · {rhythmo.index}/{rhythmo.total}

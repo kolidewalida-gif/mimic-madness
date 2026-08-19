@@ -33,8 +33,14 @@ let worker: Worker | null = null;
  * Rough seconds of compute per second of audio, per backend, for the tiny
  * model. Only used to show an ETA — refined at runtime with the real speed
  * measured on the last clip.
+ *
+ * Deliberately pessimistic for WASM. Multi-threaded WASM needs the page to be
+ * cross-origin isolated (COOP/COEP headers), which the deployment does not set,
+ * so it runs single-threaded and is several times slower than the figure the
+ * benchmarks quote. Under-promising here is much better than a countdown that
+ * empties in eight seconds and then sits at zero.
  */
-const BASE_SPEED_FACTOR: Record<'webgpu' | 'wasm', number> = { webgpu: 0.08, wasm: 0.45 };
+const BASE_SPEED_FACTOR: Record<'webgpu' | 'wasm', number> = { webgpu: 0.15, wasm: 1.6 };
 const measuredFactor: Partial<Record<'webgpu' | 'wasm', number>> = {};
 
 /** Estimated milliseconds to transcribe `durationS` seconds of audio. */

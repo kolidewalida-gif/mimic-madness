@@ -100,6 +100,26 @@ async function getTranscriber() {
     // Models come from the hub; there is no local model directory to probe.
     env.allowLocalModels = false;
 
+    // Multi-threaded WASM requires SharedArrayBuffer, which the browser only
+    // grants to a cross-origin isolated page (COOP/COEP headers). Without them
+    // threads silently do nothing, so ask for them only when they can work and
+    // say which case we are in — it is the single biggest factor in how long a
+    // clip takes on the CPU path.
+    const isolated = (self as unknown as { crossOriginIsolated?: boolean }).crossOriginIsolated;
+    const cores = (navigator as unknown as { hardwareConcurrency?: number }).hardwareConcurrency ?? 4;
+    const threads = isolated ? Math.max(1, Math.min(4, cores)) : 1;
+
+    try {
+      env.backends.onnx.wasm.numThreads = threads;
+    } catch {
+      /* older builds expose no such setting */
+    }
+
+    post({
+      type: 'log',
+      message: `wasm: ${threads} thread${threads > 1 ? 's' : ''}${isolated ? '' : ' (page non isolée)'}`,
+    });
+
     post({ type: 'log', message: 'moteur chargé, préparation du modèle…' });
 
     // Every status is forwarded, not just `progress`. When the model comes
@@ -225,6 +245,11 @@ self.onmessage = async (event: MessageEvent<WorkerInbound>) => {
 
     post({ type: 'transcribing' });
 
+    // Real speed, logged so a "it never finishes" report can be checked against
+    // an actual number instead of a guess.
+    const startedAt = performance.now();
+    const audioSeconds = request.samples.length / 16_000;
+
     const output = await run(request.samples, {
       // 30 s is Whisper's native window; the stride lets long clips overlap so
       // words are not cut at chunk boundaries.
@@ -233,6 +258,14 @@ self.onmessage = async (event: MessageEvent<WorkerInbound>) => {
       return_timestamps: 'word',
       task: 'transcribe',
       ...(request.language ? { language: request.language } : {}),
+    });
+
+    const computeSeconds = (performance.now() - startedAt) / 1000;
+    post({
+      type: 'log',
+      message: `inference terminee en ${computeSeconds.toFixed(1)} s pour ${audioSeconds.toFixed(
+        1,
+      )} s d'audio (x${(computeSeconds / Math.max(1, audioSeconds)).toFixed(2)} temps reel)`,
     });
 
     const words = normaliseWords(output);
