@@ -51,6 +51,8 @@ interface UseLobbyResult {
 const RECONNECTION_TIMEOUT = 60000;
 const HEARTBEAT_INTERVAL = 15000; // 15s (was 3s — caused realtime spam)
 const HOST_MIGRATION_GRACE = 10000;
+/** A lobby snapshot read that exceeds this is treated as a failure and retried. */
+const SNAPSHOT_READ_TIMEOUT_MS = 12000;
 
 export const useLobbySync = (): UseLobbyResult => {
   const [lobby, setLobby] = useState<Lobby | null>(null);
@@ -616,6 +618,18 @@ export const useLobbySync = (): UseLobbyResult => {
       }, delay);
     };
 
+    const withSnapshotTimeout = <T,>(operation: PromiseLike<T>): Promise<T> =>
+      new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error('La lecture du salon a expiré.')),
+          SNAPSHOT_READ_TIMEOUT_MS,
+        );
+        Promise.resolve(operation).then(
+          (value) => { clearTimeout(timer); resolve(value); },
+          (error: unknown) => { clearTimeout(timer); reject(error); },
+        );
+      });
+
     async function requestLobbySnapshot(reason: string) {
       if (!isSubscribed || !channelSubscribed) return;
       const requestId = ++latestSnapshotRequest;
@@ -629,14 +643,21 @@ export const useLobbySync = (): UseLobbyResult => {
 
       updateSyncState('connected', 'syncing');
       try {
-        const [lobbyResult, playersResult] = await Promise.all([
-          supabase.from('lobbies').select('*').eq('id', lobbyId).maybeSingle(),
-          supabase
-            .from('lobby_players')
-            .select('*')
-            .eq('lobby_id', lobbyId)
-            .order('joined_at', { ascending: true }),
-        ]);
+        // Bound the reads. The Supabase client has no timeout, so when the
+        // project is slow (waking from pause, Cloudflare edge issues in an
+        // iframe) these selects hang and the state is stuck on "syncing" —
+        // "Reconnexion…" forever — even though the realtime socket is up. A
+        // timeout turns that into a retryable error instead of a dead screen.
+        const [lobbyResult, playersResult] = await withSnapshotTimeout(
+          Promise.all([
+            supabase.from('lobbies').select('*').eq('id', lobbyId).maybeSingle(),
+            supabase
+              .from('lobby_players')
+              .select('*')
+              .eq('lobby_id', lobbyId)
+              .order('joined_at', { ascending: true }),
+          ]),
+        );
 
         if (lobbyResult.error) throw lobbyResult.error;
         if (playersResult.error) throw playersResult.error;
