@@ -115,6 +115,7 @@ interface AudioRecorderProps {
   playerName: string;
   onAudioSaved?: (clip: VideoClip) => void;
   lobbyId?: string;
+  roundNumber?: number;
   onRecordingStart?: () => void;
   onRecordingStop?: () => void;
   /** Show the voice-filter picker above the mic button (Ink mode). */
@@ -148,6 +149,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   playerName,
   onAudioSaved,
   lobbyId,
+  roundNumber,
   onRecordingStart,
   onRecordingStop,
   showVoiceFilters = false,
@@ -292,6 +294,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         duration: 0,
         isMuted: false,
         lobbyId,
+        roundNumber,
       };
 
       if (!isSessionActive(session)) return;
@@ -545,6 +548,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         duration: 0,
         isMuted: false,
         lobbyId,
+        roundNumber,
       };
       const savedClip = await videoStorage.uploadVideo(file, clipData);
       if (!isSessionActive(session)) return;

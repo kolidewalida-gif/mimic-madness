@@ -344,6 +344,8 @@ export type Database = {
           lobby_id: string
           phase: string
           round_number: number
+          updated_at: string
+          version: number
         }
         Insert: {
           challenge_player_id: string
@@ -353,6 +355,8 @@ export type Database = {
           lobby_id: string
           phase?: string
           round_number?: number
+          updated_at?: string
+          version?: number
         }
         Update: {
           challenge_player_id?: string
@@ -362,6 +366,8 @@ export type Database = {
           lobby_id?: string
           phase?: string
           round_number?: number
+          updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -994,6 +1000,7 @@ export type Database = {
       }
       player_imitations: {
         Row: {
+          clip_id: string | null
           created_at: string
           id: string
           include_original_audio: boolean
@@ -1005,6 +1012,7 @@ export type Database = {
           round_number: number
         }
         Insert: {
+          clip_id?: string | null
           created_at?: string
           id?: string
           include_original_audio?: boolean
@@ -1016,6 +1024,7 @@ export type Database = {
           round_number?: number
         }
         Update: {
+          clip_id?: string | null
           created_at?: string
           id?: string
           include_original_audio?: boolean
@@ -1027,6 +1036,13 @@ export type Database = {
           round_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "player_imitations_clip_id_fkey"
+            columns: ["clip_id"]
+            isOneToOne: false
+            referencedRelation: "video_clips"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "player_imitations_lobby_id_fkey"
             columns: ["lobby_id"]
@@ -1801,31 +1817,50 @@ export type Database = {
         Row: {
           created_at: string
           current_imitation_index: number
+          game_round_id: string | null
           id: string
           is_playing: boolean
           lobby_id: string
+          playback_position_ms: number
+          playback_started_at: string | null
           round_number: number
           updated_at: string
+          version: number
         }
         Insert: {
           created_at?: string
           current_imitation_index?: number
+          game_round_id?: string | null
           id?: string
           is_playing?: boolean
           lobby_id: string
+          playback_position_ms?: number
+          playback_started_at?: string | null
           round_number?: number
           updated_at?: string
+          version?: number
         }
         Update: {
           created_at?: string
           current_imitation_index?: number
+          game_round_id?: string | null
           id?: string
           is_playing?: boolean
           lobby_id?: string
+          playback_position_ms?: number
+          playback_started_at?: string | null
           round_number?: number
           updated_at?: string
+          version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "voting_session_game_round_id_fkey"
+            columns: ["game_round_id"]
+            isOneToOne: false
+            referencedRelation: "game_rounds"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "voting_session_lobby_id_fkey"
             columns: ["lobby_id"]
@@ -1840,6 +1875,74 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cast_imitation_vote: {
+        Args: {
+          p_imitation_player_ids: string[]
+          p_lobby_id: string
+          p_round_number: number
+          p_vote_type: string
+          p_voter_player_id: string
+        }
+        Returns: boolean
+      }
+      ensure_voting_session: {
+        Args: { p_game_round_id: string }
+        Returns: {
+          current_imitation_index: number
+          game_round_id: string | null
+          is_playing: boolean
+          lobby_id: string
+          playback_position_ms: number
+          playback_started_at: string | null
+          round_number: number
+          server_now: string
+          session_id: string
+          updated_at: string
+          version: number
+        }[]
+      }
+      mutate_voting_session: {
+        Args: {
+          p_action: string
+          p_countdown_ms?: number
+          p_expected_index: number
+          p_expected_version: number
+          p_session_id: string
+        }
+        Returns: boolean
+      }
+      read_voting_session: {
+        Args: { p_lobby_id: string; p_round_number: number }
+        Returns: {
+          current_imitation_index: number
+          game_round_id: string | null
+          is_playing: boolean
+          lobby_id: string
+          playback_position_ms: number
+          playback_started_at: string | null
+          round_number: number
+          server_now: string
+          session_id: string
+          updated_at: string
+          version: number
+        }[]
+      }
+      set_lobby_player_connection: {
+        Args: { p_connected: boolean; p_lobby_id: string; p_player_id: string }
+        Returns: undefined
+      }
+      submit_player_imitation: {
+        Args: {
+          p_clip_id: string | null
+          p_include_original_audio: boolean
+          p_lobby_id: string
+          p_original_audio_volume: number
+          p_player_id: string
+          p_player_name: string
+          p_round_number: number
+        }
+        Returns: boolean
+      }
       admin_join_lobby: {
         Args: {
           p_display_name: string

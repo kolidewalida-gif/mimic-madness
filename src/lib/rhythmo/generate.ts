@@ -1,9 +1,6 @@
 /**
- * Orchestrates one clip's transcription: decode audio, run the worker, group
- * the words into phrases, persist the result.
- *
- * The worker is created lazily and kept alive between clips so the model is
- * only loaded once per session.
+ * Orchestrates one clip's transcription: read/decode audio, run Whisper in a
+ * worker, group words into phrases, then persist the deterministic cue file.
  */
 import { extractMonoPcm } from './audio';
 import { saveRhythmoTrack } from './store';
@@ -16,71 +13,308 @@ import {
 } from './types';
 import type { TranscribeRequest, WarmupRequest, WorkerOutbound } from './transcribe.worker';
 
-/** A gap longer than this starts a new phrase. */
 const PHRASE_GAP_S = 0.7;
-/** Hard cap so one long sentence does not become a single huge cue. */
 const MAX_PHRASE_WORDS = 12;
+const MODEL_WATCHDOG_MS = 3 * 60_000;
+const MIN_INFERENCE_WATCHDOG_MS = 2 * 60_000;
+const MAX_INFERENCE_WATCHDOG_MS = 30 * 60_000;
+const SPEED_STORAGE_KEY = 'mimic-master-rhythmo-ms-per-audio-second-v1';
 
-/* Watchdog windows. These bound *silence*, not total duration: any message
-   from the worker rearms the timer, so a slow run is never cut short. */
-const STARTUP_TIMEOUT_MS = 45_000;
-const SILENCE_TIMEOUT_MS = 30_000;
-const INFERENCE_TIMEOUT_MS = 5 * 60_000;
+type ProgressCallback = (progress: RhythmoProgress) => void;
 
 let worker: Worker | null = null;
+let workerReady = false;
+let warmupPromise: Promise<void> | null = null;
+let activeGenerationRunId: string | null = null;
+const pendingWorkerRuns = new Set<(error: RhythmoError) => void>();
 
-/**
- * Rough seconds of compute per second of audio, per backend, for the tiny
- * model. Only used to show an ETA — refined at runtime with the real speed
- * measured on the last clip.
- *
- * Deliberately pessimistic for WASM. Multi-threaded WASM needs the page to be
- * cross-origin isolated (COOP/COEP headers), which the deployment does not set,
- * so it runs single-threaded and is several times slower than the figure the
- * benchmarks quote. Under-promising here is much better than a countdown that
- * empties in eight seconds and then sits at zero.
- */
-const BASE_SPEED_FACTOR: Record<'webgpu' | 'wasm', number> = { webgpu: 0.15, wasm: 1.6 };
-const measuredFactor: Partial<Record<'webgpu' | 'wasm', number>> = {};
+const newRunId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
 
-/** Estimated milliseconds to transcribe `durationS` seconds of audio. */
-export const estimateTranscriptionMs = (durationS: number, device: 'webgpu' | 'wasm' = 'wasm'): number =>
-  Math.round(Math.max(2, durationS) * (measuredFactor[device] ?? BASE_SPEED_FACTOR[device]) * 1000) + 1_500;
-
-const getWorker = (): Worker => {
+const ensureWorker = (): Worker => {
   if (!worker) {
-    worker = new Worker(new URL('./transcribe.worker.ts', import.meta.url), {
-      type: 'module',
-      name: 'rhythmo-transcribe',
-    });
+    worker = new Worker(new URL('./transcribe.worker.ts', import.meta.url), { type: 'module' });
+    workerReady = false;
   }
   return worker;
 };
 
-/**
- * Start loading the speech model in the background.
- *
- * Called as soon as the submission screen opens so the ~40 MB download and
- * the engine init happen while the player is still importing videos, instead
- * of adding a minute in front of the first band.
- */
-export const warmRhythmoWorker = (): void => {
+/** Termination is the only reliable way to cancel WASM inference. */
+const terminateWorker = (error = new RhythmoError('cancelled', 'Annulé.')): void => {
+  const current = worker;
+  worker = null;
+  workerReady = false;
+  warmupPromise = null;
+  current?.terminate();
+
+  const callbacks = [...pendingWorkerRuns];
+  pendingWorkerRuns.clear();
+  callbacks.forEach((cancel) => cancel(error));
+};
+
+export const releaseRhythmoWorker = (): void => {
+  terminateWorker();
+  activeGenerationRunId = null;
+};
+
+const asEngineError = (message: string): RhythmoError =>
+  new RhythmoError('engine', message || 'La transcription a échoué.');
+
+/** Warm the model opportunistically. A generation can safely join this load. */
+export const warmRhythmoWorker = (onProgress?: ProgressCallback): Promise<void> => {
+  if (workerReady) return Promise.resolve();
+  if (warmupPromise) return warmupPromise;
+
+  const runId = newRunId();
+  const instance = ensureWorker();
+  const request: WarmupRequest = { type: 'warmup', runId };
+
+  const promise = new Promise<void>((resolve, reject) => {
+    let settled = false;
+    let watchdog: ReturnType<typeof setTimeout>;
+
+    const cleanup = () => {
+      clearTimeout(watchdog);
+      instance.removeEventListener('message', onMessage);
+      instance.removeEventListener('error', onWorkerError);
+      pendingWorkerRuns.delete(onCancelled);
+    };
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+    const resetWatchdog = () => {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        terminateWorker(asEngineError("Le chargement du moteur n'avance plus."));
+      }, MODEL_WATCHDOG_MS);
+    };
+    const onCancelled = (error: RhythmoError) => finish(() => reject(error));
+    const onWorkerError = () => {
+      terminateWorker(asEngineError('Le moteur de transcription a cessé de répondre.'));
+    };
+    const onMessage = (event: MessageEvent<WorkerOutbound>) => {
+      const message = event.data;
+      if (message.runId !== runId) return;
+      resetWatchdog();
+
+      if (message.type === 'model-progress') {
+        onProgress?.({
+          phase: 'loading-model',
+          ratio: message.progress,
+          file: message.file,
+        });
+      } else if (message.type === 'model-ready') {
+        workerReady = true;
+        finish(resolve);
+      } else if (message.type === 'error') {
+        terminateWorker(asEngineError(message.message));
+      }
+    };
+
+    pendingWorkerRuns.add(onCancelled);
+    instance.addEventListener('message', onMessage);
+    instance.addEventListener('error', onWorkerError);
+    onProgress?.({ phase: 'loading-model', ratio: 0 });
+    resetWatchdog();
+    instance.postMessage(request);
+  });
+
+  warmupPromise = promise.finally(() => {
+    if (warmupPromise === promise || !workerReady) warmupPromise = null;
+  });
+  // Callers commonly fire-and-forget warmup; keep rejection handled there.
+  void warmupPromise.catch(() => undefined);
+  return warmupPromise;
+};
+
+export interface GenerateRhythmoOptions {
+  signal?: AbortSignal;
+  onProgress?: ProgressCallback;
+  language?: string;
+}
+
+export async function generateRhythmoTrack(
+  clipId: string,
+  file: Blob,
+  fileName: string,
+  options: GenerateRhythmoOptions = {},
+): Promise<RhythmoTrack> {
+  const runId = newRunId();
+  if (activeGenerationRunId) {
+    throw new RhythmoError('engine', 'Une génération de bande est déjà en cours.');
+  }
+  activeGenerationRunId = runId;
+
   try {
-    const request: WarmupRequest = { type: 'warmup' };
-    getWorker().postMessage(request);
+    if (options.signal?.aborted) throw new RhythmoError('cancelled', 'Annulé.');
+
+    const { samples, duration } = await extractMonoPcm(file, fileName, {
+      signal: options.signal,
+      onProgress: options.onProgress,
+    });
+
+    const { words, model } = await transcribeInWorker(runId, samples, duration, options);
+    if (words.length === 0) {
+      throw new RhythmoError('no-speech', "Aucune parole n'a été détectée dans cet extrait.");
+    }
+
+    const track: RhythmoTrack = {
+      version: 1,
+      clipId,
+      model,
+      device: 'wasm',
+      duration,
+      createdAt: new Date().toISOString(),
+      cues: groupIntoCues(words),
+    };
+
+    options.onProgress?.({ phase: 'saving' });
+    await saveRhythmoTrack(track, { signal: options.signal });
+    options.onProgress?.({ phase: 'done' });
+    return track;
   } catch (error) {
-    console.warn('[rythmo] préchargement impossible', error);
+    const typed = error instanceof RhythmoError
+      ? error
+      : new RhythmoError('engine', error instanceof Error ? error.message : 'Erreur inconnue.');
+    options.onProgress?.({ phase: 'error', reason: typed.reason, message: typed.message });
+    throw typed;
+  } finally {
+    if (activeGenerationRunId === runId) activeGenerationRunId = null;
+  }
+}
+
+function transcribeInWorker(
+  runId: string,
+  samples: Float32Array,
+  duration: number,
+  options: GenerateRhythmoOptions,
+): Promise<{ words: RhythmoWord[]; model: string }> {
+  const instance = ensureWorker();
+
+  return new Promise<{ words: RhythmoWord[]; model: string }>((resolve, reject) => {
+    let settled = false;
+    let inferenceStartedAt: number | null = null;
+    let watchdog: ReturnType<typeof setTimeout>;
+
+    const cleanup = () => {
+      clearTimeout(watchdog);
+      instance.removeEventListener('message', onMessage);
+      instance.removeEventListener('error', onWorkerError);
+      options.signal?.removeEventListener('abort', onAbort);
+      pendingWorkerRuns.delete(onCancelled);
+    };
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+    const armWatchdog = (timeoutMs: number, message: string) => {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => terminateWorker(asEngineError(message)), timeoutMs);
+    };
+    const onCancelled = (error: RhythmoError) => finish(() => reject(error));
+    const onAbort = () => terminateWorker(new RhythmoError('cancelled', 'Annulé.'));
+    const onWorkerError = () => {
+      terminateWorker(asEngineError('Le moteur de transcription a cessé de répondre.'));
+    };
+    const onMessage = (event: MessageEvent<WorkerOutbound>) => {
+      const message = event.data;
+      if (message.runId !== runId) return;
+
+      if (message.type === 'model-progress') {
+        armWatchdog(MODEL_WATCHDOG_MS, "Le chargement du moteur n'avance plus.");
+        options.onProgress?.({
+          phase: 'loading-model',
+          ratio: message.progress,
+          file: message.file,
+        });
+        return;
+      }
+
+      if (message.type === 'model-ready') {
+        workerReady = true;
+        inferenceStartedAt = Date.now();
+        const watchdogMs = Math.min(
+          MAX_INFERENCE_WATCHDOG_MS,
+          Math.max(MIN_INFERENCE_WATCHDOG_MS, duration * 30_000),
+        );
+        armWatchdog(watchdogMs, "La transcription n'avance plus.");
+        options.onProgress?.({
+          phase: 'transcribing',
+          etaMs: measuredEtaMs(duration),
+        });
+        return;
+      }
+
+      if (message.type === 'done') {
+        if (inferenceStartedAt !== null) {
+          rememberMeasuredSpeed(Date.now() - inferenceStartedAt, duration);
+        }
+        finish(() => resolve({ words: message.words, model: message.model }));
+        return;
+      }
+
+      if (message.type === 'error') {
+        terminateWorker(asEngineError(message.message));
+      }
+    };
+
+    pendingWorkerRuns.add(onCancelled);
+    instance.addEventListener('message', onMessage);
+    instance.addEventListener('error', onWorkerError);
+    options.signal?.addEventListener('abort', onAbort, { once: true });
+
+    options.onProgress?.({ phase: 'loading-model', ratio: workerReady ? 1 : 0 });
+    armWatchdog(MODEL_WATCHDOG_MS, "Le chargement du moteur n'avance plus.");
+
+    const request: TranscribeRequest = {
+      type: 'transcribe',
+      runId,
+      samples,
+      language: options.language,
+    };
+    instance.postMessage(request, [samples.buffer]);
+  });
+}
+
+const readMeasuredSpeed = (): number | undefined => {
+  try {
+    const value = Number(localStorage.getItem(SPEED_STORAGE_KEY));
+    return Number.isFinite(value) && value > 0 ? value : undefined;
+  } catch {
+    return undefined;
   }
 };
 
-/** Drops the worker and the loaded model. Frees a few hundred MB of RAM. */
-export const releaseRhythmoWorker = (): void => {
-  worker?.terminate();
-  worker = null;
+const measuredEtaMs = (duration: number): number | undefined => {
+  const speed = readMeasuredSpeed();
+  return speed ? Math.round(duration * speed) : undefined;
 };
 
-/** Group a flat word list into readable phrases. */
-export function groupWordsIntoCues(words: RhythmoWord[]): RhythmoCue[] {
+const rememberMeasuredSpeed = (elapsedMs: number, duration: number): void => {
+  if (!Number.isFinite(elapsedMs) || elapsedMs <= 0 || duration <= 0) return;
+  const measured = elapsedMs / duration;
+  const previous = readMeasuredSpeed();
+  const smoothed = previous ? previous * 0.7 + measured * 0.3 : measured;
+  try {
+    localStorage.setItem(SPEED_STORAGE_KEY, String(smoothed));
+  } catch {
+    // Private mode/storage quota: ETA simply stays unknown next time.
+  }
+};
+
+/** Group consecutive words into readable phrase-sized cues. */
+export function groupIntoCues(words: RhythmoWord[]): RhythmoCue[] {
+  if (words.length === 0) return [];
+
   const cues: RhythmoCue[] = [];
   let current: RhythmoWord[] = [];
 
@@ -89,7 +323,7 @@ export function groupWordsIntoCues(words: RhythmoWord[]): RhythmoCue[] {
     cues.push({
       start: current[0].start,
       end: current[current.length - 1].end,
-      text: current.map((w) => w.text).join(' ').replace(/\s+([,.!?;:])/g, '$1'),
+      text: current.map((word) => word.text).join(' ').replace(/\s+([,.!?;:])/g, '$1'),
       words: current,
     });
     current = [];
@@ -97,194 +331,14 @@ export function groupWordsIntoCues(words: RhythmoWord[]): RhythmoCue[] {
 
   for (const word of words) {
     const previous = current[current.length - 1];
-    const gap = previous ? word.start - previous.end : 0;
+    const startsNewPhrase =
+      current.length >= MAX_PHRASE_WORDS ||
+      (previous !== undefined && word.start - previous.end > PHRASE_GAP_S) ||
+      (previous !== undefined && /[.!?]$/.test(previous.text));
 
-    if (previous && (gap > PHRASE_GAP_S || current.length >= MAX_PHRASE_WORDS)) {
-      flush();
-    }
+    if (startsNewPhrase) flush();
     current.push(word);
   }
   flush();
-
   return cues;
-}
-
-export interface GenerateOptions {
-  clipId: string;
-  /** The media to transcribe. */
-  file: Blob;
-  /** Used only to reject containers the browser cannot decode. */
-  fileName?: string;
-  /** Force a language code, or leave undefined to auto-detect. */
-  language?: string;
-  onProgress?: (progress: RhythmoProgress) => void;
-  signal?: AbortSignal;
-}
-
-/**
- * Transcribe a clip and store its band. Resolves with the saved track.
- *
- * Throws a `RhythmoError` with a `reason` the UI can turn into a specific
- * message — an unsupported container is a very different situation from a
- * silent clip, and the player deserves to know which.
- */
-export async function generateRhythmoTrack({
-  clipId,
-  file,
-  fileName,
-  language,
-  onProgress,
-  signal,
-}: GenerateOptions): Promise<RhythmoTrack> {
-  const report = (progress: RhythmoProgress) => onProgress?.(progress);
-
-  if (signal?.aborted) throw new RhythmoError('cancelled', 'Annulé.');
-
-  report({ phase: 'extracting' });
-  const { samples, duration } = await extractMonoPcm(file, fileName);
-
-  if (signal?.aborted) throw new RhythmoError('cancelled', 'Annulé.');
-
-  report({ phase: 'loading-model', ratio: 0 });
-
-  const instance = getWorker();
-  let startedAt = 0;
-  let backend: 'webgpu' | 'wasm' = 'wasm';
-
-  const words = await new Promise<{
-    words: RhythmoWord[];
-    language?: string;
-    device: 'webgpu' | 'wasm';
-    model: string;
-  }>((resolve, reject) => {
-    /**
-     * Fails the run if the worker goes completely silent.
-     *
-     * Without it, anything that never settles inside the worker (a stalled
-     * model download, a driver that never answers) leaves the UI spinning
-     * forever with no way to tell whether it is working.
-     *
-     * Rearmed on every message, so a slow-but-alive run is never killed.
-     */
-    let watchdog: ReturnType<typeof setTimeout>;
-    const armWatchdog = (ms: number) => {
-      clearTimeout(watchdog);
-      watchdog = setTimeout(() => {
-        cleanup();
-        reject(
-          new RhythmoError(
-            'engine',
-            "Le moteur ne répond pas. Vérifie ta connexion : le modèle vocal doit être téléchargé une première fois.",
-          ),
-        );
-      }, ms);
-    };
-
-    const cleanup = () => {
-      clearTimeout(watchdog);
-      instance.removeEventListener('message', onMessage);
-      instance.removeEventListener('error', onError);
-      instance.removeEventListener('messageerror', onError);
-      signal?.removeEventListener('abort', onAbort);
-    };
-
-    const onAbort = () => {
-      cleanup();
-      // The model stays loaded in the worker; only this run is abandoned.
-      reject(new RhythmoError('cancelled', 'Annulé.'));
-    };
-
-    const onError = (event: Event) => {
-      cleanup();
-      const detail = (event as ErrorEvent)?.message;
-      console.error('[rythmo] worker en erreur', detail ?? event);
-      reject(
-        new RhythmoError(
-          'engine',
-          detail ? `Moteur indisponible : ${detail}` : 'Le moteur de transcription a échoué.',
-        ),
-      );
-    };
-
-    const onMessage = (event: MessageEvent<WorkerOutbound>) => {
-      const message = event.data;
-
-      switch (message.type) {
-        case 'log':
-          // Progress with no percentage. Keeps the watchdog happy and leaves a
-          // trail in the console when a player reports a stuck run.
-          console.info('[rythmo]', message.message);
-          armWatchdog(SILENCE_TIMEOUT_MS);
-          break;
-        case 'model-progress':
-          report({ phase: 'loading-model', ratio: message.ratio, file: message.file });
-          armWatchdog(SILENCE_TIMEOUT_MS);
-          break;
-        case 'ready':
-          backend = message.device;
-          report({ phase: 'loading-model', ratio: 1 });
-          // Inference reports nothing until it finishes, so the window has to
-          // cover a whole clip on the slow WASM path.
-          armWatchdog(INFERENCE_TIMEOUT_MS);
-          break;
-        case 'transcribing':
-          startedAt = performance.now();
-          report({ phase: 'transcribing', etaMs: estimateTranscriptionMs(duration, backend) });
-          armWatchdog(INFERENCE_TIMEOUT_MS);
-          break;
-        case 'result':
-          cleanup();
-          if (startedAt) {
-            // Feed the real speed back so the next clip's ETA is accurate.
-            const factor = (performance.now() - startedAt) / 1000 / Math.max(1, duration);
-            measuredFactor[message.device] = factor;
-          }
-          resolve({
-            words: message.words,
-            language: message.language,
-            device: message.device,
-            model: message.model,
-          });
-          break;
-        case 'error':
-          cleanup();
-          reject(new RhythmoError(message.reason, message.message));
-          break;
-      }
-    };
-
-    instance.addEventListener('message', onMessage);
-    instance.addEventListener('error', onError);
-    instance.addEventListener('messageerror', onError);
-    signal?.addEventListener('abort', onAbort, { once: true });
-
-    // Generous first window: it covers loading the engine and, on a first run,
-    // starting an 80 MB download.
-    armWatchdog(STARTUP_TIMEOUT_MS);
-
-    const request: TranscribeRequest = { type: 'transcribe', samples, language };
-    // Transfer the buffer instead of copying it: a 3-minute clip is ~11 MB.
-    instance.postMessage(request, [samples.buffer]);
-  });
-
-  const cues = groupWordsIntoCues(words.words);
-  if (cues.length === 0) {
-    throw new RhythmoError('no-speech', 'Aucune parole détectée.');
-  }
-
-  const track: RhythmoTrack = {
-    version: 1,
-    clipId,
-    language: words.language,
-    model: words.model,
-    device: words.device,
-    duration,
-    createdAt: new Date().toISOString(),
-    cues,
-  };
-
-  await saveRhythmoTrack(track);
-  report({ phase: 'done' });
-
-  return track;
 }

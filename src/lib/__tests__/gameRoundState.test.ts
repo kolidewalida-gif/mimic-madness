@@ -33,6 +33,28 @@ describe('durable game-round phase guard', () => {
     expect(parseDurableGameRound({ phase: 'imitation', round: 1 })).toBeNull();
   });
 
+  it('exposes the optimistic-lock version when the schema provides it', () => {
+    const round = parseDurableGameRound({
+      ...makeRow(),
+      version: 7,
+      updated_at: '2026-08-19T10:00:00.000Z',
+    });
+    expect(round?.version).toBe(7);
+    expect(round?.updated_at).toBe('2026-08-19T10:00:00.000Z');
+  });
+
+  it('still parses a row from a schema without the version columns', () => {
+    const round = parseDurableGameRound(makeRow());
+    // Null means "no version guard available", not "version zero".
+    expect(round?.version).toBeNull();
+    expect(round?.updated_at).toBeNull();
+  });
+
+  it('rejects a malformed version instead of trusting it for a compare-and-set', () => {
+    expect(parseDurableGameRound({ ...makeRow(), version: -2 })).toBeNull();
+    expect(parseDurableGameRound({ ...makeRow(), version: 'latest' })).toBeNull();
+  });
+
   it('does not render any phase while synchronization is uncertain', () => {
     const round = parseDurableGameRound(makeRow('imitation'));
     expect(getRenderableGamePhase(round, false)).toBeNull();

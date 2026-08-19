@@ -22,6 +22,7 @@ import {
   type DurableGameRound,
   type GamePhase,
 } from "@/lib/gameRoundState";
+import { equalJitterBackoff } from "@/lib/syncState";
 
 interface Player {
   id: string;
@@ -149,20 +150,31 @@ export const GamePlayScreen = ({
 
       const { data, error } = await supabase
         .from("game_rounds")
-        .upsert({
+        .insert({
           lobby_id: lobbyId,
           round_number: 1,
           current_challenge_id: nextClip.id,
           challenge_player_id: nextClip.playerId,
           phase: "preview",
-        }, {
-          onConflict: "lobby_id,round_number",
         })
         .select("*")
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      const createdRound = parseDurableGameRound(data);
+      let persisted = data;
+      if (error?.code === '23505') {
+        const existing = await supabase
+          .from('game_rounds')
+          .select('*')
+          .eq('lobby_id', lobbyId)
+          .eq('round_number', 1)
+          .maybeSingle();
+        if (existing.error) throw existing.error;
+        persisted = existing.data;
+      } else if (error) {
+        throw error;
+      }
+
+      const createdRound = parseDurableGameRound(persisted);
       if (!createdRound || createdRound.lobby_id !== lobbyId) {
         throw new Error("La manche creee contient un etat invalide.");
       }
@@ -202,15 +214,23 @@ export const GamePlayScreen = ({
         throw new Error("Aucun clip de defi jouable n'a ete trouve pour cette partie.");
       }
 
-      const { data, error } = await supabase
+      // Compare-and-set: the row must still be exactly the one just read.
+      let repairQuery = supabase
         .from("game_rounds")
         .update({
           current_challenge_id: replacementClip.id,
           challenge_player_id: replacementClip.playerId,
         })
         .eq("id", round.id)
-        .select("*")
-        .single();
+        .eq('lobby_id', lobbyId)
+        .eq('round_number', round.round_number)
+        .eq('phase', round.phase)
+        .eq('current_challenge_id', round.current_challenge_id);
+      if (round.version !== null) {
+        repairQuery = repairQuery.eq('version', round.version);
+      }
+
+      const { data, error } = await repairQuery.select("*").maybeSingle();
 
       if (error) throw error;
       const repairedRound = parseDurableGameRound(data);
@@ -257,7 +277,7 @@ export const GamePlayScreen = ({
     const scheduleChannelRestart = () => {
       if (channelRestartTimer || !isMounted) return;
       const attempt = channelRestartAttemptsRef.current;
-      const delay = Math.min(1000 * (2 ** attempt), 10_000);
+      const delay = equalJitterBackoff(attempt, 1_000, 10_000);
       channelRestartAttemptsRef.current = Math.min(attempt + 1, 4);
       channelRestartTimer = setTimeout(() => {
         channelRestartTimer = null;
@@ -417,12 +437,36 @@ export const GamePlayScreen = ({
         }
       });
 
+    const resyncRound = () => {
+      if (!isMounted || !navigator.onLine) return;
+      if (roundSubscribed) {
+        void reconcileLatestRound(false, !roundSynchronizedRef.current);
+      } else {
+        clearChannelRestartTimer();
+        setRetryKey((value) => value + 1);
+      }
+    };
+    const handleOnline = () => resyncRound();
+    const handleOffline = () => {
+      latestRequest += 1;
+      setRoundSynchronization(false);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') resyncRound();
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       isMounted = false;
       latestRequest += 1;
       reconcileLatestRoundRef.current = async () => undefined;
       clearReconciliationTimer();
       clearChannelRestartTimer();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       void supabase.removeChannel(roundChannel);
     };
   }, [
@@ -455,15 +499,18 @@ export const GamePlayScreen = ({
     setRoundSynchronization(false);
 
     try {
-      const { data, error } = await supabase
+      let transitionQuery = supabase
         .from("game_rounds")
         .update({ phase: nextPhase })
         .eq("id", round.id)
         .eq("lobby_id", lobbyId)
         .eq("round_number", round.round_number)
-        .eq("phase", expectedPhase)
-        .select("*")
-        .maybeSingle();
+        .eq("phase", expectedPhase);
+      if (round.version !== null) {
+        transitionQuery = transitionQuery.eq('version', round.version);
+      }
+
+      const { data, error } = await transitionQuery.select("*").maybeSingle();
 
       if (error) throw error;
       const persistedRound = parseDurableGameRound(data);
@@ -733,6 +780,7 @@ export const GamePlayScreen = ({
           <VotingPhase
             key={`voting-${roundNumber}`}
             lobbyId={lobbyId}
+            gameRoundId={durableRound?.id ?? ''}
             roundNumber={roundNumber}
             currentPlayer={currentPlayer}
             players={players}

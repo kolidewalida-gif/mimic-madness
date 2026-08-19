@@ -10,6 +10,8 @@ interface TeamVideoOverlayProps {
   className?: string;
   externalControl?: boolean;
   isPlayingExternal?: boolean;
+  /** Authoritative elapsed position when external playback starts or resyncs. */
+  playbackPositionSeconds?: number;
 }
 
 export interface TeamVideoOverlayRef {
@@ -27,6 +29,7 @@ export const TeamVideoOverlay = forwardRef<TeamVideoOverlayRef, TeamVideoOverlay
   className = '',
   externalControl = false,
   isPlayingExternal = false,
+  playbackPositionSeconds = 0,
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audio1Ref = useRef<HTMLAudioElement>(null);
@@ -115,18 +118,22 @@ export const TeamVideoOverlay = forwardRef<TeamVideoOverlayRef, TeamVideoOverlay
     if (!externalControl) return;
 
     const startTime = videoClip?.startTime ?? 0;
+    // Seek to the authoritative elapsed position rather than restarting.
+    const offset = Number.isFinite(playbackPositionSeconds)
+      ? Math.max(0, playbackPositionSeconds)
+      : 0;
 
     if (isPlayingExternal) {
       if (videoRef.current) {
-        videoRef.current.currentTime = startTime;
+        videoRef.current.currentTime = startTime + offset;
         videoRef.current.play().catch(console.error);
       }
       if (audio1Ref.current) {
-        audio1Ref.current.currentTime = 0;
+        audio1Ref.current.currentTime = offset;
         audio1Ref.current.play().catch(console.error);
       }
       if (audio2Ref.current) {
-        audio2Ref.current.currentTime = 0;
+        audio2Ref.current.currentTime = offset;
         audio2Ref.current.play().catch(console.error);
       }
       setIsPlaying(true);
@@ -136,7 +143,12 @@ export const TeamVideoOverlay = forwardRef<TeamVideoOverlayRef, TeamVideoOverlay
       audio2Ref.current?.pause();
       setIsPlaying(false);
     }
-  }, [isPlayingExternal, externalControl, videoClip?.startTime]);
+  }, [
+    externalControl,
+    isPlayingExternal,
+    playbackPositionSeconds,
+    videoClip?.startTime,
+  ]);
 
   // Set video volume based on includeOriginalAudio
   useEffect(() => {

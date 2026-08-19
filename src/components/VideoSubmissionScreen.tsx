@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { CircularGallery } from "@/components/ui/circular-gallery";
 import { generateRhythmoTrack, releaseRhythmoWorker, warmRhythmoWorker } from "@/lib/rhythmo/generate";
 import { isLikelyDecodable } from "@/lib/rhythmo/audio";
+import { downloadMediaBlob } from "@/lib/rhythmo/media";
 import { listRhythmoTracks } from "@/lib/rhythmo/store";
 import { RhythmoError, rhythmoErrorLabel, type RhythmoProgress } from "@/lib/rhythmo/types";
 
@@ -72,65 +73,57 @@ const formatEta = (ms: number): string => {
   return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`;
 };
 
-/**
- * Player-facing label for a rythmo generation stage.
- *
- * `remainingMs` is the live countdown. Inference reports nothing between its
- * start and its end, so without it this line would sit unchanged for a minute
- * and read as frozen.
- */
+/** Player-facing label for each real generation stage. */
 const rhythmoLabel = (
   progress: RhythmoProgress,
   timing: { remainingMs: number; elapsedMs: number } | null,
 ): string => {
   switch (progress.phase) {
-    case 'extracting':
-      return "Extraction de l'audio…";
+    case 'downloading-media':
+      return progress.ratio === undefined
+        ? `Téléchargement de la vidéo… ${(progress.loadedBytes / (1024 * 1024)).toFixed(1)} Mo reçus`
+        : `Téléchargement de la vidéo… ${Math.round(progress.ratio * 100)}%`;
+    case 'reading-media':
+      return `Lecture du fichier… ${Math.round(progress.ratio * 100)}%`;
+    case 'decoding-audio':
+      return "Décodage de la piste audio…";
+    case 'resampling-audio':
+      return progress.ratio === undefined
+        ? "Préparation de l'audio…"
+        : `Préparation de l'audio… ${Math.round(progress.ratio * 100)}%`;
     case 'loading-model':
       return progress.ratio >= 1
         ? 'Modèle prêt…'
         : `Téléchargement du modèle vocal… ${Math.round(progress.ratio * 100)}%`;
     case 'transcribing':
       if (!timing) return 'Création de la bande rythmo…';
-      // Once the estimate is spent, switch to counting up. Claiming "presque
-      // fini" indefinitely is worse than useless: the run may still have
-      // minutes to go, and a frozen line reads as a crash.
+      if (progress.etaMs === undefined) {
+        return `Création de la bande rythmo… ${formatEta(timing.elapsedMs)} écoulées`;
+      }
       return timing.remainingMs > 0
         ? `Création de la bande rythmo… ≈ ${formatEta(timing.remainingMs)}`
         : `Création de la bande rythmo… ${formatEta(timing.elapsedMs)} écoulées`;
+    case 'saving':
+      return 'Enregistrement de la bande rythmo…';
     case 'done':
       return 'Bande rythmo prête';
+    case 'error':
+      return progress.message;
     default:
       return 'Bande rythmo…';
   }
 };
 
-/**
- * Measured upload throughput, in bytes per second.
- *
- * Supabase uploads go through `fetch`, which reports no progress at all, so a
- * measured average is the only material available for an estimate. Kept in
- * `localStorage` so the first estimate of a session is based on this player's
- * real connection instead of a guess.
- */
-const RATE_KEY = 'mimic:upload-bytes-per-sec';
-/** ~2 Mbps up: a deliberately modest starting point for a home connection. */
-const DEFAULT_RATE = 250 * 1024;
-
-const readStoredRate = (): number => {
-  try {
-    const raw = Number(localStorage.getItem(RATE_KEY));
-    return Number.isFinite(raw) && raw > 1024 ? raw : DEFAULT_RATE;
-  } catch {
-    return DEFAULT_RATE;
-  }
-};
-
-const storeRate = (rate: number): void => {
-  try {
-    localStorage.setItem(RATE_KEY, String(Math.round(rate)));
-  } catch {
-    /* private mode: the in-memory value still serves this session */
+const rhythmoProgressRatio = (progress: RhythmoProgress): number | undefined => {
+  switch (progress.phase) {
+    case 'downloading-media':
+    case 'resampling-audio':
+      return progress.ratio;
+    case 'reading-media':
+    case 'loading-model':
+      return progress.ratio;
+    default:
+      return undefined;
   }
 };
 const GRAFFITI_TEXT_SHADOW =
@@ -156,16 +149,7 @@ export const VideoSubmissionScreen = ({
     done: number;
     total: number;
     current: string;
-    /** Estimated milliseconds for this file, from the measured throughput. */
-    etaMs?: number;
   } | null>(null);
-  /** Live timing for the file being sent: counts down, then counts up. */
-  const [uploadTiming, setUploadTiming] = useState<{
-    remainingMs: number;
-    elapsedMs: number;
-  } | null>(null);
-  /** Rolling upload throughput, refined after every successful upload. */
-  const uploadRateRef = useRef<number>(readStoredRate());
   const [clipUrls, setClipUrls] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -185,6 +169,8 @@ export const VideoSubmissionScreen = ({
     progress: RhythmoProgress;
   } | null>(null);
   const rhythmoAbortRef = useRef<AbortController | null>(null);
+  /** Synchronous lock: React state alone does not stop two clicks in one tick. */
+  const rhythmoLockRef = useRef(false);
   /** Which clips already have a band. Drives the badges and the button state. */
   const [rhythmoReady, setRhythmoReady] = useState<Record<string, boolean>>({});
   /**
@@ -230,27 +216,6 @@ export const VideoSubmissionScreen = ({
     const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
   }, [rhythmo?.progress]);
-
-  useEffect(() => {
-    if (!uploadStatus) {
-      setUploadTiming(null);
-      return;
-    }
-
-    const etaMs = uploadStatus.etaMs ?? 0;
-    const startedAt = Date.now();
-
-    const tick = () => {
-      const elapsedMs = Date.now() - startedAt;
-      setUploadTiming({ remainingMs: Math.max(0, etaMs - elapsedMs), elapsedMs });
-    };
-
-    tick();
-    const timer = setInterval(tick, 500);
-    return () => clearInterval(timer);
-    // The whole object, not its fields: it is replaced once per file, which is
-    // exactly when the timing must restart.
-  }, [uploadStatus]);
 
   // Abort in-flight work and free the model if the player leaves this screen.
   useEffect(() => () => {
@@ -351,7 +316,6 @@ export const VideoSubmissionScreen = ({
       done: 0,
       total: newFiles.length,
       current: newFiles[0].name,
-      etaMs: Math.round((newFiles[0].size / uploadRateRef.current) * 1000),
     });
     try {
       // Sequential, not parallel: several large videos at once saturate the
@@ -365,7 +329,6 @@ export const VideoSubmissionScreen = ({
           done: index,
           total: newFiles.length,
           current: file.name,
-          etaMs: Math.round((file.size / uploadRateRef.current) * 1000),
         });
 
         const baseName = file.name.replace(/\.[^/.]+$/, '');
@@ -384,21 +347,11 @@ export const VideoSubmissionScreen = ({
           // ever. Scaled to the file size, because a big video legitimately
           // takes minutes on a slow connection.
           const budgetMs = Math.max(60_000, Math.ceil(file.size / (20 * 1024)) * 1000);
-          const startedAt = Date.now();
           const clip = await withTimeout(
             videoStorage.uploadVideo(file, clipData),
             budgetMs,
             `L'upload de « ${baseName} » n'a pas abouti. Fichier trop lourd ou connexion trop lente.`,
           );
-
-          // Feed the real throughput back so the next file's estimate is based
-          // on this connection. Smoothed rather than replaced, so one unlucky
-          // transfer does not throw the following estimates off.
-          const elapsed = (Date.now() - startedAt) / 1000;
-          if (elapsed > 0.5 && file.size > 256 * 1024) {
-            uploadRateRef.current = uploadRateRef.current * 0.4 + (file.size / elapsed) * 0.6;
-            storeRate(uploadRateRef.current);
-          }
 
           results.push({ clip, file });
         } catch (err) {
@@ -446,22 +399,36 @@ export const VideoSubmissionScreen = ({
    * otherwise downloads the clip back from storage, which is what makes it
    * possible to add a band to a clip imported before.
    */
-  const getClipMedia = async (clip: VideoClip): Promise<{ blob: Blob; fileName: string }> => {
+  const getClipMedia = async (
+    clip: VideoClip,
+    signal: AbortSignal,
+    onProgress: (progress: RhythmoProgress) => void,
+  ): Promise<{ blob: Blob; fileName: string }> => {
     const local = importedFilesRef.current[clip.id];
     if (local) return { blob: local, fileName: local.name };
 
-    const url = clipUrls[clip.id] ?? (await videoStorage.getVideoUrl(clip.id));
-    if (!url) throw new RhythmoError('engine', 'Vidéo introuvable.');
+    let url = clipUrls[clip.id] ?? (await videoStorage.getVideoUrl(clip.id));
+    if (!url) throw new RhythmoError('network', 'Vidéo introuvable.');
 
     console.info('[rythmo] téléchargement de la vidéo depuis le stockage', clip.name);
-    const response = await withTimeout(
-      fetch(url),
-      120_000,
-      'Téléchargement de la vidéo trop long.',
-    );
-    if (!response.ok) throw new RhythmoError('engine', 'Téléchargement de la vidéo impossible.');
-    // The stored path carries the real extension; the clip name does not.
-    return { blob: await response.blob(), fileName: clip.storagePath };
+    try {
+      const blob = await downloadMediaBlob(url, { signal, onProgress });
+      return { blob, fileName: clip.storagePath };
+    } catch (error) {
+      // A URL can expire while this screen stays open. In that one explicit
+      // case, invalidate the cache and retry once with a newly signed URL.
+      const shouldRefresh =
+        error instanceof RhythmoError &&
+        error.reason === 'network' &&
+        /HTTP (401|403)/.test(error.message);
+      if (!shouldRefresh) throw error;
+
+      url = await videoStorage.getVideoUrl(clip.id, true);
+      if (!url) throw error;
+      setClipUrls((previous) => ({ ...previous, [clip.id]: url }));
+      const blob = await downloadMediaBlob(url, { signal, onProgress });
+      return { blob, fileName: clip.storagePath };
+    }
   };
 
   /**
@@ -472,7 +439,8 @@ export const VideoSubmissionScreen = ({
    * progress impossible to report meaningfully.
    */
   const buildRhythmoBands = async (clips: VideoClip[]) => {
-    if (clips.length === 0 || rhythmo) return;
+    if (clips.length === 0 || rhythmoLockRef.current) return;
+    rhythmoLockRef.current = true;
 
     const controller = new AbortController();
     rhythmoAbortRef.current = controller;
@@ -481,56 +449,68 @@ export const VideoSubmissionScreen = ({
     let failures = 0;
     let lastReason: RhythmoError | null = null;
 
-    for (const [index, clip] of clips.entries()) {
-      if (controller.signal.aborted) break;
+    try {
+      for (const [index, clip] of clips.entries()) {
+        if (controller.signal.aborted) break;
 
-      setRhythmo({
-        clipName: clip.name,
-        index: index + 1,
-        total: clips.length,
-        progress: { phase: 'extracting' },
-      });
-
-      try {
-        console.info('[rythmo] début', clip.name);
-        const { blob, fileName } = await getClipMedia(clip);
-
-        // Containers the browser cannot decode are rejected here rather than
-        // after a pointless model load.
-        if (!isLikelyDecodable(fileName)) {
-          throw new RhythmoError('unsupported-container', 'Format non décodable.');
-        }
-
-        await generateRhythmoTrack({
-          clipId: clip.id,
-          file: blob,
-          fileName,
-          signal: controller.signal,
-          onProgress: (progress) =>
-            setRhythmo((prev) => (prev ? { ...prev, progress } : prev)),
+        const local = importedFilesRef.current[clip.id];
+        setRhythmo({
+          clipName: clip.name,
+          index: index + 1,
+          total: clips.length,
+          progress: local
+            ? {
+                phase: 'reading-media',
+                loadedBytes: 0,
+                totalBytes: local.size,
+                ratio: 0,
+              }
+            : { phase: 'downloading-media', loadedBytes: 0 },
         });
 
-        console.info('[rythmo] terminé', clip.name);
-        setRhythmoReady((prev) => ({ ...prev, [clip.id]: true }));
-        done += 1;
-      } catch (error) {
-        if (error instanceof RhythmoError && error.reason === 'cancelled') break;
-        failures += 1;
-        if (error instanceof RhythmoError) lastReason = error;
-        console.warn('[rythmo] échec pour', clip.name, error);
-        // A non-typed failure would otherwise be reported as a generic
-        // problem; keep its message so the player can act on it.
-        if (!(error instanceof RhythmoError)) {
-          lastReason = new RhythmoError(
-            'engine',
-            error instanceof Error ? error.message : 'Erreur inconnue.',
+        const updateProgress = (progress: RhythmoProgress) => {
+          setRhythmo((previous) =>
+            previous?.index === index + 1 ? { ...previous, progress } : previous,
           );
+        };
+
+        try {
+          console.info('[rythmo] début', clip.name);
+          const { blob, fileName } = await getClipMedia(
+            clip,
+            controller.signal,
+            updateProgress,
+          );
+
+          if (!isLikelyDecodable(fileName)) {
+            throw new RhythmoError('unsupported-container', 'Format non décodable.');
+          }
+
+          await generateRhythmoTrack(clip.id, blob, fileName, {
+            signal: controller.signal,
+            onProgress: updateProgress,
+          });
+
+          console.info('[rythmo] terminé', clip.name);
+          setRhythmoReady((previous) => ({ ...previous, [clip.id]: true }));
+          done += 1;
+        } catch (error) {
+          if (error instanceof RhythmoError && error.reason === 'cancelled') break;
+          failures += 1;
+          lastReason = error instanceof RhythmoError
+            ? error
+            : new RhythmoError(
+                'engine',
+                error instanceof Error ? error.message : 'Erreur inconnue.',
+              );
+          console.warn('[rythmo] échec pour', clip.name, error);
         }
       }
+    } finally {
+      setRhythmo(null);
+      if (rhythmoAbortRef.current === controller) rhythmoAbortRef.current = null;
+      rhythmoLockRef.current = false;
     }
-
-    setRhythmo(null);
-    rhythmoAbortRef.current = null;
 
     if (done > 0) {
       toast({
@@ -538,13 +518,10 @@ export const VideoSubmissionScreen = ({
         description: "Le texte défilera sous la vidéo pendant l'imitation.",
       });
     } else if (failures > 0 && !controller.signal.aborted) {
-      // Report the actual reason: a container we cannot decode is a very
-      // different problem from a clip with no speech. Engine failures carry a
-      // specific message worth showing verbatim.
       toast({
         title: '🎤 Bande rythmo impossible',
         description: lastReason
-          ? lastReason.reason === 'engine'
+          ? ['engine', 'network', 'storage'].includes(lastReason.reason)
             ? lastReason.message
             : rhythmoErrorLabel(lastReason.reason)
           : 'Les vidéos restent jouables, sans texte défilant.',
@@ -859,15 +836,12 @@ export const VideoSubmissionScreen = ({
                         : "MP4, WebM, MOV, MKV — plusieurs fichiers à la fois"}
                     </span>
 
-                    {/* The transfer reports no progress of its own, so this
-                        estimate from the measured throughput is the only sign
-                        that it is moving. */}
-                    {isUploading && uploadTiming && (
+                    {/* Supabase Storage does not expose upload bytes here;
+                        keep this indeterminate instead of inventing an ETA. */}
+                    {isUploading && (
                       <span className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35"
                         style={{ fontFamily: "'Outfit', sans-serif" }}>
-                        {uploadTiming.remainingMs > 0
-                          ? `Encore ≈ ${formatEta(uploadTiming.remainingMs)}`
-                          : `${formatEta(uploadTiming.elapsedMs)} écoulées`}
+                        Transfert en cours · progression indisponible
                       </span>
                     )}
                   </div>
@@ -941,13 +915,15 @@ export const VideoSubmissionScreen = ({
                         </button>
                       </div>
 
-                      {/* Determinate only while the model downloads; inference
-                          gives no usable percentage, so it stays indeterminate
-                          rather than faking one. */}
-                      {rhythmo.progress.phase === 'loading-model' && (
+                      {/* Only stages backed by real byte/sample/model
+                          measurements receive a determinate bar. */}
+                      {rhythmoProgressRatio(rhythmo.progress) !== undefined && (
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.09)" }}>
                           <div className="h-full rounded-full transition-[width] duration-200"
-                            style={{ width: `${Math.round(rhythmo.progress.ratio * 100)}%`, background: ACCENT }} />
+                            style={{
+                              width: `${Math.round((rhythmoProgressRatio(rhythmo.progress) ?? 0) * 100)}%`,
+                              background: ACCENT,
+                            }} />
                         </div>
                       )}
                     </motion.div>

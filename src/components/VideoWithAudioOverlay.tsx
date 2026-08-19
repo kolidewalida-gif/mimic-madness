@@ -9,6 +9,8 @@ interface VideoWithAudioOverlayProps {
   className?: string;
   externalControl?: boolean;
   isPlayingExternal?: boolean;
+  /** Authoritative elapsed position when external playback starts or resyncs. */
+  playbackPositionSeconds?: number;
   onPlayStateChange?: (isPlaying: boolean) => void;
   includeOriginalAudio?: boolean;
   originalAudioVolume?: number;
@@ -26,6 +28,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
   className = "",
   externalControl = false,
   isPlayingExternal = false,
+  playbackPositionSeconds = 0,
   onPlayStateChange,
   includeOriginalAudio = false,
   originalAudioVolume = 50
@@ -130,15 +133,18 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
     console.error("Audio error:", e);
   };
 
-  const handlePlay = async () => {
+  const handlePlay = async (fromSeconds = 0) => {
     if (!videoRef.current) return;
     
     try {
       const startTime = videoClipData?.startTime ?? 0;
-      videoRef.current.currentTime = startTime;
+      // Seek to the authoritative elapsed position so a late or reconnected
+      // client joins where everyone else already is.
+      const offset = Number.isFinite(fromSeconds) ? Math.max(0, fromSeconds) : 0;
+      videoRef.current.currentTime = startTime + offset;
       
       if (audioRef.current) {
-        audioRef.current.currentTime = 0;
+        audioRef.current.currentTime = offset;
       }
       
       await videoRef.current.play();
@@ -200,7 +206,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
 
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
-    play: handlePlay,
+    play: () => handlePlay(0),
     pause: handlePause,
     restart: handleRestart
   }));
@@ -208,20 +214,25 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
   // Sync with external control - properly handle play/pause from parent
   useEffect(() => {
     if (!externalControl) return;
-    
-    console.log("External control sync:", { isPlayingExternal, mediaReady, isPlaying });
-    
+
     if (isPlayingExternal) {
       // Wait for BOTH video and audio to be ready before playing.
       // If there is no audio URL we only need video.
       const audioReady = !audioUrl || mediaReady.audio;
       if (mediaReady.video && audioReady) {
-        handlePlay();
+        void handlePlay(playbackPositionSeconds);
       }
     } else {
       handlePause();
     }
-  }, [isPlayingExternal, externalControl, mediaReady.video, mediaReady.audio, audioUrl]);
+  }, [
+    audioUrl,
+    externalControl,
+    isPlayingExternal,
+    mediaReady.audio,
+    mediaReady.video,
+    playbackPositionSeconds,
+  ]);
 
   const handleVideoEnded = () => {
     setIsPlaying(false);
@@ -281,7 +292,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
         {!isPlaying && mediaReady.video && !externalControl && (
           <div 
             className="absolute inset-0 bg-black/30 flex items-center justify-center cursor-pointer"
-            onClick={handlePlay}
+            onClick={() => void handlePlay(0)}
           >
             <div className="w-16 h-16 bg-secondary/90 rounded-full flex items-center justify-center">
               <Play className="h-8 w-8 text-secondary-foreground ml-1" />
@@ -329,7 +340,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={handlePlay}
+              onClick={() => void handlePlay(0)}
               disabled={!mediaReady.video}
             >
               <Play className="h-4 w-4 mr-2" />

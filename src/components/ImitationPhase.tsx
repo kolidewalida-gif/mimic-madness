@@ -27,6 +27,8 @@ import { RhythmoBand } from "@/components/rhythmo/RhythmoBand";
 import { loadRhythmoTrack } from "@/lib/rhythmo/store";
 import type { RhythmoTrack } from "@/lib/rhythmo/types";
 import { sanitizeRhythmoLeadSeconds } from "@/lib/rhythmo/timeline";
+import { canCommitSyncToken, equalJitterBackoff } from "@/lib/syncState";
+import { submitPlayerImitation } from "@/lib/imitationSyncClient";
 
 interface Player {
   id: string;
@@ -92,6 +94,10 @@ export const ImitationPhase = ({
 }: ImitationPhaseProps) => {
   const [hasRecorded, setHasRecorded] = useState(false);
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
+  const [isReadySynchronized, setIsReadySynchronized] = useState(false);
+  const [readyRetryKey, setReadyRetryKey] = useState(0);
+  const submitPendingRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // Derive hasSubmitted from DB state — survives page reloads
   const hasSubmitted = readyPlayers.includes(currentPlayer.id);
   const [recordedClipId, setRecordedClipId] = useState<string | null>(null);
@@ -166,20 +172,55 @@ export const ImitationPhase = ({
   }, [autoMode]);
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchReadyPlayers = async () => {
-      const { data } = await supabase
-        .from('player_imitations')
-        .select('player_id, is_ready')
-        .eq('lobby_id', lobbyId)
-        .eq('round_number', roundNumber);
+    let active = true;
+    let subscribed = false;
+    let epoch = 0;
+    let latestRequest = 0;
+    let retryAttempt = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-      if (data && isMounted) {
-        setReadyPlayers(data.filter((p) => p.is_ready).map((p) => p.player_id));
-      }
+    const clearRetry = () => {
+      if (!retryTimer) return;
+      clearTimeout(retryTimer);
+      retryTimer = null;
     };
 
-    fetchReadyPlayers();
+    const fetchReadyPlayers = async () => {
+      if (!active || !subscribed) return;
+      const requestId = ++latestRequest;
+      const requestEpoch = epoch;
+      const token = { generation: requestEpoch, requestId };
+      try {
+        const { data, error } = await supabase
+          .from('player_imitations')
+          .select('player_id, is_ready')
+          .eq('lobby_id', lobbyId)
+          .eq('round_number', roundNumber);
+        if (error) throw error;
+        if (
+          !active ||
+          !subscribed ||
+          requestEpoch !== epoch ||
+          !canCommitSyncToken(token, epoch, latestRequest)
+        ) return;
+
+        setReadyPlayers((data ?? []).filter((row) => row.is_ready).map((row) => row.player_id));
+        setIsReadySynchronized(true);
+        retryAttempt = 0;
+        clearRetry();
+      } catch (error) {
+        if (!active || requestId !== latestRequest || requestEpoch !== epoch) return;
+        console.error('Error synchronizing imitation readiness:', error);
+        setIsReadySynchronized(false);
+        if (!retryTimer) {
+          retryTimer = setTimeout(() => {
+            retryTimer = null;
+            retryAttempt = Math.min(retryAttempt + 1, 8);
+            void fetchReadyPlayers();
+          }, equalJitterBackoff(retryAttempt, 1_000, 10_000));
+        }
+      }
+    };
 
     const channel = supabase
       .channel(`imitations:${lobbyId}:${roundNumber}`)
@@ -191,17 +232,45 @@ export const ImitationPhase = ({
           table: 'player_imitations',
           filter: `lobby_id=eq.${lobbyId}`,
         },
-        () => {
-          if (isMounted) fetchReadyPlayers();
-        },
+        () => { void fetchReadyPlayers(); },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (!active) return;
+        if (status === 'SUBSCRIBED') {
+          subscribed = true;
+          epoch += 1;
+          void fetchReadyPlayers();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          subscribed = false;
+          epoch += 1;
+          latestRequest += 1;
+          setIsReadySynchronized(false);
+          if (!retryTimer) {
+            retryTimer = setTimeout(() => {
+              retryTimer = null;
+              setReadyRetryKey((value) => value + 1);
+            }, equalJitterBackoff(retryAttempt, 1_000, 10_000));
+          }
+        }
+      });
+
+    const resync = () => {
+      if (document.visibilityState === 'visible' && subscribed) void fetchReadyPlayers();
+    };
+    window.addEventListener('online', resync);
+    document.addEventListener('visibilitychange', resync);
 
     return () => {
-      isMounted = false;
-      supabase.removeChannel(channel);
+      active = false;
+      subscribed = false;
+      epoch += 1;
+      latestRequest += 1;
+      clearRetry();
+      window.removeEventListener('online', resync);
+      document.removeEventListener('visibilitychange', resync);
+      void supabase.removeChannel(channel);
     };
-  }, [lobbyId, roundNumber]);
+  }, [lobbyId, readyRetryKey, roundNumber]);
 
   // Guard: don't fire onAllReady in the first 2s after mount — gives time for
   // the host's reset (is_ready=false) to propagate before we check readiness.
@@ -217,6 +286,7 @@ export const ImitationPhase = ({
 
   useEffect(() => {
     const allPlayersReady =
+      isReadySynchronized &&
       currentPlayer.isHost &&
       readyPlayers.length === players.length &&
       readyPlayers.length > 0;
@@ -243,6 +313,7 @@ export const ImitationPhase = ({
     return () => window.clearTimeout(timeoutId);
   }, [
     currentPlayer.isHost,
+    isReadySynchronized,
     onAllReady,
     players.length,
     readyPlayers.length,
@@ -250,32 +321,52 @@ export const ImitationPhase = ({
   ]);
 
   const handleSubmit = async () => {
-    if (hasSubmitted) return;
+    if (hasSubmitted || submitPendingRef.current) return;
+    if (!recordedClipId) {
+      toast({
+        title: 'Imitation manquante',
+        description: "Enregistre ton imitation avant de la soumettre.",
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    submitPendingRef.current = true;
+    setIsSubmitting(true);
     try {
-      playInkSound('cartoonDing', 0.5);
-      // Optimistic update
-      setReadyPlayers((prev) => prev.includes(currentPlayer.id) ? prev : [...prev, currentPlayer.id]);
-
-      const { error } = await supabase
-        .from('player_imitations')
-        .upsert(
-          {
-            lobby_id: lobbyId,
-            round_number: roundNumber,
-            player_id: currentPlayer.id,
-            player_name: currentPlayer.name,
-            is_ready: true,
-            include_original_audio: includeOriginalAudio,
-            original_audio_volume: originalAudioVolume,
-          },
-          { onConflict: 'lobby_id,round_number,player_id' },
-        );
-
-      if (error) {
-        setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
-        throw error;
+      const accepted = await submitPlayerImitation({
+        lobbyId,
+        roundNumber,
+        playerId: currentPlayer.id,
+        playerName: currentPlayer.name,
+        clipId: recordedClipId,
+        includeOriginalAudio,
+        originalAudioVolume,
+      });
+      if (!accepted) {
+        const existing = await supabase
+          .from('player_imitations')
+          .select('is_ready')
+          .eq('lobby_id', lobbyId)
+          .eq('round_number', roundNumber)
+          .eq('player_id', currentPlayer.id)
+          .maybeSingle();
+        if (existing.error) throw existing.error;
+        if (existing.data?.is_ready) {
+          setReadyPlayers((previous) =>
+            previous.includes(currentPlayer.id) ? previous : [...previous, currentPlayer.id],
+          );
+          toast({ title: 'Déjà soumise', description: 'Ton imitation était déjà enregistrée.' });
+          return;
+        }
+        throw new Error("La manche a changé ou cette imitation est déjà soumise.");
       }
 
+      // The RPC result is durable; Realtime will subsequently reconcile all clients.
+      setReadyPlayers((previous) =>
+        previous.includes(currentPlayer.id) ? previous : [...previous, currentPlayer.id],
+      );
+      playInkSound('cartoonDing', 0.5);
       void questTracker.track('submit_imitation');
       void questTracker.track('play_imitation');
       toast({
@@ -283,13 +374,15 @@ export const ImitationPhase = ({
         description: 'En attente des autres joueurs...',
       });
     } catch (error) {
-      setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
       console.error('Error submitting:', error);
       toast({
         title: 'Erreur',
-        description: 'Impossible de soumettre',
+        description: error instanceof Error ? error.message : 'Impossible de soumettre',
         variant: 'destructive',
       });
+    } finally {
+      submitPendingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -298,9 +391,7 @@ export const ImitationPhase = ({
     setRecordedClipId(clip.id);
     setIsRecording(false);
     playInkSound('cartoonPop', 0.4);
-    // Tag the clip with round_number immediately so VotingPhase can find it
-    // even if the player hasn't clicked "Soumettre" yet (e.g. host force-advance).
-    supabase.from('video_clips').update({ round_number: roundNumber }).eq('id', clip.id).then(() => {});
+    // round_number was persisted in the same insert as the uploaded clip.
     if (challengeVideoRef.current) {
       challengeVideoRef.current.pause();
       const startTime = challengeClipData?.startTime ?? 0;
@@ -377,9 +468,10 @@ export const ImitationPhase = ({
         include_original_audio: false,
         original_audio_volume: 50,
       }));
-      await supabase
+      const { error } = await supabase
         .from('player_imitations')
         .upsert(rows, { onConflict: 'lobby_id,round_number,player_id' });
+      if (error) throw error;
       toast({
         title: 'Manche débloquée',
         description: `${notReady.length} joueur${notReady.length > 1 ? 's' : ''} ignoré${notReady.length > 1 ? 's' : ''}.`,
@@ -555,7 +647,7 @@ export const ImitationPhase = ({
             <div className="relative p-4 pt-6 space-y-3">
               {!hasRecorded ? (
                 <AudioRecorder key={uploadKey} playerId={currentPlayer.id} playerName={currentPlayer.name}
-                  onAudioSaved={handleVideoSaved} lobbyId={lobbyId}
+                  onAudioSaved={handleVideoSaved} lobbyId={lobbyId} roundNumber={roundNumber}
                   onRecordingStart={handleRecordingStart} onRecordingStop={handleRecordingStop}
                   showVoiceFilters />
               ) : (
@@ -596,9 +688,9 @@ export const ImitationPhase = ({
                     </div>
                     {includeOriginalAudio && <VolumeSlider value={originalAudioVolume} onChange={setOriginalAudioVolume} disabled={hasSubmitted} label="Volume" />}
                   </div>
-                  <motion.button type="button" onClick={handleSubmit} disabled={hasSubmitted}
-                    whileHover={!hasSubmitted ? { scale: 1.03, rotate: -1 } : undefined}
-                    whileTap={!hasSubmitted ? { scale: 0.97 } : undefined}
+                  <motion.button type="button" onClick={handleSubmit} disabled={hasSubmitted || isSubmitting}
+                    whileHover={!hasSubmitted && !isSubmitting ? { scale: 1.03, rotate: -1 } : undefined}
+                    whileTap={!hasSubmitted && !isSubmitting ? { scale: 0.97 } : undefined}
                     className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70"
                     style={{
                       background: hasSubmitted ? "linear-gradient(180deg, #34d399, #059669)" : `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
@@ -606,7 +698,7 @@ export const ImitationPhase = ({
                     }}>
                     <Check className="w-5 h-5 text-white" strokeWidth={3} />
                     <span className="text-xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
-                      {hasSubmitted ? "Soumis !" : "Soumettre"}
+                      {hasSubmitted ? "Soumis !" : isSubmitting ? "Envoi…" : "Soumettre"}
                     </span>
                   </motion.button>
                   {hasSubmitted && (

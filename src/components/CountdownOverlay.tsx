@@ -7,7 +7,8 @@ interface CountdownOverlayProps {
   onComplete: () => void;
   duration?: number;
   title?: string;
-  startAt?: number;
+  /** Local epoch translated from the authoritative server playback anchor. */
+  completeAt?: number;
 }
 
 const SHADOW = '3px 3px 0 var(--ink-line), -2px -2px 0 var(--ink-line), 2px -2px 0 var(--ink-line), -2px 2px 0 var(--ink-line)';
@@ -21,7 +22,7 @@ export const CountdownOverlay = ({
   onComplete,
   duration = 3,
   title = 'La vidéo commence dans…',
-  startAt,
+  completeAt,
 }: CountdownOverlayProps) => {
   const [count, setCount] = useState(duration);
   const [isVisible, setIsVisible] = useState(false);
@@ -31,34 +32,48 @@ export const CountdownOverlay = ({
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => {
-    if (isActive) {
-      setIsVisible(true);
-      setCount(duration);
+    if (!isActive) {
+      setIsVisible(false);
       setStarted(false);
-      // Wait until the wall-clock startAt before starting the countdown so
-      // every client (host included) ticks in lock-step. Cap at 1500ms in
-      // case the broadcast was queued late. If startAt is in the past, start
-      // immediately — better to start a bit late than to drift further.
-      const delay = Math.max(0, Math.min((startAt ?? 0) - Date.now(), 1500));
-      const t = setTimeout(() => { setStarted(true); setTick((x) => x + 1); }, delay);
-      return () => clearTimeout(t);
+      return;
     }
-  }, [isActive, duration, startAt]);
 
-  useEffect(() => {
-    if (!isVisible || !started || count <= 0) return;
-    playSoundEffect('countdown', 0.5);
-    const timer = setTimeout(() => {
-      if (count === 1) {
+    let completed = false;
+    const deadline = completeAt ?? Date.now() + duration * 1000;
+    setIsVisible(true);
+    setStarted(true);
+
+    const update = () => {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        if (completed) return;
+        completed = true;
         playSoundEffect('start', 0.6);
-        setTimeout(() => { setIsVisible(false); onCompleteRef.current(); }, 200);
-      } else {
-        setCount(count - 1);
-        setTick((t) => t + 1);
+        setIsVisible(false);
+        onCompleteRef.current();
+        return;
       }
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [count, isVisible, started]);
+
+      const nextCount = Math.max(1, Math.min(duration, Math.ceil(remainingMs / 1000)));
+      setCount((previous) => {
+        if (previous !== nextCount) {
+          playSoundEffect('countdown', 0.5);
+          setTick((value) => value + 1);
+        }
+        return nextCount;
+      });
+    };
+
+    setCount(Math.max(1, Math.min(duration, Math.ceil((deadline - Date.now()) / 1000))));
+    playSoundEffect('countdown', 0.5);
+    setTick((value) => value + 1);
+    update();
+    const timer = setInterval(update, 100);
+    return () => {
+      completed = true;
+      clearInterval(timer);
+    };
+  }, [completeAt, duration, isActive]);
 
   if (!isVisible) return null;
 

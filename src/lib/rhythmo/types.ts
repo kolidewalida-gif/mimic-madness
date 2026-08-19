@@ -49,11 +49,30 @@ export interface RhythmoTrack {
 /** Progress reported while a clip is being transcribed. */
 export type RhythmoProgress =
   | { phase: 'idle' }
-  | { phase: 'extracting' }
+  /** Remote clips are downloaded before they can be decoded. */
+  | {
+      phase: 'downloading-media';
+      loadedBytes: number;
+      totalBytes?: number;
+      ratio?: number;
+    }
+  /** Browser-local Blob/File reading. FileReader reports real bytes. */
+  | {
+      phase: 'reading-media';
+      loadedBytes: number;
+      totalBytes: number;
+      ratio: number;
+    }
+  /** Container/codec decoding exposes no trustworthy percentage. */
+  | { phase: 'decoding-audio' }
+  /** Resampling reports completed output samples when available. */
+  | { phase: 'resampling-audio'; ratio?: number }
   /** Model files are downloading. `ratio` is 0..1 when known. */
-  | { phase: 'loading-model'; ratio: number; file?: string; etaMs?: number }
-  /** `etaMs` is an estimate based on the clip duration and the backend used. */
+  | { phase: 'loading-model'; ratio: number; file?: string }
+  /** `etaMs` exists only after this browser has measured a prior real run. */
   | { phase: 'transcribing'; etaMs?: number }
+  /** The generated JSON is being persisted in Storage. */
+  | { phase: 'saving' }
   | { phase: 'done' }
   | { phase: 'error'; reason: RhythmoErrorReason; message: string };
 
@@ -62,6 +81,10 @@ export type RhythmoErrorReason =
   | 'unsupported-container'
   /** No speech found, or the model returned nothing usable. */
   | 'no-speech'
+  /** Downloading the media failed or timed out. */
+  | 'network'
+  /** Persisting the generated cues failed or timed out. */
+  | 'storage'
   /** Model download or inference failed. */
   | 'engine'
   | 'cancelled'
@@ -83,6 +106,10 @@ export const rhythmoErrorLabel = (reason: RhythmoErrorReason): string => {
       return "Ce format ne permet pas d'extraire l'audio (essaie du MP4).";
     case 'no-speech':
       return 'Aucune parole détectée dans cet extrait.';
+    case 'network':
+      return 'Impossible de télécharger la vidéo. Vérifie ta connexion.';
+    case 'storage':
+      return "La bande a été créée mais n'a pas pu être enregistrée.";
     case 'engine':
       return 'La transcription a échoué. Tu peux réessayer.';
     case 'cancelled':

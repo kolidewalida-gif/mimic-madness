@@ -20,15 +20,6 @@ export const ConnectionRecoveryOverlay = ({ state, onRetry }: ConnectionRecovery
     return () => clearSituationOverride('connection-recovery');
   }, [autoMode, setSituation, clearSituationOverride]);
 
-  // Browsers fire `online` as soon as connectivity comes back. Retry
-  // immediately so players do not have to press the button after a short drop.
-  useEffect(() => {
-    if (!offline) return;
-    const retryWhenOnline = () => onRetry();
-    window.addEventListener('online', retryWhenOnline);
-    return () => window.removeEventListener('online', retryWhenOnline);
-  }, [offline, onRetry]);
-
   // Reconnecting is a transient, self-healing state: the channel is rebuilt
   // automatically in the background. Locking the whole screen for it stopped
   // players mid-upload and made every control look broken, so it gets a banner

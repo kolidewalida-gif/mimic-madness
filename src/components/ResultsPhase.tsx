@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VictoryAnimation } from "@/components/VictoryAnimation";
@@ -16,6 +16,7 @@ import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSocialFeed } from "@/hooks/useSocialFeed";
 import { useAuth } from "@/hooks/useAuth";
 import { DoodleBorder } from "@/components/doodle/Doodle";
+import { equalJitterBackoff } from "@/lib/syncState";
 
 interface Player {
   id: string;
@@ -67,6 +68,9 @@ export const ResultsPhase = ({
 }: ResultsPhaseProps) => {
   const [results, setResults] = useState<PlayerResult[]>([]);
   const [teamResults, setTeamResults] = useState<TeamResult[]>([]);
+  const [isResultsSynchronized, setIsResultsSynchronized] = useState(false);
+  const [resultsRetryKey, setResultsRetryKey] = useState(0);
+  const resultsRetryAttemptRef = useRef(0);
   const [showVictoryAnimation, setShowVictoryAnimation] = useState(true);
   const [downloadingPlayer, setDownloadingPlayer] = useState<string | null>(null);
   const [sharedClipIds, setSharedClipIds] = useState<Set<string>>(new Set());
@@ -224,65 +228,175 @@ export const ResultsPhase = ({
     };
   }, [playSound]);
 
+  // Subscribe first, then aggregate from SQL. A vote committed just before
+  // this screen mounted is therefore still counted.
   useEffect(() => {
     let isMounted = true;
-    
+    let subscribed = false;
+    let channelEpoch = 0;
+    let latestRequest = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     const loadResults = async () => {
-      // Single query for ALL votes of this round — no N+1
-      const { data: allVotes } = await supabase
-        .from('imitation_votes')
-        .select('imitation_player_id, vote_type')
-        .eq('lobby_id', lobbyId)
-        .eq('round_number', roundNumber);
+      if (!isMounted || !subscribed) return;
+      const requestId = ++latestRequest;
+      const requestEpoch = channelEpoch;
 
-      const tally = new Map<string, { likes: number; dislikes: number }>();
-      for (const v of allVotes ?? []) {
-        const entry = tally.get(v.imitation_player_id) ?? { likes: 0, dislikes: 0 };
-        if (v.vote_type === 'like') entry.likes++;
-        else if (v.vote_type === 'dislike') entry.dislikes++;
-        tally.set(v.imitation_player_id, entry);
-      }
+      try {
+        const { data: allVotes, error } = await supabase
+          .from('imitation_votes')
+          .select('imitation_player_id, vote_type')
+          .eq('lobby_id', lobbyId)
+          .eq('round_number', roundNumber);
+        if (error) throw error;
+        if (!isMounted || requestId !== latestRequest || requestEpoch !== channelEpoch) return;
 
-      if (!isMounted) return;
+        const tally = new Map<string, { likes: number; dislikes: number }>();
+        for (const vote of allVotes ?? []) {
+          const entry = tally.get(vote.imitation_player_id) ?? { likes: 0, dislikes: 0 };
+          if (vote.vote_type === 'like') entry.likes++;
+          else if (vote.vote_type === 'dislike') entry.dislikes++;
+          tally.set(vote.imitation_player_id, entry);
+        }
 
-      if (gameMode === '2v2' && teams.length > 0) {
-        const teamResultsData: TeamResult[] = teams.map((team) => {
-          let totalLikes = 0, totalDislikes = 0;
-          for (const player of team.players) {
-            const t = tally.get(player.id);
-            if (t) { totalLikes += t.likes; totalDislikes += t.dislikes; }
-          }
-          return { teamNumber: team.teamNumber, playerNames: team.players.map(p => p.name), likes: totalLikes, dislikes: totalDislikes, score: totalLikes - totalDislikes };
+        const playerResults: PlayerResult[] = players.map((player) => {
+          const entry = tally.get(player.id) ?? { likes: 0, dislikes: 0 };
+          return {
+            playerId: player.id,
+            playerName: player.name,
+            likes: entry.likes,
+            dislikes: entry.dislikes,
+            score: entry.likes - entry.dislikes,
+          };
         });
-        teamResultsData.sort((a, b) => b.score - a.score);
-        setTeamResults((prev) => {
-          if (JSON.stringify(prev) === JSON.stringify(teamResultsData)) return prev;
-          return teamResultsData;
-        });
-      } else {
-        const resultsData: PlayerResult[] = players.map((player) => {
-          const t = tally.get(player.id) ?? { likes: 0, dislikes: 0 };
-          return { playerId: player.id, playerName: player.name, likes: t.likes, dislikes: t.dislikes, score: t.likes - t.dislikes };
-        });
-        resultsData.sort((a, b) => b.score - a.score);
-        setResults((prev) => {
-          if (JSON.stringify(prev) === JSON.stringify(resultsData)) return prev;
-          return resultsData;
-        });
+        // Deterministic tie-break so every client renders the same ranking.
+        playerResults.sort((a, b) =>
+          b.score - a.score ||
+          b.likes - a.likes ||
+          a.playerId.localeCompare(b.playerId));
+
+        setResults((previous) =>
+          JSON.stringify(previous) === JSON.stringify(playerResults) ? previous : playerResults);
+
+        if (gameMode === '2v2' && teams.length > 0) {
+          const teamResultsData: TeamResult[] = teams.map((team) => {
+            let totalLikes = 0;
+            let totalDislikes = 0;
+            for (const player of team.players) {
+              const entry = tally.get(player.id);
+              if (entry) {
+                totalLikes += entry.likes;
+                totalDislikes += entry.dislikes;
+              }
+            }
+            return {
+              teamNumber: team.teamNumber,
+              playerNames: team.players.map((player) => player.name),
+              likes: totalLikes,
+              dislikes: totalDislikes,
+              score: totalLikes - totalDislikes,
+            };
+          });
+          teamResultsData.sort((a, b) =>
+            b.score - a.score || b.likes - a.likes || a.teamNumber - b.teamNumber);
+          setTeamResults((previous) =>
+            JSON.stringify(previous) === JSON.stringify(teamResultsData) ? previous : teamResultsData);
+        } else {
+          setTeamResults([]);
+        }
+
+        setIsResultsSynchronized(true);
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+        resultsRetryAttemptRef.current = 0;
+      } catch (error) {
+        if (!isMounted || requestId !== latestRequest || requestEpoch !== channelEpoch) return;
+        // Keep the previous snapshot: an error is not a round with zero votes.
+        console.error('Error aggregating round results:', error);
+        setIsResultsSynchronized(false);
+        if (!retryTimer) {
+          retryTimer = setTimeout(() => {
+            retryTimer = null;
+            resultsRetryAttemptRef.current = Math.min(resultsRetryAttemptRef.current + 1, 8);
+            void loadResults();
+          }, equalJitterBackoff(resultsRetryAttemptRef.current, 1_000, 10_000));
+        }
       }
     };
 
-    loadResults();
-    
+    const requestDebouncedLoad = (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => {
+      const row = Object.keys(payload.new).length > 0 ? payload.new : payload.old;
+      if (typeof row.round_number === 'number' && row.round_number !== roundNumber) return;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        void loadResults();
+      }, 300);
+    };
+
+    const channel = supabase
+      .channel(`results:${lobbyId}:${roundNumber}:${resultsRetryKey}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'imitation_votes',
+          filter: `lobby_id=eq.${lobbyId}`,
+        },
+        requestDebouncedLoad,
+      )
+      .subscribe((status) => {
+        if (!isMounted) return;
+        if (status === 'SUBSCRIBED') {
+          subscribed = true;
+          channelEpoch += 1;
+          void loadResults();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          subscribed = false;
+          channelEpoch += 1;
+          latestRequest += 1;
+          setIsResultsSynchronized(false);
+          if (!retryTimer) {
+            retryTimer = setTimeout(() => {
+              retryTimer = null;
+              setResultsRetryKey((value) => value + 1);
+            }, equalJitterBackoff(resultsRetryAttemptRef.current, 1_000, 10_000));
+          }
+        }
+      });
+
+    const resync = () => {
+      if (navigator.onLine && subscribed) void loadResults();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') resync();
+    };
+    window.addEventListener('online', resync);
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       isMounted = false;
+      subscribed = false;
+      channelEpoch += 1;
+      latestRequest += 1;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      window.removeEventListener('online', resync);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      void supabase.removeChannel(channel);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lobbyId, roundNumber, gameMode]);
+  }, [gameMode, lobbyId, players, resultsRetryKey, roundNumber, teams]);
 
-  const winner = results[0];
-  const winnerTeam = teamResults[0];
   const displayResults = gameMode === '2v2' ? teamResults : results;
+  const winnerTeam = teamResults[0];
+  const winner = results[0];
+  const winnerLabel = gameMode === '2v2'
+    ? winnerTeam?.playerNames.join(' & ')
+    : winner?.playerName;
 
   // Fetch the challenge clip id for this round once
   useEffect(() => {
@@ -555,9 +669,9 @@ export const ResultsPhase = ({
         <Sparkles className="absolute top-[8%] right-[6%] w-5 h-5 text-amber-400/30" />
       </div>
 
-      {/* Victory overlay */}
-      {showVictoryAnimation && winner && (
-        <VictoryAnimation winnerName={winner.playerName} isTeam={false} />
+      {/* Victory overlay — only after a certified SQL aggregation. */}
+      {showVictoryAnimation && isResultsSynchronized && winnerLabel && (
+        <VictoryAnimation winnerName={winnerLabel} isTeam={gameMode === '2v2'} />
       )}
 
       <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-4 pb-[140px]">
@@ -576,12 +690,52 @@ export const ResultsPhase = ({
               </span>
             </motion.div>
             <h2 className="text-5xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
-              {winner?.playerName || ''}
+              {isResultsSynchronized ? (winnerLabel ?? '') : ''}
             </h2>
             <p className="text-base text-white/60 font-bold" style={{ fontFamily: FONT }}>
-              remporte cette manche !
+              {isResultsSynchronized ? 'remporte cette manche !' : 'Synchronisation des votes…'}
             </p>
           </div>
+
+          {/* 2v2 — team scoreboard, previously computed but never displayed. */}
+          {gameMode === '2v2' && teamResults.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-black uppercase tracking-widest text-white/40 px-1" style={{ fontFamily: FONT }}>
+                Classement des équipes
+              </p>
+              {teamResults.map((team, index) => (
+                <motion.div key={team.teamNumber}
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 + index * 0.05 }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-2xl"
+                  style={{ background: "rgba(255,255,255,0.04)", border: '1px solid var(--ink-line)' }}>
+                  <span className="text-base font-black text-white/50 w-6 text-center" style={{ fontFamily: FONT }}>
+                    {index + 1}
+                  </span>
+                  <div className="flex flex-1 items-center gap-2 min-w-0">
+                    <Swords className="w-4 h-4 shrink-0 text-secondary" />
+                    <span className="truncate text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+                      Équipe {team.teamNumber} · {team.playerNames.join(' & ')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <ThumbsUp className="w-3 h-3 text-emerald-400" />
+                      <span className="text-xs font-black text-emerald-400" style={{ fontFamily: FONT }}>{team.likes}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ThumbsDown className="w-3 h-3 text-red-400" />
+                      <span className="text-xs font-black text-red-400" style={{ fontFamily: FONT }}>{team.dislikes}</span>
+                    </div>
+                    <span className="text-xs font-black w-12 text-right"
+                      style={{ fontFamily: FONT, color: team.score > 0 ? "#34d399" : team.score < 0 ? "#ef4444" : "rgba(255,255,255,0.4)" }}>
+                      {team.score > 0 ? "+" : ""}{team.score}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
 
           {/* PODIUM — 2nd left, 1st center, 3rd right */}
           {results.length > 0 && (

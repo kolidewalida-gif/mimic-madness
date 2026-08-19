@@ -3,6 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import {
+  canCommitSyncToken,
+  deriveConnectionState,
+  equalJitterBackoff,
+  type SnapshotState,
+  type TransportState,
+} from '@/lib/syncState';
+import { setLobbyPlayerConnection } from '@/lib/imitationSyncClient';
 
 interface Player {
   id: string;
@@ -68,6 +76,22 @@ export const useLobbySync = (): UseLobbyResult => {
   /** Pending automatic re-subscribe, and how many have been tried in a row. */
   const resubscribeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const retryAttemptsRef = useRef(0);
+  const transportStateRef = useRef<TransportState>(
+    typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'connecting',
+  );
+  const snapshotStateRef = useRef<SnapshotState>('idle');
+
+  const updateSyncState = useCallback((
+    transport?: TransportState,
+    snapshot?: SnapshotState,
+  ) => {
+    if (transport) transportStateRef.current = transport;
+    if (snapshot) snapshotStateRef.current = snapshot;
+    setConnectionState(deriveConnectionState(
+      transportStateRef.current,
+      snapshotStateRef.current,
+    ));
+  }, []);
 
   useEffect(() => { lobbyRef.current = lobby; }, [lobby]);
   useEffect(() => { playersRef.current = players; }, [players]);
@@ -79,7 +103,11 @@ export const useLobbySync = (): UseLobbyResult => {
     setPlayers([]);
     setWasKicked(false);
     setLobbyDeleted(false);
-    setConnectionState(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'online');
+    const transport: TransportState =
+      typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'connecting';
+    transportStateRef.current = transport;
+    snapshotStateRef.current = 'idle';
+    setConnectionState(deriveConnectionState(transport, 'idle'));
     currentPlayerIdRef.current = null;
     if (channel) {
       supabase.removeChannel(channel);
@@ -90,42 +118,6 @@ export const useLobbySync = (): UseLobbyResult => {
       heartbeatRef.current = null;
     }
   }, [channel]);
-
-  // Mark player as connected (heartbeat)
-  const markConnected = useCallback(async () => {
-    if (!lobby || !currentPlayerIdRef.current) return;
-
-    try {
-      await supabase
-        .from('lobby_players')
-        .update({ 
-          connection_status: 'connected',
-          disconnected_at: null 
-        })
-        .eq('lobby_id', lobby.id)
-        .eq('player_id', currentPlayerIdRef.current);
-    } catch (error) {
-      console.error('Error marking player as connected:', error);
-    }
-  }, [lobby]);
-
-  // Mark player as disconnected
-  const markDisconnected = useCallback(async () => {
-    if (!lobby || !currentPlayerIdRef.current) return;
-
-    try {
-      await supabase
-        .from('lobby_players')
-        .update({ 
-          connection_status: 'disconnected',
-          disconnected_at: new Date().toISOString()
-        })
-        .eq('lobby_id', lobby.id)
-        .eq('player_id', currentPlayerIdRef.current);
-    } catch (error) {
-      console.error('Error marking player as disconnected:', error);
-    }
-  }, [lobby]);
 
   // Transfer host to another player
   const transferHost = useCallback(async (newHostId: string) => {
@@ -548,7 +540,7 @@ export const useLobbySync = (): UseLobbyResult => {
 
   const retryConnection = useCallback(() => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setConnectionState('offline');
+      updateSyncState('offline', 'idle');
       return;
     }
     // Drop any pending backoff and go now: the player asked explicitly, and
@@ -558,9 +550,9 @@ export const useLobbySync = (): UseLobbyResult => {
       resubscribeTimerRef.current = null;
     }
     retryAttemptsRef.current = 0;
-    setConnectionState('reconnecting');
+    updateSyncState('connecting', 'syncing');
     setConnectionGeneration((generation) => generation + 1);
-  }, []);
+  }, [updateSyncState]);
 
   // Subscribe to lobby changes — keyed on lobby.id so the channel
   // is created once per lobby and not torn down on every player change.
@@ -572,6 +564,13 @@ export const useLobbySync = (): UseLobbyResult => {
 
     let isSubscribed = true;
     const lobbyId = lobby.id;
+    const generation = connectionGeneration;
+    let latestSnapshotRequest = 0;
+    let channelEpoch = 0;
+    let channelSubscribed = false;
+    let presenceSynchronized = false;
+    let snapshotRetryTimer: ReturnType<typeof setTimeout> | null = null;
+    let snapshotRetryAttempt = 0;
 
     /**
      * Rebuild the channel after a failure, with a backoff.
@@ -582,120 +581,139 @@ export const useLobbySync = (): UseLobbyResult => {
      */
     const scheduleResubscribe = () => {
       if (!isSubscribed || resubscribeTimerRef.current) return;
-      const attempt = retryAttemptsRef.current + 1;
-      retryAttemptsRef.current = attempt;
-      const delay = Math.min(15_000, 1_000 * 2 ** (attempt - 1));
+      const attempt = retryAttemptsRef.current;
+      retryAttemptsRef.current = Math.min(attempt + 1, 8);
+      const delay = equalJitterBackoff(attempt, 1_000, 15_000);
 
       resubscribeTimerRef.current = setTimeout(() => {
         resubscribeTimerRef.current = null;
         if (!isSubscribed) return;
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
-          setConnectionState('offline');
+          updateSyncState('offline', 'idle');
           return;
         }
-        setConnectionGeneration((generation) => generation + 1);
+        setConnectionGeneration((current) => current + 1);
       }, delay);
     };
 
-    const fetchPlayers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('lobby_players')
-          .select('*')
-          .eq('lobby_id', lobbyId)
-          .order('joined_at', { ascending: true });
+    const clearSnapshotRetry = () => {
+      if (!snapshotRetryTimer) return;
+      clearTimeout(snapshotRetryTimer);
+      snapshotRetryTimer = null;
+    };
 
-        if (error) {
-          console.error('Error fetching players:', error);
+    const scheduleSnapshotRetry = () => {
+      if (!isSubscribed || !channelSubscribed || snapshotRetryTimer) return;
+      const delay = equalJitterBackoff(snapshotRetryAttempt, 1_000, 15_000);
+      snapshotRetryAttempt = Math.min(snapshotRetryAttempt + 1, 8);
+      snapshotRetryTimer = setTimeout(() => {
+        snapshotRetryTimer = null;
+        if (isSubscribed && channelSubscribed) void requestLobbySnapshot('retry');
+      }, delay);
+    };
+
+    async function requestLobbySnapshot(reason: string) {
+      if (!isSubscribed || !channelSubscribed) return;
+      const requestId = ++latestSnapshotRequest;
+      const requestEpoch = channelEpoch;
+      const token = { generation, requestId };
+      const canCommit = () =>
+        isSubscribed &&
+        channelSubscribed &&
+        requestEpoch === channelEpoch &&
+        canCommitSyncToken(token, generation, latestSnapshotRequest);
+
+      updateSyncState('connected', 'syncing');
+      try {
+        const [lobbyResult, playersResult] = await Promise.all([
+          supabase.from('lobbies').select('*').eq('id', lobbyId).maybeSingle(),
+          supabase
+            .from('lobby_players')
+            .select('*')
+            .eq('lobby_id', lobbyId)
+            .order('joined_at', { ascending: true }),
+        ]);
+
+        if (lobbyResult.error) throw lobbyResult.error;
+        if (playersResult.error) throw playersResult.error;
+        if (!canCommit()) return;
+
+        const lobbySnapshot = lobbyResult.data as Lobby | null;
+        if (!lobbySnapshot) {
+          setLobbyDeleted(true);
+          updateSyncState('connected', 'synchronized');
+          playSoundEffect('error', 0.5);
           return;
         }
 
-        if (data && isSubscribed) {
-          const currentPlayerId = currentPlayerIdRef.current;
-          // Check if current player was removed (kicked)
-          if (currentPlayerId) {
-            const stillInLobby = data.some(p => p.player_id === currentPlayerId);
-            if (!stillInLobby && playersRef.current.length > 0) {
-              console.log('Current player was kicked from lobby');
-              setWasKicked(true);
-              playSoundEffect('error', 0.5);
-              return;
-            }
+        const rows = playersResult.data ?? [];
+        const currentPlayerId = currentPlayerIdRef.current;
+        if (currentPlayerId && !rows.some((row) => row.player_id === currentPlayerId)) {
+          setWasKicked(true);
+          updateSyncState('connected', 'synchronized');
+          playSoundEffect('error', 0.5);
+          return;
+        }
+
+        const now = Date.now();
+        const playerSnapshot = rows.map((row) => {
+          const disconnectedAt = row.disconnected_at
+            ? new Date(row.disconnected_at).getTime()
+            : null;
+          const disconnectedTimeLeft =
+            row.connection_status === 'disconnected' && disconnectedAt !== null
+              ? Math.max(0, Math.ceil((RECONNECTION_TIMEOUT - (now - disconnectedAt)) / 1000))
+              : 0;
+          return {
+            id: row.player_id,
+            name: row.player_name,
+            // `lobbies.host_id` is the sole authority; is_host is a legacy mirror.
+            isHost: row.player_id === lobbySnapshot.host_id,
+            isDisconnected: disconnectedTimeLeft > 0,
+            disconnectedTimeLeft,
+          } satisfies Player;
+        }).filter((player) => !player.isDisconnected || (player.disconnectedTimeLeft ?? 0) > 0);
+
+        const previousHostId = lobbyRef.current?.host_id;
+        setLobby(lobbySnapshot);
+        setPlayers(playerSnapshot);
+        setLobbyDeleted(false);
+        setWasKicked(false);
+        clearSnapshotRetry();
+        snapshotRetryAttempt = 0;
+        retryAttemptsRef.current = 0;
+        updateSyncState('connected', 'synchronized');
+
+        if (previousHostId && previousHostId !== lobbySnapshot.host_id) {
+          const newHost = playerSnapshot.find((player) => player.id === lobbySnapshot.host_id);
+          if (newHost?.id === currentPlayerId) {
+            playSoundEffect('success', 0.5);
+            toastRef.current({
+              title: "Vous êtes l'hôte !",
+              description: "L'ancien hôte vous a transféré les droits",
+            });
+          } else if (newHost) {
+            toastRef.current({
+              title: 'Nouvel hôte',
+              description: `${newHost.name} est maintenant l'hôte`,
+            });
           }
-
-          const now = Date.now();
-          setPlayers(
-            data.map((p) => {
-              const isDisconnected = p.connection_status === 'disconnected' && p.disconnected_at;
-              let disconnectedTimeLeft = 0;
-              
-              if (isDisconnected && p.disconnected_at) {
-                const disconnectedTime = new Date(p.disconnected_at).getTime();
-                const elapsed = now - disconnectedTime;
-                disconnectedTimeLeft = Math.max(0, Math.ceil((RECONNECTION_TIMEOUT - elapsed) / 1000));
-              }
-
-              return {
-                id: p.player_id,
-                name: p.player_name,
-                isHost: p.is_host,
-                isDisconnected: isDisconnected && disconnectedTimeLeft > 0,
-                disconnectedTimeLeft,
-              };
-            }).filter(p => !p.isDisconnected || p.disconnectedTimeLeft! > 0)
-          );
         }
       } catch (error) {
-        console.error('Error in fetchPlayers:', error);
+        if (!canCommit()) return;
+        console.error(`[lobby-sync] snapshot ${reason} failed:`, error);
+        updateSyncState('connected', 'error');
+        scheduleSnapshotRetry();
       }
-    };
-
-    const fetchLobbyState = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('lobbies')
-          .select('*')
-          .eq('id', lobbyId)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching lobby state:', error);
-          return;
-        }
-        if (data && isSubscribed) setLobby(data as Lobby);
-      } catch (error) {
-        console.error('Error in fetchLobbyState:', error);
-      }
-    };
-
-    setConnectionState(navigator.onLine ? 'reconnecting' : 'offline');
-    void Promise.all([fetchPlayers(), fetchLobbyState()]);
+    }
 
     // Inline heartbeat helpers using refs (avoid stale closures + re-subscriptions)
     const beatConnected = async () => {
       const pid = currentPlayerIdRef.current;
       if (!pid) return;
       try {
-        // Only update if currently disconnected — avoids triggering realtime
-        // events every tick when nothing has changed (was causing massive spam).
-        await supabase
-          .from('lobby_players')
-          .update({ connection_status: 'connected', disconnected_at: null })
-          .eq('lobby_id', lobbyId)
-          .eq('player_id', pid)
-          .eq('connection_status', 'disconnected');
+        await setLobbyPlayerConnection(lobbyId, pid, true);
       } catch (e) { console.error('heartbeat connected error', e); }
-    };
-    const beatDisconnected = async () => {
-      const pid = currentPlayerIdRef.current;
-      if (!pid) return;
-      try {
-        await supabase
-          .from('lobby_players')
-          .update({ connection_status: 'disconnected', disconnected_at: new Date().toISOString() })
-          .eq('lobby_id', lobbyId)
-          .eq('player_id', pid);
-      } catch (e) { console.error('heartbeat disconnected error', e); }
     };
     const cleanupExpired = async () => {
       try {
@@ -715,9 +733,15 @@ export const useLobbySync = (): UseLobbyResult => {
     const maybeMigrateHost = async () => {
       const lob = lobbyRef.current;
       const me = currentPlayerIdRef.current;
-      if (!lob || !me) return;
+      if (
+        !lob ||
+        !me ||
+        !presenceSynchronized ||
+        transportStateRef.current !== 'connected' ||
+        snapshotStateRef.current !== 'synchronized'
+      ) return;
       const list = playersRef.current;
-      const host = list.find(p => p.isHost);
+      const host = list.find((player) => player.id === lob.host_id);
       if (!host) return;
       const hostOnline = onlinePresenceRef.current.has(host.id) && !host.isDisconnected;
       if (hostOnline) return;
@@ -729,22 +753,29 @@ export const useLobbySync = (): UseLobbyResult => {
       const elected = connected[0];
       if (elected !== me) return; // only the elected player performs the update
       try {
-        const { error: lobbyErr } = await supabase
+        const { data: migratedLobby, error: lobbyErr } = await supabase
           .from('lobbies')
           .update({ host_id: me })
           .eq('id', lobbyId)
-          .eq('host_id', host.id); // optimistic: only if host hasn't changed already
-        if (lobbyErr) return;
-        await supabase
+          .eq('host_id', host.id)
+          .select('host_id')
+          .maybeSingle();
+        if (lobbyErr || !migratedLobby) return;
+
+        const { error: clearHostError } = await supabase
           .from('lobby_players')
           .update({ is_host: false })
           .eq('lobby_id', lobbyId)
           .eq('is_host', true);
-        await supabase
+        if (clearHostError) throw clearHostError;
+
+        const { error: setHostError } = await supabase
           .from('lobby_players')
           .update({ is_host: true })
           .eq('lobby_id', lobbyId)
           .eq('player_id', me);
+        if (setHostError) throw setHostError;
+        void requestLobbySnapshot('host-migration');
       } catch (e) {
         console.error('host migration failed', e);
       }
@@ -767,16 +798,16 @@ export const useLobbySync = (): UseLobbyResult => {
     // Set up heartbeat
     heartbeatRef.current = setInterval(() => {
       if (!navigator.onLine) {
-        setConnectionState('offline');
+        updateSyncState('offline', 'idle');
         return;
       }
       void beatConnected();
       void cleanupExpired();
-      void fetchPlayers();
-      // Re-evaluate host migration each tick
+      void requestLobbySnapshot('heartbeat');
+
       const lob = lobbyRef.current;
-      const host = playersRef.current.find(p => p.isHost);
-      if (lob && host) {
+      const host = playersRef.current.find((player) => player.id === lob?.host_id);
+      if (lob && host && presenceSynchronized) {
         const hostOnline = onlinePresenceRef.current.has(host.id) && !host.isDisconnected;
         if (!hostOnline) scheduleHostMigration();
         else cancelHostMigration();
@@ -785,31 +816,36 @@ export const useLobbySync = (): UseLobbyResult => {
 
     const resync = () => {
       if (!navigator.onLine) {
-        setConnectionState('offline');
+        latestSnapshotRequest += 1;
+        updateSyncState('offline', 'idle');
         return;
       }
-      setConnectionState('reconnecting');
       void beatConnected();
-      void Promise.all([fetchPlayers(), fetchLobbyState()]);
+      if (channelSubscribed) {
+        void requestLobbySnapshot('browser-resume');
+      } else {
+        updateSyncState('connecting', 'syncing');
+        setConnectionGeneration((current) => current + 1);
+      }
     };
 
-    // Backgrounding a tab or locking a phone is not a real disconnect.
-    // Presence/socket status remains the source of truth; resync on return.
+    // Backgrounding a tab or closing one of several tabs is not a disconnect.
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') resync();
     };
     const handleOnline = () => resync();
-    const handleOffline = () => setConnectionState('offline');
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      void beatDisconnected();
-      event.preventDefault();
-      event.returnValue = '';
+    const handleOffline = () => {
+      latestSnapshotRequest += 1;
+      presenceSynchronized = false;
+      cancelHostMigration();
+      updateSyncState('offline', 'idle');
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    updateSyncState(navigator.onLine ? 'connecting' : 'offline', 'idle');
 
     // Subscribe to realtime changes
     const newChannel = supabase
@@ -823,22 +859,17 @@ export const useLobbySync = (): UseLobbyResult => {
         const state = newChannel.presenceState();
         const ids = new Set<string>(Object.keys(state));
         onlinePresenceRef.current = ids;
+        presenceSynchronized = true;
         // Mark presence-based disconnects (faster than DB heartbeat)
         const list = playersRef.current;
         list.forEach(p => {
           const presentOnSocket = ids.has(p.id);
           if (!presentOnSocket && !p.isDisconnected && p.id !== currentPlayerIdRef.current) {
-            // Soft mark in DB so other clients converge — fire & forget
-            supabase
-              .from('lobby_players')
-              .update({
-                connection_status: 'disconnected',
-                disconnected_at: new Date().toISOString(),
-              })
-              .eq('lobby_id', lobbyId)
-              .eq('player_id', p.id)
-              .eq('connection_status', 'connected')
-              .then(() => {});
+            // Presence key keeps all metas for the same player; this runs only
+            // after the last tab/socket has disappeared.
+            void setLobbyPlayerConnection(lobbyId, p.id, false).catch((error) => {
+              console.error('presence disconnect error', error);
+            });
           }
         });
       })
@@ -851,20 +882,8 @@ export const useLobbySync = (): UseLobbyResult => {
           filter: `lobby_id=eq.${lobbyId}`
         },
         (payload) => {
-          console.log('Realtime player event:', payload);
-          const currentPlayerId = currentPlayerIdRef.current;
-          // Check if current player was deleted
-          if (payload.eventType === 'DELETE' && currentPlayerId) {
-            const oldData = payload.old as { player_id?: string };
-            if (oldData?.player_id === currentPlayerId) {
-              console.log('Current player was kicked');
-              setWasKicked(true);
-              playSoundEffect('error', 0.5);
-              return;
-            }
-          }
-          
-          fetchPlayers();
+          console.log('Realtime player signal:', payload.eventType);
+          void requestLobbySnapshot('player-signal');
         }
       )
       .on(
@@ -876,30 +895,8 @@ export const useLobbySync = (): UseLobbyResult => {
           filter: `id=eq.${lobbyId}`
         },
         (payload) => {
-          console.log('Lobby updated:', payload);
-          if (payload.new && isSubscribed) {
-            const newLobby = payload.new as Lobby;
-            const prevHostId = lobbyRef.current?.host_id;
-            setLobby(newLobby);
-            // Check if host changed
-            if (prevHostId && newLobby.host_id !== prevHostId) {
-              const currentPlayerId = currentPlayerIdRef.current;
-              const newHost = playersRef.current.find(p => p.id === newLobby.host_id);
-              if (newHost && newLobby.host_id === currentPlayerId) {
-                playSoundEffect('success', 0.5);
-                toastRef.current({
-                  title: "Vous êtes l'hôte !",
-                  description: "L'ancien hôte vous a transféré les droits",
-                });
-              } else if (newHost) {
-                toastRef.current({
-                  title: "Nouvel hôte",
-                  description: `${newHost.name} est maintenant l'hôte`,
-                });
-              }
-              fetchPlayers();
-            }
-          }
+          console.log('Realtime lobby signal:', payload.eventType);
+          void requestLobbySnapshot('lobby-signal');
         }
       )
       .on(
@@ -911,32 +908,32 @@ export const useLobbySync = (): UseLobbyResult => {
           filter: `id=eq.${lobbyId}`
         },
         () => {
-          console.log('Lobby was deleted');
-          if (isSubscribed) {
-            setLobbyDeleted(true);
-            playSoundEffect('error', 0.5);
-          }
+          console.log('Realtime lobby delete signal');
+          void requestLobbySnapshot('lobby-delete-signal');
         }
       )
       .subscribe((status) => {
         console.log('Channel status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to lobby:', lobbyId);
-          retryAttemptsRef.current = 0;
-          setConnectionState('reconnecting');
-          void Promise.all([beatConnected(), fetchPlayers(), fetchLobbyState()]).finally(() => {
-            if (isSubscribed) setConnectionState('online');
-          });
-          // Announce ourselves on the presence layer
+          channelSubscribed = true;
+          channelEpoch += 1;
+          updateSyncState('connected', 'syncing');
+          void beatConnected();
+          void requestLobbySnapshot('subscribed');
+
           const me = currentPlayerIdRef.current;
           if (me) {
             void newChannel.track({ player_id: me, at: new Date().toISOString() });
           }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          setConnectionState(navigator.onLine ? 'reconnecting' : 'offline');
-          // A closed or errored channel never revives on its own, and this
-          // effect only re-runs on lobby id or connection generation. Without
-          // rescheduling, "Reconnexion…" stayed on screen for ever.
+          channelSubscribed = false;
+          channelEpoch += 1;
+          latestSnapshotRequest += 1;
+          presenceSynchronized = false;
+          clearSnapshotRetry();
+          cancelHostMigration();
+          updateSyncState(navigator.onLine ? 'connecting' : 'offline', 'idle');
           scheduleResubscribe();
         }
       });
@@ -945,6 +942,11 @@ export const useLobbySync = (): UseLobbyResult => {
 
     return () => {
       isSubscribed = false;
+      channelSubscribed = false;
+      channelEpoch += 1;
+      latestSnapshotRequest += 1;
+      presenceSynchronized = false;
+      clearSnapshotRetry();
       cancelHostMigration();
       if (resubscribeTimerRef.current) {
         clearTimeout(resubscribeTimerRef.current);
@@ -959,9 +961,8 @@ export const useLobbySync = (): UseLobbyResult => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [lobby?.id, connectionGeneration]);
+  }, [connectionGeneration, lobby?.id, updateSyncState]);
 
   // Diff players list → emit toasts for join / leave / disconnect / reconnect
   useEffect(() => {

@@ -1,292 +1,185 @@
 /// <reference lib="webworker" />
 /**
- * Whisper transcription worker.
- *
- * Runs entirely on the player's machine: no API, no key, no server, no quota.
- * The model is fetched once from the Hugging Face CDN and then served from the
- * browser cache.
- *
- * It lives in a worker for two reasons: inference would otherwise freeze the
- * UI for tens of seconds, and keeping the `@huggingface/transformers` import
- * confined here means Vite emits it as a separate chunk that the menu bundle
- * never loads.
- *
- * Word-level timestamps require a model exported with the alignment heads —
- * the `_timestamped` variants. A standard Whisper export only yields
- * phrase-level spans, which is not precise enough for a rhythmo band.
+ * Whisper transcription worker. All outbound messages carry the originating
+ * runId, so a late WASM/model event can never mutate a newer generation.
  */
 
-/**
- * Multilingual, word-level capable models, fastest first.
- *
- * `tiny` is ~40 MB and runs 3-4x faster than `base` — on the WASM path that
- * is the difference between a minute and fifteen seconds for a short clip.
- * `base` stays as a fallback if the tiny export cannot be loaded.
- */
-const MODEL_IDS = ['onnx-community/whisper-tiny_timestamped', 'onnx-community/whisper-base_timestamped'];
-let MODEL_ID = MODEL_IDS[0];
+const MODELS = [
+  'onnx-community/whisper-tiny_timestamped',
+  'onnx-community/whisper-base_timestamped',
+] as const;
+
+export interface WarmupRequest {
+  type: 'warmup';
+  runId: string;
+}
 
 export interface TranscribeRequest {
   type: 'transcribe';
-  /** Mono PCM at 16 kHz. Transferred, not copied. */
+  runId: string;
   samples: Float32Array;
-  /** Forced language code (e.g. 'fr'), or undefined to auto-detect. */
   language?: string;
 }
 
-/** Preload the model without transcribing anything. */
-export interface WarmupRequest {
-  type: 'warmup';
-}
-
-export type WorkerInbound = TranscribeRequest | WarmupRequest;
+export type WorkerInbound = WarmupRequest | TranscribeRequest;
 
 export type WorkerOutbound =
-  | { type: 'model-progress'; ratio: number; file?: string }
-  /** Any sign of life. Also resets the caller's watchdog. */
-  | { type: 'log'; message: string }
-  | { type: 'ready'; device: 'webgpu' | 'wasm' }
-  | { type: 'transcribing' }
+  | { type: 'model-progress'; runId: string; progress: number; file?: string }
+  | { type: 'model-ready'; runId: string; model: string }
   | {
-      type: 'result';
-      words: { text: string; start: number; end: number }[];
-      language?: string;
-      device: 'webgpu' | 'wasm';
+      type: 'done';
+      runId: string;
       model: string;
+      words: Array<{ text: string; start: number; end: number }>;
     }
-  | { type: 'error'; reason: 'engine' | 'no-speech' | 'unknown'; message: string };
+  | { type: 'error'; runId: string; message: string };
 
-const post = (message: WorkerOutbound) => self.postMessage(message);
-
-/* ============================================================
-   Pipeline, created once and reused across clips
-============================================================ */
-type Transcriber = (
-  input: Float32Array,
-  options: Record<string, unknown>,
-) => Promise<unknown>;
-
-let transcriberPromise: Promise<{ run: Transcriber; device: 'webgpu' | 'wasm' }> | null = null;
-
-/**
- * Probe for a usable WebGPU adapter.
- *
- * `requestAdapter()` never rejects on some drivers, it just never settles, so
- * it is raced against a timer. Losing the race only costs the WASM path, which
- * is slower but always works.
- */
-const hasWebGPU = async (): Promise<boolean> => {
-  const gpu = (navigator as unknown as { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
-  if (!gpu) return false;
-  try {
-    const adapter = await Promise.race([
-      gpu.requestAdapter(),
-      new Promise((resolve) => setTimeout(() => resolve(null), 2_000)),
-    ]);
-    return adapter != null;
-  } catch {
-    return false;
-  }
-};
-
-async function getTranscriber() {
-  if (transcriberPromise) return transcriberPromise;
-
-  transcriberPromise = (async () => {
-    post({ type: 'log', message: 'chargement du moteur…' });
-
-    const { pipeline, env } = await import('@huggingface/transformers');
-
-    // Models come from the hub; there is no local model directory to probe.
-    env.allowLocalModels = false;
-
-    // Multi-threaded WASM requires SharedArrayBuffer, which the browser only
-    // grants to a cross-origin isolated page (COOP/COEP headers). Without them
-    // threads silently do nothing, so ask for them only when they can work and
-    // say which case we are in — it is the single biggest factor in how long a
-    // clip takes on the CPU path.
-    const isolated = (self as unknown as { crossOriginIsolated?: boolean }).crossOriginIsolated;
-    const cores = (navigator as unknown as { hardwareConcurrency?: number }).hardwareConcurrency ?? 4;
-    const threads = isolated ? Math.max(1, Math.min(4, cores)) : 1;
-
-    try {
-      env.backends.onnx.wasm.numThreads = threads;
-    } catch {
-      /* older builds expose no such setting */
-    }
-
-    post({
-      type: 'log',
-      message: `wasm: ${threads} thread${threads > 1 ? 's' : ''}${isolated ? '' : ' (page non isolée)'}`,
-    });
-
-    post({ type: 'log', message: 'moteur chargé, préparation du modèle…' });
-
-    // Every status is forwarded, not just `progress`. When the model comes
-    // from cache there are no progress events at all, and a bar frozen at 0 %
-    // is indistinguishable from a hang.
-    const reportProgress = (event: unknown) => {
-      const e = event as { status?: string; progress?: number; file?: string; name?: string };
-      if (e.status === 'progress' && typeof e.progress === 'number') {
-        post({ type: 'model-progress', ratio: Math.max(0, Math.min(1, e.progress / 100)), file: e.file });
-      } else if (e.status) {
-        post({ type: 'log', message: `${e.status}${e.file ? ` ${e.file}` : ''}` });
-      }
-    };
-
-    const devices: ('webgpu' | 'wasm')[] = (await hasWebGPU()) ? ['webgpu', 'wasm'] : ['wasm'];
-    let lastError: unknown = null;
-
-    for (const modelId of MODEL_IDS) {
-      for (const device of devices) {
-        try {
-          post({ type: 'log', message: `initialisation ${device}…` });
-          const run = (await pipeline('automatic-speech-recognition', modelId, {
-            device,
-            dtype: 'q8',
-            progress_callback: reportProgress,
-          })) as unknown as Transcriber;
-          MODEL_ID = modelId;
-          post({ type: 'ready', device });
-          return { run, device };
-        } catch (error) {
-          // WebGPU can fail on unsupported adapters or missing ops; WASM always
-          // works, so a failure here is not fatal.
-          lastError = error;
-          post({
-            type: 'log',
-            message: `${device} indisponible: ${error instanceof Error ? error.message : 'erreur'}`,
-          });
-        }
-      }
-    }
-
-    transcriberPromise = null;
-    throw lastError instanceof Error
-      ? lastError
-      : new Error('Impossible de charger le modèle de transcription.');
-  })();
-
-  return transcriberPromise;
+interface TransformerProgress {
+  status?: string;
+  progress?: number;
+  loaded?: number;
+  total?: number;
+  file?: string;
+  name?: string;
 }
 
-/* ============================================================
-   Output normalisation
-
-   transformers.js returns `{ text, chunks: [{ text, timestamp: [s, e] }] }`.
-   With word-level timestamps each chunk is a word, but the closing timestamp
-   is sometimes null on the final chunk, and Whisper occasionally emits empty
-   or repeated fragments. Normalise all of that here so the UI can trust it.
-============================================================ */
-interface RawChunk {
+interface TimestampChunk {
   text?: string;
   timestamp?: [number | null, number | null];
 }
 
-function normaliseWords(output: unknown): { text: string; start: number; end: number }[] {
-  const chunks = (output as { chunks?: RawChunk[] })?.chunks;
-  if (!Array.isArray(chunks)) return [];
-
-  const words: { text: string; start: number; end: number }[] = [];
-
-  for (const chunk of chunks) {
-    const text = (chunk.text ?? '').trim();
-    if (!text) continue;
-
-    const rawStart = chunk.timestamp?.[0];
-    const rawEnd = chunk.timestamp?.[1];
-    if (typeof rawStart !== 'number' || !Number.isFinite(rawStart)) continue;
-
-    const start = Math.max(0, rawStart);
-    // A null end happens on the last chunk; give it a plausible span rather
-    // than dropping the word.
-    const end =
-      typeof rawEnd === 'number' && Number.isFinite(rawEnd) && rawEnd > start
-        ? rawEnd
-        : start + Math.min(0.6, Math.max(0.12, text.length * 0.06));
-
-    words.push({ text, start, end });
-  }
-
-  words.sort((a, b) => a.start - b.start);
-
-  // Whisper can loop on silence and repeat the same word at the same time.
-  return words.filter((word, i) => {
-    if (i === 0) return true;
-    const prev = words[i - 1];
-    return !(prev.text === word.text && Math.abs(prev.start - word.start) < 0.02);
-  });
+interface TranscriptionResult {
+  chunks?: TimestampChunk[];
 }
 
-/* ============================================================
-   Message handling
-============================================================ */
-self.onmessage = async (event: MessageEvent<WorkerInbound>) => {
-  const request = event.data;
+type Transcriber = (
+  samples: Float32Array,
+  options: Record<string, unknown>,
+) => Promise<unknown>;
 
-  // Preload only: lets the model download overlap with the video upload, so
-  // the player does not pay that wait twice.
-  if (request?.type === 'warmup') {
-    try {
-      await getTranscriber();
-    } catch (error) {
-      post({
-        type: 'log',
-        message: `préchargement échoué: ${error instanceof Error ? error.message : 'erreur'}`,
-      });
-    }
-    return;
+type LoadedTranscriber = { transcriber: Transcriber; model: string };
+
+const scope = self as unknown as DedicatedWorkerGlobalScope;
+const activeRunIds = new Set<string>();
+let transcriberPromise: Promise<LoadedTranscriber> | null = null;
+
+const progressRatio = (progress: TransformerProgress): number => {
+  if (typeof progress.progress === 'number' && Number.isFinite(progress.progress)) {
+    return Math.max(0, Math.min(1, progress.progress > 1 ? progress.progress / 100 : progress.progress));
   }
+  if (
+    typeof progress.loaded === 'number' &&
+    typeof progress.total === 'number' &&
+    progress.total > 0
+  ) {
+    return Math.max(0, Math.min(1, progress.loaded / progress.total));
+  }
+  return 0;
+};
 
-  if (request?.type !== 'transcribe') return;
-
-  try {
-    const { run, device } = await getTranscriber();
-
-    post({ type: 'transcribing' });
-
-    // Real speed, logged so a "it never finishes" report can be checked against
-    // an actual number instead of a guess.
-    const startedAt = performance.now();
-    const audioSeconds = request.samples.length / 16_000;
-
-    const output = await run(request.samples, {
-      // 30 s is Whisper's native window; the stride lets long clips overlap so
-      // words are not cut at chunk boundaries.
-      chunk_length_s: 30,
-      stride_length_s: 5,
-      return_timestamps: 'word',
-      task: 'transcribe',
-      ...(request.language ? { language: request.language } : {}),
-    });
-
-    const computeSeconds = (performance.now() - startedAt) / 1000;
-    post({
-      type: 'log',
-      message: `inference terminee en ${computeSeconds.toFixed(1)} s pour ${audioSeconds.toFixed(
-        1,
-      )} s d'audio (x${(computeSeconds / Math.max(1, audioSeconds)).toFixed(2)} temps reel)`,
-    });
-
-    const words = normaliseWords(output);
-
-    if (words.length === 0) {
-      post({ type: 'error', reason: 'no-speech', message: 'Aucune parole détectée.' });
-      return;
-    }
-
-    post({
-      type: 'result',
-      words,
-      language: (output as { language?: string })?.language,
-      device,
-      model: MODEL_ID,
-    });
-  } catch (error) {
-    post({
-      type: 'error',
-      reason: 'engine',
-      message: error instanceof Error ? error.message : 'Transcription impossible.',
-    });
+/** Model loading is shared; broadcast its real progress to all waiting runs. */
+const reportModelProgress = (progress: TransformerProgress): void => {
+  if (progress.status !== 'progress' && progress.status !== 'download') return;
+  for (const runId of activeRunIds) {
+    const message: WorkerOutbound = {
+      type: 'model-progress',
+      runId,
+      progress: progressRatio(progress),
+      file: progress.file ?? progress.name,
+    };
+    scope.postMessage(message);
   }
 };
+
+async function initialiseTranscriber(): Promise<LoadedTranscriber> {
+  const transformers = await import('@huggingface/transformers');
+  transformers.env.allowLocalModels = false;
+
+  let lastError: unknown;
+  for (const model of MODELS) {
+    try {
+      const loaded = await transformers.pipeline('automatic-speech-recognition', model, {
+        dtype: 'q8',
+        device: 'wasm',
+        progress_callback: reportModelProgress,
+      });
+      return { transcriber: loaded as unknown as Transcriber, model };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Aucun modèle Whisper compatible ne peut être chargé.');
+}
+
+/** Any import/init/fallback failure clears the singleton so Retry is genuine. */
+const getTranscriber = (): Promise<LoadedTranscriber> => {
+  if (!transcriberPromise) {
+    transcriberPromise = initialiseTranscriber().catch((error: unknown) => {
+      transcriberPromise = null;
+      throw error;
+    });
+  }
+  return transcriberPromise;
+};
+
+const normaliseWords = (raw: unknown) => {
+  const result = raw as TranscriptionResult;
+  if (!Array.isArray(result?.chunks)) return [];
+
+  return result.chunks.flatMap((chunk) => {
+    const text = typeof chunk.text === 'string' ? chunk.text.trim() : '';
+    const start = chunk.timestamp?.[0];
+    const end = chunk.timestamp?.[1];
+    if (
+      !text ||
+      typeof start !== 'number' ||
+      typeof end !== 'number' ||
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      end <= start
+    ) {
+      return [];
+    }
+    return [{ text, start, end }];
+  });
+};
+
+scope.addEventListener('message', (event: MessageEvent<WorkerInbound>) => {
+  const request = event.data;
+  if (!request?.runId || (request.type !== 'warmup' && request.type !== 'transcribe')) return;
+
+  activeRunIds.add(request.runId);
+  void (async () => {
+    try {
+      const { transcriber, model } = await getTranscriber();
+      scope.postMessage({ type: 'model-ready', runId: request.runId, model } satisfies WorkerOutbound);
+
+      if (request.type === 'warmup') return;
+
+      const result = await transcriber(request.samples, {
+        language: request.language ?? 'fr',
+        task: 'transcribe',
+        return_timestamps: 'word',
+        chunk_length_s: 30,
+        stride_length_s: 5,
+      });
+      scope.postMessage({
+        type: 'done',
+        runId: request.runId,
+        model,
+        words: normaliseWords(result),
+      } satisfies WorkerOutbound);
+    } catch (error) {
+      scope.postMessage({
+        type: 'error',
+        runId: request.runId,
+        message: error instanceof Error ? error.message : 'Erreur inconnue du moteur.',
+      } satisfies WorkerOutbound);
+    } finally {
+      activeRunIds.delete(request.runId);
+    }
+  })();
+});

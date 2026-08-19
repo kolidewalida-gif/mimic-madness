@@ -5,8 +5,14 @@ export const GAME_PHASES = ['preview', 'imitation', 'voting', 'results'] as cons
 export type GamePhase = (typeof GAME_PHASES)[number];
 type GameRoundRow = Database['public']['Tables']['game_rounds']['Row'];
 
-export type DurableGameRound = Omit<GameRoundRow, 'phase'> & {
+export type DurableGameRound = Omit<GameRoundRow, 'phase' | 'version' | 'updated_at'> & {
   phase: GamePhase;
+  /**
+   * Server-maintained optimistic-lock counter. Null when the deployed schema
+   * predates it, in which case callers fall back to phase/round/id guards.
+   */
+  version: number | null;
+  updated_at: string | null;
 };
 
 const NEXT_PHASE: Partial<Record<GamePhase, GamePhase>> = {
@@ -33,6 +39,9 @@ export const parseDurableGameRound = (value: unknown): DurableGameRound | null =
     typeof row.current_challenge_id !== 'string' ||
     typeof row.challenge_player_id !== 'string' ||
     typeof row.created_at !== 'string' ||
+    (row.updated_at !== undefined && row.updated_at !== null && typeof row.updated_at !== 'string') ||
+    (row.version !== undefined && row.version !== null &&
+      (!Number.isInteger(row.version) || (row.version as number) < 0)) ||
     !Number.isInteger(row.round_number) ||
     (row.round_number as number) < 1 ||
     !isGamePhase(row.phase)
@@ -46,6 +55,8 @@ export const parseDurableGameRound = (value: unknown): DurableGameRound | null =
     current_challenge_id: row.current_challenge_id,
     challenge_player_id: row.challenge_player_id,
     created_at: row.created_at,
+    updated_at: typeof row.updated_at === 'string' ? row.updated_at : null,
+    version: Number.isInteger(row.version) ? (row.version as number) : null,
     round_number: row.round_number as number,
     phase: row.phase,
   };

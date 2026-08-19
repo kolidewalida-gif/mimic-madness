@@ -15,6 +15,20 @@ import { usePlayerLevel, XP_REWARDS } from "@/hooks/usePlayerLevel";
 import { useQuestTracker } from "@/hooks/useQuestTracker";
 import { juice, centerOf } from "@/lib/juice";
 import { playInkSound } from "@/hooks/useInkSoundEffects";
+import { equalJitterBackoff } from "@/lib/syncState";
+import {
+  canCommitVotingSession,
+  expectedPlaybackPositionMs,
+  localPlaybackStartMs,
+  parseVotingSessionSnapshot,
+  type VotingSessionSnapshot,
+} from "@/lib/votingSessionState";
+import {
+  castImitationVote,
+  ensureVotingSession,
+  mutateVotingSession,
+  readVotingSession,
+} from "@/lib/imitationSyncClient";
 interface Player {
   id: string;
   name: string;
@@ -28,6 +42,7 @@ interface Team {
 
 interface VotingPhaseProps {
   lobbyId: string;
+  gameRoundId: string;
   roundNumber: number;
   currentPlayer: Player;
   players: Player[];
@@ -61,6 +76,7 @@ interface TeamImitation {
 
 export const VotingPhase = ({
   lobbyId,
+  gameRoundId,
   roundNumber,
   currentPlayer,
   players,
@@ -71,16 +87,24 @@ export const VotingPhase = ({
 }: VotingPhaseProps) => {
   const [imitations, setImitations] = useState<ImitationWithClip[]>([]);
   const [teamImitations, setTeamImitations] = useState<TeamImitation[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [votingSession, setVotingSession] = useState<VotingSessionSnapshot | null>(null);
+  const [isSessionSynchronized, setIsSessionSynchronized] = useState(false);
+  /** False while the deployed schema still lacks the server-time anchor. */
+  const [isPlaybackAuthoritative, setIsPlaybackAuthoritative] = useState(true);
+  const [sessionRetryKey, setSessionRetryKey] = useState(0);
+  const [imitationRetryKey, setImitationRetryKey] = useState(0);
   const [hasVotedAll, setHasVotedAll] = useState(false);
-  const [votingSessionId, setVotingSessionId] = useState<string | null>(null);
   const [isPlayingSynced, setIsPlayingSynced] = useState(false);
+  const [playbackPositionSeconds, setPlaybackPositionSeconds] = useState(0);
   const [hasVotedCurrent, setHasVotedCurrent] = useState(false);
+  const [isVotePending, setIsVotePending] = useState(false);
+  const votePendingRef = useRef(false);
+  const sessionActionPendingRef = useRef(false);
+  const votingSessionRef = useRef<VotingSessionSnapshot | null>(null);
+  const requestSessionSnapshotRef = useRef<() => Promise<void>>(async () => undefined);
   const [showCountdown, setShowCountdown] = useState(false);
   const [pendingPlay, setPendingPlay] = useState(false);
-  const [countdownStartAt, setCountdownStartAt] = useState<number | null>(null);
-  const countdownChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const countdownReadyRef = useRef(false);
+  const [countdownCompleteAt, setCountdownCompleteAt] = useState<number | null>(null);
   const { toast } = useToast();
   const { pause, play, setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
   const videoRef = useRef<VideoWithAudioOverlayRef>(null);
@@ -88,6 +112,12 @@ export const VotingPhase = ({
   const { playSound } = useSoundEffects();
   const { addXp } = usePlayerLevel();
   const questTracker = useQuestTracker();
+  const votingSessionId = votingSession?.id ?? null;
+  const currentIndex = votingSession?.currentIndex ?? 0;
+
+  useEffect(() => {
+    votingSessionRef.current = votingSession;
+  }, [votingSession]);
 
   // Determine what to show based on game mode
   const displayItems = gameMode === '2v2' ? teamImitations : imitations;
@@ -111,125 +141,233 @@ export const VotingPhase = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMode]);
 
-  // Initialize or join voting session
+  // Subscribe first, then read the SQL row. Realtime is only an invalidation
+  // signal; every applied state comes from read_voting_session/ensure RPC.
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    
-    const initVotingSession = async () => {
-      const { data: existingSession } = await supabase
-        .from('voting_session')
-        .select('*')
-        .eq('lobby_id', lobbyId)
-        .eq('round_number', roundNumber)
-        .maybeSingle();
+    let active = true;
+    let subscribed = false;
+    let channelEpoch = 0;
+    let latestRequest = 0;
+    let retryAttempt = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    const generation = sessionRetryKey + 1;
 
-      if (existingSession) {
-        setVotingSessionId(existingSession.id);
-        setCurrentIndex(existingSession.current_imitation_index);
-        setIsPlayingSynced((existingSession as any).is_playing ?? false);
-        if (interval) clearInterval(interval);
-        return true;
-      } else if (currentPlayer.isHost) {
-        const { data: newSession, error } = await supabase
-          .from('voting_session')
-          .insert({
-            lobby_id: lobbyId,
-            round_number: roundNumber,
-            current_imitation_index: 0
-          })
-          .select()
-          .single();
+    const clearRetry = () => {
+      if (!retryTimer) return;
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    };
+    const scheduleSnapshotRetry = () => {
+      if (!active || retryTimer) return;
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        retryAttempt = Math.min(retryAttempt + 1, 8);
+        if (subscribed) void reconcileSession();
+        else setSessionRetryKey((value) => value + 1);
+      }, equalJitterBackoff(retryAttempt, 1_000, 10_000));
+    };
 
-        if (error) {
-          console.error('Error creating voting session:', error);
-        } else {
-          setVotingSessionId(newSession.id);
-          if (interval) clearInterval(interval);
-          return true;
+    async function reconcileSession() {
+      if (!active || !subscribed) return;
+      const requestId = ++latestRequest;
+      const requestEpoch = channelEpoch;
+      const token = { generation, requestId, channelEpoch: requestEpoch };
+      const requestStartedAt = Date.now();
+      try {
+        let read = await readVotingSession(lobbyId, roundNumber);
+        if (!read.row && currentPlayer.isHost && gameRoundId) {
+          read = await ensureVotingSession(gameRoundId, lobbyId, roundNumber);
         }
+
+        const responseReceivedAt = Date.now();
+        if (!canCommitVotingSession(
+          token,
+          generation,
+          latestRequest,
+          channelEpoch,
+          subscribed && active,
+        )) return;
+
+        const snapshot = parseVotingSessionSnapshot(
+          read.row,
+          // The legacy path has no game_round_id to compare against.
+          { lobbyId, roundNumber, gameRoundId: read.degraded ? undefined : gameRoundId },
+          requestStartedAt,
+          responseReceivedAt,
+        );
+        if (!snapshot) {
+          setIsSessionSynchronized(false);
+          scheduleSnapshotRetry();
+          return;
+        }
+        setIsPlaybackAuthoritative(!read.degraded);
+
+        setVotingSession(snapshot);
+        setIsSessionSynchronized(true);
+        retryAttempt = 0;
+        clearRetry();
+      } catch (error) {
+        if (!active || requestId !== latestRequest || requestEpoch !== channelEpoch) return;
+        console.error('Error reconciling voting session:', error);
+        setIsSessionSynchronized(false);
+        scheduleSnapshotRetry();
       }
-      return false;
-    };
-
-    initVotingSession();
-    
-    if (!currentPlayer.isHost) {
-      interval = setInterval(async () => {
-        const found = await initVotingSession();
-        if (found && interval) clearInterval(interval);
-      }, 1000);
     }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [lobbyId, roundNumber, currentPlayer.isHost]);
 
-  // Subscribe to voting session changes (index AND is_playing)
-  useEffect(() => {
-    if (!votingSessionId) return;
+    requestSessionSnapshotRef.current = reconcileSession;
 
     const channel = supabase
-      .channel(`voting_session:${votingSessionId}`)
+      .channel(`voting-session:${lobbyId}:${roundNumber}:${sessionRetryKey}`)
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'voting_session',
-          filter: `id=eq.${votingSessionId}`
+          filter: `lobby_id=eq.${lobbyId}`,
         },
         (payload) => {
-          const newData = payload.new as any;
-          const newIndex = newData.current_imitation_index;
-          const newIsPlaying = newData.is_playing ?? false;
-          
-          setCurrentIndex(newIndex);
-          setIsPlayingSynced(newIsPlaying);
-        }
+          const row = (payload.new && Object.keys(payload.new).length > 0 ? payload.new : payload.old) as {
+            round_number?: number;
+          };
+          if (row.round_number !== undefined && row.round_number !== roundNumber) return;
+          void reconcileSession();
+        },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (!active) return;
+        if (status === 'SUBSCRIBED') {
+          subscribed = true;
+          channelEpoch += 1;
+          void reconcileSession();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          subscribed = false;
+          channelEpoch += 1;
+          latestRequest += 1;
+          setIsSessionSynchronized(false);
+          scheduleSnapshotRetry();
+        }
+      });
+
+    const resync = () => {
+      if (navigator.onLine && subscribed) void reconcileSession();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') resync();
+    };
+    window.addEventListener('online', resync);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      subscribed = false;
+      channelEpoch += 1;
+      latestRequest += 1;
+      clearRetry();
+      requestSessionSnapshotRef.current = async () => undefined;
+      window.removeEventListener('online', resync);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      void supabase.removeChannel(channel);
     };
-  }, [votingSessionId]);
+  }, [currentPlayer.isHost, gameRoundId, lobbyId, roundNumber, sessionRetryKey]);
 
-  // Check for voting completion - separate effect to handle both modes
+  // Translate the server playback anchor to this clock once, then seek before
+  // starting. A late/reconnected client joins at the elapsed server position.
   useEffect(() => {
-    const totalItems = gameMode === '2v2' ? teamImitations.length : imitations.length;
-    if (currentIndex >= totalItems && totalItems > 0) {
-      setHasVotedAll(true);
-      if (currentPlayer.isHost) {
-        setTimeout(() => {
-          onVotingComplete();
-        }, 2000);
-      }
+    let startTimer: ReturnType<typeof setTimeout> | null = null;
+    if (!isSessionSynchronized || !votingSession) {
+      setIsPlayingSynced(false);
+      setShowCountdown(false);
+      setPendingPlay(false);
+      return;
     }
-  }, [currentIndex, gameMode, teamImitations.length, imitations.length, onVotingComplete, currentPlayer.isHost]);
+
+    setPlaybackPositionSeconds(expectedPlaybackPositionMs(votingSession) / 1000);
+    if (!votingSession.isPlaying) {
+      setIsPlayingSynced(false);
+      setShowCountdown(false);
+      setPendingPlay(false);
+      setCountdownCompleteAt(null);
+      return;
+    }
+
+    const localStart = localPlaybackStartMs(votingSession);
+    if (localStart !== null && localStart > Date.now()) {
+      setIsPlayingSynced(false);
+      setPendingPlay(true);
+      setCountdownCompleteAt(localStart);
+      setShowCountdown(true);
+      startTimer = setTimeout(() => {
+        setPlaybackPositionSeconds(expectedPlaybackPositionMs(votingSession) / 1000);
+        setShowCountdown(false);
+        setPendingPlay(false);
+        setCountdownCompleteAt(null);
+        setIsPlayingSynced(true);
+      }, Math.max(0, localStart - Date.now()));
+    } else {
+      setShowCountdown(false);
+      setPendingPlay(false);
+      setCountdownCompleteAt(null);
+      setIsPlayingSynced(true);
+    }
+
+    return () => {
+      if (startTimer) clearTimeout(startTimer);
+    };
+  }, [isSessionSynchronized, votingSession]);
+
+  // Voting completion is derived from the certified SQL index only.
+  useEffect(() => {
+    if (!isSessionSynchronized) return;
+    const totalItems = gameMode === '2v2' ? teamImitations.length : imitations.length;
+    if (totalItems === 0 || currentIndex < totalItems) return;
+
+    setHasVotedAll(true);
+    if (!currentPlayer.isHost) return;
+    const timer = setTimeout(() => onVotingComplete(), 2000);
+    return () => clearTimeout(timer);
+  }, [
+    currentIndex,
+    currentPlayer.isHost,
+    gameMode,
+    imitations.length,
+    isSessionSynchronized,
+    onVotingComplete,
+    teamImitations.length,
+  ]);
 
   // Load imitations and their clips - using round_number for accurate tracking
   useEffect(() => {
     let isMounted = true;
-    let retryTimeout: NodeJS.Timeout | null = null;
+    let subscribed = false;
+    let channelEpoch = 0;
+    let latestRequest = 0;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
     
     const loadImitations = async (retryCount = 0) => {
+      if (!isMounted || !subscribed) return;
+      const requestId = ++latestRequest;
+      const requestEpoch = channelEpoch;
       const imitationsData: ImitationWithClip[] = [];
       
       // Get the imitation records for this round to find the correct clips
-      const { data: imitationRecords } = await supabase
+      const { data: imitationRecords, error: imitationError } = await supabase
         .from('player_imitations')
-        .select('player_id, player_name, created_at, include_original_audio, original_audio_volume')
+        .select('player_id, player_name, clip_id, include_original_audio, original_audio_volume')
         .eq('lobby_id', lobbyId)
         .eq('round_number', roundNumber)
         .eq('is_ready', true);
 
       // Single query for ALL votes this round (eliminates N+1 per-player queries)
-      const { data: allVotes } = await supabase
+      const { data: allVotes, error: votesError } = await supabase
         .from('imitation_votes')
         .select('imitation_player_id, voter_player_id, vote_type')
         .eq('lobby_id', lobbyId)
         .eq('round_number', roundNumber);
+
+      if (imitationError) throw imitationError;
+      if (votesError) throw votesError;
+      if (!isMounted || requestId !== latestRequest || requestEpoch !== channelEpoch) return;
 
       // Pre-compute vote tallies in memory
       const voteTally = new Map<string, { likes: number; dislikes: number; userVote: 'like' | 'dislike' | null }>();
@@ -245,20 +383,19 @@ export const VotingPhase = ({
       const playerPromises = players.map(async (player) => {
         const imitationRecord = imitationRecords?.find(r => r.player_id === player.id);
         
-        let clipId: string | null = null;
-        const includeOriginalAudio = (imitationRecord as any)?.include_original_audio ?? false;
-        const originalAudioVolume = (imitationRecord as any)?.original_audio_volume ?? 50;
-        
-        if (imitationRecord) {
-          const roundClip = await videoStorage.getClipByPlayerAndRound(player.id, lobbyId, roundNumber);
-          if (roundClip) {
-            clipId = roundClip.id;
-          } else {
-            const imitationTime = new Date(imitationRecord.created_at);
-            const searchTime = new Date(imitationTime.getTime() - 10 * 60 * 1000);
-            const timeClip = await videoStorage.getClipByPlayerAfterTime(player.id, lobbyId, searchTime);
-            if (timeClip) clipId = timeClip.id;
-          }
+        let clipId: string | null = imitationRecord?.clip_id ?? null;
+        const includeOriginalAudio = imitationRecord?.include_original_audio ?? false;
+        const originalAudioVolume = imitationRecord?.original_audio_volume ?? 50;
+
+        // Legacy in-flight rows created before clip_id existed may still be
+        // recovered by the exact lobby/player/round key, never by time.
+        if (imitationRecord && !clipId) {
+          const roundClip = await videoStorage.getClipByPlayerAndRound(
+            player.id,
+            lobbyId,
+            roundNumber,
+          );
+          clipId = roundClip?.id ?? null;
         }
 
         const v = voteTally.get(player.id) ?? { likes: 0, dislikes: 0, userVote: null };
@@ -277,8 +414,8 @@ export const VotingPhase = ({
       const results = await Promise.all(playerPromises);
       imitationsData.push(...results);
 
-      if (isMounted) {
-        // Skip retry for bots (no clip will ever exist)
+      if (isMounted && requestId === latestRequest && requestEpoch === channelEpoch) {
+        // Skip retry for bots (no clip will ever exist).
         const hasMissingClips = imitationsData.some(im => {
           if (im.playerId.startsWith('bot-')) return false;
           const hasRecord = imitationRecords?.some(r => r.player_id === im.playerId);
@@ -294,38 +431,73 @@ export const VotingPhase = ({
       }
     };
 
-    loadImitations();
+    // Debounce SQL invalidation signals; payloads are never applied directly.
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const requestDebouncedLoad = (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => {
+      const row = Object.keys(payload.new).length > 0 ? payload.new : payload.old;
+      if (typeof row.round_number === 'number' && row.round_number !== roundNumber) return;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        void loadImitations().catch((error) => {
+          console.error('Error loading imitations:', error);
+        });
+      }, 300);
+    };
 
-    // Debounce realtime vote events — when 8 players vote simultaneously,
-    // we don't want 8 full reloads. Wait 500ms after the last event.
-    let debounceTimer: NodeJS.Timeout | null = null;
     const channel = supabase
-      .channel(`votes:${lobbyId}:${roundNumber}`)
+      .channel(`votes:${lobbyId}:${roundNumber}:${imitationRetryKey}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'imitation_votes',
-          filter: `lobby_id=eq.${lobbyId}`
+          filter: `lobby_id=eq.${lobbyId}`,
         },
-        () => {
-          if (!isMounted) return;
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            if (isMounted) loadImitations();
-          }, 500);
-        }
+        requestDebouncedLoad,
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'player_imitations',
+          filter: `lobby_id=eq.${lobbyId}`,
+        },
+        requestDebouncedLoad,
+      )
+      .subscribe((status) => {
+        if (!isMounted) return;
+        if (status === 'SUBSCRIBED') {
+          subscribed = true;
+          channelEpoch += 1;
+          void loadImitations().catch((error) => {
+            console.error('Error loading imitations:', error);
+          });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          subscribed = false;
+          channelEpoch += 1;
+          latestRequest += 1;
+          if (!retryTimeout) {
+            retryTimeout = setTimeout(() => {
+              retryTimeout = null;
+              setImitationRetryKey((value) => value + 1);
+            }, equalJitterBackoff(imitationRetryKey, 1_000, 10_000));
+          }
+        }
+      });
 
     return () => {
       isMounted = false;
+      subscribed = false;
+      channelEpoch += 1;
+      latestRequest += 1;
       if (retryTimeout) clearTimeout(retryTimeout);
       if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [lobbyId, roundNumber, players, currentPlayer.id]);
+  }, [currentPlayer.id, imitationRetryKey, lobbyId, players, roundNumber]);
 
   // Group imitations by team for 2v2 mode
   useEffect(() => {
@@ -372,237 +544,168 @@ export const VotingPhase = ({
   }, [currentIndex, imitations, teamImitations, gameMode]);
 
   const handleVote = async (voteType: 'like' | 'dislike', evt?: React.MouseEvent) => {
-    // Guards FIRST — block self-vote before any side effects (XP, juice)
+    if (
+      votePendingRef.current ||
+      hasVotedCurrent ||
+      !isSessionSynchronized ||
+      !votingSessionId
+    ) return;
+
+    let targetIds: string[];
     if (gameMode === '2v2') {
       const currentTeam = teamImitations[currentIndex];
-      if (!currentTeam) return;
-      if (currentTeam.players.some(p => p.id === currentPlayer.id)) return;
+      if (!currentTeam || currentTeam.players.some((player) => player.id === currentPlayer.id)) return;
+      targetIds = currentTeam.players
+        .filter((_, index) => currentTeam.clipIds[index] !== null)
+        .map((player) => player.id);
     } else {
       const currentImitation = imitations[currentIndex];
-      if (!currentImitation || currentImitation.playerId === currentPlayer.id) return;
+      if (
+        !currentImitation?.clipId ||
+        currentImitation.playerId === currentPlayer.id
+      ) return;
+      targetIds = [currentImitation.playerId];
     }
-    if (hasVotedCurrent) return;
+    if (targetIds.length === 0) return;
 
-    // Juice — instant haptic-style feedback
     const origin = centerOf(evt?.currentTarget ?? null);
-    if (origin) {
-      juice.burst({
-        x: origin.x,
-        y: origin.y,
-        color: voteType === 'like' ? 'hsl(140 70% 55%)' : 'hsl(0 84% 60%)',
-        intensity: voteType === 'like' ? 1.2 : 0.9,
-      });
-      juice.pop(evt!.currentTarget as HTMLElement, voteType === 'like' ? 1.18 : 1.1);
-    }
-    if (voteType === 'like') {
-      juice.flash('success', 180);
-    } else {
-      juice.shake(160, 0.7);
-    }
-
-    // Award XP only after guards pass
-    const xpResult = await addXp('voteLike');
-    emitXpGain(XP_REWARDS.voteLike, 'voteLike');
-    if (xpResult?.leveledUp) {
-      emitLevelUpNotification(xpResult.newLevel);
-    }
-    void questTracker.track('vote_imitation');
-
-    if (gameMode === '2v2') {
-      const currentTeam = teamImitations[currentIndex];
-      try {
-        playSound('vote');
-        await Promise.all(currentTeam.players.map((player) =>
-          supabase.from('imitation_votes').upsert({
-            lobby_id: lobbyId,
-            round_number: roundNumber,
-            imitation_player_id: player.id,
-            voter_player_id: currentPlayer.id,
-            vote_type: voteType
-          }, { onConflict: 'lobby_id,round_number,imitation_player_id,voter_player_id' })
-        ));
-        toast({ title: voteType === 'like' ? "👍 Like !" : "👎 Dislike", description: "Vote pour l'équipe enregistré" });
-        setHasVotedCurrent(true);
-      } catch (error) {
-        console.error('Error voting:', error);
-        toast({ title: "Erreur", description: "Impossible d'enregistrer le vote", variant: "destructive" });
-      }
-      return;
-    }
-
-    // Normal mode
-    const currentImitation = imitations[currentIndex];
+    const targetElement = evt?.currentTarget as HTMLElement | undefined;
+    votePendingRef.current = true;
+    setIsVotePending(true);
     try {
-      playSound('vote');
-      const { error } = await supabase.from('imitation_votes').upsert({
-        lobby_id: lobbyId,
-        round_number: roundNumber,
-        imitation_player_id: currentImitation.playerId,
-        voter_player_id: currentPlayer.id,
-        vote_type: voteType
-      }, { onConflict: 'lobby_id,round_number,imitation_player_id,voter_player_id' });
-      if (error) throw error;
-      toast({ title: voteType === 'like' ? "👍 Like !" : "👎 Dislike", description: "Vote enregistré" });
+      const inserted = await castImitationVote(
+        lobbyId,
+        roundNumber,
+        currentPlayer.id,
+        targetIds,
+        voteType,
+      );
+      if (!inserted) {
+        await requestSessionSnapshotRef.current();
+        toast({
+          title: 'Vote déjà traité',
+          description: 'Le vote ou la manche avait déjà changé.',
+        });
+        return;
+      }
+
       setHasVotedCurrent(true);
+      playSound('vote');
+      if (origin) {
+        juice.burst({
+          x: origin.x,
+          y: origin.y,
+          color: voteType === 'like' ? 'hsl(140 70% 55%)' : 'hsl(0 84% 60%)',
+          intensity: voteType === 'like' ? 1.2 : 0.9,
+        });
+        if (targetElement) juice.pop(targetElement, voteType === 'like' ? 1.18 : 1.1);
+      }
+      if (voteType === 'like') juice.flash('success', 180);
+      else juice.shake(160, 0.7);
+
+      const xpResult = await addXp('voteLike');
+      emitXpGain(XP_REWARDS.voteLike, 'voteLike');
+      if (xpResult?.leveledUp) emitLevelUpNotification(xpResult.newLevel);
+      void questTracker.track('vote_imitation');
+
+      toast({
+        title: voteType === 'like' ? '👍 Like !' : '👎 Dislike',
+        description: gameMode === '2v2' ? "Vote pour l'équipe enregistré" : 'Vote enregistré',
+      });
     } catch (error) {
       console.error('Error voting:', error);
-      toast({ title: "Erreur", description: "Impossible d'enregistrer le vote", variant: "destructive" });
+      toast({ title: 'Erreur', description: "Impossible d'enregistrer le vote", variant: 'destructive' });
+    } finally {
+      votePendingRef.current = false;
+      setIsVotePending(false);
     }
   };
 
-  // Host controls play/pause for everyone - with countdown
+  const mutateSession = async (
+    action: 'start' | 'pause' | 'advance',
+    countdownMs = 0,
+  ): Promise<boolean> => {
+    const snapshot = votingSessionRef.current;
+    if (
+      !currentPlayer.isHost ||
+      !isSessionSynchronized ||
+      !snapshot ||
+      sessionActionPendingRef.current
+    ) return false;
+
+    sessionActionPendingRef.current = true;
+    try {
+      const changed = await mutateVotingSession(
+        snapshot.id,
+        snapshot.version,
+        snapshot.currentIndex,
+        action,
+        countdownMs,
+      );
+      await requestSessionSnapshotRef.current();
+      if (!changed) {
+        toast({
+          title: 'Commande déjà dépassée',
+          description: 'La session a été resynchronisée.',
+        });
+      }
+      return changed;
+    } catch (error) {
+      console.error('Error mutating voting session:', error);
+      setIsSessionSynchronized(false);
+      toast({
+        title: 'Synchronisation impossible',
+        description: 'La commande a été annulée puis la session va être relue.',
+        variant: 'destructive',
+      });
+      await requestSessionSnapshotRef.current();
+      return false;
+    } finally {
+      sessionActionPendingRef.current = false;
+    }
+  };
+
   const handleTogglePlay = async () => {
-    if (!votingSessionId || !currentPlayer.isHost) return;
     if (pendingPlay || showCountdown) return;
-
-    if (!isPlayingSynced) {
-      // Starting playback - show countdown for all, synchronized via wall-clock startAt.
-      // 500ms buffer covers typical broadcast latency (50-200ms) + jitter.
-      const startAt = Date.now() + 500;
-
-      const ch = countdownChannelRef.current;
-      if (ch && countdownReadyRef.current) {
-        ch.send({
-          type: 'broadcast',
-          event: 'countdown_start',
-          payload: { startAt },
-        });
-      } else {
-        // Fallback: channel not ready, just start locally
-        setPendingPlay(true);
-        setCountdownStartAt(startAt);
-        setShowCountdown(true);
-      }
+    if (isPlayingSynced) {
+      await mutateSession('pause');
     } else {
-      // Pausing - broadcast immediately so all clients pause in sync, then persist.
-      const ch = countdownChannelRef.current;
-      if (ch && countdownReadyRef.current) {
-        ch.send({
-          type: 'broadcast',
-          event: 'force_pause',
-          payload: { at: Date.now() },
-        });
-      }
-      setIsPlayingSynced(false);
-      const { error } = await supabase
-        .from('voting_session')
-        .update({
-          is_playing: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', votingSessionId);
-
-      if (error) {
-        console.error('Error updating play state:', error);
-      }
+      // PostgreSQL chooses the actual start instant 3.5 s in the future.
+      await mutateSession('start', 3_500);
     }
   };
 
-  // Handle countdown completion - every client (host included) drives its own
-  // playback start locally, instead of waiting for a postgres roundtrip. The host
-  // also persists is_playing=true for late joiners and resync.
-  const handleCountdownComplete = async () => {
+  const handleCountdownComplete = () => {
+    const snapshot = votingSessionRef.current;
     setShowCountdown(false);
     setPendingPlay(false);
-    setCountdownStartAt(null);
-    // Each client triggers play locally — no DB latency.
-    setIsPlayingSynced(true);
-
-    if (currentPlayer.isHost && votingSessionId) {
-      const { error } = await supabase
-        .from('voting_session')
-        .update({
-          is_playing: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', votingSessionId);
-
-      if (error) {
-        console.error('Error updating play state:', error);
-      }
+    setCountdownCompleteAt(null);
+    if (snapshot?.isPlaying) {
+      setPlaybackPositionSeconds(expectedPlaybackPositionMs(snapshot) / 1000);
+      setIsPlayingSynced(true);
     }
   };
 
-  // Persistent countdown broadcast channel — created once per round and pre-subscribed
-  // so that .send() / receive happens instantly (no per-click handshake latency).
-  // self:true so the HOST also receives its own broadcast and starts the countdown
-  // at the same wall-clock moment as guests (eliminates host-vs-guest desync).
-  useEffect(() => {
-    if (!lobbyId) return;
-
-    countdownReadyRef.current = false;
-    const channel = supabase
-      .channel(`countdown:${lobbyId}:${roundNumber}`, {
-        config: { broadcast: { self: true, ack: false } },
-      })
-      .on('broadcast', { event: 'countdown_start' }, (msg) => {
-        const startAt: number | undefined = msg?.payload?.startAt;
-        setCountdownStartAt(startAt ?? Date.now());
-        setShowCountdown(true);
-        setPendingPlay(true);
-      })
-      .on('broadcast', { event: 'force_pause' }, () => {
-        // All clients pause locally on broadcast — no DB roundtrip latency.
-        setIsPlayingSynced(false);
-        setShowCountdown(false);
-        setPendingPlay(false);
-        setCountdownStartAt(null);
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          countdownReadyRef.current = true;
-        }
-      });
-
-    countdownChannelRef.current = channel;
-
-    return () => {
-      countdownReadyRef.current = false;
-      countdownChannelRef.current = null;
-      supabase.removeChannel(channel);
-    };
-  }, [lobbyId, roundNumber]);
-
-  // Only host can advance to next imitation
   const handleNext = async () => {
-    if (!votingSessionId || !currentPlayer.isHost) {
-      return;
-    }
-
-    // Broadcast pause immediately so all clients stop in sync (no DB latency)
-    const ch = countdownChannelRef.current;
-    if (ch && countdownReadyRef.current) {
-      ch.send({ type: 'broadcast', event: 'force_pause', payload: { at: Date.now() } });
-    }
-
-    const nextIndex = currentIndex + 1;
-    
-    // Stop playing and advance
-    const { error } = await supabase
-      .from('voting_session')
-      .update({ 
-        current_imitation_index: nextIndex,
-        is_playing: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', votingSessionId);
-
-    if (error) {
-      console.error('Error updating voting session:', error);
-    }
+    await mutateSession('advance');
   };
 
   const currentImitation = imitations[currentIndex];
   const currentTeamImitation = gameMode === '2v2' ? teamImitations[currentIndex] : null;
   const displayLength = gameMode === '2v2' ? teamImitations.length : imitations.length;
 
-  // Loading state
-  if ((gameMode === 'normal' && (!currentImitation || imitations.length === 0)) ||
+  // Nothing renders until the durable session snapshot is certified.
+  if (!isSessionSynchronized ||
+      (gameMode === 'normal' && (!currentImitation || imitations.length === 0)) ||
       (gameMode === '2v2' && teamImitations.length === 0)) {
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        <p className="text-foreground-secondary font-body">Chargement des imitations...</p>
+        <p className="text-foreground-secondary font-body">
+          {isSessionSynchronized
+            ? 'Chargement des imitations...'
+            : 'Synchronisation de la session de vote...'}
+        </p>
       </div>
     );
   }
@@ -641,7 +744,7 @@ export const VotingPhase = ({
 
       {/* Countdown overlay */}
       <CountdownOverlay isActive={showCountdown} onComplete={handleCountdownComplete} duration={3}
-        title="La vidéo commence dans..." startAt={countdownStartAt ?? undefined} />
+        title="La vidéo commence dans..." completeAt={countdownCompleteAt ?? undefined} />
 
       <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar max-w-4xl mx-auto w-full px-4 py-5 pb-[120px] space-y-5">
         {/* Header */}
@@ -714,22 +817,18 @@ export const VotingPhase = ({
                 <TeamVideoOverlay ref={teamVideoRef} videoClipId={challengeVideoClipId}
                   audioClipId1={currentTeamImitation.clipIds[0]} audioClipId2={currentTeamImitation.clipIds[1] || null}
                   className="w-full" externalControl isPlayingExternal={isPlayingSynced}
+                  playbackPositionSeconds={playbackPositionSeconds}
                   includeOriginalAudio={currentTeamImitation.includeOriginalAudio} originalAudioVolume={currentTeamImitation.originalAudioVolume} />
               ) : currentImitation?.clipId ? (
                 <VideoWithAudioOverlay ref={videoRef} videoClipId={challengeVideoClipId} audioClipId={currentImitation.clipId}
                   className="w-full" externalControl isPlayingExternal={isPlayingSynced}
+                  playbackPositionSeconds={playbackPositionSeconds}
                   includeOriginalAudio={currentImitation?.includeOriginalAudio ?? false} originalAudioVolume={currentImitation?.originalAudioVolume ?? 50}
                   onPlayStateChange={(playing) => {
-                    if (!playing && isPlayingSynced) {
-                      // Audio ended — broadcast pause to all clients for sync
-                      setIsPlayingSynced(false);
-                      const ch = countdownChannelRef.current;
-                      if (ch && countdownReadyRef.current) {
-                        ch.send({ type: 'broadcast', event: 'force_pause', payload: { at: Date.now() } });
-                      }
-                      if (currentPlayer.isHost && votingSessionId) {
-                        supabase.from('voting_session').update({ is_playing: false, updated_at: new Date().toISOString() }).eq('id', votingSessionId).then(() => {});
-                      }
+                    // Media end is a hint. Only the host attempts the versioned
+                    // SQL pause; guests never command global playback.
+                    if (!playing && isPlayingSynced && currentPlayer.isHost) {
+                      void mutateSession('pause');
                     }
                   }} />
               ) : (
@@ -742,7 +841,8 @@ export const VotingPhase = ({
             {/* Host play control */}
             {currentPlayer.isHost && (
               <div className="flex justify-center">
-                <motion.button onClick={handleTogglePlay} disabled={!votingSessionId || pendingPlay || showCountdown}
+                <motion.button onClick={handleTogglePlay}
+                  disabled={!votingSessionId || !isSessionSynchronized || pendingPlay || showCountdown}
                   whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
                   className="flex items-center gap-2 px-5 py-3 rounded-2xl disabled:opacity-50"
                   style={{ background: isPlayingSynced ? "linear-gradient(180deg, #6b7280, #4b5563)" : "var(--ink-accent)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
@@ -754,18 +854,28 @@ export const VotingPhase = ({
               </div>
             )}
 
+            {/* Honest about the weaker guarantee until the migration is applied. */}
+            {!isPlaybackAuthoritative && (
+              <p className="text-center text-[11px] font-bold text-amber-300/80"
+                style={{ fontFamily: "'Outfit', sans-serif" }}>
+                Synchronisation de lecture approximative : l'horodatage serveur n'est pas encore disponible.
+              </p>
+            )}
+
             {/* Vote buttons */}
             <div className="flex flex-col gap-3 items-center">
               {!isOwnVideo && !hasVotedCurrent && (
                 <div className="flex gap-4 w-full max-w-sm">
-                  <motion.button onClick={(e) => handleVote('dislike', e)} disabled={!votingSessionId}
+                  <motion.button onClick={(e) => handleVote('dislike', e)}
+                    disabled={!votingSessionId || !isSessionSynchronized || isVotePending}
                     whileHover={{ scale: 1.05, rotate: 2 }} whileTap={{ scale: 0.95 }}
                     className="flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
                     style={{ background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <ThumbsDown className="w-6 h-6 text-white" />
                     <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>Bof</span>
                   </motion.button>
-                  <motion.button onClick={(e) => handleVote('like', e)} disabled={!votingSessionId}
+                  <motion.button onClick={(e) => handleVote('like', e)}
+                    disabled={!votingSessionId || !isSessionSynchronized || isVotePending}
                     whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
                     className="flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
                     style={{ background: "linear-gradient(180deg, #34d399, #059669)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
@@ -786,7 +896,8 @@ export const VotingPhase = ({
               )}
 
               {currentPlayer.isHost && (
-                <motion.button onClick={handleNext} disabled={!votingSessionId}
+                <motion.button onClick={handleNext}
+                  disabled={!votingSessionId || !isSessionSynchronized}
                   whileHover={{ scale: 1.05, rotate: -1 }} whileTap={{ scale: 0.97 }}
                   className="flex items-center gap-2 px-6 py-3 rounded-2xl disabled:opacity-50"
                   style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>

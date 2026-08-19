@@ -99,7 +99,12 @@ describe('ImitationPhase host auto-advance', () => {
       subscribe: vi.fn(),
     };
     realtimeChannel.on.mockReturnValue(realtimeChannel);
-    realtimeChannel.subscribe.mockReturnValue(realtimeChannel);
+    // Readiness is only read after the subscription is live, so the status
+    // callback must fire for any SQL snapshot to be requested.
+    realtimeChannel.subscribe.mockImplementation((onStatus?: (status: string) => void) => {
+      onStatus?.('SUBSCRIBED');
+      return realtimeChannel;
+    });
     mocks.channel.mockReturnValue(realtimeChannel);
   });
 

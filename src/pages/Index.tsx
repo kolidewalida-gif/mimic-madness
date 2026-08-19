@@ -159,6 +159,15 @@ const Index = () => {
     retryConnection,
   } = useLobbySync();
 
+  useEffect(() => {
+    if (!lobby) return;
+    setCurrentPlayer((player) => {
+      if (!player) return player;
+      const isHost = player.id === lobby.host_id;
+      return player.isHost === isHost ? player : { ...player, isHost };
+    });
+  }, [lobby?.host_id]);
+
   const routeFromLobbySnapshot = useCallback((phase?: string, mode?: string) => {
     if (mode) setGameMode(mode as GameMode);
     setGameState(resolveLobbyGameState(phase, mode));
@@ -199,32 +208,21 @@ const Index = () => {
         return;
       }
 
-      // Check if this player is the host (they might have been before crash)
-      const { data: playerRow } = await supabase
-        .from('lobby_players')
-        .select('is_host')
-        .eq('lobby_id', session.lobbyId)
-        .eq('player_id', session.playerId)
-        .maybeSingle();
-
       const newPlayer: Player = {
         id: session.playerId,
         name: session.playerName,
-        isHost: playerRow?.is_host ?? false,
+        isHost: result.lobby.host_id === session.playerId,
       };
       setCurrentPlayer(newPlayer);
       setShowResumeModal(false);
-
-      // Route directly to the current phase from the refreshed lobby snapshot.
-      const lobbyData = result.lobby as any;
-      routeFromLobbySnapshot(lobbyData?.game_phase, lobbyData?.game_mode);
+      // Routing waits for useLobbySync's subscribed + SQL-certified snapshot.
     } catch (error) {
       console.error('[resume] rejoin failed:', error);
       setResumeError('La reprise a échoué, mais ta partie est toujours mémorisée. Réessaie dans un instant.');
     } finally {
       setIsResuming(false);
     }
-  }, [resumeStatus, isResuming, joinLobby, routeFromLobbySnapshot]);
+  }, [resumeStatus, isResuming, joinLobby]);
 
   const handleResumeNo = useCallback(() => {
     if (isResuming) return;
@@ -337,128 +335,6 @@ const Index = () => {
     }
   }, [lobbyDeleted, gameState, toast, resetState]);
 
-  // Listen for lobby status changes - critical for game state sync
-  useEffect(() => {
-    if (!lobby) return;
-
-    console.log('[Index] Setting up lobby status listener for:', lobby.id);
-
-    const channel = supabase
-      .channel(`lobby-status:${lobby.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'lobbies',
-          filter: `id=eq.${lobby.id}`
-        },
-        (payload: any) => {
-          console.log('[Index] Lobby update received:', payload.new);
-          
-          const newPhase = payload.new.game_phase;
-          const newMode = payload.new.game_mode;
-          
-          if (newMode && newMode !== gameMode) {
-            console.log('[Index] Game mode changed to:', newMode);
-            setGameMode(newMode as GameMode);
-          }
-          
-          console.log('[Index] Game phase change:', { currentState: gameState, newPhase });
-          
-          if (newPhase === 'preparation' && gameState !== 'preparation') {
-            playSoundEffect('transition', 0.4);
-            setGameState('preparation');
-            toast({
-              title: "La partie commence !",
-              description: "Préparez vos défis vidéo.",
-            });
-          } else if (newPhase === 'quiz' && gameState !== 'quiz') {
-            playSoundEffect('quizReveal', 0.5);
-            setGameState('quiz');
-            toast({
-              title: "🧠 Mode Quiz !",
-              description: "Préparez-vous à répondre aux questions.",
-            });
-          } else if (newPhase === 'audiophone' && gameState !== 'audiophone') {
-            console.log('[Index] Transitioning to audiophone state');
-            playSoundEffect('start', 0.5);
-            setGameState('audiophone');
-            toast({
-              title: "📞 Audio Phone !",
-              description: "Préparez votre micro !",
-            });
-          } else if (newPhase === 'pixoguess' && gameState !== 'pixoguess') {
-            playSoundEffect('quizReveal', 0.5);
-            setGameState('pixoguess');
-            toast({
-              title: "⚡ BlurRush !",
-              description: "Devinez l'image avant les autres !",
-            });
-          } else if (newPhase === 'monopoly' && gameState !== 'monopoly') {
-            playSoundEffect('start', 0.5);
-            setGameState('monopoly');
-            toast({
-              title: "🏠 Monopoly !",
-              description: "Le plateau 3D vous attend !",
-            });
-          } else if (newPhase === 'undercover' && gameState !== 'undercover') {
-            playSoundEffect('start', 0.5);
-            setGameState('undercover');
-            toast({
-              title: "🕵️ Undercover !",
-              description: "Trouvez l'infiltré parmi vous !",
-            });
-          } else if (newPhase === 'memorise' && gameState !== 'memorise') {
-            playSoundEffect('quizReveal', 0.5);
-            setGameState('memorise');
-            toast({
-              title: "🎵 Blindtest Musical !",
-              description: "Devine l'anime, le dessin animé ou la musique le plus vite !",
-            });
-          } else if (newPhase === 'playing' && newMode === 'memorise' && gameState !== 'memorise') {
-            // Memorise piggybacks on the allowed 'playing' phase (avoids a DB
-            // game_phase CHECK constraint migration). Disambiguate via mode.
-            playSoundEffect('quizReveal', 0.5);
-            setGameState('memorise');
-            toast({
-              title: "🎵 Blindtest Musical !",
-              description: "Devine l'anime, le dessin animé ou la musique le plus vite !",
-            });
-          } else if (newPhase === 'playing' && newMode === 'mimic' && gameState !== 'mimic') {
-            // Mimic piggybacks on the allowed 'playing' phase (same trick as memorise).
-            playSoundEffect('quizReveal', 0.5);
-            setGameState('mimic');
-            toast({
-              title: "🎤 Mimic !",
-              description: "Imite la chanson le plus fidèlement possible !",
-            });
-          } else if (newPhase === 'playing' && gameState !== 'playing' && gameState !== 'memorise' && gameState !== 'mimic') {
-            playSoundEffect('start', 0.5);
-            // Dopamine launch — fires for every client when the game starts
-            juice.confetti({ count: 80 });
-            juice.flash('primary', 240);
-            juice.shake(220, 0.8);
-            setGameState('playing');
-            toast({
-              title: "🎮 Que le jeu commence !",
-              description: "Tous les joueurs sont prêts. C'est parti !",
-            });
-          } else if (newPhase === 'lobby' && gameState !== 'lobby') {
-            console.log('[Index] Returning to lobby');
-            setGameState('lobby');
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('[Index] Lobby subscription status:', status);
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [lobby?.id, gameState, gameMode, toast]);
-
   const handleCreateGame = useCallback(async (playerName: string, gameMode?: LobbyGameMode) => {
     playSoundEffect('success', 0.4);
     // Use persistent player ID (auth user ID when logged in)
@@ -512,14 +388,12 @@ const Index = () => {
         playerId,
         playerName,
       });
-      // Join directly at the current phase when a game is already running.
-      const lob = result.lobby as any;
-      routeFromLobbySnapshot(lob?.game_phase, lob?.game_mode);
+      // Routing waits for the subscribed, SQL-certified hook snapshot.
     } else {
       playSoundEffect('error', 0.4);
       setCurrentPlayer(null);
     }
-  }, [joinLobby, user?.id, routeFromLobbySnapshot]);
+  }, [joinLobby, user?.id]);
 
   const handleStartGame = useCallback(async (mode: GameMode = 'normal') => {
     console.log('[Index] handleStartGame called with mode:', mode);

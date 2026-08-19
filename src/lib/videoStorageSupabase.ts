@@ -12,6 +12,7 @@ export interface VideoClip {
   storagePath: string;
   createdAt: Date;
   lobbyId?: string;
+  roundNumber?: number | null;
 }
 
 /**
@@ -55,6 +56,7 @@ class VideoStorageSupabase {
       endTime: number;
       isMuted: boolean;
       lobbyId?: string;
+      roundNumber?: number | null;
     }
   ): Promise<VideoClip> {
     // Refuse oversized files up-front. The server cuts the connection partway
@@ -97,6 +99,7 @@ class VideoStorageSupabase {
       storagePath: fileName,
       createdAt: new Date(),
       lobbyId: clipData.lobbyId,
+      roundNumber: clipData.roundNumber ?? null,
     };
 
     const { error: dbError } = await supabase
@@ -112,6 +115,7 @@ class VideoStorageSupabase {
         is_muted: clip.isMuted,
         storage_path: clip.storagePath,
         lobby_id: clip.lobbyId,
+        round_number: clip.roundNumber,
       });
 
     if (dbError) {
@@ -148,6 +152,7 @@ class VideoStorageSupabase {
       storagePath: clip.storage_path,
       createdAt: new Date(clip.created_at),
       lobbyId: clip.lobby_id,
+      roundNumber: clip.round_number,
     }));
   }
 
@@ -175,15 +180,17 @@ class VideoStorageSupabase {
       storagePath: data.storage_path,
       createdAt: new Date(data.created_at),
       lobbyId: data.lobby_id,
+      roundNumber: data.round_number,
     };
   }
 
-  async getVideoUrl(clipId: string): Promise<string | null> {
-    // Check cache first
+  async getVideoUrl(clipId: string, forceRefresh = false): Promise<string | null> {
+    // Check cache first unless the caller just received 401/403 from this URL.
     const cached = urlCache.get(clipId);
-    if (cached && cached.expiresAt > Date.now()) {
+    if (!forceRefresh && cached && cached.expiresAt > Date.now()) {
       return cached.url;
     }
+    if (forceRefresh) urlCache.delete(clipId);
 
     const clip = await this.getVideoClip(clipId);
     if (!clip) {
@@ -268,6 +275,7 @@ class VideoStorageSupabase {
       storagePath: clip.storage_path,
       createdAt: new Date(clip.created_at),
       lobbyId: clip.lobby_id,
+      roundNumber: clip.round_number,
     }));
   }
 
@@ -297,6 +305,7 @@ class VideoStorageSupabase {
       storagePath: clip.storage_path,
       createdAt: new Date(clip.created_at),
       lobbyId: clip.lobby_id,
+      roundNumber: clip.round_number,
     }));
   }
 
@@ -437,6 +446,7 @@ class VideoStorageSupabase {
       storagePath: data.storage_path,
       createdAt: new Date(data.created_at),
       lobbyId: data.lobby_id,
+      roundNumber: data.round_number,
     };
   }
 
