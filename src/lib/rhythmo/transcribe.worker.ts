@@ -130,13 +130,14 @@ async function getTranscriber() {
           post({ type: 'ready', device });
           return { run, device };
         } catch (error) {
-        // WebGPU can fail on unsupported adapters or missing ops; WASM always
-        // works, so a failure here is not fatal.
-        lastError = error;
-        post({
-          type: 'log',
-          message: `${device} indisponible: ${error instanceof Error ? error.message : 'erreur'}`,
-        });
+          // WebGPU can fail on unsupported adapters or missing ops; WASM always
+          // works, so a failure here is not fatal.
+          lastError = error;
+          post({
+            type: 'log',
+            message: `${device} indisponible: ${error instanceof Error ? error.message : 'erreur'}`,
+          });
+        }
       }
     }
 
