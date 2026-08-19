@@ -201,8 +201,23 @@ function normaliseWords(output: unknown): { text: string; start: number; end: nu
 /* ============================================================
    Message handling
 ============================================================ */
-self.onmessage = async (event: MessageEvent<TranscribeRequest>) => {
+self.onmessage = async (event: MessageEvent<WorkerInbound>) => {
   const request = event.data;
+
+  // Preload only: lets the model download overlap with the video upload, so
+  // the player does not pay that wait twice.
+  if (request?.type === 'warmup') {
+    try {
+      await getTranscriber();
+    } catch (error) {
+      post({
+        type: 'log',
+        message: `préchargement échoué: ${error instanceof Error ? error.message : 'erreur'}`,
+      });
+    }
+    return;
+  }
+
   if (request?.type !== 'transcribe') return;
 
   try {
