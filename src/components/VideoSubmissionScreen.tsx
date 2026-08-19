@@ -72,8 +72,14 @@ const formatEta = (ms: number): string => {
   return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`;
 };
 
-/** Player-facing label for a rythmo generation stage. */
-const rhythmoLabel = (progress: RhythmoProgress): string => {
+/**
+ * Player-facing label for a rythmo generation stage.
+ *
+ * `remainingMs` is the live countdown. Inference reports nothing between its
+ * start and its end, so without it this line would sit unchanged for a minute
+ * and read as frozen.
+ */
+const rhythmoLabel = (progress: RhythmoProgress, remainingMs: number | null): string => {
   switch (progress.phase) {
     case 'extracting':
       return "Extraction de l'audio…";
@@ -82,11 +88,43 @@ const rhythmoLabel = (progress: RhythmoProgress): string => {
         ? 'Modèle prêt…'
         : `Téléchargement du modèle vocal… ${Math.round(progress.ratio * 100)}%`;
     case 'transcribing':
-      return 'Création de la bande rythmo…';
+      // Past the estimate the run is not stuck, the guess was just short.
+      return remainingMs !== null && remainingMs > 0
+        ? `Création de la bande rythmo… ≈ ${formatEta(remainingMs)}`
+        : 'Création de la bande rythmo… presque fini';
     case 'done':
       return 'Bande rythmo prête';
     default:
       return 'Bande rythmo…';
+  }
+};
+
+/**
+ * Measured upload throughput, in bytes per second.
+ *
+ * Supabase uploads go through `fetch`, which reports no progress at all, so a
+ * measured average is the only material available for an estimate. Kept in
+ * `localStorage` so the first estimate of a session is based on this player's
+ * real connection instead of a guess.
+ */
+const RATE_KEY = 'mimic:upload-bytes-per-sec';
+/** ~2 Mbps up: a deliberately modest starting point for a home connection. */
+const DEFAULT_RATE = 250 * 1024;
+
+const readStoredRate = (): number => {
+  try {
+    const raw = Number(localStorage.getItem(RATE_KEY));
+    return Number.isFinite(raw) && raw > 1024 ? raw : DEFAULT_RATE;
+  } catch {
+    return DEFAULT_RATE;
+  }
+};
+
+const storeRate = (rate: number): void => {
+  try {
+    localStorage.setItem(RATE_KEY, String(Math.round(rate)));
+  } catch {
+    /* private mode: the in-memory value still serves this session */
   }
 };
 const GRAFFITI_TEXT_SHADOW =
@@ -112,7 +150,13 @@ export const VideoSubmissionScreen = ({
     done: number;
     total: number;
     current: string;
+    /** Estimated milliseconds for this file, from the measured throughput. */
+    etaMs?: number;
   } | null>(null);
+  /** Live countdown for the file being sent. */
+  const [uploadRemainingMs, setUploadRemainingMs] = useState<number | null>(null);
+  /** Rolling upload throughput, refined after every successful upload. */
+  const uploadRateRef = useRef<number>(readStoredRate());
   const [clipUrls, setClipUrls] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -140,6 +184,48 @@ export const VideoSubmissionScreen = ({
    * are not here and fall back to the signed URL.
    */
   const importedFilesRef = useRef<Record<string, File>>({});
+  /** Live countdown while transcribing. */
+  const [rhythmoRemainingMs, setRhythmoRemainingMs] = useState<number | null>(null);
+
+  // Start pulling the model as soon as this screen opens. The ~80 MB download
+  // has nothing to do with the videos, so it may as well run while the player
+  // picks and uploads them: by the time a band is asked for, the slow part is
+  // usually already done.
+  useEffect(() => {
+    warmRhythmoWorker();
+  }, []);
+
+  // Countdowns for the two stages that report no progress of their own. Both
+  // floor at zero: an estimate that runs out means the guess was short, not
+  // that the work stopped.
+  useEffect(() => {
+    const etaMs = rhythmo?.progress.phase === 'transcribing' ? rhythmo.progress.etaMs : undefined;
+    if (etaMs === undefined) {
+      setRhythmoRemainingMs(null);
+      return;
+    }
+    const deadline = Date.now() + etaMs;
+    setRhythmoRemainingMs(etaMs);
+    const timer = setInterval(() => {
+      setRhythmoRemainingMs(Math.max(0, deadline - Date.now()));
+    }, 500);
+    return () => clearInterval(timer);
+  }, [rhythmo?.progress]);
+
+  useEffect(() => {
+    if (!uploadStatus?.etaMs) {
+      setUploadRemainingMs(null);
+      return;
+    }
+    const deadline = Date.now() + uploadStatus.etaMs;
+    setUploadRemainingMs(uploadStatus.etaMs);
+    const timer = setInterval(() => {
+      setUploadRemainingMs(Math.max(0, deadline - Date.now()));
+    }, 500);
+    return () => clearInterval(timer);
+    // The whole object, not its fields: it is replaced once per file, which is
+    // exactly when the countdown must restart.
+  }, [uploadStatus]);
 
   // Abort in-flight work and free the model if the player leaves this screen.
   useEffect(() => () => {
@@ -236,7 +322,12 @@ export const VideoSubmissionScreen = ({
     if (newFiles.length === 0) return;
 
     setIsUploading(true);
-    setUploadStatus({ done: 0, total: newFiles.length, current: newFiles[0].name });
+    setUploadStatus({
+      done: 0,
+      total: newFiles.length,
+      current: newFiles[0].name,
+      etaMs: Math.round((newFiles[0].size / uploadRateRef.current) * 1000),
+    });
     try {
       // Sequential, not parallel: several large videos at once saturate the
       // uplink and make every one of them slow, with no way to show which is
@@ -245,7 +336,12 @@ export const VideoSubmissionScreen = ({
       let firstFailure: string | null = null;
 
       for (const [index, file] of newFiles.entries()) {
-        setUploadStatus({ done: index, total: newFiles.length, current: file.name });
+        setUploadStatus({
+          done: index,
+          total: newFiles.length,
+          current: file.name,
+          etaMs: Math.round((file.size / uploadRateRef.current) * 1000),
+        });
 
         const baseName = file.name.replace(/\.[^/.]+$/, '');
         const clipData = {
@@ -263,11 +359,22 @@ export const VideoSubmissionScreen = ({
           // ever. Scaled to the file size, because a big video legitimately
           // takes minutes on a slow connection.
           const budgetMs = Math.max(60_000, Math.ceil(file.size / (20 * 1024)) * 1000);
+          const startedAt = Date.now();
           const clip = await withTimeout(
             videoStorage.uploadVideo(file, clipData),
             budgetMs,
             `L'upload de « ${baseName} » n'a pas abouti. Fichier trop lourd ou connexion trop lente.`,
           );
+
+          // Feed the real throughput back so the next file's estimate is based
+          // on this connection. Smoothed rather than replaced, so one unlucky
+          // transfer does not throw the following estimates off.
+          const elapsed = (Date.now() - startedAt) / 1000;
+          if (elapsed > 0.5 && file.size > 256 * 1024) {
+            uploadRateRef.current = uploadRateRef.current * 0.4 + (file.size / elapsed) * 0.6;
+            storeRate(uploadRateRef.current);
+          }
+
           results.push({ clip, file });
         } catch (err) {
           console.error('[import] échec pour', file.name, `(${formatMb(file.size)})`, err);
@@ -726,6 +833,18 @@ export const VideoSubmissionScreen = ({
                         ? uploadStatus.current
                         : "MP4, WebM, MOV, MKV — plusieurs fichiers à la fois"}
                     </span>
+
+                    {/* The transfer reports no progress of its own, so this
+                        estimate from the measured throughput is the only sign
+                        that it is moving. */}
+                    {isUploading && uploadRemainingMs !== null && (
+                      <span className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35"
+                        style={{ fontFamily: "'Outfit', sans-serif" }}>
+                        {uploadRemainingMs > 0
+                          ? `Encore ≈ ${formatEta(uploadRemainingMs)}`
+                          : 'Presque fini…'}
+                      </span>
+                    )}
                   </div>
 
                   {/* CIRCULAR GALLERY — drag with the cursor to browse, click center to (de)select */}
@@ -784,7 +903,7 @@ export const VideoSubmissionScreen = ({
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black truncate text-[var(--ink-accent-text)]"
                             style={{ fontFamily: "'Outfit', sans-serif" }}>
-                            {rhythmoLabel(rhythmo.progress)}
+                            {rhythmoLabel(rhythmo.progress, rhythmoRemainingMs)}
                           </p>
                           <p className="text-[10px] text-white/45 truncate" style={{ fontFamily: "'Outfit', sans-serif" }}>
                             {rhythmo.clipName} · {rhythmo.index}/{rhythmo.total}
