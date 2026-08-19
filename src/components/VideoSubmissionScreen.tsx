@@ -636,43 +636,48 @@ export const VideoSubmissionScreen = ({
         selectedClips.includes(clip.id),
       );
 
-      // Both writes are bounded. The Supabase client has no timeout, so a
-      // degraded connection previously left this button on "Envoi…" for ever
-      // with no way to retry.
-      // Promise.resolve: the Supabase builder is a thenable, not a Promise.
-      const { error: linkError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("video_clips")
-            .update({ lobby_id: lobbyId, round_number: null })
-            .in(
-              "id",
-              clipsToSubmit.map((c) => c.id),
-            ),
-        ),
-        20_000,
+      // Each write is bounded AND retried once. On a paused/cold Supabase or
+      // over a VPN, the first request often just wakes the connection and
+      // times out; a second attempt then succeeds. Both writes are idempotent
+      // (an update by id, an upsert), so retrying is safe.
+      const runWrite = async <T,>(
+        build: () => PromiseLike<{ error: T | null }>,
+        message: string,
+      ) => {
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const { error } = await withTimeout(Promise.resolve(build()), 15_000, message);
+            if (error) throw error;
+            return;
+          } catch (err) {
+            lastError = err;
+            if (attempt === 0) await new Promise((r) => setTimeout(r, 800));
+          }
+        }
+        throw lastError;
+      };
+
+      await runWrite(
+        () => supabase
+          .from("video_clips")
+          .update({ lobby_id: lobbyId, round_number: null })
+          .in("id", clipsToSubmit.map((c) => c.id)),
         "L'association des clips à la partie n'a pas abouti.",
       );
 
-      if (linkError) throw linkError;
-
-      const { error } = await withTimeout(
-        Promise.resolve(
-          supabase.from("player_submissions").upsert(
-            {
-              lobby_id: lobbyId,
-              player_id: currentPlayer.id,
-              player_name: currentPlayer.name,
-              challenges_count: clipsToSubmit.length,
-            },
-            { onConflict: "lobby_id,player_id" },
-          ),
+      await runWrite(
+        () => supabase.from("player_submissions").upsert(
+          {
+            lobby_id: lobbyId,
+            player_id: currentPlayer.id,
+            player_name: currentPlayer.name,
+            challenges_count: clipsToSubmit.length,
+          },
+          { onConflict: "lobby_id,player_id" },
         ),
-        20_000,
         "L'enregistrement de ta soumission n'a pas abouti.",
       );
-
-      if (error) throw error;
 
       onSubmitChallenges(clipsToSubmit);
 
