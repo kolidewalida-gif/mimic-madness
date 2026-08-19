@@ -65,6 +65,9 @@ export const useLobbySync = (): UseLobbyResult => {
   const prevDisconnectedRef = useRef<Set<string>>(new Set());
   const onlinePresenceRef = useRef<Set<string>>(new Set());
   const hostMigrationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  /** Pending automatic re-subscribe, and how many have been tried in a row. */
+  const resubscribeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const retryAttemptsRef = useRef(0);
 
   useEffect(() => { lobbyRef.current = lobby; }, [lobby]);
   useEffect(() => { playersRef.current = players; }, [players]);
@@ -548,6 +551,13 @@ export const useLobbySync = (): UseLobbyResult => {
       setConnectionState('offline');
       return;
     }
+    // Drop any pending backoff and go now: the player asked explicitly, and
+    // waiting out a 15 s timer would look like the button did nothing.
+    if (resubscribeTimerRef.current) {
+      clearTimeout(resubscribeTimerRef.current);
+      resubscribeTimerRef.current = null;
+    }
+    retryAttemptsRef.current = 0;
     setConnectionState('reconnecting');
     setConnectionGeneration((generation) => generation + 1);
   }, []);
@@ -562,6 +572,30 @@ export const useLobbySync = (): UseLobbyResult => {
 
     let isSubscribed = true;
     const lobbyId = lobby.id;
+
+    /**
+     * Rebuild the channel after a failure, with a backoff.
+     *
+     * Bumping the generation re-runs this effect, which tears the dead channel
+     * down and subscribes a fresh one. Capped delay so a long outage keeps
+     * retrying quietly instead of hammering the server.
+     */
+    const scheduleResubscribe = () => {
+      if (!isSubscribed || resubscribeTimerRef.current) return;
+      const attempt = retryAttemptsRef.current + 1;
+      retryAttemptsRef.current = attempt;
+      const delay = Math.min(15_000, 1_000 * 2 ** (attempt - 1));
+
+      resubscribeTimerRef.current = setTimeout(() => {
+        resubscribeTimerRef.current = null;
+        if (!isSubscribed) return;
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setConnectionState('offline');
+          return;
+        }
+        setConnectionGeneration((generation) => generation + 1);
+      }, delay);
+    };
 
     const fetchPlayers = async () => {
       try {
@@ -888,6 +922,7 @@ export const useLobbySync = (): UseLobbyResult => {
         console.log('Channel status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to lobby:', lobbyId);
+          retryAttemptsRef.current = 0;
           setConnectionState('reconnecting');
           void Promise.all([beatConnected(), fetchPlayers(), fetchLobbyState()]).finally(() => {
             if (isSubscribed) setConnectionState('online');
@@ -899,6 +934,10 @@ export const useLobbySync = (): UseLobbyResult => {
           }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           setConnectionState(navigator.onLine ? 'reconnecting' : 'offline');
+          // A closed or errored channel never revives on its own, and this
+          // effect only re-runs on lobby id or connection generation. Without
+          // rescheduling, "Reconnexion…" stayed on screen for ever.
+          scheduleResubscribe();
         }
       });
 
@@ -907,6 +946,10 @@ export const useLobbySync = (): UseLobbyResult => {
     return () => {
       isSubscribed = false;
       cancelHostMigration();
+      if (resubscribeTimerRef.current) {
+        clearTimeout(resubscribeTimerRef.current);
+        resubscribeTimerRef.current = null;
+      }
       if (newChannel) {
         supabase.removeChannel(newChannel);
       }
