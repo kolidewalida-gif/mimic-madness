@@ -121,7 +121,14 @@ async function initialiseTranscriber(): Promise<LoadedTranscriber> {
           dtype: attempt.dtype,
           device: 'wasm',
           progress_callback: reportModelProgress,
-        },
+          // The crash is not the model, it is a graph-optimization pass:
+          // `TransposeDQWeightsForMatMulNBits` runs while onnxruntime-web builds
+          // the session and aborts on a missing `_scale`. Disabling graph
+          // optimization skips that pass entirely, so the session builds for any
+          // model/precision. Inference is marginally slower — acceptable for a
+          // tiny/base model, and correctness comes first.
+          session_options: { graphOptimizationLevel: 'disabled' },
+        } as Parameters<typeof transformers.pipeline>[2],
       );
       return { transcriber: loaded as unknown as Transcriber, model: attempt.model };
     } catch (error) {
