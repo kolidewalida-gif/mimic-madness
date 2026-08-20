@@ -1037,13 +1037,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "player_imitations_clip_id_fkey"
-            columns: ["clip_id"]
-            isOneToOne: false
-            referencedRelation: "video_clips"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "player_imitations_lobby_id_fkey"
             columns: ["lobby_id"]
             isOneToOne: false
@@ -1875,74 +1868,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cast_imitation_vote: {
-        Args: {
-          p_imitation_player_ids: string[]
-          p_lobby_id: string
-          p_round_number: number
-          p_vote_type: string
-          p_voter_player_id: string
-        }
-        Returns: boolean
-      }
-      ensure_voting_session: {
-        Args: { p_game_round_id: string }
-        Returns: {
-          current_imitation_index: number
-          game_round_id: string | null
-          is_playing: boolean
-          lobby_id: string
-          playback_position_ms: number
-          playback_started_at: string | null
-          round_number: number
-          server_now: string
-          session_id: string
-          updated_at: string
-          version: number
-        }[]
-      }
-      mutate_voting_session: {
-        Args: {
-          p_action: string
-          p_countdown_ms?: number
-          p_expected_index: number
-          p_expected_version: number
-          p_session_id: string
-        }
-        Returns: boolean
-      }
-      read_voting_session: {
-        Args: { p_lobby_id: string; p_round_number: number }
-        Returns: {
-          current_imitation_index: number
-          game_round_id: string | null
-          is_playing: boolean
-          lobby_id: string
-          playback_position_ms: number
-          playback_started_at: string | null
-          round_number: number
-          server_now: string
-          session_id: string
-          updated_at: string
-          version: number
-        }[]
-      }
-      set_lobby_player_connection: {
-        Args: { p_connected: boolean; p_lobby_id: string; p_player_id: string }
-        Returns: undefined
-      }
-      submit_player_imitation: {
-        Args: {
-          p_clip_id: string | null
-          p_include_original_audio: boolean
-          p_lobby_id: string
-          p_original_audio_volume: number
-          p_player_id: string
-          p_player_name: string
-          p_round_number: number
-        }
-        Returns: boolean
-      }
       admin_join_lobby: {
         Args: {
           p_display_name: string
@@ -1966,11 +1891,37 @@ export type Database = {
         }
         Returns: number
       }
+      cast_imitation_vote: {
+        Args: {
+          p_imitation_player_ids: string[]
+          p_lobby_id: string
+          p_round_number: number
+          p_vote_type: string
+          p_voter_player_id: string
+        }
+        Returns: boolean
+      }
       claim_quest_reward: {
         Args: { p_period_key: string; p_quest_id: string; p_xp_reward: number }
         Returns: number
       }
       cleanup_old_lobbies: { Args: never; Returns: undefined }
+      ensure_voting_session: {
+        Args: { p_game_round_id: string }
+        Returns: {
+          current_imitation_index: number
+          game_round_id: string
+          is_playing: boolean
+          lobby_id: string
+          playback_position_ms: number
+          playback_started_at: string
+          round_number: number
+          server_now: string
+          session_id: string
+          updated_at: string
+          version: number
+        }[]
+      }
       generate_friend_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -1986,6 +1937,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      mutate_voting_session: {
+        Args: {
+          p_action: string
+          p_countdown_ms?: number
+          p_expected_index: number
+          p_expected_version: number
+          p_session_id: string
+        }
+        Returns: boolean
+      }
       publish_social_post: {
         Args: {
           p_caption: string
@@ -1993,6 +1954,38 @@ export type Database = {
           p_clip_id: string
         }
         Returns: string
+      }
+      read_voting_session: {
+        Args: { p_lobby_id: string; p_round_number: number }
+        Returns: {
+          current_imitation_index: number
+          game_round_id: string
+          is_playing: boolean
+          lobby_id: string
+          playback_position_ms: number
+          playback_started_at: string
+          round_number: number
+          server_now: string
+          session_id: string
+          updated_at: string
+          version: number
+        }[]
+      }
+      set_lobby_player_connection: {
+        Args: { p_connected: boolean; p_lobby_id: string; p_player_id: string }
+        Returns: undefined
+      }
+      submit_player_imitation: {
+        Args: {
+          p_clip_id: string
+          p_include_original_audio: boolean
+          p_lobby_id: string
+          p_original_audio_volume: number
+          p_player_id: string
+          p_player_name: string
+          p_round_number: number
+        }
+        Returns: boolean
       }
       toggle_social_like: { Args: { p_post_id: string }; Returns: boolean }
     }
