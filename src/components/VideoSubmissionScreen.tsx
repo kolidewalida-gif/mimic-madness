@@ -34,6 +34,7 @@ import { downloadMediaBlob } from "@/lib/rhythmo/media";
 import { listRhythmoTracks } from "@/lib/rhythmo/store";
 import { RhythmoError, rhythmoErrorLabel, type RhythmoProgress } from "@/lib/rhythmo/types";
 import { RhythmoPreviewDialog } from "@/components/rhythmo/RhythmoPreviewDialog";
+import { isSchemaGapError } from "@/lib/imitationSyncClient";
 
 interface Player {
   id: string;
@@ -662,26 +663,58 @@ export const VideoSubmissionScreen = ({
         throw lastError;
       };
 
-      await runWrite(
-        () => supabase
-          .from("video_clips")
-          .update({ lobby_id: lobbyId, round_number: null })
-          .in("id", clipsToSubmit.map((c) => c.id)),
-        "L'association des clips à la partie n'a pas abouti.",
-      );
+      /**
+       * Chemin principal : une seule RPC transactionnelle.
+       *
+       * Chez certains joueurs, l'écriture directe sur les tables
+       * (`PATCH /video_clips`, `POST /player_submissions`) n'atteint jamais le
+       * serveur — la requête est bloquée dans le navigateur après un préflight
+       * pourtant valide — alors que `POST /rpc/...` passe sans problème. La RPC
+       * est donc le chemin fiable, et elle rend en plus les deux écritures
+       * atomiques et validées côté serveur.
+       */
+      const submitViaRpc = async () => {
+        await runWrite(
+          () => supabase.rpc("submit_player_challenges", {
+            p_lobby_id: lobbyId,
+            p_player_id: currentPlayer.id,
+            p_player_name: currentPlayer.name,
+            p_clip_ids: clipsToSubmit.map((c) => c.id),
+          }),
+          "L'envoi de tes défis n'a pas abouti.",
+        );
+      };
 
-      await runWrite(
-        () => supabase.from("player_submissions").upsert(
-          {
-            lobby_id: lobbyId,
-            player_id: currentPlayer.id,
-            player_name: currentPlayer.name,
-            challenges_count: clipsToSubmit.length,
-          },
-          { onConflict: "lobby_id,player_id" },
-        ),
-        "L'enregistrement de ta soumission n'a pas abouti.",
-      );
+      /** Repli si la RPC n'est pas déployée sur ce projet. */
+      const submitViaTables = async () => {
+        await runWrite(
+          () => supabase
+            .from("video_clips")
+            .update({ lobby_id: lobbyId, round_number: null })
+            .in("id", clipsToSubmit.map((c) => c.id)),
+          "L'association des clips à la partie n'a pas abouti.",
+        );
+
+        await runWrite(
+          () => supabase.from("player_submissions").upsert(
+            {
+              lobby_id: lobbyId,
+              player_id: currentPlayer.id,
+              player_name: currentPlayer.name,
+              challenges_count: clipsToSubmit.length,
+            },
+            { onConflict: "lobby_id,player_id" },
+          ),
+          "L'enregistrement de ta soumission n'a pas abouti.",
+        );
+      };
+
+      try {
+        await submitViaRpc();
+      } catch (rpcError) {
+        if (!isSchemaGapError(rpcError)) throw rpcError;
+        await submitViaTables();
+      }
 
       onSubmitChallenges(clipsToSubmit);
 

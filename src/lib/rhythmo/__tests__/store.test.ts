@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   download: vi.fn(),
   list: vi.fn(),
   getVideoClip: vi.fn(),
+  getPublicUrl: vi.fn(),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -14,6 +15,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         upload: mocks.upload,
         download: mocks.download,
         list: mocks.list,
+        getPublicUrl: mocks.getPublicUrl,
       }),
     },
   },
@@ -44,10 +46,15 @@ beforeEach(() => {
   vi.clearAllMocks();
   clearRhythmoTrackCache();
   mocks.getVideoClip.mockResolvedValue({ id: 'clip-1', storagePath: 'player-1/clip-1.mp4' });
+  // Par défaut, pas d'URL publique exploitable : les tests historiques
+  // continuent donc de valider le chemin de repli `download()`.
+  mocks.getPublicUrl.mockReturnValue({ data: { publicUrl: '' } });
+  vi.stubGlobal('fetch', vi.fn());
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe('deterministic cue path', () => {
@@ -175,6 +182,41 @@ describe('loading a rhythmo track', () => {
     const promise = loadRhythmoTrack('clip-1');
     await vi.advanceTimersByTimeAsync(20_000);
     await expect(promise).resolves.toBeNull();
+    expect(mocks.download).not.toHaveBeenCalled();
+  });
+
+  // Chez certains joueurs l'appel Storage authentifié n'atteint jamais le
+  // serveur ; le `fetch` sur l'URL publique, lui, passe. C'est donc le chemin
+  // principal et il doit éviter complètement `download()`.
+  it('lit la bande via l’URL publique sans passer par le client Storage', async () => {
+    mocks.getPublicUrl.mockReturnValue({ data: { publicUrl: 'https://cdn/clip-1.cues.json' } });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify(track),
+    }));
+
+    await expect(loadRhythmoTrack('clip-1')).resolves.toMatchObject({ clipId: 'clip-1' });
+    expect(mocks.download).not.toHaveBeenCalled();
+  });
+
+  it('se rabat sur le client Storage quand l’URL publique échoue', async () => {
+    mocks.getPublicUrl.mockReturnValue({ data: { publicUrl: 'https://cdn/clip-1.cues.json' } });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('bloqué')));
+    mocks.download.mockResolvedValue({
+      data: { text: async () => JSON.stringify(track) },
+      error: null,
+    });
+
+    await expect(loadRhythmoTrack('clip-1')).resolves.toMatchObject({ clipId: 'clip-1' });
+    expect(mocks.download).toHaveBeenCalledTimes(1);
+  });
+
+  it('conclut à l’absence de bande sur un 404 public sans retenter', async () => {
+    mocks.getPublicUrl.mockReturnValue({ data: { publicUrl: 'https://cdn/clip-1.cues.json' } });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, text: async () => '' }));
+
+    await expect(loadRhythmoTrack('clip-1')).resolves.toBeNull();
     expect(mocks.download).not.toHaveBeenCalled();
   });
 });

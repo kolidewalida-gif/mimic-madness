@@ -70,6 +70,44 @@ export const clearRhythmoTrackCache = (clipId?: string): void => {
   else trackCache.clear();
 };
 
+/**
+ * Lire le fichier de cues, en privilégiant un `fetch` sur l'URL publique.
+ *
+ * Chez certains joueurs, l'appel Storage authentifié
+ * (`GET /storage/v1/object/<bucket>/<path>`, ce que fait `download()`) n'atteint
+ * jamais le serveur : la requête est bloquée dans le navigateur. Un `fetch`
+ * direct sur l'URL publique du même objet passe, lui, sans problème — c'est le
+ * même mécanisme que la lecture des vidéos. On garde `download()` en repli pour
+ * les déploiements où le bucket n'est pas public.
+ *
+ * Renvoie le contenu texte, ou `null` si l'objet est absent/illisible.
+ */
+async function readCuesFile(path: string): Promise<string | null> {
+  try {
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    if (data?.publicUrl) {
+      const response = await withTimeout(
+        fetch(data.publicUrl, { cache: 'no-store' }),
+        DEFAULT_LOAD_TIMEOUT_MS,
+        'Le téléchargement de la bande a expiré.',
+      );
+      if (response.ok) return await response.text();
+      // 404 = pas encore de bande : inutile de retenter par l'autre chemin.
+      if (response.status === 404) return null;
+    }
+  } catch {
+    // URL publique indisponible ou requête refusée : on tente le repli.
+  }
+
+  const { data, error } = await withTimeout(
+    supabase.storage.from(BUCKET).download(path),
+    DEFAULT_LOAD_TIMEOUT_MS,
+    'Le téléchargement de la bande a expiré.',
+  );
+  if (error || !data) return null;
+  return data.text();
+}
+
 /** Read a band; a missing/malformed optional file is cached only briefly. */
 export async function loadRhythmoTrack(clipId: string): Promise<RhythmoTrack | null> {
   const cached = trackCache.get(clipId);
@@ -87,18 +125,13 @@ export async function loadRhythmoTrack(clipId: string): Promise<RhythmoTrack | n
       return null;
     }
 
-    const { data, error } = await withTimeout(
-      supabase.storage.from(BUCKET).download(cuesPathFor(clip.storagePath)),
-      DEFAULT_LOAD_TIMEOUT_MS,
-      "Le téléchargement de la bande a expiré.",
-    );
-
-    if (error || !data) {
+    const raw = await readCuesFile(cuesPathFor(clip.storagePath));
+    if (raw === null) {
       trackCache.set(clipId, { value: null, expiresAt: Date.now() + MISSING_CACHE_MS });
       return null;
     }
 
-    const parsed: unknown = JSON.parse(await data.text());
+    const parsed: unknown = JSON.parse(raw);
     const track = isTrack(parsed) ? parsed : null;
     trackCache.set(clipId, {
       value: track,

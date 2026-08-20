@@ -1975,6 +1975,15 @@ export type Database = {
         Args: { p_connected: boolean; p_lobby_id: string; p_player_id: string }
         Returns: undefined
       }
+      submit_player_challenges: {
+        Args: {
+          p_clip_ids: string[]
+          p_lobby_id: string
+          p_player_id: string
+          p_player_name: string
+        }
+        Returns: number
+      }
       submit_player_imitation: {
         Args: {
           p_clip_id: string
