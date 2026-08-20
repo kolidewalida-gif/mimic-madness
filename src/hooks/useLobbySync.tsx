@@ -51,8 +51,15 @@ interface UseLobbyResult {
 const RECONNECTION_TIMEOUT = 60000;
 const HEARTBEAT_INTERVAL = 15000; // 15s (was 3s — caused realtime spam)
 const HOST_MIGRATION_GRACE = 10000;
-/** A lobby snapshot read that exceeds this is treated as a failure and retried. */
-const SNAPSHOT_READ_TIMEOUT_MS = 12000;
+/**
+ * A lobby snapshot read that exceeds this is treated as a failure and retried.
+ *
+ * Volontairement généreux : dans l'aperçu Lovable (iframe) les requêtes vers
+ * Supabase sont bridées par le navigateur, et ces deux SELECT atteignaient bien
+ * le serveur — c'est le client qui abandonnait trop tôt, ce qui affichait
+ * « Reconnexion… » alors que la partie fonctionnait.
+ */
+const SNAPSHOT_READ_TIMEOUT_MS = 20000;
 
 export const useLobbySync = (): UseLobbyResult => {
   const [lobby, setLobby] = useState<Lobby | null>(null);

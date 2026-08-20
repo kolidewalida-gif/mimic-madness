@@ -156,12 +156,24 @@ export function CircularGallery({
               {/* media */}
               {item.videoUrl ? (
                 <video
-                  src={`${item.videoUrl}#t=0.5`}
+                  /**
+                   * Seule la carte centrale télécharge des octets.
+                   *
+                   * Charger toutes les vignettes en même temps ouvrait autant de
+                   * téléchargements vidéo concurrents que de clips. Sur des
+                   * fichiers de plusieurs dizaines de Mo, et surtout dans
+                   * l'aperçu Lovable (iframe, requêtes vers Supabase bridées et
+                   * partitionnées par le navigateur), ces transferts saturaient
+                   * les connexions disponibles : les lectures du salon
+                   * expiraient et les écritures n'obtenaient jamais de
+                   * connexion. Une seule vidéo à la fois suffit à l'aperçu.
+                   */
+                  src={isCenter ? `${item.videoUrl}#t=0.5` : undefined}
                   className="pointer-events-none absolute inset-0 w-full h-full object-cover"
                   style={{ objectPosition: item.photo.pos || "center" }}
                   muted
                   playsInline
-                  preload="metadata"
+                  preload={isCenter ? "metadata" : "none"}
                   draggable={false}
                 />
               ) : (

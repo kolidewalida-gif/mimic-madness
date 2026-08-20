@@ -101,12 +101,17 @@ export const RhythmoPreviewDialog = ({
         </div>
 
         <div className="overflow-hidden rounded-2xl" style={{ border: "1px solid var(--ink-line)" }}>
+          {/*
+            Pas d'autoplay : la lecture démarre au clic du joueur. Un
+            téléchargement lancé d'office entrait en concurrence avec les
+            requêtes de synchro du salon, qui finissaient par expirer.
+          */}
           <video
             ref={videoRef}
             src={videoUrl}
             controls
-            autoPlay
             playsInline
+            preload="metadata"
             className="w-full max-h-[52vh] bg-black"
           />
         </div>
