@@ -19,14 +19,10 @@
  * no NBits transpose to trip over.
  */
 const LOAD_ATTEMPTS = [
-  // Xenova q8 has no MatMulNBits, so it builds with FULL graph optimization —
-  // fast inference, which matters because a crippled session times out.
-  { model: 'Xenova/whisper-tiny', dtype: 'q8', disableGraphOpt: false },
-  { model: 'Xenova/whisper-base', dtype: 'q8', disableGraphOpt: false },
-  // onnx-community fp32 only as a fallback, and only THIS path disables graph
-  // optimization to dodge the TransposeDQWeightsForMatMulNBits crash.
-  { model: 'onnx-community/whisper-tiny_timestamped', dtype: 'fp32', disableGraphOpt: true },
-  { model: 'onnx-community/whisper-base_timestamped', dtype: 'fp32', disableGraphOpt: true },
+  { model: 'Xenova/whisper-tiny', dtype: 'q8' },
+  { model: 'Xenova/whisper-base', dtype: 'q8' },
+  { model: 'onnx-community/whisper-tiny_timestamped', dtype: 'fp32' },
+  { model: 'onnx-community/whisper-base_timestamped', dtype: 'fp32' },
 ] as const;
 
 export interface WarmupRequest {
@@ -118,22 +114,21 @@ async function initialiseTranscriber(): Promise<LoadedTranscriber> {
   let lastError: unknown;
   for (const attempt of LOAD_ATTEMPTS) {
     try {
-      const options: Record<string, unknown> = {
-        dtype: attempt.dtype,
-        device: 'wasm',
-        progress_callback: reportModelProgress,
-      };
-      // Only the NBits-quantized fallback needs optimization disabled to build
-      // its session. Forcing it on Xenova too crippled inference and made it
-      // time out, so the fast path keeps full optimization.
-      if (attempt.disableGraphOpt) {
-        options.session_options = { graphOptimizationLevel: 'disabled' };
-      }
-
       const loaded = await transformers.pipeline(
         'automatic-speech-recognition',
         attempt.model,
-        options as Parameters<typeof transformers.pipeline>[2],
+        {
+          dtype: attempt.dtype,
+          device: 'wasm',
+          progress_callback: reportModelProgress,
+          // The crash is not the model, it is a graph-optimization pass:
+          // `TransposeDQWeightsForMatMulNBits` runs while onnxruntime-web builds
+          // the session and aborts on a missing `_scale`. Disabling graph
+          // optimization skips that pass entirely, so the session builds for any
+          // model/precision. Inference is marginally slower — acceptable for a
+          // tiny/base model, and correctness comes first.
+          session_options: { graphOptimizationLevel: 'disabled' },
+        } as Parameters<typeof transformers.pipeline>[2],
       );
       return { transcriber: loaded as unknown as Transcriber, model: attempt.model };
     } catch (error) {
