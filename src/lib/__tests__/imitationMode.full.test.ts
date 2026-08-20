@@ -25,6 +25,7 @@ import {
   canCommitSyncToken,
   deriveConnectionState,
   equalJitterBackoff,
+  shouldReportSyncing,
   type SnapshotState,
   type TransportState,
 } from '@/lib/syncState';
@@ -599,6 +600,59 @@ describe('imitation — état de connexion et reprise', () => {
     const a = equalJitterBackoff(3, 1_000, 15_000, () => 0.1);
     const b = equalJitterBackoff(3, 1_000, 15_000, () => 0.9);
     expect(a).not.toBe(b);
+  });
+});
+
+// ── 5 bis. Le bandeau « Reconnexion » ne doit pas clignoter ────────────────
+
+describe('imitation — le bandeau de reconnexion reste cohérent', () => {
+  it('reste silencieux pendant une relecture de fond', () => {
+    // Cas du battement de cœur et des signaux realtime : le salon est déjà à
+    // l'écran et la connexion est saine, rien ne doit clignoter.
+    expect(shouldReportSyncing('synchronized', true)).toBe(false);
+  });
+
+  it('signale la synchro au premier chargement', () => {
+    expect(shouldReportSyncing('idle', false)).toBe(true);
+  });
+
+  it('signale la synchro quand aucune donnée n’est encore affichée', () => {
+    expect(shouldReportSyncing('synchronized', false)).toBe(true);
+  });
+
+  it('signale la synchro après une erreur de lecture', () => {
+    expect(shouldReportSyncing('error', true)).toBe(true);
+  });
+
+  it('signale la synchro quand une lecture est déjà en cours', () => {
+    expect(shouldReportSyncing('syncing', true)).toBe(true);
+  });
+
+  it('signale la synchro dans tous les états non synchronisés', () => {
+    const states: SnapshotState[] = ['idle', 'syncing', 'error'];
+    for (const state of states) {
+      expect(shouldReportSyncing(state, true)).toBe(true);
+    }
+  });
+
+  it('garde l’affichage « en ligne » sur une suite de relectures de fond', () => {
+    // Vingt battements de cœur d'affilée ne doivent jamais repasser en
+    // « Reconnexion… ».
+    for (let beat = 0; beat < 20; beat += 1) {
+      const reportsSyncing = shouldReportSyncing('synchronized', true);
+      const snapshot: SnapshotState = reportsSyncing ? 'syncing' : 'synchronized';
+      expect(deriveConnectionState('connected', snapshot)).toBe('online');
+    }
+  });
+
+  it('affiche bien « Reconnexion » quand la lecture échoue vraiment', () => {
+    expect(shouldReportSyncing('error', true)).toBe(true);
+    expect(deriveConnectionState('connected', 'error')).toBe('reconnecting');
+  });
+
+  it('affiche « Reconnexion » au tout premier chargement', () => {
+    expect(shouldReportSyncing('idle', false)).toBe(true);
+    expect(deriveConnectionState('connected', 'syncing')).toBe('reconnecting');
   });
 });
 

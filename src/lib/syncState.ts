@@ -18,6 +18,24 @@ export const deriveConnectionState = (
     : 'reconnecting';
 };
 
+/**
+ * Faut-il signaler une resynchronisation à l'écran ?
+ *
+ * Une relecture de fond (battement de cœur toutes les 15 s, signal realtime
+ * d'un autre joueur) repassait l'état en `syncing`, ce que
+ * `deriveConnectionState` traduit par `reconnecting` : le bandeau
+ * « Reconnexion… » clignotait donc en permanence alors que la connexion était
+ * parfaitement saine, ce qui donnait l'impression d'une instabilité inexistante.
+ *
+ * On ne l'affiche donc que quand il y a une vraie incertitude : premier
+ * chargement, ou état déjà dégradé. Un échec de lecture repasse de son côté en
+ * `error`, ce qui affiche bien « Reconnexion… ».
+ */
+export const shouldReportSyncing = (
+  currentSnapshot: SnapshotState,
+  hasSnapshotData: boolean,
+): boolean => !(currentSnapshot === 'synchronized' && hasSnapshotData);
+
 /** Reject both an old subscription generation and an older request in it. */
 export const canCommitSyncToken = (
   token: SyncToken,

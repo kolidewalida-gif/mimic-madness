@@ -7,6 +7,7 @@ import {
   canCommitSyncToken,
   deriveConnectionState,
   equalJitterBackoff,
+  shouldReportSyncing,
   type SnapshotState,
   type TransportState,
 } from '@/lib/syncState';
@@ -648,7 +649,14 @@ export const useLobbySync = (): UseLobbyResult => {
         requestEpoch === channelEpoch &&
         canCommitSyncToken(token, generation, latestSnapshotRequest);
 
-      updateSyncState('connected', 'syncing');
+      // Une relecture de fond garde l'affichage « en ligne » : sans ce garde,
+      // chaque battement de cœur et chaque signal realtime faisait clignoter
+      // « Reconnexion… » alors que rien n'était cassé.
+      if (shouldReportSyncing(snapshotStateRef.current, lobbyRef.current !== null)) {
+        updateSyncState('connected', 'syncing');
+      } else {
+        updateSyncState('connected');
+      }
       try {
         // Bound the reads. The Supabase client has no timeout, so when the
         // project is slow (waking from pause, Cloudflare edge issues in an
