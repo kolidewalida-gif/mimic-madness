@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# MCP config — contains a Supabase access token, never commit
+mcp.json
+.kiro/settings/mcp.json
