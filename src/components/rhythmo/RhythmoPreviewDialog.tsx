@@ -75,10 +75,16 @@ export const RhythmoPreviewDialog = ({
       aria-label={`Aperçu de la bande rythmo — ${clipName}`}
     >
       <div
-        className="relative w-full max-w-2xl rounded-3xl p-4 space-y-3"
+        /*
+         * Hauteur bornée et défilement interne : avec une longue transcription,
+         * le contenu dépassait du cadre et sortait de l'écran.
+         */
+        className="relative flex w-full max-w-2xl flex-col gap-3 overflow-y-auto rounded-3xl p-4"
         style={{
           background: "linear-gradient(180deg, #1a0d2e, #0f0820)",
           border: "1px solid var(--ink-line)",
+          maxHeight: "90vh",
+          overscrollBehavior: "contain",
         }}
         onClick={(event) => event.stopPropagation()}
       >

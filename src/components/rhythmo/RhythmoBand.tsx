@@ -20,6 +20,7 @@ import {
   findActiveRhythmoWord,
   getRhythmoStripOffset,
   getRhythmoTimelineTime,
+  placeRhythmoWords,
 } from '@/lib/rhythmo/timeline';
 
 interface RhythmoBandProps {
@@ -42,10 +43,21 @@ interface PlacedWord extends RhythmoWord {
   minWidth: number;
 }
 
+/**
+ * Taille de police des mots de la bande, en pixels.
+ *
+ * Doit rester alignée avec `.rb-word` dans `index.css` : elle sert à estimer la
+ * largeur d'un mot pour éviter que deux mots se recouvrent.
+ */
+const WORD_FONT_SIZE_PX = 24;
+
 const RhythmoBandComponent = ({
   track,
   videoRef,
-  pxPerSecond = 132,
+  // Plus d'espace par seconde : à 132 px/s la parole courante tassait les mots,
+  // ce qui obligeait à les décaler beaucoup pour éviter les collisions et
+  // éloignait donc le mot actif de la ligne de lecture.
+  pxPerSecond = 190,
   playheadRatio = 0.32,
   leadSeconds = 0,
   accent = 'var(--c-violet)',
@@ -61,17 +73,17 @@ const RhythmoBandComponent = ({
 
   const words = useMemo(() => flattenWords(track), [track]);
 
-  const placed = useMemo<PlacedWord[]>(
-    () =>
-      words.map((word) => ({
-        ...word,
-        left: word.start * pxPerSecond,
-        // Give each word at least the width of its own duration so the strip
-        // stays a faithful timeline even for very short words.
-        minWidth: Math.max(0, (word.end - word.start) * pxPerSecond),
-      })),
-    [words, pxPerSecond],
-  );
+  const placed = useMemo<PlacedWord[]>(() => {
+    // Le placement décale un mot juste assez pour qu'il ne recouvre pas le
+    // précédent : à plus de trois mots par seconde, la seule position
+    // temporelle faisait se chevaucher les mots et la bande devenait illisible.
+    const layout = placeRhythmoWords(words, pxPerSecond, WORD_FONT_SIZE_PX);
+    return words.map((word, index) => ({
+      ...word,
+      left: layout[index].left,
+      minWidth: layout[index].width,
+    }));
+  }, [words, pxPerSecond]);
 
   const totalWidth = useMemo(() => {
     if (placed.length === 0) return 0;
@@ -90,6 +102,9 @@ const RhythmoBandComponent = ({
 
   useEffect(() => {
     if (placed.length === 0) return;
+    // Mouvement réduit demandé : on affiche la transcription fixe plus bas, donc
+    // animer la bande en même temps serait à la fois contradictoire et inutile.
+    if (reducedMotion) return;
 
     const tick = () => {
       const video = videoRef.current;
@@ -131,7 +146,7 @@ const RhythmoBandComponent = ({
 
     frameRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [placed, videoRef, pxPerSecond, playheadRatio, leadSeconds]);
+  }, [placed, videoRef, pxPerSecond, playheadRatio, leadSeconds, reducedMotion]);
 
   if (!track || placed.length === 0) return null;
 

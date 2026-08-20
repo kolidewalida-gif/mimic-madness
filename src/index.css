@@ -3953,14 +3953,25 @@ body.ink-mode .glass-nav {
   background: linear-gradient(to left, #14121c, rgba(20, 18, 28, 0));
 }
 
-/* Shown instead of the scroll for `prefers-reduced-motion`. */
+/* Shown instead of the scroll for `prefers-reduced-motion`.
+   Bornée en hauteur : une transcription complète peut faire des centaines de
+   mots et débordait du cadre au lieu de défiler. */
 .rb-static {
   margin-top: 8px;
+  max-height: 8.5rem;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ink-line, rgba(255, 255, 255, 0.1));
   font-family: var(--font-display, 'Baloo 2', system-ui, sans-serif);
   font-weight: 700;
   font-size: 0.95rem;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.82);
+  /* Le défilement de la transcription ne doit pas emporter la page entière. */
+  overscroll-behavior: contain;
 }
 
 @media (max-width: 640px) {
