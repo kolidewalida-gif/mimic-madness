@@ -19,15 +19,89 @@ export const getRhythmoTimelineTime = (
   return safeCurrentTime + sanitizeRhythmoLeadSeconds(leadSeconds);
 };
 
-export const getRhythmoStripOffset = (
-  playhead: number,
-  timelineTime: number,
+/** Un mot déjà placé, vu comme point d'ancrage temps ↔ position. */
+export interface RhythmoScrollAnchor {
+  start: number;
+  end: number;
+  left: number;
+  width: number;
+}
+
+/**
+ * Position, en pixels de bande, qui doit se trouver sous la tête de lecture à
+ * un instant donné.
+ *
+ * Cette conversion ne peut pas être un simple `temps × pxPerSecond`. Le
+ * placement repousse les mots vers la droite pour qu'ils ne se chevauchent pas,
+ * et ce report s'accumule : à quatre mots par seconde, un mot réclame environ
+ * 111 px alors que le temps n'en fournit que 47, soit plus de 60 px de retard
+ * par mot. Au bout de quelques secondes de parole dense, le mot sous la tête de
+ * lecture n'était plus celui prononcé — la bande semblait décalée.
+ *
+ * On interpole donc sur les positions réellement attribuées aux mots. Le mot
+ * prononcé arrive exactement sur la tête de lecture, quel que soit le report
+ * accumulé. La vitesse de défilement devient variable : c'est le compromis
+ * assumé, la justesse sur la tête de lecture étant tout l'intérêt d'une bande
+ * rythmo.
+ *
+ * Suppose `anchors` trié par `start`, ce que garantit `flattenWords`.
+ */
+export const getRhythmoScrollX = (
+  anchors: readonly RhythmoScrollAnchor[],
+  time: number,
   pxPerSecond: number,
 ): number => {
+  const safeSpeed = Number.isFinite(pxPerSecond) ? Math.max(1, pxPerSecond) : 1;
+  const safeTime = Number.isFinite(time) ? Math.max(0, time) : 0;
+  if (anchors.length === 0) return safeTime * safeSpeed;
+
+  const first = anchors[0];
+  // Avant le premier mot, vitesse constante : on arrive pile sur sa position.
+  if (safeTime <= first.start) {
+    return first.left - (first.start - safeTime) * safeSpeed;
+  }
+
+  // Dernier mot dont la prononciation a commencé.
+  let low = 0;
+  let high = anchors.length - 1;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (anchors[mid].start <= safeTime) low = mid;
+    else high = mid - 1;
+  }
+
+  const current = anchors[low];
+  const currentRight = current.left + current.width;
+
+  // Pendant le mot : il traverse la tête de lecture au fil de sa prononciation.
+  if (safeTime <= current.end) {
+    const span = current.end - current.start;
+    if (span <= 0) return current.left;
+    return current.left + ((safeTime - current.start) / span) * current.width;
+  }
+
+  const next = anchors[low + 1];
+  // Après le dernier mot, plus rien à caler : vitesse constante.
+  if (!next) return currentRight + (safeTime - current.end) * safeSpeed;
+
+  /*
+   * Silence entre deux mots : tout le trajet restant est réparti sur la pause.
+   * C'est là que le report accumulé par l'anti-chevauchement est absorbé, sans
+   * jamais désaligner le mot suivant.
+   */
+  const span = next.start - current.end;
+  if (span <= 0) return next.left;
+  const travel = Math.max(0, next.left - currentRight);
+  return currentRight + ((safeTime - current.end) / span) * travel;
+};
+
+/**
+ * Décalage à appliquer à la bande pour amener `scrollX` sous la tête de lecture.
+ */
+export const getRhythmoStripOffset = (playhead: number, scrollX: number): number => {
   const safePlayhead = Number.isFinite(playhead) ? playhead : 0;
-  const safeTime = Number.isFinite(timelineTime) ? Math.max(0, timelineTime) : 0;
-  const safeSpeed = Number.isFinite(pxPerSecond) ? Math.max(0, pxPerSecond) : 0;
-  return safePlayhead - safeTime * safeSpeed;
+  const safeScrollX = Number.isFinite(scrollX) ? scrollX : 0;
+  return safePlayhead - safeScrollX;
 };
 
 /**

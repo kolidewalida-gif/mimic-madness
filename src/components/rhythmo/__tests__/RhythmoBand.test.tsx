@@ -23,6 +23,30 @@ const track: RhythmoTrack = {
   }],
 };
 
+/**
+ * Débit soutenu avec des mots longs : l'anti-chevauchement doit repousser
+ * chaque mot bien au-delà de sa position temporelle. C'est la seule forme de
+ * piste qui met en évidence le décalage cumulé.
+ */
+const denseTrack: RhythmoTrack = {
+  version: 1,
+  clipId: 'clip-2',
+  model: 'test-model',
+  duration: 2,
+  createdAt: '2026-08-18T20:00:00.000Z',
+  cues: [{
+    start: 0.5,
+    end: 1.05,
+    text: 'premier deuxieme troisieme quatrieme',
+    words: [
+      { text: 'premier', start: 0.5, end: 0.6 },
+      { text: 'deuxieme', start: 0.65, end: 0.75 },
+      { text: 'troisieme', start: 0.8, end: 0.9 },
+      { text: 'quatrieme', start: 0.95, end: 1.05 },
+    ],
+  }],
+};
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -59,64 +83,127 @@ const stubAnimationFrames = () => {
   };
 };
 
+/** Décalage horizontal appliqué à la bande, lu sur le nœud. */
+const stripX = (strip: HTMLElement): number => {
+  const match = /translate3d\((-?[\d.]+)px/.exec(strip.style.transform);
+  expect(match).not.toBeNull();
+  return Number.parseFloat(match![1]);
+};
+
+const styleNumber = (node: Element, property: 'left' | 'minWidth'): number =>
+  Number.parseFloat((node as HTMLElement).style[property]);
+
+/** Abscisse à l'écran du bord gauche d'un mot, tête de lecture à l'origine. */
+const wordEdgeVsPlayhead = (
+  strip: HTMLElement,
+  node: Element,
+  playhead: number,
+): number => stripX(strip) + styleNumber(node, 'left') - playhead;
+
+/** Monte la bande avec une largeur de viewport connue. */
+const mountBand = (options: {
+  currentTime: number;
+  playheadRatio?: number;
+  leadSeconds?: number;
+  track?: RhythmoTrack;
+}) => {
+  const rafHarness = stubAnimationFrames();
+  const video = document.createElement('video');
+  Object.defineProperty(video, 'currentTime', {
+    value: options.currentTime,
+    writable: true,
+  });
+  const videoRef = { current: video } as RefObject<HTMLVideoElement>;
+  const view = render(
+    <RhythmoBand
+      track={options.track ?? track}
+      videoRef={videoRef}
+      pxPerSecond={100}
+      playheadRatio={options.playheadRatio ?? 0.2}
+      leadSeconds={options.leadSeconds ?? 0}
+    />,
+  );
+
+  const viewport = view.container.querySelector('.rb-viewport') as HTMLDivElement;
+  Object.defineProperty(viewport, 'clientWidth', { value: 500 });
+
+  return {
+    ...rafHarness,
+    video,
+    view,
+    strip: view.container.querySelector('.rb-strip') as HTMLDivElement,
+    wordNodes: Array.from(view.container.querySelectorAll('.rb-word')),
+    playhead: 500 * (options.playheadRatio ?? 0.2),
+  };
+};
+
 describe('RhythmoBand temporal renderer', () => {
+  it('place le mot prononcé exactement sur la tête de lecture', () => {
+    /*
+     * Régression vécue : la position venait de `temps × pxPerSecond`, alors que
+     * l'anti-chevauchement repousse les mots vers la droite. L'écart
+     * s'accumulait et le mot sous la tête de lecture n'était plus celui
+     * prononcé — plusieurs secondes de retard sur une vidéo bavarde.
+     */
+    const band = mountBand({ currentTime: 0.5, track: denseTrack });
+
+    band.runNextFrame();
+    expect(wordEdgeVsPlayhead(band.strip, band.wordNodes[0], band.playhead)).toBeCloseTo(0);
+
+    /*
+     * Le quatrième mot est repoussé très loin de sa position temporelle : à
+     * 0,95 s le temps pur ne donne que 95 px, alors que sa place réelle est
+     * au-delà de 420 px. Il doit malgré tout arriver pile sur la tête de
+     * lecture à l'instant où il est prononcé.
+     */
+    const pushed = styleNumber(band.wordNodes[3], 'left');
+    expect(pushed).toBeGreaterThan(0.95 * 100 * 3);
+
+    for (const [index, word] of denseTrack.cues[0].words.entries()) {
+      band.video.currentTime = word.start;
+      band.runNextFrame();
+      expect(wordEdgeVsPlayhead(band.strip, band.wordNodes[index], band.playhead))
+        .toBeCloseTo(0);
+    }
+  });
+
+  it('fait traverser le mot pendant sa prononciation', () => {
+    const band = mountBand({ currentTime: 1.8 });
+
+    band.runNextFrame();
+    const atStart = wordEdgeVsPlayhead(band.strip, band.wordNodes[1], band.playhead);
+
+    // À la fin du mot, il a exactement traversé sa propre largeur.
+    band.video.currentTime = 2.2;
+    band.runNextFrame();
+    const atEnd = wordEdgeVsPlayhead(band.strip, band.wordNodes[1], band.playhead);
+
+    expect(atStart).toBeCloseTo(0);
+    expect(atEnd).toBeCloseTo(-styleNumber(band.wordNodes[1], 'minWidth'));
+  });
+
   it('uses the lead for movement, highlighting and past words, then cancels RAF', () => {
-    let nextFrameId = 0;
-    const frames = new Map<number, FrameRequestCallback>();
-    const requestAnimationFrameMock = vi.fn((callback: FrameRequestCallback) => {
-      nextFrameId += 1;
-      frames.set(nextFrameId, callback);
-      return nextFrameId;
-    });
-    const cancelAnimationFrameMock = vi.fn((frameId: number) => {
-      frames.delete(frameId);
-    });
-    vi.stubGlobal('requestAnimationFrame', requestAnimationFrameMock);
-    vi.stubGlobal('cancelAnimationFrame', cancelAnimationFrameMock);
+    const band = mountBand({ currentTime: 1.5, leadSeconds: 0.5 });
 
-    const video = document.createElement('video');
-    Object.defineProperty(video, 'currentTime', { value: 1.5, writable: true });
-    const videoRef = { current: video } as RefObject<HTMLVideoElement>;
-    const view = render(
-      <RhythmoBand
-        track={track}
-        videoRef={videoRef}
-        pxPerSecond={100}
-        playheadRatio={0.2}
-        leadSeconds={0.5}
-      />,
-    );
-
-    const viewport = view.container.querySelector('.rb-viewport') as HTMLDivElement;
-    const strip = view.container.querySelector('.rb-strip') as HTMLDivElement;
-    const wordNodes = Array.from(view.container.querySelectorAll('.rb-word'));
-    Object.defineProperty(viewport, 'clientWidth', { value: 500 });
-
-    const runNextFrame = () => {
-      const entry = frames.entries().next().value as [number, FrameRequestCallback] | undefined;
-      expect(entry).toBeDefined();
-      if (!entry) return;
-      frames.delete(entry[0]);
-      act(() => entry[1](0));
-    };
-
-    runNextFrame();
-    expect(strip.style.transform).toBe('translate3d(-100px,0,0)');
-    expect(wordNodes[0].classList.contains('is-past')).toBe(true);
-    expect(wordNodes[1].classList.contains('is-live')).toBe(true);
+    // Temps de bande = 2,0 s : « second » (1,8–2,2) est en cours.
+    band.runNextFrame();
+    expect(band.wordNodes[0].classList.contains('is-past')).toBe(true);
+    expect(band.wordNodes[1].classList.contains('is-live')).toBe(true);
+    const crossing = wordEdgeVsPlayhead(band.strip, band.wordNodes[1], band.playhead);
+    expect(crossing).toBeLessThan(0);
+    expect(crossing).toBeGreaterThan(-styleNumber(band.wordNodes[1], 'minWidth'));
 
     // A backwards seek must move the live marker back as well as the strip.
-    video.currentTime = 0.4;
-    runNextFrame();
-    expect(strip.style.transform).toBe('translate3d(10px,0,0)');
-    expect(wordNodes[0].classList.contains('is-past')).toBe(false);
-    expect(wordNodes[0].classList.contains('is-live')).toBe(true);
-    expect(wordNodes[1].classList.contains('is-live')).toBe(false);
+    band.video.currentTime = 0.4;
+    band.runNextFrame();
+    expect(band.wordNodes[0].classList.contains('is-past')).toBe(false);
+    expect(band.wordNodes[0].classList.contains('is-live')).toBe(true);
+    expect(band.wordNodes[1].classList.contains('is-live')).toBe(false);
 
-    const pendingFrameId = nextFrameId;
-    view.unmount();
-    expect(cancelAnimationFrameMock).toHaveBeenCalledWith(pendingFrameId);
-    expect(frames.has(pendingFrameId)).toBe(false);
+    const pendingFrameId = band.lastFrameId();
+    band.view.unmount();
+    expect(band.cancelAnimationFrameMock).toHaveBeenCalledWith(pendingFrameId);
+    expect(band.frames.has(pendingFrameId)).toBe(false);
   });
 
   it('continue de défiler quand le mouvement réduit est demandé', () => {
@@ -134,67 +221,42 @@ describe('RhythmoBand temporal renderer', () => {
         removeEventListener: vi.fn(),
       }),
     );
-    const rafHarness = stubAnimationFrames();
+    const band = mountBand({ currentTime: 0.5 });
 
-    const video = document.createElement('video');
-    Object.defineProperty(video, 'currentTime', { value: 1.5, writable: true });
-    const videoRef = { current: video } as RefObject<HTMLVideoElement>;
-    const view = render(
-      <RhythmoBand
-        track={track}
-        videoRef={videoRef}
-        pxPerSecond={100}
-        playheadRatio={0.2}
-        leadSeconds={0.5}
-      />,
-    );
+    band.runNextFrame();
+    const before = stripX(band.strip);
 
-    const viewport = view.container.querySelector('.rb-viewport') as HTMLDivElement;
-    const strip = view.container.querySelector('.rb-strip') as HTMLDivElement;
-    Object.defineProperty(viewport, 'clientWidth', { value: 500 });
-
-    rafHarness.runNextFrame();
-    expect(strip.style.transform).toBe('translate3d(-100px,0,0)');
-
-    // Le temps avance : la bande doit suivre, pas rester au point de départ.
-    video.currentTime = 2;
-    rafHarness.runNextFrame();
-    expect(strip.style.transform).toBe('translate3d(-150px,0,0)');
+    band.video.currentTime = 2;
+    band.runNextFrame();
+    expect(stripX(band.strip)).toBeLessThan(before);
 
     // La transcription fixe reste offerte, en complément et non en remplacement.
-    expect(view.container.querySelector('.rb-static')).not.toBeNull();
+    expect(band.view.container.querySelector('.rb-static')).not.toBeNull();
   });
 
   it('suit le temps sans reparcourir tous les mots à chaque image', () => {
-    const rafHarness = stubAnimationFrames();
+    const band = mountBand({ currentTime: 0 });
 
-    const video = document.createElement('video');
-    Object.defineProperty(video, 'currentTime', { value: 0, writable: true });
-    const videoRef = { current: video } as RefObject<HTMLVideoElement>;
-    const view = render(
-      <RhythmoBand track={track} videoRef={videoRef} pxPerSecond={100} playheadRatio={0} />,
-    );
-
-    const viewport = view.container.querySelector('.rb-viewport') as HTMLDivElement;
-    const wordNodes = Array.from(view.container.querySelectorAll('.rb-word'));
-    Object.defineProperty(viewport, 'clientWidth', { value: 500 });
-
-    rafHarness.runNextFrame();
-    expect(wordNodes.map((node) => node.classList.contains('is-past'))).toEqual([false, false]);
+    band.runNextFrame();
+    expect(band.wordNodes.map((node) => node.classList.contains('is-past')))
+      .toEqual([false, false]);
 
     // Après le premier mot, seul celui-là est estompé.
-    video.currentTime = 1.5;
-    rafHarness.runNextFrame();
-    expect(wordNodes.map((node) => node.classList.contains('is-past'))).toEqual([true, false]);
+    band.video.currentTime = 1.5;
+    band.runNextFrame();
+    expect(band.wordNodes.map((node) => node.classList.contains('is-past')))
+      .toEqual([true, false]);
 
     // Après le dernier, les deux le sont.
-    video.currentTime = 2.5;
-    rafHarness.runNextFrame();
-    expect(wordNodes.map((node) => node.classList.contains('is-past'))).toEqual([true, true]);
+    band.video.currentTime = 2.5;
+    band.runNextFrame();
+    expect(band.wordNodes.map((node) => node.classList.contains('is-past')))
+      .toEqual([true, true]);
 
     // Retour en arrière : la frontière doit redescendre, pas rester bloquée.
-    video.currentTime = 0.8;
-    rafHarness.runNextFrame();
-    expect(wordNodes.map((node) => node.classList.contains('is-past'))).toEqual([false, false]);
+    band.video.currentTime = 0.8;
+    band.runNextFrame();
+    expect(band.wordNodes.map((node) => node.classList.contains('is-past')))
+      .toEqual([false, false]);
   });
 });

@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { flattenWords, type RhythmoTrack, type RhythmoWord } from '@/lib/rhythmo/types';
 import {
   findActiveRhythmoWord,
+  getRhythmoScrollX,
   getRhythmoStripOffset,
   getRhythmoTimelineTime,
   placeRhythmoWords,
@@ -37,10 +38,16 @@ interface RhythmoBandProps {
   className?: string;
 }
 
-/** Layout of one word on the strip, precomputed once per track. */
+/**
+ * Layout of one word on the strip, precomputed once per track.
+ *
+ * Sert aussi de point d'ancrage à la conversion temps ↔ position : la bande est
+ * positionnée d'après les places réellement attribuées, pas d'après le temps
+ * brut.
+ */
 interface PlacedWord extends RhythmoWord {
   left: number;
-  minWidth: number;
+  width: number;
 }
 
 /**
@@ -83,14 +90,14 @@ const RhythmoBandComponent = ({
     return words.map((word, index) => ({
       ...word,
       left: layout[index].left,
-      minWidth: layout[index].width,
+      width: layout[index].width,
     }));
   }, [words, pxPerSecond]);
 
   const totalWidth = useMemo(() => {
     if (placed.length === 0) return 0;
     const last = placed[placed.length - 1];
-    return last.left + Math.max(last.minWidth, 120) + 240;
+    return last.left + Math.max(last.width, 120) + 240;
   }, [placed]);
 
   useEffect(() => {
@@ -134,7 +141,12 @@ const RhythmoBandComponent = ({
         // Written directly to the node: this runs every frame and must not
         // trigger a React render. Position, highlighting and past state all
         // use the exact same media-derived clock.
-        const stripOffset = getRhythmoStripOffset(playhead, timelineTime, pxPerSecond);
+        //
+        // La position vient des places réellement attribuées aux mots, pas de
+        // `temps × pxPerSecond` : c'est ce qui garantit que le mot prononcé est
+        // bien celui qui se trouve sur la tête de lecture.
+        const scrollX = getRhythmoScrollX(placed, timelineTime, pxPerSecond);
+        const stripOffset = getRhythmoStripOffset(playhead, scrollX);
         strip.style.transform = `translate3d(${stripOffset}px,0,0)`;
 
         const next = findActiveRhythmoWord(placed, timelineTime, activeRef.current);
@@ -200,7 +212,7 @@ const RhythmoBandComponent = ({
                 wordNodesRef.current[index] = node;
               }}
               className="rb-word"
-              style={{ left: word.left, minWidth: word.minWidth }}
+              style={{ left: word.left, minWidth: word.width }}
             >
               {word.text}
               <span className="rb-word-span" />
