@@ -81,9 +81,18 @@ export const ChallengePreviewPhase = ({
     };
   }, [lobbyId, roundNumber]);
 
+  // Fire onAllReady once per round, based on set inclusion over the connected
+  // players — never a raw count, which a stale is_ready row from a departed
+  // player would keep from ever matching.
+  const allReadyNotifiedRef = useRef(false);
+  useEffect(() => { allReadyNotifiedRef.current = false; }, [roundNumber]);
   useEffect(() => {
-    if (currentPlayer.isHost && readyPlayers.length === players.length && readyPlayers.length > 0) onAllReady();
-  }, [readyPlayers.length, players.length, onAllReady, currentPlayer.isHost]);
+    if (!currentPlayer.isHost || players.length === 0 || allReadyNotifiedRef.current) return;
+    if (players.every((player) => readyPlayers.includes(player.id))) {
+      allReadyNotifiedRef.current = true;
+      onAllReady();
+    }
+  }, [readyPlayers, players, onAllReady, currentPlayer.isHost]);
 
   const handleReady = async () => {
     if (isReady) return;

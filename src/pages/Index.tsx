@@ -520,21 +520,26 @@ const Index = () => {
           .from('lobbies')
           .update({ game_phase: 'playing' })
           .eq('id', lobby.id);
-        
-        if (error) {
-          console.error('[Index] Error updating game phase:', error);
-        } else {
-          console.log('[Index] Game phase updated to playing successfully');
-          // Host transitions immediately
-          setGameState('playing');
-        }
+
+        if (error) throw error;
+        console.log('[Index] Game phase updated to playing successfully');
+        // Host transitions immediately; guests follow via the lobby snapshot.
+        setGameState('playing');
       } catch (error) {
+        // Previously silent: the host stayed on the preparation screen with no
+        // explanation when this write failed. Surface it so they can retry.
         console.error('[Index] Error updating game phase:', error);
+        playSoundEffect('error', 0.4);
+        toast({
+          title: 'Lancement impossible',
+          description: "La partie n'a pas pu démarrer. Vérifie ta connexion puis réessaie.",
+          variant: 'destructive',
+        });
       }
     } else {
       console.warn('[Index] handleStartActualGame: conditions not met', { lobby: !!lobby, isHost: currentPlayer?.isHost });
     }
-  }, [lobby, currentPlayer?.isHost]);
+  }, [lobby, currentPlayer?.isHost, toast]);
 
   const handleBackToLobby = useCallback(() => {
     playSoundEffect('whoosh', 0.3);

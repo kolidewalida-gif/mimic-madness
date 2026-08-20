@@ -350,10 +350,14 @@ export const VotingPhase = ({
       const requestEpoch = channelEpoch;
       const imitationsData: ImitationWithClip[] = [];
       
-      // Get the imitation records for this round to find the correct clips
+      // select('*'), never a named clip_id: if the harden migration is not
+      // applied, naming the missing column fails the whole query, the error is
+      // swallowed, and every player is stuck on "Chargement des imitations…".
+      // '*' returns whatever columns exist; a missing clip_id simply resolves
+      // to undefined and we fall back to getClipByPlayerAndRound below.
       const { data: imitationRecords, error: imitationError } = await supabase
         .from('player_imitations')
-        .select('player_id, player_name, clip_id, include_original_audio, original_audio_volume')
+        .select('*')
         .eq('lobby_id', lobbyId)
         .eq('round_number', roundNumber)
         .eq('is_ready', true);

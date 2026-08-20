@@ -285,11 +285,14 @@ export const ImitationPhase = ({
   }, [roundNumber]);
 
   useEffect(() => {
+    // Set inclusion, not length equality: a disconnected player is filtered out
+    // of `players` but may keep an is_ready row, so counts never match and the
+    // host can never advance. Only the currently connected players must be ready.
     const allPlayersReady =
       isReadySynchronized &&
       currentPlayer.isHost &&
-      readyPlayers.length === players.length &&
-      readyPlayers.length > 0;
+      players.length > 0 &&
+      players.every((player) => readyPlayers.includes(player.id));
 
     if (!allPlayersReady || allReadyNotifiedRoundRef.current === roundNumber) {
       return;
@@ -315,8 +318,8 @@ export const ImitationPhase = ({
     currentPlayer.isHost,
     isReadySynchronized,
     onAllReady,
-    players.length,
-    readyPlayers.length,
+    players,
+    readyPlayers,
     roundNumber,
   ]);
 

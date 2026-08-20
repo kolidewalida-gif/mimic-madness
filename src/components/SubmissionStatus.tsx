@@ -63,21 +63,22 @@ export const SubmissionStatus = ({
 
     loadSubmissionsData();
 
+    // Watch BOTH tables. A player becomes "playable" when their clips are
+    // tagged to the lobby (video_clips), which can change without a matching
+    // player_submissions event; listening only to submissions left everyone
+    // else with a stale "Aucun clip jouable détecté".
+    const refresh = () => { if (isMounted) loadSubmissionsData(); };
     const channel = supabase
       .channel(`submissions:${lobbyId}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "player_submissions",
-          filter: `lobby_id=eq.${lobbyId}`
-        },
-        () => {
-          if (isMounted) {
-            loadSubmissionsData();
-          }
-        }
+        { event: "*", schema: "public", table: "player_submissions", filter: `lobby_id=eq.${lobbyId}` },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "video_clips", filter: `lobby_id=eq.${lobbyId}` },
+        refresh,
       )
       .subscribe();
 
@@ -209,7 +210,7 @@ export const SubmissionStatus = ({
         {!allPlayersSubmitted && (
           <div className="text-center py-2">
             <p className="text-sm text-foreground-secondary">
-              {submissions.length}/{players.length} joueur(s) pret(s)
+              {players.filter((player) => hasSubmission(player.id)).length}/{players.length} joueur(s) pret(s)
             </p>
           </div>
         )}
