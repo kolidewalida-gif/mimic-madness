@@ -29,6 +29,11 @@ import {
   mutateVotingSession,
   readVotingSession,
 } from "@/lib/imitationSyncClient";
+import {
+  hasPlayableAudio,
+  resolveVoteAvailability,
+  type VotableImitation,
+} from "@/lib/imitationVoting";
 interface Player {
   id: string;
   name: string;
@@ -547,6 +552,39 @@ export const VotingPhase = ({
     setHasVotedCurrent(!!current?.userVote);
   }, [currentIndex, imitations, teamImitations, gameMode]);
 
+  const currentImitation = imitations[currentIndex];
+  const currentTeamImitation = gameMode === '2v2' ? teamImitations[currentIndex] : null;
+
+  /**
+   * Vue commune aux deux modes de jeu, pour ne décider qu'une fois.
+   *
+   * Déclarée avant `handleVote` à dessein : la garde du clic et la condition
+   * d'affichage des boutons doivent lire exactement la même valeur. C'est leur
+   * séparation qui rendait le vote impossible sans aucun message.
+   */
+  const votableCurrent: VotableImitation | null = gameMode === '2v2'
+    ? currentTeamImitation
+      ? {
+          playerIds: currentTeamImitation.players.map((player) => player.id),
+          clipIds: currentTeamImitation.clipIds,
+          userVote: currentTeamImitation.userVote ?? null,
+        }
+      : null
+    : currentImitation
+      ? {
+          playerIds: [currentImitation.playerId],
+          clipIds: [currentImitation.clipId],
+          userVote: currentImitation.userVote ?? null,
+        }
+      : null;
+
+  const voteAvailability = resolveVoteAvailability(
+    votableCurrent,
+    currentPlayer.id,
+    isSessionSynchronized,
+  );
+  const currentHasAudio = hasPlayableAudio(votableCurrent);
+
   const handleVote = async (voteType: 'like' | 'dislike', evt?: React.MouseEvent) => {
     if (
       votePendingRef.current ||
@@ -555,22 +593,15 @@ export const VotingPhase = ({
       !votingSessionId
     ) return;
 
-    let targetIds: string[];
-    if (gameMode === '2v2') {
-      const currentTeam = teamImitations[currentIndex];
-      if (!currentTeam || currentTeam.players.some((player) => player.id === currentPlayer.id)) return;
-      targetIds = currentTeam.players
-        .filter((_, index) => currentTeam.clipIds[index] !== null)
-        .map((player) => player.id);
-    } else {
-      const currentImitation = imitations[currentIndex];
-      if (
-        !currentImitation?.clipId ||
-        currentImitation.playerId === currentPlayer.id
-      ) return;
-      targetIds = [currentImitation.playerId];
-    }
-    if (targetIds.length === 0) return;
+    // Même décision que celle qui gouverne l'affichage des boutons : c'est leur
+    // divergence qui rendait le clic inopérant et muet.
+    const availability = resolveVoteAvailability(
+      votableCurrent,
+      currentPlayer.id,
+      isSessionSynchronized,
+    );
+    if (availability.kind !== 'votable') return;
+    const targetIds = availability.targetIds;
 
     const origin = centerOf(evt?.currentTarget ?? null);
     const targetElement = evt?.currentTarget as HTMLElement | undefined;
@@ -694,8 +725,6 @@ export const VotingPhase = ({
     await mutateSession('advance');
   };
 
-  const currentImitation = imitations[currentIndex];
-  const currentTeamImitation = gameMode === '2v2' ? teamImitations[currentIndex] : null;
   const displayLength = gameMode === '2v2' ? teamImitations.length : imitations.length;
 
   // Nothing renders until the durable session snapshot is certified.
@@ -730,10 +759,8 @@ export const VotingPhase = ({
     );
   }
 
-  // Determine if it's own video/team
-  const isOwnVideo = gameMode === '2v2' 
-    ? currentTeamImitation?.players.some(p => p.id === currentPlayer.id) ?? false
-    : currentImitation?.playerId === currentPlayer.id;
+  // Determine if it's own video/team — dérivé de la même vue que le vote.
+  const isOwnVideo = voteAvailability.kind === 'own';
 
   return (
     <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
@@ -845,8 +872,12 @@ export const VotingPhase = ({
             {/* Host play control */}
             {currentPlayer.isHost && (
               <div className="flex justify-center">
+                {/* Sans clip, aucun lecteur n'est monté : lancer la lecture
+                    laisserait la session en `is_playing` sans jamais se
+                    terminer, puisque rien ne signale la fin du média. */}
                 <motion.button onClick={handleTogglePlay}
-                  disabled={!votingSessionId || !isSessionSynchronized || pendingPlay || showCountdown}
+                  disabled={!votingSessionId || !isSessionSynchronized || pendingPlay
+                    || showCountdown || !currentHasAudio}
                   whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
                   className="flex items-center gap-2 px-5 py-3 rounded-2xl disabled:opacity-50"
                   style={{ background: isPlayingSynced ? "linear-gradient(180deg, #6b7280, #4b5563)" : "var(--ink-accent)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
@@ -868,7 +899,19 @@ export const VotingPhase = ({
 
             {/* Vote buttons */}
             <div className="flex flex-col gap-3 items-center">
-              {!isOwnVideo && !hasVotedCurrent && (
+              {/* Rien à juger : on le dit, au lieu d'afficher deux boutons
+                  vivants dont le clic ne produit aucun effet. */}
+              {voteAvailability.kind === 'no-audio' && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-2xl"
+                  style={{ background: "rgba(251,191,36,0.12)", border: '1px solid var(--ink-line)' }}>
+                  <span className="text-sm font-black text-amber-300" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                    Aucun audio à juger —{' '}
+                    {currentPlayer.isHost ? 'passe à la suivante' : "en attente de l'hôte"}
+                  </span>
+                </div>
+              )}
+
+              {voteAvailability.kind === 'votable' && (
                 <div className="flex gap-4 w-full max-w-sm">
                   <motion.button onClick={(e) => handleVote('dislike', e)}
                     disabled={!votingSessionId || !isSessionSynchronized || isVotePending}
