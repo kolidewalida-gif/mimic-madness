@@ -13,6 +13,40 @@ const BUCKET = 'video-challenges';
 const CUES_SUFFIX = '.cues.json';
 const MISSING_CACHE_MS = 10_000;
 const DEFAULT_SAVE_TIMEOUT_MS = 30_000;
+/**
+ * Reads must be bounded too.
+ *
+ * Neither the Supabase query nor the Storage download has a timeout of its
+ * own. A project waking from a pause, or a degraded realtime/API connection,
+ * makes them hang for ever — which froze the preview on an endless spinner and
+ * could stall the imitation phase, since it loads the band the same way.
+ */
+const DEFAULT_LOAD_TIMEOUT_MS = 15_000;
+
+/** Reject a hanging Storage/DB call instead of awaiting it for ever. */
+function withTimeout<T>(
+  operation: PromiseLike<T>,
+  ms: number,
+  message: string,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      callback();
+    };
+    const timer = setTimeout(
+      () => finish(() => reject(new RhythmoError('storage', message))),
+      ms,
+    );
+    operation.then(
+      (value) => finish(() => resolve(value)),
+      (error: unknown) => finish(() => reject(error)),
+    );
+  });
+}
 
 /** `abc/clip-1.mp4` -> `abc/clip-1.cues.json` */
 export const cuesPathFor = (storagePath: string): string =>
@@ -43,15 +77,21 @@ export async function loadRhythmoTrack(clipId: string): Promise<RhythmoTrack | n
   if (cached) trackCache.delete(clipId);
 
   try {
-    const clip = await videoStorage.getVideoClip(clipId);
+    const clip = await withTimeout(
+      Promise.resolve(videoStorage.getVideoClip(clipId)),
+      DEFAULT_LOAD_TIMEOUT_MS,
+      "La recherche du clip a expiré.",
+    );
     if (!clip?.storagePath) {
       trackCache.set(clipId, { value: null, expiresAt: Date.now() + MISSING_CACHE_MS });
       return null;
     }
 
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
-      .download(cuesPathFor(clip.storagePath));
+    const { data, error } = await withTimeout(
+      supabase.storage.from(BUCKET).download(cuesPathFor(clip.storagePath)),
+      DEFAULT_LOAD_TIMEOUT_MS,
+      "Le téléchargement de la bande a expiré.",
+    );
 
     if (error || !data) {
       trackCache.set(clipId, { value: null, expiresAt: Date.now() + MISSING_CACHE_MS });

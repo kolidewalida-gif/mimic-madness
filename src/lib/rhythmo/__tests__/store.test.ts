@@ -156,4 +156,25 @@ describe('loading a rhythmo track', () => {
     });
     await expect(loadRhythmoTrack('clip-1')).resolves.toBeNull();
   });
+
+  // A hanging read used to freeze the preview on an endless spinner and could
+  // stall the imitation phase, which loads the band the same way.
+  it('resolves to null instead of hanging when the download never settles', async () => {
+    vi.useFakeTimers();
+    mocks.download.mockReturnValue(new Promise(() => undefined));
+
+    const promise = loadRhythmoTrack('clip-1');
+    await vi.advanceTimersByTimeAsync(20_000);
+    await expect(promise).resolves.toBeNull();
+  });
+
+  it('resolves to null instead of hanging when the clip lookup never settles', async () => {
+    vi.useFakeTimers();
+    mocks.getVideoClip.mockReturnValue(new Promise(() => undefined));
+
+    const promise = loadRhythmoTrack('clip-1');
+    await vi.advanceTimersByTimeAsync(20_000);
+    await expect(promise).resolves.toBeNull();
+    expect(mocks.download).not.toHaveBeenCalled();
+  });
 });

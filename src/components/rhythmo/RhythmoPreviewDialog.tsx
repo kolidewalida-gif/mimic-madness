@@ -6,9 +6,9 @@
  * so "what you preview" is literally "what you get".
  */
 import { useEffect, useRef, useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, RotateCcw } from "lucide-react";
 import { RhythmoBand } from "@/components/rhythmo/RhythmoBand";
-import { loadRhythmoTrack } from "@/lib/rhythmo/store";
+import { clearRhythmoTrackCache, loadRhythmoTrack } from "@/lib/rhythmo/store";
 import type { RhythmoTrack } from "@/lib/rhythmo/types";
 
 interface RhythmoPreviewDialogProps {
@@ -27,13 +27,20 @@ export const RhythmoPreviewDialog = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [track, setTrack] = useState<RhythmoTrack | null>(null);
   const [loading, setLoading] = useState(true);
+  /** Bumped by Réessayer to re-run the load. */
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    // The store bounds this call, so the spinner always resolves instead of
+    // hanging when Storage is slow or unreachable.
     loadRhythmoTrack(clipId)
       .then((loaded) => {
         if (!cancelled) setTrack(loaded);
+      })
+      .catch(() => {
+        if (!cancelled) setTrack(null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -41,7 +48,13 @@ export const RhythmoPreviewDialog = ({
     return () => {
       cancelled = true;
     };
-  }, [clipId]);
+  }, [clipId, attempt]);
+
+  const retry = () => {
+    // Drop the short negative cache so the retry really hits Storage again.
+    clearRhythmoTrackCache(clipId);
+    setAttempt((value) => value + 1);
+  };
 
   // Close on Escape.
   useEffect(() => {
@@ -109,12 +122,28 @@ export const RhythmoPreviewDialog = ({
         ) : track ? (
           <RhythmoBand track={track} videoRef={videoRef} leadSeconds={0} accent="var(--c-violet)" />
         ) : (
-          <p
-            className="py-4 text-center text-xs font-black text-white/50"
-            style={{ fontFamily: "'Outfit', sans-serif" }}
-          >
-            Pas encore de bande rythmo pour ce clip — génère-la d'abord.
-          </p>
+          <div className="flex flex-col items-center gap-2 py-4">
+            <p
+              className="text-center text-xs font-black text-white/50"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
+            >
+              Bande rythmo indisponible — soit elle n'est pas encore générée,
+              soit la connexion a échoué.
+            </p>
+            <button
+              type="button"
+              onClick={retry}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black text-white"
+              style={{
+                fontFamily: "'Outfit', sans-serif",
+                background: "var(--c-violet)",
+                border: "1px solid var(--ink-line)",
+              }}
+            >
+              <RotateCcw className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Réessayer
+            </button>
+          </div>
         )}
       </div>
     </div>
