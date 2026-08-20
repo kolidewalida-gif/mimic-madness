@@ -3,6 +3,14 @@ import { captureVideoPoster } from "@/lib/videoPoster";
 
 const BUCKET = 'video-challenges';
 
+/**
+ * Mêmes valeurs que celles données à `createClient`. Nécessaires pour parler
+ * directement à l'endpoint REST du Storage, seul moyen d'obtenir la progression
+ * d'un envoi (voir `uploadWithProgress`).
+ */
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
 /** Chemin de la vignette associée à un clip. */
 export const posterPathFor = (storagePath: string): string => `${storagePath}.poster.jpg`;
 
@@ -50,6 +58,89 @@ export class UploadTooLargeError extends Error {
 // Entries expire after 50 min (signed URLs are valid 1h).
 const urlCache = new Map<string, { url: string; expiresAt: number }>();
 
+/** Octets réellement transmis pendant un envoi. */
+export interface UploadProgress {
+  loadedBytes: number;
+  totalBytes: number;
+  /** 0..1 */
+  ratio: number;
+}
+
+/**
+ * Envoyer un objet dans le Storage en rapportant les octets transmis.
+ *
+ * `supabase.storage.upload()` passe par `fetch`, qui n'expose aucune
+ * progression d'émission. Le panneau d'import affichait donc « progression
+ * indisponible » pendant plusieurs minutes sur un gros clip, sans aucun moyen de
+ * distinguer un envoi qui avance d'un envoi bloqué. `XMLHttpRequest` est la
+ * seule API navigateur qui donne `upload.onprogress`, d'où cet appel direct à
+ * l'endpoint REST du Storage.
+ *
+ * Renvoie la même forme que le SDK (`{ error }`) pour rester interchangeable.
+ */
+function uploadWithProgress(
+  bucket: string,
+  path: string,
+  body: Blob,
+  options: {
+    contentType: string;
+    cacheControl: string;
+    upsert: boolean;
+    accessToken: string;
+    onProgress?: (progress: UploadProgress) => void;
+  },
+): Promise<{ error: { message: string } | null }> {
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/${bucket}/${path
+    .split('/')
+    .map(encodeURIComponent)
+    .join('/')}`;
+
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', endpoint, true);
+    xhr.setRequestHeader('authorization', `Bearer ${options.accessToken}`);
+    xhr.setRequestHeader('apikey', SUPABASE_PUBLISHABLE_KEY);
+    xhr.setRequestHeader('content-type', options.contentType);
+    xhr.setRequestHeader('cache-control', `max-age=${options.cacheControl}`);
+    xhr.setRequestHeader('x-upsert', options.upsert ? 'true' : 'false');
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || event.total <= 0) return;
+      options.onProgress?.({
+        loadedBytes: event.loaded,
+        totalBytes: event.total,
+        ratio: Math.min(1, event.loaded / event.total),
+      });
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        options.onProgress?.({
+          loadedBytes: body.size,
+          totalBytes: body.size,
+          ratio: 1,
+        });
+        resolve({ error: null });
+        return;
+      }
+      let message = `HTTP ${xhr.status}`;
+      try {
+        const parsed = JSON.parse(xhr.responseText);
+        if (typeof parsed?.message === 'string') message = parsed.message;
+        else if (typeof parsed?.error === 'string') message = parsed.error;
+      } catch {
+        // Corps non JSON : le statut suffit à qualifier l'échec.
+      }
+      resolve({ error: { message } });
+    };
+
+    xhr.onerror = () => resolve({ error: { message: 'NetworkError' } });
+    xhr.ontimeout = () => resolve({ error: { message: "L'envoi a expiré." } });
+
+    xhr.send(body);
+  });
+}
+
 class VideoStorageSupabase {
   async uploadVideo(
     file: File,
@@ -63,7 +154,8 @@ class VideoStorageSupabase {
       isMuted: boolean;
       lobbyId?: string;
       roundNumber?: number | null;
-    }
+    },
+    onProgress?: (progress: UploadProgress) => void,
   ): Promise<VideoClip> {
     // Refuse oversized files up-front. The server cuts the connection partway
     // through instead of answering, which surfaces as an opaque "NetworkError"
@@ -79,13 +171,37 @@ class VideoStorageSupabase {
     const fileName = `${clipData.playerId}/${clipData.id}.${ext}`;
     const contentType = file.type || 'video/mp4';
 
-    const { error: uploadError } = await supabase.storage
-      .from('video-challenges')
-      .upload(fileName, file, {
+    /**
+     * Le jeton de session si le joueur est authentifié, sinon la clé publiable :
+     * c'est exactement ce que le SDK envoie, les politiques RLS du bucket
+     * s'appliquent donc de la même façon.
+     */
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token ?? SUPABASE_PUBLISHABLE_KEY;
+
+    let uploadError = (
+      await uploadWithProgress('video-challenges', fileName, file, {
+        contentType,
         cacheControl: '3600',
         upsert: true,
-        contentType,
-      });
+        accessToken,
+        onProgress,
+      })
+    ).error;
+
+    // Repli sur le SDK si le transport direct échoue au niveau réseau : mieux
+    // vaut perdre la barre de progression que perdre l'import.
+    if (uploadError && uploadError.message === 'NetworkError') {
+      console.warn('[import] envoi avec progression indisponible, repli sur le SDK');
+      uploadError =
+        (
+          await supabase.storage.from('video-challenges').upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType,
+          })
+        ).error ?? null;
+    }
 
     if (uploadError) {
       console.error('Upload error:', uploadError, `(${formatMb(file.size)})`);

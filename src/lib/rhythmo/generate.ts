@@ -34,6 +34,20 @@ const MODEL_WATCHDOG_MS = 3 * 60_000;
 const MIN_INFERENCE_WATCHDOG_MS = 4 * 60_000;
 const MAX_INFERENCE_WATCHDOG_MS = 30 * 60_000;
 const SPEED_STORAGE_KEY = 'mimic-master-rhythmo-ms-per-audio-second-v1';
+/**
+ * Le service distant a un débit sans rapport avec l'inférence locale : il lui
+ * faut une mesure séparée, sinon la première estimation distante hériterait de
+ * la lenteur mesurée sur Whisper.
+ */
+const REMOTE_SPEED_STORAGE_KEY = 'mimic-master-rhythmo-remote-ms-per-audio-second-v1';
+/**
+ * Amorce distante, en millisecondes de traitement par seconde d'audio.
+ *
+ * Relevé autour de 200 ms/s sur un clip de 3 min 17 ; arrondi au-dessus pour ne
+ * pas annoncer plus rapide que la réalité, la file d'attente du service étant
+ * variable. Remplacée dès la première vraie mesure sur cet appareil.
+ */
+const REMOTE_SPEED_SEED_MS = 350;
 
 type ProgressCallback = (progress: RhythmoProgress) => void;
 
@@ -153,6 +167,13 @@ export interface GenerateRhythmoOptions {
   signal?: AbortSignal;
   onProgress?: ProgressCallback;
   language?: string;
+  /**
+   * Durée de l'audio en secondes, quand l'appelant la connaît déjà.
+   *
+   * Sur le chemin distant, l'audio n'est jamais décodé côté navigateur : sans
+   * cet indice, aucune estimation de temps ne peut être annoncée.
+   */
+  durationHint?: number;
 }
 
 /**
@@ -182,7 +203,11 @@ export async function generateRhythmoTrackFromUrl(
   try {
     if (options.signal?.aborted) throw new RhythmoError('cancelled', 'Annulé.');
 
-    options.onProgress?.({ phase: 'transcribing' });
+    const startedAt = Date.now();
+    options.onProgress?.({
+      phase: 'transcribing',
+      etaMs: remoteEtaMs(options.durationHint),
+    });
 
     const result = await transcribeWithAssemblyAi(audioUrl, {
       signal: options.signal,
@@ -192,6 +217,14 @@ export async function generateRhythmoTrackFromUrl(
     if (result.words.length === 0) {
       throw new RhythmoError('no-speech', "Aucune parole n'a été détectée dans cet extrait.");
     }
+
+    // La durée rapportée par le service est exacte, contrairement à l'indice
+    // relu depuis les métadonnées : c'est la meilleure base de mesure.
+    rememberMeasuredSpeed(
+      Date.now() - startedAt,
+      result.duration ?? options.durationHint ?? 0,
+      REMOTE_SPEED_STORAGE_KEY,
+    );
 
     const track: RhythmoTrack = {
       version: 1,
@@ -422,9 +455,9 @@ async function refineWordTextsWithGemini(
   }
 }
 
-const readMeasuredSpeed = (): number | undefined => {
+const readMeasuredSpeed = (key = SPEED_STORAGE_KEY): number | undefined => {
   try {
-    const value = Number(localStorage.getItem(SPEED_STORAGE_KEY));
+    const value = Number(localStorage.getItem(key));
     return Number.isFinite(value) && value > 0 ? value : undefined;
   } catch {
     return undefined;
@@ -436,13 +469,28 @@ const measuredEtaMs = (duration: number): number | undefined => {
   return speed ? Math.round(duration * speed) : undefined;
 };
 
-const rememberMeasuredSpeed = (elapsedMs: number, duration: number): void => {
+/**
+ * Estimation distante. Contrairement au chemin local, une amorce est utilisée
+ * tant qu'aucune mesure n'existe : le service a un débit assez régulier pour
+ * qu'une valeur de départ soit plus utile qu'un chronomètre nu.
+ */
+const remoteEtaMs = (duration: number | undefined): number | undefined => {
+  if (!duration || duration <= 0) return undefined;
+  const speed = readMeasuredSpeed(REMOTE_SPEED_STORAGE_KEY) ?? REMOTE_SPEED_SEED_MS;
+  return Math.round(duration * speed);
+};
+
+const rememberMeasuredSpeed = (
+  elapsedMs: number,
+  duration: number,
+  key = SPEED_STORAGE_KEY,
+): void => {
   if (!Number.isFinite(elapsedMs) || elapsedMs <= 0 || duration <= 0) return;
   const measured = elapsedMs / duration;
-  const previous = readMeasuredSpeed();
+  const previous = readMeasuredSpeed(key);
   const smoothed = previous ? previous * 0.7 + measured * 0.3 : measured;
   try {
-    localStorage.setItem(SPEED_STORAGE_KEY, String(smoothed));
+    localStorage.setItem(key, String(smoothed));
   } catch {
     // Private mode/storage quota: ETA simply stays unknown next time.
   }

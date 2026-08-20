@@ -68,6 +68,7 @@ const lastRunId = () => {
 };
 
 let generateRhythmoTrack: typeof import('@/lib/rhythmo/generate').generateRhythmoTrack;
+let generateRhythmoTrackFromUrl: typeof import('@/lib/rhythmo/generate').generateRhythmoTrackFromUrl;
 let releaseRhythmoWorker: typeof import('@/lib/rhythmo/generate').releaseRhythmoWorker;
 
 beforeEach(async () => {
@@ -85,6 +86,7 @@ beforeEach(async () => {
 
   const generateModule = await import('@/lib/rhythmo/generate');
   generateRhythmoTrack = generateModule.generateRhythmoTrack;
+  generateRhythmoTrackFromUrl = generateModule.generateRhythmoTrackFromUrl;
   releaseRhythmoWorker = generateModule.releaseRhythmoWorker;
 });
 
@@ -307,5 +309,173 @@ describe('rhythmo generation run correlation', () => {
     const stored = Number(localStorage.getItem('mimic-master-rhythmo-ms-per-audio-second-v1'));
     expect(stored).toBeCloseTo(3_000, 0);
     nowSpy.mockRestore();
+  });
+});
+
+describe('génération distante par AssemblyAI', () => {
+  const CLIP_URL = 'https://example.supabase.co/storage/v1/object/public/video-challenges/p/c.mp4';
+
+  /** Dépôt accepté, puis transcription déjà terminée. */
+  const remoteSuccess = (audioDuration?: number) => {
+    mocks.functionsInvoke
+      .mockResolvedValueOnce({ data: { ok: true, id: 'transcript-abcdef12' }, error: null })
+      .mockResolvedValueOnce({
+        data: {
+          ok: true,
+          status: 'completed',
+          words: [
+            { text: 'Salut', startMs: 100, endMs: 400 },
+            { text: 'toi', startMs: 500, endMs: 800 },
+          ],
+          language: 'fr',
+          audioDuration,
+        },
+        error: null,
+      });
+  };
+
+  it('annonce une estimation de temps dès le premier passage', async () => {
+    // Sans estimation, le panneau ne montrait plus qu'un chronomètre : c'est la
+    // régression signalée après le passage au service distant.
+    localStorage.clear();
+    remoteSuccess(60);
+
+    const etas: Array<number | undefined> = [];
+    const track = await generateRhythmoTrackFromUrl('clip-1', CLIP_URL, {
+      durationHint: 60,
+      onProgress: (progress) => {
+        if (progress.phase === 'transcribing') etas.push(progress.etaMs);
+      },
+    });
+
+    // Amorce de 350 ms par seconde d'audio : 60 s d'audio -> 21 s annoncées.
+    expect(etas).toEqual([21_000]);
+    // Millisecondes converties en secondes, sans passe Gemini sur ce chemin.
+    expect(track.cues[0].words).toEqual([
+      { text: 'Salut', start: 0.1, end: 0.4 },
+      { text: 'toi', start: 0.5, end: 0.8 },
+    ]);
+    expect(track.duration).toBe(60);
+    expect(track.language).toBe('fr');
+    expect(track.model).toBe('assemblyai-universal-3-5-pro');
+  });
+
+  it('reste sans estimation quand la durée est inconnue', async () => {
+    localStorage.clear();
+    remoteSuccess();
+
+    const etas: Array<number | undefined> = [];
+    await generateRhythmoTrackFromUrl('clip-1', CLIP_URL, {
+      onProgress: (progress) => {
+        if (progress.phase === 'transcribing') etas.push(progress.etaMs);
+      },
+    });
+
+    // Mieux vaut un chronomètre qu'une estimation inventée.
+    expect(etas).toEqual([undefined]);
+  });
+
+  it('mesure la vitesse réelle du service pour la prochaine estimation', async () => {
+    localStorage.clear();
+    const realNow = Date.now();
+    const nowSpy = vi.spyOn(Date, 'now');
+    nowSpy.mockReturnValue(realNow);
+
+    mocks.functionsInvoke
+      .mockResolvedValueOnce({ data: { ok: true, id: 'transcript-abcdef12' }, error: null })
+      .mockImplementationOnce(() => {
+        // 60 s d'audio traitées en 12 s réelles, soit 200 ms par seconde.
+        nowSpy.mockReturnValue(realNow + 12_000);
+        return Promise.resolve({
+          data: {
+            ok: true,
+            status: 'completed',
+            words: [{ text: 'Salut', startMs: 100, endMs: 400 }],
+            audioDuration: 60,
+          },
+          error: null,
+        });
+      });
+
+    await generateRhythmoTrackFromUrl('clip-1', CLIP_URL, { durationHint: 60 });
+
+    const stored = Number(
+      localStorage.getItem('mimic-master-rhythmo-remote-ms-per-audio-second-v1'),
+    );
+    expect(stored).toBeCloseTo(200, 0);
+    nowSpy.mockRestore();
+  });
+
+  it('ne mélange pas la vitesse distante avec celle mesurée sur Whisper', async () => {
+    localStorage.clear();
+    // Une machine lente sur Whisper ne doit pas plomber l'estimation distante.
+    localStorage.setItem('mimic-master-rhythmo-ms-per-audio-second-v1', '30000');
+    remoteSuccess(60);
+
+    const etas: Array<number | undefined> = [];
+    await generateRhythmoTrackFromUrl('clip-1', CLIP_URL, {
+      durationHint: 60,
+      onProgress: (progress) => {
+        if (progress.phase === 'transcribing') etas.push(progress.etaMs);
+      },
+    });
+
+    expect(etas).toEqual([21_000]);
+  });
+
+  it('laisse remonter une indisponibilité sans signaler une erreur au joueur', async () => {
+    mocks.functionsInvoke.mockResolvedValueOnce({
+      data: { ok: false, reason: 'not-configured' },
+      error: null,
+    });
+
+    const phases: string[] = [];
+    await expect(
+      generateRhythmoTrackFromUrl('clip-1', CLIP_URL, {
+        onProgress: (progress) => phases.push(progress.phase),
+      }),
+    ).rejects.toMatchObject({ name: 'AssemblyAiUnavailableError' });
+
+    // Le repli local doit pouvoir s'enchaîner : pas de phase d'erreur affichée,
+    // et surtout aucune bande enregistrée.
+    expect(phases).not.toContain('error');
+    expect(mocks.saveRhythmoTrack).not.toHaveBeenCalled();
+  });
+
+  it('signale une absence de parole comme une vraie erreur, sans repli', async () => {
+    mocks.functionsInvoke
+      .mockResolvedValueOnce({ data: { ok: true, id: 'transcript-abcdef12' }, error: null })
+      .mockResolvedValueOnce({
+        data: { ok: true, status: 'completed', words: [] },
+        error: null,
+      });
+
+    const phases: string[] = [];
+    await expect(
+      generateRhythmoTrackFromUrl('clip-1', CLIP_URL, {
+        onProgress: (progress) => phases.push(progress.phase),
+      }),
+    ).rejects.toMatchObject({ reason: 'no-speech' });
+
+    expect(phases).toContain('error');
+    expect(mocks.saveRhythmoTrack).not.toHaveBeenCalled();
+  });
+
+  it('libère le verrou pour que le repli local puisse démarrer', async () => {
+    mocks.functionsInvoke.mockResolvedValueOnce({
+      data: { ok: false, reason: 'not-configured' },
+      error: null,
+    });
+
+    await expect(generateRhythmoTrackFromUrl('clip-1', CLIP_URL)).rejects.toBeTruthy();
+
+    // Sans libération du verrou de génération, le repli Whisper échouerait avec
+    // « une génération est déjà en cours ».
+    const promise = generateRhythmoTrack('clip-1', new Blob(['x']), 'clip.mp4');
+    await vi.waitFor(() => expect(mocks.postMessage).toHaveBeenCalled());
+    const worker = lastWorker();
+    worker.emit({ type: 'model-ready', runId: lastRunId(), model: 'tiny' });
+    worker.emit({ type: 'done', runId: lastRunId(), model: 'tiny', words });
+    await expect(promise).resolves.toMatchObject({ clipId: 'clip-1' });
   });
 });

@@ -127,3 +127,59 @@ export async function downloadMediaBlob(
     signal?.removeEventListener('abort', onAbort);
   }
 }
+
+/**
+ * Lire la durée d'un média sans le télécharger.
+ *
+ * Avec `preload="metadata"`, le navigateur ne récupère que l'en-tête du
+ * conteneur — quelques kilo-octets — au lieu des dizaines de mégaoctets du
+ * fichier. C'est ce qui permet d'annoncer une estimation de temps pour la
+ * transcription distante, alors que la durée n'est stockée nulle part côté
+ * base : `end_time` vaut 0 pour les clips importés.
+ *
+ * Renvoie `null` plutôt que d'échouer : une estimation absente est acceptable,
+ * un import bloqué ne l'est pas.
+ */
+export async function probeMediaDuration(
+  source: Blob | string,
+  timeoutMs = 10_000,
+): Promise<number | null> {
+  if (typeof document === 'undefined') return null;
+
+  const objectUrl = typeof source === 'string' ? null : URL.createObjectURL(source);
+  const src = objectUrl ?? (source as string);
+
+  return new Promise<number | null>((resolve) => {
+    const element = document.createElement('video');
+    let settled = false;
+
+    const finish = (duration: number | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      element.removeEventListener('loadedmetadata', onLoaded);
+      element.removeEventListener('error', onError);
+      // Couper la requête en cours : sans ça, un `preload` déjà lancé continue
+      // de consommer de la bande passante pour un résultat dont on n'a plus
+      // besoin.
+      element.removeAttribute('src');
+      element.load();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      resolve(duration);
+    };
+
+    const onLoaded = () => {
+      const { duration } = element;
+      finish(Number.isFinite(duration) && duration > 0 ? duration : null);
+    };
+    const onError = () => finish(null);
+
+    const timer = setTimeout(() => finish(null), timeoutMs);
+
+    element.preload = 'metadata';
+    element.muted = true;
+    element.addEventListener('loadedmetadata', onLoaded);
+    element.addEventListener('error', onError);
+    element.src = src;
+  });
+}

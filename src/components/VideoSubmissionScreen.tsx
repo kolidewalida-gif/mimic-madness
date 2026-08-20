@@ -36,7 +36,7 @@ import {
 } from "@/lib/rhythmo/generate";
 import { AssemblyAiUnavailableError } from "@/lib/rhythmo/assemblyai";
 import { isLikelyDecodable } from "@/lib/rhythmo/audio";
-import { downloadMediaBlob } from "@/lib/rhythmo/media";
+import { downloadMediaBlob, probeMediaDuration } from "@/lib/rhythmo/media";
 import { listRhythmoTracks } from "@/lib/rhythmo/store";
 import { RhythmoError, rhythmoErrorLabel, type RhythmoProgress } from "@/lib/rhythmo/types";
 import { RhythmoPreviewDialog } from "@/components/rhythmo/RhythmoPreviewDialog";
@@ -81,6 +81,43 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string): Prom
 const formatEta = (ms: number): string => {
   const s = Math.max(1, Math.round(ms / 1000));
   return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`;
+};
+
+interface UploadStatus {
+  done: number;
+  total: number;
+  current: string;
+  sentBytes: number;
+  totalBytes: number;
+  startedAt: number;
+}
+
+const uploadRatio = (status: UploadStatus): number =>
+  status.totalBytes > 0 ? Math.min(1, status.sentBytes / status.totalBytes) : 0;
+
+/**
+ * Libellé d'envoi : pourcentage, volume, et temps restant déduit du débit
+ * réellement observé sur cet envoi.
+ *
+ * Le temps restant n'apparaît qu'au-delà de 5 % et d'une seconde écoulée :
+ * calculé plus tôt, il oscille de façon absurde parce que le débit initial n'est
+ * pas représentatif.
+ */
+const uploadLabel = (status: UploadStatus): string => {
+  const percent = Math.round(uploadRatio(status) * 100);
+  const sent = formatMb(status.sentBytes);
+  const total = formatMb(status.totalBytes);
+
+  const elapsedMs = Date.now() - status.startedAt;
+  if (status.sentBytes <= 0 || elapsedMs < 1_000 || uploadRatio(status) < 0.05) {
+    return `Envoi… ${percent}% · ${sent} / ${total}`;
+  }
+
+  const bytesPerMs = status.sentBytes / elapsedMs;
+  const remainingMs = (status.totalBytes - status.sentBytes) / bytesPerMs;
+  if (remainingMs < 1_000) return `Envoi… ${percent}% · ${sent} / ${total}`;
+
+  return `Envoi… ${percent}% · ${sent} / ${total} · ≈ ${formatEta(remainingMs)}`;
 };
 
 /** Player-facing label for each real generation stage. */
@@ -154,12 +191,14 @@ export const VideoSubmissionScreen = ({
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  /** Which file is uploading and how far along the batch is. */
-  const [uploadStatus, setUploadStatus] = useState<{
-    done: number;
-    total: number;
-    current: string;
-  } | null>(null);
+  /**
+   * Which file is uploading and how far along the batch is.
+   *
+   * `sentBytes`/`totalBytes` viennent des octets réellement émis, et `startedAt`
+   * permet d'en déduire un débit puis un temps restant. Sans ça, l'écran ne
+   * pouvait qu'afficher « progression indisponible » pendant tout l'envoi.
+   */
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
   const [clipUrls, setClipUrls] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -337,6 +376,9 @@ export const VideoSubmissionScreen = ({
       done: 0,
       total: newFiles.length,
       current: newFiles[0].name,
+      sentBytes: 0,
+      totalBytes: newFiles[0].size,
+      startedAt: Date.now(),
     });
     try {
       // Sequential, not parallel: several large videos at once saturate the
@@ -350,6 +392,9 @@ export const VideoSubmissionScreen = ({
           done: index,
           total: newFiles.length,
           current: file.name,
+          sentBytes: 0,
+          totalBytes: file.size,
+          startedAt: Date.now(),
         });
 
         const baseName = file.name.replace(/\.[^/.]+$/, '');
@@ -369,7 +414,17 @@ export const VideoSubmissionScreen = ({
           // takes minutes on a slow connection.
           const budgetMs = Math.max(60_000, Math.ceil(file.size / (20 * 1024)) * 1000);
           const clip = await withTimeout(
-            videoStorage.uploadVideo(file, clipData),
+            videoStorage.uploadVideo(file, clipData, (progress) => {
+              setUploadStatus((previous) =>
+                previous && previous.current === file.name
+                  ? {
+                      ...previous,
+                      sentBytes: progress.loadedBytes,
+                      totalBytes: progress.totalBytes,
+                    }
+                  : previous,
+              );
+            }),
             budgetMs,
             `L'upload de « ${baseName} » n'a pas abouti. Fichier trop lourd ou connexion trop lente.`,
           );
@@ -540,10 +595,20 @@ export const VideoSubmissionScreen = ({
           let generated = false;
 
           if (remoteUrl) {
+            /**
+             * Durée relue dans les métadonnées du conteneur, quelques kilo-octets
+             * seulement. `end_time` valant 0 en base pour les clips importés,
+             * c'est le seul moyen d'annoncer un temps restant sans télécharger
+             * la vidéo — ce que tout ce chemin cherche justement à éviter.
+             */
+            const durationHint =
+              (await probeMediaDuration(local ?? remoteUrl).catch(() => null)) ?? undefined;
+
             try {
               await generateRhythmoTrackFromUrl(clip.id, remoteUrl, {
                 signal: controller.signal,
                 onProgress: updateProgress,
+                durationHint,
               });
               generated = true;
             } catch (error) {
@@ -1017,13 +1082,32 @@ export const VideoSubmissionScreen = ({
                         : "MP4, WebM, MOV, MKV — plusieurs fichiers à la fois"}
                     </span>
 
-                    {/* Supabase Storage does not expose upload bytes here;
-                        keep this indeterminate instead of inventing an ETA. */}
-                    {isUploading && (
-                      <span className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35"
-                        style={{ fontFamily: "'Outfit', sans-serif" }}>
-                        Transfert en cours · progression indisponible
-                      </span>
+                    {/* Octets réellement émis, relevés sur la requête d'envoi :
+                        pourcentage, volume et temps restant sont mesurés, jamais
+                        devinés. */}
+                    {isUploading && uploadStatus && (
+                      <div className="flex w-full max-w-[280px] flex-col items-center gap-1.5">
+                        <div
+                          className="h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+                          role="progressbar"
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={Math.round(uploadRatio(uploadStatus) * 100)}
+                          aria-label="Progression de l'envoi"
+                        >
+                          <div
+                            className="h-full rounded-full transition-[width] duration-200"
+                            style={{
+                              width: `${Math.round(uploadRatio(uploadStatus) * 100)}%`,
+                              background: ACCENT,
+                            }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35"
+                          style={{ fontFamily: "'Outfit', sans-serif" }}>
+                          {uploadLabel(uploadStatus)}
+                        </span>
+                      </div>
                     )}
                   </div>
 
