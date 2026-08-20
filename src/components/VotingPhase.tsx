@@ -34,6 +34,7 @@ import {
   resolveVoteAvailability,
   type VotableImitation,
 } from "@/lib/imitationVoting";
+import { playSample } from "@/lib/sfx/samples";
 interface Player {
   id: string;
   name: string;
@@ -625,7 +626,12 @@ export const VotingPhase = ({
       }
 
       setHasVotedCurrent(true);
-      playSound('vote');
+      // Approuver et désapprouver sonnaient exactement pareil : un seul appel
+      // `vote` servait les deux. Deux échantillons distincts maintenant, avec
+      // repli sur l'ancien son si les fichiers ne sont pas encore chargés.
+      if (!playSample(voteType === 'like' ? 'voteUp' : 'voteDown', 0.5)) {
+        playSound('vote');
+      }
       if (origin) {
         juice.burst({
           x: origin.x,

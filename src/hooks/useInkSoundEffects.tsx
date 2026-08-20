@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { registerAudioContext } from '@/lib/audioUnlock';
+import { playSample } from '@/lib/sfx/samples';
 import { useInkMode } from './useInkMode';
 import { getSoundEffectsVolume } from './useSoundEffectsVolume';
 
@@ -472,6 +473,8 @@ const createInkSound = (
 
 export const playInkSound = (type: InkSoundType, volume: number = 0.3) => {
   try {
+    // Échantillon généré quand il en existe un ; sinon la synthèse cartoon.
+    if (playSample(type, volume)) return;
     const ctx = getInkAudioContext();
     createInkSound(ctx, type, volume);
   } catch (error) {
@@ -487,11 +490,12 @@ export const useInkSoundEffects = () => {
     (type: InkSoundType, volume: number = 0.3) => {
       if (!isInkMode) return;
       try {
+        if (playSample(type, volume)) return;
         if (!audioContextRef.current) {
-          audioContextRef.current = new AudioContext();
+          audioContextRef.current = registerAudioContext(new AudioContext());
         }
         if (audioContextRef.current.state === 'suspended') {
-          audioContextRef.current.resume();
+          registerAudioContext(audioContextRef.current);
         }
         createInkSound(audioContextRef.current, type, volume);
       } catch (error) {

@@ -92,6 +92,46 @@ export const isAudioBlocked = (): boolean => {
 /** Nombre de contextes suivis — utile pour repérer une fuite de contextes. */
 export const trackedAudioContextCount = (): number => contexts.size;
 
+let sharedContext: AudioContext | null = null;
+
+/**
+ * Contexte audio partagé, créé à la demande et déjà enregistré.
+ *
+ * Les navigateurs plafonnent le nombre d'`AudioContext` par onglet (autour de
+ * six). Ce projet en ouvre déjà plusieurs — un par système d'effets, plus un par
+ * instance de hook — donc toute nouvelle fonctionnalité audio doit passer par
+ * celui-ci au lieu d'en créer un de plus.
+ *
+ * Renvoie `null` quand l'API n'existe pas : l'appelant doit alors renoncer au
+ * son, jamais échouer.
+ */
+export const getSharedAudioContext = (): AudioContext | null => {
+  if (sharedContext && sharedContext.state !== 'closed') {
+    if (sharedContext.state === 'suspended') registerAudioContext(sharedContext);
+    return sharedContext;
+  }
+
+  const Ctor =
+    typeof window === 'undefined'
+      ? undefined
+      : window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctor) return null;
+
+  try {
+    sharedContext = registerAudioContext(new Ctor());
+    return sharedContext;
+  } catch {
+    // Limite de contextes atteinte, ou audio indisponible sur cet appareil.
+    return null;
+  }
+};
+
+/** Oublie le contexte partagé. Réservé aux tests. */
+export const resetSharedAudioContextForTests = (): void => {
+  sharedContext = null;
+};
+
 /** Remet le module à zéro. Réservé aux tests. */
 export const resetAudioUnlockForTests = (): void => {
   contexts.clear();

@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { registerAudioContext } from '@/lib/audioUnlock';
+import { playSample } from '@/lib/sfx/samples';
 import { getSoundEffectsVolume } from './useSoundEffectsVolume';
 
 type SoundType = 
@@ -2743,6 +2744,10 @@ export const useSoundEffects = () => {
 
   const playSound = useCallback((type: SoundType, volume: number = 0.3) => {
     try {
+      // Échantillon généré quand il en existe un pour ce nom ; sinon on garde la
+      // synthèse historique, qui reste la référence pour tous les autres sons.
+      if (playSample(type, volume)) return;
+
       if (!audioContextRef.current) {
         audioContextRef.current = registerAudioContext(
           new (window.AudioContext || (window as any).webkitAudioContext)(),
@@ -2817,6 +2822,10 @@ export const playSoundEffect = (type: SoundType, volume: number = 0.3) => {
         return;
       }
     }
+
+    // Échantillon généré quand il en existe un pour ce nom. Placé après la
+    // redirection Ink, qui a sa propre table d'échantillons.
+    if (playSample(type, volume)) return;
 
     if (!globalAudioContext) {
       globalAudioContext = registerAudioContext(

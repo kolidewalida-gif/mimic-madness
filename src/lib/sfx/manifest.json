@@ -1,0 +1,134 @@
+﻿{
+  "$comment": [
+    "Source unique des effets sonores échantillonnés.",
+    "Lu par `scripts/generate-sfx.mjs` (génération hors ligne via ElevenLabs) et",
+    "par `src/lib/sfx/samples.ts` (lecture dans le navigateur).",
+    "",
+    "`prompt` et `durationSeconds` ne servent qu'à la génération. `aliases` liste",
+    "les noms utilisés dans le code — à la fois les `SoundType` de useSoundEffects",
+    "et les `InkSoundType` de useInkSoundEffects, puisque le thème Ink redirige",
+    "les premiers vers les seconds.",
+    "",
+    "ATTENTION : l'API refuse toute durée inférieure à 0,5 s, alors que sa page de",
+    "documentation annonce 0,1 s. Vérifié à l'exécution. Un son d'interface plus",
+    "court est donc généré à 0,5 s : le silence de fin est inaudible et ne retarde",
+    "rien, puisque la lecture n'attend pas la fin du tampon.",
+    "",
+    "Tout nom absent d'ici continue d'être synthétisé comme avant : la couche",
+    "d'échantillons ne remplace que ce qui est explicitement listé."
+  ],
+  "samples": [
+    {
+      "id": "ui-click",
+      "prompt": "Crisp soft user interface button click, single one-shot, clean and dry, no reverb, subtle and premium",
+      "durationSeconds": 0.5,
+      "gain": 1,
+      "aliases": ["click", "clickSoft", "clickGlass", "inkClick", "cartoonPop", "pop", "selectItem", "toggleOn", "tabSwitch"]
+    },
+    {
+      "id": "ui-hover",
+      "prompt": "Very soft subtle user interface hover tick, tiny delicate one-shot, extremely short, airy",
+      "durationSeconds": 0.5,
+      "gain": 0.7,
+      "aliases": ["hover", "hoverSoft", "hoverMedium", "brushTap", "inkHover"]
+    },
+    {
+      "id": "ui-success",
+      "prompt": "Bright cheerful two note confirmation chime, clean user interface success, one-shot, short and shiny",
+      "durationSeconds": 0.7,
+      "gain": 1,
+      "aliases": ["success", "inkSuccess", "cartoonDing", "notifySuccess", "ding", "resolution"]
+    },
+    {
+      "id": "ui-error",
+      "prompt": "Soft low error thud, gentle negative user interface feedback, one-shot, muted and not harsh",
+      "durationSeconds": 0.5,
+      "gain": 0.9,
+      "aliases": ["error", "inkError", "notifyError", "quizWrong"]
+    },
+    {
+      "id": "vote-up",
+      "prompt": "Satisfying bright positive pop followed by a short upward chime, playful approval, one-shot",
+      "durationSeconds": 0.5,
+      "gain": 1,
+      "aliases": ["voteUp", "vote"]
+    },
+    {
+      "id": "vote-down",
+      "prompt": "Short dull muted downward blip, playful disapproval, comedic but soft, one-shot",
+      "durationSeconds": 0.5,
+      "gain": 0.9,
+      "aliases": ["voteDown"]
+    },
+    {
+      "id": "ui-whoosh",
+      "prompt": "Quick smooth air whoosh transition, short one-shot, clean sweep, no tail",
+      "durationSeconds": 0.5,
+      "gain": 0.8,
+      "aliases": ["whoosh", "transition", "cartoonSwoosh", "transitionSwoosh", "transitionWoosh", "inkTransition", "paperSlide", "ambientWhoosh"]
+    },
+    {
+      "id": "ui-celebration",
+      "prompt": "Short triumphant celebration fanfare with bright sparkle tail, joyful, one-shot",
+      "durationSeconds": 1.5,
+      "gain": 1,
+      "aliases": ["celebration", "cartoonFanfare", "levelComplete"]
+    },
+    {
+      "id": "ui-start",
+      "prompt": "Energetic short game start swell, upbeat and punchy rise, one-shot",
+      "durationSeconds": 0.8,
+      "gain": 1,
+      "aliases": ["start"]
+    },
+    {
+      "id": "ui-countdown",
+      "prompt": "Single clean countdown beep tick, neutral and precise, very short one-shot",
+      "durationSeconds": 0.5,
+      "gain": 0.85,
+      "aliases": ["countdown", "quizTick"]
+    },
+    {
+      "id": "ui-join",
+      "prompt": "Friendly short ascending two tone blip, someone arrives, one-shot",
+      "durationSeconds": 0.5,
+      "gain": 0.9,
+      "aliases": ["join"]
+    },
+    {
+      "id": "ui-leave",
+      "prompt": "Short descending two tone blip, someone leaves, soft, one-shot",
+      "durationSeconds": 0.5,
+      "gain": 0.9,
+      "aliases": ["leave"]
+    },
+    {
+      "id": "ui-achievement",
+      "prompt": "Rewarding achievement unlock chime with shimmering bell tail, one-shot",
+      "durationSeconds": 1.2,
+      "gain": 1,
+      "aliases": ["achievementEarned", "badgeUnlocked", "levelUp"]
+    },
+    {
+      "id": "ui-reveal",
+      "prompt": "Short magical reveal shimmer, bright sparkle sweep upward, one-shot",
+      "durationSeconds": 0.6,
+      "gain": 0.9,
+      "aliases": ["reveal", "quizReveal", "transitionMagic"]
+    },
+    {
+      "id": "ui-boing",
+      "prompt": "Springy cartoon boing, bouncy comedic spring, one-shot, clean",
+      "durationSeconds": 0.5,
+      "gain": 0.9,
+      "aliases": ["cartoonBoing"]
+    },
+    {
+      "id": "ui-zap",
+      "prompt": "Short electric zap descending, snappy sci-fi glitch, one-shot",
+      "durationSeconds": 0.5,
+      "gain": 0.85,
+      "aliases": ["cartoonZap", "electric", "glitch"]
+    }
+  ]
+}
