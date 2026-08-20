@@ -30,13 +30,15 @@ Format attendu:
   return { systemPrompt, userPrompt };
 }
 
-// Google Gemini (Google AI Studio) — free tier, no card. Preferred provider.
-async function generateWithGemini(
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Call one Gemini model once. Returns the raw text, or throws with .status set.
+async function callGeminiModel(
   apiKey: string,
+  model: string,
   systemPrompt: string,
   userPrompt: string,
 ): Promise<string> {
-  const model = "gemini-2.5-flash";
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
@@ -57,12 +59,42 @@ async function generateWithGemini(
     const errText = await response.text();
     const err = new Error(`Gemini error: ${response.status}`);
     (err as { status?: number }).status = response.status;
-    console.error("Gemini API error:", response.status, errText);
+    console.error("Gemini API error:", model, response.status, errText);
     throw err;
   }
 
   const data = await response.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
+}
+
+// Google Gemini (Google AI Studio) — free tier, no card. Preferred provider.
+// Flash gets overloaded (503) on the free tier, so we retry and then fall back
+// to flash-lite, which has higher free limits and is rarely saturated.
+async function generateWithGemini(
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<string> {
+  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  let lastError: unknown;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await callGeminiModel(apiKey, model, systemPrompt, userPrompt);
+      } catch (error) {
+        lastError = error;
+        const status = (error as { status?: number })?.status;
+        // Only retry/fall back on transient overload/limit errors.
+        if (status === 503 || status === 429 || status === 500) {
+          await sleep(600 * (attempt + 1));
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+  throw lastError;
 }
 
 // Lovable AI gateway — kept as a fallback when only LOVABLE_API_KEY is present.
