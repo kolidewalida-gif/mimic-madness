@@ -16,7 +16,9 @@ import type { TranscribeRequest, WarmupRequest, WorkerOutbound } from './transcr
 const PHRASE_GAP_S = 0.7;
 const MAX_PHRASE_WORDS = 12;
 const MODEL_WATCHDOG_MS = 3 * 60_000;
-const MIN_INFERENCE_WATCHDOG_MS = 2 * 60_000;
+// Generous floor: WASM inference on a slow device can legitimately take a few
+// minutes for a short clip, and killing it early wastes the whole model load.
+const MIN_INFERENCE_WATCHDOG_MS = 4 * 60_000;
 const MAX_INFERENCE_WATCHDOG_MS = 30 * 60_000;
 const SPEED_STORAGE_KEY = 'mimic-master-rhythmo-ms-per-audio-second-v1';
 
