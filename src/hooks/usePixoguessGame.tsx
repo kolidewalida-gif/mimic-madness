@@ -5,6 +5,20 @@ import { playSoundEffect } from '@/hooks/useSoundEffects';
 import type { BlurRushLiveStats } from '@/components/BlurRushLiveScoreboard';
 import { BLURRUSH_IMAGES, type BlurRushImage, type BlurRushCategory } from '@/lib/blurRushImages';
 import { guessSchema, safeParse } from '@/lib/validation';
+import {
+  GUESS_COOLDOWN_MS,
+  HOST_FALLBACK_GRACE_MS,
+  PIXELATION_STEPS,
+  REVEAL_PHASE_MAX_MS,
+  ROUND_DURATION_MS,
+  TOTAL_ROUNDS,
+  calculatePointsFromTime,
+  computePixelLevel,
+  computeTimeRemaining,
+  normalizeAnswer,
+  shouldRevealFirstLetter,
+  shouldRevealLength,
+} from '@/lib/blurRushLogic';
 
 interface Player {
   id: string;
@@ -34,29 +48,9 @@ interface PixoguessRound {
 
 type PixoguessPhase = 'waiting' | 'playing' | 'reveal' | 'scores' | 'final';
 
-const TOTAL_ROUNDS = 5;
-const ROUND_DURATION_MS = 20000;
-const PIXELATION_STEPS = 20;
-const GUESS_COOLDOWN_MS = 300;
-const HOST_FALLBACK_GRACE_MS = 2000;
 const AUTO_REVEAL_DELAY_MS = 1600;
-// Bug fix #4: auto-advance from reveal if host disconnects
-const REVEAL_PHASE_MAX_MS = 8000;
 // Bug fix #5: shorter delay when all players have solved
 const ALL_SOLVED_REVEAL_DELAY_MS = 800;
-
-const calculatePointsFromTime = (timeMs: number): number => {
-  const ratio = Math.max(0, Math.min(1, timeMs / ROUND_DURATION_MS));
-  return Math.round(100 - ratio * 90);
-};
-
-const normalizeAnswer = (answer: string): string =>
-  answer
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '')
-    .trim();
 
 export const usePixoguessGame = (
   lobbyId: string,
@@ -345,12 +339,9 @@ export const usePixoguessGame = (
     timerRef.current = setInterval(() => {
       const now = Date.now();
       const elapsed = now - startTime;
-      const remaining = Math.max(0, ROUND_DURATION_MS - elapsed);
+      const remaining = computeTimeRemaining(elapsed);
       setTimeRemaining(remaining);
-
-      const progress = Math.max(0, Math.min(1, elapsed / ROUND_DURATION_MS));
-      const lvl = Math.max(1, Math.min(PIXELATION_STEPS, Math.ceil(PIXELATION_STEPS * (1 - progress))));
-      setPixelLevel(lvl);
+      setPixelLevel(computePixelLevel(elapsed));
 
       if (remaining <= 0 && !advancingRef.current) {
         const grace = isHost ? 0 : HOST_FALLBACK_GRACE_MS;
@@ -671,8 +662,8 @@ export const usePixoguessGame = (
     const trimmedAnswer = roundData.correct_answer.trim();
     const sanitized = trimmedAnswer.replace(/\s+/g, ' ').trim();
     const clueLength = sanitized.replace(/\s/g, '').length;
-    const revealFirstLetter = timeRemaining <= ROUND_DURATION_MS * 0.3;
-    const revealLength = timeRemaining <= ROUND_DURATION_MS * 0.6;
+    const revealFirstLetter = shouldRevealFirstLetter(timeRemaining);
+    const revealLength = shouldRevealLength(timeRemaining);
 
     if (revealFirstLetter) {
       roundHint = `Indice: ${sanitized[0]?.toUpperCase() || '?'}... (${clueLength} lettres)`;

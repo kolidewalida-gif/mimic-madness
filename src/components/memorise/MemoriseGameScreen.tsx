@@ -9,6 +9,7 @@ import {
   BLINDTEST_ROUNDS, BLINDTEST_LISTEN_MS, BLINDTEST_REVEAL_MS,
   type BlindtestCategory, type BlindtestEntry,
 } from '@/lib/blindtestTracks';
+import { buildHint, buildOptions, entryKey, mulberry, shuffle } from '@/lib/blindtestLogic';
 import { itunesSearch, pickBestPreview, itunesPoster } from '@/lib/itunes';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { BlindtestSetup } from './BlindtestSetup';
@@ -44,24 +45,6 @@ const TEAM_META = [
   { name: 'Équipe Cyan', short: 'Cyan', color: BT.cyan },
   { name: 'Équipe Rose', short: 'Rose', color: BT.magenta },
 ] as const;
-
-/** Progressive masked-title hint: reveals more letters as the round elapses. */
-function buildHint(title: string, elapsedFrac: number): string {
-  return title
-    .split(' ')
-    .map((w) =>
-      w
-        .split('')
-        .map((ch, i) => {
-          if (!/[a-zA-Z0-9À-ÿ]/.test(ch)) return ch;
-          if (elapsedFrac >= 0.7) return i === 0 || i % 2 === 0 ? ch : '•';
-          if (elapsedFrac >= 0.45) return i === 0 ? ch : '•';
-          return '•';
-        })
-        .join(''),
-    )
-    .join('  ');
-}
 
 interface RoundTrack {
   title: string;          // the answer
@@ -111,7 +94,6 @@ const LISTEN_SYNC_BUFFER_MS = 500;
 /* ---------- recently-played history (anti-repeat across games) ---------- */
 const RECENT_KEY = 'mimic.blindtest.recent';
 const RECENT_CAP = 220;
-const entryKey = (e: { category: string; answer: string }) => `${e.category}|${e.answer.toLowerCase()}`;
 function loadRecent(): Set<string> {
   try { const a = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); return new Set(Array.isArray(a) ? a : []); }
   catch { return new Set(); }
@@ -125,38 +107,7 @@ function pushRecent(key: string) {
   } catch { /* noop */ }
 }
 
-/* deterministic helpers */
-function mulberry(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0; a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function shuffle<T>(arr: T[], rnd: () => number): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-function buildOptions(
-  correct: { title: string; category: BlindtestCategory },
-  pool: { title: string; category: BlindtestCategory }[],
-  seed: number,
-): { options: string[]; answerIndex: number } {
-  const rnd = mulberry(seed);
-  const same = Array.from(new Set(pool.filter((t) => t.category === correct.category).map((t) => t.title)))
-    .filter((t) => t !== correct.title);
-  const others = Array.from(new Set(pool.map((t) => t.title)))
-    .filter((t) => t !== correct.title && !same.includes(t));
-  const distractors = [...shuffle(same, rnd), ...shuffle(others, rnd)].slice(0, 3);
-  const options = shuffle([correct.title, ...distractors], rnd);
-  return { options, answerIndex: options.indexOf(correct.title) };
-}
+
 
 export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: MemoriseGameScreenProps) => {
   const isHost = currentPlayer.isHost;
