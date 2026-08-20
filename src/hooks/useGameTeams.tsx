@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-interface Team {
-  teamNumber: number;
-  players: {
-    id: string;
-    name: string;
-  }[];
-}
+import {
+  buildTeamAssignments,
+  findPlayerTeam,
+  findTeammate,
+  groupTeamRows,
+  shufflePlayers,
+  validateTeamFormation,
+  type Team,
+  type TeamRow,
+} from '@/lib/teamsLogic';
 
 interface Player {
   id: string;
@@ -35,20 +37,7 @@ export const useGameTeams = (lobbyId: string | null) => {
       if (error) throw error;
 
       if (data) {
-        // Group by team number
-        const teamMap = new Map<number, { id: string; name: string }[]>();
-        data.forEach((row) => {
-          const existing = teamMap.get(row.team_number) || [];
-          existing.push({ id: row.player_id, name: row.player_name });
-          teamMap.set(row.team_number, existing);
-        });
-
-        const teamsArray: Team[] = [];
-        teamMap.forEach((players, teamNumber) => {
-          teamsArray.push({ teamNumber, players });
-        });
-        teamsArray.sort((a, b) => a.teamNumber - b.teamNumber);
-        setTeams(teamsArray);
+        setTeams(groupTeamRows(data as TeamRow[]));
       }
     } catch (error) {
       console.error('Error fetching teams:', error);
@@ -87,19 +76,11 @@ export const useGameTeams = (lobbyId: string | null) => {
 
   // Randomly assign teams (2 players per team)
   const assignRandomTeams = useCallback(async (players: Player[]) => {
-    if (!lobbyId || players.length < 4) {
+    const check = validateTeamFormation(lobbyId ? players.length : 0);
+    if (!check.ok) {
       toast({
         title: "Erreur",
-        description: "Il faut au moins 4 joueurs pour le mode 2v2",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (players.length % 2 !== 0) {
-      toast({
-        title: "Erreur",
-        description: "Le nombre de joueurs doit être pair pour le mode 2v2",
+        description: check.reason,
         variant: "destructive",
       });
       return false;
@@ -113,28 +94,10 @@ export const useGameTeams = (lobbyId: string | null) => {
         .delete()
         .eq('lobby_id', lobbyId);
 
-      // Shuffle players
-      const shuffled = [...players].sort(() => Math.random() - 0.5);
-
-      // Create teams of 2
-      const teamAssignments = [];
-      for (let i = 0; i < shuffled.length; i += 2) {
-        const teamNumber = Math.floor(i / 2) + 1;
-        teamAssignments.push({
-          lobby_id: lobbyId,
-          team_number: teamNumber,
-          player_id: shuffled[i].id,
-          player_name: shuffled[i].name,
-        });
-        if (shuffled[i + 1]) {
-          teamAssignments.push({
-            lobby_id: lobbyId,
-            team_number: teamNumber,
-            player_id: shuffled[i + 1].id,
-            player_name: shuffled[i + 1].name,
-          });
-        }
-      }
+      // Fisher-Yates: un mélange uniforme, contrairement à un comparateur
+      // aléatoire qui favorisait certaines paires.
+      const shuffled = shufflePlayers(players);
+      const teamAssignments = buildTeamAssignments(lobbyId as string, shuffled);
 
       const { error } = await supabase
         .from('game_teams')
@@ -162,26 +125,16 @@ export const useGameTeams = (lobbyId: string | null) => {
   }, [lobbyId, toast]);
 
   // Get teammate for a player
-  const getTeammate = useCallback((playerId: string): { id: string; name: string } | null => {
-    for (const team of teams) {
-      const playerInTeam = team.players.find(p => p.id === playerId);
-      if (playerInTeam) {
-        const teammate = team.players.find(p => p.id !== playerId);
-        return teammate || null;
-      }
-    }
-    return null;
-  }, [teams]);
+  const getTeammate = useCallback(
+    (playerId: string) => findTeammate(teams, playerId),
+    [teams],
+  );
 
   // Get team number for a player
-  const getPlayerTeam = useCallback((playerId: string): number | null => {
-    for (const team of teams) {
-      if (team.players.some(p => p.id === playerId)) {
-        return team.teamNumber;
-      }
-    }
-    return null;
-  }, [teams]);
+  const getPlayerTeam = useCallback(
+    (playerId: string) => findPlayerTeam(teams, playerId),
+    [teams],
+  );
 
   // Clear teams
   const clearTeams = useCallback(async () => {
