@@ -27,7 +27,6 @@ export const GameCursor = () => {
 
     const syncEnabled = () => {
       setEnabled(mediaQuery.matches && !reduceMotion.matches);
-      document.body.classList.toggle("game-cursor-enabled", mediaQuery.matches && !reduceMotion.matches);
     };
 
     const onMove = (event: MouseEvent) => {
@@ -81,7 +80,6 @@ export const GameCursor = () => {
 
     return () => {
       cancelAnimationFrame(raf);
-      document.body.classList.remove("game-cursor-enabled");
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("mouseup", onUp);
@@ -89,6 +87,21 @@ export const GameCursor = () => {
       reduceMotion.removeEventListener("change", syncEnabled);
     };
   }, []);
+
+  /**
+   * Le curseur natif n'est masqué que si le curseur dessiné le remplace vraiment.
+   *
+   * La classe était posée dès que le pointeur était fin, avant même de savoir si
+   * ce composant allait s'afficher. En mode Ink — l'expérience par défaut — il
+   * renvoie `null` : le curseur natif restait donc masqué sans remplacement, et
+   * la souris devenait invisible dans toute l'application.
+   */
+  const cursorVisible = enabled && !isInkMode;
+
+  useEffect(() => {
+    document.body.classList.toggle("game-cursor-enabled", cursorVisible);
+    return () => document.body.classList.remove("game-cursor-enabled");
+  }, [cursorVisible]);
 
   useEffect(() => {
     const classNames = [
@@ -114,7 +127,7 @@ export const GameCursor = () => {
     };
   }, [loadout.effectTier, loadout.frameTier]);
 
-  if (!enabled || isInkMode) return null;
+  if (!cursorVisible) return null;
 
   return (
     <>
