@@ -28,7 +28,13 @@ import { SubmissionStatus } from "@/components/SubmissionStatus";
 import { LobbyChat } from "@/components/LobbyChat";
 import { cn } from "@/lib/utils";
 import { CircularGallery } from "@/components/ui/circular-gallery";
-import { generateRhythmoTrack, releaseRhythmoWorker, warmRhythmoWorker } from "@/lib/rhythmo/generate";
+import {
+  generateRhythmoTrack,
+  generateRhythmoTrackFromUrl,
+  releaseRhythmoWorker,
+  warmRhythmoWorker,
+} from "@/lib/rhythmo/generate";
+import { AssemblyAiUnavailableError } from "@/lib/rhythmo/assemblyai";
 import { isLikelyDecodable } from "@/lib/rhythmo/audio";
 import { downloadMediaBlob } from "@/lib/rhythmo/media";
 import { listRhythmoTracks } from "@/lib/rhythmo/store";
@@ -410,9 +416,38 @@ export const VideoSubmissionScreen = ({
   };
 
   /**
+   * Résoudre l'URL d'un clip stocké.
+   *
+   * Signer une URL enchaîne une lecture en base et un appel Storage, et aucun
+   * des deux n'a de délai propre. Sans borne, ils laissaient le panneau bloqué
+   * sur « 0 Mo reçus » dès que Supabase ralentissait, puisque le chien de garde
+   * du téléchargement n'avait pas encore démarré.
+   */
+  const resolveClipUrl = async (
+    clip: VideoClip,
+    signal: AbortSignal,
+    forceRefresh: boolean,
+  ): Promise<string | null> => {
+    if (signal.aborted) throw new RhythmoError('cancelled', 'Annulé.');
+    return withTimeout(
+      videoStorage.getVideoUrl(clip.id, forceRefresh),
+      20_000,
+      "L'accès à la vidéo stockée n'a pas répondu.",
+    ).catch((error: unknown) => {
+      throw new RhythmoError(
+        'network',
+        error instanceof Error ? error.message : "Accès à la vidéo impossible.",
+      );
+    });
+  };
+
+  /**
    * Get the media for a clip. Prefers the File from this session's import;
    * otherwise downloads the clip back from storage, which is what makes it
    * possible to add a band to a clip imported before.
+   *
+   * Ce chemin ne sert plus qu'au repli Whisper local : AssemblyAI travaille
+   * directement depuis l'URL, sans faire télécharger la vidéo au navigateur.
    */
   const getClipMedia = async (
     clip: VideoClip,
@@ -422,25 +457,7 @@ export const VideoSubmissionScreen = ({
     const local = importedFilesRef.current[clip.id];
     if (local) return { blob: local, fileName: local.name };
 
-    /**
-     * Resolving a signed URL is a database read plus a Storage call, and
-     * neither has a timeout of its own. Unbounded, they left the panel sitting
-     * on "0 Mo reçus" for ever whenever Supabase was degraded, because the
-     * download watchdog had not started yet.
-     */
-    const resolveUrl = async (forceRefresh: boolean): Promise<string | null> => {
-      if (signal.aborted) throw new RhythmoError('cancelled', 'Annulé.');
-      return withTimeout(
-        videoStorage.getVideoUrl(clip.id, forceRefresh),
-        20_000,
-        "L'accès à la vidéo stockée n'a pas répondu.",
-      ).catch((error: unknown) => {
-        throw new RhythmoError(
-          'network',
-          error instanceof Error ? error.message : "Accès à la vidéo impossible.",
-        );
-      });
-    };
+    const resolveUrl = (forceRefresh: boolean) => resolveClipUrl(clip, signal, forceRefresh);
 
     let url = clipUrls[clip.id] ?? (await resolveUrl(false));
     if (!url) throw new RhythmoError('network', 'Vidéo introuvable.');
@@ -493,14 +510,9 @@ export const VideoSubmissionScreen = ({
           clipName: clip.name,
           index: index + 1,
           total: clips.length,
-          progress: local
-            ? {
-                phase: 'reading-media',
-                loadedBytes: 0,
-                totalBytes: local.size,
-                ratio: 0,
-              }
-            : { phase: 'downloading-media', loadedBytes: 0 },
+          // On commence par le service distant : il n'y a donc rien à
+          // télécharger ni à décoder à cet instant.
+          progress: { phase: 'transcribing' },
         });
 
         const updateProgress = (progress: RhythmoProgress) => {
@@ -511,20 +523,64 @@ export const VideoSubmissionScreen = ({
 
         try {
           console.info('[rythmo] début', clip.name);
-          const { blob, fileName } = await getClipMedia(
-            clip,
-            controller.signal,
-            updateProgress,
-          );
 
-          if (!isLikelyDecodable(fileName)) {
-            throw new RhythmoError('unsupported-container', 'Format non décodable.');
+          /**
+           * Chemin privilégié : AssemblyAI télécharge la vidéo depuis le
+           * Storage avec ses propres serveurs. Le navigateur n'a aucun octet de
+           * vidéo à récupérer, ce qui est décisif sur les clips de 50 Mo et
+           * plus, et la qualité ne dépend plus de la machine du joueur.
+           */
+          const remoteUrl =
+            clipUrls[clip.id] ??
+            (await resolveClipUrl(clip, controller.signal, false).catch((error: unknown) => {
+              if (error instanceof RhythmoError && error.reason === 'cancelled') throw error;
+              return null;
+            }));
+
+          let generated = false;
+
+          if (remoteUrl) {
+            try {
+              await generateRhythmoTrackFromUrl(clip.id, remoteUrl, {
+                signal: controller.signal,
+                onProgress: updateProgress,
+              });
+              generated = true;
+            } catch (error) {
+              // Seule une indisponibilité du service justifie le repli local ;
+              // une absence de parole ou un échec d'enregistrement, non.
+              if (!(error instanceof AssemblyAiUnavailableError)) throw error;
+              console.warn(
+                '[rythmo] AssemblyAI indisponible, repli sur le moteur local :',
+                error.reason,
+                error.message,
+              );
+            }
           }
 
-          await generateRhythmoTrack(clip.id, blob, fileName, {
-            signal: controller.signal,
-            onProgress: updateProgress,
-          });
+          if (!generated) {
+            // Repli Whisper local : ici, il faut bien la vidéo côté navigateur.
+            updateProgress(
+              local
+                ? { phase: 'reading-media', loadedBytes: 0, totalBytes: local.size, ratio: 0 }
+                : { phase: 'downloading-media', loadedBytes: 0 },
+            );
+
+            const { blob, fileName } = await getClipMedia(
+              clip,
+              controller.signal,
+              updateProgress,
+            );
+
+            if (!isLikelyDecodable(fileName)) {
+              throw new RhythmoError('unsupported-container', 'Format non décodable.');
+            }
+
+            await generateRhythmoTrack(clip.id, blob, fileName, {
+              signal: controller.signal,
+              onProgress: updateProgress,
+            });
+          }
 
           console.info('[rythmo] terminé', clip.name);
           setRhythmoReady((previous) => ({ ...previous, [clip.id]: true }));

@@ -1,8 +1,20 @@
 /**
- * Orchestrates one clip's transcription: read/decode audio, run Whisper in a
- * worker, group words into phrases, then persist the deterministic cue file.
+ * Orchestre la transcription d'un clip, par deux chemins.
+ *
+ * - `generateRhythmoTrackFromUrl` (privilégié) : AssemblyAI transcrit depuis
+ *   l'URL du clip, sans que le navigateur télécharge la vidéo.
+ * - `generateRhythmoTrack` (repli) : lecture/décodage de l'audio, Whisper dans
+ *   un worker, puis passe Gemini pour corriger le texte.
+ *
+ * Les deux terminent pareil : regroupement des mots en phrases, puis écriture
+ * du fichier de cues à son chemin déterministe.
  */
 import { supabase } from '@/integrations/supabase/client';
+import {
+  ASSEMBLYAI_MODEL_ID,
+  AssemblyAiUnavailableError,
+  transcribeWithAssemblyAi,
+} from './assemblyai';
 import { extractMonoPcm } from './audio';
 import { saveRhythmoTrack } from './store';
 import {
@@ -141,6 +153,75 @@ export interface GenerateRhythmoOptions {
   signal?: AbortSignal;
   onProgress?: ProgressCallback;
   language?: string;
+}
+
+/**
+ * Générer la bande depuis l'URL du clip, via AssemblyAI.
+ *
+ * Chemin privilégié : le clip n'est jamais téléchargé par le navigateur, c'est
+ * AssemblyAI qui va le chercher dans le Storage. Sur les clips lourds, cela
+ * supprime à la fois le temps de téléchargement et la saturation de connexions.
+ *
+ * Pas de passe Gemini ici : AssemblyAI ponctue et met en forme déjà, alors que
+ * cette passe existait pour rattraper les hallucinations de Whisper. Elle reste
+ * active sur le chemin local, dans `generateRhythmoTrack`.
+ *
+ * Lève `AssemblyAiUnavailableError` si l'appelant doit basculer sur Whisper.
+ */
+export async function generateRhythmoTrackFromUrl(
+  clipId: string,
+  audioUrl: string,
+  options: GenerateRhythmoOptions = {},
+): Promise<RhythmoTrack> {
+  const runId = newRunId();
+  if (activeGenerationRunId) {
+    throw new RhythmoError('engine', 'Une génération de bande est déjà en cours.');
+  }
+  activeGenerationRunId = runId;
+
+  try {
+    if (options.signal?.aborted) throw new RhythmoError('cancelled', 'Annulé.');
+
+    options.onProgress?.({ phase: 'transcribing' });
+
+    const result = await transcribeWithAssemblyAi(audioUrl, {
+      signal: options.signal,
+      languageCode: options.language,
+    });
+
+    if (result.words.length === 0) {
+      throw new RhythmoError('no-speech', "Aucune parole n'a été détectée dans cet extrait.");
+    }
+
+    const track: RhythmoTrack = {
+      version: 1,
+      clipId,
+      language: result.language,
+      model: ASSEMBLYAI_MODEL_ID,
+      // `duration` sert d'échelle à la bande : la valeur rapportée par le
+      // service est préférable, avec la fin du dernier mot comme filet.
+      duration: result.duration ?? result.words[result.words.length - 1].end,
+      createdAt: new Date().toISOString(),
+      cues: groupIntoCues(result.words),
+    };
+
+    options.onProgress?.({ phase: 'saving' });
+    await saveRhythmoTrack(track, { signal: options.signal });
+    options.onProgress?.({ phase: 'done' });
+    return track;
+  } catch (error) {
+    // Une indisponibilité du service n'est pas un échec à afficher : elle
+    // remonte telle quelle pour que l'appelant tente le moteur local.
+    if (error instanceof AssemblyAiUnavailableError) throw error;
+
+    const typed = error instanceof RhythmoError
+      ? error
+      : new RhythmoError('engine', error instanceof Error ? error.message : 'Erreur inconnue.');
+    options.onProgress?.({ phase: 'error', reason: typed.reason, message: typed.message });
+    throw typed;
+  } finally {
+    if (activeGenerationRunId === runId) activeGenerationRunId = null;
+  }
 }
 
 export async function generateRhythmoTrack(
