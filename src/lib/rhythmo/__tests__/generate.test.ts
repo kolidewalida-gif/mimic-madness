@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   saveRhythmoTrack: vi.fn(),
   postMessage: vi.fn(),
   terminate: vi.fn(),
+  functionsInvoke: vi.fn(),
 }));
 
 vi.mock('@/lib/rhythmo/audio', () => ({
@@ -14,6 +15,14 @@ vi.mock('@/lib/rhythmo/audio', () => ({
 
 vi.mock('@/lib/rhythmo/store', () => ({
   saveRhythmoTrack: mocks.saveRhythmoTrack,
+}));
+
+// Keep the Gemini text-refinement call offline and deterministic. By default it
+// declines to refine, so tests observe Whisper's raw output.
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    functions: { invoke: mocks.functionsInvoke },
+  },
 }));
 
 type Listener = (event: MessageEvent) => void;
@@ -72,6 +81,7 @@ beforeEach(async () => {
     duration: 1,
   });
   mocks.saveRhythmoTrack.mockResolvedValue(undefined);
+  mocks.functionsInvoke.mockResolvedValue({ data: { refined: false }, error: null });
 
   const generateModule = await import('@/lib/rhythmo/generate');
   generateRhythmoTrack = generateModule.generateRhythmoTrack;
@@ -103,6 +113,54 @@ describe('rhythmo generation run correlation', () => {
     const track = await promise;
     expect(track.model).toBe('tiny');
     expect(track.cues).toHaveLength(1);
+  });
+
+  it('applies Gemini-corrected text while keeping Whisper timings', async () => {
+    // Gemini returns the same number of words, corrected.
+    mocks.functionsInvoke.mockResolvedValue({
+      data: { words: ['Salut', 'toi'], refined: true, model: 'gemini-2.5-flash' },
+      error: null,
+    });
+
+    const promise = generateRhythmoTrack('clip-1', new Blob(['x']), 'clip.mp4');
+    await vi.waitFor(() => expect(mocks.postMessage).toHaveBeenCalled());
+    const worker = lastWorker();
+    worker.emit({ type: 'model-ready', runId: lastRunId(), model: 'tiny' });
+    worker.emit({
+      type: 'done',
+      runId: lastRunId(),
+      model: 'tiny',
+      words: [
+        { text: 'slt', start: 0.1, end: 0.4 },
+        { text: 'toi', start: 0.5, end: 0.8 },
+      ],
+    });
+
+    const track = await promise;
+    expect(track.model).toBe('tiny+gemini');
+    // Text comes from Gemini, timings stay exactly as Whisper measured them.
+    expect(track.cues[0].words).toEqual([
+      { text: 'Salut', start: 0.1, end: 0.4 },
+      { text: 'toi', start: 0.5, end: 0.8 },
+    ]);
+  });
+
+  it('keeps Whisper words when Gemini returns a mismatched count', async () => {
+    // A wrong-length reply must never be applied (it would desync timings).
+    mocks.functionsInvoke.mockResolvedValue({
+      data: { words: ['Salut'], refined: true },
+      error: null,
+    });
+
+    const promise = generateRhythmoTrack('clip-1', new Blob(['x']), 'clip.mp4');
+    await vi.waitFor(() => expect(mocks.postMessage).toHaveBeenCalled());
+    const worker = lastWorker();
+    worker.emit({ type: 'model-ready', runId: lastRunId(), model: 'tiny' });
+    worker.emit({ type: 'done', runId: lastRunId(), model: 'tiny', words });
+
+    const track = await promise;
+    expect(track.model).toBe('tiny');
+    expect(track.cues[0].words.map((w) => w.text)).toEqual(['salut', 'toi']);
   });
 
   it('publishes the saving phase and persists through the store', async () => {

@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.generate-adaptive-music]
 verify_jwt = true
+
+[functions.refine-rhythmo-text]
+verify_jwt = false

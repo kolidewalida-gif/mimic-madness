@@ -2,6 +2,7 @@
  * Orchestrates one clip's transcription: read/decode audio, run Whisper in a
  * worker, group words into phrases, then persist the deterministic cue file.
  */
+import { supabase } from '@/integrations/supabase/client';
 import { extractMonoPcm } from './audio';
 import { saveRhythmoTrack } from './store';
 import {
@@ -167,14 +168,20 @@ export async function generateRhythmoTrack(
       throw new RhythmoError('no-speech', "Aucune parole n'a été détectée dans cet extrait.");
     }
 
+    // Text quality pass: Whisper nails the *timing* but often mishears words.
+    // Gemini corrects the spelling/accents/punctuation while we keep Whisper's
+    // per-word start/end. Best of both. Never blocks: on quota/error/no-key the
+    // raw Whisper words are used unchanged.
+    const { words: finalWords, refined } = await refineWordTextsWithGemini(words, options);
+
     const track: RhythmoTrack = {
       version: 1,
       clipId,
-      model,
+      model: refined ? `${model}+gemini` : model,
       device: 'wasm',
       duration,
       createdAt: new Date().toISOString(),
-      cues: groupIntoCues(words),
+      cues: groupIntoCues(finalWords),
     };
 
     options.onProgress?.({ phase: 'saving' });
@@ -285,6 +292,45 @@ function transcribeInWorker(
     };
     instance.postMessage(request, [samples.buffer]);
   });
+}
+
+/**
+ * Replace each Whisper word's text with a Gemini-corrected version, keeping the
+ * exact same start/end timings. Strictly defensive: the corrected list must
+ * have the same length, or we keep Whisper's text so timing never desyncs.
+ */
+async function refineWordTextsWithGemini(
+  words: RhythmoWord[],
+  options: GenerateRhythmoOptions,
+): Promise<{ words: RhythmoWord[]; refined: boolean }> {
+  if (options.signal?.aborted) return { words, refined: false };
+  try {
+    const { data, error } = await supabase.functions.invoke('refine-rhythmo-text', {
+      body: { words: words.map((word) => word.text), language: options.language },
+    });
+
+    const corrected = (data as { words?: unknown; refined?: unknown } | null)?.words;
+    const refined = (data as { refined?: unknown } | null)?.refined === true;
+
+    if (
+      error ||
+      !refined ||
+      !Array.isArray(corrected) ||
+      corrected.length !== words.length ||
+      !corrected.every((word) => typeof word === 'string')
+    ) {
+      return { words, refined: false };
+    }
+
+    const merged = words.map((word, index) => {
+      const text = (corrected[index] as string).trim();
+      return text ? { ...word, text } : word;
+    });
+    return { words: merged, refined: true };
+  } catch {
+    // Network/quota/parse failure: keep Whisper's words, band still works.
+    return { words, refined: false };
+  }
 }
 
 const readMeasuredSpeed = (): number | undefined => {
