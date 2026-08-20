@@ -13,6 +13,7 @@ import {
   Trash2,
   Loader2,
   Mic,
+  Eye,
 } from "lucide-react";
 import {
   videoStorage,
@@ -32,6 +33,7 @@ import { isLikelyDecodable } from "@/lib/rhythmo/audio";
 import { downloadMediaBlob } from "@/lib/rhythmo/media";
 import { listRhythmoTracks } from "@/lib/rhythmo/store";
 import { RhythmoError, rhythmoErrorLabel, type RhythmoProgress } from "@/lib/rhythmo/types";
+import { RhythmoPreviewDialog } from "@/components/rhythmo/RhythmoPreviewDialog";
 
 interface Player {
   id: string;
@@ -185,6 +187,8 @@ export const VideoSubmissionScreen = ({
     remainingMs: number;
     elapsedMs: number;
   } | null>(null);
+  /** Clip currently shown in the rythmo preview dialog, if any. */
+  const [previewClip, setPreviewClip] = useState<VideoClip | null>(null);
 
   // Start pulling the model as soon as this screen opens. The ~80 MB download
   // has nothing to do with the videos, so it may as well run while the player
@@ -1008,6 +1012,26 @@ export const VideoSubmissionScreen = ({
                           const clip = savedClips.find((c) => c.id === id);
                           if (!clip) return null;
                           const ready = rhythmoReady[clip.id] === true;
+                          const canPreview = ready && !!clipUrls[clip.id];
+                          if (canPreview) {
+                            // Ready clips become a preview button: click to see
+                            // exactly how the band renders on the video.
+                            return (
+                              <button key={clip.id} type="button"
+                                onClick={() => setPreviewClip(clip)}
+                                title="Aperçu de la bande rythmo"
+                                className="inline-flex items-center gap-1 max-w-[48%] text-[10px] font-black px-2 py-0.5 rounded-full transition-transform hover:scale-[1.03]"
+                                style={{
+                                  fontFamily: "'Outfit', sans-serif",
+                                  color: "#34d399",
+                                  border: "1px solid var(--ink-line)",
+                                  background: "rgba(52,211,153,0.08)",
+                                }}>
+                                <Eye className="w-3 h-3 shrink-0" strokeWidth={2.5} />
+                                <span className="truncate">{clip.name}</span>
+                              </button>
+                            );
+                          }
                           return (
                             <span key={clip.id}
                               className="max-w-[48%] truncate text-[10px] font-black px-2 py-0.5 rounded-full"
@@ -1040,7 +1064,24 @@ export const VideoSubmissionScreen = ({
                             : `Générer la bande rythmo (${rhythmoTargets.length})`}
                         </span>
                       </motion.button>
+
+                      {selectedClips.some((id) => rhythmoReady[id] === true && !!clipUrls[id]) && (
+                        <p className="flex items-center justify-center gap-1 text-[10px] font-black text-white/45"
+                          style={{ fontFamily: "'Outfit', sans-serif" }}>
+                          <Eye className="w-3 h-3" strokeWidth={2.5} />
+                          Clique un clip <span className="text-[#34d399]">vert</span> pour prévisualiser le rendu.
+                        </p>
+                      )}
                     </div>
+                  )}
+
+                  {previewClip && clipUrls[previewClip.id] && (
+                    <RhythmoPreviewDialog
+                      clipId={previewClip.id}
+                      clipName={previewClip.name}
+                      videoUrl={clipUrls[previewClip.id]}
+                      onClose={() => setPreviewClip(null)}
+                    />
                   )}
 
                   {/* Wipe + Submit buttons */}
