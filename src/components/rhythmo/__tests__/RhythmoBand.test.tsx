@@ -28,6 +28,37 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Prend la main sur la boucle d'animation pour la dérouler image par image. */
+const stubAnimationFrames = () => {
+  let nextFrameId = 0;
+  const frames = new Map<number, FrameRequestCallback>();
+  const requestAnimationFrameMock = vi.fn((callback: FrameRequestCallback) => {
+    nextFrameId += 1;
+    frames.set(nextFrameId, callback);
+    return nextFrameId;
+  });
+  const cancelAnimationFrameMock = vi.fn((frameId: number) => {
+    frames.delete(frameId);
+  });
+  vi.stubGlobal('requestAnimationFrame', requestAnimationFrameMock);
+  vi.stubGlobal('cancelAnimationFrame', cancelAnimationFrameMock);
+
+  const runNextFrame = () => {
+    const entry = frames.entries().next().value as [number, FrameRequestCallback] | undefined;
+    expect(entry).toBeDefined();
+    if (!entry) return;
+    frames.delete(entry[0]);
+    act(() => entry[1](0));
+  };
+
+  return {
+    frames,
+    runNextFrame,
+    cancelAnimationFrameMock,
+    lastFrameId: () => nextFrameId,
+  };
+};
+
 describe('RhythmoBand temporal renderer', () => {
   it('uses the lead for movement, highlighting and past words, then cancels RAF', () => {
     let nextFrameId = 0;
@@ -86,5 +117,84 @@ describe('RhythmoBand temporal renderer', () => {
     view.unmount();
     expect(cancelAnimationFrameMock).toHaveBeenCalledWith(pendingFrameId);
     expect(frames.has(pendingFrameId)).toBe(false);
+  });
+
+  it('continue de défiler quand le mouvement réduit est demandé', () => {
+    /*
+     * Régression vécue : la bande restait figée sur les premiers mots chez un
+     * joueur ayant désactivé les animations dans Windows. Le défilement porte
+     * l'information de timing, il n'est pas décoratif : le suspendre rend le
+     * mode imitation injouable.
+     */
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    );
+    const rafHarness = stubAnimationFrames();
+
+    const video = document.createElement('video');
+    Object.defineProperty(video, 'currentTime', { value: 1.5, writable: true });
+    const videoRef = { current: video } as RefObject<HTMLVideoElement>;
+    const view = render(
+      <RhythmoBand
+        track={track}
+        videoRef={videoRef}
+        pxPerSecond={100}
+        playheadRatio={0.2}
+        leadSeconds={0.5}
+      />,
+    );
+
+    const viewport = view.container.querySelector('.rb-viewport') as HTMLDivElement;
+    const strip = view.container.querySelector('.rb-strip') as HTMLDivElement;
+    Object.defineProperty(viewport, 'clientWidth', { value: 500 });
+
+    rafHarness.runNextFrame();
+    expect(strip.style.transform).toBe('translate3d(-100px,0,0)');
+
+    // Le temps avance : la bande doit suivre, pas rester au point de départ.
+    video.currentTime = 2;
+    rafHarness.runNextFrame();
+    expect(strip.style.transform).toBe('translate3d(-150px,0,0)');
+
+    // La transcription fixe reste offerte, en complément et non en remplacement.
+    expect(view.container.querySelector('.rb-static')).not.toBeNull();
+  });
+
+  it('suit le temps sans reparcourir tous les mots à chaque image', () => {
+    const rafHarness = stubAnimationFrames();
+
+    const video = document.createElement('video');
+    Object.defineProperty(video, 'currentTime', { value: 0, writable: true });
+    const videoRef = { current: video } as RefObject<HTMLVideoElement>;
+    const view = render(
+      <RhythmoBand track={track} videoRef={videoRef} pxPerSecond={100} playheadRatio={0} />,
+    );
+
+    const viewport = view.container.querySelector('.rb-viewport') as HTMLDivElement;
+    const wordNodes = Array.from(view.container.querySelectorAll('.rb-word'));
+    Object.defineProperty(viewport, 'clientWidth', { value: 500 });
+
+    rafHarness.runNextFrame();
+    expect(wordNodes.map((node) => node.classList.contains('is-past'))).toEqual([false, false]);
+
+    // Après le premier mot, seul celui-là est estompé.
+    video.currentTime = 1.5;
+    rafHarness.runNextFrame();
+    expect(wordNodes.map((node) => node.classList.contains('is-past'))).toEqual([true, false]);
+
+    // Après le dernier, les deux le sont.
+    video.currentTime = 2.5;
+    rafHarness.runNextFrame();
+    expect(wordNodes.map((node) => node.classList.contains('is-past'))).toEqual([true, true]);
+
+    // Retour en arrière : la frontière doit redescendre, pas rester bloquée.
+    video.currentTime = 0.8;
+    rafHarness.runNextFrame();
+    expect(wordNodes.map((node) => node.classList.contains('is-past'))).toEqual([false, false]);
   });
 });

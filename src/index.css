@@ -3953,7 +3953,8 @@ body.ink-mode .glass-nav {
   background: linear-gradient(to left, #14121c, rgba(20, 18, 28, 0));
 }
 
-/* Shown instead of the scroll for `prefers-reduced-motion`.
+/* Complément affiché sous la bande pour `prefers-reduced-motion` — la bande
+   continue de défiler, car son mouvement porte l'information de timing.
    Bornée en hauteur : une transcription complète peut faire des centaines de
    mots et débordait du cadre au lieu de défiler. */
 .rb-static {

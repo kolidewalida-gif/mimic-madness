@@ -68,6 +68,8 @@ const RhythmoBandComponent = ({
   const frameRef = useRef<number>(0);
   /** Index of the word under the playhead, mirrored in the DOM via classes. */
   const activeRef = useRef<number>(-1);
+  /** Nombre de mots déjà marqués comme passés, en partant du début. */
+  const pastCountRef = useRef<number>(0);
   const wordNodesRef = useRef<(HTMLSpanElement | null)[]>([]);
   const [reducedMotion, setReducedMotion] = useState(false);
 
@@ -102,9 +104,23 @@ const RhythmoBandComponent = ({
 
   useEffect(() => {
     if (placed.length === 0) return;
-    // Mouvement réduit demandé : on affiche la transcription fixe plus bas, donc
-    // animer la bande en même temps serait à la fois contradictoire et inutile.
-    if (reducedMotion) return;
+
+    /**
+     * Le défilement n'est PAS décoratif : c'est lui qui porte l'information de
+     * timing, il indique quoi dire et à quel instant. Le suspendre sous
+     * `prefers-reduced-motion` figeait la bande sur les premiers mots et rendait
+     * le mode imitation injouable — l'équivalent de masquer des sous-titres.
+     *
+     * La préférence est honorée là où elle a du sens : les transitions
+     * décoratives par mot sont neutralisées par la règle globale du CSS, et la
+     * transcription complète est affichée en complément sous la bande. Le
+     * critère « pouvoir mettre en pause » est satisfait par les contrôles de la
+     * vidéo, puisque la bande suit `video.currentTime`.
+     */
+    // Nouveau montage ou nouvelle piste : les repères de l'ancienne n'ont plus
+    // de sens et feraient repartir la recherche depuis un index périmé.
+    activeRef.current = -1;
+    pastCountRef.current = 0;
 
     const tick = () => {
       const video = videoRef.current;
@@ -130,15 +146,25 @@ const RhythmoBandComponent = ({
           activeRef.current = next;
         }
 
-        // Past words stay dimmed so the player sees what is already gone.
-        for (let i = 0; i < placed.length; i += 1) {
-          const node = wordNodesRef.current[i];
-          if (!node) continue;
-          const isPast = timelineTime > placed[i].end;
-          if (isPast !== node.classList.contains('is-past')) {
-            node.classList.toggle('is-past', isPast);
-          }
+        /**
+         * Les mots passés restent estompés pour montrer ce qui est déjà dit.
+         *
+         * Seule la frontière est déplacée, au lieu de reparcourir la liste à
+         * chaque image : une transcription de trois minutes fait plusieurs
+         * centaines de mots, ce qui donnait des dizaines de milliers de lectures
+         * de `classList` par seconde pour ne changer qu'un mot. Les deux boucles
+         * gèrent aussi le retour arrière après un déplacement dans la vidéo.
+         */
+        let count = pastCountRef.current;
+        while (count < placed.length && timelineTime > placed[count].end) {
+          wordNodesRef.current[count]?.classList.add('is-past');
+          count += 1;
         }
+        while (count > 0 && timelineTime <= placed[count - 1].end) {
+          count -= 1;
+          wordNodesRef.current[count]?.classList.remove('is-past');
+        }
+        pastCountRef.current = count;
       }
 
       frameRef.current = requestAnimationFrame(tick);
@@ -146,7 +172,7 @@ const RhythmoBandComponent = ({
 
     frameRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [placed, videoRef, pxPerSecond, playheadRatio, leadSeconds, reducedMotion]);
+  }, [placed, videoRef, pxPerSecond, playheadRatio, leadSeconds]);
 
   if (!track || placed.length === 0) return null;
 
@@ -190,6 +216,8 @@ const RhythmoBandComponent = ({
         <span className="rb-fade rb-fade--right" />
       </div>
 
+      {/* Complément, pas remplacement : la bande continue de défiler, et le
+          texte complet est offert en plus à qui préfère un support fixe. */}
       {reducedMotion && (
         <p className="rb-static">
           {track.cues.map((cue) => cue.text).join(' · ')}
