@@ -12,6 +12,8 @@ import {
   PULP_FONT,
 } from '@/components/audiophone/PulpComic';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { useStagedTask } from '@/hooks/useStagedTask';
+import { ProcessingOverlay } from '@/components/ProcessingOverlay';
 import { processStreamWithNoiseReduction } from '@/hooks/useNoiseReduction';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 
@@ -111,6 +113,7 @@ export const AudioPhoneImitationPhase = ({
   const [hasListened, setHasListened] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const staged = useStagedTask();
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
 
@@ -233,7 +236,14 @@ export const AudioPhoneImitationPhase = ({
 
   const handleSubmit = async () => {
     if (!recordedBlob) return;
-    const success = await onSubmitImitation(recordedBlob);
+    // Même mise en scène que la phase d'enregistrement : l'imitation est
+    // inversée puis envoyée, ce n'est pas instantané.
+    const success = await staged.run(() => onSubmitImitation(recordedBlob), {
+      label: 'Inversion de ton imitation…',
+      minDurationMs: 6_000,
+      sound: 'processRewind',
+      endSound: 'processDone',
+    });
     if (success) {
       setRecordedBlob(null);
       setHasListened(false);
@@ -373,6 +383,7 @@ export const AudioPhoneImitationPhase = ({
   /* ---------- LISTEN + IMITATE ---------- */
   return (
     <PulpStage accent={BLUE} accent2={PULP.red}>
+      <ProcessingOverlay state={staged.state} icon="⏪" accent={BLUE} />
       <div className="relative min-h-screen flex items-center justify-center p-5 pb-[120px]">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 12, filter: 'blur(6px)' }}

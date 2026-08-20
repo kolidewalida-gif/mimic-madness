@@ -133,9 +133,21 @@ describe('couche d’échantillons', () => {
     await prefetchSfxSamples();
     await flush();
 
-    // `ui-hover` porte une correction de niveau de 0,7.
+    /*
+     * L'invariant est « volume demandé × correction de l'échantillon × volume
+     * global ». La correction est lue dans le manifeste : la coder en dur
+     * casserait le test à chaque réglage du mixage.
+     */
+    const manifest = JSON.parse(
+      readFileSync(resolve(process.cwd(), 'src/lib/sfx/manifest.json'), 'utf8')
+        .replace(/^\uFEFF/, ''),
+    );
+    const hoverGain = manifest.samples.find(
+      (sample: { id: string }) => sample.id === 'ui-hover',
+    ).gain;
+
     playSample('hover', 1);
-    expect(context.gains.at(-1)).toBeCloseTo(0.35);
+    expect(context.gains.at(-1)).toBeCloseTo(hoverGain * 0.5);
   });
 
   it('borne un volume aberrant au lieu de faire lever l’API', async () => {
@@ -208,6 +220,49 @@ describe('cohérence du manifeste avec les fichiers générés', () => {
       'voteUp', 'voteDown',
     ]) {
       expect(names.has(expected), `alias absent : ${expected}`).toBe(true);
+    }
+  });
+
+  it('couvre les invitations et le chat', () => {
+    // Ces événements empruntaient des sons sans rapport : le carillon des succès
+    // débloqués pour une invitation reçue, le son de clic pour un message.
+    const names = new Set(knownSampleNames());
+    for (const expected of [
+      'inviteReceived', 'inviteSent', 'inviteAccepted', 'inviteDeclined',
+      'messageSend', 'messageReceive',
+    ]) {
+      expect(names.has(expected), `alias absent : ${expected}`).toBe(true);
+    }
+  });
+
+  it('couvre chaque mode de jeu et l’étape de traitement', () => {
+    /*
+     * Les noms de mode sont dérivés du mode dans `Index.handleStartGame`
+     * (`mode` + capitale). Un mode sans son y retomberait sur le `start`
+     * générique, ce qui passerait inaperçu.
+     */
+    const names = new Set(knownSampleNames());
+    for (const mode of [
+      'normal', '2v2', 'quiz', 'audiophone', 'pixoguess',
+      'monopoly', 'undercover', 'memorise', 'mimic',
+    ]) {
+      const alias = `mode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
+      expect(names.has(alias), `son de mode absent : ${alias}`).toBe(true);
+    }
+    for (const expected of ['processRewind', 'processLoading', 'processDone']) {
+      expect(names.has(expected), `alias absent : ${expected}`).toBe(true);
+    }
+  });
+
+  it('donne aux sons d’attente une durée suffisante pour être bouclés', () => {
+    // Un son d'attente trop court s'entendrait boucler pendant les 6 s d'étape.
+    const manifest = JSON.parse(
+      readFileSync(resolve(process.cwd(), 'src/lib/sfx/manifest.json'), 'utf8')
+        .replace(/^\uFEFF/, ''),
+    );
+    for (const id of ['process-rewind', 'process-loading']) {
+      const sample = manifest.samples.find((s: { id: string }) => s.id === id);
+      expect(sample.durationSeconds, `${id} trop court`).toBeGreaterThanOrEqual(5);
     }
   });
 });

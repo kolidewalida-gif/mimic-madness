@@ -118,6 +118,71 @@ export const playSample = (name: string, volume = 0.5): boolean => {
   }
 };
 
+export interface SustainedSample {
+  /** Coupe le son avec un court fondu, pour éviter un clic à l'arrêt. */
+  stop: () => void;
+}
+
+/**
+ * Joue un échantillon long en boucle, jusqu'à ce que l'appelant l'arrête.
+ *
+ * Sert aux sons qui accompagnent une attente — le rembobinage pendant
+ * l'inversion des audios, par exemple. La boucle permet de couvrir une attente
+ * plus longue que le fichier sans avoir à générer un son de trente secondes.
+ *
+ * Renvoie `null` si rien ne peut être joué : l'appelant continue sans son,
+ * jamais en échec.
+ */
+export const playSustainedSample = (name: string, volume = 0.5): SustainedSample | null => {
+  const sample = byAlias.get(name);
+  if (!sample) return null;
+
+  const entry = cache.get(sample.id);
+  if (!entry) {
+    void load(sample);
+    return null;
+  }
+  if (entry.status !== 'ready') return null;
+
+  const context = getSharedAudioContext();
+  if (!context) return null;
+  if (context.state === 'suspended') registerAudioContext(context);
+
+  try {
+    const source = context.createBufferSource();
+    source.buffer = entry.buffer;
+    source.loop = true;
+
+    const gain = context.createGain();
+    const level = volume * (sample.gain ?? 1) * getSoundEffectsVolume();
+    const safe = Number.isFinite(level) ? Math.max(0, Math.min(1, level)) : 0;
+    gain.gain.value = safe;
+
+    source.connect(gain);
+    gain.connect(context.destination);
+    source.start();
+
+    let stopped = false;
+    return {
+      stop: () => {
+        if (stopped) return;
+        stopped = true;
+        try {
+          const now = context.currentTime;
+          // Fondu de 120 ms : couper net produirait un clic audible.
+          gain.gain.setValueAtTime(gain.gain.value, now);
+          gain.gain.linearRampToValueAtTime(0, now + 0.12);
+          source.stop(now + 0.14);
+        } catch {
+          // Source déjà terminée : rien à faire.
+        }
+      },
+    };
+  } catch {
+    return null;
+  }
+};
+
 /** Précharge tous les échantillons du manifeste. */
 export const prefetchSfxSamples = (): void => {
   for (const sample of SAMPLES) void load(sample);

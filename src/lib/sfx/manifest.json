@@ -4,131 +4,366 @@
     "Lu par `scripts/generate-sfx.mjs` (génération hors ligne via ElevenLabs) et",
     "par `src/lib/sfx/samples.ts` (lecture dans le navigateur).",
     "",
-    "`prompt` et `durationSeconds` ne servent qu'à la génération. `aliases` liste",
-    "les noms utilisés dans le code — à la fois les `SoundType` de useSoundEffects",
-    "et les `InkSoundType` de useInkSoundEffects, puisque le thème Ink redirige",
-    "les premiers vers les seconds.",
+    "`style` est ajouté à CHAQUE prompt par le script. C'est ce qui donne une",
+    "identité sonore commune : sans lui, quarante prompts écrits séparément",
+    "produisent quarante sons qui ne vont pas ensemble. Le jeu est un jeu de",
+    "soirée cartoon, pas une application d'entreprise — les sons doivent être",
+    "chauds, ronds et rebondissants.",
     "",
     "ATTENTION : l'API refuse toute durée inférieure à 0,5 s, alors que sa page de",
     "documentation annonce 0,1 s. Vérifié à l'exécution. Un son d'interface plus",
     "court est donc généré à 0,5 s : le silence de fin est inaudible et ne retarde",
     "rien, puisque la lecture n'attend pas la fin du tampon.",
     "",
-    "Tout nom absent d'ici continue d'être synthétisé comme avant : la couche",
-    "d'échantillons ne remplace que ce qui est explicitement listé."
+    "`aliases` liste les noms utilisés dans le code — à la fois les `SoundType` de",
+    "useSoundEffects et les `InkSoundType` de useInkSoundEffects, puisque le thème",
+    "Ink redirige les premiers vers les seconds. Tout nom absent d'ici continue",
+    "d'être synthétisé comme avant."
   ],
+  "style": "Cartoon party game sound effect, warm rounded and bouncy, playful and friendly, clean dry mono recording with no reverb and no music bed, polished mobile game quality",
   "samples": [
     {
       "id": "ui-click",
-      "prompt": "Crisp soft user interface button click, single one-shot, clean and dry, no reverb, subtle and premium",
+      "prompt": "Crisp soft rubbery button click, single one-shot, tight and snappy",
       "durationSeconds": 0.5,
       "gain": 1,
-      "aliases": ["click", "clickSoft", "clickGlass", "inkClick", "cartoonPop", "pop", "selectItem", "toggleOn", "tabSwitch"]
+      "aliases": ["click", "clickSoft", "clickGlass", "clickMechanical", "inkClick", "cartoonPop", "pop", "selectItem", "toggleOn", "tabSwitch"]
     },
     {
       "id": "ui-hover",
-      "prompt": "Very soft subtle user interface hover tick, tiny delicate one-shot, extremely short, airy",
+      "prompt": "Tiny delicate hover tick, feather light, barely there",
       "durationSeconds": 0.5,
-      "gain": 0.7,
-      "aliases": ["hover", "hoverSoft", "hoverMedium", "brushTap", "inkHover"]
+      "gain": 0.6,
+      "aliases": ["hover", "hoverSoft", "hoverMedium", "hoverStrong", "brushTap", "inkHover", "focusIn"]
     },
     {
       "id": "ui-success",
-      "prompt": "Bright cheerful two note confirmation chime, clean user interface success, one-shot, short and shiny",
+      "prompt": "Happy two note confirmation ding, bright little bell, satisfying",
       "durationSeconds": 0.7,
       "gain": 1,
-      "aliases": ["success", "inkSuccess", "cartoonDing", "notifySuccess", "ding", "resolution"]
+      "aliases": ["success", "inkSuccess", "cartoonDing", "notifySuccess", "ding", "resolution", "toggleOff"]
     },
     {
       "id": "ui-error",
-      "prompt": "Soft low error thud, gentle negative user interface feedback, one-shot, muted and not harsh",
-      "durationSeconds": 0.5,
+      "prompt": "Comedic soft descending wrong buzzer, gentle rubber honk, not harsh",
+      "durationSeconds": 0.6,
       "gain": 0.9,
-      "aliases": ["error", "inkError", "notifyError", "quizWrong"]
+      "aliases": ["error", "inkError", "notifyError"]
     },
     {
-      "id": "vote-up",
-      "prompt": "Satisfying bright positive pop followed by a short upward chime, playful approval, one-shot",
+      "id": "ui-notify",
+      "prompt": "Soft friendly notification blip, single neutral chime, unobtrusive",
       "durationSeconds": 0.5,
+      "gain": 0.8,
+      "aliases": ["notifyInfo", "notifyWarning", "alertMild"]
+    },
+    {
+      "id": "ui-alert",
+      "prompt": "Comedic cartoon air horn blast, loud and silly, party party",
+      "durationSeconds": 1,
       "gain": 1,
-      "aliases": ["voteUp", "vote"]
-    },
-    {
-      "id": "vote-down",
-      "prompt": "Short dull muted downward blip, playful disapproval, comedic but soft, one-shot",
-      "durationSeconds": 0.5,
-      "gain": 0.9,
-      "aliases": ["voteDown"]
+      "aliases": ["alertUrgent"]
     },
     {
       "id": "ui-whoosh",
-      "prompt": "Quick smooth air whoosh transition, short one-shot, clean sweep, no tail",
+      "prompt": "Fast cartoon swoosh, rubbery air sweep, quick and clean",
       "durationSeconds": 0.5,
       "gain": 0.8,
-      "aliases": ["whoosh", "transition", "cartoonSwoosh", "transitionSwoosh", "transitionWoosh", "inkTransition", "paperSlide", "ambientWhoosh"]
+      "aliases": ["whoosh", "transition", "cartoonSwoosh", "transitionSwoosh", "transitionWoosh", "inkTransition", "paperSlide", "ambientWhoosh", "brushSwipe", "brushStroke"]
+    },
+    {
+      "id": "ui-boing",
+      "prompt": "Ultra springy cartoon boing, wobbly metal spring, comedic bounce",
+      "durationSeconds": 0.6,
+      "gain": 0.9,
+      "aliases": ["cartoonBoing", "inkDrip"]
+    },
+    {
+      "id": "ui-wobble",
+      "prompt": "Wobbling jelly cartoon wobble, rubbery pitch wobble, goofy",
+      "durationSeconds": 0.7,
+      "gain": 0.85,
+      "aliases": ["cartoonWobble", "paperFold"]
+    },
+    {
+      "id": "ui-zap",
+      "prompt": "Snappy cartoon electric zap descending, quick spark crackle",
+      "durationSeconds": 0.5,
+      "gain": 0.85,
+      "aliases": ["cartoonZap", "electric", "glitch", "transitionZap", "transitionDigital"]
     },
     {
       "id": "ui-celebration",
-      "prompt": "Short triumphant celebration fanfare with bright sparkle tail, joyful, one-shot",
-      "durationSeconds": 1.5,
+      "prompt": "Short joyful party fanfare with confetti sparkle, brass and bells, triumphant",
+      "durationSeconds": 1.6,
       "gain": 1,
-      "aliases": ["celebration", "cartoonFanfare", "levelComplete"]
+      "aliases": ["celebration", "cartoonFanfare", "transitionMagic"]
+    },
+    {
+      "id": "ui-applause",
+      "prompt": "Small warm crowd applause and cheering, short burst, friendly",
+      "durationSeconds": 1.8,
+      "gain": 0.9,
+      "aliases": ["applause"]
+    },
+    {
+      "id": "ui-level-up",
+      "prompt": "Rising four note level up jingle, bright ascending arpeggio, rewarding",
+      "durationSeconds": 1.3,
+      "gain": 1,
+      "aliases": ["levelUp", "levelComplete"]
+    },
+    {
+      "id": "ui-achievement",
+      "prompt": "Shining trophy unlock chime with shimmering bell tail, proud and warm",
+      "durationSeconds": 1.4,
+      "gain": 1,
+      "aliases": ["achievementEarned", "badgeUnlocked"]
+    },
+    {
+      "id": "ui-xp",
+      "prompt": "Tiny bright points tick up, small coin sparkle, quick reward blip",
+      "durationSeconds": 0.5,
+      "gain": 0.8,
+      "aliases": ["xpGain", "scoreUp"]
+    },
+    {
+      "id": "ui-power-up",
+      "prompt": "Bouncy cartoon power up sweep upward, energetic rubber rise",
+      "durationSeconds": 0.8,
+      "gain": 0.95,
+      "aliases": ["powerUp", "healthUp", "shield"]
+    },
+    {
+      "id": "ui-game-over",
+      "prompt": "Comedic sad trombone deflating slide down, cartoon defeat, funny not cruel",
+      "durationSeconds": 1.4,
+      "gain": 0.9,
+      "aliases": ["gameOver", "powerDown", "healthDown"]
+    },
+    {
+      "id": "ui-suspense",
+      "prompt": "Rising suspense tension build with soft drum roll, comedic drama",
+      "durationSeconds": 2,
+      "gain": 0.85,
+      "aliases": ["suspenseBuild", "anticipation", "tension"]
+    },
+    {
+      "id": "ui-coin",
+      "prompt": "Bright cartoon coin drop chime, golden and bouncy",
+      "durationSeconds": 0.6,
+      "gain": 0.9,
+      "aliases": ["coinDrop"]
+    },
+    {
+      "id": "ui-gem",
+      "prompt": "Crystal gem collect sparkle, glassy bright ping",
+      "durationSeconds": 0.7,
+      "gain": 0.9,
+      "aliases": ["gemCollect"]
+    },
+    {
+      "id": "ui-reveal",
+      "prompt": "Magical reveal shimmer sweeping upward, sparkling curtain lift",
+      "durationSeconds": 0.9,
+      "gain": 0.9,
+      "aliases": ["reveal", "quizReveal", "transitionCosmic", "transitionPortal", "hologram"]
     },
     {
       "id": "ui-start",
-      "prompt": "Energetic short game start swell, upbeat and punchy rise, one-shot",
-      "durationSeconds": 0.8,
+      "prompt": "Energetic game start swell with a punchy hit, upbeat kickoff",
+      "durationSeconds": 1,
       "gain": 1,
       "aliases": ["start"]
     },
     {
-      "id": "ui-countdown",
-      "prompt": "Single clean countdown beep tick, neutral and precise, very short one-shot",
-      "durationSeconds": 0.5,
-      "gain": 0.85,
-      "aliases": ["countdown", "quizTick"]
-    },
-    {
       "id": "ui-join",
-      "prompt": "Friendly short ascending two tone blip, someone arrives, one-shot",
+      "prompt": "Friendly bouncy two note arrival blip, someone pops in, welcoming",
       "durationSeconds": 0.5,
       "gain": 0.9,
       "aliases": ["join"]
     },
     {
       "id": "ui-leave",
-      "prompt": "Short descending two tone blip, someone leaves, soft, one-shot",
+      "prompt": "Soft descending two note departure blip, someone pops out",
       "durationSeconds": 0.5,
-      "gain": 0.9,
+      "gain": 0.85,
       "aliases": ["leave"]
     },
     {
-      "id": "ui-achievement",
-      "prompt": "Rewarding achievement unlock chime with shimmering bell tail, one-shot",
+      "id": "invite-received",
+      "prompt": "Inviting doorbell style double chime with a cheerful lift, someone is calling you to play",
       "durationSeconds": 1.2,
       "gain": 1,
-      "aliases": ["achievementEarned", "badgeUnlocked", "levelUp"]
+      "aliases": ["inviteReceived"]
     },
     {
-      "id": "ui-reveal",
-      "prompt": "Short magical reveal shimmer, bright sparkle sweep upward, one-shot",
+      "id": "invite-sent",
+      "prompt": "Light paper plane swoosh away with a small sparkle, message flying off",
+      "durationSeconds": 0.7,
+      "gain": 0.85,
+      "aliases": ["inviteSent"]
+    },
+    {
+      "id": "invite-accepted",
+      "prompt": "Warm approving two note yes chime with a soft pop, agreement",
+      "durationSeconds": 0.8,
+      "gain": 0.95,
+      "aliases": ["inviteAccepted"]
+    },
+    {
+      "id": "invite-declined",
+      "prompt": "Short polite decline blip, soft downward two tone, no drama",
+      "durationSeconds": 0.6,
+      "gain": 0.8,
+      "aliases": ["inviteDeclined"]
+    },
+    {
+      "id": "message-in",
+      "prompt": "Soft bubbly incoming chat message pop, round and friendly",
+      "durationSeconds": 0.5,
+      "gain": 0.8,
+      "aliases": ["messageReceive", "message"]
+    },
+    {
+      "id": "message-out",
+      "prompt": "Quick light outgoing message whoosh pop, sent",
+      "durationSeconds": 0.5,
+      "gain": 0.75,
+      "aliases": ["messageSend", "gifSend", "imageSend"]
+    },
+    {
+      "id": "vote-up",
+      "prompt": "Satisfying bright thumbs up pop with a happy upward chime, approval",
+      "durationSeconds": 0.6,
+      "gain": 1,
+      "aliases": ["voteUp", "vote"]
+    },
+    {
+      "id": "vote-down",
+      "prompt": "Dull muted comedic thumbs down blip going down, playful disapproval",
       "durationSeconds": 0.6,
       "gain": 0.9,
-      "aliases": ["reveal", "quizReveal", "transitionMagic"]
+      "aliases": ["voteDown"]
     },
     {
-      "id": "ui-boing",
-      "prompt": "Springy cartoon boing, bouncy comedic spring, one-shot, clean",
-      "durationSeconds": 0.5,
-      "gain": 0.9,
-      "aliases": ["cartoonBoing"]
-    },
-    {
-      "id": "ui-zap",
-      "prompt": "Short electric zap descending, snappy sci-fi glitch, one-shot",
+      "id": "ui-countdown",
+      "prompt": "Single clean countdown tick, wooden clock tock, precise",
       "durationSeconds": 0.5,
       "gain": 0.85,
-      "aliases": ["cartoonZap", "electric", "glitch"]
+      "aliases": ["countdown", "quizTick", "quizCountdown1", "quizCountdown2", "quizCountdown3"]
+    },
+    {
+      "id": "quiz-correct",
+      "prompt": "Bright rewarding correct answer ding dong, happy bell pair, well done",
+      "durationSeconds": 0.9,
+      "gain": 1,
+      "aliases": ["quizCorrect"]
+    },
+    {
+      "id": "quiz-wrong",
+      "prompt": "Comedic wrong answer double buzz, rubbery low honk, gentle fail",
+      "durationSeconds": 0.8,
+      "gain": 0.9,
+      "aliases": ["quizWrong"]
+    },
+    {
+      "id": "quiz-timeup",
+      "prompt": "Time is up alarm bell ring cutting off, urgent but comedic",
+      "durationSeconds": 1.2,
+      "gain": 0.95,
+      "aliases": ["quizTimeUp"]
+    },
+    {
+      "id": "quiz-rush",
+      "prompt": "Fast accelerating ticking rush with rising pitch, hurry up",
+      "durationSeconds": 2,
+      "gain": 0.85,
+      "aliases": ["quizRush"]
+    },
+    {
+      "id": "quiz-streak",
+      "prompt": "Hyped combo streak stinger with a bright stack of dings, on fire",
+      "durationSeconds": 1,
+      "gain": 0.95,
+      "aliases": ["quizStreak", "quizCombo", "quizBonus", "quizPerfect"]
+    },
+    {
+      "id": "process-rewind",
+      "prompt": "Cassette tape rewinding fast backwards, warbling reversed whirr with spinning reels, time travelling backwards, continuous and even",
+      "durationSeconds": 8,
+      "gain": 0.8,
+      "aliases": ["processRewind"]
+    },
+    {
+      "id": "process-loading",
+      "prompt": "Gentle mechanical loading hum with soft rhythmic clicks, machine working, continuous and even",
+      "durationSeconds": 8,
+      "gain": 0.6,
+      "aliases": ["processLoading"]
+    },
+    {
+      "id": "process-done",
+      "prompt": "Machine finishing with a satisfying clunk and a bright ready ding",
+      "durationSeconds": 0.9,
+      "gain": 0.95,
+      "aliases": ["processDone"]
+    },
+    {
+      "id": "mode-imitation",
+      "prompt": "Playful microphone tap then a cheerful vocal style flourish, imitation game intro sting",
+      "durationSeconds": 1.2,
+      "gain": 0.95,
+      "aliases": ["modeNormal", "mode2v2"]
+    },
+    {
+      "id": "mode-undercover",
+      "prompt": "Sneaky spy tiptoe pizzicato sting with a soft mysterious whistle, secret agent intro",
+      "durationSeconds": 1.4,
+      "gain": 0.95,
+      "aliases": ["modeUndercover"]
+    },
+    {
+      "id": "mode-quiz",
+      "prompt": "Quiz show buzzer flourish with a bright game show bell, intro sting",
+      "durationSeconds": 1.2,
+      "gain": 0.95,
+      "aliases": ["modeQuiz"]
+    },
+    {
+      "id": "mode-blurrush",
+      "prompt": "Fast camera shutter and a zippy focus sweep into a bright ping, image guessing intro",
+      "durationSeconds": 1.2,
+      "gain": 0.95,
+      "aliases": ["modePixoguess"]
+    },
+    {
+      "id": "mode-monopoly",
+      "prompt": "Dice rolling on a wooden board then a cheerful board game jingle, intro sting",
+      "durationSeconds": 1.4,
+      "gain": 0.95,
+      "aliases": ["modeMonopoly"]
+    },
+    {
+      "id": "mode-audiophone",
+      "prompt": "Old telephone ring then a warbling reversed whoosh, broken telephone intro sting",
+      "durationSeconds": 1.4,
+      "gain": 0.95,
+      "aliases": ["modeAudiophone"]
+    },
+    {
+      "id": "mode-blindtest",
+      "prompt": "Vinyl scratch then a bright musical note stack, blind test intro sting",
+      "durationSeconds": 1.2,
+      "gain": 0.95,
+      "aliases": ["modeMemorise"]
+    },
+    {
+      "id": "mode-mimic",
+      "prompt": "Microphone feedback pop then a karaoke style cheer, singing game intro sting",
+      "durationSeconds": 1.2,
+      "gain": 0.95,
+      "aliases": ["modeMimic"]
     }
   ]
 }

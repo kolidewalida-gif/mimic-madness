@@ -11,6 +11,7 @@ import { useFriends } from '@/hooks/useFriends';
 import { useOnlinePresence } from '@/hooks/useOnlinePresence';
 import { useGameInvitations } from '@/hooks/useGameInvitations';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { playSample } from '@/lib/sfx/samples';
 import { useInkMode } from '@/hooks/useInkMode';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -76,7 +77,8 @@ const LobbyInvitePanelComponent = ({
       toast.error('Profil non chargé');
       return;
     }
-    playSound('messageSend', 0.4);
+    // Envoi d'invitation : son dédié, distinct d'un message de chat.
+    if (!playSample('inviteSent', 0.45)) playSound('messageSend', 0.4);
     await sendInvitation(friendUserId, lobbyCode, profile.display_name);
     setInvitedFriends((prev) => new Set(prev).add(friendUserId));
   };

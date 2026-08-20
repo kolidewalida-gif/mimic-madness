@@ -20,6 +20,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { useTheme } from "@/hooks/useTheme";
 import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import { LobbyGameMode, soloBotCount } from "@/lib/gameModes";
+import { playSample } from "@/lib/sfx/samples";
 import { ConnectionRecoveryOverlay } from "@/components/ConnectionRecoveryOverlay";
 import {
   loadAudioPhoneGameScreen,
@@ -397,7 +398,14 @@ const Index = () => {
 
   const handleStartGame = useCallback(async (mode: GameMode = 'normal') => {
     console.log('[Index] handleStartGame called with mode:', mode);
-    playSoundEffect('start', 0.5);
+    /*
+     * Signature sonore par mode. Tous les modes partaient sur le même `start`,
+     * ce qui rendait le lancement interchangeable. `handleStartGame` est le seul
+     * point de passage commun, donc le seul endroit juste pour la jouer.
+     */
+    if (!playSample(`mode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`, 0.6)) {
+      playSoundEffect('start', 0.5);
+    }
     setGameMode(mode);
 
     // Fire the matching play_* quest event for the player who launches.

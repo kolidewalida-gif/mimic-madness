@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Sparkles, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { playSample } from '@/lib/sfx/samples';
 import { cn } from '@/lib/utils';
 
 interface GameInvitation {
@@ -33,11 +34,10 @@ export const GameInvitationNotification = ({
   const [isVisible, setIsVisible] = useState(true);
   const [countdown, setCountdown] = useState(15);
 
-  // Play epic notification sound on mount
+  // Son d'invitation dédié. Il empruntait celui des succès débloqués, doublé
+  // d'un `powerUp` — un empilement qui ne voulait rien dire.
   useEffect(() => {
-    playSound('achievementEarned', 0.6);
-    // Play second sound for emphasis
-    setTimeout(() => playSound('powerUp', 0.4), 300);
+    if (!playSample('inviteReceived', 0.6)) playSound('achievementEarned', 0.6);
   }, [playSound]);
 
   // Auto-dismiss countdown
@@ -58,13 +58,13 @@ export const GameInvitationNotification = ({
   }, [onClose]);
 
   const handleAccept = useCallback(() => {
-    playSound('success', 0.5);
+    if (!playSample('inviteAccepted', 0.5)) playSound('success', 0.5);
     setIsVisible(false);
     setTimeout(() => onAccept(invitation.id), 300);
   }, [invitation.id, onAccept, playSound]);
 
   const handleDecline = useCallback(() => {
-    playSound('error', 0.3);
+    if (!playSample('inviteDeclined', 0.4)) playSound('error', 0.3);
     setIsVisible(false);
     setTimeout(() => onDecline(invitation.id), 300);
   }, [invitation.id, onDecline, playSound]);

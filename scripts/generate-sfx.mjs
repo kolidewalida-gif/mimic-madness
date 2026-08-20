@@ -59,9 +59,12 @@ const exists = async (path) => {
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
 /** Retente uniquement ce qui est retentable : 429 et 5xx. */
-async function generate(sample) {
+async function generate(sample, style) {
+  // Le style commun est ajouté à chaque prompt : c'est lui qui fait que les
+  // sons vont ensemble au lieu de sonner comme quarante banques différentes.
+  const text = style ? `${sample.prompt}. ${style}.` : sample.prompt;
   const body = JSON.stringify({
-    text: sample.prompt,
+    text,
     duration_seconds: sample.durationSeconds,
     prompt_influence: PROMPT_INFLUENCE,
   });
@@ -120,7 +123,7 @@ for (const sample of selected) {
   }
 
   try {
-    const audio = await generate(sample);
+    const audio = await generate(sample, manifest.style);
     await writeFile(target, audio);
     written += 1;
     billedSeconds += sample.durationSeconds;

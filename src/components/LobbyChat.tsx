@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Image as ImageIcon, Search, Sparkles, Volume2, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { playSample } from '@/lib/sfx/samples';
 import { CHAT_GIFS, CATEGORY_LABELS, searchGifs, type GifCategory } from '@/lib/chatGifs';
 
 interface LobbyChatProps {
@@ -50,7 +51,10 @@ const formatTime = (date: string | Date): string => {
 ============================================================ */
 export const SOUNDBOARD_ITEMS = [
   { id: 'airhorn', emoji: '📯', label: 'Air Horn', sound: 'alertUrgent' as const, color: '#ef4444' },
-  { id: 'applause', emoji: '👏', label: 'Applause', sound: 'achievementEarned' as const, color: '#fbbf24' },
+  // `sample` prime sur `sound` quand le fichier existe. « Applause » jouait un
+  // carillon de succès débloqué faute de mieux ; il a maintenant de vrais
+  // applaudissements, sans élargir l'union `SoundType` pour autant.
+  { id: 'applause', emoji: '👏', label: 'Applause', sound: 'achievementEarned' as const, sample: 'applause', color: '#fbbf24' },
   { id: 'party', emoji: '🎉', label: 'Fête', sound: 'celebration' as const, color: '#ff5c8a' },
   { id: 'win', emoji: '🏆', label: 'Victoire', sound: 'levelComplete' as const, color: '#f59e0b' },
   { id: 'fail', emoji: '💀', label: 'Fail', sound: 'gameOver' as const, color: '#6b7280' },
@@ -69,10 +73,20 @@ export const SOUNDBOARD_ITEMS = [
 
 type SoundboardId = typeof SOUNDBOARD_ITEMS[number]['id'];
 
-/** Play a soundboard sound by ID */
+/**
+ * Play a soundboard sound by ID.
+ *
+ * `sample` désigne un fichier généré, `sound` l'ancien son synthétisé qui sert
+ * de repli. Certaines cases n'avaient pas de son juste — « Applause » jouait le
+ * carillon des succès débloqués — d'où la possibilité de les dissocier sans
+ * élargir l'union `SoundType`.
+ */
 export const playSoundboardSound = (soundId: string) => {
   const item = SOUNDBOARD_ITEMS.find((s) => s.id === soundId);
-  if (item) playSoundEffect(item.sound, 0.7);
+  if (!item) return;
+  const sample = (item as { sample?: string }).sample ?? item.sound;
+  if (playSample(sample, 0.7)) return;
+  playSoundEffect(item.sound, 0.7);
 };
 
 /* ============================================================
@@ -188,7 +202,8 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
     if (!trimmed || isSending) return;
-    playSoundEffect('pop', 0.3);
+    // Envoi de message : son dédié, plus le son de clic générique.
+    playSoundEffect('messageSend', 0.3);
     sendMessage(trimmed, 'text');
     setInput('');
     setAutoScroll(true);

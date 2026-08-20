@@ -13,6 +13,8 @@ import {
   PULP_FONT,
 } from '@/components/audiophone/PulpComic';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { useStagedTask } from '@/hooks/useStagedTask';
+import { ProcessingOverlay } from '@/components/ProcessingOverlay';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { processStreamWithNoiseReduction } from '@/hooks/useNoiseReduction';
 
@@ -54,6 +56,7 @@ export const AudioPhoneRecordingAllPhase = ({
 }: AudioPhoneRecordingAllPhaseProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const staged = useStagedTask();
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
 
@@ -160,7 +163,18 @@ export const AudioPhoneRecordingAllPhase = ({
   const handleSubmit = async () => {
     if (!recordedBlob) return;
     playInkSound('cartoonDing', 0.5);
-    const success = await onSubmit(recordedBlob);
+    /*
+     * L'inversion de l'audio est le cœur du mode : c'est elle qui rend la phrase
+     * méconnaissable. Elle était masquée derrière une roue de 16 pixels dans le
+     * bouton, alors qu'elle enchaîne un décodage, un retournement échantillon par
+     * échantillon, un ré-encodage WAV et deux envois. On la met en scène.
+     */
+    const success = await staged.run(() => onSubmit(recordedBlob), {
+      label: 'Inversion de ta phrase…',
+      minDurationMs: 6_000,
+      sound: 'processRewind',
+      endSound: 'processDone',
+    });
     if (success) setRecordedBlob(null);
   };
 
@@ -270,6 +284,8 @@ export const AudioPhoneRecordingAllPhase = ({
   /* ---------- RECORDING STATE ---------- */
   return (
     <PulpStage accent={ACCENT} accent2={PULP.blue}>
+      {/* Voile d'inversion : rend visible et sonore une étape jusqu'ici muette. */}
+      <ProcessingOverlay state={staged.state} icon="⏪" accent={ACCENT} />
       <div className="relative min-h-screen flex items-center justify-center p-5 pb-[120px]">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 12, filter: 'blur(6px)' }}
