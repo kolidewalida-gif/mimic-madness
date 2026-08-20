@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import { captureVideoPoster } from "@/lib/videoPoster";
+
+const BUCKET = 'video-challenges';
+
+/** Chemin de la vignette associée à un clip. */
+export const posterPathFor = (storagePath: string): string => `${storagePath}.poster.jpg`;
 
 export interface VideoClip {
   id: string;
@@ -124,7 +130,56 @@ class VideoStorageSupabase {
       throw new Error(`Failed to save clip metadata: ${dbError.message}`);
     }
 
+    // Vignette : produite depuis le fichier local, donc sans coût réseau, et
+    // uploadée en arrière-plan. Elle évite ensuite de télécharger la vidéo pour
+    // afficher la galerie. Strictement optionnelle : un échec ne remet jamais en
+    // cause un import réussi.
+    void this.uploadPoster(fileName, file);
+
     return clip;
+  }
+
+  /**
+   * Générer puis stocker la vignette d'un clip.
+   *
+   * Volontairement silencieuse : la galerie sait se rabattre sur la vidéo quand
+   * la vignette est absente.
+   */
+  async uploadPoster(storagePath: string, file: Blob): Promise<boolean> {
+    try {
+      const poster = await captureVideoPoster(file);
+      if (!poster) return false;
+
+      const { error } = await supabase.storage
+        .from(BUCKET)
+        .upload(posterPathFor(storagePath), poster, {
+          cacheControl: '31536000',
+          upsert: true,
+          contentType: 'image/jpeg',
+        });
+
+      if (error) {
+        console.warn('[poster] upload ignoré:', error.message);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.warn('[poster] génération ignorée:', error);
+      return false;
+    }
+  }
+
+  /**
+   * URL publique de la vignette d'un clip.
+   *
+   * Le bucket est public : pas de signature, donc aucune requête API. On ne sait
+   * pas si le fichier existe — l'appelant affiche la vidéo en repli si l'image
+   * ne charge pas.
+   */
+  getPosterUrl(storagePath: string): string | null {
+    if (!storagePath) return null;
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(posterPathFor(storagePath));
+    return data?.publicUrl ?? null;
   }
 
   async getVideoClipsByPlayer(playerId: string): Promise<VideoClip[]> {
@@ -234,7 +289,7 @@ class VideoStorageSupabase {
     const cuesPath = `${clip.storagePath.replace(/\.[^./]+$/, '')}.cues.json`;
     const { error: storageError } = await supabase.storage
       .from('video-challenges')
-      .remove([clip.storagePath, cuesPath]);
+      .remove([clip.storagePath, cuesPath, posterPathFor(clip.storagePath)]);
 
     if (storageError) {
       console.error('Error deleting from storage:', storageError);

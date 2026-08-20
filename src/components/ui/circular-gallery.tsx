@@ -14,6 +14,12 @@ export interface GalleryItem {
   };
   /** When provided, a muted video thumbnail is rendered instead of an image */
   videoUrl?: string;
+  /**
+   * Vignette JPEG du clip. Préférée à `videoUrl` : afficher une image de
+   * quelques dizaines de Ko évite de télécharger la vidéo, ce qui rend les
+   * clips lourds (50 Mo et plus) sans effet sur le reste de l'application.
+   */
+  posterUrl?: string;
 }
 
 interface CircularGalleryProps {
@@ -47,6 +53,11 @@ export function CircularGallery({
   const n = items.length;
   const [pos, setPos] = React.useState(initialIndex);
   const [dragging, setDragging] = React.useState(false);
+  /**
+   * Vignettes dont le chargement a échoué (clip importé avant leur arrivée, ou
+   * fichier encore en cours d'upload) : on repasse alors sur la vidéo.
+   */
+  const [posterFailed, setPosterFailed] = React.useState<Record<number, boolean>>({});
   const posRef = React.useRef(initialIndex);
   const startXRef = React.useRef(0);
   const startPosRef = React.useRef(0);
@@ -154,19 +165,36 @@ export function CircularGallery({
               }}
             >
               {/* media */}
-              {item.videoUrl ? (
+              {item.posterUrl && !posterFailed[i] ? (
+                /*
+                 * Chemin normal : une vignette JPEG de quelques dizaines de Ko.
+                 * Parcourir la galerie ne télécharge donc aucun octet de vidéo,
+                 * quelle que soit la taille des clips.
+                 */
+                <img
+                  src={item.posterUrl}
+                  alt={item.photo.text || item.common}
+                  className="pointer-events-none absolute inset-0 w-full h-full object-cover"
+                  style={{ objectPosition: item.photo.pos || "center" }}
+                  draggable={false}
+                  loading="lazy"
+                  decoding="async"
+                  onError={() => setPosterFailed((state) => ({ ...state, [i]: true }))}
+                />
+              ) : item.videoUrl ? (
                 <video
                   /**
-                   * Seule la carte centrale télécharge des octets.
+                   * Repli pour les clips importés avant l'arrivée des vignettes.
                    *
-                   * Charger toutes les vignettes en même temps ouvrait autant de
+                   * Seule la carte centrale télécharge des octets : charger
+                   * toutes les vignettes en même temps ouvrait autant de
                    * téléchargements vidéo concurrents que de clips. Sur des
                    * fichiers de plusieurs dizaines de Mo, et surtout dans
                    * l'aperçu Lovable (iframe, requêtes vers Supabase bridées et
                    * partitionnées par le navigateur), ces transferts saturaient
                    * les connexions disponibles : les lectures du salon
                    * expiraient et les écritures n'obtenaient jamais de
-                   * connexion. Une seule vidéo à la fois suffit à l'aperçu.
+                   * connexion.
                    */
                   src={isCenter ? `${item.videoUrl}#t=0.5` : undefined}
                   className="pointer-events-none absolute inset-0 w-full h-full object-cover"

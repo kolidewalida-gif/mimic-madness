@@ -35,6 +35,7 @@ import { listRhythmoTracks } from "@/lib/rhythmo/store";
 import { RhythmoError, rhythmoErrorLabel, type RhythmoProgress } from "@/lib/rhythmo/types";
 import { RhythmoPreviewDialog } from "@/components/rhythmo/RhythmoPreviewDialog";
 import { isSchemaGapError } from "@/lib/imitationSyncClient";
+import { DEFAULT_CONCURRENCY, mapWithConcurrency } from "@/lib/concurrency";
 
 interface Player {
   id: string;
@@ -254,11 +255,16 @@ export const VideoSubmissionScreen = ({
     (async () => {
       const clipsToLoad = savedClips.filter((clip) => !clipUrls[clip.id]);
       if (clipsToLoad.length === 0) return;
-      const entries = await Promise.all(
-        clipsToLoad.map(async (clip) => {
+      // Par petits lots : signer toutes les URLs d'un coup occupait toutes les
+      // connexions disponibles vers Supabase et faisait expirer les requêtes de
+      // jeu qui attendaient derrière.
+      const entries = await mapWithConcurrency(
+        clipsToLoad,
+        DEFAULT_CONCURRENCY,
+        async (clip) => {
           const url = await videoStorage.getVideoUrl(clip.id);
-          return url ? [clip.id, url] as const : null;
-        })
+          return url ? ([clip.id, url] as const) : null;
+        },
       );
       if (cancelled) return;
       const next = { ...clipUrls };
@@ -587,7 +593,9 @@ export const VideoSubmissionScreen = ({
   const wipeLibrary = async () => {
     try {
       const clips = await videoStorage.getVideoClipsByPlayer(currentPlayer.id);
-      await Promise.all(clips.map((c) => videoStorage.deleteVideoClip(c.id).catch(() => {})));
+      await mapWithConcurrency(clips, DEFAULT_CONCURRENCY, (c) =>
+        videoStorage.deleteVideoClip(c.id).catch(() => undefined),
+      );
       setSavedClips([]);
       setSelectedClips([]);
       setClipUrls({});
@@ -943,6 +951,9 @@ export const VideoSubmissionScreen = ({
                           common: clip.name,
                           binomial: "",
                           photo: { url: "" },
+                          // La vignette est privilégiée : la galerie n'a alors
+                          // aucun octet de vidéo à télécharger.
+                          posterUrl: videoStorage.getPosterUrl(clip.storagePath) ?? undefined,
                           videoUrl: clipUrls[clip.id],
                         }))}
                         selectedIndices={savedClips.reduce<number[]>((acc, c, i) => {
