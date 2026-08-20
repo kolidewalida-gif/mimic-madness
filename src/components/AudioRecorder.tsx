@@ -3,7 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, StopCircle, Save, Play, RotateCcw } from "lucide-react";
-import { videoStorage, type VideoClip } from "@/lib/videoStorageSupabase";
+import {
+  extensionForMimeType,
+  videoStorage,
+  type VideoClip,
+} from "@/lib/videoStorageSupabase";
 import {
   applyVoiceFilter,
   postProcessRecordedBlob,
@@ -282,7 +286,9 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
 
     try {
       const mimeType = blob.type || 'audio/webm';
-      const extension = mimeType.includes('wav') ? 'wav' : 'webm';
+      // Le conteneur dépend du navigateur : WebM sous Chrome, Ogg sous Firefox,
+      // MP4 sous Safari. Tout nommer `.webm` donnait un chemin mensonger.
+      const extension = extensionForMimeType(mimeType);
       const file = new File([blob], `${name}.${extension}`, { type: mimeType });
       const clipData = {
         id: `${playerId}-${Date.now()}`,
@@ -536,7 +542,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     setIsLoading(true);
     try {
       const mimeType = recordedBlob.type || 'audio/webm';
-      const extension = mimeType.includes('wav') ? 'wav' : 'webm';
+      const extension = extensionForMimeType(mimeType);
       const file = new File([recordedBlob], `${audioName}.${extension}`, { type: mimeType });
       const clipData = {
         id: `${playerId}-${Date.now()}`,

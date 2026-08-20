@@ -219,10 +219,112 @@ describe('envoi d’un clip', () => {
     expect(mocks.getSession).not.toHaveBeenCalled();
   });
 
+  it('envoie le type MIME sans son paramètre de codec', async () => {
+    /*
+     * Régression vécue : « mime type audio/webm;codecs=opus is not supported ».
+     * La liste blanche du bucket compare en égalité stricte, et `MediaRecorder`
+     * produit toujours un type paramétré. Plus aucune imitation ne pouvait être
+     * sauvegardée.
+     */
+    const recorded = new File([new Uint8Array(64)], 'imitation.webm', {
+      type: 'audio/webm;codecs=opus',
+    });
+
+    await videoStorage.uploadVideo(recorded, clipData);
+
+    expect(FakeXhr.instances).toHaveLength(1);
+    expect(FakeXhr.instances[0].headers['content-type']).toBe('audio/webm');
+  });
+
+  it('normalise aussi le type paramétré de Firefox, espace incluse', async () => {
+    // Firefox rend `audio/ogg; codecs=opus`, avec une espace après le
+    // point-virgule : sans `trim()`, le type resterait invalide.
+    const recorded = new File([new Uint8Array(64)], 'imitation.ogg', {
+      type: 'audio/ogg; codecs=opus',
+    });
+
+    await videoStorage.uploadVideo(recorded, clipData);
+
+    expect(FakeXhr.instances[0].headers['content-type']).toBe('audio/ogg');
+  });
+
+  it('retente dans la même classe de média si le type reste refusé', async () => {
+    // Une liste blanche incomplète ne doit pas faire perdre un enregistrement.
+    // Le repli reste de l'audio : étiqueter un son en vidéo casserait la lecture.
+    let call = 0;
+    const original = FakeXhr.prototype.send;
+    FakeXhr.prototype.send = function patched(this: FakeXhr, body: unknown) {
+      call += 1;
+      FakeXhr.autoRespond = call === 1
+        ? { status: 400, body: '{"message":"mime type audio/flac is not supported"}' }
+        : { status: 200 };
+      return original.call(this, body);
+    };
+
+    try {
+      const recorded = new File([new Uint8Array(64)], 'imitation.flac', {
+        type: 'audio/flac',
+      });
+      await expect(videoStorage.uploadVideo(recorded, clipData)).resolves.toMatchObject({
+        id: 'clip-1',
+      });
+      expect(FakeXhr.instances).toHaveLength(2);
+      expect(FakeXhr.instances[0].headers['content-type']).toBe('audio/flac');
+      expect(FakeXhr.instances[1].headers['content-type']).toBe('audio/webm');
+    } finally {
+      FakeXhr.prototype.send = original;
+    }
+  });
+
+  it('ne boucle pas quand le type refusé est déjà celui du repli', async () => {
+    FakeXhr.autoRespond = {
+      status: 400,
+      body: '{"message":"mime type audio/webm is not supported"}',
+    };
+    const recorded = new File([new Uint8Array(64)], 'imitation.webm', {
+      type: 'audio/webm',
+    });
+
+    await expect(videoStorage.uploadVideo(recorded, clipData)).rejects.toThrow(/not supported/);
+    expect(FakeXhr.instances).toHaveLength(1);
+  });
+
   it('nettoie le fichier envoyé si l’écriture en base échoue', async () => {
     mocks.insert.mockResolvedValue({ error: { message: 'colonne absente' } });
 
     await expect(videoStorage.uploadVideo(makeFile(), clipData)).rejects.toThrow(/colonne absente/);
     expect(mocks.storageRemove).toHaveBeenCalledWith(['player-1/clip-1.webm']);
+  });
+});
+
+describe('extension déduite du conteneur', () => {
+  let extensionForMimeType: typeof import('@/lib/videoStorageSupabase').extensionForMimeType;
+  let baseMimeType: typeof import('@/lib/videoStorageSupabase').baseMimeType;
+
+  beforeEach(async () => {
+    const module = await import('@/lib/videoStorageSupabase');
+    extensionForMimeType = module.extensionForMimeType;
+    baseMimeType = module.baseMimeType;
+  });
+
+  it('retire les paramètres et normalise la casse', () => {
+    expect(baseMimeType('audio/webm;codecs=opus')).toBe('audio/webm');
+    expect(baseMimeType('audio/ogg; codecs=opus')).toBe('audio/ogg');
+    expect(baseMimeType('AUDIO/MP4')).toBe('audio/mp4');
+    expect(baseMimeType('')).toBe('');
+  });
+
+  it('suit le conteneur réel de chaque navigateur', () => {
+    // Chrome, Firefox, Safari : trois conteneurs pour un même enregistrement.
+    expect(extensionForMimeType('audio/webm;codecs=opus')).toBe('webm');
+    expect(extensionForMimeType('audio/ogg; codecs=opus')).toBe('ogg');
+    expect(extensionForMimeType('audio/mp4')).toBe('m4a');
+    expect(extensionForMimeType('audio/wav')).toBe('wav');
+    expect(extensionForMimeType('video/quicktime')).toBe('mov');
+  });
+
+  it('se rabat sur une extension par défaut pour un type inconnu', () => {
+    expect(extensionForMimeType('audio/flac')).toBe('webm');
+    expect(extensionForMimeType('', 'mp4')).toBe('mp4');
   });
 });

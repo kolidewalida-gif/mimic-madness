@@ -19,9 +19,15 @@ vi.mock('@/lib/voiceFilters', () => ({
   requiresPostProcessing: mocks.requiresPostProcessing,
 }));
 
-vi.mock('@/lib/videoStorageSupabase', () => ({
-  videoStorage: { uploadVideo: mocks.uploadVideo },
-}));
+vi.mock('@/lib/videoStorageSupabase', async (importOriginal) => {
+  // Seul l'envoi est simulé : la déduction d'extension est de la logique pure,
+  // et la réimplémenter dans le mock la laisserait dériver du vrai code.
+  const actual = await importOriginal<typeof import('@/lib/videoStorageSupabase')>();
+  return {
+    ...actual,
+    videoStorage: { uploadVideo: mocks.uploadVideo },
+  };
+});
 
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mocks.toast }),

@@ -40,6 +40,76 @@ export const MAX_UPLOAD_BYTES = 400 * 1024 * 1024;
 
 export const formatMb = (bytes: number): string => `${(bytes / (1024 * 1024)).toFixed(0)} Mo`;
 
+/**
+ * Type MIME de base, sans les paramètres.
+ *
+ * `MediaRecorder` produit des types paramétrés : `audio/webm;codecs=opus` sous
+ * Chrome, `audio/ogg; codecs=opus` sous Firefox — avec une espace, d'où le
+ * `trim()`. La liste blanche du bucket compare en égalité stricte et refusait
+ * donc la forme paramétrée : « mime type audio/webm;codecs=opus is not
+ * supported ». Plus aucun enregistrement d'imitation ne pouvait être sauvegardé.
+ *
+ * Le paramètre de codec n'apporte rien au stockage : c'est le conteneur qui
+ * détermine la lecture, et il est déjà porté par le type de base.
+ */
+export const baseMimeType = (mimeType: string): string =>
+  (mimeType.split(';')[0] ?? '').trim().toLowerCase();
+
+/**
+ * Type de repli connu pour être accepté, dans la même classe de média.
+ *
+ * Sert quand le type de base lui-même est refusé. Rester dans la même classe
+ * évite d'étiqueter un son en vidéo, ce qui empêcherait ensuite sa lecture.
+ * Renvoie `null` quand il n'y a pas de repli plus prometteur que l'original.
+ */
+const fallbackMimeType = (contentType: string): string | null => {
+  const [kind] = contentType.split('/');
+  const candidate = kind === 'audio'
+    ? 'audio/webm'
+    : kind === 'image'
+      ? 'image/jpeg'
+      : 'video/mp4';
+  return candidate === contentType ? null : candidate;
+};
+
+/** Message du Storage quand la liste blanche du bucket refuse un type. */
+const isUnsupportedMimeError = (message?: string): boolean =>
+  !!message && /mime type .* is not supported/i.test(message);
+
+/**
+ * Extension cohérente avec le conteneur réellement produit.
+ *
+ * `MediaRecorder` ne rend pas le même conteneur selon le navigateur : WebM sous
+ * Chrome, Ogg sous Firefox, MP4 sous Safari. Écrire tout en `.webm` donnait des
+ * chemins de stockage mensongers, et c'est l'extension qui sert à deviner si un
+ * fichier est décodable.
+ */
+export const extensionForMimeType = (mimeType: string, fallback = 'webm'): string => {
+  switch (baseMimeType(mimeType)) {
+    case 'audio/webm':
+    case 'video/webm':
+      return 'webm';
+    case 'audio/ogg':
+    case 'application/ogg':
+      return 'ogg';
+    case 'audio/mp4':
+    case 'audio/x-m4a':
+      return 'm4a';
+    case 'audio/mpeg':
+      return 'mp3';
+    case 'audio/wav':
+    case 'audio/wave':
+    case 'audio/x-wav':
+      return 'wav';
+    case 'video/mp4':
+      return 'mp4';
+    case 'video/quicktime':
+      return 'mov';
+    default:
+      return fallback;
+  }
+};
+
 /** Thrown before any request when a file cannot possibly be accepted. */
 export class UploadTooLargeError extends Error {
   size: number;
@@ -233,17 +303,31 @@ class VideoStorageSupabase {
     // (e.g. .mkv, .avi, .wav are not in the default allow-list)
     const ext = file.name.split('.').pop() || 'mp4';
     const fileName = `${clipData.playerId}/${clipData.id}.${ext}`;
-    const contentType = file.type || 'video/mp4';
+    const contentType = baseMimeType(file.type) || 'video/mp4';
 
     const accessToken = await resolveAccessToken();
 
-    const attempt = await uploadWithProgress('video-challenges', fileName, file, {
-      contentType,
-      cacheControl: '3600',
-      upsert: true,
-      accessToken,
-      onProgress,
-    });
+    const sendWith = (type: string) =>
+      uploadWithProgress('video-challenges', fileName, file, {
+        contentType: type,
+        cacheControl: '3600',
+        upsert: true,
+        accessToken,
+        onProgress,
+      });
+
+    let attempt = await sendWith(contentType);
+
+    // Le bucket refuse ce type : on retente dans la même classe de média plutôt
+    // que d'abandonner. Le contenu est identique, seule l'étiquette change, et
+    // ça évite qu'une liste blanche incomplète bloque un enregistrement.
+    if (isUnsupportedMimeError(attempt.error?.message)) {
+      const fallback = fallbackMimeType(contentType);
+      if (fallback) {
+        console.warn(`[upload] type ${contentType} refusé, nouvelle tentative en ${fallback}`);
+        attempt = await sendWith(fallback);
+      }
+    }
 
     // Repli sur le SDK uniquement quand aucune réponse HTTP n'a été obtenue :
     // mieux vaut perdre la barre de progression que perdre l'envoi. Un 4xx, lui,
