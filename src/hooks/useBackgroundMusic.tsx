@@ -40,7 +40,29 @@ interface SetSituationOptions {
   source?: string;
 }
 
+/**
+ * Bande-son du jeu.
+ *
+ * Les trois premières pistes passent par le pipeline d'assets Lovable
+ * (`.asset.json` → `/__l5e/...`). Les deux thèmes originaux, eux, sont servis
+ * depuis `public/music/` : ils sont générés par `scripts/generate-music.mjs` et
+ * versionnés avec le dépôt, donc rien à téléverser à la main.
+ */
 const musicTracks: MusicTrack[] = [
+  {
+    id: 403,
+    name: 'Mimic Master — Thème',
+    src: '/music/mimic-master-theme.mp3',
+    genre: 'Orchestral héroïque',
+    moods: ['epic'],
+  },
+  {
+    id: 404,
+    name: 'Mimic Master — Duel',
+    src: '/music/mimic-master-showdown.mp3',
+    genre: 'Orchestral héroïque',
+    moods: ['epic', 'tense'],
+  },
   { id: 400, name: 'Neon Pirate', src: neonPirate.url },
   { id: 401, name: 'Captain Roxas — Super', src: captainRoxas.url },
   { id: 402, name: 'My Lucky Spot', src: myLuckySpot.url },

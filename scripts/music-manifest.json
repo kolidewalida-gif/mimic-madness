@@ -1,0 +1,42 @@
+{
+  "$comment": [
+    "Musiques originales de Mimic Master, générées avec l'API Eleven Music.",
+    "Générées par `scripts/generate-music.mjs`, écrites dans `public/music/`.",
+    "",
+    "SUR LA RÉFÉRENCE DEMANDÉE : la commande était « comme la musique de Superman",
+    "2025 ». Les prompts ne nomment volontairement ni le film, ni le morceau, ni",
+    "ses compositeurs. Deux raisons, pas une :",
+    "  1. ElevenLabs filtre les prompts qui visent une œuvre ou un artiste précis,",
+    "     et le résultat serait refusé ou dégradé ;",
+    "  2. commander sciemment l'imitation d'une partition protégée, puis",
+    "     l'embarquer dans un produit distribué, expose le projet — alors qu'Eleven",
+    "     Music est justement « cleared » pour l'usage commercial tant que la",
+    "     création est originale.",
+    "",
+    "La référence a donc été traduite en langage de composition : grand orchestre",
+    "héroïque, cuivres nobles, cordes qui s'envolent, percussions massives,",
+    "tonalité majeure et lumineuse. C'est ce qui produit cette sensation-là, sans",
+    "copier personne.",
+    "",
+    "Les deux morceaux forment une paire : même orchestre, même identité, mais",
+    "deux fonctions différentes. Ils ne doivent pas se disputer le même moment de",
+    "jeu.",
+    "",
+    "`music_length_ms` doit être un multiple de 5000 et rester entre 3 000 et",
+    "600 000. 120 000 = deux minutes."
+  ],
+  "tracks": [
+    {
+      "id": "mimic-master-theme",
+      "title": "Mimic Master — Thème",
+      "lengthMs": 120000,
+      "prompt": "Epic heroic orchestral main theme for a party game, fully instrumental with no vocals. Opens intimate with a single noble French horn stating a memorable five note motif over soft shimmering strings, then blooms into a full symphony orchestra. Soaring violin melody carrying the motif, warm brass fanfare answering it, rich horn counterlines, timpani and cinematic percussion driving forward, a bright triumphant major key climax with cymbal swells and a wordless choir lifting underneath, then a confident final statement of the motif. Uplifting, noble, hopeful, wide and cinematic, modern film score production, big hall reverb, clean mix with strong low end."
+    },
+    {
+      "id": "mimic-master-showdown",
+      "title": "Mimic Master — Duel",
+      "lengthMs": 120000,
+      "prompt": "Driving heroic orchestral action cue for a competitive party game, fully instrumental with no vocals. Same noble brass identity as a main superhero theme but restless and propulsive: insistent staccato low strings ostinato, punchy brass stabs stacked in rising intervals, taiko and timpani hits on the downbeats, urgent tremolo violins, snare rolls building tension, a short brass fanfare breaking through at the peak before dropping back to the ostinato. Around 140 bpm, exciting and competitive but still bright and heroic rather than dark, modern film score production, big hall reverb, punchy percussive mix."
+    }
+  ]
+}
