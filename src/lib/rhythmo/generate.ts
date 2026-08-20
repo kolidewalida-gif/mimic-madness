@@ -322,10 +322,18 @@ async function refineWordTextsWithGemini(
       return { words, refined: false };
     }
 
-    const merged = words.map((word, index) => {
+    // Une chaîne vide signale un mot halluciné (bégaiement, boucle de
+    // répétition) : on le retire de la bande. Les mots conservés gardent
+    // exactement les timings mesurés par Whisper.
+    const merged = words.flatMap((word, index) => {
       const text = (corrected[index] as string).trim();
-      return text ? { ...word, text } : word;
+      if (!text) return [];
+      return [{ ...word, text }];
     });
+
+    // Un filtrage qui viderait la bande n'a aucun intérêt : on garde le brut.
+    if (merged.length === 0) return { words, refined: false };
+
     return { words: merged, refined: true };
   } catch {
     // Network/quota/parse failure: keep Whisper's words, band still works.

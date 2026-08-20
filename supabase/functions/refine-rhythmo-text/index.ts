@@ -12,13 +12,23 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 function buildPrompts(words: string[], language?: string) {
   const systemPrompt = `Tu corriges une transcription automatique destinée à une "bande rythmo" (karaoké de doublage).
 On te donne la liste ORDONNÉE des mots tels que transcrits par un moteur vocal.
-Ta tâche : corriger uniquement l'orthographe, les accents, la casse et la ponctuation attachée à chaque mot.
+
+Ta tâche :
+1. Corriger l'orthographe, les accents, la casse et la ponctuation de chaque mot.
+2. Recoller les élisions mal découpées (par exemple "ai" précédé de rien qui devrait être "j'ai").
+3. Supprimer les mots que le moteur a manifestement hallucinés : bégaiements et
+   répétitions en boucle qui n'ont pas de sens ("pas pas", "musique musique",
+   ou la même phrase répétée plusieurs fois de suite). Pour supprimer un mot,
+   renvoie une chaîne vide "" à sa position.
+
 RÈGLES ABSOLUES :
 - Renvoie EXACTEMENT le même nombre d'éléments que l'entrée, dans le même ordre.
-- Ne fusionne pas deux mots, ne sépare pas un mot, n'ajoute rien, ne supprime rien.
-- Si un mot est déjà correct, renvoie-le tel quel.
 - Chaque élément de sortie correspond au mot d'entrée de même position.
-Réponds UNIQUEMENT en JSON: {"words": ["...", "..."]}${language ? `\nLangue: ${language}` : ""}`;
+- Ne déplace jamais un mot d'une position à une autre.
+- Ne supprime que les redites évidentes : en cas de doute, garde le mot.
+- Ne supprime jamais plus d'un tiers des mots.
+
+Réponds UNIQUEMENT en JSON: {"words": ["...", "", "..."]}${language ? `\nLangue: ${language}` : ""}`;
 
   const userPrompt = JSON.stringify({ words });
   return { systemPrompt, userPrompt };
@@ -127,10 +137,18 @@ serve(async (req) => {
       corrected.length === words.length &&
       corrected.every((w) => typeof w === "string")
     ) {
-      const cleaned = corrected.map((w, i) => {
-        const value = (w as string).trim();
-        return value.length > 0 ? value : words[i];
-      });
+      const cleaned = corrected.map((w) => (w as string).trim());
+
+      // Une chaîne vide signifie « mot halluciné, à retirer ». Garde-fou : si le
+      // modèle veut en supprimer plus d'un tiers, il a mal compris la consigne et
+      // on préfère garder la transcription brute.
+      const removed = cleaned.filter((w) => w.length === 0).length;
+      if (removed > Math.floor(words.length / 3)) {
+        return new Response(JSON.stringify({ words, refined: false }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(JSON.stringify({ words: cleaned, refined: true, model: "gemini-2.5-flash" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

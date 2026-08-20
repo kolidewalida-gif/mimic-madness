@@ -19,11 +19,36 @@
  * no NBits transpose to trip over.
  */
 const LOAD_ATTEMPTS = [
-  { model: 'Xenova/whisper-tiny', dtype: 'q8' },
+  // `base` d'abord : `tiny` produit un français nettement plus fautif (mots
+  // tronqués, boucles de répétition) pour un gain de temps qui ne justifie pas
+  // une bande inutilisable. `tiny` reste le repli sur les appareils qui
+  // n'arrivent pas à construire la session `base`.
   { model: 'Xenova/whisper-base', dtype: 'q8' },
-  { model: 'onnx-community/whisper-tiny_timestamped', dtype: 'fp32' },
+  { model: 'Xenova/whisper-tiny', dtype: 'q8' },
   { model: 'onnx-community/whisper-base_timestamped', dtype: 'fp32' },
+  { model: 'onnx-community/whisper-tiny_timestamped', dtype: 'fp32' },
 ] as const;
+
+/**
+ * Codes de langue acceptés par transformers.js.
+ *
+ * La documentation passe le nom complet (`french`). On traduit donc les codes
+ * courts pour éviter toute détection automatique hasardeuse, qui produisait des
+ * transcriptions franchement fausses.
+ */
+const LANGUAGE_NAMES: Record<string, string> = {
+  fr: 'french',
+  en: 'english',
+  es: 'spanish',
+  de: 'german',
+  it: 'italian',
+  pt: 'portuguese',
+  nl: 'dutch',
+  ar: 'arabic',
+};
+
+const toWhisperLanguage = (language: string): string =>
+  LANGUAGE_NAMES[language.toLowerCase()] ?? language.toLowerCase();
 
 export interface WarmupRequest {
   type: 'warmup';
@@ -153,26 +178,73 @@ const getTranscriber = (): Promise<LoadedTranscriber> => {
   return transcriberPromise;
 };
 
-const normaliseWords = (raw: unknown) => {
+interface TimedWord {
+  text: string;
+  start: number;
+  end: number;
+}
+
+/**
+ * Assembler les fragments renvoyés par Whisper en mots affichables.
+ *
+ * Deux corrections indispensables au français :
+ *
+ *  - Un fragment sans durée exploitable était purement supprimé. Whisper découpe
+ *    « j'ai » en « j » (durée nulle) puis « 'ai » : on perdait donc le « j » et
+ *    la bande affichait « 'ai ». Son texte est désormais reporté sur le mot
+ *    suivant.
+ *  - Les élisions (« j' », « l' », « qu' ») arrivent en fragments séparés et
+ *    sont recollées au mot qui suit.
+ */
+const normaliseWords = (raw: unknown): TimedWord[] => {
   const result = raw as TranscriptionResult;
   if (!Array.isArray(result?.chunks)) return [];
 
-  return result.chunks.flatMap((chunk) => {
+  const words: TimedWord[] = [];
+  /** Texte d'un fragment sans timing, à recoller au mot suivant. */
+  let pendingPrefix = '';
+
+  for (const chunk of result.chunks) {
     const text = typeof chunk.text === 'string' ? chunk.text.trim() : '';
+    if (!text) continue;
+
     const start = chunk.timestamp?.[0];
     const end = chunk.timestamp?.[1];
-    if (
-      !text ||
-      typeof start !== 'number' ||
-      typeof end !== 'number' ||
-      !Number.isFinite(start) ||
-      !Number.isFinite(end) ||
-      end <= start
-    ) {
-      return [];
+    const hasTiming =
+      typeof start === 'number' &&
+      typeof end === 'number' &&
+      Number.isFinite(start) &&
+      Number.isFinite(end) &&
+      end > start;
+
+    if (!hasTiming) {
+      // Fragment inexploitable seul : on garde son texte pour le mot suivant.
+      pendingPrefix += text;
+      continue;
     }
-    return [{ text, start, end }];
-  });
+
+    const previous = words[words.length - 1];
+    // Une élision se rattache au mot précédent plutôt que de former un mot.
+    if (!pendingPrefix && previous && /^['’]/.test(text)) {
+      previous.text += text;
+      previous.end = end as number;
+      continue;
+    }
+
+    words.push({
+      text: pendingPrefix + text,
+      start: start as number,
+      end: end as number,
+    });
+    pendingPrefix = '';
+  }
+
+  // Un reste sans timing se raccroche au dernier mot pour ne rien perdre.
+  if (pendingPrefix && words.length > 0) {
+    words[words.length - 1].text += pendingPrefix;
+  }
+
+  return words;
 };
 
 scope.addEventListener('message', (event: MessageEvent<WorkerInbound>) => {
@@ -188,11 +260,26 @@ scope.addEventListener('message', (event: MessageEvent<WorkerInbound>) => {
       if (request.type === 'warmup') return;
 
       const result = await transcriber(request.samples, {
-        language: request.language ?? 'fr',
+        // Langue explicite : la détection automatique se trompait et dégradait
+        // fortement la transcription.
+        language: toWhisperLanguage(request.language ?? 'fr'),
         task: 'transcribe',
         return_timestamps: 'word',
         chunk_length_s: 30,
         stride_length_s: 5,
+        // Décodage déterministe : sans cela le modèle inventait des variantes
+        // différentes à chaque essai.
+        temperature: 0,
+        do_sample: false,
+        /**
+         * Garde-fous contre les boucles de répétition, principal défaut de
+         * Whisper sur de longs extraits : il produisait des suites du genre
+         * « une autre question · c'est une autre question · une autre question ».
+         * Interdire la répétition d'un même tri-gramme et pénaliser légèrement
+         * les redites coupe ces boucles sans abîmer la parole normale.
+         */
+        no_repeat_ngram_size: 3,
+        repetition_penalty: 1.15,
       });
       scope.postMessage({
         type: 'done',

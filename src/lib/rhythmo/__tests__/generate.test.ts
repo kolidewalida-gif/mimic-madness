@@ -145,6 +145,48 @@ describe('rhythmo generation run correlation', () => {
     ]);
   });
 
+  it('retire les mots hallucinés blanchis par Gemini en gardant les timings', async () => {
+    // Une chaîne vide = bégaiement ou boucle de répétition à supprimer.
+    mocks.functionsInvoke.mockResolvedValue({
+      data: { words: ['Salut', ''], refined: true },
+      error: null,
+    });
+
+    const promise = generateRhythmoTrack('clip-1', new Blob(['x']), 'clip.mp4');
+    await vi.waitFor(() => expect(mocks.postMessage).toHaveBeenCalled());
+    const worker = lastWorker();
+    worker.emit({ type: 'model-ready', runId: lastRunId(), model: 'tiny' });
+    worker.emit({
+      type: 'done',
+      runId: lastRunId(),
+      model: 'tiny',
+      words: [
+        { text: 'slt', start: 0.1, end: 0.4 },
+        { text: 'slt', start: 0.5, end: 0.8 },
+      ],
+    });
+
+    const track = await promise;
+    expect(track.cues[0].words).toEqual([{ text: 'Salut', start: 0.1, end: 0.4 }]);
+  });
+
+  it('garde la transcription brute si Gemini veut tout supprimer', async () => {
+    mocks.functionsInvoke.mockResolvedValue({
+      data: { words: ['', ''], refined: true },
+      error: null,
+    });
+
+    const promise = generateRhythmoTrack('clip-1', new Blob(['x']), 'clip.mp4');
+    await vi.waitFor(() => expect(mocks.postMessage).toHaveBeenCalled());
+    const worker = lastWorker();
+    worker.emit({ type: 'model-ready', runId: lastRunId(), model: 'tiny' });
+    worker.emit({ type: 'done', runId: lastRunId(), model: 'tiny', words });
+
+    const track = await promise;
+    expect(track.model).toBe('tiny');
+    expect(track.cues[0].words.map((w) => w.text)).toEqual(['salut', 'toi']);
+  });
+
   it('keeps Whisper words when Gemini returns a mismatched count', async () => {
     // A wrong-length reply must never be applied (it would desync timings).
     mocks.functionsInvoke.mockResolvedValue({

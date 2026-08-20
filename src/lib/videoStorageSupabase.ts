@@ -170,6 +170,45 @@ class VideoStorageSupabase {
   }
 
   /**
+   * Supprimer des clips d'un joueur en une seule requête.
+   *
+   * `clipIds` omis vide toute la bibliothèque. Passe par une RPC : les DELETE
+   * directs sur la table n'aboutissaient pas chez certains clients, et vider la
+   * bibliothèque enchaînait autant de requêtes que de clips.
+   *
+   * Renvoie le nombre de clips réellement supprimés.
+   */
+  async deletePlayerClips(playerId: string, clipIds?: string[]): Promise<number> {
+    const { data, error } = await supabase.rpc('delete_player_clips', {
+      p_player_id: playerId,
+      p_clip_ids: clipIds ?? null,
+    });
+
+    if (error) throw new Error(`Suppression impossible : ${error.message}`);
+
+    const paths = (data as string[] | null) ?? [];
+    for (const id of clipIds ?? []) urlCache.delete(id);
+    if (!clipIds) urlCache.clear();
+
+    if (paths.length > 0) {
+      // Un seul appel groupé au stockage : vidéo, bande rythmo et vignette.
+      const toRemove = paths.flatMap((path) => [
+        path,
+        `${path.replace(/\.[^./]+$/, '')}.cues.json`,
+        posterPathFor(path),
+      ]);
+      const { error: storageError } = await supabase.storage.from(BUCKET).remove(toRemove);
+      if (storageError) {
+        // Les métadonnées sont déjà supprimées : les fichiers orphelins ne
+        // gênent pas le joueur, on ne fait donc pas échouer l'opération.
+        console.warn('[clips] nettoyage du stockage incomplet:', storageError.message);
+      }
+    }
+
+    return paths.length;
+  }
+
+  /**
    * URL publique de la vignette d'un clip.
    *
    * Le bucket est public : pas de signature, donc aucune requête API. On ne sait

@@ -191,6 +191,9 @@ export const VideoSubmissionScreen = ({
   } | null>(null);
   /** Clip currently shown in the rythmo preview dialog, if any. */
   const [previewClip, setPreviewClip] = useState<VideoClip | null>(null);
+  /** Vidage en cours : le bouton doit le montrer et refuser un second clic. */
+  const [isWiping, setIsWiping] = useState(false);
+  const wipeLockRef = useRef(false);
 
   // Start pulling the model as soon as this screen opens. The ~80 MB download
   // has nothing to do with the videos, so it may as well run while the player
@@ -591,21 +594,48 @@ export const VideoSubmissionScreen = ({
   const handleDragLeave = () => setIsDragging(false);
 
   const wipeLibrary = async () => {
+    if (wipeLockRef.current) return;
+    wipeLockRef.current = true;
+    setIsWiping(true);
     try {
-      const clips = await videoStorage.getVideoClipsByPlayer(currentPlayer.id);
-      await mapWithConcurrency(clips, DEFAULT_CONCURRENCY, (c) =>
-        videoStorage.deleteVideoClip(c.id).catch(() => undefined),
+      // Une seule requête, côté serveur : l'ancienne version enchaînait un
+      // DELETE par clip, et ces écritures directes sur la table n'aboutissaient
+      // pas — la bibliothèque semblait alors ne jamais se vider.
+      const removed = await withTimeout(
+        videoStorage.deletePlayerClips(currentPlayer.id),
+        20_000,
+        "La suppression n'a pas abouti.",
       );
+
+      // Vidé immédiatement : plus besoin de recharger la page.
       setSavedClips([]);
       setSelectedClips([]);
       setClipUrls({});
-      // The bands went with the clips (deleteVideoClip removes the cue file).
+      // Les bandes rythmo et vignettes partent avec les clips.
       setRhythmoReady({});
+      setPreviewClip(null);
       importedFilesRef.current = {};
-      toast({ title: '🗑️ Bibliothèque vidée', description: `${clips.length} vidéo(s) supprimée(s).` });
+
+      toast({
+        title: '🗑️ Bibliothèque vidée',
+        description: `${removed} vidéo(s) supprimée(s).`,
+      });
     } catch (err) {
       console.error('[wipe] error:', err);
-      toast({ title: 'Erreur', description: 'Impossible de vider.', variant: 'destructive' });
+      // On resynchronise depuis le serveur : la suppression a peut-être abouti
+      // partiellement, l'écran doit refléter la réalité sans rechargement.
+      await loadPlayerClips().catch(() => undefined);
+      toast({
+        title: 'Erreur',
+        description:
+          err instanceof Error
+            ? `${err.message} Vérifie ta connexion puis réessaie.`
+            : 'Impossible de vider la bibliothèque.',
+        variant: 'destructive',
+      });
+    } finally {
+      wipeLockRef.current = false;
+      setIsWiping(false);
     }
   };
 
@@ -1131,12 +1161,22 @@ export const VideoSubmissionScreen = ({
                   {/* Wipe + Submit buttons */}
                   <div className="flex gap-2">
                     {savedClips.length > 0 && (
-                      <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                      <motion.button type="button"
+                        whileHover={isWiping ? undefined : { scale: 1.02 }}
+                        whileTap={isWiping ? undefined : { scale: 0.98 }}
+                        disabled={isWiping}
                         onClick={() => { if (window.confirm(`Supprimer ${savedClips.length} vidéo(s) ?`)) void wipeLibrary(); }}
-                        className="px-3 py-2.5 rounded-2xl flex items-center gap-1.5"
+                        className={cn(
+                          "px-3 py-2.5 rounded-2xl flex items-center gap-1.5",
+                          isWiping && "opacity-60 cursor-not-allowed",
+                        )}
                         style={{ background: "rgba(239,68,68,0.1)", border: "2.5px solid rgba(239,68,68,0.4)" }}>
-                        <Trash2 className="w-4 h-4 text-red-300" />
-                        <span className="text-sm font-black text-red-300" style={{ fontFamily: "'Outfit', sans-serif" }}>Vider</span>
+                        {isWiping
+                          ? <Loader2 className="w-4 h-4 text-red-300 animate-spin" />
+                          : <Trash2 className="w-4 h-4 text-red-300" />}
+                        <span className="text-sm font-black text-red-300" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                          {isWiping ? "Suppression…" : "Vider"}
+                        </span>
                       </motion.button>
                     )}
                     <motion.button
