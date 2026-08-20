@@ -90,6 +90,25 @@ export function getModeEmojiLabel(mode: LobbyGameMode): string {
   return GAME_MODE_META[mode].emojiLabel;
 }
 
+/**
+ * Nombre de bots à ajouter pour qu'un administrateur seul puisse lancer.
+ *
+ * Un bot n'a d'intérêt que dans les modes dotés d'un pilote automatique qui le
+ * fait réellement jouer — `useUndercoverGame` et `useMonopolyGame`.
+ *
+ * Le mode Imitation n'en a aucun. Le bot qui y était ajouté ne soumettait jamais
+ * de défi et ne se déclarait jamais prêt, ce qui gelait successivement le bouton
+ * « Lancer la Partie » (`allPlayersSubmitted`), la phase d'aperçu, puis la phase
+ * d'imitation — toutes trois exigeant que *tous* les joueurs répondent. L'admin
+ * doit donc y jouer réellement seul : zéro bot est la seule valeur jouable.
+ */
+export function soloBotCount(mode: LobbyGameMode): number {
+  if (mode === 'normal') return 0;
+  if (mode === '2v2') return 3;
+  if (mode === 'undercover') return 2;
+  return 1;
+}
+
 export function getStartStatus(params: {
   mode: LobbyGameMode;
   connectedCount: number;

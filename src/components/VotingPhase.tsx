@@ -727,10 +727,22 @@ export const VotingPhase = ({
 
   const displayLength = gameMode === '2v2' ? teamImitations.length : imitations.length;
 
+  /*
+   * Fin de phase, testée AVANT le garde-fou de chargement.
+   *
+   * Au dernier index, `imitations[currentIndex]` est indéfini par construction :
+   * le garde-fou concluait « imitations non chargées » et affichait le spinner à
+   * la place de l'écran de fin, pendant les deux secondes qui précèdent les
+   * résultats. Très visible en solo, où il n'y a qu'une seule imitation.
+   */
+  const votingFinished =
+    isSessionSynchronized && displayLength > 0 && (hasVotedAll || currentIndex >= displayLength);
+
   // Nothing renders until the durable session snapshot is certified.
-  if (!isSessionSynchronized ||
+  if (!votingFinished && (
+      !isSessionSynchronized ||
       (gameMode === 'normal' && (!currentImitation || imitations.length === 0)) ||
-      (gameMode === '2v2' && teamImitations.length === 0)) {
+      (gameMode === '2v2' && teamImitations.length === 0))) {
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -744,7 +756,7 @@ export const VotingPhase = ({
   }
 
   // Completed state
-  if (hasVotedAll || currentIndex >= displayLength) {
+  if (votingFinished) {
     return (
       <div className="text-center py-12 space-y-4">
         <div className="relative inline-block">

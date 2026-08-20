@@ -19,7 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useTheme } from "@/hooks/useTheme";
 import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
-import { LobbyGameMode } from "@/lib/gameModes";
+import { LobbyGameMode, soloBotCount } from "@/lib/gameModes";
 import { ConnectionRecoveryOverlay } from "@/components/ConnectionRecoveryOverlay";
 import {
   loadAudioPhoneGameScreen,
@@ -417,13 +417,15 @@ const Index = () => {
     
     if (lobby && currentPlayer?.isHost) {
       try {
-        // Admin solo: add bots if only 1 player connected
+        // Admin solo: add bots only where an autopilot actually plays them.
+        // En mode Imitation le compte est zéro, et c'est délibéré : voir
+        // `soloBotCount`.
         const connectedPlayers = players.filter(p => !(p as any).isDisconnected);
-        if (isAdmin && connectedPlayers.length === 1) {
+        const neededBots = isAdmin && connectedPlayers.length === 1 ? soloBotCount(mode) : 0;
+        if (neededBots > 0) {
           const botNames = ['Bot Alpha', 'Bot Bravo', 'Bot Charlie', 'Bot Delta'];
-          const neededBots = mode === '2v2' ? 3 : mode === 'undercover' ? 2 : 1;
           const botsToAdd = botNames.slice(0, neededBots);
-          
+
           for (const botName of botsToAdd) {
             const botId = `bot-${crypto.randomUUID().slice(0, 8)}`;
             await supabase.from('lobby_players').insert({
@@ -434,7 +436,7 @@ const Index = () => {
               connection_status: 'connected',
             });
           }
-          
+
           console.log(`[Index] Added ${botsToAdd.length} bots for admin solo play`);
         }
 
