@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { registerAudioContext } from '@/lib/audioUnlock';
 import { getSoundEffectsVolume } from './useSoundEffectsVolume';
 
 type SoundType = 
@@ -2743,13 +2744,15 @@ export const useSoundEffects = () => {
   const playSound = useCallback((type: SoundType, volume: number = 0.3) => {
     try {
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = registerAudioContext(
+          new (window.AudioContext || (window as any).webkitAudioContext)(),
+        );
       }
-      
+
       if (audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
+        registerAudioContext(audioContextRef.current);
       }
-      
+
       createRichSound(audioContextRef.current, type, volume);
     } catch (error) {
       console.warn('Could not play sound:', error);
@@ -2816,13 +2819,17 @@ export const playSoundEffect = (type: SoundType, volume: number = 0.3) => {
     }
 
     if (!globalAudioContext) {
-      globalAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      globalAudioContext = registerAudioContext(
+        new (window.AudioContext || (window as any).webkitAudioContext)(),
+      );
     }
-    
+
+    // Enregistré une fois pour toutes : un contexte créé hors geste restait
+    // suspendu définitivement, et tous les effets sonores étaient perdus.
     if (globalAudioContext.state === 'suspended') {
-      globalAudioContext.resume();
+      registerAudioContext(globalAudioContext);
     }
-    
+
     createRichSound(globalAudioContext, type, volume);
   } catch (error) {
     console.warn('Could not play sound:', error);

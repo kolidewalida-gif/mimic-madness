@@ -119,14 +119,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      }
-      setIsLoading(false);
-    });
+    //
+    // Le `.catch` n'est pas décoratif : `getSession()` prend un verrou Navigator
+    // LockManager et **rejette** quand ce verrou est déjà détenu (deuxième
+    // onglet, rafraîchissement de jeton en cours). En production cela produisait
+    // un « Uncaught (in promise) Acquiring an exclusive Navigator LockManager
+    // lock … immediately failed », et surtout `isLoading` restait vrai pour
+    // toujours puisque seul le chemin de succès le remettait à faux.
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchUserData(session.user.id);
+        }
+        setIsLoading(false);
+      })
+      .catch((error: unknown) => {
+        // `onAuthStateChange` reste branché et fournira la session dès qu'elle
+        // sera lisible : on débloque l'interface au lieu de la figer.
+        console.warn('[auth] session initiale illisible :', error);
+        setIsLoading(false);
+      });
 
     return () => {
       subscription.unsubscribe();

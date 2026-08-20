@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { registerAudioContext } from '@/lib/audioUnlock';
 import { useInkMode } from './useInkMode';
 import { getSoundEffectsVolume } from './useSoundEffectsVolume';
 
@@ -46,10 +47,13 @@ let globalInkAudioContext: AudioContext | null = null;
 
 const getInkAudioContext = (): AudioContext => {
   if (!globalInkAudioContext || globalInkAudioContext.state === 'closed') {
-    globalInkAudioContext = new AudioContext();
+    globalInkAudioContext = registerAudioContext(new AudioContext());
+    return globalInkAudioContext;
   }
+  // Relance suivie : un `resume()` non attendu et jamais retenté laissait le
+  // contexte suspendu pour toute la session dès qu'il naissait hors geste.
   if (globalInkAudioContext.state === 'suspended') {
-    globalInkAudioContext.resume();
+    registerAudioContext(globalInkAudioContext);
   }
   return globalInkAudioContext;
 };

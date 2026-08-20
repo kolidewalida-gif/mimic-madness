@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { registerAudioContext } from '@/lib/audioUnlock';
 import { getSoundEffectsVolume } from './useSoundEffectsVolume';
 
 export type PremiumSoundType = 
@@ -648,7 +649,7 @@ let audioContext: AudioContext | null = null;
 
 const getAudioContext = () => {
   if (!audioContext) {
-    audioContext = new AudioContext();
+    audioContext = registerAudioContext(new AudioContext());
   }
   return audioContext;
 };
@@ -657,8 +658,10 @@ const getAudioContext = () => {
 export const playPremiumSound = (type: PremiumSoundType, volume: number = 0.5) => {
   try {
     const ctx = getAudioContext();
+    // Relance suivie et retentée au prochain geste : un `resume()` isolé laissait
+    // le contexte suspendu à vie quand il naissait hors interaction.
     if (ctx.state === 'suspended') {
-      ctx.resume();
+      registerAudioContext(ctx);
     }
     createPremiumSound(ctx, type, volume);
   } catch (e) {
@@ -673,13 +676,13 @@ export const usePremiumSoundEffects = () => {
   const playSound = useCallback((type: PremiumSoundType, volume: number = 0.5) => {
     try {
       if (!contextRef.current) {
-        contextRef.current = new AudioContext();
+        contextRef.current = registerAudioContext(new AudioContext());
       }
-      
+
       if (contextRef.current.state === 'suspended') {
-        contextRef.current.resume();
+        registerAudioContext(contextRef.current);
       }
-      
+
       createPremiumSound(contextRef.current, type, volume);
     } catch (e) {
       console.warn('Audio playback failed:', e);

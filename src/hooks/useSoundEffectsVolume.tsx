@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useState, useCallback, createContext, useContext } from 'react';
 
 interface SoundEffectsVolumeContextType {
   volume: number;
@@ -8,20 +8,50 @@ interface SoundEffectsVolumeContextType {
 const SoundEffectsVolumeContext = createContext<SoundEffectsVolumeContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'sound-effects-volume';
+const DEFAULT_VOLUME = 0.5;
+
+/**
+ * Lire un volume enregistré en refusant tout ce qui n'est pas un nombre valide.
+ *
+ * Sans cette validation, une valeur illisible dans `localStorage` donnait `NaN`.
+ * Ce `NaN` se propageait jusqu'à `masterGain.gain.value`, ce que l'API Web Audio
+ * refuse en levant une exception — avalée par le `try/catch` de
+ * `playSoundEffect`. Résultat : **tous** les effets sonores devenaient muets,
+ * définitivement et sans le moindre message. C'est l'une des causes possibles
+ * d'un joueur qui n'a plus aucun son.
+ */
+const parseStoredVolume = (raw: string | null): number => {
+  if (raw === null) return DEFAULT_VOLUME;
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed)) return DEFAULT_VOLUME;
+  return Math.max(0, Math.min(1, parsed));
+};
+
+const readStoredVolume = (): number => {
+  if (typeof window === 'undefined') return DEFAULT_VOLUME;
+  try {
+    return parseStoredVolume(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    // Mode privé ou stockage refusé : le défaut vaut mieux qu'un silence.
+    return DEFAULT_VOLUME;
+  }
+};
+
+const writeStoredVolume = (volume: number): number => {
+  const safe = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : DEFAULT_VOLUME;
+  try {
+    localStorage.setItem(STORAGE_KEY, String(safe));
+  } catch {
+    // Le réglage ne survivra pas au rechargement, mais il s'applique maintenant.
+  }
+  return safe;
+};
 
 export const SoundEffectsVolumeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [volume, setVolumeState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? parseFloat(stored) : 0.5;
-    }
-    return 0.5;
-  });
+  const [volume, setVolumeState] = useState(readStoredVolume);
 
   const setVolume = useCallback((newVolume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, newVolume));
-    setVolumeState(clampedVolume);
-    localStorage.setItem(STORAGE_KEY, clampedVolume.toString());
+    setVolumeState(writeStoredVolume(newVolume));
   }, []);
 
   return (
@@ -36,20 +66,12 @@ export const useSoundEffectsVolume = () => {
   if (!context) {
     // Return default values if used outside provider
     return {
-      volume: typeof window !== 'undefined' 
-        ? parseFloat(localStorage.getItem(STORAGE_KEY) || '0.5') 
-        : 0.5,
-      setVolume: (v: number) => localStorage.setItem(STORAGE_KEY, v.toString())
+      volume: readStoredVolume(),
+      setVolume: (v: number) => { writeStoredVolume(v); },
     };
   }
   return context;
 };
 
 // Get volume without hook (for use in playSoundEffect)
-export const getSoundEffectsVolume = (): number => {
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? parseFloat(stored) : 0.5;
-  }
-  return 0.5;
-};
+export const getSoundEffectsVolume = (): number => readStoredVolume();

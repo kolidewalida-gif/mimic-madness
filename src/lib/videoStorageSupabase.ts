@@ -66,6 +66,62 @@ export interface UploadProgress {
   ratio: number;
 }
 
+/** Combien de temps on accepte d'attendre le jeton avant de s'en passer. */
+const TOKEN_TIMEOUT_MS = 3_000;
+
+/** Borne une promesse qui n'a pas de délai propre. */
+const withTimeout = <T,>(operation: PromiseLike<T>, ms: number, message: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    operation.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error: unknown) => { clearTimeout(timer); reject(error); },
+    );
+  });
+
+/**
+ * Résoudre le jeton d'accès sans jamais faire échouer l'envoi.
+ *
+ * `supabase.auth.getSession()` prend un verrou Navigator LockManager. Quand ce
+ * verrou est déjà détenu — deuxième onglet ouvert, rafraîchissement de jeton en
+ * cours — l'appel **rejette** avec « Acquiring an exclusive Navigator
+ * LockManager lock "lock:sb-…-auth-token" immediately failed ». C'est observé en
+ * production. Il peut aussi ne jamais se résoudre.
+ *
+ * Un rejet non protégé ici faisait échouer l'envoi avant le moindre octet. Or le
+ * bouton « Soumettre » d'une imitation n'apparaît qu'après un envoi réussi :
+ * conséquence directe, le joueur ne pouvait plus soumettre du tout.
+ *
+ * La clé publiable est un repli valable : c'est exactement ce que le SDK envoie
+ * pour un joueur non authentifié, donc les politiques du bucket s'appliquent de
+ * la même façon.
+ */
+async function resolveAccessToken(): Promise<string> {
+  try {
+    const session = await Promise.race([
+      Promise.resolve(supabase.auth.getSession()).then((result) => result?.data?.session ?? null),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), TOKEN_TIMEOUT_MS);
+      }),
+    ]);
+    const token = session?.access_token;
+    return typeof token === 'string' && token.length > 0 ? token : SUPABASE_PUBLISHABLE_KEY;
+  } catch (error) {
+    console.warn('[upload] jeton de session indisponible, repli sur la clé publiable :', error);
+    return SUPABASE_PUBLISHABLE_KEY;
+  }
+}
+
+/**
+ * Délai total accordé à un envoi, d'après sa taille.
+ *
+ * `XMLHttpRequest` n'a aucun délai par défaut : sans ça, un envoi bloqué reste
+ * bloqué pour toujours. Le calcul suppose un débit plancher très bas (8 ko/s)
+ * pour ne jamais interrompre un envoi lent mais réel.
+ */
+const uploadTimeoutMs = (bytes: number): number =>
+  Math.max(120_000, Math.ceil(bytes / (8 * 1024)) * 1000);
+
 /**
  * Envoyer un objet dans le Storage en rapportant les octets transmis.
  *
@@ -76,7 +132,10 @@ export interface UploadProgress {
  * seule API navigateur qui donne `upload.onprogress`, d'où cet appel direct à
  * l'endpoint REST du Storage.
  *
- * Renvoie la même forme que le SDK (`{ error }`) pour rester interchangeable.
+ * Renvoie l'erreur éventuelle, plus `transportFailed` : vrai quand aucune
+ * réponse HTTP n'a été obtenue (réseau coupé, délai dépassé, requête avortée).
+ * C'est le seul cas où réessayer via le SDK a du sens — un 4xx serait refusé de
+ * la même manière.
  */
 function uploadWithProgress(
   bucket: string,
@@ -89,7 +148,7 @@ function uploadWithProgress(
     accessToken: string;
     onProgress?: (progress: UploadProgress) => void;
   },
-): Promise<{ error: { message: string } | null }> {
+): Promise<{ error: { message: string } | null; transportFailed: boolean }> {
   const endpoint = `${SUPABASE_URL}/storage/v1/object/${bucket}/${path
     .split('/')
     .map(encodeURIComponent)
@@ -98,6 +157,7 @@ function uploadWithProgress(
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', endpoint, true);
+    xhr.timeout = uploadTimeoutMs(body.size);
     xhr.setRequestHeader('authorization', `Bearer ${options.accessToken}`);
     xhr.setRequestHeader('apikey', SUPABASE_PUBLISHABLE_KEY);
     xhr.setRequestHeader('content-type', options.contentType);
@@ -120,7 +180,7 @@ function uploadWithProgress(
           totalBytes: body.size,
           ratio: 1,
         });
-        resolve({ error: null });
+        resolve({ error: null, transportFailed: false });
         return;
       }
       let message = `HTTP ${xhr.status}`;
@@ -131,11 +191,15 @@ function uploadWithProgress(
       } catch {
         // Corps non JSON : le statut suffit à qualifier l'échec.
       }
-      resolve({ error: { message } });
+      resolve({ error: { message }, transportFailed: false });
     };
 
-    xhr.onerror = () => resolve({ error: { message: 'NetworkError' } });
-    xhr.ontimeout = () => resolve({ error: { message: "L'envoi a expiré." } });
+    xhr.onerror = () =>
+      resolve({ error: { message: 'Envoi interrompu par le réseau.' }, transportFailed: true });
+    xhr.ontimeout = () =>
+      resolve({ error: { message: "L'envoi a expiré." }, transportFailed: true });
+    xhr.onabort = () =>
+      resolve({ error: { message: 'Envoi interrompu.' }, transportFailed: true });
 
     xhr.send(body);
   });
@@ -171,28 +235,25 @@ class VideoStorageSupabase {
     const fileName = `${clipData.playerId}/${clipData.id}.${ext}`;
     const contentType = file.type || 'video/mp4';
 
-    /**
-     * Le jeton de session si le joueur est authentifié, sinon la clé publiable :
-     * c'est exactement ce que le SDK envoie, les politiques RLS du bucket
-     * s'appliquent donc de la même façon.
-     */
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token ?? SUPABASE_PUBLISHABLE_KEY;
+    const accessToken = await resolveAccessToken();
 
-    let uploadError = (
-      await uploadWithProgress('video-challenges', fileName, file, {
-        contentType,
-        cacheControl: '3600',
-        upsert: true,
-        accessToken,
-        onProgress,
-      })
-    ).error;
+    const attempt = await uploadWithProgress('video-challenges', fileName, file, {
+      contentType,
+      cacheControl: '3600',
+      upsert: true,
+      accessToken,
+      onProgress,
+    });
 
-    // Repli sur le SDK si le transport direct échoue au niveau réseau : mieux
-    // vaut perdre la barre de progression que perdre l'import.
-    if (uploadError && uploadError.message === 'NetworkError') {
-      console.warn('[import] envoi avec progression indisponible, repli sur le SDK');
+    // Repli sur le SDK uniquement quand aucune réponse HTTP n'a été obtenue :
+    // mieux vaut perdre la barre de progression que perdre l'envoi. Un 4xx, lui,
+    // serait refusé à l'identique — le retenter ne ferait que doubler l'attente.
+    let uploadError = attempt.error;
+    if (attempt.transportFailed) {
+      console.warn(
+        '[upload] transport direct en échec, repli sur le SDK :',
+        attempt.error?.message,
+      );
       uploadError =
         (
           await supabase.storage.from('video-challenges').upload(fileName, file, {
@@ -224,21 +285,27 @@ class VideoStorageSupabase {
       roundNumber: clipData.roundNumber ?? null,
     };
 
-    const { error: dbError } = await supabase
-      .from('video_clips')
-      .insert({
-        id: clip.id,
-        player_id: clip.playerId,
-        player_name: clip.playerName,
-        name: clip.name,
-        start_time: clip.startTime,
-        end_time: clip.endTime,
-        duration: clip.duration,
-        is_muted: clip.isMuted,
-        storage_path: clip.storagePath,
-        lobby_id: clip.lobbyId,
-        round_number: clip.roundNumber,
-      });
+    // Bornée : cette écriture n'a pas de délai propre, et un blocage ici laissait
+    // l'enregistreur en chargement indéfini, donc sans bouton « Soumettre ».
+    const { error: dbError } = await withTimeout(
+      supabase
+        .from('video_clips')
+        .insert({
+          id: clip.id,
+          player_id: clip.playerId,
+          player_name: clip.playerName,
+          name: clip.name,
+          start_time: clip.startTime,
+          end_time: clip.endTime,
+          duration: clip.duration,
+          is_muted: clip.isMuted,
+          storage_path: clip.storagePath,
+          lobby_id: clip.lobbyId,
+          round_number: clip.roundNumber,
+        }),
+      30_000,
+      "L'enregistrement du clip n'a pas abouti.",
+    );
 
     if (dbError) {
       // Clean up uploaded file if database insert fails
