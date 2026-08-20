@@ -1,7 +1,13 @@
-project_id = "whmtywgllrjslmytdbvb"
+project_id = "gvslrjkliipibnvnxybw"
 
 [functions.generate-subtitles]
 verify_jwt = false
 
 [functions.generate-quiz-question]
 verify_jwt = false
+
+[functions.image-proxy]
+verify_jwt = false
+
+[functions.generate-adaptive-music]
+verify_jwt = true
