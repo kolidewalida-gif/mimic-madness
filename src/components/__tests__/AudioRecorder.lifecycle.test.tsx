@@ -264,8 +264,10 @@ describe('AudioRecorder lifecycle cleanup', () => {
      */
     const onRecordingPause = vi.fn();
     const onRecordingResume = vi.fn();
+    const onRecordingStart = vi.fn();
     const view = render(
       <AudioRecorder playerId="p1" playerName="Joueur"
+        onRecordingStart={onRecordingStart}
         onRecordingPause={onRecordingPause} onRecordingResume={onRecordingResume} />,
     );
 
@@ -274,6 +276,11 @@ describe('AudioRecorder lifecycle cleanup', () => {
     FakeMediaRecorder.instances[0].ondataavailable?.(
       { data: new Blob(['segment un'], { type: 'audio/webm' }) } as BlobEvent,
     );
+
+    // Le début de prise est différé de 200 ms : on le laisse passer pour pouvoir
+    // vérifier ensuite qu'une reprise ne le rejoue pas.
+    await new Promise((resolve) => setTimeout(resolve, 320));
+    expect(onRecordingStart).toHaveBeenCalledTimes(1);
 
     fireEvent.click(view.getByRole('button', { name: /^Pause$/i }));
     await waitFor(() => expect(onRecordingPause).toHaveBeenCalledOnce());
@@ -290,6 +297,15 @@ describe('AudioRecorder lifecycle cleanup', () => {
     // Un second enregistreur, sur le même micro.
     expect(FakeMediaRecorder.instances[1].stream).toBe(stream);
     expect(trackStop).not.toHaveBeenCalled();
+
+    /*
+     * Non-régression : une reprise ne doit PAS annoncer un début de prise.
+     * `onRecordingStart` est différé de 200 ms et le parent y remet la vidéo à
+     * imiter au début du clip. Le déclencher à la reprise rembobinait la vidéo
+     * juste après chaque changement de voix, écrasant la position restaurée.
+     */
+    await new Promise((resolve) => setTimeout(resolve, 320));
+    expect(onRecordingStart).toHaveBeenCalledTimes(1);
   });
 
   it('assemble les deux segments à l’arrêt final', async () => {

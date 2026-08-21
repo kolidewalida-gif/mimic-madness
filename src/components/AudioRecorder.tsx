@@ -594,6 +594,8 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     session: RecordingSession,
     mediaStream: MediaStream,
     selectedFilter: VoiceFilterId,
+    /** Vrai pour un segment ouvert après une pause, faux pour un début de prise. */
+    isResume = false,
   ) {
       const filtered = applyVoiceFilter(mediaStream, selectedFilter);
       if (!isSessionActive(session)) {
@@ -697,14 +699,25 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
       setIsRecording(true);
       setActiveFilter(selectedFilter);
       updateAudioLevel(session, recorder);
-      recordingStartTimeoutRef.current = setTimeout(() => {
-        recordingStartTimeoutRef.current = null;
-        if (isSessionActive(session) && recorder.state === 'recording') {
-          callbacksRef.current.onRecordingStart?.();
-        }
-      }, 200);
 
-      if (segmentsRef.current.length === 0) {
+      /*
+       * `onRecordingStart` ne concerne que le DÉBUT d'une prise, pas chaque
+       * segment.
+       *
+       * Le parent y remet la vidéo à imiter au début du clip, ce qui est juste
+       * pour une nouvelle prise. Le déclencher aussi à la reprise rembobinait la
+       * vidéo 200 ms après chaque changement de voix, écrasant la position que
+       * `onRecordingResume` venait de restaurer. Une reprise annonce
+       * `onRecordingResume`, et rien d'autre.
+       */
+      if (!isResume) {
+        recordingStartTimeoutRef.current = setTimeout(() => {
+          recordingStartTimeoutRef.current = null;
+          if (isSessionActive(session) && recorder.state === 'recording') {
+            callbacksRef.current.onRecordingStart?.();
+          }
+        }, 200);
+
         toast({
           title: '🎤 Enregistrement audio démarré',
           description: 'Imitez maintenant !',
@@ -787,7 +800,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     if (mediaRecorderRef.current) return;
 
     setIsPaused(false);
-    startSegment(session, mediaStream, voiceFilter);
+    startSegment(session, mediaStream, voiceFilter, true);
     callbacksRef.current.onRecordingResume?.();
 
     // Confirmation explicite que le changement de voix est bien pris en compte.
