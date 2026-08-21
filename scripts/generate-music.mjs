@@ -54,12 +54,49 @@ const exists = async (path) => {
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
-async function compose(track) {
-  const body = JSON.stringify({
-    prompt: track.prompt,
-    music_length_ms: track.lengthMs,
-    model_id: MODEL_ID,
-  });
+/**
+ * Construit le corps de la requête.
+ *
+ * `prompt` et `composition_plan` sont mutuellement exclusifs côté API. Un plan
+ * donne le contrôle section par section : c'est lui qui permet de placer le
+ * motif signature à l'intro puis de le réénoncer au climax, ce qu'un prompt
+ * unique ne garantit pas.
+ *
+ * L'identité commune (`signature`) et les interdits (`banned`) sont injectés
+ * depuis la racine du manifeste plutôt que recopiés dans chaque section : c'est
+ * ce qui fait que les morceaux s'entendent comme une même famille, et ça laisse
+ * un seul endroit à régler.
+ */
+function buildBody(track, manifest) {
+  if (!track.plan) {
+    return JSON.stringify({
+      prompt: track.prompt,
+      music_length_ms: track.lengthMs,
+      model_id: MODEL_ID,
+    });
+  }
+
+  const signature = manifest.signature ?? [];
+  const banned = manifest.banned ?? [];
+
+  const chunks = track.plan.chunks.map((chunk, index) => ({
+    ...chunk,
+    // La doc insiste : les styles de la première section fixent le ton de tout
+    // le morceau. L'identité y passe donc en tête.
+    positive_styles: index === 0
+      ? [...signature, ...(chunk.positive_styles ?? [])]
+      : (chunk.positive_styles ?? []),
+    negative_styles: [
+      ...new Set([...(chunk.negative_styles ?? []), ...banned]),
+    ],
+    context_adherence: chunk.context_adherence ?? 'high',
+  }));
+
+  return JSON.stringify({ composition_plan: { chunks }, model_id: MODEL_ID });
+}
+
+async function compose(track, manifest) {
+  const body = buildBody(track, manifest);
 
   let lastDetail = '';
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -113,10 +150,21 @@ for (const track of selected) {
     continue;
   }
 
+  const planned = track.plan
+    ? track.plan.chunks.reduce((total, chunk) => total + chunk.duration_ms, 0)
+    : track.lengthMs;
+  if (track.plan && planned !== track.lengthMs) {
+    // Un écart signale une section mal dimensionnée : mieux vaut le dire que de
+    // livrer un morceau plus court que prévu sans que personne ne le remarque.
+    console.warn(
+      `! ${track.id} — sections = ${planned} ms, annoncé ${track.lengthMs} ms`,
+    );
+  }
+
   const startedAt = Date.now();
-  console.log(`… ${track.id} — ${(track.lengthMs / 1000).toFixed(0)} s demandées`);
+  console.log(`… ${track.id} — ${(planned / 1000).toFixed(0)} s demandées`);
   try {
-    const audio = await compose(track);
+    const audio = await compose(track, manifest);
     await writeFile(target, audio);
     written += 1;
     console.log(

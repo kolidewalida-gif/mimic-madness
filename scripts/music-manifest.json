@@ -3,40 +3,298 @@
     "Musiques originales de Mimic Master, générées avec l'API Eleven Music.",
     "Générées par `scripts/generate-music.mjs`, écrites dans `public/music/`.",
     "",
-    "SUR LA RÉFÉRENCE DEMANDÉE : la commande était « comme la musique de Superman",
-    "2025 ». Les prompts ne nomment volontairement ni le film, ni le morceau, ni",
-    "ses compositeurs. Deux raisons, pas une :",
-    "  1. ElevenLabs filtre les prompts qui visent une œuvre ou un artiste précis,",
-    "     et le résultat serait refusé ou dégradé ;",
-    "  2. commander sciemment l'imitation d'une partition protégée, puis",
-    "     l'embarquer dans un produit distribué, expose le projet — alors qu'Eleven",
-    "     Music est justement « cleared » pour l'usage commercial tant que la",
-    "     création est originale.",
+    "SUR LES RÉFÉRENCES EXTERNES : les prompts ne nomment jamais un film, un",
+    "morceau ni un compositeur. ElevenLabs refuse ces demandes (`bad_composition_plan`",
+    "sur du contenu protégé), et commander l'imitation d'une œuvre protégée pour",
+    "l'embarquer dans un produit distribué exposerait le projet — alors qu'Eleven",
+    "Music est justement autorisé pour l'usage commercial tant que la création est",
+    "originale. Les références sont donc traduites en langage de composition.",
     "",
-    "La référence a donc été traduite en langage de composition : grand orchestre",
-    "héroïque, cuivres nobles, cordes qui s'envolent, percussions massives,",
-    "tonalité majeure et lumineuse. C'est ce qui produit cette sensation-là, sans",
-    "copier personne.",
+    "L'IDENTITÉ SONORE : `signature` est injecté en tête des styles de la PREMIÈRE",
+    "section de chaque morceau, et `banned` dans les styles négatifs de TOUTES les",
+    "sections. La documentation est explicite : les styles de la première section",
+    "fixent le ton de tout le morceau. C'est ce mécanisme qui fait que les",
+    "morceaux s'entendent comme une même famille au lieu de trois prompts sans",
+    "rapport, et il ne se règle qu'à un seul endroit.",
     "",
-    "Les deux morceaux forment une paire : même orchestre, même identité, mais",
-    "deux fonctions différentes. Ils ne doivent pas se disputer le même moment de",
-    "jeu.",
+    "LE MOTIF : Mimic Master parle d'imitation, donc la musique imite. Une phrase",
+    "est énoncée, puis reprise par un autre timbre — un canon, un jeu de miroir.",
+    "C'est ce qui rend ces morceaux reconnaissables et propres à ce jeu, et c'est",
+    "de l'écriture réelle, pas un gimmick. Le motif est énoncé nu à l'intro puis",
+    "réénoncé au climax : la répétition est ce qui fait qu'un thème reste en tête.",
     "",
-    "`music_length_ms` doit être un multiple de 5000 et rester entre 3 000 et",
-    "600 000. 120 000 = deux minutes."
+    "PLAN OU PROMPT : `plan` et `prompt` sont mutuellement exclusifs côté API. Un",
+    "plan est une liste ordonnée de sections (30 max, chacune entre 3 000 et",
+    "120 000 ms) et exige `model_id = music_v2`. Il permet de placer précisément",
+    "le motif, ce qu'un prompt unique ne garantit pas.",
+    "",
+    "Les styles doivent être en anglais, c'est une contrainte de l'API."
   ],
+
+  "signature": [
+    "cinematic hybrid orchestral and electronic score, fully instrumental",
+    "signature four note motif: two quick pickup notes, one long accented note, then a falling resolution",
+    "call and response: a phrase stated by one instrument then immediately imitated by a contrasting timbre, like a mirror",
+    "D minor",
+    "dark warm and confident, adult and serious, never cute",
+    "tight modern production, deep sub bass, wide stereo, crisp transients",
+    "great production quality"
+  ],
+
+  "banned": [
+    "childish",
+    "cartoon",
+    "nursery rhyme",
+    "toy instruments",
+    "kazoo",
+    "circus",
+    "comedic",
+    "novelty",
+    "chiptune",
+    "8-bit",
+    "cheesy",
+    "elevator music",
+    "vocals",
+    "lyrics",
+    "singing"
+  ],
+
   "tracks": [
     {
       "id": "mimic-master-theme",
       "title": "Mimic Master — Thème",
       "lengthMs": 120000,
+      "$role": "Première série, sur prompt libre. Conservé pour pouvoir le régénérer.",
       "prompt": "Epic heroic orchestral main theme for a party game, fully instrumental with no vocals. Opens intimate with a single noble French horn stating a memorable five note motif over soft shimmering strings, then blooms into a full symphony orchestra. Soaring violin melody carrying the motif, warm brass fanfare answering it, rich horn counterlines, timpani and cinematic percussion driving forward, a bright triumphant major key climax with cymbal swells and a wordless choir lifting underneath, then a confident final statement of the motif. Uplifting, noble, hopeful, wide and cinematic, modern film score production, big hall reverb, clean mix with strong low end."
     },
     {
       "id": "mimic-master-showdown",
       "title": "Mimic Master — Duel",
       "lengthMs": 120000,
+      "$role": "Première série, sur prompt libre. Conservé pour pouvoir le régénérer.",
       "prompt": "Driving heroic orchestral action cue for a competitive party game, fully instrumental with no vocals. Same noble brass identity as a main superhero theme but restless and propulsive: insistent staccato low strings ostinato, punchy brass stabs stacked in rising intervals, taiko and timpani hits on the downbeats, urgent tremolo violins, snare rolls building tension, a short brass fanfare breaking through at the peak before dropping back to the ostinato. Around 140 bpm, exciting and competitive but still bright and heroic rather than dark, modern film score production, big hall reverb, punchy percussive mix."
+    },
+    {
+      "id": "mimic-master-signature",
+      "title": "Mimic Master — Signature",
+      "lengthMs": 150000,
+      "$role": "Thème principal. Menu, lobby, accueil.",
+      "plan": {
+        "chunks": [
+          {
+            "text": "[Statement]",
+            "duration_ms": 22000,
+            "positive_styles": [
+              "solo muted trumpet states the four note motif alone over a sparse pulsing synth bass",
+              "space and restraint, almost bare",
+              "92 BPM"
+            ],
+            "negative_styles": ["full orchestra", "busy", "loud", "drums"]
+          },
+          {
+            "text": "[The Echo]",
+            "duration_ms": 24000,
+            "positive_styles": [
+              "pizzicato strings answer the exact same motif, imitating the trumpet note for note",
+              "the two voices begin to overlap in canon",
+              "light rimshot percussion enters",
+              "curious and playful but never silly"
+            ],
+            "negative_styles": ["chaotic", "distorted"]
+          },
+          {
+            "text": "[Build]",
+            "duration_ms": 26000,
+            "positive_styles": [
+              "low strings ostinato under the motif",
+              "the motif passes between cello, synth lead and marimba, each imitating the last",
+              "layered analog synth arpeggio rising",
+              "tension accumulating with a tight snare building"
+            ],
+            "negative_styles": ["resolving", "calm", "fading"]
+          },
+          {
+            "text": "[Full Statement]",
+            "duration_ms": 34000,
+            "positive_styles": [
+              "full brass section states the four note motif at maximum weight",
+              "the whole string section imitates it one bar later in canon",
+              "taiko and timpani hits on the accented note",
+              "big and commanding, the hook is unmistakable here"
+            ],
+            "negative_styles": ["thin", "sparse", "quiet"]
+          },
+          {
+            "text": "[Mirror]",
+            "duration_ms": 24000,
+            "positive_styles": [
+              "the motif returns inverted, played backwards by a detuned synth",
+              "only bass, one lead and a ticking hi-hat",
+              "unsettling and clever, a distorted reflection of the theme"
+            ],
+            "negative_styles": ["triumphant", "full orchestra"]
+          },
+          {
+            "text": "[Final Statement]",
+            "duration_ms": 20000,
+            "positive_styles": [
+              "the four note motif stated one last time by trumpet and brass together",
+              "resolving firmly on the root with a deep bass drop",
+              "clean confident ending, no fade"
+            ],
+            "negative_styles": ["fading out", "ambiguous ending", "building"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "mimic-master-pressure",
+      "title": "Mimic Master — Pression",
+      "lengthMs": 150000,
+      "$role": "En jeu : enregistrement, imitation, temps qui court.",
+      "plan": {
+        "chunks": [
+          {
+            "text": "[Pulse]",
+            "duration_ms": 22000,
+            "positive_styles": [
+              "relentless sixteenth note synth bass ostinato",
+              "the four note motif hinted at by a muted stab, not yet fully stated",
+              "tight dry drum machine kick and hi-hat",
+              "134 BPM",
+              "restrained menace, coiled energy"
+            ],
+            "negative_styles": ["melodic", "lush", "orchestral swell", "relaxed"]
+          },
+          {
+            "text": "[Chase]",
+            "duration_ms": 26000,
+            "positive_styles": [
+              "staccato low strings state the motif, a distorted synth immediately imitates it",
+              "the imitation arrives a half beat late, creating a stumbling chase",
+              "driving snare and claps",
+              "urgent and competitive"
+            ],
+            "negative_styles": ["resolving", "gentle"]
+          },
+          {
+            "text": "[Squeeze]",
+            "duration_ms": 26000,
+            "positive_styles": [
+              "the motif repeats faster and faster, each imitation closer to the last",
+              "rising filtered noise sweep, pitch creeping upward",
+              "brass stabs on the offbeats",
+              "claustrophobic and accelerating"
+            ],
+            "negative_styles": ["spacious", "calm", "slowing"]
+          },
+          {
+            "text": "[Break]",
+            "duration_ms": 18000,
+            "positive_styles": [
+              "everything drops to a single ticking clock and a low held drone",
+              "the motif whispered once by a lone celesta",
+              "held breath, exposed"
+            ],
+            "negative_styles": ["loud", "full drums", "brass"]
+          },
+          {
+            "text": "[Full Chase]",
+            "duration_ms": 34000,
+            "positive_styles": [
+              "everything returns at once, full drums and distorted bass",
+              "brass and synth lead trade the motif in tight canon, one bar apart",
+              "taiko hits, maximum drive",
+              "the hook hammered home"
+            ],
+            "negative_styles": ["thin", "quiet", "fading"]
+          },
+          {
+            "text": "[Cut]",
+            "duration_ms": 24000,
+            "positive_styles": [
+              "the ostinato thins to bass and hi-hat, still driving",
+              "final motif statement then a hard stop",
+              "clean abrupt ending on the beat"
+            ],
+            "negative_styles": ["long fade", "triumphant", "resolving softly"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "mimic-master-crown",
+      "title": "Mimic Master — Couronne",
+      "lengthMs": 150000,
+      "$role": "Vote, résultats, podium.",
+      "plan": {
+        "chunks": [
+          {
+            "text": "[Verdict]",
+            "duration_ms": 20000,
+            "positive_styles": [
+              "slow deliberate piano stating the four note motif, one note at a time",
+              "deep sustained cello underneath",
+              "76 BPM",
+              "weighty and suspenseful, a judgement about to land"
+            ],
+            "negative_styles": ["fast", "busy", "bright", "drums"]
+          },
+          {
+            "text": "[Reveal]",
+            "duration_ms": 24000,
+            "positive_styles": [
+              "warm horn answers the piano with the same motif, imitating it exactly",
+              "strings swell underneath, the harmony lifting from minor toward major",
+              "soft timpani roll",
+              "the moment of release"
+            ],
+            "negative_styles": ["dark", "tense", "aggressive"]
+          },
+          {
+            "text": "[Rise]",
+            "duration_ms": 28000,
+            "positive_styles": [
+              "the motif passes upward through cello, viola then violin, each imitating the last and a step higher",
+              "full string section blooming",
+              "steady heroic percussion entering",
+              "earned and building"
+            ],
+            "negative_styles": ["falling", "sparse", "hesitant"]
+          },
+          {
+            "text": "[Crown]",
+            "duration_ms": 34000,
+            "positive_styles": [
+              "full brass and strings state the motif in D major at full weight",
+              "cymbal swells and triumphant timpani",
+              "wide and glorious, the theme finally resolved",
+              "noble not cheesy, restrained grandeur"
+            ],
+            "negative_styles": ["cheesy", "over the top", "chaotic", "thin"]
+          },
+          {
+            "text": "[Afterglow]",
+            "duration_ms": 24000,
+            "positive_styles": [
+              "the motif echoed softly by solo piano and celesta answering each other",
+              "strings holding a warm major chord",
+              "settling, satisfied"
+            ],
+            "negative_styles": ["building", "loud", "tense"]
+          },
+          {
+            "text": "[Close]",
+            "duration_ms": 20000,
+            "positive_styles": [
+              "last statement of the motif by muted trumpet, alone, as at the very beginning",
+              "single deep bass note resolving",
+              "quiet confident ending, coming full circle"
+            ],
+            "negative_styles": ["building", "abrupt", "loud"]
+          }
+        ]
+      }
     }
   ]
 }

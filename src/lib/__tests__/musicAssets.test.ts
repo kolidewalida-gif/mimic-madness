@@ -19,8 +19,21 @@ const localTrackPaths = (): string[] => {
 };
 
 describe('pistes musicales locales', () => {
-  it('référence au moins les deux thèmes originaux', () => {
-    expect(localTrackPaths().length).toBeGreaterThanOrEqual(2);
+  it('référence les thèmes originaux', () => {
+    expect(localTrackPaths().length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('expose la famille « Signature » au complet', () => {
+    /*
+     * Ces trois morceaux partagent un motif et un principe d'écriture : ils
+     * n'ont d'intérêt qu'ensemble. En oublier un dans la playlist casserait
+     * l'identité sans provoquer la moindre erreur.
+     */
+    const paths = localTrackPaths();
+    for (const id of ['signature', 'pressure', 'crown']) {
+      expect(paths, `piste absente de la playlist : ${id}`)
+        .toContain(`/music/mimic-master-${id}.mp3`);
+    }
   });
 
   it('a un fichier MP3 valide pour chaque piste référencée', () => {

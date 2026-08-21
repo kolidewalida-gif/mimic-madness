@@ -49,6 +49,33 @@ interface SetSituationOptions {
  * versionnés avec le dépôt, donc rien à téléverser à la main.
  */
 const musicTracks: MusicTrack[] = [
+  /*
+   * Les trois « Signature / Pression / Couronne » partagent un motif de quatre
+   * notes et un principe d'écriture : une phrase est énoncée, puis reprise par
+   * un autre timbre. La musique imite, comme le jeu. C'est ce qui les rend
+   * reconnaissables entre elles.
+   */
+  {
+    id: 405,
+    name: 'Mimic Master — Signature',
+    src: '/music/mimic-master-signature.mp3',
+    genre: 'Hybride orchestral',
+    moods: ['epic', 'mysterious'],
+  },
+  {
+    id: 406,
+    name: 'Mimic Master — Pression',
+    src: '/music/mimic-master-pressure.mp3',
+    genre: 'Hybride orchestral',
+    moods: ['tense', 'energetic'],
+  },
+  {
+    id: 407,
+    name: 'Mimic Master — Couronne',
+    src: '/music/mimic-master-crown.mp3',
+    genre: 'Hybride orchestral',
+    moods: ['epic'],
+  },
   {
     id: 403,
     name: 'Mimic Master — Thème',
