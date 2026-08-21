@@ -41,3 +41,22 @@ describe('reprise de la vidéo à imiter', () => {
     expect(resolveResumePosition(8, Number.NaN)).toEqual({ seekTo: 8, shouldPlay: true });
   });
 });
+
+describe('passage à imiter déjà terminé', () => {
+  it('ne relance rien quand la vidéo était déjà arrêtée', () => {
+    /*
+     * Cause réelle du « ça repart du début » : `VideoPreview` met la balise en
+     * pause ET la rembobine dès la fin du passage découpé du clip. Sur un clip
+     * court, la position relevée à la pause vaut donc déjà le début.
+     */
+    expect(resolveResumePosition(0, 40, true)).toEqual({ seekTo: null, shouldPlay: false });
+  });
+
+  it('l’emporte sur une position par ailleurs valable', () => {
+    expect(resolveResumePosition(12.5, 40, true)).toEqual({ seekTo: null, shouldPlay: false });
+  });
+
+  it('laisse passer la reprise normale quand la vidéo jouait', () => {
+    expect(resolveResumePosition(12.5, 40, false)).toEqual({ seekTo: 12.5, shouldPlay: true });
+  });
+});

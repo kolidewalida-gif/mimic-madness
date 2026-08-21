@@ -119,6 +119,8 @@ export const ImitationPhase = ({
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
   /** Position de la vidéo à imiter au moment où le joueur a suspendu. */
   const pausedVideoTimeRef = useRef<number | null>(null);
+  /** Le passage à imiter était déjà terminé quand le joueur a suspendu. */
+  const pausedClipFinishedRef = useRef(false);
   // Rythmo band for the challenge clip. Null when the clip has none, which is
   // normal: it is generated at import time and older clips predate it.
   const [rhythmoTrack, setRhythmoTrack] = useState<RhythmoTrack | null>(null);
@@ -501,7 +503,14 @@ export const ImitationPhase = ({
      * Se contenter d'un `play()` à la reprise repartait donc du début à chaque
      * fois que le clip s'était terminé pendant le segment précédent.
      */
-    pausedVideoTimeRef.current = video.currentTime;
+    /*
+     * Si la vidéo est DÉJÀ arrêtée, ce n'est pas le joueur : c'est
+     * `VideoPreview` qui l'a mise en pause et rembobinée en atteignant la fin du
+     * passage à imiter. Sa position vaut alors le début du clip, et la relancer
+     * rejouerait tout depuis le départ.
+     */
+    pausedClipFinishedRef.current = video.paused;
+    pausedVideoTimeRef.current = video.paused ? null : video.currentTime;
     video.pause();
   };
 
@@ -512,10 +521,13 @@ export const ImitationPhase = ({
     if (!video) return;
 
     const captured = pausedVideoTimeRef.current;
+    const clipFinished = pausedClipFinishedRef.current;
     pausedVideoTimeRef.current = null;
+    pausedClipFinishedRef.current = false;
     const decision = resolveResumePosition(
       captured,
       Number.isFinite(video.duration) ? video.duration : 0,
+      clipFinished,
     );
 
     if (decision.seekTo !== null) {
@@ -794,13 +806,29 @@ export const ImitationPhase = ({
       {/* PLAYERS PROGRESS BAR — sticky bottom-left/right, but leaves a centered gap
           for the floating MusicPlayerBar (which is centered ~560px wide at bottom-4).
           Two pills (left/right) instead of one full-width bar avoids overlap. */}
-      <div className="fixed bottom-3 left-3 right-3 z-30 pointer-events-none flex justify-between gap-3">
-        {/* LEFT pill — count + avatars (scrollable) */}
+      {/* Sous `lg`, la barre de musique occupe presque toute la largeur : les
+          pilules passent au-dessus d'elle au lieu de se battre pour la place. */}
+      <div className="fixed bottom-24 lg:bottom-3 left-3 right-3 z-30 pointer-events-none flex justify-between gap-3">
+        {/*
+          LEFT pill — count + avatars (scrollable)
+
+          Deux corrections de largeur.
+
+          1. `min-w-[200px]` contredisait le `max-w` : en CSS la largeur minimale
+             l'emporte toujours, donc dès que la fenêtre descendait sous ~1000 px
+             le calcul donnait moins que 200 px et la pilule débordait de sa zone
+             en rognant son contenu. `min-w-0` la laisse réellement se réduire.
+
+          2. La réserve centrale valait 300 px alors que la barre de musique fait
+             680 px centrée, soit 340 px de demi-largeur : la pilule empiétait de
+             40 px dessus dès qu'elle s'allongeait. 352 px rétablit la
+             demi-largeur plus l'écart de 12 px.
+        */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
-          className="pointer-events-auto rounded-2xl px-3 py-2 flex items-center gap-2 max-w-[calc(50%-300px)] min-w-[200px]"
+          className="pointer-events-auto rounded-2xl px-3 py-2 flex items-center gap-2 min-w-0 max-w-full lg:max-w-[calc(50%-352px)]"
           style={{
             background: "linear-gradient(180deg, rgba(26,13,46,0.95), rgba(15,8,32,0.95))",
             border: '1px solid var(--ink-line)',
