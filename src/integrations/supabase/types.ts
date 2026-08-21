@@ -1906,10 +1906,6 @@ export type Database = {
         Returns: number
       }
       cleanup_old_lobbies: { Args: never; Returns: undefined }
-      delete_player_clips: {
-        Args: { p_clip_ids?: string[]; p_player_id: string }
-        Returns: string[]
-      }
       ensure_voting_session: {
         Args: { p_game_round_id: string }
         Returns: {
@@ -1978,15 +1974,6 @@ export type Database = {
       set_lobby_player_connection: {
         Args: { p_connected: boolean; p_lobby_id: string; p_player_id: string }
         Returns: undefined
-      }
-      submit_player_challenges: {
-        Args: {
-          p_clip_ids: string[]
-          p_lobby_id: string
-          p_player_id: string
-          p_player_name: string
-        }
-        Returns: number
       }
       submit_player_imitation: {
         Args: {
