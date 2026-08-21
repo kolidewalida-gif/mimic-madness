@@ -22,6 +22,7 @@ import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import { LobbyGameMode, soloBotCount } from "@/lib/gameModes";
 import { playSample } from "@/lib/sfx/samples";
 import { ConnectionRecoveryOverlay } from "@/components/ConnectionRecoveryOverlay";
+import { DiagnosticsOverlay } from "@/components/DiagnosticsOverlay";
 import {
   loadAudioPhoneGameScreen,
   loadGamePlayScreen,
@@ -827,6 +828,10 @@ const Index = () => {
       {currentPlayer && lobby && connectionState !== 'online' && (
         <ConnectionRecoveryOverlay state={connectionState} onRetry={retryConnection} />
       )}
+
+      {/* Journal de diagnostic : la moitié de l'histoire que les logs Supabase
+          ne peuvent pas raconter, à savoir ce que le client n'a pas envoyé. */}
+      <DiagnosticsOverlay enabled={isAdmin} />
       
       {/* Resume session modal — shown when a player reloads/crashes and comes back */}
       {showResumeModal && resumeStatus.kind === 'ready' && (

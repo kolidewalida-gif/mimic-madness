@@ -35,6 +35,7 @@ import {
   hasDeliveredImitation,
 } from "@/lib/imitationReadiness";
 import { resolveResumePosition } from "@/lib/challengePlayback";
+import { diagnose } from "@/lib/diagnostics";
 
 interface Player {
   id: string;
@@ -221,7 +222,19 @@ export const ImitationPhase = ({
           !canCommitSyncToken(token, epoch, latestRequest)
         ) return;
 
-        setReadyPlayers(deliveredPlayerIds(data ?? []));
+        const delivered = deliveredPlayerIds(data ?? []);
+        diagnose.info('imitation', 'État des joueurs relu', {
+          lignes: data?.length ?? 0,
+          rendus: delivered.length,
+          joueursConnectes: players.length,
+          detail: (data ?? []).map((row) => ({
+            joueur: row.player_id,
+            pret: row.is_ready,
+            clip: Boolean((row as { clip_id?: string | null }).clip_id),
+            ignore: (row as { skipped?: boolean }).skipped,
+          })),
+        });
+        setReadyPlayers(delivered);
         setIsReadySynchronized(true);
         retryAttempt = 0;
         clearRetry();
@@ -253,6 +266,7 @@ export const ImitationPhase = ({
       )
       .subscribe((status) => {
         if (!active) return;
+        diagnose.info('imitation', `Canal état joueurs : ${status}`, { lobbyId, roundNumber });
         if (status === 'SUBSCRIBED') {
           subscribed = true;
           epoch += 1;

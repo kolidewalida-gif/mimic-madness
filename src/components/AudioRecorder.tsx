@@ -17,6 +17,7 @@ import {
   type VoiceFilterId,
 } from "@/lib/voiceFilters";
 import { InkVoiceFilterPicker } from "@/components/InkVoiceFilterPicker";
+import { diagnose } from "@/lib/diagnostics";
 
 /**
  * Trim leading silence from an audio blob. Decodes to PCM, finds the first
@@ -674,6 +675,11 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         setAudioLevel(0);
 
         if (wasPause) {
+          diagnose.info('recorder', 'Segment suspendu', {
+            segments: segmentsRef.current.length,
+            voix: selectedFilter,
+            octets: segmentBlob.size,
+          });
           setIsPaused(true);
           callbacksRef.current.onRecordingPause?.();
           return;
@@ -757,13 +763,21 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
       if (!isSessionActive(session)) return;
       blob = await trimLeadingSilence(blob, session.controller.signal);
       if (!isSessionActive(session)) return;
+      diagnose.info('recorder', 'Prise assemblée', {
+        segments: segments.length,
+        voix: segments.map((segment) => segment.filter),
+        octets: blob.size,
+      });
 
       setRecordedBlob(blob);
       setPreviewUrl(URL.createObjectURL(blob));
       setAudioName(`Imitation ${new Date().toLocaleTimeString()}`);
     } catch (error) {
       if (!isSessionActive(session)) return;
-      console.error('[recorder] stitching failed', error);
+      diagnose.error('recorder', 'Assemblage des segments en échec', {
+        erreur: error,
+        segments: segments.length,
+      });
       /*
        * Sans cette remise à zéro, l'écran revenait à « commencer un
        * enregistrement » alors que les segments étaient toujours en mémoire :
@@ -800,6 +814,10 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     if (mediaRecorderRef.current) return;
 
     setIsPaused(false);
+    diagnose.info('recorder', 'Reprise après changement de voix', {
+      nouvelleVoix: voiceFilter,
+      segmentsDeja: segmentsRef.current.length,
+    });
     startSegment(session, mediaStream, voiceFilter, true);
     callbacksRef.current.onRecordingResume?.();
 

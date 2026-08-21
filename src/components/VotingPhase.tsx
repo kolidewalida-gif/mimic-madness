@@ -16,6 +16,7 @@ import { useQuestTracker } from "@/hooks/useQuestTracker";
 import { juice, centerOf } from "@/lib/juice";
 import { playInkSound } from "@/hooks/useInkSoundEffects";
 import { equalJitterBackoff } from "@/lib/syncState";
+import { diagnose } from "@/lib/diagnostics";
 import {
   canCommitVotingSession,
   expectedPlaybackPositionMs,
@@ -215,10 +216,30 @@ export const VotingPhase = ({
           responseReceivedAt,
         );
         if (!snapshot) {
+          /*
+           * Rejet silencieux jusqu'ici : l'écran repartait en attente sans dire
+           * ce qui n'allait pas, et la seule issue visible était une boucle de
+           * reprise infinie. On consigne la ligne reçue et le garde attendu,
+           * c'est exactement ce qu'il faut pour trancher entre « pas de ligne »,
+           * « manche remplacée » et « champ manquant ».
+           */
+          diagnose.error('voting', 'Instantané de session refusé', {
+            aUneLigne: Boolean(read.row),
+            degrade: read.degraded,
+            gardeAttendu: { lobbyId, roundNumber, gameRoundId },
+            ligneRecue: read.row ?? null,
+          });
           setIsSessionSynchronized(false);
           scheduleSnapshotRetry();
           return;
         }
+        diagnose.info('voting', 'Session synchronisée', {
+          version: snapshot.version,
+          index: snapshot.currentIndex,
+          enLecture: snapshot.isPlaying,
+          decalageServeurMs: Math.round(snapshot.serverOffsetMs),
+          degrade: read.degraded,
+        });
         setIsPlaybackAuthoritative(!read.degraded);
 
         setVotingSession(snapshot);
@@ -227,7 +248,11 @@ export const VotingPhase = ({
         clearRetry();
       } catch (error) {
         if (!active || requestId !== latestRequest || requestEpoch !== channelEpoch) return;
-        console.error('Error reconciling voting session:', error);
+        diagnose.error('voting', 'Lecture de la session en échec', {
+          erreur: error,
+          lobbyId,
+          roundNumber,
+        });
         setIsSessionSynchronized(false);
         scheduleSnapshotRetry();
       }
@@ -255,6 +280,7 @@ export const VotingPhase = ({
       )
       .subscribe((status) => {
         if (!active) return;
+        diagnose.info('voting', `Canal session : ${status}`, { lobbyId, roundNumber });
         if (status === 'SUBSCRIBED') {
           subscribed = true;
           channelEpoch += 1;
@@ -473,6 +499,12 @@ export const VotingPhase = ({
           return;
         }
 
+        diagnose.info('voting', 'Imitations chargées', {
+          total: imitationsData.length,
+          avecClip: imitationsData.filter((entry) => entry.clipId).length,
+          lignesPretes: imitationRecords?.length ?? 0,
+          tentative: retryCount,
+        });
         setImitations(imitationsData);
       }
     };
