@@ -34,6 +34,7 @@ import {
   deliveredPlayerIds,
   hasDeliveredImitation,
 } from "@/lib/imitationReadiness";
+import { resolveResumePosition } from "@/lib/challengePlayback";
 
 interface Player {
   id: string;
@@ -116,6 +117,8 @@ export const ImitationPhase = ({
   const { setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
   const questTracker = useQuestTracker();
   const challengeVideoRef = useRef<HTMLVideoElement>(null);
+  /** Position de la vidéo à imiter au moment où le joueur a suspendu. */
+  const pausedVideoTimeRef = useRef<number | null>(null);
   // Rythmo band for the challenge clip. Null when the clip has none, which is
   // normal: it is generated at import time and older clips predate it.
   const [rhythmoTrack, setRhythmoTrack] = useState<RhythmoTrack | null>(null);
@@ -477,13 +480,38 @@ export const ImitationPhase = ({
   const handleRecordingPause = () => {
     setIsRecording(false);
     broadcastStatus(false, 0);
-    challengeVideoRef.current?.pause();
+    const video = challengeVideoRef.current;
+    if (!video) return;
+    /*
+     * Relever la position AVANT de mettre en pause, et s'en servir à la reprise.
+     *
+     * `VideoPreview` remet la lecture au début dès que le clip atteint sa fin.
+     * Se contenter d'un `play()` à la reprise repartait donc du début à chaque
+     * fois que le clip s'était terminé pendant le segment précédent.
+     */
+    pausedVideoTimeRef.current = video.currentTime;
+    video.pause();
   };
 
   const handleRecordingResume = () => {
     setIsRecording(true);
     broadcastStatus(true, 0.5);
-    challengeVideoRef.current?.play().catch(() => {});
+    const video = challengeVideoRef.current;
+    if (!video) return;
+
+    const captured = pausedVideoTimeRef.current;
+    pausedVideoTimeRef.current = null;
+    const decision = resolveResumePosition(
+      captured,
+      Number.isFinite(video.duration) ? video.duration : 0,
+    );
+
+    if (decision.seekTo !== null) {
+      try {
+        video.currentTime = decision.seekTo;
+      } catch { /* noop: video ready state may throw */ }
+    }
+    if (decision.shouldPlay) video.play().catch(() => {});
   };
 
   // Host-only escape hatch: when a player is stuck (mic permission, browser
