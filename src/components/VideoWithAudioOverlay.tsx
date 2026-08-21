@@ -44,12 +44,23 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Update video volume when originalAudioVolume changes
+  /**
+   * Apply the saved original-audio volume. This must also re-run once the
+   * <video> element actually exists (it mounts only after the URLs load),
+   * otherwise the ref is null on first pass and the element keeps its default
+   * volume of 1 — the "sound stays loud" bug during the voting phase.
+   */
+  const applyOriginalVolume = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const safe = Math.max(0, Math.min(100, Number.isFinite(originalAudioVolume) ? originalAudioVolume : 50));
+    video.muted = !includeOriginalAudio;
+    video.volume = includeOriginalAudio ? safe / 100 : 0;
+  };
+
   useEffect(() => {
-    if (videoRef.current && includeOriginalAudio) {
-      videoRef.current.volume = originalAudioVolume / 100;
-    }
-  }, [originalAudioVolume, includeOriginalAudio]);
+    applyOriginalVolume();
+  }, [originalAudioVolume, includeOriginalAudio, videoUrl]);
 
   useEffect(() => {
     let isMounted = true;
