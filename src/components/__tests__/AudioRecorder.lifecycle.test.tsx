@@ -13,18 +13,22 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
 }));
 
-vi.mock('@/lib/voiceFilters', () => ({
-  applyVoiceFilter: mocks.applyVoiceFilter,
-  postProcessRecordedBlob: mocks.postProcessRecordedBlob,
-  requiresPostProcessing: mocks.requiresPostProcessing,
-  // Le composant affiche l'emoji et le libellé de la voix courante : la vraie
-  // table est réutilisée pour que le test ne dérive pas du code.
-  VOICE_FILTERS: [
-    { id: 'none', label: 'Naturel', emoji: '🎤', description: '', color: '#9ca3af' },
-    { id: 'robot', label: 'Robot', emoji: '🤖', description: '', color: '#06b6d4' },
-    { id: 'helium', label: 'Hélium', emoji: '🐿️', description: '', color: '#fbbf24', postProcess: true },
-  ],
-}));
+/*
+ * Seules la mise en forme audio et l'envoi sont simulés. La description des
+ * effets, elle, est de la logique pure : la réimplémenter dans la simulation la
+ * laisserait dériver du vrai code, alors que le composant s'en sert pour tous
+ * ses libellés.
+ */
+vi.mock('@/lib/voiceFilters', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/voiceFilters')>();
+  return {
+    ...actual,
+    applyVoiceFilter: mocks.applyVoiceFilter,
+    applyVoiceFilters: mocks.applyVoiceFilter,
+    postProcessRecordedBlob: mocks.postProcessRecordedBlob,
+    requiresPostProcessing: mocks.requiresPostProcessing,
+  };
+});
 
 vi.mock('@/lib/videoStorageSupabase', async (importOriginal) => {
   // Seul l'envoi est simulé : la déduction d'extension est de la logique pure,

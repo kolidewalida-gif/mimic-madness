@@ -13,6 +13,8 @@ import {
   postProcessRecordedBlob,
   requiresPostProcessing,
   VOICE_FILTERS,
+  applyVoiceFilters,
+  describeFilters,
   type VoiceFilterDef,
   type VoiceFilterId,
 } from "@/lib/voiceFilters";
@@ -246,7 +248,8 @@ interface RecordingSession {
  */
 interface RecordedSegment {
   blob: Blob;
-  filter: VoiceFilterId;
+  /** Effets cumulés de ce segment, dans l'ordre d'application. */
+  filters: VoiceFilterId[];
 }
 
 const NATURAL_VOICE: VoiceFilterDef = {
@@ -260,13 +263,27 @@ const NATURAL_VOICE: VoiceFilterDef = {
 const describeVoice = (id: VoiceFilterId): VoiceFilterDef =>
   VOICE_FILTERS.find((entry) => entry.id === id) ?? NATURAL_VOICE;
 
+/** Résumé lisible d'un cumul d'effets : « Grave + Écho ». */
+const voiceStackLabel = (filters: VoiceFilterId[]): string => {
+  const chosen = describeFilters(filters);
+  return chosen.map((entry) => entry.label).join(' + ');
+};
+
+/** Couleur représentative d'un cumul : celle du premier effet choisi. */
+const voiceStackColor = (filters: VoiceFilterId[]): string =>
+  describeFilters(filters)[0]?.color ?? NATURAL_VOICE.color;
+
+/** Emojis du cumul, pour tenir dans une pastille. */
+const voiceStackEmoji = (filters: VoiceFilterId[]): string =>
+  describeFilters(filters).map((entry) => entry.emoji).join('');
+
 /**
  * Rappelle ce qui est déjà dans la boîte, et avec quelle voix.
  *
  * Sans ça, un joueur qui enchaîne trois voix n'a aucun moyen de savoir ce qu'il
  * a construit avant d'écouter le résultat.
  */
-const SegmentList = ({ filters }: { filters: VoiceFilterId[] }) => {
+const SegmentList = ({ filters }: { filters: VoiceFilterId[][] }) => {
   if (filters.length === 0) return null;
 
   return (
@@ -275,17 +292,17 @@ const SegmentList = ({ filters }: { filters: VoiceFilterId[] }) => {
         {filters.length} segment{filters.length > 1 ? 's' : ''} enregistré{filters.length > 1 ? 's' : ''}
       </p>
       <ol className="flex flex-wrap gap-2">
-        {filters.map((filter, index) => {
-          const voice = describeVoice(filter);
+        {filters.map((stack, index) => {
+          const color = voiceStackColor(stack);
           return (
             <li
-              key={`${filter}-${index}`}
+              key={`${stack.join('-')}-${index}`}
               className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-              style={{ background: `${voice.color}22`, border: `1px solid ${voice.color}66` }}
+              style={{ background: `${color}22`, border: `1px solid ${color}66` }}
             >
               <span className="text-foreground-secondary">{index + 1}.</span>
-              <span aria-hidden="true">{voice.emoji}</span>
-              <span style={{ color: voice.color }}>{voice.label}</span>
+              <span aria-hidden="true">{voiceStackEmoji(stack)}</span>
+              <span style={{ color }}>{voiceStackLabel(stack)}</span>
             </li>
           );
         })}
@@ -325,13 +342,13 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   const [audioName, setAudioName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [voiceFilter, setVoiceFilter] = useState<VoiceFilterId>('none');
+  const [voiceFilters, setVoiceFilters] = useState<VoiceFilterId[]>([]);
   const [audioLevel, setAudioLevel] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  /** Voix de chaque segment déjà enregistré, dans l'ordre, pour l'affichage. */
-  const [segmentFilters, setSegmentFilters] = useState<VoiceFilterId[]>([]);
-  /** Voix réellement en train d'être enregistrée, figée au début du segment. */
-  const [activeFilter, setActiveFilter] = useState<VoiceFilterId>('none');
+  /** Cumul d'effets de chaque segment enregistré, dans l'ordre, pour l'affichage. */
+  const [segmentFilters, setSegmentFilters] = useState<VoiceFilterId[][]>([]);
+  /** Effets réellement en cours d'enregistrement, figés au début du segment. */
+  const [activeFilters, setActiveFilters] = useState<VoiceFilterId[]>([]);
 
   const mountedRef = useRef(false);
   const startingRef = useRef(false);
@@ -365,10 +382,18 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
 
   const { toast } = useToast();
 
-  /** Voix du segment en cours d'enregistrement. */
-  const activeVoice = describeVoice(activeFilter);
-  /** Voix qui s'appliquera au prochain segment, choisie pendant la pause. */
-  const pendingVoice = describeVoice(voiceFilter);
+  /** Cumul du segment en cours d'enregistrement. */
+  const activeVoice = {
+    label: voiceStackLabel(activeFilters),
+    emoji: voiceStackEmoji(activeFilters),
+    color: voiceStackColor(activeFilters),
+  };
+  /** Cumul qui s'appliquera au prochain segment, choisi pendant la pause. */
+  const pendingVoice = {
+    label: voiceStackLabel(voiceFilters),
+    emoji: voiceStackEmoji(voiceFilters),
+    color: voiceStackColor(voiceFilters),
+  };
 
   const isSessionActive = (session: RecordingSession) =>
     mountedRef.current &&
@@ -501,7 +526,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     activeSessionRef.current?.controller.abort();
     const session: RecordingSession = { controller: new AbortController() };
     activeSessionRef.current = session;
-    const selectedFilter = voiceFilter;
+    const selectedFilters = voiceFilters;
 
     try {
       const mediaRequest = navigator.mediaDevices.getUserMedia({
@@ -547,7 +572,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
       audioContext.createMediaStreamSource(mediaStream).connect(analyser);
       analyser.fftSize = 256;
 
-      startSegment(session, mediaStream, selectedFilter);
+      startSegment(session, mediaStream, selectedFilters);
     } catch (error: unknown) {
       clearGetUserMediaTimeout();
       if (!isSessionActive(session)) return;
@@ -594,11 +619,11 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   function startSegment(
     session: RecordingSession,
     mediaStream: MediaStream,
-    selectedFilter: VoiceFilterId,
+    selectedFilters: VoiceFilterId[],
     /** Vrai pour un segment ouvert après une pause, faux pour un début de prise. */
     isResume = false,
   ) {
-      const filtered = applyVoiceFilter(mediaStream, selectedFilter);
+      const filtered = applyVoiceFilters(mediaStream, selectedFilters);
       if (!isSessionActive(session)) {
         filtered.dispose();
         stopStreamTracks(mediaStream, filtered.stream);
@@ -666,9 +691,9 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         if (segmentBlob.size > 0) {
           segmentsRef.current = [
             ...segmentsRef.current,
-            { blob: segmentBlob, filter: selectedFilter },
+            { blob: segmentBlob, filters: selectedFilters },
           ];
-          setSegmentFilters(segmentsRef.current.map((segment) => segment.filter));
+          setSegmentFilters(segmentsRef.current.map((segment) => segment.filters));
         }
 
         setIsRecording(false);
@@ -677,7 +702,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         if (wasPause) {
           diagnose.info('recorder', 'Segment suspendu', {
             segments: segmentsRef.current.length,
-            voix: selectedFilter,
+            voix: selectedFilters.join('+') || 'none',
             octets: segmentBlob.size,
           });
           setIsPaused(true);
@@ -703,7 +728,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         return;
       }
       setIsRecording(true);
-      setActiveFilter(selectedFilter);
+      setActiveFilters(selectedFilters);
       updateAudioLevel(session, recorder);
 
       /*
@@ -748,10 +773,10 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
       for (const segment of segments) {
         if (!isSessionActive(session)) return;
         processed.push(
-          requiresPostProcessing(segment.filter)
+          requiresPostProcessing(segment.filters)
             ? await postProcessRecordedBlob(
                 segment.blob,
-                segment.filter,
+                segment.filters,
                 session.controller.signal,
               )
             : segment.blob,
@@ -765,7 +790,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
       if (!isSessionActive(session)) return;
       diagnose.info('recorder', 'Prise assemblée', {
         segments: segments.length,
-        voix: segments.map((segment) => segment.filter),
+        voix: segments.map((segment) => segment.filters.join('+') || 'none'),
         octets: blob.size,
       });
 
@@ -815,16 +840,15 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
 
     setIsPaused(false);
     diagnose.info('recorder', 'Reprise après changement de voix', {
-      nouvelleVoix: voiceFilter,
+      nouvelleVoix: voiceFilters.join('+') || 'none',
       segmentsDeja: segmentsRef.current.length,
     });
-    startSegment(session, mediaStream, voiceFilter, true);
+    startSegment(session, mediaStream, voiceFilters, true);
     callbacksRef.current.onRecordingResume?.();
 
     // Confirmation explicite que le changement de voix est bien pris en compte.
-    const voice = describeVoice(voiceFilter);
     toast({
-      title: `${voice.emoji} Voix : ${voice.label}`,
+      title: `${voiceStackEmoji(voiceFilters)} Voix : ${voiceStackLabel(voiceFilters)}`,
       description: `Segment ${segmentsRef.current.length + 1} en cours d'enregistrement.`,
     });
   };
@@ -924,8 +948,8 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
           <div className="space-y-4">
             {showVoiceFilters && (
               <InkVoiceFilterPicker
-                value={voiceFilter}
-                onChange={setVoiceFilter}
+                value={voiceFilters}
+                onChange={setVoiceFilters}
               />
             )}
             <p className="text-sm text-foreground-secondary text-center">
@@ -1024,7 +1048,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
             <SegmentList filters={segmentFilters} />
 
             {showVoiceFilters && (
-              <InkVoiceFilterPicker value={voiceFilter} onChange={setVoiceFilter} />
+              <InkVoiceFilterPicker value={voiceFilters} onChange={setVoiceFilters} />
             )}
 
             <div

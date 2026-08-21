@@ -26,7 +26,24 @@ export type VoiceFilterId =
   | 'deep'
   | 'echo'
   | 'underwater'
-  | 'megaphone';
+  | 'megaphone'
+  | 'telephone'
+  | 'chorus'
+  | 'tremolo'
+  | 'vibrato'
+  | 'alien'
+  | 'radio'
+  | 'monstre'
+  | 'lutin';
+
+/**
+ * Nombre d'effets cumulables simultanément.
+ *
+ * Au-delà de trois, les effets se masquent les uns les autres : la voix devient
+ * une bouillie où l'on ne reconnaît plus aucun des filtres choisis. La limite
+ * protège le résultat, pas les performances.
+ */
+export const MAX_STACKED_FILTERS = 3;
 
 export interface VoiceFilterDef {
   id: VoiceFilterId;
@@ -46,20 +63,74 @@ export const VOICE_FILTERS: VoiceFilterDef[] = [
   { id: 'echo', label: 'Écho', emoji: '🌀', description: 'Réverbération cathédrale', color: '#f472b6' },
   { id: 'underwater', label: 'Sous-marin', emoji: '🌊', description: 'Voix étouffée liquide', color: '#3b82f6' },
   { id: 'megaphone', label: 'Mégaphone', emoji: '📢', description: 'Distordu mégaphone', color: '#ef4444' },
+  { id: 'telephone', label: 'Téléphone', emoji: '📞', description: 'Bande étroite du combiné, sans distorsion', color: '#64748b' },
+  { id: 'chorus', label: 'Chorale', emoji: '👥', description: 'Plusieurs voix désaccordées à l\'unisson', color: '#22d3ee' },
+  { id: 'tremolo', label: 'Trémolo', emoji: '〰️', description: 'Volume qui pulse régulièrement', color: '#f59e0b' },
+  { id: 'vibrato', label: 'Vibrato', emoji: '🎻', description: 'Hauteur qui ondule, voix de chanteur', color: '#c084fc' },
+  { id: 'alien', label: 'Alien', emoji: '👽', description: 'Modulation haute et ondulante', color: '#4ade80' },
+  { id: 'radio', label: 'Radio', emoji: '📻', description: 'Vieux poste, bande étroite et souffle', color: '#d97706' },
+  { id: 'monstre', label: 'Monstre', emoji: '👹', description: 'Très grave, caverneux', color: '#dc2626', postProcess: true },
+  { id: 'lutin', label: 'Lutin', emoji: '🧚', description: 'Très aigu, minuscule', color: '#f0abfc', postProcess: true },
 ];
+
+/** Décalage de hauteur, en demi-tons, des effets appliqués après coup. */
+const SEMITONES: Partial<Record<VoiceFilterId, number>> = {
+  helium: 6,
+  lutin: 10,
+  deep: -5,
+  monstre: -9,
+};
+
+/**
+ * Bornes du cumul de hauteur.
+ *
+ * Rien n'empêche de choisir Grave et Monstre ensemble, ce qui donnerait −14
+ * demi-tons : à ce point la voix n'est plus qu'un grondement inintelligible.
+ * On additionne donc, mais on borne.
+ */
+const MIN_SEMITONES = -12;
+const MAX_SEMITONES = 12;
 
 /* ============================================================
    LIVE FX — applied to the MediaStream during recording
 ============================================================ */
 
-export const applyVoiceFilter = (
+/** Normalise l'entrée : un identifiant seul reste accepté. */
+const asList = (filters: VoiceFilterId | VoiceFilterId[]): VoiceFilterId[] =>
+  (Array.isArray(filters) ? filters : [filters]).filter((id) => id !== 'none');
+
+/** Les effets qui ont une chaîne temps réel, dans l'ordre choisi. */
+const liveFilters = (filters: VoiceFilterId | VoiceFilterId[]): VoiceFilterId[] =>
+  asList(filters).filter((id) => !SEMITONES[id]);
+
+/**
+ * Un effet temps réel, sous forme de bloc raccordable.
+ *
+ * C'est ce qui rend le cumul possible. L'ancienne version branchait chaque
+ * effet directement de la source vers la sortie : deux effets choisis ensemble
+ * jouaient donc en parallèle, chacun sur la voix sèche, et l'on entendait deux
+ * versions superposées au lieu d'une voix traitée deux fois. Avec une entrée et
+ * une sortie explicites, les blocs se mettent en série.
+ */
+interface VoiceEffect {
+  input: AudioNode;
+  output: AudioNode;
+  dispose: () => void;
+}
+
+export const applyVoiceFilters = (
   inputStream: MediaStream,
-  filter: VoiceFilterId,
+  filters: VoiceFilterId | VoiceFilterId[],
 ): { stream: MediaStream; dispose: () => void } => {
-  // Filters that are post-processed don't apply a live chain — the user
-  // hears their natural voice while recording (we can't change pitch live
-  // without complex granular synthesis), and the FX is baked in after stop.
-  if (filter === 'none' || filter === 'helium' || filter === 'deep') {
+  const live = liveFilters(filters);
+  /*
+   * Aucun effet temps réel : on rend le flux d'entrée TEL QUEL.
+   *
+   * C'est le cas de `none` et des effets de hauteur, qui s'appliquent après
+   * l'enregistrement. L'appelant doit savoir que le flux renvoyé peut être le
+   * flux du micro lui-même — l'arrêter couperait le micro.
+   */
+  if (live.length === 0) {
     return { stream: inputStream, dispose: () => {} };
   }
 
@@ -67,13 +138,41 @@ export const applyVoiceFilter = (
   const source = context.createMediaStreamSource(inputStream);
   const destination = context.createMediaStreamDestination();
 
-  const cleanup = buildLiveChain(context, source, destination, filter);
+  const effects: VoiceEffect[] = [];
+  for (const id of live.slice(0, MAX_STACKED_FILTERS)) {
+    const effect = buildEffect(context, id);
+    if (effect) effects.push(effect);
+  }
+
+  // Mise en série : la sortie de chacun alimente l'entrée du suivant.
+  let tail: AudioNode = source;
+  for (const effect of effects) {
+    tail.connect(effect.input);
+    tail = effect.output;
+  }
+
+  /*
+   * Limiteur de sortie. Chaque effet ajoute du gain — l'écho empile ses
+   * reprises, le chorus superpose trois voix — donc un cumul sature vite, et une
+   * saturation s'entend comme un grésillement désagréable.
+   */
+  const limiter = context.createDynamicsCompressor();
+  limiter.threshold.value = -6;
+  limiter.knee.value = 10;
+  limiter.ratio.value = 6;
+  limiter.attack.value = 0.003;
+  limiter.release.value = 0.15;
+  tail.connect(limiter);
+  limiter.connect(destination);
 
   return {
     stream: destination.stream,
     dispose: () => {
-      cleanup();
+      for (const effect of effects) {
+        try { effect.dispose(); } catch { /* graphe peut déjà être défait */ }
+      }
       try { source.disconnect(); } catch { /* noop */ }
+      try { limiter.disconnect(); } catch { /* noop */ }
       try { destination.disconnect(); } catch { /* noop */ }
       if (context.state !== 'closed') {
         context.close().catch(() => {});
@@ -81,6 +180,12 @@ export const applyVoiceFilter = (
     },
   };
 };
+
+/** Ancienne signature à un seul filtre. Conservée pour les appels existants. */
+export const applyVoiceFilter = (
+  inputStream: MediaStream,
+  filter: VoiceFilterId,
+): { stream: MediaStream; dispose: () => void } => applyVoiceFilters(inputStream, filter);
 
 const buildLiveChain = (
   ctx: AudioContext,
@@ -270,9 +375,247 @@ const buildLiveChain = (
       return () => {};
     }
 
+    case 'telephone': {
+      // Bande du combiné : 300–3400 Hz, avec un creux de présence pour la
+      // netteté. Volontairement SANS distorsion, c'est ce qui le distingue du
+      // mégaphone.
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 300;
+      hp.Q.value = 0.7;
+
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 3400;
+      lp.Q.value = 0.7;
+
+      const presence = ctx.createBiquadFilter();
+      presence.type = 'peaking';
+      presence.frequency.value = 2000;
+      presence.Q.value = 1.4;
+      presence.gain.value = 5;
+
+      source.connect(hp);
+      hp.connect(lp);
+      lp.connect(presence);
+      presence.connect(output);
+      return () => {};
+    }
+
+    case 'chorus': {
+      /*
+       * Trois copies légèrement retardées, chacune désaccordée par un oscillateur
+       * lent de fréquence différente. Les battements entre elles donnent
+       * l'impression de plusieurs personnes à l'unisson plutôt que d'un écho.
+       */
+      const dry = ctx.createGain();
+      dry.gain.value = 0.6;
+      source.connect(dry);
+      dry.connect(output);
+
+      const oscillators: OscillatorNode[] = [];
+      const voices: Array<{ delayMs: number; rate: number; depthMs: number }> = [
+        { delayMs: 14, rate: 0.28, depthMs: 3.2 },
+        { delayMs: 21, rate: 0.41, depthMs: 2.6 },
+        { delayMs: 29, rate: 0.19, depthMs: 3.8 },
+      ];
+
+      for (const voice of voices) {
+        const delay = ctx.createDelay(0.2);
+        delay.delayTime.value = voice.delayMs / 1000;
+
+        const lfo = ctx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = voice.rate;
+        const depth = ctx.createGain();
+        depth.gain.value = voice.depthMs / 1000;
+        lfo.connect(depth);
+        depth.connect(delay.delayTime);
+
+        const wet = ctx.createGain();
+        wet.gain.value = 0.34;
+
+        source.connect(delay);
+        delay.connect(wet);
+        wet.connect(output);
+
+        lfo.start();
+        oscillators.push(lfo);
+      }
+
+      return () => {
+        for (const lfo of oscillators) {
+          try { lfo.stop(); } catch { /* déjà arrêté */ }
+        }
+      };
+    }
+
+    case 'tremolo': {
+      /*
+       * Le volume pulse. Un oscillateur sort entre −1 et +1, donc le brancher
+       * seul sur un gain le ferait passer en négatif — ce qui inverserait la
+       * phase au lieu de baisser le son. On garde donc un gain de base et l'on
+       * n'ajoute qu'une modulation d'amplitude moindre.
+       */
+      const shaped = ctx.createGain();
+      shaped.gain.value = 0.72;
+
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 5.5;
+      const depth = ctx.createGain();
+      depth.gain.value = 0.28;
+      lfo.connect(depth);
+      depth.connect(shaped.gain);
+
+      source.connect(shaped);
+      shaped.connect(output);
+
+      lfo.start();
+      return () => {
+        try { lfo.stop(); } catch { /* noop */ }
+      };
+    }
+
+    case 'vibrato': {
+      // La hauteur ondule : un retard très court dont le temps est modulé
+      // produit exactement ça, sans synthèse granulaire.
+      const delay = ctx.createDelay(0.05);
+      delay.delayTime.value = 0.006;
+
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 5.2;
+      const depth = ctx.createGain();
+      depth.gain.value = 0.0022;
+      lfo.connect(depth);
+      depth.connect(delay.delayTime);
+
+      source.connect(delay);
+      delay.connect(output);
+
+      lfo.start();
+      return () => {
+        try { lfo.stop(); } catch { /* noop */ }
+      };
+    }
+
+    case 'alien': {
+      /*
+       * Modulation en anneau à une porteuse bien plus haute que le robot
+       * (420 Hz contre 130), ce qui donne un timbre métallique inhumain plutôt
+       * que mécanique, plus une ondulation de hauteur par-dessus.
+       */
+      const ring = ctx.createGain();
+      ring.gain.value = 0;
+      const carrier = ctx.createOscillator();
+      carrier.type = 'sine';
+      carrier.frequency.value = 420;
+      carrier.connect(ring.gain);
+
+      const warble = ctx.createDelay(0.05);
+      warble.delayTime.value = 0.008;
+      const warbleLfo = ctx.createOscillator();
+      warbleLfo.type = 'sine';
+      warbleLfo.frequency.value = 7.5;
+      const warbleDepth = ctx.createGain();
+      warbleDepth.gain.value = 0.003;
+      warbleLfo.connect(warbleDepth);
+      warbleDepth.connect(warble.delayTime);
+
+      const tone = ctx.createBiquadFilter();
+      tone.type = 'bandpass';
+      tone.frequency.value = 1600;
+      tone.Q.value = 0.6;
+
+      const wet = ctx.createGain();
+      wet.gain.value = 0.9;
+      // Un peu de voix sèche conservée, sinon les paroles deviennent
+      // incompréhensibles et le jeu perd son intérêt.
+      const dry = ctx.createGain();
+      dry.gain.value = 0.25;
+
+      source.connect(warble);
+      warble.connect(ring);
+      ring.connect(tone);
+      tone.connect(wet);
+      wet.connect(output);
+      source.connect(dry);
+      dry.connect(output);
+
+      carrier.start();
+      warbleLfo.start();
+      return () => {
+        try { carrier.stop(); } catch { /* noop */ }
+        try { warbleLfo.stop(); } catch { /* noop */ }
+      };
+    }
+
+    case 'radio': {
+      // Vieux poste : bande étroite, médiums saillants, écrêtage très léger.
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 420;
+      hp.Q.value = 0.9;
+
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 2800;
+      lp.Q.value = 0.9;
+
+      const honk = ctx.createBiquadFilter();
+      honk.type = 'peaking';
+      honk.frequency.value = 1300;
+      honk.Q.value = 2;
+      honk.gain.value = 9;
+
+      const drive = ctx.createWaveShaper();
+      // Écrêtage doux et modéré : à 3 on garde la voix lisible.
+      drive.curve = makeSoftClipCurve(3) as Float32Array<ArrayBuffer>;
+      drive.oversample = '2x';
+
+      const out = ctx.createGain();
+      out.gain.value = 0.9;
+
+      source.connect(hp);
+      hp.connect(lp);
+      lp.connect(honk);
+      honk.connect(drive);
+      drive.connect(out);
+      out.connect(output);
+      return () => {};
+    }
+
     default:
       try { source.connect(output); } catch { /* noop */ }
       return () => {};
+  }
+};
+
+/**
+ * Emballe un effet en bloc raccordable.
+ *
+ * Les corps d'effets ci-dessus respectent déjà un nœud d'entrée et un nœud de
+ * sortie : il suffit de leur en fournir deux à soi pour qu'ils deviennent
+ * composables, sans toucher à leur réglage.
+ */
+const buildEffect = (ctx: AudioContext, filter: VoiceFilterId): VoiceEffect | null => {
+  try {
+    const input = ctx.createGain();
+    const output = ctx.createGain();
+    const cleanup = buildLiveChain(ctx, input, output, filter);
+    return {
+      input,
+      output,
+      dispose: () => {
+        cleanup();
+        try { input.disconnect(); } catch { /* noop */ }
+        try { output.disconnect(); } catch { /* noop */ }
+      },
+    };
+  } catch {
+    // Un effet qui ne se construit pas ne doit pas emporter les autres.
+    return null;
   }
 };
 
@@ -284,9 +627,36 @@ const buildLiveChain = (
  * Returns true if the given filter requires post-processing the blob after
  * MediaRecorder finishes. Live FX filters return false.
  */
-export const requiresPostProcessing = (filter: VoiceFilterId): boolean => {
-  const def = VOICE_FILTERS.find((f) => f.id === filter);
-  return Boolean(def?.postProcess);
+export const requiresPostProcessing = (
+  filters: VoiceFilterId | VoiceFilterId[],
+): boolean => asList(filters).some((id) => Boolean(SEMITONES[id]));
+
+/**
+ * Décalage de hauteur résultant du cumul, en demi-tons.
+ *
+ * Les effets s'additionnent : Hélium (+6) avec Grave (−5) donne +1, soit une
+ * voix presque naturelle. C'est le résultat correct — le joueur a choisi deux
+ * effets qui se contrarient. La somme est simplement bornée, parce qu'au-delà
+ * d'une octave la voix cesse d'être intelligible.
+ */
+export const combinedSemitones = (
+  filters: VoiceFilterId | VoiceFilterId[],
+): number => {
+  const total = asList(filters).reduce((sum, id) => sum + (SEMITONES[id] ?? 0), 0);
+  return Math.max(MIN_SEMITONES, Math.min(MAX_SEMITONES, total));
+};
+
+/** Libellés des effets retenus, dans l'ordre, pour l'affichage. */
+export const describeFilters = (
+  filters: VoiceFilterId | VoiceFilterId[],
+): VoiceFilterDef[] => {
+  const chosen = asList(filters);
+  if (chosen.length === 0) {
+    return [VOICE_FILTERS[0]];
+  }
+  return chosen
+    .map((id) => VOICE_FILTERS.find((entry) => entry.id === id))
+    .filter((entry): entry is VoiceFilterDef => Boolean(entry));
 };
 
 /**
@@ -309,13 +679,15 @@ export const requiresPostProcessing = (filter: VoiceFilterId): boolean => {
  */
 export const postProcessRecordedBlob = async (
   blob: Blob,
-  filter: VoiceFilterId,
+  filters: VoiceFilterId | VoiceFilterId[],
   signal?: AbortSignal,
 ): Promise<Blob> => {
-  if (!requiresPostProcessing(filter) || signal?.aborted) return blob;
+  if (!requiresPostProcessing(filters) || signal?.aborted) return blob;
 
-  const semitones = filter === 'helium' ? 6 : filter === 'deep' ? -5 : 0;
+  const semitones = combinedSemitones(filters);
   if (semitones === 0) return blob;
+  // Le renfort de graves n'a de sens que pour une voix descendue.
+  const deepen = semitones < 0;
 
   try {
     const arrayBuffer = await blob.arrayBuffer();
@@ -381,7 +753,7 @@ export const postProcessRecordedBlob = async (
       }
     }
 
-    if (filter === 'deep') {
+    if (deepen) {
       const enhancementContext = new OfflineAudioContext(outputChannels, outputFrames, sampleRate);
       const enhancementSource = enhancementContext.createBufferSource();
       enhancementSource.buffer = shiftedBuffer;
