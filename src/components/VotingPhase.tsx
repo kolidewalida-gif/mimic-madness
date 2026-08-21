@@ -174,7 +174,18 @@ export const VotingPhase = ({
     };
 
     async function reconcileSession() {
-      if (!active || !subscribed) return;
+      /*
+       * Volontairement PAS conditionné à l'abonnement du canal.
+       *
+       * Les lignes SQL sont la source de vérité ; le temps réel n'est qu'une
+       * notification — c'est le principe posé par la migration de durcissement.
+       * Exiger l'abonnement avant de lire rendait cet écran définitivement
+       * bloqué sur « Synchronisation de la session de vote… » dès que le
+       * WebSocket ne passait pas : VPN de navigateur, proxy d'entreprise, réseau
+       * filtré. Le joueur n'avait alors aucune issue, alors que la donnée était
+       * lisible et correcte.
+       */
+      if (!active) return;
       const requestId = ++latestRequest;
       const requestEpoch = channelEpoch;
       const token = { generation, requestId, channelEpoch: requestEpoch };
@@ -186,12 +197,14 @@ export const VotingPhase = ({
         }
 
         const responseReceivedAt = Date.now();
+        // `active` et non `subscribed && active` : la comparaison d'époque
+        // suffit à écarter une réponse périmée, sans exiger un canal vivant.
         if (!canCommitVotingSession(
           token,
           generation,
           latestRequest,
           channelEpoch,
-          subscribed && active,
+          active,
         )) return;
 
         const snapshot = parseVotingSessionSnapshot(
@@ -250,13 +263,31 @@ export const VotingPhase = ({
           subscribed = false;
           channelEpoch += 1;
           latestRequest += 1;
-          setIsSessionSynchronized(false);
+          /*
+           * L'instantané déjà lu reste valide, seulement moins frais : le
+           * remettre à zéro faisait clignoter l'écran entre le contenu et
+           * l'attente à chaque perte de canal, ce qui est fréquent derrière un
+           * VPN. La relecture périodique se charge de le rafraîchir.
+           */
           scheduleSnapshotRetry();
         }
       });
 
+    // Première lecture immédiate, sans attendre l'abonnement.
+    void reconcileSession();
+
+    /*
+     * Filet de sécurité : tant que le canal n'est pas abonné, on relit
+     * périodiquement. La partie continue donc d'avancer même sans WebSocket,
+     * simplement avec un peu de latence au lieu d'un blocage définitif.
+     */
+    const fallbackTimer = setInterval(() => {
+      if (!active || subscribed) return;
+      void reconcileSession();
+    }, 4_000);
+
     const resync = () => {
-      if (navigator.onLine && subscribed) void reconcileSession();
+      if (navigator.onLine) void reconcileSession();
     };
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') resync();
@@ -270,6 +301,7 @@ export const VotingPhase = ({
       channelEpoch += 1;
       latestRequest += 1;
       clearRetry();
+      clearInterval(fallbackTimer);
       requestSessionSnapshotRef.current = async () => undefined;
       window.removeEventListener('online', resync);
       document.removeEventListener('visibilitychange', handleVisibility);
@@ -351,7 +383,10 @@ export const VotingPhase = ({
     let retryTimeout: ReturnType<typeof setTimeout> | null = null;
     
     const loadImitations = async (retryCount = 0) => {
-      if (!isMounted || !subscribed) return;
+      // Même principe que la session : la liste des imitations se lit en SQL et
+      // ne dépend pas du canal. L'exiger laissait l'écran sur « Chargement des
+      // imitations… » indéfiniment quand le WebSocket ne passait pas.
+      if (!isMounted) return;
       const requestId = ++latestRequest;
       const requestEpoch = channelEpoch;
       const imitationsData: ImitationWithClip[] = [];
@@ -426,6 +461,7 @@ export const VotingPhase = ({
 
       if (isMounted && requestId === latestRequest && requestEpoch === channelEpoch) {
         // Skip retry for bots (no clip will ever exist).
+        // (le commit reste protégé par la comparaison d'époque)
         const hasMissingClips = imitationsData.some(im => {
           if (im.playerId.startsWith('bot-')) return false;
           const hasRecord = imitationRecords?.some(r => r.player_id === im.playerId);
@@ -498,6 +534,17 @@ export const VotingPhase = ({
         }
       });
 
+    // Premier chargement immédiat, puis relance tant que le canal est absent.
+    void loadImitations().catch((error) => {
+      console.error('Error loading imitations:', error);
+    });
+    const fallbackTimer = setInterval(() => {
+      if (!isMounted || subscribed) return;
+      void loadImitations().catch((error) => {
+        console.error('Error loading imitations:', error);
+      });
+    }, 4_000);
+
     return () => {
       isMounted = false;
       subscribed = false;
@@ -505,6 +552,7 @@ export const VotingPhase = ({
       latestRequest += 1;
       if (retryTimeout) clearTimeout(retryTimeout);
       if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(fallbackTimer);
       void supabase.removeChannel(channel);
     };
   }, [currentPlayer.id, imitationRetryKey, lobbyId, players, roundNumber]);

@@ -82,16 +82,22 @@ describe('ImitationPhase host auto-advance', () => {
     mocks.getVideoClip.mockResolvedValue(null);
     mocks.loadRhythmoTrack.mockResolvedValue(null);
 
+    /*
+     * Requête réutilisable, et non consommable une seule fois.
+     *
+     * L'état des joueurs est lu dès le montage, puis à nouveau quand le canal
+     * temps réel s'abonne — la lecture SQL ne dépend volontairement plus du
+     * transport, pour qu'un WebSocket bloqué ne fige plus la manche. Une
+     * simulation qui ne répond qu'à la première requête ferait échouer la
+     * seconde pour une raison qui n'existe pas dans le produit.
+     */
+    const readyRows = [{ player_id: 'host-1', is_ready: true }];
     const readyQuery = {
-      eq: vi.fn(),
-      select: vi.fn(),
+      select: vi.fn(() => readyQuery),
+      eq: vi.fn(() => readyQuery),
+      then: (resolve: (value: { data: unknown; error: null }) => unknown) =>
+        resolve({ data: readyRows, error: null }),
     };
-    readyQuery.select.mockReturnValue(readyQuery);
-    readyQuery.eq
-      .mockReturnValueOnce(readyQuery)
-      .mockResolvedValueOnce({
-        data: [{ player_id: 'host-1', is_ready: true }],
-      });
     mocks.from.mockReturnValue(readyQuery);
 
     const realtimeChannel = {
@@ -99,8 +105,8 @@ describe('ImitationPhase host auto-advance', () => {
       subscribe: vi.fn(),
     };
     realtimeChannel.on.mockReturnValue(realtimeChannel);
-    // Readiness is only read after the subscription is live, so the status
-    // callback must fire for any SQL snapshot to be requested.
+    // L'abonnement déclenche une relecture ; le cas d'un canal qui ne s'abonne
+    // jamais est couvert par la relecture périodique.
     realtimeChannel.subscribe.mockImplementation((onStatus?: (status: string) => void) => {
       onStatus?.('SUBSCRIBED');
       return realtimeChannel;

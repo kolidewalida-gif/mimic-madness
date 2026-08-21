@@ -194,7 +194,12 @@ export const ImitationPhase = ({
     };
 
     const fetchReadyPlayers = async () => {
-      if (!active || !subscribed) return;
+      /*
+       * Comme pour la phase de vote : la lecture SQL ne dépend pas du canal
+       * temps réel. L'exiger empêchait de connaître l'état des joueurs quand le
+       * WebSocket ne passait pas, et la manche ne pouvait plus avancer du tout.
+       */
+      if (!active) return;
       const requestId = ++latestRequest;
       const requestEpoch = epoch;
       const token = { generation: requestEpoch, requestId };
@@ -210,7 +215,6 @@ export const ImitationPhase = ({
         if (error) throw error;
         if (
           !active ||
-          !subscribed ||
           requestEpoch !== epoch ||
           !canCommitSyncToken(token, epoch, latestRequest)
         ) return;
@@ -265,8 +269,15 @@ export const ImitationPhase = ({
         }
       });
 
+    // Lecture immédiate, puis relecture périodique tant que le canal est absent.
+    void fetchReadyPlayers();
+    const fallbackTimer = setInterval(() => {
+      if (!active || subscribed) return;
+      void fetchReadyPlayers();
+    }, 4_000);
+
     const resync = () => {
-      if (document.visibilityState === 'visible' && subscribed) void fetchReadyPlayers();
+      if (document.visibilityState === 'visible') void fetchReadyPlayers();
     };
     window.addEventListener('online', resync);
     document.addEventListener('visibilitychange', resync);
@@ -277,6 +288,7 @@ export const ImitationPhase = ({
       epoch += 1;
       latestRequest += 1;
       clearRetry();
+      clearInterval(fallbackTimer);
       window.removeEventListener('online', resync);
       document.removeEventListener('visibilitychange', resync);
       void supabase.removeChannel(channel);
