@@ -467,6 +467,25 @@ export const ImitationPhase = ({
     }
   };
 
+  /*
+   * Pause d'un segment : la vidéo à imiter se fige où elle en est.
+   *
+   * Volontairement différent de `handleRecordingStop`, qui la rembobine au
+   * début. Rembobiner à chaque changement de voix ferait perdre le fil de ce
+   * qu'on est en train d'imiter.
+   */
+  const handleRecordingPause = () => {
+    setIsRecording(false);
+    broadcastStatus(false, 0);
+    challengeVideoRef.current?.pause();
+  };
+
+  const handleRecordingResume = () => {
+    setIsRecording(true);
+    broadcastStatus(true, 0.5);
+    challengeVideoRef.current?.play().catch(() => {});
+  };
+
   // Host-only escape hatch: when a player is stuck (mic permission, browser
   // bug, network issue), the host can force-skip not-ready players and move
   // the round forward. This avoids dead rounds when one user can't record.
@@ -659,6 +678,7 @@ export const ImitationPhase = ({
                 <AudioRecorder key={uploadKey} playerId={currentPlayer.id} playerName={currentPlayer.name}
                   onAudioSaved={handleVideoSaved} lobbyId={lobbyId} roundNumber={roundNumber}
                   onRecordingStart={handleRecordingStart} onRecordingStop={handleRecordingStop}
+                  onRecordingPause={handleRecordingPause} onRecordingResume={handleRecordingResume}
                   showVoiceFilters />
               ) : (
                 <>

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, StopCircle, Save, Play, RotateCcw } from "lucide-react";
+import { Mic, StopCircle, Save, Play, RotateCcw, PauseCircle, PlayCircle } from "lucide-react";
 import {
   extensionForMimeType,
   videoStorage,
@@ -12,6 +12,8 @@ import {
   applyVoiceFilter,
   postProcessRecordedBlob,
   requiresPostProcessing,
+  VOICE_FILTERS,
+  type VoiceFilterDef,
   type VoiceFilterId,
 } from "@/lib/voiceFilters";
 import { InkVoiceFilterPicker } from "@/components/InkVoiceFilterPicker";
@@ -214,6 +216,13 @@ interface AudioRecorderProps {
   roundNumber?: number;
   onRecordingStart?: () => void;
   onRecordingStop?: () => void;
+  /**
+   * Segment suspendu. Distinct de `onRecordingStop`, qui signale la fin de la
+   * prise : le parent doit pouvoir figer la vidéo à imiter sans la rembobiner.
+   */
+  onRecordingPause?: () => void;
+  /** Segment repris après un changement de voix. */
+  onRecordingResume?: () => void;
   /** Show the voice-filter picker above the mic button (Ink mode). */
   showVoiceFilters?: boolean;
 }
@@ -225,6 +234,64 @@ export interface AudioRecorderHandle {
 interface RecordingSession {
   controller: AbortController;
 }
+
+/**
+ * Un morceau de prise, avec la voix employée à ce moment-là.
+ *
+ * Le filtre est mémorisé par segment, pas globalement : changer de voix pendant
+ * une pause ne doit pas rétro-appliquer la nouvelle voix aux segments déjà
+ * enregistrés. Les effets `helium` et `deep` sont appliqués après coup sur le
+ * blob, donc sans ça les 15 premières secondes changeraient de voix elles aussi.
+ */
+interface RecordedSegment {
+  blob: Blob;
+  filter: VoiceFilterId;
+}
+
+const NATURAL_VOICE: VoiceFilterDef = {
+  id: 'none',
+  label: 'Naturel',
+  emoji: '🎤',
+  description: 'Aucun effet',
+  color: '#9ca3af',
+};
+
+const describeVoice = (id: VoiceFilterId): VoiceFilterDef =>
+  VOICE_FILTERS.find((entry) => entry.id === id) ?? NATURAL_VOICE;
+
+/**
+ * Rappelle ce qui est déjà dans la boîte, et avec quelle voix.
+ *
+ * Sans ça, un joueur qui enchaîne trois voix n'a aucun moyen de savoir ce qu'il
+ * a construit avant d'écouter le résultat.
+ */
+const SegmentList = ({ filters }: { filters: VoiceFilterId[] }) => {
+  if (filters.length === 0) return null;
+
+  return (
+    <div className="rounded-lg bg-background/40 p-3 space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-foreground-secondary">
+        {filters.length} segment{filters.length > 1 ? 's' : ''} enregistré{filters.length > 1 ? 's' : ''}
+      </p>
+      <ol className="flex flex-wrap gap-2">
+        {filters.map((filter, index) => {
+          const voice = describeVoice(filter);
+          return (
+            <li
+              key={`${filter}-${index}`}
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+              style={{ background: `${voice.color}22`, border: `1px solid ${voice.color}66` }}
+            >
+              <span className="text-foreground-secondary">{index + 1}.</span>
+              <span aria-hidden="true">{voice.emoji}</span>
+              <span style={{ color: voice.color }}>{voice.label}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+};
 
 const stopStreamTracks = (...streams: Array<MediaStream | null | undefined>) => {
   const tracks = new Set<MediaStreamTrack>();
@@ -248,6 +315,8 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   roundNumber,
   onRecordingStart,
   onRecordingStop,
+  onRecordingPause,
+  onRecordingResume,
   showVoiceFilters = false,
 }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -257,6 +326,11 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [voiceFilter, setVoiceFilter] = useState<VoiceFilterId>('none');
   const [audioLevel, setAudioLevel] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  /** Voix de chaque segment déjà enregistré, dans l'ordre, pour l'affichage. */
+  const [segmentFilters, setSegmentFilters] = useState<VoiceFilterId[]>([]);
+  /** Voix réellement en train d'être enregistrée, figée au début du segment. */
+  const [activeFilter, setActiveFilter] = useState<VoiceFilterId>('none');
 
   const mountedRef = useRef(false);
   const startingRef = useRef(false);
@@ -270,10 +344,30 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   const animationFrameRef = useRef<number | null>(null);
   const getUserMediaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordingStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const callbacksRef = useRef({ onAudioSaved, onRecordingStart, onRecordingStop });
-  callbacksRef.current = { onAudioSaved, onRecordingStart, onRecordingStop };
+  const segmentsRef = useRef<RecordedSegment[]>([]);
+  /** Distingue une pause d'un arrêt définitif dans le même `onstop`. */
+  const pauseIntentRef = useRef(false);
+  const callbacksRef = useRef({
+    onAudioSaved,
+    onRecordingStart,
+    onRecordingStop,
+    onRecordingPause,
+    onRecordingResume,
+  });
+  callbacksRef.current = {
+    onAudioSaved,
+    onRecordingStart,
+    onRecordingStop,
+    onRecordingPause,
+    onRecordingResume,
+  };
 
   const { toast } = useToast();
+
+  /** Voix du segment en cours d'enregistrement. */
+  const activeVoice = describeVoice(activeFilter);
+  /** Voix qui s'appliquera au prochain segment, choisie pendant la pause. */
+  const pendingVoice = describeVoice(voiceFilter);
 
   const isSessionActive = (session: RecordingSession) =>
     mountedRef.current &&
@@ -290,6 +384,33 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     if (recordingStartTimeoutRef.current === null) return;
     clearTimeout(recordingStartTimeoutRef.current);
     recordingStartTimeoutRef.current = null;
+  }, []);
+
+  /**
+   * Démonte la chaîne d'effets sans toucher au micro.
+   *
+   * Une pause doit garder le flux brut ouvert : le rouvrir demanderait à nouveau
+   * l'autorisation sur certains navigateurs et ferait perdre une seconde à la
+   * reprise.
+   *
+   * Piège : `applyVoiceFilter` renvoie le flux d'ENTRÉE tel quel pour `none`,
+   * `helium` et `deep`, qui n'ont pas de chaîne temps réel. Le flux « filtré »
+   * est alors le flux du micro lui-même, et l'arrêter couperait le micro.
+   */
+  const disposeFilterChain = useCallback(() => {
+    const dispose = filterDisposeRef.current;
+    filterDisposeRef.current = null;
+    try {
+      dispose?.();
+    } catch {
+      // Le graphe WebAudio peut déjà être déconnecté.
+    }
+
+    const filtered = recordingStreamRef.current;
+    recordingStreamRef.current = null;
+    if (filtered && filtered !== rawStreamRef.current) {
+      stopStreamTracks(filtered);
+    }
   }, []);
 
   const releaseAudioResources = useCallback((recorder?: MediaRecorder | null) => {
@@ -372,46 +493,6 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     animationFrameRef.current = requestAnimationFrame(() => updateAudioLevel(session, recorder));
   };
 
-  const autoSaveClip = async (blob: Blob, name: string, session: RecordingSession) => {
-    if (!isSessionActive(session)) return;
-    setIsLoading(true);
-
-    try {
-      const mimeType = blob.type || 'audio/webm';
-      // Le conteneur dépend du navigateur : WebM sous Chrome, Ogg sous Firefox,
-      // MP4 sous Safari. Tout nommer `.webm` donnait un chemin mensonger.
-      const extension = extensionForMimeType(mimeType);
-      const file = new File([blob], `${name}.${extension}`, { type: mimeType });
-      const clipData = {
-        id: `${playerId}-${Date.now()}`,
-        name,
-        playerId,
-        playerName,
-        startTime: 0,
-        endTime: 0,
-        duration: 0,
-        isMuted: false,
-        lobbyId,
-        roundNumber,
-      };
-
-      if (!isSessionActive(session)) return;
-      const savedClip = await videoStorage.uploadVideo(file, clipData);
-      if (!isSessionActive(session)) return;
-      callbacksRef.current.onAudioSaved?.(savedClip);
-    } catch (error) {
-      if (!isSessionActive(session)) return;
-      console.error("Error auto-saving audio clip:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder l'audio automatiquement",
-        variant: "destructive",
-      });
-    } finally {
-      if (isSessionActive(session)) setIsLoading(false);
-    }
-  };
-
   const startRecording = async () => {
     if (startingRef.current || mediaRecorderRef.current?.state === 'recording') return;
 
@@ -465,6 +546,55 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
       audioContext.createMediaStreamSource(mediaStream).connect(analyser);
       analyser.fftSize = 256;
 
+      startSegment(session, mediaStream, selectedFilter);
+    } catch (error: unknown) {
+      clearGetUserMediaTimeout();
+      if (!isSessionActive(session)) return;
+
+      session.controller.abort();
+      if (activeSessionRef.current === session) activeSessionRef.current = null;
+      releaseAudioResources(mediaRecorderRef.current);
+      mediaRecorderRef.current = null;
+      setIsRecording(false);
+      setIsPaused(false);
+      setAudioLevel(0);
+
+      const mediaError = error as { message?: string; name?: string };
+      let errorMessage = 'Impossible d\'accéder au microphone.';
+      if (mediaError.message === 'TIMEOUT_GETUSERMEDIA') {
+        errorMessage = 'Le micro met trop de temps à répondre. Vérifiez les permissions.';
+      } else if (mediaError.name === 'NotAllowedError') {
+        errorMessage = 'Vous devez autoriser l\'accès au microphone.';
+      } else if (mediaError.name === 'NotFoundError') {
+        errorMessage = 'Aucun microphone détecté.';
+      } else if (mediaError.name === 'NotReadableError') {
+        errorMessage = 'Le microphone est utilisé par une autre application. Fermez-la et réessayez.';
+      } else if (mediaError.name === 'AbortError') {
+        errorMessage = 'L\'accès au microphone a été interrompu. Réessayez.';
+      }
+
+      console.error('Error accessing microphone:', error);
+      toast({ title: 'Erreur', description: errorMessage, variant: 'destructive' });
+    } finally {
+      clearGetUserMediaTimeout();
+      startingRef.current = false;
+    }
+  };
+
+  /**
+   * Ouvre un segment d'enregistrement sur un micro déjà obtenu.
+   *
+   * Appelé au démarrage et à chaque reprise. Chaque segment a sa propre chaîne
+   * d'effets et son propre `MediaRecorder`, parce qu'un `MediaRecorder` ne peut
+   * pas changer de flux en cours de route — et changer de voix change le flux.
+   * C'est pour ça que la prise est découpée puis recollée, plutôt que d'utiliser
+   * `MediaRecorder.pause()`, qui garderait la voix du début.
+   */
+  function startSegment(
+    session: RecordingSession,
+    mediaStream: MediaStream,
+    selectedFilter: VoiceFilterId,
+  ) {
       const filtered = applyVoiceFilter(mediaStream, selectedFilter);
       if (!isSessionActive(session)) {
         filtered.dispose();
@@ -518,45 +648,45 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
       recorder.onstop = () => {
         clearRecordingStartTimeout();
         if (mediaRecorderRef.current === recorder) mediaRecorderRef.current = null;
-        releaseAudioResources(recorder);
+
+        const wasPause = pauseIntentRef.current;
+        pauseIntentRef.current = false;
+
+        // Une pause ne relâche que la chaîne d'effets : le micro doit rester
+        // ouvert pour que la reprise soit immédiate.
+        if (wasPause) disposeFilterChain();
+        else releaseAudioResources(recorder);
+
         if (!shouldFinalize || !isSessionActive(session)) return;
 
-        const rawBlob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        const segmentBlob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        if (segmentBlob.size > 0) {
+          segmentsRef.current = [
+            ...segmentsRef.current,
+            { blob: segmentBlob, filter: selectedFilter },
+          ];
+          setSegmentFilters(segmentsRef.current.map((segment) => segment.filter));
+        }
+
         setIsRecording(false);
         setAudioLevel(0);
+
+        if (wasPause) {
+          setIsPaused(true);
+          callbacksRef.current.onRecordingPause?.();
+          return;
+        }
+
         callbacksRef.current.onRecordingStop?.();
-
-        const finalize = async () => {
-          let blob = rawBlob;
-          if (requiresPostProcessing(selectedFilter)) {
-            setIsLoading(true);
-            try {
-              blob = await postProcessRecordedBlob(
-                rawBlob,
-                selectedFilter,
-                session.controller.signal,
-              );
-            } catch (error) {
-              if (isSessionActive(session)) {
-                console.warn('[recorder] post-process failed, using raw blob', error);
-              }
-            } finally {
-              if (isSessionActive(session)) setIsLoading(false);
-            }
-          }
-          if (!isSessionActive(session)) return;
-
-          blob = await trimLeadingSilence(blob, session.controller.signal);
-          if (!isSessionActive(session)) return;
-
-          setRecordedBlob(blob);
-          const url = URL.createObjectURL(blob);
-          setPreviewUrl(url);
-          const autoName = `Imitation ${new Date().toLocaleTimeString()}`;
-          setAudioName(autoName);
-          await autoSaveClip(blob, autoName, session);
-        };
-        void finalize();
+        /*
+         * Plus de téléversement automatique ici.
+         *
+         * `autoSaveClip` était appelé dès l'arrêt : l'imitation partait sans que
+         * le joueur ait pu la réécouter, et le parent remplaçait aussitôt le
+         * composant par son écran d'attente. L'écran de contrôle existait déjà
+         * mais restait inatteignable. L'envoi est désormais explicite.
+         */
+        void finalizeTake(session);
       };
 
       recorder.start(100);
@@ -565,6 +695,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         return;
       }
       setIsRecording(true);
+      setActiveFilter(selectedFilter);
       updateAudioLevel(session, recorder);
       recordingStartTimeoutRef.current = setTimeout(() => {
         recordingStartTimeoutRef.current = null;
@@ -573,48 +704,114 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         }
       }, 200);
 
-      toast({
-        title: '🎤 Enregistrement audio démarré',
-        description: 'Imitez maintenant !',
-      });
-    } catch (error: unknown) {
-      clearGetUserMediaTimeout();
+      if (segmentsRef.current.length === 0) {
+        toast({
+          title: '🎤 Enregistrement audio démarré',
+          description: 'Imitez maintenant !',
+        });
+      }
+  }
+
+  /**
+   * Recolle les segments et prépare l'écoute.
+   *
+   * Le post-traitement est fait segment par segment, chacun avec SA voix, AVANT
+   * la concaténation. Traiter la prise entière avec la voix courante
+   * réappliquerait le dernier filtre choisi au début de l'enregistrement.
+   */
+  const finalizeTake = async (session: RecordingSession) => {
+    const segments = segmentsRef.current;
+    if (segments.length === 0 || !isSessionActive(session)) return;
+
+    setIsLoading(true);
+    try {
+      const processed: Blob[] = [];
+      for (const segment of segments) {
+        if (!isSessionActive(session)) return;
+        processed.push(
+          requiresPostProcessing(segment.filter)
+            ? await postProcessRecordedBlob(
+                segment.blob,
+                segment.filter,
+                session.controller.signal,
+              )
+            : segment.blob,
+        );
+      }
       if (!isSessionActive(session)) return;
 
-      session.controller.abort();
-      if (activeSessionRef.current === session) activeSessionRef.current = null;
-      releaseAudioResources(mediaRecorderRef.current);
-      mediaRecorderRef.current = null;
-      setIsRecording(false);
-      setAudioLevel(0);
+      let blob = await concatAudioBlobs(processed);
+      if (!isSessionActive(session)) return;
+      blob = await trimLeadingSilence(blob, session.controller.signal);
+      if (!isSessionActive(session)) return;
 
-      const mediaError = error as { message?: string; name?: string };
-      let errorMessage = 'Impossible d\'accéder au microphone.';
-      if (mediaError.message === 'TIMEOUT_GETUSERMEDIA') {
-        errorMessage = 'Le micro met trop de temps à répondre. Vérifiez les permissions.';
-      } else if (mediaError.name === 'NotAllowedError') {
-        errorMessage = 'Vous devez autoriser l\'accès au microphone.';
-      } else if (mediaError.name === 'NotFoundError') {
-        errorMessage = 'Aucun microphone détecté.';
-      } else if (mediaError.name === 'NotReadableError') {
-        errorMessage = 'Le microphone est utilisé par une autre application. Fermez-la et réessayez.';
-      } else if (mediaError.name === 'AbortError') {
-        errorMessage = 'L\'accès au microphone a été interrompu. Réessayez.';
-      }
-
-      console.error('Error accessing microphone:', error);
-      toast({ title: 'Erreur', description: errorMessage, variant: 'destructive' });
+      setRecordedBlob(blob);
+      setPreviewUrl(URL.createObjectURL(blob));
+      setAudioName(`Imitation ${new Date().toLocaleTimeString()}`);
+    } catch (error) {
+      if (!isSessionActive(session)) return;
+      console.error('[recorder] stitching failed', error);
+      /*
+       * Sans cette remise à zéro, l'écran revenait à « commencer un
+       * enregistrement » alors que les segments étaient toujours en mémoire :
+       * un état mi-chemin où le joueur ne comprend ni ce qu'il a, ni ce qu'il
+       * doit faire. Mieux vaut repartir franchement de zéro et le dire.
+       */
+      segmentsRef.current = [];
+      setSegmentFilters([]);
+      setIsPaused(false);
+      toast({
+        title: 'Enregistrement perdu',
+        description: "Impossible d'assembler les segments. Recommencez l'imitation.",
+        variant: 'destructive',
+      });
     } finally {
-      clearGetUserMediaTimeout();
-      startingRef.current = false;
+      if (isSessionActive(session)) setIsLoading(false);
     }
+  };
+
+  /** Clôt le segment courant en gardant le micro ouvert. */
+  const pauseRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
+    clearRecordingStartTimeout();
+    pauseIntentRef.current = true;
+    recorder.stop();
+  };
+
+  /** Ouvre un nouveau segment, avec la voix choisie entre-temps. */
+  const resumeRecording = () => {
+    const session = activeSessionRef.current;
+    const mediaStream = rawStreamRef.current;
+    if (!session || !isSessionActive(session) || !mediaStream) return;
+    if (mediaRecorderRef.current) return;
+
+    setIsPaused(false);
+    startSegment(session, mediaStream, voiceFilter);
+    callbacksRef.current.onRecordingResume?.();
+
+    // Confirmation explicite que le changement de voix est bien pris en compte.
+    const voice = describeVoice(voiceFilter);
+    toast({
+      title: `${voice.emoji} Voix : ${voice.label}`,
+      description: `Segment ${segmentsRef.current.length + 1} en cours d'enregistrement.`,
+    });
   };
 
   function stopRecording() {
     clearRecordingStartTimeout();
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== 'inactive') {
+      pauseIntentRef.current = false;
       recorder.stop();
+      return;
+    }
+    // Arrêt demandé pendant une pause : il reste des segments à recoller.
+    const session = activeSessionRef.current;
+    if (isPaused && session && isSessionActive(session)) {
+      setIsPaused(false);
+      releaseAudioResources(null);
+      void finalizeTake(session);
     }
   }
 
@@ -676,6 +873,10 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     setAudioLevel(0);
     setIsRecording(false);
     setIsLoading(false);
+    setIsPaused(false);
+    segmentsRef.current = [];
+    setSegmentFilters([]);
+    pauseIntentRef.current = false;
   };
 
   return (
@@ -688,7 +889,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
           </h3>
         </div>
 
-        {!isRecording && !recordedBlob && (
+        {!isRecording && !isPaused && !recordedBlob && (
           <div className="space-y-4">
             {showVoiceFilters && (
               <InkVoiceFilterPicker
@@ -741,14 +942,82 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
                 🎤 Enregistrement en cours...
               </p>
 
-              <Button
-                onClick={stopRecording}
-                variant="destructive"
-                size="lg"
-                className="w-full mt-4"
+              {/* Quelle voix part réellement dans le fichier, à cet instant. */}
+              <div
+                className="flex items-center gap-2 rounded-full px-4 py-2"
+                style={{
+                  background: `${activeVoice.color}22`,
+                  border: `1px solid ${activeVoice.color}`,
+                }}
+                aria-live="polite"
               >
-                <StopCircle className="h-5 w-5 mr-2" />
-                Arrêter l'enregistrement
+                <span className="text-lg" aria-hidden="true">{activeVoice.emoji}</span>
+                <span className="text-sm font-semibold" style={{ color: activeVoice.color }}>
+                  Voix : {activeVoice.label}
+                </span>
+                <span className="text-xs text-foreground-secondary">
+                  · segment {segmentFilters.length + 1}
+                </span>
+              </div>
+
+              <SegmentList filters={segmentFilters} />
+
+              <div className="grid w-full grid-cols-2 gap-3 mt-2">
+                <Button onClick={pauseRecording} variant="outline" size="lg">
+                  <PauseCircle className="h-5 w-5 mr-2" />
+                  Pause
+                </Button>
+                <Button onClick={stopRecording} variant="destructive" size="lg">
+                  <StopCircle className="h-5 w-5 mr-2" />
+                  Terminer
+                </Button>
+              </div>
+              <p className="text-xs text-center text-foreground-secondary">
+                Mettez en pause pour changer de voix, puis reprenez : les morceaux
+                seront recollés bout à bout.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {isPaused && !recordedBlob && (
+          <div className="space-y-4">
+            <div className="text-center space-y-1">
+              <p className="text-lg font-semibold text-secondary">⏸️ En pause</p>
+              <p className="text-sm text-foreground-secondary">
+                Choisissez une autre voix, puis reprenez. Ce qui est déjà enregistré
+                garde la voix d'origine.
+              </p>
+            </div>
+
+            <SegmentList filters={segmentFilters} />
+
+            {showVoiceFilters && (
+              <InkVoiceFilterPicker value={voiceFilter} onChange={setVoiceFilter} />
+            )}
+
+            <div
+              className="flex items-center justify-center gap-2 rounded-lg px-3 py-2"
+              style={{
+                background: `${pendingVoice.color}1a`,
+                border: `1px solid ${pendingVoice.color}66`,
+              }}
+              aria-live="polite"
+            >
+              <span className="text-base" aria-hidden="true">{pendingVoice.emoji}</span>
+              <span className="text-sm font-medium">
+                Prochain segment : <strong style={{ color: pendingVoice.color }}>{pendingVoice.label}</strong>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button onClick={stopRecording} variant="outline" disabled={isLoading}>
+                <StopCircle className="h-4 w-4 mr-2" />
+                Terminer
+              </Button>
+              <Button onClick={resumeRecording} variant="hero" disabled={isLoading}>
+                <PlayCircle className="h-4 w-4 mr-2" />
+                Reprendre
               </Button>
             </div>
           </div>
@@ -757,8 +1026,16 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         {recordedBlob && previewUrl && (
           <div className="space-y-4">
             <p className="text-center text-sm text-foreground-secondary">
-              ✅ Enregistrement terminé ! Écoutez et sauvegardez.
+              ✅ Enregistrement terminé ! Écoutez, puis envoyez.
             </p>
+
+            <SegmentList filters={segmentFilters} />
+
+            {isLoading && segmentFilters.length > 1 && (
+              <p className="text-center text-xs text-foreground-secondary">
+                Assemblage des {segmentFilters.length} segments…
+              </p>
+            )}
 
             <div className="p-4 bg-background/50 rounded-lg space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium text-secondary">
@@ -785,7 +1062,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
                 className="w-full"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isLoading ? "..." : "Sauvegarder"}
+                {isLoading ? "..." : "Valider"}
               </Button>
             </div>
           </div>

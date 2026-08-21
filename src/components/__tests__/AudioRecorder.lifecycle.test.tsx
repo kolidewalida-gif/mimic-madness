@@ -17,6 +17,13 @@ vi.mock('@/lib/voiceFilters', () => ({
   applyVoiceFilter: mocks.applyVoiceFilter,
   postProcessRecordedBlob: mocks.postProcessRecordedBlob,
   requiresPostProcessing: mocks.requiresPostProcessing,
+  // Le composant affiche l'emoji et le libellé de la voix courante : la vraie
+  // table est réutilisée pour que le test ne dérive pas du code.
+  VOICE_FILTERS: [
+    { id: 'none', label: 'Naturel', emoji: '🎤', description: '', color: '#9ca3af' },
+    { id: 'robot', label: 'Robot', emoji: '🤖', description: '', color: '#06b6d4' },
+    { id: 'helium', label: 'Hélium', emoji: '🐿️', description: '', color: '#fbbf24', postProcess: true },
+  ],
 }));
 
 vi.mock('@/lib/videoStorageSupabase', async (importOriginal) => {
@@ -78,9 +85,18 @@ class FakeAudioContext {
   };
   createAnalyser = vi.fn(() => this.analyser);
   createMediaStreamSource = vi.fn(() => ({ connect: vi.fn() }));
-  decodeAudioData = vi.fn(async () => {
-    throw new Error('decode unavailable in lifecycle test');
-  });
+  /**
+   * Tampon minimal mais exploitable : l'assemblage des segments décode, mixe en
+   * mono puis réencode. Faire échouer le décodage empêcherait de tester ce
+   * chemin, qui est précisément le cœur du mode multi-voix.
+   */
+  decodeAudioData = vi.fn(async () => ({
+    length: 4,
+    numberOfChannels: 1,
+    sampleRate: 48_000,
+    duration: 4 / 48_000,
+    getChannelData: () => new Float32Array([0.5, 0.4, 0.3, 0.2]),
+  }) as unknown as AudioBuffer);
   close = vi.fn(async () => {
     this.state = 'closed';
   });
@@ -204,33 +220,111 @@ describe('AudioRecorder lifecycle cleanup', () => {
     expect(onAudioSaved).not.toHaveBeenCalled();
   });
 
-  it('keeps the normal stop and auto-save path while cancelling warm-up', async () => {
-    const onRecordingStart = vi.fn();
+  it('attend une validation explicite au lieu d’envoyer dès l’arrêt', async () => {
+    /*
+     * Non-régression du bug signalé : l'imitation partait dès qu'on arrêtait
+     * d'enregistrer. `autoSaveClip` téléversait dans `onstop`, ce qui faisait
+     * remonter `onAudioSaved` au parent, lequel remplaçait aussitôt le
+     * composant. L'écran de contrôle existait mais personne ne le voyait jamais.
+     */
     const onRecordingStop = vi.fn();
     const onAudioSaved = vi.fn();
     const view = render(
-      <AudioRecorder
-        playerId="p1"
-        playerName="Joueur"
-        onRecordingStart={onRecordingStart}
-        onRecordingStop={onRecordingStop}
-        onAudioSaved={onAudioSaved}
-      />,
+      <AudioRecorder playerId="p1" playerName="Joueur"
+        onRecordingStop={onRecordingStop} onAudioSaved={onAudioSaved} />,
     );
 
     fireEvent.click(view.container.querySelector('button') as HTMLButtonElement);
     await waitFor(() => expect(FakeMediaRecorder.instances).toHaveLength(1));
-    const recorder = FakeMediaRecorder.instances[0];
-    recorder.ondataavailable?.({ data: new Blob(['voice'], { type: 'audio/webm' }) } as BlobEvent);
+    FakeMediaRecorder.instances[0].ondataavailable?.(
+      { data: new Blob(['voice'], { type: 'audio/webm' }) } as BlobEvent,
+    );
 
-    fireEvent.click(view.getByRole('button', { name: /Arrêter l'enregistrement/i }));
+    fireEvent.click(view.getByRole('button', { name: /Terminer/i }));
+    await waitFor(() => expect(onRecordingStop).toHaveBeenCalledOnce());
+    await flushMicrotasks();
+
+    // Rien n'est parti : la prise attend le joueur.
+    expect(mocks.uploadVideo).not.toHaveBeenCalled();
+    expect(onAudioSaved).not.toHaveBeenCalled();
+
+    const confirm = await waitFor(() => view.getByRole('button', { name: /Valider/i }));
+    fireEvent.click(confirm);
+
     await waitFor(() => expect(onAudioSaved).toHaveBeenCalledWith({ id: 'saved-clip' }));
-    await new Promise((resolve) => setTimeout(resolve, 220));
-
-    expect(onRecordingStop).toHaveBeenCalledOnce();
-    expect(onRecordingStart).not.toHaveBeenCalled();
     expect(mocks.uploadVideo).toHaveBeenCalledOnce();
-    expect(trackStop).toHaveBeenCalledOnce();
-    expect(mocks.disposeFilter).toHaveBeenCalledOnce();
+  });
+
+  it('ouvre un nouveau segment à la reprise sans relâcher le micro', async () => {
+    /*
+     * Le micro doit rester ouvert pendant la pause : le réouvrir redemanderait
+     * l'autorisation sur certains navigateurs et ferait perdre la reprise.
+     * Seule la chaîne d'effets est démontée, pour pouvoir en rebrancher une
+     * autre avec la nouvelle voix.
+     */
+    const onRecordingPause = vi.fn();
+    const onRecordingResume = vi.fn();
+    const view = render(
+      <AudioRecorder playerId="p1" playerName="Joueur"
+        onRecordingPause={onRecordingPause} onRecordingResume={onRecordingResume} />,
+    );
+
+    fireEvent.click(view.container.querySelector('button') as HTMLButtonElement);
+    await waitFor(() => expect(FakeMediaRecorder.instances).toHaveLength(1));
+    FakeMediaRecorder.instances[0].ondataavailable?.(
+      { data: new Blob(['segment un'], { type: 'audio/webm' }) } as BlobEvent,
+    );
+
+    fireEvent.click(view.getByRole('button', { name: /^Pause$/i }));
+    await waitFor(() => expect(onRecordingPause).toHaveBeenCalledOnce());
+
+    // Le micro n'est pas coupé, et le premier segment est annoncé.
+    expect(trackStop).not.toHaveBeenCalled();
+    expect(view.getByText(
+      (_content, element) => element?.textContent === '1 segment enregistré',
+    )).toBeTruthy();
+
+    fireEvent.click(view.getByRole('button', { name: /Reprendre/i }));
+    await waitFor(() => expect(FakeMediaRecorder.instances).toHaveLength(2));
+    expect(onRecordingResume).toHaveBeenCalledOnce();
+    // Un second enregistreur, sur le même micro.
+    expect(FakeMediaRecorder.instances[1].stream).toBe(stream);
+    expect(trackStop).not.toHaveBeenCalled();
+  });
+
+  it('assemble les deux segments à l’arrêt final', async () => {
+    const view = render(<AudioRecorder playerId="p1" playerName="Joueur" />);
+
+    fireEvent.click(view.container.querySelector('button') as HTMLButtonElement);
+    await waitFor(() => expect(FakeMediaRecorder.instances).toHaveLength(1));
+    FakeMediaRecorder.instances[0].ondataavailable?.(
+      { data: new Blob(['un'], { type: 'audio/webm' }) } as BlobEvent,
+    );
+    fireEvent.click(view.getByRole('button', { name: /^Pause$/i }));
+    await waitFor(() => expect(view.getByRole('button', { name: /Reprendre/i })).toBeTruthy());
+
+    fireEvent.click(view.getByRole('button', { name: /Reprendre/i }));
+    await waitFor(() => expect(FakeMediaRecorder.instances).toHaveLength(2));
+    FakeMediaRecorder.instances[1].ondataavailable?.(
+      { data: new Blob(['deux'], { type: 'audio/webm' }) } as BlobEvent,
+    );
+
+    fireEvent.click(view.getByRole('button', { name: /Terminer/i }));
+
+    // L'assemblage décode, mixe et réencode : on attend l'écran de contrôle.
+    await waitFor(
+      () => expect(view.getByRole('button', { name: /Valider/i })).toBeTruthy(),
+      { timeout: 4000 },
+    );
+
+    // Les deux segments sont annoncés. Le libellé est construit de plusieurs
+    // nœuds de texte, d'où le comparateur sur le contenu complet.
+    const summary = await waitFor(() => view.getByText(
+      (_content, element) => element?.textContent === '2 segments enregistrés',
+    ));
+    expect(summary).toBeTruthy();
+
+    // Le micro n'est relâché qu'à l'arrêt définitif.
+    expect(trackStop).toHaveBeenCalled();
   });
 });
