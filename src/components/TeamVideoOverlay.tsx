@@ -150,13 +150,16 @@ export const TeamVideoOverlay = forwardRef<TeamVideoOverlayRef, TeamVideoOverlay
     videoClip?.startTime,
   ]);
 
-  // Set video volume based on includeOriginalAudio
+  // Set video volume based on includeOriginalAudio. `videoUrl` is a dependency
+  // because the <video> only mounts after the URLs load — without it the ref is
+  // null on the first run and the clip plays at full volume.
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.volume = includeOriginalAudio ? (originalAudioVolume / 100) : 0;
+      const safe = Math.max(0, Math.min(100, Number.isFinite(originalAudioVolume) ? originalAudioVolume : 50));
+      videoRef.current.volume = includeOriginalAudio ? safe / 100 : 0;
       videoRef.current.muted = !includeOriginalAudio;
     }
-  }, [includeOriginalAudio, originalAudioVolume]);
+  }, [includeOriginalAudio, originalAudioVolume, videoUrl]);
 
   // Sync audio with video
   useEffect(() => {
