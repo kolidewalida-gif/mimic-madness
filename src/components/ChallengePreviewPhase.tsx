@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { VideoPreview } from "@/components/VideoPreview";
 import { Play, Check, Users, Eye, Loader2, Sparkles, Crown, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { markPreviewSeen } from "@/lib/imitationSyncClient";
+import { canLeavePreviewPhase, previewSeenPlayerIds } from "@/lib/imitationReadiness";
 import { playInkSound } from "@/hooks/useInkSoundEffects";
 import { cn } from "@/lib/utils";
 import { useMultiplePlayerAvatars } from "@/hooks/useGlobalPlayerAvatar";
@@ -50,9 +52,19 @@ export const ChallengePreviewPhase = ({
   useEffect(() => {
     let isMounted = true;
     const fetchReady = async () => {
-      const { data } = await supabase.from("player_imitations").select("player_id, is_ready")
+      // `select('*')` plutôt que de nommer `has_seen_preview` : si la migration
+      // n'est pas déployée, nommer une colonne absente fait échouer toute la
+      // requête et plus personne n'apparaît prêt.
+      const { data } = await supabase.from("player_imitations").select("*")
         .eq("lobby_id", lobbyId).eq("round_number", roundNumber);
-      if (data && isMounted) setReadyPlayers(data.filter((p) => p.is_ready).map((p) => p.player_id));
+      if (!data || !isMounted) return;
+      /*
+       * On lit `has_seen_preview`, jamais `is_ready` : cette dernière signifie
+       * « imitation déposée » pour la phase suivante et pour
+       * `submit_player_imitation`. Les confondre faisait entrer les joueurs en
+       * phase d'imitation déjà marqués prêts, donc sauter l'imitation.
+       */
+      setReadyPlayers(previewSeenPlayerIds(data));
     };
     fetchReady();
 
@@ -87,8 +99,10 @@ export const ChallengePreviewPhase = ({
   const allReadyNotifiedRef = useRef(false);
   useEffect(() => { allReadyNotifiedRef.current = false; }, [roundNumber]);
   useEffect(() => {
-    if (!currentPlayer.isHost || players.length === 0 || allReadyNotifiedRef.current) return;
-    if (players.every((player) => readyPlayers.includes(player.id))) {
+    if (!currentPlayer.isHost || allReadyNotifiedRef.current) return;
+    // `readyPlayers` reflète ici `has_seen_preview`, jamais `is_ready`.
+    const seenRows = readyPlayers.map((id) => ({ player_id: id, has_seen_preview: true }));
+    if (canLeavePreviewPhase(players, seenRows)) {
       allReadyNotifiedRef.current = true;
       onAllReady();
     }
@@ -102,15 +116,13 @@ export const ChallengePreviewPhase = ({
       readyBroadcastRef.current?.send({ type: 'broadcast', event: 'player_ready', payload: { playerId: currentPlayer.id } });
       // Optimistic update
       setReadyPlayers((prev) => prev.includes(currentPlayer.id) ? prev : [...prev, currentPlayer.id]);
-      // Persist to DB
-      const { error } = await supabase.from("player_imitations").upsert(
-        { lobby_id: lobbyId, round_number: roundNumber, player_id: currentPlayer.id, player_name: currentPlayer.name, is_ready: true },
-        { onConflict: "lobby_id,round_number,player_id" }
-      );
-      if (error) {
-        setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
-        console.error('Ready failed:', error);
-      }
+      // Persist to DB — `has_seen_preview` uniquement, jamais `is_ready`.
+      await markPreviewSeen({
+        lobbyId,
+        roundNumber,
+        playerId: currentPlayer.id,
+        playerName: currentPlayer.name,
+      });
     } catch (e) {
       setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
       console.error(e);

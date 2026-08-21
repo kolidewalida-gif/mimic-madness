@@ -269,3 +269,109 @@ export async function setLobbyPlayerConnection(
     .eq('connection_status', connected ? 'disconnected' : 'connected');
   if (updateError) throw updateError;
 }
+
+/**
+ * Appel de RPC non encore décrit par `integrations/supabase/types.ts`.
+ *
+ * Ce fichier de types est généré par le pipeline Lovable et ne doit pas être
+ * édité à la main ; il est donc en retard d'une migration tant qu'il n'a pas été
+ * régénéré. Le contournement reste volontairement étroit et nommé, plutôt qu'un
+ * `as never` dispersé sur les appels : les deux fonctions visées sont celles
+ * ajoutées par `20260821194917_split_preview_and_imitation_readiness`.
+ */
+const callUntypedRpc = async <T>(
+  name: 'mark_preview_seen' | 'skip_missing_imitations',
+  params: Record<string, unknown>,
+): Promise<{ data: T | null; error: unknown }> => {
+  const invoke = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: T | null; error: unknown }>;
+  return invoke(name, params);
+};
+
+export interface MarkPreviewSeenInput {
+  lobbyId: string;
+  roundNumber: number;
+  playerId: string;
+  playerName: string;
+}
+
+/**
+ * Record that a player watched the challenge video.
+ *
+ * Deliberately separate from `is_ready`. Both meanings used to share that one
+ * column, so clicking "I have watched it" during preview already marked the
+ * player as having submitted an imitation. The round then skipped the imitation
+ * phase, and the player's real submission was refused by
+ * `submit_player_imitation` because a ready row already existed.
+ *
+ * The fallback path must never write `is_ready` — that is the whole point.
+ * Preview readiness also travels over broadcast, so a failure here degrades to
+ * "not persisted across a reload" instead of blocking the round.
+ */
+export async function markPreviewSeen(input: MarkPreviewSeenInput): Promise<boolean> {
+  const { data, error } = await callUntypedRpc<boolean>('mark_preview_seen', {
+    p_lobby_id: input.lobbyId,
+    p_round_number: input.roundNumber,
+    p_player_id: input.playerId,
+    p_player_name: input.playerName,
+  });
+  if (!error) return data === true;
+  if (!isSchemaGapError(error)) throw error;
+
+  const { error: upsertError } = await supabase
+    .from('player_imitations')
+    .upsert(
+      {
+        lobby_id: input.lobbyId,
+        round_number: input.roundNumber,
+        player_id: input.playerId,
+        player_name: input.playerName,
+        has_seen_preview: true,
+      } as never,
+      { onConflict: 'lobby_id,round_number,player_id' },
+    );
+  if (upsertError && !isSchemaGapError(upsertError)) throw upsertError;
+  return !upsertError;
+}
+
+/**
+ * Host escape hatch: close a round without the players who never submitted.
+ *
+ * The skip is recorded explicitly rather than inferred from "ready with no
+ * clip", which used to be indistinguishable from a submission that failed.
+ */
+export async function skipMissingImitations(
+  lobbyId: string,
+  roundNumber: number,
+  players: Array<{ id: string; name: string }>,
+): Promise<number> {
+  if (players.length === 0) return 0;
+
+  const { data, error } = await callUntypedRpc<number>('skip_missing_imitations', {
+    p_lobby_id: lobbyId,
+    p_round_number: roundNumber,
+    p_player_ids: players.map((player) => player.id),
+    p_player_names: players.map((player) => player.name),
+  });
+  if (!error) return typeof data === 'number' ? data : players.length;
+  if (!isSchemaGapError(error)) throw error;
+
+  const { error: upsertError } = await supabase
+    .from('player_imitations')
+    .upsert(
+      players.map((player) => ({
+        lobby_id: lobbyId,
+        round_number: roundNumber,
+        player_id: player.id,
+        player_name: player.name,
+        is_ready: true,
+        include_original_audio: false,
+        original_audio_volume: 50,
+      })),
+      { onConflict: 'lobby_id,round_number,player_id' },
+    );
+  if (upsertError) throw upsertError;
+  return players.length;
+}

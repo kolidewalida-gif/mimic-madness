@@ -542,25 +542,28 @@ export const GamePlayScreen = ({
   const handlePreviewReady = async () => {
     if (!currentPlayer.isHost || isTransitioningRef.current) return;
 
-    try {
-      // Reset readiness before the durable transition. Otherwise the newly
-      // mounted imitation phase can immediately reuse preview readiness.
-      const { error } = await supabase
-        .from("player_imitations")
-        .update({ is_ready: false })
-        .eq("lobby_id", lobbyId)
-        .eq("round_number", roundNumber);
-
-      if (error) throw error;
-      await transitionPhase("preview", "imitation");
-    } catch (error) {
-      console.error("Error preparing imitation phase:", error);
-      toast({
-        title: "Transition impossible",
-        description: "Impossible de preparer la phase d'imitation.",
-        variant: "destructive",
-      });
-    }
+    /*
+     * Il n'y a plus de remise à zéro ici, et c'était la cause des manches
+     * cassées.
+     *
+     * L'aperçu écrivait `is_ready = true` pour dire « j'ai vu la vidéo », alors
+     * que la phase suivante et `submit_player_imitation` lisent cette même
+     * colonne comme « j'ai déposé mon imitation ». Pour compenser, on remettait
+     * toutes les lignes à `is_ready = false` juste avant de basculer.
+     *
+     * Cet UPDATE n'était pas atomique avec la transition, et l'aperçu annonce
+     * aussi les joueurs prêts par broadcast — plus rapide que l'écriture SQL.
+     * L'hôte pouvait donc basculer, et donc remettre à zéro, avant que l'upsert
+     * d'un joueur soit arrivé. Cet upsert atterrissait ensuite avec
+     * `is_ready = true`, après la bascule : ce joueur entrait en imitation déjà
+     * marqué prêt, la manche sautait l'imitation, et sa vraie soumission était
+     * refusée par le RPC puisqu'une ligne prête existait déjà.
+     *
+     * Les deux sens vivent maintenant dans deux colonnes (`has_seen_preview` et
+     * `is_ready`), donc rien n'est à effacer : la transition est un simple
+     * changement de phase.
+     */
+    await transitionPhase("preview", "imitation");
   };
 
   const handleImitationReady = async () => {

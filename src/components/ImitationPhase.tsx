@@ -28,7 +28,12 @@ import { loadRhythmoTrack } from "@/lib/rhythmo/store";
 import type { RhythmoTrack } from "@/lib/rhythmo/types";
 import { sanitizeRhythmoLeadSeconds } from "@/lib/rhythmo/timeline";
 import { canCommitSyncToken, equalJitterBackoff } from "@/lib/syncState";
-import { submitPlayerImitation } from "@/lib/imitationSyncClient";
+import { skipMissingImitations, submitPlayerImitation } from "@/lib/imitationSyncClient";
+import {
+  canLeaveImitationPhase,
+  deliveredPlayerIds,
+  hasDeliveredImitation,
+} from "@/lib/imitationReadiness";
 
 interface Player {
   id: string;
@@ -191,9 +196,12 @@ export const ImitationPhase = ({
       const requestEpoch = epoch;
       const token = { generation: requestEpoch, requestId };
       try {
+        // `select('*')` plutôt que de nommer les colonnes : si la migration
+        // n'est pas déployée, nommer une colonne absente fait échouer toute la
+        // requête et la manche se bloque au lieu de se dégrader.
         const { data, error } = await supabase
           .from('player_imitations')
-          .select('player_id, is_ready')
+          .select('*')
           .eq('lobby_id', lobbyId)
           .eq('round_number', roundNumber);
         if (error) throw error;
@@ -204,7 +212,7 @@ export const ImitationPhase = ({
           !canCommitSyncToken(token, epoch, latestRequest)
         ) return;
 
-        setReadyPlayers((data ?? []).filter((row) => row.is_ready).map((row) => row.player_id));
+        setReadyPlayers(deliveredPlayerIds(data ?? []));
         setIsReadySynchronized(true);
         retryAttempt = 0;
         clearRetry();
@@ -285,14 +293,15 @@ export const ImitationPhase = ({
   }, [roundNumber]);
 
   useEffect(() => {
-    // Set inclusion, not length equality: a disconnected player is filtered out
-    // of `players` but may keep an is_ready row, so counts never match and the
-    // host can never advance. Only the currently connected players must be ready.
+    // `readyPlayers` ne contient déjà que les joueurs ayant réellement rendu
+    // quelque chose : la règle vit dans `imitationReadiness`, où elle est testée.
     const allPlayersReady =
       isReadySynchronized &&
       currentPlayer.isHost &&
-      players.length > 0 &&
-      players.every((player) => readyPlayers.includes(player.id));
+      canLeaveImitationPhase(
+        players,
+        readyPlayers.map((id) => ({ player_id: id, is_ready: true, skipped: true })),
+      );
 
     if (!allPlayersReady || allReadyNotifiedRoundRef.current === roundNumber) {
       return;
@@ -349,13 +358,19 @@ export const ImitationPhase = ({
       if (!accepted) {
         const existing = await supabase
           .from('player_imitations')
-          .select('is_ready')
+          .select('*')
           .eq('lobby_id', lobbyId)
           .eq('round_number', roundNumber)
           .eq('player_id', currentPlayer.id)
           .maybeSingle();
         if (existing.error) throw existing.error;
-        if (existing.data?.is_ready) {
+        /*
+         * Ne se déclarer déjà soumis que si un clip est bien attaché. Cette
+         * branche se contentait de `is_ready`, si bien qu'un refus dû à une
+         * ligne prête sans clip marquait le joueur comme rendu — sans vidéo.
+         * Le refus est maintenant une vraie erreur, remontée au joueur.
+         */
+        if (existing.data?.clip_id && hasDeliveredImitation(existing.data)) {
           setReadyPlayers((previous) =>
             previous.includes(currentPlayer.id) ? previous : [...previous, currentPlayer.id],
           );
@@ -460,21 +475,13 @@ export const ImitationPhase = ({
     const notReady = players.filter((p) => !readyPlayers.includes(p.id));
     if (notReady.length === 0) return;
     try {
-      // Mark every missing player as ready (with no clip) so the round can
-      // close. The voting phase already tolerates players without a clip.
-      const rows = notReady.map((p) => ({
-        lobby_id: lobbyId,
-        round_number: roundNumber,
-        player_id: p.id,
-        player_name: p.name,
-        is_ready: true,
-        include_original_audio: false,
-        original_audio_volume: 50,
-      }));
-      const { error } = await supabase
-        .from('player_imitations')
-        .upsert(rows, { onConflict: 'lobby_id,round_number,player_id' });
-      if (error) throw error;
+      // Le saut est enregistré explicitement (`skipped`), et non plus déduit
+      // d'une ligne prête sans clip — indistinguable d'une soumission ratée.
+      await skipMissingImitations(
+        lobbyId,
+        roundNumber,
+        notReady.map((p) => ({ id: p.id, name: p.name })),
+      );
       toast({
         title: 'Manche débloquée',
         description: `${notReady.length} joueur${notReady.length > 1 ? 's' : ''} ignoré${notReady.length > 1 ? 's' : ''}.`,
