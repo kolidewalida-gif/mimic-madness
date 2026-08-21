@@ -1986,7 +1986,7 @@ export type Database = {
           p_player_id: string
           p_player_name: string
         }
-        Returns: number
+        Returns: boolean
       }
       submit_player_imitation: {
         Args: {
