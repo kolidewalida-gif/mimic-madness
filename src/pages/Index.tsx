@@ -21,6 +21,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import { LobbyGameMode, soloBotCount } from "@/lib/gameModes";
 import { playSample } from "@/lib/sfx/samples";
+import { setActiveSfxMode, type SfxMode } from "@/lib/sfx/palette";
 import { ConnectionRecoveryOverlay } from "@/components/ConnectionRecoveryOverlay";
 import { DiagnosticsOverlay } from "@/components/DiagnosticsOverlay";
 import {
@@ -140,6 +141,23 @@ const Index = () => {
     };
     setSituation(map[gameState] ?? "home");
   }, [gameState, gameMode, setSituation]);
+
+  /*
+   * Palette d'effets sonores du mode en cours.
+   *
+   * Un seul effet dérivé de l'état, plutôt qu'un appel à côté de chaque
+   * `setGameMode` : le mode peut aussi arriver par le temps réel via
+   * `routeFromLobbySnapshot`, et un site d'appel oublié donnerait une palette
+   * qui ne correspond plus à l'écran affiché.
+   *
+   * Hors partie — accueil, lobby — on revient à la palette neutre : ces écrans
+   * sont les plus fréquentés, ils ne doivent pas hériter du timbre feutré
+   * d'Undercover ou de la bande téléphonique d'Audiophone.
+   */
+  useEffect(() => {
+    const inGame = gameState !== "home" && gameState !== "lobby";
+    setActiveSfxMode(inGame ? (gameMode as SfxMode) : null);
+  }, [gameState, gameMode]);
   
   // Determine if we should show Ink UI. There is no intro splash any more:
   // the menu is the first thing the player sees.

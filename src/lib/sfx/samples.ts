@@ -14,6 +14,7 @@
  */
 import { getSharedAudioContext, registerAudioContext } from '@/lib/audioUnlock';
 import { getSoundEffectsVolume } from '@/hooks/useSoundEffectsVolume';
+import { activePalette, resolveSampleName } from './palette';
 import manifest from './manifest.json';
 
 interface SampleDefinition {
@@ -82,8 +83,71 @@ const load = async (sample: SampleDefinition): Promise<void> => {
  * Renvoie `false` quand l'appelant doit se rabattre sur la synthèse : nom
  * inconnu, fichier absent, ou chargement encore en cours.
  */
+/**
+ * Assemble la chaîne de lecture d'un échantillon selon la palette du mode.
+ *
+ * Chaque maillon optionnel est précédé d'un test d'existence. Ce module a pour
+ * contrat de ne jamais faire échouer un son : sur un contexte partiel — un
+ * doublon de test, un navigateur exotique — la chaîne se réduit d'elle-même au
+ * strict nécessaire au lieu de lever.
+ *
+ * L'ordre compte : le gain de niveau est créé en DERNIER, car c'est lui qui
+ * porte l'invariant de volume vérifié par les tests.
+ */
+const buildChain = (
+  context: AudioContext,
+  buffer: AudioBuffer,
+  level: number,
+): AudioBufferSourceNode => {
+  const palette = activePalette();
+
+  const source = context.createBufferSource();
+  source.buffer = buffer;
+  // La hauteur : un clic plus grave devient mat, plus aigu il devient précis.
+  if (source.playbackRate && palette.rate !== 1) {
+    source.playbackRate.value = palette.rate;
+  }
+
+  // Le timbre. Absent d'un contexte partiel : on s'en passe sans bruit.
+  let tail: AudioNode = source;
+  if (palette.filter && typeof context.createBiquadFilter === 'function') {
+    const filter = context.createBiquadFilter();
+    filter.type = palette.filter.type;
+    filter.frequency.value = palette.filter.frequency;
+    filter.Q.value = palette.filter.q;
+    tail.connect(filter);
+    tail = filter;
+  }
+
+  const gain = context.createGain();
+  gain.gain.value = Number.isFinite(level) ? Math.max(0, Math.min(1, level)) : 0;
+  tail.connect(gain);
+
+  /*
+   * Limiteur doux en sortie. Le banc Ink en a un depuis toujours, la couche
+   * d'échantillons n'en avait aucun : deux sons superposés pouvaient donc
+   * saturer, ce qui s'entend comme une dureté et fatigue vite. C'est le maillon
+   * qui rend l'ensemble agréable, plus que n'importe quel réglage de timbre.
+   */
+  if (typeof context.createDynamicsCompressor === 'function') {
+    const limiter = context.createDynamicsCompressor();
+    limiter.threshold.value = -10;
+    limiter.knee.value = 8;
+    limiter.ratio.value = 4;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.12;
+    gain.connect(limiter);
+    limiter.connect(context.destination);
+  } else {
+    gain.connect(context.destination);
+  }
+
+  return source;
+};
+
 export const playSample = (name: string, volume = 0.5): boolean => {
-  const sample = byAlias.get(name);
+  // Le mode courant peut préférer un autre échantillon existant pour ce nom.
+  const sample = byAlias.get(resolveSampleName(name)) ?? byAlias.get(name);
   if (!sample) return false;
 
   const entry = cache.get(sample.id);
@@ -100,18 +164,10 @@ export const playSample = (name: string, volume = 0.5): boolean => {
   if (context.state === 'suspended') registerAudioContext(context);
 
   try {
-    const source = context.createBufferSource();
-    source.buffer = entry.buffer;
-
-    const gain = context.createGain();
-    const level = volume * (sample.gain ?? 1) * getSoundEffectsVolume();
     // `NaN` ferait lever l'API Web Audio, et un volume négatif inverserait la
     // phase : on borne, comme pour la synthèse.
-    gain.gain.value = Number.isFinite(level) ? Math.max(0, Math.min(1, level)) : 0;
-
-    source.connect(gain);
-    gain.connect(context.destination);
-    source.start();
+    const level = volume * (sample.gain ?? 1) * getSoundEffectsVolume() * activePalette().trim;
+    buildChain(context, entry.buffer, level).start();
     return true;
   } catch {
     return false;
