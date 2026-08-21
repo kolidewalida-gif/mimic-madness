@@ -114,6 +114,98 @@ const trimLeadingSilence = async (blob: Blob, signal?: AbortSignal): Promise<Blo
   }
 };
 
+/** Decode any recorded blob to PCM. Used to stitch multi-voice segments. */
+const decodeBlob = async (blob: Blob): Promise<AudioBuffer> => {
+  const context = new AudioContext();
+  try {
+    return await context.decodeAudioData(await blob.arrayBuffer());
+  } finally {
+    if (context.state !== 'closed') void context.close().catch(() => {});
+  }
+};
+
+/** Mix a buffer down to a single mono channel at the target sample rate. */
+const toMono = (buffer: AudioBuffer, targetRate: number): Float32Array => {
+  const length = buffer.length;
+  const mixed = new Float32Array(length);
+  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+    const data = buffer.getChannelData(channel);
+    for (let index = 0; index < length; index += 1) mixed[index] += data[index];
+  }
+  if (buffer.numberOfChannels > 1) {
+    for (let index = 0; index < length; index += 1) mixed[index] /= buffer.numberOfChannels;
+  }
+  if (buffer.sampleRate === targetRate) return mixed;
+
+  // Devices rarely switch rates mid-take, but a linear resample keeps the
+  // stitched take in sync when they do.
+  const ratio = targetRate / buffer.sampleRate;
+  const outLength = Math.round(length * ratio);
+  const out = new Float32Array(outLength);
+  for (let index = 0; index < outLength; index += 1) {
+    const source = index / ratio;
+    const low = Math.floor(source);
+    const high = Math.min(length - 1, low + 1);
+    const fraction = source - low;
+    out[index] = mixed[low] * (1 - fraction) + mixed[high] * fraction;
+  }
+  return out;
+};
+
+/** Encode mono PCM as a 16-bit WAV blob. */
+const encodeMonoWav = (samples: Float32Array, sampleRate: number): Blob => {
+  const dataSize = samples.length * 2;
+  const output = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(output);
+  const writeString = (offset: number, value: string) => {
+    for (let index = 0; index < value.length; index += 1) {
+      view.setUint8(offset + index, value.charCodeAt(index));
+    }
+  };
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let index = 0; index < samples.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[index]));
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+    offset += 2;
+  }
+  return new Blob([output], { type: 'audio/wav' });
+};
+
+/**
+ * Stitch the pause-separated takes into one continuous clip. Each take can use
+ * a different voice filter, which is exactly the point: pause, switch voice,
+ * keep going.
+ */
+const concatAudioBlobs = async (blobs: Blob[]): Promise<Blob> => {
+  if (blobs.length === 0) return new Blob([], { type: 'audio/wav' });
+  if (blobs.length === 1) return blobs[0];
+  const buffers = await Promise.all(blobs.map(decodeBlob));
+  const sampleRate = buffers[0].sampleRate;
+  const parts = buffers.map((buffer) => toMono(buffer, sampleRate));
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const merged = new Float32Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    merged.set(part, offset);
+    offset += part.length;
+  }
+  return encodeMonoWav(merged, sampleRate);
+};
+
+
 interface AudioRecorderProps {
   playerId: string;
   playerName: string;
