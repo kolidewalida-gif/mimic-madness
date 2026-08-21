@@ -127,6 +127,8 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
 
   const handleVideoCanPlay = () => {
     console.log("Video can play");
+    // The element can reset its volume on (re)load: re-apply the saved value.
+    applyOriginalVolume();
     setMediaReady(prev => ({ ...prev, video: true }));
   };
 
