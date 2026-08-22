@@ -6,6 +6,7 @@ import { usePlayerLevel, LEVEL_REWARDS, LevelReward } from '@/hooks/usePlayerLev
 import { useEquippedTitle } from '@/hooks/useEquippedTitle';
 import { InkDrawer } from '@/components/menu/InkOverlay';
 import { RARITY_STYLE as RARITY_TABLE } from '@/lib/rarity';
+import { rewardPerk } from '@/lib/rewardPerks';
 import { toast } from 'sonner';
 
 interface TitleSelectorProps {
@@ -30,12 +31,10 @@ const iconMap: Record<string, React.ReactNode> = {
 /** Rarity presentation now comes from the shared table (was a 4th copy). */
 const RARITY_STYLE = RARITY_TABLE;
 
-/** Real perks for each title — visible to other players + gameplay bonuses */
-const TITLE_PERKS: Record<string, string> = {
-  title_player: 'Visible sur ton profil. +5% XP de base.',
-  title_veteran: 'Affiché en jeu. +10% XP. Accès au chat coloré.',
-  title_legend: 'Style prestige complet. +15% XP. Priorité de parole en Undercover.',
-};
+/* Les descriptions viennent de `@/lib/rewardPerks`, partagées avec
+   `RewardsPanel`. La table locale qui vivait ici formulait les mêmes trois
+   titres autrement, alors que les deux panneaux sont maintenant deux tuiles
+   voisines de la même grille. */
 
 export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
   const { isRewardUnlocked } = usePlayerLevel();
@@ -110,7 +109,7 @@ export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
                 unlockedTitles.map((title, i) => {
                   const style = RARITY_STYLE[title.rarity];
                   const isEquipped = equippedTitle?.id === title.id;
-                  const perk = TITLE_PERKS[title.id];
+                  const perk = rewardPerk(title.id);
 
                   return (
                     <motion.div

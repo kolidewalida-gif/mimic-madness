@@ -4,9 +4,9 @@ import { Lock, Check, Palette } from 'lucide-react';
 import { useChatColor, ChatColorOption } from '@/hooks/useChatColor';
 import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { InkSection } from '@/components/menu/InkOverlay';
 import { cn } from '@/lib/utils';
 
-const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
 const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
 const FONT = "'Outfit', sans-serif";
 
@@ -86,36 +86,17 @@ const InkChatColorPickerComponent = () => {
   };
 
   return (
-    <div
-      className="relative rounded-3xl p-4 space-y-3"
-      style={{
-        background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
-        border: '1px solid var(--ink-line)',
-        boxShadow: 'none',
-      }}
+    /*
+      `InkSection` au lieu d'une carte maison. Le `h3 text-2xl` interne et le
+      « Lvl {level} » répétaient le titre et le sous-titre du tiroir qui rend ce
+      panneau ; le dégradé `#1a0d2e → #0f0820` était plus sombre que la surface
+      partagée des autres menus.
+    */
+    <InkSection
+      title="Ta couleur"
+      icon={<Palette className="h-4 w-4 text-[var(--ink-text-dim)]" />}
+      hint="Débloque de nouvelles couleurs en montant de niveau."
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Palette className="w-4 h-4 text-[var(--ink-text-dim)]" />
-          <h3
-            className="text-2xl font-black text-white"
-            style={{ fontFamily: FONT, textShadow: SHADOW }}
-          >
-            Couleur du chat
-          </h3>
-        </div>
-        <span
-          className="text-xs font-black text-white/55"
-          style={{ fontFamily: FONT }}
-        >
-          Lvl {level}
-        </span>
-      </div>
-
-      <p className="text-xs text-white/45" style={{ fontFamily: FONT }}>
-        Débloque de nouvelles couleurs en montant de niveau.
-      </p>
-
       {loading ? (
         <div className="h-16 flex items-center justify-center text-white/40 text-xs">
           Chargement...
@@ -134,7 +115,7 @@ const InkChatColorPickerComponent = () => {
           ))}
         </div>
       )}
-    </div>
+    </InkSection>
   );
 };
 

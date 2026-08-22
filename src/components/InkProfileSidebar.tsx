@@ -11,21 +11,15 @@ import {
   X,
   LogIn,
   LogOut,
-  Gift,
-  Award,
-  Crown,
   Camera,
-  Sparkles,
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { LevelProgressBar } from '@/components/LevelProgressBar';
-import { RewardsPanel } from '@/components/RewardsPanel';
-import { AchievementsPanel } from '@/components/AchievementsPanel';
-import { TitleSelector } from '@/components/TitleSelector';
 import { useEquippedTitle } from '@/hooks/useEquippedTitle';
+import { rarityStyle } from '@/lib/rarity';
 import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -46,9 +40,6 @@ const InkProfileSidebarComponent = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [showRewards, setShowRewards] = useState(false);
-  const [showAchievements, setShowAchievements] = useState(false);
-  const [showTitles, setShowTitles] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -223,63 +214,35 @@ const InkProfileSidebarComponent = () => {
   ========================================================= */
   return (
     <>
+      {/*
+        Surface partagée au lieu du dégradé en dur `#1a0d2e → #0f0820`, plus
+        sombre que `--ink-surface-2` : ce panneau ressortait comme un corps
+        étranger au milieu des autres menus du tiroir.
+
+        Sont également retirés la bordure d'accent interne et les deux étoiles
+        décoratives. L'une des deux se superposait exactement au bouton de
+        déconnexion : toutes deux étaient posées en `top-3 right-3`, l'étoile en
+        `z-[2]` sous un bouton en `z-[3]`.
+      */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative w-full rounded-3xl overflow-hidden"
-        style={{
-          background:
-            'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-          border: '1px solid var(--ink-line)',
-          boxShadow:
-            'none',
-        }}
+        className="ink-section relative w-full overflow-hidden"
       >
-        {/* Inner accent border */}
-        <div
-          className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none z-[1]"
-          style={{ border: '2px solid var(--ink-accent-soft)' }}
-        />
-
-        {/* Decorative graffiti stars */}
-        <Sparkles
-          className="absolute top-3 right-3 w-4 h-4 text-amber-400 z-[2] select-none pointer-events-none"
-          style={{ filter: 'none' }}
-        />
-        <Sparkles
-          className="absolute bottom-4 left-4 w-3.5 h-3.5 text-pink-400 z-[2] select-none pointer-events-none"
-          style={{ filter: 'none' }}
-        />
-
-        {/* Floating sign out button */}
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.1, rotate: -8 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => {
-            playInkSound('inkClick', 0.3);
-            signOut();
-          }}
-          aria-label="Se déconnecter"
-          className="menu-icon-control menu-focus absolute top-3 right-3 z-[3] w-9 h-9 rounded-xl flex items-center justify-center text-white"
-          style={{
-            background: 'rgba(239,68,68,0.25)',
-            border: '1px solid var(--ink-line)',
-            boxShadow: 'none',
-          }}
-          title="Déconnexion"
-        >
-          <LogOut className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-        </motion.button>
-
-        <div className="relative p-4 space-y-3 z-[2]">
+        {/* `.ink-section` fournit déjà le rembourrage : le `p-4` qui était ici
+            le doublait. */}
+        <div className="relative space-y-3 z-[2]">
           {/* AVATAR + NAME */}
           <div className="text-center space-y-2.5">
             <div className="relative inline-block">
-              {/* Animated halo */}
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+              {/*
+                Halo fixe. Il tournait en boucle (`rotate: 360`, `repeat:
+                Infinity`) : un dégradé conique flouté repeint sans fin derrière
+                l'avatar, à l'encontre de la règle « pas d'animation infinie » de
+                la coquille partagée, et pour un effet que l'immobilité rend tout
+                aussi lisible.
+              */}
+              <div
                 className="absolute -inset-2 rounded-full pointer-events-none"
                 style={{
                   background:
@@ -437,19 +400,20 @@ const InkProfileSidebarComponent = () => {
                     transition={{ type: 'spring', stiffness: 280, damping: 18 }}
                     className="inline-block px-3 py-0.5 text-base font-black text-white"
                     style={{
-                      background:
-                        equippedTitle.rarity === 'legendary'
-                          ? 'linear-gradient(180deg, #fbbf24, #d97706)'
-                          : equippedTitle.rarity === 'epic'
-                            ? 'var(--ink-accent)'
-                            : equippedTitle.rarity === 'rare'
-                              ? 'linear-gradient(180deg, #38bdf8, #0369a1)'
-                              : 'linear-gradient(180deg, #6b7280, #374151)',
+                      /*
+                       * `rarityStyle` est la table partagée, déjà utilisée par
+                       * les panneaux Titres, Succès et Récompenses. Ce composant
+                       * en redéfinissait une quatrième version en dur, qui
+                       * pouvait donc dériver des trois autres.
+                       *
+                       * On lit `color` et non `gradient` : ce dernier contient
+                       * des classes Tailwind, pas une valeur CSS.
+                       */
+                      background: rarityStyle(equippedTitle.rarity).color,
                       border: '1px solid var(--ink-line)',
                       borderRadius: '999px',
                       boxShadow: 'none',
-                      fontFamily: "'Outfit', sans-serif",
-                      textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                      fontFamily: 'var(--ink-font-body)',
                     }}
                   >
                     {equippedTitle.name}
@@ -546,45 +510,40 @@ const InkProfileSidebarComponent = () => {
             />
           </div>
 
-          {/* ACTION BUTTONS — graffiti tabs */}
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <InkActionButton
-              icon={Award}
-              label="Succès"
-              color="#fbbf24"
-              onClick={() => {
-                playInkSound('inkClick', 0.4);
-                setShowAchievements(true);
-              }}
-            />
-            <InkActionButton
-              icon={Crown}
-              label="Titres"
-              color="var(--ink-accent)"
-              onClick={() => {
-                playInkSound('inkClick', 0.4);
-                setShowTitles(true);
-              }}
-            />
-            <InkActionButton
-              icon={Gift}
-              label="Récomp."
-              color="#ef4444"
-              onClick={() => {
-                playInkSound('inkClick', 0.4);
-                setShowRewards(true);
-              }}
-            />
-          </div>
+          {/*
+            Les boutons Succès / Titres / Récompenses ont quitté cette carte.
+            Ils montaient leurs tiroirs *depuis l'intérieur* du tiroir profil, au
+            même z-index, et n'étaient atteignables qu'en fouillant ce panneau.
+            Ils vivent maintenant dans la grille de menus de l'accueil, au même
+            niveau que Quêtes, Couleur du chat et Paramètres.
+          */}
+
+          {/*
+            Déconnexion explicite, en bas de la carte.
+
+            C'était une icône rouge sans libellé, posée en `absolute top-3
+            right-3` — donc juste sous le bouton de fermeture du tiroir, dans le
+            même coin. Deux petits boutons superposés verticalement, dont un seul
+            est destructif et aucun n'est nommé : viser la fermeture et se
+            déconnecter n'était qu'une question de quelques pixels.
+          */}
+          <button
+            type="button"
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              signOut();
+            }}
+            className="menu-focus flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold text-white/80 transition-colors hover:text-white"
+            style={{
+              background: 'rgba(239,68,68,0.16)',
+              border: '1px solid var(--ink-line)',
+            }}
+          >
+            <LogOut className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+            Se déconnecter
+          </button>
         </div>
       </motion.div>
-
-      <RewardsPanel isOpen={showRewards} onClose={() => setShowRewards(false)} />
-      <AchievementsPanel
-        isOpen={showAchievements}
-        onClose={() => setShowAchievements(false)}
-      />
-      <TitleSelector isOpen={showTitles} onClose={() => setShowTitles(false)} />
     </>
   );
 };
@@ -655,52 +614,10 @@ const InkStatCard = ({
   </motion.div>
 );
 
-/* ============================================================
-   ACTION BUTTON — colored graffiti tab
-============================================================ */
-const InkActionButton = ({
-  icon: Icon,
-  label,
-  color,
-  onClick,
-}: {
-  icon: any;
-  label: string;
-  color: string;
-  onClick: () => void;
-}) => (
-  <motion.button
-    type="button"
-    onClick={onClick}
-    whileHover={{ y: -3, scale: 1.05, rotate: -2 }}
-    whileTap={{ scale: 0.95 }}
-    className="menu-focus relative flex flex-col items-center gap-1 py-3 px-2 rounded-2xl overflow-hidden"
-    style={{
-      background: `linear-gradient(180deg, ${color}33, ${color}10)`,
-      border: '1px solid var(--ink-line)',
-      boxShadow: 'none',
-    }}
-  >
-    <div
-      className="w-8 h-8 rounded-xl flex items-center justify-center"
-      style={{
-        background: `linear-gradient(180deg, ${color}, ${color}cc)`,
-        border: '1px solid var(--ink-line)',
-        boxShadow: 'none',
-      }}
-    >
-      <Icon className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden="true" />
-    </div>
-    <span
-      className="text-sm font-black text-white leading-none"
-      style={{
-        fontFamily: "'Outfit', sans-serif",
-        textShadow: GRAFFITI_TEXT_SHADOW_SM,
-      }}
-    >
-      {label}
-    </span>
-  </motion.button>
-);
+/*
+ * `InkActionButton` a été supprimé avec les trois boutons qu'il servait. Ces
+ * destinations sont désormais rendues par `InkMenuTile`, la primitive partagée,
+ * dans la grille de menus de l'accueil.
+ */
 
 export const InkProfileSidebar = memo(InkProfileSidebarComponent);

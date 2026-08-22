@@ -1,13 +1,18 @@
 import { useState, memo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
+  Award,
   Check,
   Copy,
+  Crown,
+  Gift,
   Hash,
   Keyboard,
   LogIn,
+  Palette,
   Play,
   Settings,
+  Target,
   Trash2,
   User,
   UsersRound,
@@ -26,7 +31,10 @@ import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkQuestsPanel } from '@/components/InkQuestsPanel';
 import { InkChatColorPicker } from '@/components/InkChatColorPicker';
-import { InkDrawer, InkModal } from '@/components/menu/InkOverlay';
+import { InkDrawer, InkMenuTile, InkModal, InkSection } from '@/components/menu/InkOverlay';
+import { TitleSelector } from '@/components/TitleSelector';
+import { AchievementsPanel } from '@/components/AchievementsPanel';
+import { RewardsPanel } from '@/components/RewardsPanel';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { NotificationCenter } from '@/components/NotificationCenter';
@@ -39,7 +47,6 @@ import {
   GameInput,
   GameLabel,
   GameLogo,
-  GameModal,
   GameTag,
   ModeChip,
   ModeHero,
@@ -95,6 +102,50 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
+  /*
+   * Destinations du pôle profil. L'état vit ici et non dans
+   * `InkProfileSidebar` : ces tiroirs y étaient montés *à l'intérieur* du
+   * tiroir profil, au même z-index, si bien que deux gestionnaires d'Échap
+   * concurrents pouvaient fermer les deux d'un coup.
+   */
+  const [showQuests, setShowQuests] = useState(false);
+  const [showChatColor, setShowChatColor] = useState(false);
+  const [showTitles, setShowTitles] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showRewards, setShowRewards] = useState(false);
+
+  /** Quitte le pôle pour une destination : un seul tiroir ouvert à la fois. */
+  const goFromProfile = useCallback((open: (value: boolean) => void) => {
+    playInkSound('inkClick', 0.3);
+    setShowProfileDrawer(false);
+    open(true);
+  }, []);
+
+  /** Revient au pôle en fermant la destination, pour ne pas perdre le fil. */
+  const backToProfile = useCallback((close: (value: boolean) => void) => {
+    close(false);
+    setShowProfileDrawer(true);
+  }, []);
+
+  /*
+   * Les réglages ont deux points d'entrée : le bouton de l'en-tête, doublé du
+   * raccourci « s », et la grille de menus du profil. On retient l'origine pour
+   * que « fermer » ne ramène au profil que dans le second cas.
+   */
+  const [settingsFromProfile, setSettingsFromProfile] = useState(false);
+
+  const openSettings = useCallback(() => {
+    setSettingsFromProfile(false);
+    setShowSettings(true);
+  }, []);
+
+  const closeSettings = useCallback(() => {
+    setShowSettings(false);
+    if (settingsFromProfile) {
+      setSettingsFromProfile(false);
+      setShowProfileDrawer(true);
+    }
+  }, [settingsFromProfile]);
   const [modeIndex, setModeIndex] = useState(1); // Audio Phone by default
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
@@ -169,37 +220,51 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     } catch { /* storage can be disabled */ }
   }, [lobbyCode]);
 
-  // Notification centre can request opening the friends drawer (invites /
-  // friend requests are handled there).
+  /*
+   * Le centre de notifications demande l'ouverture du panneau social par
+   * événement. Il en émet deux : `mimic:open-friends` pour une invitation ou une
+   * demande d'ami, `mimic:open-social` pour un commentaire. Le second n'était
+   * écouté que par `SocialHub`, qui ne s'affiche plus en mode Ink ; les deux
+   * mènent ici, au tiroir des amis, qui couvre les mêmes contenus — demandes,
+   * invitations et messages non lus.
+   */
   useEffect(() => {
     const openFriends = () => setShowFriendsDrawer(true);
     window.addEventListener('mimic:open-friends', openFriends);
-    return () => window.removeEventListener('mimic:open-friends', openFriends);
+    window.addEventListener('mimic:open-social', openFriends);
+    return () => {
+      window.removeEventListener('mimic:open-friends', openFriends);
+      window.removeEventListener('mimic:open-social', openFriends);
+    };
   }, []);
 
+  /*
+   * Sert uniquement à museler les raccourcis à lettre unique pendant qu'un
+   * dialogue est ouvert : sans ça, taper « s » dans un champ de texte
+   * rouvrirait les réglages par-dessus.
+   */
   const anyModalOpen =
     showJoinDialog ||
     showSettings ||
     showPatchNote ||
     showShortcuts ||
     showProfileDrawer ||
-    showFriendsDrawer;
+    showFriendsDrawer ||
+    showQuests ||
+    showChatColor ||
+    showTitles ||
+    showAchievements ||
+    showRewards;
 
-  // Global keyboard shortcuts on the home screen
+  /*
+   * La branche « Escape » qui vivait ici a été retirée. Elle rejouait à la main
+   * une cascade de fermetures que `useDialogBehaviour` assure déjà pour chaque
+   * `InkDrawer` / `InkModal`, en plus du piège de focus et du retour du focus au
+   * déclencheur. Elle n'existait que parce que les réglages passaient par
+   * `GameModal`, qui n'a pas de gestion d'Échap ; ils utilisent maintenant
+   * `InkModal` comme les autres.
+   */
   useKeyboardShortcuts([
-    {
-      key: 'Escape',
-      enabled: anyModalOpen,
-      handler: () => {
-        if (showShortcuts) setShowShortcuts(false);
-        else if (showJoinDialog) setShowJoinDialog(false);
-        else if (showSettings) setShowSettings(false);
-        else if (showPatchNote) setShowPatchNote(false);
-        else if (showProfileDrawer) setShowProfileDrawer(false);
-        else if (showFriendsDrawer) setShowFriendsDrawer(false);
-      },
-      label: 'Fermer la modale',
-    },
     {
       key: '?',
       shift: true,
@@ -219,7 +284,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     {
       key: 's',
       enabled: !anyModalOpen,
-      handler: () => setShowSettings(true),
+      handler: openSettings,
       label: 'Ouvrir les paramètres',
     },
     {
@@ -328,7 +393,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
             label="Paramètres"
             onClick={() => {
               playInkSound('inkClick', 0.3);
-              setShowSettings(true);
+              openSettings();
             }}
           >
             <Settings className="h-[18px] w-[18px]" />
@@ -533,7 +598,12 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         </div>
       </footer>
 
-      {/* ============== PROFILE DRAWER ============== */}
+      {/* ============== PROFILE DRAWER — pôle de navigation ==============
+          Auparavant trois cartes autonomes empilées dans un seul tiroir, avec
+          quatre styles de titre, une zone de défilement imbriquée dans une
+          autre, et trois destinations atteignables seulement en fouillant la
+          carte de profil. Chaque fonction a maintenant son tiroir, ouvert
+          depuis une grille lisible. */}
       <InkDrawer
         isOpen={showProfileDrawer}
         onClose={() => setShowProfileDrawer(false)}
@@ -544,10 +614,89 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       >
         <div className="flex flex-col gap-3">
           <InkProfileSidebar />
-          <InkQuestsPanel />
-          <InkChatColorPicker />
+
+          <InkSection title="Mes menus" hint="Tout est ici, à un clic.">
+            <div className="grid grid-cols-2 gap-2">
+              <InkMenuTile
+                icon={<Target className="h-4 w-4" />}
+                label="Quêtes"
+                hint="Défis du jour"
+                accent="var(--c-green)"
+                onClick={() => goFromProfile(setShowQuests)}
+              />
+              <InkMenuTile
+                icon={<Crown className="h-4 w-4" />}
+                label="Titres"
+                hint="Sous ton pseudo"
+                accent="var(--c-violet)"
+                onClick={() => goFromProfile(setShowTitles)}
+              />
+              <InkMenuTile
+                icon={<Award className="h-4 w-4" />}
+                label="Succès"
+                hint="Badges obtenus"
+                accent="var(--c-yellow)"
+                onClick={() => goFromProfile(setShowAchievements)}
+              />
+              <InkMenuTile
+                icon={<Gift className="h-4 w-4" />}
+                label="Récompenses"
+                hint="Par niveau"
+                accent="var(--c-coral)"
+                onClick={() => goFromProfile(setShowRewards)}
+              />
+              <InkMenuTile
+                icon={<Palette className="h-4 w-4" />}
+                label="Couleur du chat"
+                hint="Ta couleur de message"
+                accent="var(--c-cyan)"
+                onClick={() => goFromProfile(setShowChatColor)}
+              />
+              <InkMenuTile
+                icon={<Settings className="h-4 w-4" />}
+                label="Paramètres"
+                hint="Micro, caméra, son"
+                accent="var(--c-blue)"
+                onClick={() => {
+                  setSettingsFromProfile(true);
+                  goFromProfile(setShowSettings);
+                }}
+              />
+            </div>
+          </InkSection>
         </div>
       </InkDrawer>
+
+      {/* Les destinations du pôle. Chacune revient au profil en se fermant,
+          pour que « fermer » ne renvoie jamais l'utilisateur au néant. */}
+      <InkDrawer
+        isOpen={showQuests}
+        onClose={() => backToProfile(setShowQuests)}
+        side="left"
+        title="Quêtes"
+        subtitle="Défis du jour et de la semaine"
+        icon={<Target className="h-5 w-5" />}
+      >
+        <InkQuestsPanel />
+      </InkDrawer>
+
+      <InkDrawer
+        isOpen={showChatColor}
+        onClose={() => backToProfile(setShowChatColor)}
+        side="left"
+        title="Couleur du chat"
+        subtitle={`Niveau ${level}`}
+        icon={<Palette className="h-5 w-5" />}
+      >
+        <InkChatColorPicker />
+      </InkDrawer>
+
+      <TitleSelector isOpen={showTitles} onClose={() => backToProfile(setShowTitles)} />
+      <AchievementsPanel
+        isOpen={showAchievements}
+        onClose={() => backToProfile(setShowAchievements)}
+      />
+      <RewardsPanel isOpen={showRewards} onClose={() => backToProfile(setShowRewards)} />
 
       {/* ============== FRIENDS DRAWER ============== */}
       <InkDrawer
@@ -655,14 +804,19 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
         </form>
       </InkModal>
 
-      {/* ============== SETTINGS ============== */}
-      {showSettings && (
-        <GameModal label="Paramètres" onClose={() => setShowSettings(false)}>
-          <div className="flex min-h-0 flex-1 flex-col">
-            <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
-          </div>
-        </GameModal>
-      )}
+      {/* ============== SETTINGS ==============
+          `InkModal` et non plus `GameModal` : ce dernier n'offre ni fermeture au
+          clavier, ni piège de focus, ni bouton de fermeture visible. Les
+          réglages étaient le seul dialogue de l'accueil dans ce cas. */}
+      <InkModal
+        isOpen={showSettings}
+        onClose={closeSettings}
+        title="Paramètres"
+        subtitle="Micro, caméra et son"
+        icon={<Settings className="h-5 w-5" />}
+      >
+        <DeviceSettings showPreview onClose={closeSettings} />
+      </InkModal>
 
       {/* ============== PATCH NOTE ============== */}
       <InkPatchNoteModal forceOpen={showPatchNote} onClose={() => setShowPatchNote(false)} />

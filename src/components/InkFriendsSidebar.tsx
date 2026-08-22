@@ -14,14 +14,11 @@ import {
   UserPlus,
   Play,
   Mail,
-  Bell,
   MessageCircle,
-  Sparkles,
   Hash,
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,6 +36,14 @@ const GRAFFITI_TEXT_SHADOW =
 const GRAFFITI_TEXT_SHADOW_SM =
   'none';
 
+/**
+ * Intitulé de section.
+ *
+ * Rendu avec `.ink-section-title`, la même classe que `InkSection`, pour que les
+ * titres de ce panneau s'alignent sur ceux des autres menus. La couleur d'accent
+ * ne colore plus que l'icône : quatre couleurs de texte différentes dans une
+ * même colonne rendaient la hiérarchie illisible.
+ */
 const SectionLabel = ({
   icon: Icon,
   children,
@@ -48,19 +53,10 @@ const SectionLabel = ({
   children: React.ReactNode;
   color?: string;
 }) => (
-  <div className="flex items-center gap-1.5 px-1">
-    {Icon && <Icon className="h-3.5 w-3.5" style={{ color }} />}
-    <span
-      className="text-base font-black uppercase tracking-wider"
-      style={{
-        fontFamily: "'Outfit', sans-serif",
-        color,
-        textShadow: GRAFFITI_TEXT_SHADOW_SM,
-      }}
-    >
-      {children}
-    </span>
-  </div>
+  <h3 className="ink-section-title">
+    {Icon && <Icon className="h-4 w-4 flex-shrink-0" style={{ color }} aria-hidden="true" />}
+    <span className="truncate">{children}</span>
+  </h3>
 );
 
 const InkFriendsSidebarComponent = ({
@@ -253,108 +249,28 @@ const InkFriendsSidebarComponent = ({
     );
   }
 
-  const totalNotifications = pendingRequests.length + pendingInvitations.length;
+  // `totalNotifications` a disparu avec la cloche de l'en-tête interne : les
+  // sections « Invitations » et « Demandes » portent déjà leur propre décompte.
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative w-full rounded-3xl overflow-hidden"
-        style={{
-          background:
-            'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
-          border: '1px solid var(--ink-line)',
-          boxShadow:
-            'none',
-        }}
-      >
-        {/* Inner accent border */}
-        <div
-          className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none z-[1]"
-          style={{ border: '2px solid rgba(6,182,212,0.4)' }}
-        />
+      {/*
+        Ce panneau est toujours rendu dans un `InkDrawer`, qui fournit déjà la
+        surface, le titre et le bouton de fermeture. Il livrait par-dessus sa
+        propre carte, sa propre bordure d'accent, ses étoiles décoratives et une
+        bande d'en-tête répétant « Mes Amis » — le titre apparaissait donc deux
+        fois, à deux tailles différentes, l'un sous l'autre.
+      */}
+      <div>
 
-        {/* Decorative graffiti stars */}
-        <Sparkles
-          className="absolute top-3 right-3 w-4 h-4 text-amber-400 z-[2] select-none pointer-events-none"
-          style={{ filter: 'none' }}
-        />
-        <Sparkles
-          className="absolute bottom-4 left-4 w-3.5 h-3.5 text-pink-400 z-[2] select-none pointer-events-none"
-          style={{ filter: 'none' }}
-        />
-
-        {/* HEADER STRIP */}
-        <div
-          className="relative px-4 py-3 flex items-center justify-between z-[2]"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(6,182,212,0.18), rgba(6,182,212,0.05))',
-            borderBottom: '1px solid var(--ink-line)',
-          }}
-        >
-          <div className="flex items-center gap-2.5">
-            <motion.div
-              animate={{ rotate: [-5, 5, -5] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, var(--ink-text-dim) 0%, var(--ink-text-dim) 100%)',
-                border: '1px solid var(--ink-line)',
-                boxShadow: 'none',
-              }}
-            >
-              <Users className="h-4 w-4 text-white" strokeWidth={2.5} />
-            </motion.div>
-            <div>
-              <h2
-                className="text-2xl font-black text-white leading-none"
-                style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  textShadow: GRAFFITI_TEXT_SHADOW,
-                }}
-              >
-                Mes Amis
-              </h2>
-              <p
-                className="text-xs text-white/55 font-bold mt-0.5"
-                style={{ fontFamily: "'Outfit', sans-serif" }}
-              >
-                {friends.length} ami{friends.length > 1 ? 's' : ''}
-              </p>
-            </div>
-          </div>
-
-          {totalNotifications > 0 && (
-            <motion.div
-              className="relative w-10 h-10 rounded-xl flex items-center justify-center"
-              animate={{ rotate: [-8, 8, -8] }}
-              transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut' }}
-              style={{
-                background: 'linear-gradient(180deg, #fbbf24, #d97706)',
-                border: '1px solid var(--ink-line)',
-                boxShadow: 'none',
-              }}
-            >
-              <Bell className="h-5 w-5 text-white" strokeWidth={2.5} />
-              <span
-                className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full text-[10px] font-black flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(180deg, #ef4444, #b91c1c)',
-                  color: 'white',
-                  border: '1px solid var(--ink-line)',
-                  fontFamily: "'Outfit', sans-serif",
-                  textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                }}
-              >
-                {totalNotifications}
-              </span>
-            </motion.div>
-          )}
-        </div>
-
-        <div className="relative p-4 space-y-4 z-[2]">
+        {/*
+          La cloche animée et son compteur ont été retirés : c'était la
+          troisième copie de la même information. `NotificationCenter` porte déjà
+          un badge de non-lus dans l'en-tête de l'accueil, et les sections
+          « Invitations » et « Demandes » ci-dessous affichent leur propre
+          décompte.
+        */}
+        <div className="space-y-4">
           {/* FRIEND CODE */}
           <div className="space-y-2">
             <SectionLabel icon={Hash} color="var(--ink-text-dim)">
@@ -662,7 +578,13 @@ const InkFriendsSidebarComponent = ({
             <SectionLabel icon={Users} color="#34d399">
               Amis
             </SectionLabel>
-            <ScrollArea className="max-h-[280px]">
+            {/*
+              Le défilement appartient au tiroir. Cette liste était enfermée dans
+              un `ScrollArea` de 280 px de haut, soit une zone défilante dans une
+              autre : passé quatre ou cinq amis, la molette restait piégée dans
+              la liste et les sections du dessous devenaient inatteignables.
+            */}
+            <div>
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 text-[var(--ink-text-dim)] animate-spin" />
@@ -883,10 +805,10 @@ const InkFriendsSidebarComponent = ({
                   })}
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       <DirectMessageDialog
         open={!!chatFriend}

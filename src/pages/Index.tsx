@@ -899,14 +899,25 @@ const Index = () => {
       {/* Only show music bar in non-ink mode */}
       <MusicPlayerBar />
       
-      {/* Social Hub - Floating button always accessible */}
-      <SocialHub
-        currentLobbyCode={lobby?.code}
-        onJoinFriend={(lobbyCode) => {
-          const storedName = localStorage.getItem('playerName') || profile?.display_name || `Joueur${Math.floor(Math.random() * 1000)}`;
-          handleJoinGame(storedName, lobbyCode);
-        }}
-      />
+      {/*
+        Hub social — réservé aux thèmes non-Ink.
+
+        En mode Ink il faisait doublon avec `InkFriendsSidebar`, atteignable par
+        le bouton « Mes amis » de l'en-tête : deux listes d'amis, deux façons
+        d'accepter une demande, deux boutons pour rejoindre un ami. Son bouton
+        flottant se posait par-dessus l'interface Ink, et ses couches `z-[55]`
+        / `z-[56]` passaient derrière les tiroirs Ink (`--ink-z-drawer`, 9210) :
+        ouvert depuis un tiroir, le panneau était invisible.
+      */}
+      {!useInkMode && (
+        <SocialHub
+          currentLobbyCode={lobby?.code}
+          onJoinFriend={(lobbyCode) => {
+            const storedName = localStorage.getItem('playerName') || profile?.display_name || `Joueur${Math.floor(Math.random() * 1000)}`;
+            handleJoinGame(storedName, lobbyCode);
+          }}
+        />
+      )}
       
       {/* Premium Game Invitation Notification */}
       {activeInvitation && (

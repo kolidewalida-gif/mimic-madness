@@ -270,3 +270,72 @@ export const InkTabs = <T extends string>({ value, onChange, items, accent }: {
     ))}
   </div>
 );
+
+/**
+ * Bloc titré à l'intérieur d'un tiroir.
+ *
+ * Existe pour que les panneaux cessent de livrer leur propre carte et leur
+ * propre niveau de titre. Le tiroir du profil empilait trois cartes autonomes
+ * avec quatre styles de titre différents ; le tiroir des amis affichait deux
+ * fois « Mes amis », une fois par la coquille et une fois par le panneau.
+ */
+export const InkSection = ({
+  title, icon, hint, action, children, className,
+}: {
+  title: string;
+  icon?: ReactNode;
+  /** Ligne d'explication sous le titre. */
+  hint?: ReactNode;
+  /** Contrôle aligné à droite du titre. */
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) => (
+  <section className={cn('ink-section', className)}>
+    <div className="mb-3 flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h3 className="ink-section-title">
+          {icon && <span aria-hidden="true" className="flex-shrink-0">{icon}</span>}
+          <span className="truncate">{title}</span>
+        </h3>
+        {hint && <p className="ink-section-hint">{hint}</p>}
+      </div>
+      {action && <div className="flex flex-shrink-0 items-center gap-2">{action}</div>}
+    </div>
+    {children}
+  </section>
+);
+
+/**
+ * Destination de menu dans une grille.
+ *
+ * Remplace les chemins enterrés : Titres, Succès et Récompenses ne s'atteignaient
+ * qu'en fouillant la carte de profil, Quêtes et Couleur du chat en défilant.
+ */
+export const InkMenuTile = ({
+  icon, label, hint, badge, accent, onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  hint?: string;
+  /** Compteur d'attention. Masqué quand il vaut zéro. */
+  badge?: number;
+  accent?: string;
+  onClick: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="ink-menu-tile menu-focus"
+    aria-label={hint ? `${label} — ${hint}` : label}
+  >
+    <span className="tile-icon" style={{ background: accent ?? 'var(--ink-accent)' }}>
+      {icon}
+    </span>
+    <span className="tile-label">{label}</span>
+    {hint && <span className="tile-hint">{hint}</span>}
+    {badge !== undefined && badge > 0 && (
+      <span className="tile-badge" aria-hidden="true">{badge > 99 ? '99+' : badge}</span>
+    )}
+  </button>
+);

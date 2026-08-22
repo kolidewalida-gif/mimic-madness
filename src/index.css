@@ -2714,6 +2714,110 @@ body.ink-mode {
 .ink-empty strong { margin-top: 0.6rem; font-size: 0.95rem; font-weight: 800; color: rgba(255, 255, 255, 0.75); }
 .ink-empty p { margin-top: 0.3rem; max-width: 20rem; font-size: 0.78rem; }
 
+/* ------------------------------------------------------------
+   Bloc titré à l'intérieur d'un tiroir.
+
+   Les panneaux amis, profil, quêtes et couleur du chat ont été écrits avant la
+   coquille partagée : chacun livrait sa propre carte, son propre dégradé en dur
+   (`#1a0d2e → #0f0820`, plus sombre que la surface partagée) et son propre
+   niveau de titre. On comptait quatre traitements de titre différents dans le
+   seul tiroir du profil. Ce bloc leur donne une forme commune.
+
+   Pas de `--ink-shadow-pop` ici, contrairement à `.ink-panel-surface` : une
+   ombre portée marquée n'a de sens que pour un panneau qui flotte au-dessus de
+   la page, pas pour une section posée dans un tiroir.
+   ------------------------------------------------------------ */
+.ink-section {
+  background: var(--ink-surface-2);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--ink-radius);
+  padding: 1rem;
+}
+
+.ink-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--ink-font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink-text);
+}
+
+.ink-section-hint {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-text-mute);
+}
+
+/* ------------------------------------------------------------
+   Destination de menu.
+
+   Titres, Succès et Récompenses n'étaient atteignables qu'en fouillant la carte
+   de profil ; Quêtes et Couleur du chat étaient enterrées au milieu d'un
+   défilement. Une grille de destinations met tout au même niveau, à un clic, et
+   rend la liste des menus lisible d'un coup d'œil.
+   ------------------------------------------------------------ */
+.ink-menu-tile {
+  position: relative;
+  display: flex;
+  min-height: 5.25rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--ink-radius-sm);
+  background: var(--ink-surface-2);
+  color: var(--ink-text);
+  text-align: left;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.ink-menu-tile:hover {
+  background: var(--ink-surface-3);
+  border-color: var(--ink-line-strong);
+}
+.ink-menu-tile > .tile-icon {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ink-radius-xs);
+  color: #fff;
+}
+.ink-menu-tile > .tile-label {
+  font-family: var(--ink-font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.ink-menu-tile > .tile-hint {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-text-mute);
+}
+/* Compteur d'attention : demandes d'amis, quêtes à réclamer. */
+.ink-menu-tile > .tile-badge {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  display: inline-flex;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--c-coral);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
 /* Music player animations. Previously injected as an inline <style> block on
    every render of MusicPlayerBar. */
 /* Scales instead of animating `height`: height is a layout property, so the

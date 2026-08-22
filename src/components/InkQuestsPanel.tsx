@@ -8,7 +8,7 @@ import {
 import { useQuests, QuestWithProgress } from '@/hooks/useQuests';
 import { useLoginStreak } from '@/hooks/useLoginStreak';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { InkTabs } from '@/components/menu/InkOverlay';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 
 const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
@@ -188,108 +188,55 @@ const InkQuestsPanelComponent = () => {
   const visible = tab === 'daily' ? dailyQuests : weeklyQuests;
 
   return (
-    <div
-      className="relative rounded-3xl overflow-hidden"
-      style={{
-        background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
-        border: '1px solid var(--ink-line)',
-        boxShadow: 'none',
-      }}
-    >
-      {/* Header with streak badge */}
-      <div
-        className="relative px-4 py-3 flex items-center justify-between"
-        style={{
-          background: 'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))',
-          borderBottom: '1px solid var(--ink-line)',
-        }}
-      >
-        <div className="flex items-center gap-2.5">
-          <motion.div
-            animate={{ rotate: [-5, 5, -5] }}
-            transition={{ duration: 2.4, repeat: Infinity }}
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{
-              background: 'var(--ink-accent)',
-              border: '1px solid var(--ink-line)',
-              boxShadow: 'none',
-            }}
-          >
-            <Calendar className="w-5 h-5 text-white" strokeWidth={2.5} />
-          </motion.div>
-          <div>
-            <h2
-              className="text-2xl font-black text-white leading-none"
-              style={{ fontFamily: FONT, textShadow: SHADOW }}
-            >
-              Quêtes
-            </h2>
-            <p className="text-xs text-white/55 mt-0.5" style={{ fontFamily: FONT }}>
-              Complète, réclame, monte en niveau
-            </p>
-          </div>
+    /*
+      Plus de carte autonome ni de dégradé `#1a0d2e → #0f0820` : ce panneau est
+      rendu dans un `InkDrawer`, qui fournit déjà la surface, le titre « Quêtes »
+      et le sous-titre. Le `h2` interne les répétait.
+    */
+    <div className="space-y-3">
+      {/*
+        La série reste affichée : c'est une information réelle, pas de la
+        décoration. Elle perd en revanche son oscillation perpétuelle, contraire
+        à la règle « pas d'animation infinie » de la coquille partagée.
+      */}
+      <div className="ink-section flex items-center justify-between gap-3 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Flame
+            className="h-4 w-4 flex-shrink-0"
+            style={{ color: streakDays > 0 ? 'var(--c-coral)' : 'var(--ink-text-mute)' }}
+            aria-hidden="true"
+          />
+          <span className="ink-section-title">Série en cours</span>
         </div>
-
-        {/* Streak badge */}
-        <motion.div
-          animate={streakDays >= 3 ? { rotate: [-3, 3, -3] } : {}}
-          transition={{ duration: 1.2, repeat: Infinity }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-          style={{
-            background: streakDays > 0
-              ? 'linear-gradient(180deg, #ef4444, #b91c1c)'
-              : 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--ink-line)',
-            boxShadow: 'none',
-          }}
-        >
-          <Flame className="w-4 h-4 text-white" />
-          <span
-            className="text-base font-black text-white"
-            style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
-          >
-            {streakDays}j
-          </span>
+        <span className="flex-shrink-0 text-sm font-bold text-[var(--ink-text)]">
+          {streakDays} j
           {bestStreak > streakDays && (
-            <span className="text-[10px] text-white/70" style={{ fontFamily: FONT }}>
-              · best {bestStreak}
+            <span className="ml-1 font-semibold text-[var(--ink-text-mute)]">
+              · record {bestStreak} j
             </span>
           )}
-        </motion.div>
+        </span>
       </div>
 
-      {/* Tabs */}
-      <div role="tablist" aria-label="Type de quêtes" className="px-4 py-2.5 flex gap-2 border-b border-white/10">
-        {(['daily', 'weekly'] as const).map((t) => (
-          <motion.button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => { playInkSound('cartoonPop', 0.3); setTab(t); }}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            className={cn(
-              'menu-focus menu-action px-4 rounded-2xl text-base font-black',
-              tab === t ? 'text-white' : 'text-white/50',
-            )}
-            style={{
-              background: tab === t
-                ? 'linear-gradient(180deg, #fbbf24, #d97706)'
-                : 'rgba(255,255,255,0.04)',
-              border: '1px solid var(--ink-line)',
-              boxShadow: tab === t ? '0 0 0 rgba(0,0,0,0)' : 'none',
-              fontFamily: FONT,
-              textShadow: tab === t ? SHADOW_SM : 'none',
-            }}
-          >
-            {t === 'daily' ? 'Du jour' : 'Hebdo'}
-          </motion.button>
-        ))}
-      </div>
+      <InkTabs
+        value={tab}
+        onChange={(next) => {
+          playInkSound('cartoonPop', 0.3);
+          setTab(next);
+        }}
+        items={[
+          { key: 'daily' as const, label: 'Du jour' },
+          { key: 'weekly' as const, label: 'Hebdo' },
+        ]}
+        accent="var(--ink-accent)"
+      />
 
-      {/* Quest list */}
-      <div className="p-4 space-y-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+      {/*
+        Le défilement appartient au tiroir. Un `max-h-[60vh] overflow-y-auto`
+        posé ici créait une zone défilante à l'intérieur d'une autre : la molette
+        restait piégée dans la liste et le bas du tiroir devenait inatteignable.
+      */}
+      <div className="space-y-2.5">
         {loading ? (
           <div className="flex items-center justify-center py-10" role="status" aria-label="Chargement des quêtes">
             <Loader2 className="w-6 h-6 text-[var(--ink-accent-text)] animate-spin" aria-hidden="true" />

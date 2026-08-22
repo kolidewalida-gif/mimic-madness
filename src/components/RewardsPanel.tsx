@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { usePlayerLevel, LEVEL_REWARDS, LevelReward } from '@/hooks/usePlayerLevel';
 import { InkDrawer, InkTabs } from '@/components/menu/InkOverlay';
 import { rarityStyle } from '@/lib/rarity';
+import { rewardPerk } from '@/lib/rewardPerks';
 
 interface RewardsPanelProps {
   isOpen: boolean;
@@ -25,22 +26,8 @@ const iconMap: Record<string, React.ReactNode> = {
   user: <User className="h-5 w-5" />,
 };
 
-/** What each reward ACTUALLY does in-game */
-const REWARD_PERKS: Record<string, string> = {
-  badge_beginner: 'Score de prestige +1. Visible dans ta collection.',
-  badge_explorer: 'Score de prestige +1. Boost la confiance des autres joueurs.',
-  title_player: '+5% XP permanent. Titre visible sur ton profil.',
-  badge_enthusiast: 'Score de prestige +3. Badge rare mis en avant.',
-  effect_sparkle: 'Étincelles autour de ton avatar en lobby et en jeu.',
-  frame_bronze: 'Cadre bronze visible par tous dans les lobbies.',
-  title_veteran: '+10% XP permanent. Chat coloré en partie.',
-  badge_master: 'Score de prestige +5. Badge épique affiché en priorité.',
-  effect_glow: 'Aura lumineuse intense autour de ton avatar.',
-  frame_silver: 'Cadre argent remplace le bronze. Plus prestigieux.',
-  title_legend: '+15% XP permanent. Priorité de parole. Style prestige.',
-  badge_champion: 'Score de prestige +8. Badge légendaire ultime.',
-  frame_gold: 'Cadre or animé. Effet visuel maximum sur ton avatar.',
-};
+/* `REWARD_PERKS` vit dans `@/lib/rewardPerks` : `TitleSelector` en tenait une
+   seconde version, qui décrivait les trois titres autrement. */
 
 type RewardTab = 'all' | 'unlocked' | 'locked';
 
@@ -121,7 +108,7 @@ export const RewardsPanel = ({ isOpen, onClose }: RewardsPanelProps) => {
 
 const RewardCard = ({ reward, isUnlocked, currentLevel, index }: { reward: LevelReward; isUnlocked: boolean; currentLevel: number; index: number }) => {
   const style = rarityStyle(reward.rarity);
-  const perk = REWARD_PERKS[reward.id];
+  const perk = rewardPerk(reward.id);
   const progressPct = isUnlocked ? 100 : Math.min(100, Math.round((currentLevel / reward.level) * 100));
 
   return (

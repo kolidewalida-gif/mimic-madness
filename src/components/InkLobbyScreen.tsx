@@ -43,7 +43,6 @@ import {
   GameImage,
   GameLabel,
   GameLogo,
-  GameModal,
   GameTag,
   ModeChip,
   ModeHero,
@@ -274,16 +273,18 @@ export const InkLobbyScreen = ({
     showSettings || showInvitePanel || showLeaveConfirm || showShortcuts || !!openMenuFor;
   useKeyboardShortcuts([
     {
+      /*
+       * Ne reste ici que le menu contextuel d'un joueur : ce n'est pas un
+       * dialogue de la coquille partagée. Les quatre autres branches de cette
+       * cascade ont été retirées — réglages, invitations, confirmation de départ
+       * et raccourcis passent tous par `InkDrawer` / `InkModal`, dont
+       * `useDialogBehaviour` gère déjà Échap, le piège de focus et le retour du
+       * focus au déclencheur.
+       */
       key: 'Escape',
-      enabled: lobbyAnyModalOpen,
-      handler: () => {
-        if (showShortcuts) setShowShortcuts(false);
-        else if (showSettings) setShowSettings(false);
-        else if (showInvitePanel) setShowInvitePanel(false);
-        else if (showLeaveConfirm) setShowLeaveConfirm(false);
-        else if (openMenuFor) setOpenMenuFor(null);
-      },
-      label: 'Fermer la modale',
+      enabled: !!openMenuFor,
+      handler: () => setOpenMenuFor(null),
+      label: 'Fermer le menu du joueur',
     },
     {
       key: '?',
@@ -670,40 +671,43 @@ export const InkLobbyScreen = ({
       </div>
       </div>
 
-      {/* ============== INVITE PANEL ============== */}
-      {showInvitePanel && (
-        <GameModal
-          label="Inviter des amis"
-          title={
-            <span className="flex items-center gap-2">
-              <Link2 className="h-4 w-4" aria-hidden="true" />
-              Inviter des amis
-            </span>
-          }
-          showClose
-          onClose={() => setShowInvitePanel(false)}
-        >
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5">
-            <LobbyInvitePanel
-              lobbyCode={lobbyCode}
-              lobbyId={lobbyId}
-              players={players}
-              maxPlayers={MAX_PLAYERS}
-              isHost={isHost}
-              inlineMode
-            />
-          </div>
-        </GameModal>
-      )}
+      {/* ============== INVITE PANEL ==============
+          Dernier dialogue du lobby encore bâti sur `GameModal`. Il affichait
+          bien un bouton de fermeture, mais sans Échap ni piège de focus : au
+          clavier, la tabulation s'échappait vers le lobby derrière. `InkModal`
+          fournit aussi sa propre zone de défilement, d'où la disparition de
+          l'enveloppe interne. */}
+      <InkModal
+        isOpen={showInvitePanel}
+        onClose={() => setShowInvitePanel(false)}
+        title="Inviter des amis"
+        subtitle={`${players.length}/${MAX_PLAYERS} joueurs`}
+        icon={<Link2 className="h-5 w-5" />}
+      >
+        <LobbyInvitePanel
+          lobbyCode={lobbyCode}
+          lobbyId={lobbyId}
+          players={players}
+          maxPlayers={MAX_PLAYERS}
+          isHost={isHost}
+          inlineMode
+        />
+      </InkModal>
 
-      {/* ============== SETTINGS ============== */}
-      {showSettings && (
-        <GameModal label="Paramètres" onClose={() => setShowSettings(false)}>
-          <div className="flex min-h-0 flex-1 flex-col">
-            <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
-          </div>
-        </GameModal>
-      )}
+      {/* ============== SETTINGS ==============
+          `InkModal` et non plus `GameModal` : ce dernier n'offre ni fermeture au
+          clavier, ni piège de focus, ni bouton de fermeture visible. C'était le
+          seul dialogue du lobby dans ce cas, alors que « Quitter le lobby ? »
+          juste en dessous utilise déjà `InkModal`. */}
+      <InkModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="Paramètres"
+        subtitle="Micro, caméra et son"
+        icon={<Settings className="h-5 w-5" />}
+      >
+        <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
+      </InkModal>
 
       {/* ============== LEAVE CONFIRM ============== */}
       <InkModal
