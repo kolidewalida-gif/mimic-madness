@@ -196,122 +196,160 @@ const AdminBansTabComponent = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-        <div className="text-sm font-semibold">Nouveau ban</div>
+    <div className="admin-tab-layout">
+      <section className="admin-card admin-form-card" aria-labelledby="admin-new-ban-title">
+        <header className="admin-card-heading">
+          <div>
+            <span className="admin-card-icon" aria-hidden="true"><Ban /></span>
+            <div>
+              <h4 id="admin-new-ban-title">Nouveau ban</h4>
+              <p>Sélectionne précisément un joueur avant d’appliquer la sanction.</p>
+            </div>
+          </div>
+        </header>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={e => { setQuery(e.target.value); if (selected) setSelected(null); }}
-            placeholder="Rechercher un joueur…"
-            className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-lg text-sm"
-          />
-          {results.length > 0 && !selected && (
-            <div className="absolute z-10 mt-1 w-full bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-auto">
-              {results.map(r => (
+        <div className="admin-form-stack">
+          <div className="admin-field-group">
+            <label className="admin-field-label" htmlFor="admin-ban-search">Joueur ciblé</label>
+            <div className="admin-search-wrap">
+              <Search aria-hidden="true" />
+              <input
+                id="admin-ban-search"
+                value={query}
+                onChange={e => { setQuery(e.target.value); if (selected) setSelected(null); }}
+                placeholder="Rechercher un joueur…"
+                className="admin-field"
+                autoComplete="off"
+              />
+              {results.length > 0 && !selected && (
+                <div className="admin-search-results custom-scrollbar">
+                  {results.map(r => (
+                    <button
+                      type="button"
+                      key={r.user_id}
+                      onClick={() => { setSelected(r); setResults([]); setQuery(r.display_name); }}
+                      className="admin-search-result menu-focus"
+                    >
+                      {r.avatar_url && <img src={r.avatar_url} alt="" />}
+                      <span>{r.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {selected && (
+            <div className="admin-target">
+              <span>Cible sélectionnée</span>
+              <strong>{selected.display_name}</strong>
+            </div>
+          )}
+
+          <div className="admin-field-group">
+            <label className="admin-field-label" htmlFor="admin-ban-type">Type de sanction</label>
+            <select
+              id="admin-ban-type"
+              value={banType}
+              onChange={e => setBanType(e.target.value as BanType)}
+              className="admin-field"
+            >
+              {(Object.keys(BAN_LABELS) as BanType[]).map(t => (
+                <option key={t} value={t}>{BAN_LABELS[t]}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="admin-field-group">
+            <span className="admin-field-label">Durée</span>
+            <div className="admin-chip-row" role="group" aria-label="Durée du ban">
+              {DURATIONS.map(d => (
                 <button
-                  key={r.user_id}
-                  onClick={() => { setSelected(r); setResults([]); setQuery(r.display_name); }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
+                  type="button"
+                  key={d.label}
+                  onClick={() => setDurationH(d.hours)}
+                  aria-pressed={durationH === d.hours}
+                  className={cn('admin-chip menu-focus', durationH === d.hours && 'is-active')}
                 >
-                  {r.avatar_url && <img src={r.avatar_url} className="w-6 h-6 rounded-full" alt="" />}
-                  <span>{r.display_name}</span>
+                  {d.label}
                 </button>
               ))}
             </div>
-          )}
-        </div>
+          </div>
 
-        {selected && (
-          <div className="text-xs bg-primary/10 text-primary rounded px-2 py-1">
-            Cible : <b>{selected.display_name}</b>
+          <div className="admin-field-group">
+            <label className="admin-field-label" htmlFor="admin-ban-reason">Motif communiqué au joueur</label>
+            <textarea
+              id="admin-ban-reason"
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="Motif (visible par le joueur)…"
+              rows={3}
+              className="admin-field"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={applyBan}
+            disabled={!selected || busyAction !== null}
+            aria-busy={busyAction === 'apply'}
+            className="admin-primary-button is-danger menu-action menu-focus"
+          >
+            {busyAction === 'apply' ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Ban aria-hidden="true" />}
+            Bannir le joueur
+          </button>
+        </div>
+      </section>
+
+      <section className="admin-card admin-list-card" aria-labelledby="admin-active-bans-title">
+        <header className="admin-card-heading">
+          <div>
+            <span className="admin-card-icon" aria-hidden="true"><Shield /></span>
+            <div>
+              <h4 id="admin-active-bans-title">Bans actifs</h4>
+              <p>Sanctions en cours sur l’ensemble du jeu.</p>
+            </div>
+          </div>
+          <span className="admin-count" aria-label={`${activeBans.length} bans actifs`}>{activeBans.length}</span>
+        </header>
+
+        {activeBans.length === 0 ? (
+          <div className="admin-empty">
+            <div>
+              <Shield aria-hidden="true" />
+              <strong>Aucun ban actif</strong>
+              <p>Les sanctions appliquées apparaîtront ici.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="admin-list">
+            {activeBans.map(b => (
+              <article key={b.id} className="admin-list-item">
+                <div className="admin-item-main">
+                  <div className="admin-item-id">{b.user_id}</div>
+                  <div className="admin-item-meta">
+                    <span className="admin-item-tag">{b.ban_type}</span>
+                    <span>{b.expires_at ? `Expire ${new Date(b.expires_at).toLocaleString('fr-FR')}` : 'Permanent'}</span>
+                  </div>
+                  {b.reason && <div className="admin-item-reason">« {b.reason} »</div>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => revoke(b.id)}
+                  disabled={busyAction !== null}
+                  aria-busy={busyAction === `revoke:${b.id}`}
+                  className="admin-delete-button menu-icon-control menu-focus"
+                  title="Lever le ban"
+                  aria-label="Lever le ban"
+                >
+                  {busyAction === `revoke:${b.id}` ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Trash2 aria-hidden="true" />}
+                </button>
+              </article>
+            ))}
           </div>
         )}
-
-        <select
-          value={banType}
-          onChange={e => setBanType(e.target.value as BanType)}
-          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm"
-        >
-          {(Object.keys(BAN_LABELS) as BanType[]).map(t => (
-            <option key={t} value={t}>{BAN_LABELS[t]}</option>
-          ))}
-        </select>
-
-        <div className="flex gap-1 flex-wrap">
-          {DURATIONS.map(d => (
-            <button
-              key={d.label}
-              onClick={() => setDurationH(d.hours)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium border transition',
-                durationH === d.hours
-                  ? 'bg-destructive text-destructive-foreground border-destructive'
-                  : 'bg-background border-border hover:bg-muted'
-              )}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-
-        <textarea
-          value={reason}
-          onChange={e => setReason(e.target.value)}
-          placeholder="Motif (visible par le joueur)…"
-          rows={2}
-          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm resize-none"
-        />
-
-        <button
-          type="button"
-          onClick={applyBan}
-          disabled={!selected || busyAction !== null}
-          aria-busy={busyAction === 'apply'}
-          className="menu-action w-full py-2 rounded-lg bg-destructive text-destructive-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {busyAction === 'apply' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
-          Bannir
-        </button>
-      </div>
-
-      <div>
-        <div className="text-sm font-semibold mb-2">Bans actifs ({activeBans.length})</div>
-        <div className="space-y-2">
-          {activeBans.length === 0 && (
-            <div className="text-xs text-muted-foreground italic">Aucun ban actif.</div>
-          )}
-          {activeBans.map(b => (
-            <div key={b.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg text-sm">
-              <div className="flex-1 min-w-0">
-                <div className="font-mono text-xs text-muted-foreground truncate">{b.user_id}</div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs px-2 py-0.5 rounded bg-destructive/20 text-destructive font-semibold">
-                    {b.ban_type}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {b.expires_at ? `expire ${new Date(b.expires_at).toLocaleString('fr-FR')}` : 'permanent'}
-                  </span>
-                </div>
-                {b.reason && <div className="text-xs text-muted-foreground mt-1 italic">« {b.reason} »</div>}
-              </div>
-              <button
-                type="button"
-                onClick={() => revoke(b.id)}
-                disabled={busyAction !== null}
-                aria-busy={busyAction === `revoke:${b.id}`}
-                className="menu-icon-control p-2 rounded-lg hover:bg-destructive/20 text-destructive disabled:opacity-50"
-                title="Lever le ban"
-                aria-label="Lever le ban"
-              >
-                {busyAction === `revoke:${b.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+      </section>
     </div>
   );
 };
@@ -381,86 +419,134 @@ const AdminAnnouncementsTabComponent = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-        <div className="text-sm font-semibold">Nouveau message global</div>
-        <input
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="Titre (optionnel)…"
-          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm"
-        />
-        <textarea
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          placeholder="Message diffusé en modal à tous les joueurs…"
-          rows={4}
-          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm resize-none"
-        />
-        <div className="flex gap-2">
-          <select
-            value={severity}
-            onChange={e => setSeverity(e.target.value)}
-            className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-sm"
-          >
-            <option value="info">Info</option>
-            <option value="success">Succès</option>
-            <option value="warning">Avertissement</option>
-            <option value="critical">Critique</option>
-          </select>
-          <select
-            value={expiresH === null ? 'perm' : String(expiresH)}
-            onChange={e => setExpiresH(e.target.value === 'perm' ? null : Number(e.target.value))}
-            className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-sm"
-          >
-            <option value="1">Expire dans 1h</option>
-            <option value="24">Expire dans 24h</option>
-            <option value="168">Expire dans 7j</option>
-            <option value="perm">Sans expiration</option>
-          </select>
-        </div>
-        <button
-          type="button"
-          onClick={send}
-          disabled={busyAction !== null || !message.trim()}
-          aria-busy={busyAction === 'send'}
-          className="menu-action w-full py-2 rounded-lg bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {busyAction === 'send' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Megaphone className="w-4 h-4" />}
-          Envoyer à tous
-        </button>
-      </div>
-
-      <div>
-        <div className="text-sm font-semibold mb-2">Annonces récentes</div>
-        <div className="space-y-2">
-          {recent.length === 0 && (
-            <div className="text-xs text-muted-foreground italic">Aucune annonce.</div>
-          )}
-          {recent.map(a => (
-            <div key={a.id} className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg text-sm">
-              <div className="flex-1 min-w-0">
-                {a.title && <div className="font-semibold truncate">{a.title}</div>}
-                <div className="text-muted-foreground text-xs whitespace-pre-wrap">{a.message}</div>
-                <div className="text-[10px] text-muted-foreground mt-1">
-                  {new Date(a.created_at).toLocaleString('fr-FR')} — {a.severity}
-                  {a.expires_at && ` • expire ${new Date(a.expires_at).toLocaleString('fr-FR')}`}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => remove(a.id)}
-                disabled={busyAction !== null}
-                aria-busy={busyAction === `remove:${a.id}`}
-                className="menu-icon-control p-2 rounded-lg hover:bg-destructive/20 text-destructive disabled:opacity-50"
-                aria-label="Supprimer l'annonce"
-              >
-                {busyAction === `remove:${a.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              </button>
+    <div className="admin-tab-layout">
+      <section className="admin-card admin-form-card" aria-labelledby="admin-new-announcement-title">
+        <header className="admin-card-heading">
+          <div>
+            <span className="admin-card-icon is-reward" aria-hidden="true"><Megaphone /></span>
+            <div>
+              <h4 id="admin-new-announcement-title">Nouveau message global</h4>
+              <p>Le message s’affichera en modal pour tous les joueurs.</p>
             </div>
-          ))}
+          </div>
+        </header>
+
+        <div className="admin-form-stack">
+          <div className="admin-field-group">
+            <label className="admin-field-label" htmlFor="admin-announcement-title">Titre optionnel</label>
+            <input
+              id="admin-announcement-title"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Titre de l’annonce…"
+              className="admin-field"
+            />
+          </div>
+
+          <div className="admin-field-group">
+            <label className="admin-field-label" htmlFor="admin-announcement-message">Message</label>
+            <textarea
+              id="admin-announcement-message"
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              placeholder="Message diffusé à tous les joueurs…"
+              rows={5}
+              className="admin-field"
+            />
+          </div>
+
+          <div className="admin-form-split">
+            <div className="admin-field-group">
+              <label className="admin-field-label" htmlFor="admin-announcement-severity">Importance</label>
+              <select
+                id="admin-announcement-severity"
+                value={severity}
+                onChange={e => setSeverity(e.target.value)}
+                className="admin-field"
+              >
+                <option value="info">Info</option>
+                <option value="success">Succès</option>
+                <option value="warning">Avertissement</option>
+                <option value="critical">Critique</option>
+              </select>
+            </div>
+            <div className="admin-field-group">
+              <label className="admin-field-label" htmlFor="admin-announcement-expiry">Expiration</label>
+              <select
+                id="admin-announcement-expiry"
+                value={expiresH === null ? 'perm' : String(expiresH)}
+                onChange={e => setExpiresH(e.target.value === 'perm' ? null : Number(e.target.value))}
+                className="admin-field"
+              >
+                <option value="1">Dans 1 heure</option>
+                <option value="24">Dans 24 heures</option>
+                <option value="168">Dans 7 jours</option>
+                <option value="perm">Sans expiration</option>
+              </select>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={send}
+            disabled={busyAction !== null || !message.trim()}
+            aria-busy={busyAction === 'send'}
+            className="admin-primary-button menu-action menu-focus"
+          >
+            {busyAction === 'send' ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Megaphone aria-hidden="true" />}
+            Envoyer à tous
+          </button>
         </div>
-      </div>
+      </section>
+
+      <section className="admin-card admin-list-card" aria-labelledby="admin-recent-announcements-title">
+        <header className="admin-card-heading">
+          <div>
+            <span className="admin-card-icon is-reward" aria-hidden="true"><Megaphone /></span>
+            <div>
+              <h4 id="admin-recent-announcements-title">Annonces récentes</h4>
+              <p>Historique des messages globaux encore enregistrés.</p>
+            </div>
+          </div>
+          <span className="admin-count" aria-label={`${recent.length} annonces`}>{recent.length}</span>
+        </header>
+
+        {recent.length === 0 ? (
+          <div className="admin-empty">
+            <div>
+              <Megaphone aria-hidden="true" />
+              <strong>Aucune annonce</strong>
+              <p>Les messages envoyés apparaîtront ici.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="admin-list">
+            {recent.map(a => (
+              <article key={a.id} className="admin-list-item">
+                <div className="admin-item-main">
+                  {a.title && <div className="admin-item-title">{a.title}</div>}
+                  <div className="admin-item-message">{a.message}</div>
+                  <div className="admin-item-meta">
+                    <span>{new Date(a.created_at).toLocaleString('fr-FR')}</span>
+                    <span className="admin-item-tag">{a.severity}</span>
+                    {a.expires_at && <span>Expire {new Date(a.expires_at).toLocaleString('fr-FR')}</span>}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => remove(a.id)}
+                  disabled={busyAction !== null}
+                  aria-busy={busyAction === `remove:${a.id}`}
+                  className="admin-delete-button menu-icon-control menu-focus"
+                  aria-label="Supprimer l’annonce"
+                >
+                  {busyAction === `remove:${a.id}` ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Trash2 aria-hidden="true" />}
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };
@@ -566,54 +652,71 @@ const AdminLobbiesTabComponent = ({ onClose }: { onClose: () => void }) => {
     setTimeout(() => window.location.reload(), 500);
   };
 
-  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  if (loading) {
+    return (
+      <div className="admin-empty">
+        <div>
+          <Loader2 className="animate-spin" aria-hidden="true" />
+          <strong>Chargement des parties…</strong>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-2">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">
-          Parties actives uniquement. Rejoindre stocke le code et recharge l'app.
-        </span>
-        <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE · {lobbies.length}
+    <div>
+      <div className="admin-live-bar">
+        <span>Parties actives uniquement. Rejoindre stocke le code et recharge l’application.</span>
+        <span className="admin-live-status">
+          <span aria-hidden="true" /> LIVE · {lobbies.length}
         </span>
       </div>
-      {lobbies.length === 0 && <div className="text-xs italic text-muted-foreground">Aucune partie active pour le moment.</div>}
-      {lobbies.map(l => (
-        <div key={l.id} className="p-3 bg-muted/30 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <div className="min-w-0">
-              <span className="font-mono font-bold text-primary">{l.code}</span>
-              <span className="ml-2 text-xs text-muted-foreground">
-                {l.game_mode} • {l.game_phase}
-              </span>
-            </div>
-            <span className="flex flex-shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-bold text-primary">
-              👥 {l.playerCount}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => joinAs(l, true)}
-              disabled={joiningId !== null}
-              aria-busy={joiningId === `${l.id}:ghost`}
-              className="menu-action flex-1 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-muted flex items-center justify-center gap-1 disabled:opacity-50"
-            >
-              {joiningId === `${l.id}:ghost` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ghost className="w-3.5 h-3.5" />} Fantôme
-            </button>
-            <button
-              type="button"
-              onClick={() => joinAs(l, false)}
-              disabled={joiningId !== null}
-              aria-busy={joiningId === `${l.id}:visible`}
-              className="menu-action flex-1 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 flex items-center justify-center gap-1 disabled:opacity-50"
-            >
-              {joiningId === `${l.id}:visible` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />} Rejoindre
-            </button>
+
+      {lobbies.length === 0 ? (
+        <div className="admin-empty admin-card">
+          <div>
+            <Gamepad2 aria-hidden="true" />
+            <strong>Aucune partie active</strong>
+            <p>Les salons récemment actifs et occupés apparaîtront ici.</p>
           </div>
         </div>
-      ))}
+      ) : (
+        <div className="admin-lobby-grid">
+          {lobbies.map(l => (
+            <article key={l.id} className="admin-lobby-card admin-card">
+              <header className="admin-lobby-heading">
+                <div className="min-w-0">
+                  <div className="admin-lobby-code">{l.code}</div>
+                  <div className="admin-lobby-mode">{l.game_mode} · {l.game_phase}</div>
+                </div>
+                <span className="admin-player-count">{l.playerCount} joueur{l.playerCount > 1 ? 's' : ''}</span>
+              </header>
+              <div className="admin-lobby-actions">
+                <button
+                  type="button"
+                  onClick={() => joinAs(l, true)}
+                  disabled={joiningId !== null}
+                  aria-busy={joiningId === `${l.id}:ghost`}
+                  className="admin-lobby-button menu-action menu-focus"
+                >
+                  {joiningId === `${l.id}:ghost` ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Ghost aria-hidden="true" />}
+                  Fantôme
+                </button>
+                <button
+                  type="button"
+                  onClick={() => joinAs(l, false)}
+                  disabled={joiningId !== null}
+                  aria-busy={joiningId === `${l.id}:visible`}
+                  className="admin-lobby-button is-primary menu-action menu-focus"
+                >
+                  {joiningId === `${l.id}:visible` ? <Loader2 className="animate-spin" aria-hidden="true" /> : <LogIn aria-hidden="true" />}
+                  Rejoindre
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
