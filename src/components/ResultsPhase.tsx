@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VictoryAnimation } from "@/components/VictoryAnimation";
 import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
+import { AdSlot } from "@/components/AdSlot";
 import {
   Trophy, ThumbsUp, ThumbsDown, ArrowRight, Medal, Sparkles,
   Swords, Download, Loader2, Share2, Check, Play, ChevronDown, ChevronUp,
