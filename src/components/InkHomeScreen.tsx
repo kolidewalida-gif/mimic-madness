@@ -39,6 +39,8 @@ import { RewardsPanel } from '@/components/RewardsPanel';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { AdSlot } from '@/components/AdSlot';
+
 import {
   GameAvatar,
   GameBackdrop,
