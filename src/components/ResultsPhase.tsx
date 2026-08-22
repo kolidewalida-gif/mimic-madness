@@ -789,6 +789,15 @@ export const ResultsPhase = ({
             </div>
           )}
 
+          {/* Bannière entre manches : au-dessus des actions hôte/joueur,
+              donc visible pendant la pause sans cacher le classement. */}
+          <AdSlot
+            slot={import.meta.env.VITE_ADSENSE_SLOT_BANNER_RESULTS}
+            format="horizontal"
+            className="pointer-events-auto mx-auto h-[90px] w-full max-w-[728px] rounded-xl"
+            label="Publicité"
+          />
+
           {/* Host actions */}
           {currentPlayer.isHost && (
             <div className="flex gap-3 pt-2">
