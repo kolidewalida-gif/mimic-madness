@@ -39,6 +39,8 @@ import { RewardsPanel } from '@/components/RewardsPanel';
 import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteModal';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { AdSlot } from '@/components/AdSlot';
+
 import {
   GameAvatar,
   GameBackdrop,
@@ -431,7 +433,20 @@ const InkHomeScreenComponent = ({
           Wide focal panel + side rail, then the mode shelf across the full
           width. pb-32 clears the floating music bar. */}
       <main className="custom-scrollbar relative flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 pb-28 sm:px-8 [justify-content:safe_center]">
+        {/* Rails publicitaires : dans les grandes marges latérales vides, donc
+            jamais au-dessus du contenu jouable. Masqués sous 1440px. */}
+        <AdSlot
+          slot={import.meta.env.VITE_ADSENSE_SLOT_RAIL_LEFT}
+          format="vertical"
+          className="pointer-events-auto absolute left-6 top-1/2 hidden h-[600px] w-[160px] -translate-y-1/2 [@media(min-width:1440px)]:flex"
+        />
+        <AdSlot
+          slot={import.meta.env.VITE_ADSENSE_SLOT_RAIL_RIGHT}
+          format="vertical"
+          className="pointer-events-auto absolute right-6 top-1/2 hidden h-[600px] w-[160px] -translate-y-1/2 [@media(min-width:1440px)]:flex"
+        />
         <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-5">
+
           {/* One focal panel: the selected mode and everything needed to play
               it. Splitting these into two side-by-side cards is what left a
               large void inside the panel. */}
