@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,7 +25,7 @@ import { useOnlinePresence } from '@/hooks/useOnlinePresence';
 import { useGameInvitations } from '@/hooks/useGameInvitations';
 import { useUnreadCounts } from '@/hooks/useDirectMessages';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { SocialExperience } from '@/components/SocialExperience';
+import { SocialStudioDialog } from '@/components/SocialStudioDialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DirectMessageDialog } from '@/components/DirectMessageDialog';
@@ -80,6 +80,7 @@ const SocialHubPanelComponent = ({
 
   const [activeTab, setActiveTab] = useState<Tab>('friends');
   const [showSocialModal, setShowSocialModal] = useState(false);
+  const closeSocialModal = useCallback(() => setShowSocialModal(false), []);
   const [friendCodeInput, setFriendCodeInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -89,8 +90,9 @@ const SocialHubPanelComponent = ({
     avatar_url: string | null;
   } | null>(null);
 
-  useBodyScrollLock(isOpen || showSocialModal || chatFriend !== null);
-  // Escape closes the hub, like every other menu overlay.
+  useBodyScrollLock(isOpen || chatFriend !== null);
+  // Escape closes the hub, like every other menu overlay. Social Studio owns
+  // its own Escape handling once the drawer hands focus over to it.
   useEscapeKey(isOpen && !showSocialModal && chatFriend === null, onClose);
 
   const totalUnreadMessages = Object.values(unreadCounts).reduce(
@@ -1011,65 +1013,13 @@ const SocialHubPanelComponent = ({
         friend={chatFriend}
       />
 
-      {/* SOCIAL MODAL — centered, full-feature feed dialog. Opened from the
-          drawer's Social tab; the drawer itself is closed when this opens
-          so the user gets full screen focus on the social feed.
-          Portaled to <body> because any ancestor with a CSS transform
-          (the drawer or FAB animations) breaks `position: fixed` and would
-          otherwise pin the modal to the drawer instead of the viewport. */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {showSocialModal && (
-            <div className="social-studio-overlay menu-dialog force-cursor">
-              <motion.div
-                data-cartoon-skip
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowSocialModal(false)}
-                className="social-studio-backdrop"
-                aria-label="Fermer Social"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 18 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 18 }}
-                transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-                className="social-studio-dialog"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="social-studio-title"
-              >
-                <header className="social-studio-header">
-                  <div className="social-studio-brand">
-                    <span className="social-studio-logo"><Share2 aria-hidden="true" /></span>
-                    <div>
-                      <span className="social-studio-kicker">MIMIC COMMUNITY</span>
-                      <h2 id="social-studio-title">Social Studio</h2>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="ibs-status ibs-status--online"><span className="h-1.5 w-1.5 rounded-full bg-current" /> LIVE</span>
-                    <button
-                      type="button"
-                      data-back
-                      onClick={() => setShowSocialModal(false)}
-                      className="social-studio-close menu-icon-control"
-                      aria-label="Fermer Social"
-                    >
-                      <X aria-hidden="true" />
-                    </button>
-                  </div>
-                </header>
-                <div className="min-h-0 flex-1 overflow-hidden">
-                  <SocialExperience />
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body,
-      )}
+      {/* Social Studio is shared with the Ink shell. Keeping the controlled
+          dialog here preserves the existing non-Ink entry without duplicating
+          the feed implementation. */}
+      <SocialStudioDialog
+        isOpen={showSocialModal}
+        onClose={closeSocialModal}
+      />
     </>
   );
 };

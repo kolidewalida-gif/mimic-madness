@@ -4,6 +4,7 @@ import { ScreenTransition } from "@/components/ScreenTransition";
 import { MusicPlayerBar } from "@/components/MusicPlayerBar";
 import { GameInvitationNotification } from "@/components/GameInvitationNotification";
 import { SocialHub } from "@/components/SocialHub";
+import { SocialStudioDialog } from "@/components/SocialStudioDialog";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
 import { useLobbySync } from "@/hooks/useLobbySync";
@@ -114,6 +115,9 @@ const Index = () => {
   const { theme, inkModeEnabled } = useTheme();
   const { isAdmin } = useAdmin();
   const [gameState, setGameState] = useState<GameState>("home");
+  const [showInkSocial, setShowInkSocial] = useState(false);
+  const openInkSocial = useCallback(() => setShowInkSocial(true), []);
+  const closeInkSocial = useCallback(() => setShowInkSocial(false), []);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>("normal");
@@ -164,6 +168,24 @@ const Index = () => {
   const useInkMode = inkModeEnabled && theme === 'ink';
   // Neon Hub désactivé — on reste sur l'Ink polish
   const useNeonHub = false;
+
+  // Social Studio belongs to the menu shell, never to a running game. The
+  // global event is emitted by comment notifications; in Ink it must open the
+  // actual feed rather than the unrelated friends drawer.
+  useEffect(() => {
+    if (!useInkMode) return;
+    const openSocial = () => {
+      if (gameState === 'home' || gameState === 'lobby') openInkSocial();
+    };
+    window.addEventListener('mimic:open-social', openSocial);
+    return () => window.removeEventListener('mimic:open-social', openSocial);
+  }, [gameState, openInkSocial, useInkMode]);
+
+  useEffect(() => {
+    if (!useInkMode || (gameState !== 'home' && gameState !== 'lobby')) {
+      closeInkSocial();
+    }
+  }, [closeInkSocial, gameState, useInkMode]);
   const { 
     lobby, 
     players, 
@@ -661,6 +683,8 @@ const Index = () => {
             <InkHomeScreen 
               onCreateGame={handleCreateGame}
               onJoinGame={handleJoinGame}
+              onOpenSocial={openInkSocial}
+              isSocialOpen={showInkSocial}
             />
           ) : (
             <HomeScreen 
@@ -694,6 +718,8 @@ const Index = () => {
               onLeaveGame={handleLeaveGame}
               onKickPlayer={handleKickPlayer}
               onTransferHost={handleTransferHost}
+              onOpenSocial={openInkSocial}
+              isSocialOpen={showInkSocial}
             />
           ) : (
             <LobbyScreen
@@ -797,7 +823,7 @@ const Index = () => {
 
       </React.Suspense>
     );
-  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, inkModeEnabled, theme, user, authLoading, signInWithGoogle, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, inkModeEnabled, theme, user, authLoading, signInWithGoogle, showInkSocial, openInkSocial, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   // Enforce login before Ink intro animation
   if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
@@ -899,6 +925,10 @@ const Index = () => {
       {/* Only show music bar in non-ink mode */}
       <MusicPlayerBar />
       
+      {useInkMode && (gameState === 'home' || gameState === 'lobby') && (
+        <SocialStudioDialog isOpen={showInkSocial} onClose={closeInkSocial} />
+      )}
+
       {/*
         Hub social — réservé aux thèmes non-Ink.
 

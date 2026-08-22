@@ -12,6 +12,7 @@ import {
   Palette,
   Play,
   Settings,
+  Share2,
   Target,
   Trash2,
   User,
@@ -57,6 +58,8 @@ import { toast } from 'sonner';
 interface InkHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
   onJoinGame: (playerName: string, lobbyCode: string) => void;
+  onOpenSocial: () => void;
+  isSocialOpen: boolean;
 }
 
 interface GameModeInfo {
@@ -88,7 +91,12 @@ const GAME_MODES: GameModeInfo[] = INK_GAME_MODE_ORDER.map((id) => {
   };
 });
 
-const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps) => {
+const InkHomeScreenComponent = ({
+  onCreateGame,
+  onJoinGame,
+  onOpenSocial,
+  isSocialOpen,
+}: InkHomeScreenProps) => {
   const { profile, friendCode } = useAuth();
   const [playerName, setPlayerName] = useState(() => {
     try { return localStorage.getItem('playerName') ?? ''; } catch { return ''; }
@@ -220,22 +228,12 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
     } catch { /* storage can be disabled */ }
   }, [lobbyCode]);
 
-  /*
-   * Le centre de notifications demande l'ouverture du panneau social par
-   * événement. Il en émet deux : `mimic:open-friends` pour une invitation ou une
-   * demande d'ami, `mimic:open-social` pour un commentaire. Le second n'était
-   * écouté que par `SocialHub`, qui ne s'affiche plus en mode Ink ; les deux
-   * mènent ici, au tiroir des amis, qui couvre les mêmes contenus — demandes,
-   * invitations et messages non lus.
-   */
+  /* Friend-related notifications still open the dedicated Ink drawer. Comment
+   * notifications are handled by Index and now open Social Studio itself. */
   useEffect(() => {
     const openFriends = () => setShowFriendsDrawer(true);
     window.addEventListener('mimic:open-friends', openFriends);
-    window.addEventListener('mimic:open-social', openFriends);
-    return () => {
-      window.removeEventListener('mimic:open-friends', openFriends);
-      window.removeEventListener('mimic:open-social', openFriends);
-    };
+    return () => window.removeEventListener('mimic:open-friends', openFriends);
   }, []);
 
   /*
@@ -244,6 +242,7 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
    * rouvrirait les réglages par-dessus.
    */
   const anyModalOpen =
+    isSocialOpen ||
     showJoinDialog ||
     showSettings ||
     showPatchNote ||
@@ -375,10 +374,10 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
       <GameBackdrop src="/home/background.png" />
 
       {/* ============== HEADER — logo left, actions right ============== */}
-      <header className="flex flex-shrink-0 items-center justify-between gap-3 px-4 py-3.5 sm:px-8">
+      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-8">
         <GameLogo />
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
           <NotificationCenter />
           <GameIconButton
             label="Mes amis"
@@ -389,6 +388,17 @@ const InkHomeScreenComponent = ({ onCreateGame, onJoinGame }: InkHomeScreenProps
           >
             <UsersRound className="h-[18px] w-[18px]" />
           </GameIconButton>
+          <GameButton
+            variant="neutral"
+            size="sm"
+            onClick={() => {
+              playInkSound('brushTap', 0.3);
+              onOpenSocial();
+            }}
+            icon={<Share2 className="h-4 w-4" />}
+          >
+            Social
+          </GameButton>
           <GameIconButton
             label="Paramètres"
             onClick={() => {

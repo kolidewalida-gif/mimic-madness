@@ -6,14 +6,19 @@ import { cn } from '@/lib/utils';
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const ALWAYS_TOP_LAYER = () => true;
 
 /**
  * Shared dialog behaviour for every Ink menu overlay: Escape to close, focus
  * moved inside on open, focus trapped while open, and focus returned to the
- * trigger on close. Previously each panel reimplemented a subset of this, and
- * most implemented none of it.
+ * trigger on close. `isTopLayer` lets a nested portal temporarily own Escape
+ * and Tab without closing or refocusing its parent dialog.
  */
-export const useDialogBehaviour = (isOpen: boolean, onClose: () => void) => {
+export const useDialogBehaviour = (
+  isOpen: boolean,
+  onClose: () => void,
+  isTopLayer: () => boolean = ALWAYS_TOP_LAYER,
+) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
 
@@ -33,6 +38,7 @@ export const useDialogBehaviour = (isOpen: boolean, onClose: () => void) => {
     const raf = requestAnimationFrame(focusFirst);
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (!isTopLayer()) return;
       if (event.key === 'Escape') {
         event.stopPropagation();
         onClose();
@@ -61,7 +67,7 @@ export const useDialogBehaviour = (isOpen: boolean, onClose: () => void) => {
       window.removeEventListener('keydown', onKeyDown, true);
       restoreRef.current?.focus?.({ preventScroll: true });
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, isTopLayer, onClose]);
 
   return panelRef;
 };

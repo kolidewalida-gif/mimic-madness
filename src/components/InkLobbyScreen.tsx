@@ -70,6 +70,8 @@ interface InkLobbyScreenProps {
   onLeaveGame: () => void;
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
+  onOpenSocial: () => void;
+  isSocialOpen: boolean;
 }
 
 /** Modes available in the lobby (Monopoly and Mimic excluded). */
@@ -122,6 +124,8 @@ export const InkLobbyScreen = ({
   onLeaveGame,
   onKickPlayer,
   onTransferHost,
+  onOpenSocial,
+  isSocialOpen,
 }: InkLobbyScreenProps) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showInvitePanel, setShowInvitePanel] = useState(false);
@@ -270,6 +274,7 @@ export const InkLobbyScreen = ({
 
   // Global lobby shortcuts
   const lobbyAnyModalOpen =
+    isSocialOpen ||
     showSettings || showInvitePanel || showLeaveConfirm || showShortcuts || !!openMenuFor;
   useKeyboardShortcuts([
     {
@@ -362,7 +367,18 @@ export const InkLobbyScreen = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
+          <GameButton
+            variant="neutral"
+            size="sm"
+            onClick={() => {
+              playInkSound('brushTap', 0.3);
+              onOpenSocial();
+            }}
+            icon={<Users className="h-4 w-4" />}
+          >
+            Social
+          </GameButton>
           <GameButton
             variant="neutral"
             size="sm"
