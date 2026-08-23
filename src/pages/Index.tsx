@@ -25,7 +25,6 @@ import { playSample } from "@/lib/sfx/samples";
 import { setActiveSfxMode, type SfxMode } from "@/lib/sfx/palette";
 import { ConnectionRecoveryOverlay } from "@/components/ConnectionRecoveryOverlay";
 import { DiagnosticsOverlay } from "@/components/DiagnosticsOverlay";
-import { PublicLanding } from "@/components/PublicLanding";
 import {
   loadAudioPhoneGameScreen,
   loadGamePlayScreen,
@@ -100,7 +99,7 @@ interface GameInvitation {
 }
 
 const Index = () => {
-  const { user, profile, signInWithGoogle, isLoading: authLoading } = useAuth();
+  const { user, profile } = useAuth();
   // Bumps daily login streak once per UTC day. Surfaces a toast on bump.
   const { current: streakDays, justBumped: streakJustBumped } = useLoginStreak();
   const questTracker = useQuestTracker();
@@ -647,11 +646,6 @@ const Index = () => {
   }, [lobby, currentPlayer?.isHost, toast]);
 
   const renderContent = useMemo(() => {
-    // For ink mode, we need user to be logged in (even before the ink intro animation)
-    if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
-      return <PublicLanding onSignIn={signInWithGoogle} />;
-    }
-    
     return (
       <React.Suspense fallback={<LoadingFallback />}>
         {gameState === "home" && (
@@ -809,13 +803,7 @@ const Index = () => {
 
       </React.Suspense>
     );
-  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, inkModeEnabled, theme, user, authLoading, signInWithGoogle, showInkSocial, openInkSocial, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
-
-  // Le jeu exige une connexion : les visiteurs non connectés reçoivent l'accueil
-  // public, qui présente réellement le jeu au lieu d'un simple bouton.
-  if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
-    return <PublicLanding onSignIn={signInWithGoogle} />;
-  }
+  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, theme, showInkSocial, openInkSocial, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   return (
     <div className="h-screen overflow-hidden">

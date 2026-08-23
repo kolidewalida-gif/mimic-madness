@@ -1,5 +1,6 @@
 import { useState, memo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
   Award,
   Check,
@@ -101,7 +102,14 @@ const InkHomeScreenComponent = ({
   onOpenSocial,
   isSocialOpen,
 }: InkHomeScreenProps) => {
-  const { profile, friendCode } = useAuth();
+  const { user, profile, friendCode, signInWithGoogle } = useAuth();
+  const handleGoogleSignIn = useCallback(() => {
+    playInkSound('inkClick', 0.3);
+    void signInWithGoogle().catch((error: unknown) => {
+      console.error('Google sign in error:', error);
+      toast.error('Connexion Google impossible. Réessaie dans un instant.');
+    });
+  }, [signInWithGoogle]);
   const [playerName, setPlayerName] = useState(() => {
     try { return localStorage.getItem('playerName') ?? ''; } catch { return ''; }
   });
@@ -393,13 +401,35 @@ const InkHomeScreenComponent = ({
         <GameLogo />
 
         <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
-          <NotificationCenter />
+          {user ? (
+            <NotificationCenter />
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="if-mute hidden max-w-[180px] text-right text-[11px] leading-tight lg:block">
+                Amis et bibliothèque synchronisée
+              </span>
+              <GameButton
+                variant="neutral"
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
+                onClick={handleGoogleSignIn}
+                icon={<LogIn className="h-4 w-4" aria-hidden="true" />}
+              >
+                Connexion Google
+              </GameButton>
+            </div>
+          )}
           <GameButton
             variant="primary"
             size="sm"
             accent="var(--c-pink)"
             className="shrink-0 whitespace-nowrap"
+            title={user ? 'Soutenir Mimic Master et retirer les publicités' : 'Connexion Google requise pour conserver ton achat'}
             onClick={() => {
+              if (!user) {
+                handleGoogleSignIn();
+                return;
+              }
               playInkSound('inkClick', 0.3);
               setSupportFromProfile(false);
               setShowSupport(true);
@@ -409,8 +439,12 @@ const InkHomeScreenComponent = ({
             Sans pub
           </GameButton>
           <GameIconButton
-            label="Mes amis"
+            label={user ? 'Mes amis' : 'Se connecter pour accéder aux amis'}
             onClick={() => {
+              if (!user) {
+                handleGoogleSignIn();
+                return;
+              }
               playInkSound('inkClick', 0.3);
               setShowFriendsDrawer(true);
             }}
@@ -420,7 +454,12 @@ const InkHomeScreenComponent = ({
           <GameButton
             variant="neutral"
             size="sm"
+            title={user ? 'Ouvrir le Social Studio' : 'Connexion Google requise pour le Social Studio'}
             onClick={() => {
+              if (!user) {
+                handleGoogleSignIn();
+                return;
+              }
               playInkSound('brushTap', 0.3);
               onOpenSocial();
             }}
@@ -600,29 +639,46 @@ const InkHomeScreenComponent = ({
       </main>
 
       {/* ============== FOOTER ============== */}
-      <footer className="flex flex-shrink-0 items-center justify-between gap-2 px-4 py-1.5 sm:px-8">
-        {friendCode ? (
-          <button
-            type="button"
-            onClick={handleCopyFriendCode}
-            className="if-btn if-btn--ghost if-btn--sm menu-focus"
-            title="Copier mon code ami"
-          >
-            <span className="if-label">Code ami</span>
-            <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
-              {friendCode}
-            </span>
-            {codeCopied ? (
-              <Check className="h-3.5 w-3.5 text-[var(--c-green)]" aria-hidden="true" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-            )}
-          </button>
-        ) : (
-          <span />
-        )}
+      <footer className="flex flex-shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-1.5 sm:px-8">
+        <div className="min-w-0 flex-1">
+          {friendCode ? (
+            <button
+              type="button"
+              onClick={handleCopyFriendCode}
+              className="if-btn if-btn--ghost if-btn--sm menu-focus"
+              title="Copier mon code ami"
+            >
+              <span className="if-label">Code ami</span>
+              <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
+                {friendCode}
+              </span>
+              {codeCopied ? (
+                <Check className="h-3.5 w-3.5 text-[var(--c-green)]" aria-hidden="true" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+            </button>
+          ) : (
+            <span className="if-mute text-[10px] sm:text-xs">Jeu sans compte</span>
+          )}
+        </div>
 
-        <div className="flex items-center gap-1">
+        <nav
+          aria-label="Informations légales"
+          className="order-3 flex w-full items-center justify-center gap-3 text-[10px] text-[var(--ink-muted)] sm:order-none sm:w-auto"
+        >
+          <Link className="menu-focus rounded hover:text-[var(--ink-text)]" to="/confidentialite">
+            Confidentialité
+          </Link>
+          <Link className="menu-focus rounded hover:text-[var(--ink-text)]" to="/conditions">
+            Conditions
+          </Link>
+          <Link className="menu-focus rounded hover:text-[var(--ink-text)]" to="/mentions-legales">
+            Mentions légales
+          </Link>
+        </nav>
+
+        <div className="flex flex-1 items-center justify-end gap-1">
           <GameIconButton
             label={isMuted ? 'Activer le son' : 'Couper le son'}
             className="h-9 w-9 min-w-0 border-transparent bg-transparent"
@@ -716,6 +772,11 @@ const InkHomeScreenComponent = ({
                 hint="Sans pub & supporter"
                 accent="var(--c-pink)"
                 onClick={() => {
+                  if (!user) {
+                    setShowProfileDrawer(false);
+                    handleGoogleSignIn();
+                    return;
+                  }
                   setSupportFromProfile(true);
                   goFromProfile(setShowSupport);
                 }}
