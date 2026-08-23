@@ -283,11 +283,15 @@ const callUntypedRpc = async <T>(
   name: 'mark_preview_seen' | 'skip_missing_imitations',
   params: Record<string, unknown>,
 ): Promise<{ data: T | null; error: unknown }> => {
-  const invoke = supabase.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: T | null; error: unknown }>;
-  return invoke(name, params);
+  const client = supabase as unknown as {
+    rpc: (
+      fn: 'mark_preview_seen' | 'skip_missing_imitations',
+      args: Record<string, unknown>,
+    ) => Promise<{ data: T | null; error: unknown }>;
+  };
+
+  // Keep the method call bound to the Supabase client: rpc() reads this.rest.
+  return client.rpc(name, params);
 };
 
 export interface MarkPreviewSeenInput {
@@ -307,8 +311,8 @@ export interface MarkPreviewSeenInput {
  * `submit_player_imitation` because a ready row already existed.
  *
  * The fallback path must never write `is_ready` — that is the whole point.
- * Preview readiness also travels over broadcast, so a failure here degrades to
- * "not persisted across a reload" instead of blocking the round.
+ * SQL remains authoritative for preview readiness: callers surface persistence
+ * failures and keep the player on this screen so the action can be retried.
  */
 export async function markPreviewSeen(input: MarkPreviewSeenInput): Promise<boolean> {
   const { data, error } = await callUntypedRpc<boolean>('mark_preview_seen', {
