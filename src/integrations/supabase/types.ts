@@ -14,45 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      ad_events: {
-        Row: {
-          analytics_session_id: string
-          error_code: string | null
-          event_type: string
-          game_mode: string | null
-          id: number
-          impression_id: string
-          is_authenticated: boolean
-          occurred_at: string
-          placement: string
-          screen: string
-        }
-        Insert: {
-          analytics_session_id: string
-          error_code?: string | null
-          event_type: string
-          game_mode?: string | null
-          id?: never
-          impression_id: string
-          is_authenticated: boolean
-          occurred_at?: string
-          placement: string
-          screen: string
-        }
-        Update: {
-          analytics_session_id?: string
-          error_code?: string | null
-          event_type?: string
-          game_mode?: string | null
-          id?: never
-          impression_id?: string
-          is_authenticated?: boolean
-          occurred_at?: string
-          placement?: string
-          screen?: string
-        }
-        Relationships: []
-      }
       announcement_acks: {
         Row: {
           acked_at: string
@@ -1944,7 +1905,6 @@ export type Database = {
         Args: { p_period_key: string; p_quest_id: string; p_xp_reward: number }
         Returns: number
       }
-      cleanup_old_ad_events: { Args: never; Returns: number }
       cleanup_old_lobbies: { Args: never; Returns: undefined }
       delete_player_clips: {
         Args: { p_clip_ids?: string[]; p_player_id: string }
@@ -1967,22 +1927,6 @@ export type Database = {
         }[]
       }
       generate_friend_code: { Args: never; Returns: string }
-      get_ad_event_summary: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: {
-          cancelled: number
-          errors: number
-          event_day: string
-          game_mode: string
-          loaded: number
-          placement: string
-          requested: number
-          scheduled: number
-          screen: string
-          sessions: number
-          viewable: number
-        }[]
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2030,18 +1974,6 @@ export type Database = {
           updated_at: string
           version: number
         }[]
-      }
-      record_ad_event: {
-        Args: {
-          p_analytics_session_id: string
-          p_error_code?: string
-          p_event_type: string
-          p_game_mode?: string
-          p_impression_id: string
-          p_placement: string
-          p_screen: string
-        }
-        Returns: boolean
       }
       set_lobby_player_connection: {
         Args: { p_connected: boolean; p_lobby_id: string; p_player_id: string }
