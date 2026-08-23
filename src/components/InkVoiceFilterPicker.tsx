@@ -4,7 +4,9 @@ import { Check, Sparkles } from 'lucide-react';
 import {
   MAX_STACKED_FILTERS,
   VOICE_FILTERS,
+  canStackVoiceFilter,
   combinedSemitones,
+  normalizeVoiceFilterOrder,
   type VoiceFilterId,
 } from '@/lib/voiceFilters';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
@@ -14,7 +16,7 @@ const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1
 const FONT = "'Outfit', sans-serif";
 
 interface InkVoiceFilterPickerProps {
-  /** Effets cumulés, dans l'ordre choisi par le joueur. */
+  /** Effets cumulés dans leur ordre DSP ; Autotune reste toujours en dernier. */
   value: VoiceFilterId[];
   onChange: (filters: VoiceFilterId[]) => void;
   disabled?: boolean;
@@ -24,9 +26,9 @@ interface InkVoiceFilterPickerProps {
 const InkVoiceFilterPickerComponent = ({
   value, onChange, disabled = false, compact = false,
 }: InkVoiceFilterPickerProps) => {
-  // Typage explicite : le filtrage littéral ferait sinon disparaître `none` du
-  // type, alors que la boucle d'affichage compare bien avec toute la table.
-  const selected: VoiceFilterId[] = value.filter((id) => id !== 'none');
+  // Autotune termine toujours la chaîne : le rang affiché reste ainsi fidèle
+  // au pipeline réel (effets directs, puis correction du blob).
+  const selected = normalizeVoiceFilterOrder(value);
   const isFull = selected.length >= MAX_STACKED_FILTERS;
 
   const handlePick = (id: VoiceFilterId) => {
@@ -45,6 +47,13 @@ const InkVoiceFilterPickerComponent = ({
       return;
     }
 
+    // Autotune remplace une correction de hauteur fixe : les empiler rendrait
+    // la cible incompréhensible. Les effets de timbre restent cumulables.
+    if (!canStackVoiceFilter(selected, id)) {
+      playInkSound('cartoonWobble', 0.3);
+      return;
+    }
+
     // Plein : on refuse plutôt que de retirer un choix du joueur dans son dos.
     if (isFull) {
       playInkSound('cartoonWobble', 0.3);
@@ -52,8 +61,7 @@ const InkVoiceFilterPickerComponent = ({
     }
 
     playInkSound('cartoonPop', 0.35);
-    // L'ordre compte : les effets se traitent en série dans l'ordre d'ajout.
-    onChange([...selected, id]);
+    onChange(normalizeVoiceFilterOrder([...selected, id]));
   };
 
   const semitones = combinedSemitones(selected);
@@ -69,7 +77,7 @@ const InkVoiceFilterPickerComponent = ({
             🎛️ Filtres voix
           </h4>
           <span className="text-[11px] font-bold text-white/50" style={{ fontFamily: FONT }}>
-            {selected.length}/{MAX_STACKED_FILTERS} — cumulables
+            {selected.length}/{MAX_STACKED_FILTERS} — effets max
           </span>
         </div>
       )}
@@ -80,8 +88,16 @@ const InkVoiceFilterPickerComponent = ({
           const active = isNatural
             ? selected.length === 0
             : selected.includes(filter.id as VoiceFilterId);
-          // Grisé quand la pile est pleine, pour que la limite se voie avant le clic.
-          const blocked = !active && !isNatural && isFull;
+          const incompatible = !active && !isNatural &&
+            !canStackVoiceFilter(selected, filter.id);
+          // Grisé quand la pile est pleine ou quand Autotune remplace déjà une
+          // transformation de hauteur fixe. Le clic reste capté pour son retour sonore.
+          const blocked = !active && !isNatural && (isFull || incompatible);
+          const blockedTitle = incompatible
+            ? filter.id === 'autotune'
+              ? 'Retire Hélium, Grave, Monstre ou Lutin pour utiliser Autotune'
+              : `Retire Autotune pour ajouter ${filter.label}`
+            : `Retire un effet pour ajouter ${filter.label}`;
           const rank = selected.indexOf(filter.id as VoiceFilterId);
 
           return (
@@ -104,10 +120,9 @@ const InkVoiceFilterPickerComponent = ({
                 border: '1px solid var(--ink-line)',
                 boxShadow: active ? `0 0 0 rgba(0,0,0,0), 0 0 16px ${filter.color}88` : '0 0 0 rgba(0,0,0,0)',
               }}
-              title={blocked
-                ? `Retire un effet pour ajouter ${filter.label}`
-                : filter.description}
+              title={blocked ? blockedTitle : filter.description}
               aria-pressed={active}
+              aria-disabled={blocked}
             >
               <span className="text-xl leading-none">{filter.emoji}</span>
               <span
@@ -173,6 +188,12 @@ const InkVoiceFilterPickerComponent = ({
               })}
             </div>
           </div>
+
+          {selected.includes('autotune') && (
+            <p className="text-[10px] text-pink-300/80 pl-5" style={{ fontFamily: FONT }}>
+              🎶 Autotune finalise la hauteur après les autres effets
+            </p>
+          )}
 
           {semitones !== 0 && (
             <p className="text-[10px] text-white/55 pl-5" style={{ fontFamily: FONT }}>

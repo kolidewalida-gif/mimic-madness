@@ -66,7 +66,6 @@ const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1
 const FONT = "'Outfit', sans-serif";
 const RHYTHMO_LEAD_STORAGE_KEY = 'mimic.rhythmo.lead-seconds';
 const MAX_RHYTHMO_LEAD_SECONDS = 2;
-const ALL_READY_DELAY_MS = 2000;
 
 const clampRhythmoLeadSeconds = (value: number) =>
   Math.min(MAX_RHYTHMO_LEAD_SECONDS, sanitizeRhythmoLeadSeconds(value));
@@ -105,6 +104,8 @@ export const ImitationPhase = ({
   const [readyRetryKey, setReadyRetryKey] = useState(0);
   const submitPendingRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const forceAdvancePendingRef = useRef(false);
+  const [isForceAdvancing, setIsForceAdvancing] = useState(false);
   // Derive hasSubmitted from DB state — survives page reloads
   const hasSubmitted = readyPlayers.includes(currentPlayer.id);
   const [recordedClipId, setRecordedClipId] = useState<string | null>(null);
@@ -311,21 +312,16 @@ export const ImitationPhase = ({
     };
   }, [lobbyId, readyRetryKey, roundNumber]);
 
-  // Guard: don't fire onAllReady in the first 2s after mount — gives time for
-  // the host's reset (is_ready=false) to propagate before we check readiness.
-  // A reconnect can load every ready row during that window, so schedule the
-  // remaining delay instead of waiting for another database event.
-  const mountedAtRef = useRef(Date.now());
+  // La lecture SQL ci-dessus certifie déjà chaque rendu (clip livré ou saut
+  // explicite). Dès que tous les joueurs connectés y figurent, l'hôte peut
+  // avancer sans ajouter deux secondes d'attente artificielle.
   const allReadyNotifiedRoundRef = useRef<number | null>(null);
 
   useEffect(() => {
-    mountedAtRef.current = Date.now();
     allReadyNotifiedRoundRef.current = null;
   }, [roundNumber]);
 
   useEffect(() => {
-    // `readyPlayers` ne contient déjà que les joueurs ayant réellement rendu
-    // quelque chose : la règle vit dans `imitationReadiness`, où elle est testée.
     const allPlayersReady =
       isReadySynchronized &&
       currentPlayer.isHost &&
@@ -334,26 +330,9 @@ export const ImitationPhase = ({
         readyPlayers.map((id) => ({ player_id: id, is_ready: true, skipped: true })),
       );
 
-    if (!allPlayersReady || allReadyNotifiedRoundRef.current === roundNumber) {
-      return;
-    }
-
-    const notifyAllReady = () => {
-      if (allReadyNotifiedRoundRef.current === roundNumber) return;
-      allReadyNotifiedRoundRef.current = roundNumber;
-      onAllReady();
-    };
-
-    const elapsedMs = Date.now() - mountedAtRef.current;
-    const remainingDelayMs = Math.max(0, ALL_READY_DELAY_MS - elapsedMs);
-
-    if (remainingDelayMs === 0) {
-      notifyAllReady();
-      return;
-    }
-
-    const timeoutId = window.setTimeout(notifyAllReady, remainingDelayMs);
-    return () => window.clearTimeout(timeoutId);
+    if (!allPlayersReady || allReadyNotifiedRoundRef.current === roundNumber) return;
+    allReadyNotifiedRoundRef.current = roundNumber;
+    onAllReady();
   }, [
     currentPlayer.isHost,
     isReadySynchronized,
@@ -556,24 +535,40 @@ export const ImitationPhase = ({
   // bug, network issue), the host can force-skip not-ready players and move
   // the round forward. This avoids dead rounds when one user can't record.
   const handleForceAdvance = async () => {
-    if (!currentPlayer.isHost) return;
-    const notReady = players.filter((p) => !readyPlayers.includes(p.id));
+    if (!currentPlayer.isHost || forceAdvancePendingRef.current) return;
+    const notReady = players.filter((player) => !readyPlayers.includes(player.id));
     if (notReady.length === 0) return;
+
+    forceAdvancePendingRef.current = true;
+    setIsForceAdvancing(true);
     try {
       // Le saut est enregistré explicitement (`skipped`), et non plus déduit
       // d'une ligne prête sans clip — indistinguable d'une soumission ratée.
-      await skipMissingImitations(
+      const skipped = await skipMissingImitations(
         lobbyId,
         roundNumber,
-        notReady.map((p) => ({ id: p.id, name: p.name })),
+        notReady.map((player) => ({ id: player.id, name: player.name })),
       );
+      if (skipped > 0) {
+        // La mutation est déjà durable : cette vue locale évite d'attendre le
+        // prochain paquet Realtime avant de passer au vote.
+        setReadyPlayers((previous) => Array.from(new Set([
+          ...previous,
+          ...notReady.map((player) => player.id),
+        ])));
+      }
       toast({
-        title: 'Manche débloquée',
-        description: `${notReady.length} joueur${notReady.length > 1 ? 's' : ''} ignoré${notReady.length > 1 ? 's' : ''}.`,
+        title: skipped > 0 ? 'Manche débloquée' : 'Manche déjà synchronisée',
+        description: skipped > 0
+          ? `${skipped} joueur${skipped > 1 ? 's' : ''} ignoré${skipped > 1 ? 's' : ''}.`
+          : 'Aucun joueur ne restait à ignorer.',
       });
-    } catch (err) {
-      console.error('Error force-advancing:', err);
+    } catch (error) {
+      console.error('Error force-advancing:', error);
       toast({ title: 'Erreur', description: 'Impossible de débloquer la manche.', variant: 'destructive' });
+    } finally {
+      forceAdvancePendingRef.current = false;
+      setIsForceAdvancing(false);
     }
   };
 
@@ -889,16 +884,17 @@ export const ImitationPhase = ({
         </motion.div>
 
         {/* RIGHT pill — host skip button (only when relevant) */}
-        {currentPlayer.isHost && readyPlayers.length < players.length && readyPlayers.length > 0 && (
+        {currentPlayer.isHost && readyPlayers.length < players.length && (
           <motion.button
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
             type="button"
             onClick={handleForceAdvance}
-            whileHover={{ scale: 1.05, rotate: -1 }}
-            whileTap={{ scale: 0.95 }}
-            className="pointer-events-auto px-3 py-2 rounded-2xl flex items-center gap-1.5 flex-shrink-0"
+            disabled={isForceAdvancing}
+            whileHover={!isForceAdvancing ? { scale: 1.05, rotate: -1 } : undefined}
+            whileTap={!isForceAdvancing ? { scale: 0.95 } : undefined}
+            className="pointer-events-auto px-3 py-2 rounded-2xl flex items-center gap-1.5 flex-shrink-0 disabled:opacity-70"
             style={{
               background: "linear-gradient(180deg, #fbbf24, #d97706)",
               border: '1px solid var(--ink-line)',
@@ -907,11 +903,12 @@ export const ImitationPhase = ({
             }}
             title="Ignorer les joueurs bloqués et passer au vote"
           >
+            {isForceAdvancing && <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />}
             <span
               className="text-xs font-black uppercase tracking-wider text-white whitespace-nowrap"
               style={{ fontFamily: FONT, textShadow: SHADOW_SM }}
             >
-              ⏭ Skip
+              {isForceAdvancing ? 'Synchronisation…' : '⏭ Passer au vote'}
             </span>
           </motion.button>
         )}

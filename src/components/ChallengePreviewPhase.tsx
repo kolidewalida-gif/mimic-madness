@@ -9,6 +9,7 @@ import { playInkSound } from "@/hooks/useInkSoundEffects";
 import { cn } from "@/lib/utils";
 import { useMultiplePlayerAvatars } from "@/hooks/useGlobalPlayerAvatar";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
+import { useToast } from "@/hooks/use-toast";
 
 interface Player { id: string; name: string; isHost: boolean; }
 interface Challenge { id: string; playerId: string; playerName: string; }
@@ -26,11 +27,14 @@ export const ChallengePreviewPhase = ({
   lobbyId, roundNumber, currentPlayer, players, currentChallenge, onAllReady,
 }: ChallengePreviewPhaseProps) => {
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
+  const [isReadyPending, setIsReadyPending] = useState(false);
+  const readyPendingRef = useRef(false);
   // Derive isReady from DB state — survives page reloads and prevents desync
   const isReady = readyPlayers.includes(currentPlayer.id);
   const playerIds = useMemo(() => players.map((p) => p.id), [players]);
   const { getAvatar } = useMultiplePlayerAvatars(playerIds);
   const { setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
+  const { toast } = useToast();
 
   // Music: switch to a calmer "preview" track for the build-up before the
   // round starts. Cleared on unmount so the next phase (imitation) can pick
@@ -109,23 +113,39 @@ export const ChallengePreviewPhase = ({
   }, [readyPlayers, players, onAllReady, currentPlayer.isHost]);
 
   const handleReady = async () => {
-    if (isReady) return;
+    if (isReady || readyPendingRef.current) return;
+    readyPendingRef.current = true;
+    setIsReadyPending(true);
     try {
-      playInkSound("cartoonPop", 0.4);
-      // Broadcast instantly to all clients
-      readyBroadcastRef.current?.send({ type: 'broadcast', event: 'player_ready', payload: { playerId: currentPlayer.id } });
-      // Optimistic update
-      setReadyPlayers((prev) => prev.includes(currentPlayer.id) ? prev : [...prev, currentPlayer.id]);
-      // Persist to DB — `has_seen_preview` uniquement, jamais `is_ready`.
-      await markPreviewSeen({
+      // La base est l'autorité : aucun client ne se déclare prêt avant que la
+      // lecture de l'aperçu soit durablement enregistrée.
+      const persisted = await markPreviewSeen({
         lobbyId,
         roundNumber,
         playerId: currentPlayer.id,
         playerName: currentPlayer.name,
       });
-    } catch (e) {
-      setReadyPlayers((prev) => prev.filter((id) => id !== currentPlayer.id));
-      console.error(e);
+      if (!persisted) throw new Error("L'aperçu n'a pas pu être validé.");
+
+      setReadyPlayers((prev) => prev.includes(currentPlayer.id)
+        ? prev
+        : [...prev, currentPlayer.id]);
+      void readyBroadcastRef.current?.send({
+        type: 'broadcast',
+        event: 'player_ready',
+        payload: { playerId: currentPlayer.id },
+      });
+      playInkSound("cartoonPop", 0.4);
+    } catch (error) {
+      console.error('Error marking preview as seen:', error);
+      toast({
+        title: 'Validation impossible',
+        description: "Votre progression n'a pas été enregistrée. Réessayez.",
+        variant: 'destructive',
+      });
+    } finally {
+      readyPendingRef.current = false;
+      setIsReadyPending(false);
     }
   };
 
@@ -187,17 +207,24 @@ export const ChallengePreviewPhase = ({
               </div>
 
               {/* Ready button */}
-              <motion.button onClick={handleReady} disabled={isReady}
-                whileHover={!isReady ? { scale: 1.03, rotate: -1 } : undefined}
-                whileTap={!isReady ? { scale: 0.97 } : undefined}
-                className={cn("relative w-full py-4 rounded-2xl flex items-center justify-center gap-3", isReady && "cursor-not-allowed")}
+              <motion.button onClick={handleReady} disabled={isReady || isReadyPending}
+                whileHover={!isReady && !isReadyPending ? { scale: 1.03, rotate: -1 } : undefined}
+                whileTap={!isReady && !isReadyPending ? { scale: 0.97 } : undefined}
+                className={cn(
+                  "relative w-full py-4 rounded-2xl flex items-center justify-center gap-3",
+                  (isReady || isReadyPending) && "cursor-not-allowed",
+                )}
                 style={{
                   background: isReady ? "linear-gradient(180deg, #34d399, #059669)" : "linear-gradient(180deg, #fbbf24, #d97706)",
                   border: '1px solid var(--ink-line)', boxShadow: 'none',
                 }}>
-                {isReady ? <Check className="w-6 h-6 text-white" strokeWidth={3} /> : <Sparkles className="w-5 h-5 text-white" strokeWidth={2.5} />}
+                {isReadyPending
+                  ? <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  : isReady
+                    ? <Check className="w-6 h-6 text-white" strokeWidth={3} />
+                    : <Sparkles className="w-5 h-5 text-white" strokeWidth={2.5} />}
                 <span className="text-2xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
-                  {isReady ? "En attente des autres…" : "J'ai vu, je suis prêt !"}
+                  {isReady ? "En attente des autres…" : isReadyPending ? "Validation…" : "J'ai vu, je suis prêt !"}
                 </span>
               </motion.button>
 

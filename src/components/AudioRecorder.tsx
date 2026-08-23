@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, StopCircle, Save, Play, RotateCcw, PauseCircle, PlayCircle } from "lucide-react";
+import {
+  Mic, StopCircle, Save, Play, RotateCcw, PauseCircle, PlayCircle, Loader2,
+} from "lucide-react";
 import {
   extensionForMimeType,
   videoStorage,
@@ -260,6 +262,9 @@ const NATURAL_VOICE: VoiceFilterDef = {
   color: '#9ca3af',
 };
 
+/** Forme stable du vu-mètre : seul le niveau sonore varie entre deux rendus. */
+const AUDIO_METER_WEIGHTS = [0.48, 0.68, 0.86, 1, 0.86, 0.68, 0.48] as const;
+
 const describeVoice = (id: VoiceFilterId): VoiceFilterDef =>
   VOICE_FILTERS.find((entry) => entry.id === id) ?? NATURAL_VOICE;
 
@@ -341,6 +346,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [audioName, setAudioName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessingTake, setIsProcessingTake] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [voiceFilters, setVoiceFilters] = useState<VoiceFilterId[]>([]);
   const [audioLevel, setAudioLevel] = useState(0);
@@ -768,6 +774,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     if (segments.length === 0 || !isSessionActive(session)) return;
 
     setIsLoading(true);
+    setIsProcessingTake(true);
     try {
       const processed: Blob[] = [];
       for (const segment of segments) {
@@ -818,7 +825,10 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         variant: 'destructive',
       });
     } finally {
-      if (isSessionActive(session)) setIsLoading(false);
+      if (isSessionActive(session)) {
+        setIsLoading(false);
+        setIsProcessingTake(false);
+      }
     }
   };
 
@@ -928,6 +938,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     setAudioLevel(0);
     setIsRecording(false);
     setIsLoading(false);
+    setIsProcessingTake(false);
     setIsPaused(false);
     segmentsRef.current = [];
     setSegmentFilters([]);
@@ -944,7 +955,23 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
           </h3>
         </div>
 
-        {!isRecording && !isPaused && !recordedBlob && (
+        {isProcessingTake && !recordedBlob && (
+          <div
+            className="rounded-2xl border border-secondary/30 bg-secondary/5 px-5 py-8 text-center space-y-3"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="h-9 w-9 mx-auto text-secondary animate-spin" />
+            <p className="text-lg font-semibold text-foreground">Traitement de la voix…</p>
+            <p className="text-sm text-foreground-secondary">
+              {segmentFilters.some((stack) => stack.includes('autotune'))
+                ? 'Autotune en cours, puis préparation de l’écoute.'
+                : 'Préparation de votre imitation pour l’écoute.'}
+            </p>
+          </div>
+        )}
+
+        {!isProcessingTake && !isRecording && !isPaused && !recordedBlob && (
           <div className="space-y-4">
             {showVoiceFilters && (
               <InkVoiceFilterPicker
@@ -981,13 +1008,13 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
                 />
               </div>
 
-              <div className="flex gap-2 items-end h-16">
-                {[...Array(7)].map((_, index) => (
+              <div className="flex gap-2 items-end h-16" aria-label="Niveau du microphone">
+                {AUDIO_METER_WEIGHTS.map((weight, index) => (
                   <div
                     key={index}
                     className="w-3 bg-secondary rounded-full transition-all duration-100"
                     style={{
-                      height: `${Math.max(12, (audioLevel / 100) * 64 * (0.4 + Math.random() * 0.6))}px`,
+                      height: `${Math.max(12, (audioLevel / 100) * 64 * weight)}px`,
                     }}
                   />
                 ))}
@@ -1086,9 +1113,9 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
 
             <SegmentList filters={segmentFilters} />
 
-            {isLoading && segmentFilters.length > 1 && (
-              <p className="text-center text-xs text-foreground-secondary">
-                Assemblage des {segmentFilters.length} segments…
+            {isLoading && (
+              <p className="text-center text-xs text-foreground-secondary" role="status">
+                Envoi sécurisé de votre imitation…
               </p>
             )}
 

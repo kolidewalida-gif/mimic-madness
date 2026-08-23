@@ -9,19 +9,16 @@
  *     `megaphone` — pure filtering / distortion FX that work on a stream.
  *
  *  2. **Post-process FX** — applied to the recorded blob after the user
- *     stops recording, via OfflineAudioContext. Used for `helium` and `deep`
- *     because realistic chipmunk / deep-voice effects require shifting both
- *     pitch AND tempo (playbackRate change), which is NOT possible on a live
- *     MediaStream in Web Audio. The user hears a passthrough during
- *     recording; once they stop, we render the blob through a pitch shifter
- *     and replace the blob before saving.
- *
- * No external dependency — pure Web Audio API.
+ *     stops recording. SoundTouch conserve la durée pour les voix fixes ;
+ *     Autotune détecte F0 avec YIN puis rend des fenêtres contextuelles courtes
+ *     vers la note chromatique la plus proche. Le joueur entend le résultat
+ *     après l'arrêt, avant de décider de l'envoyer.
  */
 
 export type VoiceFilterId =
   | 'none'
   | 'robot'
+  | 'autotune'
   | 'helium'
   | 'deep'
   | 'echo'
@@ -58,6 +55,14 @@ export interface VoiceFilterDef {
 export const VOICE_FILTERS: VoiceFilterDef[] = [
   { id: 'none', label: 'Naturel', emoji: '🎤', description: 'Aucun effet', color: '#9ca3af' },
   { id: 'robot', label: 'Robot', emoji: '🤖', description: 'Voix robotique métallique', color: '#06b6d4' },
+  {
+    id: 'autotune',
+    label: 'Autotune',
+    emoji: '🎶',
+    description: 'Correction chromatique nette après l’enregistrement',
+    color: '#ec4899',
+    postProcess: true,
+  },
   { id: 'helium', label: 'Hélium', emoji: '🐿️', description: 'Voix aiguë (chipmunk)', color: '#fbbf24', postProcess: true },
   { id: 'deep', label: 'Grave', emoji: '🦁', description: 'Voix profonde de mafieux', color: '#a855f7', postProcess: true },
   { id: 'echo', label: 'Écho', emoji: '🌀', description: 'Réverbération cathédrale', color: '#f472b6' },
@@ -81,6 +86,43 @@ const SEMITONES: Partial<Record<VoiceFilterId, number>> = {
   monstre: -9,
 };
 
+/** Les transformations de hauteur fixes ne se combinent pas avec Autotune. */
+const FIXED_PITCH_FILTERS = new Set<VoiceFilterId>([
+  'helium',
+  'lutin',
+  'deep',
+  'monstre',
+]);
+
+/** Effets absents du flux direct et calculés une fois la prise terminée. */
+const POST_PROCESS_FILTERS = new Set<VoiceFilterId>([
+  ...FIXED_PITCH_FILTERS,
+  'autotune',
+]);
+
+export const hasAutotune = (filters: VoiceFilterId | VoiceFilterId[]): boolean =>
+  asList(filters).includes('autotune');
+
+/**
+ * Vérifie un ajout dans le sélecteur.
+ *
+ * Autotune corrige déjà la hauteur image par image. Lui ajouter un décalage
+ * Hélium/Grave produirait une cible ambiguë et une seconde dégradation. Les
+ * effets de timbre (Écho, Radio, Chorale…) restent, eux, librement cumulables.
+ */
+export const canStackVoiceFilter = (
+  filters: VoiceFilterId | VoiceFilterId[],
+  candidate: VoiceFilterId,
+): boolean => {
+  if (candidate === 'none') return true;
+  const selected = asList(filters);
+  if (selected.includes(candidate)) return true;
+  if (candidate === 'autotune') {
+    return !selected.some((id) => FIXED_PITCH_FILTERS.has(id));
+  }
+  return !FIXED_PITCH_FILTERS.has(candidate) || !selected.includes('autotune');
+};
+
 /**
  * Bornes du cumul de hauteur.
  *
@@ -99,9 +141,23 @@ const MAX_SEMITONES = 12;
 const asList = (filters: VoiceFilterId | VoiceFilterId[]): VoiceFilterId[] =>
   (Array.isArray(filters) ? filters : [filters]).filter((id) => id !== 'none');
 
+/**
+ * L'architecture enregistre d'abord les effets directs, puis corrige la hauteur
+ * du blob. Autotune est donc toujours placé en dernier pour que l'ordre affiché
+ * corresponde exactement à l'ordre DSP réel.
+ */
+export const normalizeVoiceFilterOrder = (
+  filters: VoiceFilterId | VoiceFilterId[],
+): VoiceFilterId[] => {
+  const selected = asList(filters);
+  return selected.includes('autotune')
+    ? [...selected.filter((id) => id !== 'autotune'), 'autotune']
+    : selected;
+};
+
 /** Les effets qui ont une chaîne temps réel, dans l'ordre choisi. */
 const liveFilters = (filters: VoiceFilterId | VoiceFilterId[]): VoiceFilterId[] =>
-  asList(filters).filter((id) => !SEMITONES[id]);
+  normalizeVoiceFilterOrder(filters).filter((id) => !POST_PROCESS_FILTERS.has(id));
 
 /**
  * Un effet temps réel, sous forme de bloc raccordable.
@@ -629,7 +685,7 @@ const buildEffect = (ctx: AudioContext, filter: VoiceFilterId): VoiceEffect | nu
  */
 export const requiresPostProcessing = (
   filters: VoiceFilterId | VoiceFilterId[],
-): boolean => asList(filters).some((id) => Boolean(SEMITONES[id]));
+): boolean => asList(filters).some((id) => POST_PROCESS_FILTERS.has(id));
 
 /**
  * Décalage de hauteur résultant du cumul, en demi-tons.
@@ -650,7 +706,7 @@ export const combinedSemitones = (
 export const describeFilters = (
   filters: VoiceFilterId | VoiceFilterId[],
 ): VoiceFilterDef[] => {
-  const chosen = asList(filters);
+  const chosen = normalizeVoiceFilterOrder(filters);
   if (chosen.length === 0) {
     return [VOICE_FILTERS[0]];
   }
@@ -659,23 +715,510 @@ export const describeFilters = (
     .filter((entry): entry is VoiceFilterDef => Boolean(entry));
 };
 
+interface PitchCorrectionPoint {
+  /** Position dans le tampon source original, en échantillons. */
+  sample: number;
+  /** Correction locale vers la note chromatique la plus proche. */
+  semitones: number;
+}
+
+const AUTOTUNE_ANALYSIS_RATE = 12_000;
+const AUTOTUNE_FRAME_SIZE = 1024;
+const AUTOTUNE_HOP_SIZE = 768;
+const AUTOTUNE_MIN_FREQUENCY = 70;
+const AUTOTUNE_MAX_FREQUENCY = 700;
+const AUTOTUNE_RMS_GATE = 0.012;
+const AUTOTUNE_YIN_THRESHOLD = 0.16;
+const AUTOTUNE_MIN_CONFIDENCE = 0.76;
+const SOUNDTOUCH_INPUT_BATCH = 16_384;
+const SOUNDTOUCH_OUTPUT_BLOCK = 2048;
+const AUTOTUNE_RENDER_WINDOW = 16_384;
+const AUTOTUNE_RENDER_HOP = 4096;
+const AUTOTUNE_CROSSFADE = 512;
+
+/** Rend périodiquement la main au navigateur pour garder l'annulation active. */
+const yieldToMainThread = (): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, 0));
+
+/** Mélange les canaux sans toucher au tampon WebAudio d'origine. */
+const mixToMono = (buffer: AudioBuffer, signal?: AbortSignal): Float32Array => {
+  const mono = new Float32Array(buffer.length);
+  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+    const input = buffer.getChannelData(channel);
+    for (let index = 0; index < input.length; index += 1) {
+      if ((index & 16_383) === 0 && signal?.aborted) return new Float32Array();
+      mono[index] += input[index];
+    }
+  }
+  if (buffer.numberOfChannels > 1) {
+    const scale = 1 / buffer.numberOfChannels;
+    for (let index = 0; index < mono.length; index += 1) mono[index] *= scale;
+  }
+  return mono;
+};
+
 /**
- * Decode the recorded blob, render it through OfflineAudioContext with a
- * pitch shift that preserves the original duration (no tempo change).
- *
- * We use a simple OLA (Overlap-Add) granular pitch shifter:
- *  - helium: +6 semitones  (ratio 1.498)
- *  - deep:   -5 semitones  (ratio 0.749)
- *
- * The algorithm:
- *  1. Decode the blob to PCM.
- *  2. Resample at pitch_ratio × original_rate into an OfflineAudioContext
- *     that has the SAME duration as the original (not scaled).
- *  3. Use a playbackRate-shifted source but render into a context whose
- *     length = original_length so the output is time-stretched back to
- *     the original duration via the browser's internal resampler.
- *
- * This gives a good-enough chipmunk / deep voice without external libs.
+ * Réduit uniquement la copie d'analyse à 12 kHz. La sortie audio garde son
+ * échantillonnage natif ; cette réduction rend YIN assez léger sur mobile.
+ */
+const downsampleForPitchAnalysis = (
+  samples: Float32Array,
+  sourceRate: number,
+  signal?: AbortSignal,
+): { samples: Float32Array; sampleRate: number; sourceRatio: number } => {
+  const sampleRate = Math.min(sourceRate, AUTOTUNE_ANALYSIS_RATE);
+  const sourceRatio = sourceRate / sampleRate;
+  if (sourceRatio <= 1) return { samples, sampleRate: sourceRate, sourceRatio: 1 };
+
+  const output = new Float32Array(Math.floor(samples.length / sourceRatio));
+  for (let index = 0; index < output.length; index += 1) {
+    if ((index & 4095) === 0 && signal?.aborted) {
+      return { samples: new Float32Array(), sampleRate, sourceRatio };
+    }
+    const start = Math.floor(index * sourceRatio);
+    const end = Math.max(start + 1, Math.floor((index + 1) * sourceRatio));
+    let sum = 0;
+    for (let sourceIndex = start; sourceIndex < end && sourceIndex < samples.length; sourceIndex += 1) {
+      sum += samples[sourceIndex];
+    }
+    output[index] = sum / Math.max(1, Math.min(end, samples.length) - start);
+  }
+  return { samples: output, sampleRate, sourceRatio };
+};
+
+/** Détection YIN locale : fréquence nulle pour le silence ou une trame ambiguë. */
+const detectPitchYin = (
+  samples: Float32Array,
+  offset: number,
+  sampleRate: number,
+  difference: Float32Array,
+  normalized: Float32Array,
+): number | null => {
+  let mean = 0;
+  for (let index = 0; index < AUTOTUNE_FRAME_SIZE; index += 1) {
+    mean += samples[offset + index];
+  }
+  mean /= AUTOTUNE_FRAME_SIZE;
+
+  let energy = 0;
+  for (let index = 0; index < AUTOTUNE_FRAME_SIZE; index += 1) {
+    const centered = samples[offset + index] - mean;
+    energy += centered * centered;
+  }
+  if (Math.sqrt(energy / AUTOTUNE_FRAME_SIZE) < AUTOTUNE_RMS_GATE) return null;
+
+  const minLag = Math.max(2, Math.floor(sampleRate / AUTOTUNE_MAX_FREQUENCY));
+  const maxLag = Math.min(
+    difference.length - 1,
+    Math.ceil(sampleRate / AUTOTUNE_MIN_FREQUENCY),
+  );
+  const comparedSamples = AUTOTUNE_FRAME_SIZE - maxLag;
+
+  difference[0] = 0;
+  for (let lag = 1; lag <= maxLag; lag += 1) {
+    let sum = 0;
+    for (let index = 0; index < comparedSamples; index += 1) {
+      const delta = samples[offset + index] - samples[offset + index + lag];
+      sum += delta * delta;
+    }
+    difference[lag] = sum;
+  }
+
+  normalized[0] = 1;
+  let cumulative = 0;
+  for (let lag = 1; lag <= maxLag; lag += 1) {
+    cumulative += difference[lag];
+    normalized[lag] = cumulative > 0 ? (difference[lag] * lag) / cumulative : 1;
+  }
+
+  let bestLag = -1;
+  for (let lag = minLag; lag <= maxLag; lag += 1) {
+    if (normalized[lag] >= AUTOTUNE_YIN_THRESHOLD) continue;
+    while (lag + 1 <= maxLag && normalized[lag + 1] < normalized[lag]) lag += 1;
+    bestLag = lag;
+    break;
+  }
+  if (bestLag < 0 || 1 - normalized[bestLag] < AUTOTUNE_MIN_CONFIDENCE) return null;
+
+  const left = normalized[Math.max(1, bestLag - 1)];
+  const center = normalized[bestLag];
+  const right = normalized[Math.min(maxLag, bestLag + 1)];
+  const denominator = left - 2 * center + right;
+  const refinedLag = Math.abs(denominator) > 1e-8
+    ? bestLag + (left - right) / (2 * denominator)
+    : bestLag;
+  const frequency = sampleRate / refinedLag;
+  return Number.isFinite(frequency) &&
+    frequency >= AUTOTUNE_MIN_FREQUENCY &&
+    frequency <= AUTOTUNE_MAX_FREQUENCY
+    ? frequency
+    : null;
+};
+
+/**
+ * Produit une enveloppe de correction chromatique lissée. Chaque trame reste à
+ * 100 % sur sa note cible (« hard tune »), mais les changements sont bornés
+ * pour éviter les clics aux frontières des blocs SoundTouch.
+ */
+const analyzeAutotune = async (
+  buffer: AudioBuffer,
+  signal?: AbortSignal,
+): Promise<PitchCorrectionPoint[]> => {
+  const mono = mixToMono(buffer, signal);
+  if (signal?.aborted || mono.length === 0) return [];
+  const analysis = downsampleForPitchAnalysis(mono, buffer.sampleRate, signal);
+  if (signal?.aborted || analysis.samples.length < AUTOTUNE_FRAME_SIZE) return [];
+
+  const maxLag = Math.ceil(analysis.sampleRate / AUTOTUNE_MIN_FREQUENCY);
+  const difference = new Float32Array(maxLag + 1);
+  const normalized = new Float32Array(maxLag + 1);
+  const points: PitchCorrectionPoint[] = [];
+  let previousCorrection = 0;
+  let previousWasVoiced = false;
+  let voicedFrames = 0;
+
+  for (
+    let offset = 0;
+    offset + AUTOTUNE_FRAME_SIZE <= analysis.samples.length;
+    offset += AUTOTUNE_HOP_SIZE
+  ) {
+    if (signal?.aborted) return [];
+    const frequency = detectPitchYin(
+      analysis.samples,
+      offset,
+      analysis.sampleRate,
+      difference,
+      normalized,
+    );
+
+    let correction = 0;
+    if (frequency !== null) {
+      const midi = 69 + 12 * Math.log2(frequency / 440);
+      const target = Math.round(midi) - midi;
+      correction = previousWasVoiced
+        ? previousCorrection + Math.max(-0.28, Math.min(0.28, target - previousCorrection))
+        : target;
+      previousWasVoiced = true;
+      voicedFrames += 1;
+    } else {
+      // Revenir rapidement au naturel dans les consonnes et les silences évite
+      // de tirer leur bruit vers la dernière note détectée.
+      correction = previousCorrection * 0.35;
+      if (Math.abs(correction) < 0.015) correction = 0;
+      previousWasVoiced = false;
+    }
+
+    previousCorrection = correction;
+    points.push({
+      sample: Math.round((offset + AUTOTUNE_FRAME_SIZE / 2) * analysis.sourceRatio),
+      semitones: correction,
+    });
+
+    if (points.length % 16 === 0) {
+      await yieldToMainThread();
+      if (signal?.aborted) return [];
+    }
+  }
+
+  return voicedFrames > 0 ? points : [];
+};
+
+interface SoundTouchPipeline {
+  stretch: {
+    setParameters: (
+      sampleRate: number,
+      sequenceMs: number,
+      seekWindowMs: number,
+      overlapMs: number,
+    ) => void;
+  };
+  pitchSemitones: number;
+  tempo: number;
+  rate: number;
+}
+
+interface SoundTouchSource {
+  extract: (target: Float32Array, frames: number, position: number) => number;
+}
+
+interface SoundTouchFilter {
+  extract: (target: Float32Array, frames: number) => number;
+}
+
+interface SoundTouchConstructor {
+  new (): SoundTouchPipeline;
+}
+
+interface SimpleFilterConstructor {
+  new (source: SoundTouchSource, pipeline: SoundTouchPipeline): SoundTouchFilter;
+}
+
+interface SoundTouchConstructors {
+  SoundTouch: SoundTouchConstructor;
+  SimpleFilter: SimpleFilterConstructor;
+}
+
+/**
+ * Source stéréo virtuelle : une tranche du buffer, puis assez de silence pour
+ * vider réellement SoundTouch. La version précédente s'arrêtait avant sa queue
+ * et remplaçait jusqu'à plusieurs centaines de millisecondes par des zéros.
+ */
+const createPaddedSoundTouchSource = (
+  buffer: AudioBuffer,
+  startFrame: number,
+  signalFrames: number,
+  totalFrames: number,
+): SoundTouchSource => {
+  const left = buffer.getChannelData(0);
+  const right = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : left;
+
+  return {
+    extract: (target, requestedFrames, position) => {
+      const extracted = Math.max(0, Math.min(requestedFrames, totalFrames - position));
+      target.fill(0, 0, extracted * 2);
+      const sourceFrames = Math.max(0, Math.min(extracted, signalFrames - position));
+      for (let frame = 0; frame < sourceFrames; frame += 1) {
+        const sourceFrame = startFrame + position + frame;
+        if (sourceFrame < 0 || sourceFrame >= buffer.length) continue;
+        target[frame * 2] = left[sourceFrame];
+        target[frame * 2 + 1] = right[sourceFrame];
+      }
+      return extracted;
+    },
+  };
+};
+
+/** Rend une tranche avec un décalage fixe et une queue SoundTouch vidée. */
+const renderSoundTouchSlice = (
+  buffer: AudioBuffer,
+  startFrame: number,
+  frameCount: number,
+  semitones: number,
+  constructors: SoundTouchConstructors,
+  localWindow: boolean,
+  signal?: AbortSignal,
+): Float32Array => {
+  const paddedFrames = Math.ceil(
+    (frameCount + SOUNDTOUCH_INPUT_BATCH) / SOUNDTOUCH_INPUT_BATCH,
+  ) * SOUNDTOUCH_INPUT_BATCH;
+  const source = createPaddedSoundTouchSource(
+    buffer,
+    startFrame,
+    frameCount,
+    paddedFrames,
+  );
+  const soundTouch = new constructors.SoundTouch();
+  // SoundTouchJS démarre sinon avec 44,1 kHz, même sur un micro 48 kHz.
+  soundTouch.stretch.setParameters(
+    buffer.sampleRate,
+    localWindow ? 24 : 0,
+    localWindow ? 12 : 0,
+    localWindow ? 6 : 8,
+  );
+  soundTouch.pitchSemitones = semitones;
+  soundTouch.tempo = 1;
+  soundTouch.rate = 1;
+
+  const filter = new constructors.SimpleFilter(source, soundTouch);
+  const output = new Float32Array(frameCount * 2);
+  const temporary = new Float32Array(SOUNDTOUCH_OUTPUT_BLOCK * 2);
+  let writtenFrames = 0;
+
+  while (writtenFrames < frameCount && !signal?.aborted) {
+    const received = filter.extract(temporary, SOUNDTOUCH_OUTPUT_BLOCK);
+    if (received <= 0) break;
+    const copied = Math.min(received, frameCount - writtenFrames);
+    output.set(temporary.subarray(0, copied * 2), writtenFrames * 2);
+    writtenFrames += copied;
+  }
+
+  // Repli sans trou si un navigateur rend exceptionnellement moins que la
+  // tranche demandée. Pour Autotune cette zone reste hors de la partie centrale
+  // utilisée ; pour une voix fixe elle est ensuite fondue avec la fin originale.
+  if (writtenFrames < frameCount) {
+    const left = buffer.getChannelData(0);
+    const right = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : left;
+    for (let frame = writtenFrames; frame < frameCount; frame += 1) {
+      const sourceFrame = startFrame + frame;
+      if (sourceFrame < 0 || sourceFrame >= buffer.length) continue;
+      output[frame * 2] = left[sourceFrame];
+      output[frame * 2 + 1] = right[sourceFrame];
+    }
+  }
+
+  return output;
+};
+
+/**
+ * Autotune local : chaque bloc de 85–93 ms reçoit sa correction propre dans un
+ * rendu SoundTouch indépendant avec 128 ms de contexte de chaque côté. Seule
+ * la zone centrale est conservée, puis fondue sur 10 ms avec le bloc voisin.
+ * Le gros tampon interne de SimpleFilter ne peut donc plus avaler plusieurs
+ * notes sous une seule valeur de pitch.
+ */
+const renderAutotuneBuffer = async (
+  buffer: AudioBuffer,
+  corrections: PitchCorrectionPoint[],
+  baseSemitones: number,
+  constructors: SoundTouchConstructors,
+  signal?: AbortSignal,
+): Promise<AudioBuffer> => {
+  const outputChannels = Math.min(buffer.numberOfChannels, 2);
+  const sourceChannels = Array.from(
+    { length: outputChannels },
+    (_, channel) => buffer.getChannelData(channel),
+  );
+  const sums = Array.from(
+    { length: outputChannels },
+    () => new Float32Array(buffer.length),
+  );
+  const weights = new Float32Array(buffer.length);
+  const contextFrames = Math.floor(
+    (AUTOTUNE_RENDER_WINDOW - AUTOTUNE_RENDER_HOP) / 2,
+  );
+  const candidateStart = contextFrames - AUTOTUNE_CROSSFADE;
+  const candidateFrames = AUTOTUNE_RENDER_HOP + AUTOTUNE_CROSSFADE * 2;
+  let correctionIndex = 0;
+  let blockIndex = 0;
+
+  const correctionAt = (sample: number): number => {
+    while (
+      correctionIndex + 1 < corrections.length &&
+      corrections[correctionIndex + 1].sample <= sample
+    ) {
+      correctionIndex += 1;
+    }
+    const current = corrections[correctionIndex];
+    const next = corrections[Math.min(correctionIndex + 1, corrections.length - 1)];
+    const width = next.sample - current.sample;
+    if (width <= 0) return current.semitones;
+    const progress = Math.max(0, Math.min(1, (sample - current.sample) / width));
+    return current.semitones + (next.semitones - current.semitones) * progress;
+  };
+
+  for (
+    let blockStart = 0;
+    blockStart < buffer.length;
+    blockStart += AUTOTUNE_RENDER_HOP
+  ) {
+    if (signal?.aborted) return buffer;
+    const center = Math.min(
+      buffer.length - 1,
+      blockStart + Math.floor(AUTOTUNE_RENDER_HOP / 2),
+    );
+    const localSemitones = Math.max(
+      MIN_SEMITONES,
+      Math.min(MAX_SEMITONES, baseSemitones + correctionAt(center)),
+    );
+    const windowStart = blockStart - contextFrames;
+    const tuned = Math.abs(localSemitones) >= 0.01
+      ? renderSoundTouchSlice(
+          buffer,
+          windowStart,
+          AUTOTUNE_RENDER_WINDOW,
+          localSemitones,
+          constructors,
+          true,
+          signal,
+        )
+      : null;
+
+    for (let candidateFrame = 0; candidateFrame < candidateFrames; candidateFrame += 1) {
+      const localFrame = candidateStart + candidateFrame;
+      const destinationFrame = blockStart - AUTOTUNE_CROSSFADE + candidateFrame;
+      if (destinationFrame < 0 || destinationFrame >= buffer.length) continue;
+
+      const relative = destinationFrame - blockStart;
+      let weight = 1;
+      if (relative < AUTOTUNE_CROSSFADE) {
+        weight = (relative + AUTOTUNE_CROSSFADE) / (AUTOTUNE_CROSSFADE * 2);
+      } else if (relative > AUTOTUNE_RENDER_HOP - AUTOTUNE_CROSSFADE) {
+        weight = (
+          AUTOTUNE_RENDER_HOP + AUTOTUNE_CROSSFADE - relative
+        ) / (AUTOTUNE_CROSSFADE * 2);
+      }
+      if (weight <= 0) continue;
+
+      const sourceFrame = windowStart + localFrame;
+      for (let channel = 0; channel < outputChannels; channel += 1) {
+        const sample = tuned
+          ? tuned[localFrame * 2 + channel] ?? 0
+          : sourceFrame >= 0 && sourceFrame < buffer.length
+            ? sourceChannels[channel][sourceFrame]
+            : 0;
+        sums[channel][destinationFrame] += sample * weight;
+      }
+      weights[destinationFrame] += weight;
+    }
+
+    blockIndex += 1;
+    if (blockIndex % 6 === 0) {
+      await yieldToMainThread();
+      if (signal?.aborted) return buffer;
+    }
+  }
+
+  const rendered = new AudioBuffer({
+    numberOfChannels: outputChannels,
+    length: buffer.length,
+    sampleRate: buffer.sampleRate,
+  });
+  for (let channel = 0; channel < outputChannels; channel += 1) {
+    const output = rendered.getChannelData(channel);
+    for (let frame = 0; frame < buffer.length; frame += 1) {
+      if ((frame & 8191) === 0 && signal?.aborted) return buffer;
+      output[frame] = weights[frame] > 1e-6
+        ? sums[channel][frame] / weights[frame]
+        : sourceChannels[channel][frame];
+    }
+  }
+  return rendered;
+};
+
+/** Décalage fixe à durée exacte, avec une fin audible garantie. */
+const renderFixedPitchBuffer = (
+  buffer: AudioBuffer,
+  semitones: number,
+  constructors: SoundTouchConstructors,
+  signal?: AbortSignal,
+): AudioBuffer => {
+  const outputChannels = Math.min(buffer.numberOfChannels, 2);
+  const interleaved = renderSoundTouchSlice(
+    buffer,
+    0,
+    buffer.length,
+    semitones,
+    constructors,
+    false,
+    signal,
+  );
+  const rendered = new AudioBuffer({
+    numberOfChannels: outputChannels,
+    length: buffer.length,
+    sampleRate: buffer.sampleRate,
+  });
+  const tailFadeFrames = Math.min(buffer.length, Math.round(buffer.sampleRate * 0.04));
+  const tailFadeStart = buffer.length - tailFadeFrames;
+
+  for (let channel = 0; channel < outputChannels; channel += 1) {
+    const output = rendered.getChannelData(channel);
+    const original = buffer.getChannelData(Math.min(channel, buffer.numberOfChannels - 1));
+    for (let frame = 0; frame < buffer.length; frame += 1) {
+      let sample = interleaved[frame * 2 + channel] ?? original[frame];
+      if (tailFadeFrames > 1 && frame >= tailFadeStart) {
+        const originalMix = (frame - tailFadeStart) / (tailFadeFrames - 1);
+        sample = sample * (1 - originalMix) + original[frame] * originalMix;
+      }
+      output[frame] = sample;
+    }
+  }
+  return rendered;
+};
+
+/**
+ * Decode the recorded blob and render it through SoundTouch while preserving
+ * its exact duration. Fixed voices use one pitch offset; Autotune renders
+ * short contextual blocks so every detected note receives its own correction.
  */
 export const postProcessRecordedBlob = async (
   blob: Blob,
@@ -685,8 +1228,8 @@ export const postProcessRecordedBlob = async (
   if (!requiresPostProcessing(filters) || signal?.aborted) return blob;
 
   const semitones = combinedSemitones(filters);
-  if (semitones === 0) return blob;
-  // Le renfort de graves n'a de sens que pour une voix descendue.
+  const autotune = hasAutotune(filters);
+  if (semitones === 0 && !autotune) return blob;
   const deepen = semitones < 0;
 
   try {
@@ -710,51 +1253,36 @@ export const postProcessRecordedBlob = async (
     }
     if (signal?.aborted) return blob;
 
-    // Use SoundTouchJS for pitch shifting that preserves duration.
-    const { SoundTouch, SimpleFilter, WebAudioBufferSource } = await import('soundtouchjs');
+    const corrections = autotune ? await analyzeAutotune(sourceBuffer, signal) : [];
     if (signal?.aborted) return blob;
+    // Une prise sans hauteur fiable (silence, souffle, percussion) reste intacte
+    // plutôt que de lui inventer une note et des artefacts.
+    if (autotune && corrections.length === 0 && semitones === 0) return blob;
 
-    const sampleRate = sourceBuffer.sampleRate;
-    const numChannels = sourceBuffer.numberOfChannels;
-    const originalLength = sourceBuffer.length;
-
-    const soundTouch = new SoundTouch(sampleRate);
-    soundTouch.pitchSemitones = semitones;
-    soundTouch.tempo = 1;
-    soundTouch.rate = 1;
-
-    const source = new WebAudioBufferSource(sourceBuffer);
-    const filterNode = new SimpleFilter(source, soundTouch);
-    const blockSize = 4096;
-    const interleaved: number[] = [];
-    const temporary = new Float32Array(blockSize * 2);
-    let received = filterNode.extract(temporary, blockSize);
-    while (received > 0) {
-      if (signal?.aborted) return blob;
-      for (let index = 0; index < received * 2; index += 1) {
-        interleaved.push(temporary[index]);
-      }
-      received = filterNode.extract(temporary, blockSize);
-    }
+    const soundTouchModule = await import('soundtouchjs');
     if (signal?.aborted) return blob;
+    const constructors: SoundTouchConstructors = {
+      SoundTouch: soundTouchModule.SoundTouch as unknown as SoundTouchConstructor,
+      SimpleFilter: soundTouchModule.SimpleFilter as unknown as SimpleFilterConstructor,
+    };
 
-    const outputFrames = Math.min(Math.floor(interleaved.length / 2), originalLength);
-    const outputChannels = Math.min(numChannels, 2);
-    const shiftedBuffer = new AudioBuffer({
-      numberOfChannels: outputChannels,
-      length: outputFrames,
-      sampleRate,
-    });
-    for (let channel = 0; channel < outputChannels; channel += 1) {
-      const channelData = shiftedBuffer.getChannelData(channel);
-      for (let index = 0; index < outputFrames; index += 1) {
-        if ((index & 4095) === 0 && signal?.aborted) return blob;
-        channelData[index] = interleaved[index * 2 + channel] ?? 0;
-      }
-    }
+    const shiftedBuffer = autotune
+      ? await renderAutotuneBuffer(
+          sourceBuffer,
+          corrections,
+          semitones,
+          constructors,
+          signal,
+        )
+      : renderFixedPitchBuffer(sourceBuffer, semitones, constructors, signal);
+    if (signal?.aborted) return blob;
 
     if (deepen) {
-      const enhancementContext = new OfflineAudioContext(outputChannels, outputFrames, sampleRate);
+      const enhancementContext = new OfflineAudioContext(
+        shiftedBuffer.numberOfChannels,
+        shiftedBuffer.length,
+        shiftedBuffer.sampleRate,
+      );
       const enhancementSource = enhancementContext.createBufferSource();
       enhancementSource.buffer = shiftedBuffer;
       const shelf = enhancementContext.createBiquadFilter();

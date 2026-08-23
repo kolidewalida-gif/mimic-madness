@@ -120,7 +120,7 @@ describe('ImitationPhase host auto-advance', () => {
     vi.useRealTimers();
   });
 
-  it('waits for the full safety delay when every player is ready immediately', async () => {
+  it('advances as soon as every certified rendition is loaded', async () => {
     const onAllReady = vi.fn();
 
     render(
@@ -139,10 +139,6 @@ describe('ImitationPhase host auto-advance', () => {
       await Promise.resolve();
     });
 
-    act(() => vi.advanceTimersByTime(1999));
-    expect(onAllReady).not.toHaveBeenCalled();
-
-    act(() => vi.advanceTimersByTime(1));
     expect(onAllReady).toHaveBeenCalledTimes(1);
 
     act(() => vi.advanceTimersByTime(5000));

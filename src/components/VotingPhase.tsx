@@ -3,7 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { VideoWithAudioOverlay, VideoWithAudioOverlayRef } from "@/components/VideoWithAudioOverlay";
 import { TeamVideoOverlay, TeamVideoOverlayRef } from "@/components/TeamVideoOverlay";
 import { CountdownOverlay } from "@/components/CountdownOverlay";
-import { ThumbsUp, ThumbsDown, Trophy, Play, Pause, ChevronRight, Swords, Sparkles, Zap } from "lucide-react";
+import {
+  ThumbsUp, ThumbsDown, Trophy, Play, Pause, ChevronRight, Swords, Sparkles, Zap,
+  Loader2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { videoStorage } from "@/lib/videoStorageSupabase";
@@ -107,6 +110,7 @@ export const VotingPhase = ({
   const [isVotePending, setIsVotePending] = useState(false);
   const votePendingRef = useRef(false);
   const sessionActionPendingRef = useRef(false);
+  const [isSessionActionPending, setIsSessionActionPending] = useState(false);
   const votingSessionRef = useRef<VotingSessionSnapshot | null>(null);
   const requestSessionSnapshotRef = useRef<() => Promise<void>>(async () => undefined);
   const [showCountdown, setShowCountdown] = useState(false);
@@ -755,6 +759,7 @@ export const VotingPhase = ({
     ) return false;
 
     sessionActionPendingRef.current = true;
+    setIsSessionActionPending(true);
     try {
       const changed = await mutateVotingSession(
         snapshot.id,
@@ -783,6 +788,7 @@ export const VotingPhase = ({
       return false;
     } finally {
       sessionActionPendingRef.current = false;
+      setIsSessionActionPending(false);
     }
   };
 
@@ -975,13 +981,20 @@ export const VotingPhase = ({
                     terminer, puisque rien ne signale la fin du média. */}
                 <motion.button onClick={handleTogglePlay}
                   disabled={!votingSessionId || !isSessionSynchronized || pendingPlay
-                    || showCountdown || !currentHasAudio}
-                  whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
+                    || showCountdown || !currentHasAudio || isSessionActionPending}
+                  whileHover={!isSessionActionPending ? { scale: 1.05, rotate: -2 } : undefined}
+                  whileTap={!isSessionActionPending ? { scale: 0.95 } : undefined}
                   className="flex items-center gap-2 px-5 py-3 rounded-2xl disabled:opacity-50"
                   style={{ background: isPlayingSynced ? "linear-gradient(180deg, #6b7280, #4b5563)" : "var(--ink-accent)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-                  {isPlayingSynced ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white" />}
+                  {isSessionActionPending
+                    ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    : isPlayingSynced
+                      ? <Pause className="w-5 h-5 text-white" />
+                      : <Play className="w-5 h-5 text-white" />}
                   <span className="text-lg font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
-                    {isPlayingSynced ? "Pause" : "Lancer pour tous 🎬"}
+                    {isSessionActionPending
+                      ? 'Synchronisation…'
+                      : isPlayingSynced ? "Pause" : "Lancer pour tous 🎬"}
                   </span>
                 </motion.button>
               </div>
@@ -1009,7 +1022,7 @@ export const VotingPhase = ({
                 </div>
               )}
 
-              {voteAvailability.kind === 'votable' && (
+              {voteAvailability.kind === 'votable' && !hasVotedCurrent && (
                 <div className="flex gap-4 w-full max-w-sm">
                   <motion.button onClick={(e) => handleVote('dislike', e)}
                     disabled={!votingSessionId || !isSessionSynchronized || isVotePending}
@@ -1042,12 +1055,16 @@ export const VotingPhase = ({
 
               {currentPlayer.isHost && (
                 <motion.button onClick={handleNext}
-                  disabled={!votingSessionId || !isSessionSynchronized}
-                  whileHover={{ scale: 1.05, rotate: -1 }} whileTap={{ scale: 0.97 }}
+                  disabled={!votingSessionId || !isSessionSynchronized || isSessionActionPending}
+                  whileHover={!isSessionActionPending ? { scale: 1.05, rotate: -1 } : undefined}
+                  whileTap={!isSessionActionPending ? { scale: 0.97 } : undefined}
                   className="flex items-center gap-2 px-6 py-3 rounded-2xl disabled:opacity-50"
                   style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-                  <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>Suivant</span>
-                  <ChevronRight className="w-5 h-5 text-white" />
+                  {isSessionActionPending && <Loader2 className="w-5 h-5 text-white animate-spin" />}
+                  <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
+                    {isSessionActionPending ? 'Passage…' : 'Suivant'}
+                  </span>
+                  {!isSessionActionPending && <ChevronRight className="w-5 h-5 text-white" />}
                 </motion.button>
               )}
             </div>

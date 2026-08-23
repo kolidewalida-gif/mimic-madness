@@ -72,7 +72,11 @@ export const ResultsPhase = ({
   const [isResultsSynchronized, setIsResultsSynchronized] = useState(false);
   const [resultsRetryKey, setResultsRetryKey] = useState(0);
   const resultsRetryAttemptRef = useRef(0);
-  const [showVictoryAnimation, setShowVictoryAnimation] = useState(true);
+  const celebratedRoundRef = useRef<number | null>(null);
+  const victoryTimersRef = useRef<{
+    wave: ReturnType<typeof setTimeout>;
+  } | null>(null);
+  const [showVictoryAnimation, setShowVictoryAnimation] = useState(false);
   const [downloadingPlayer, setDownloadingPlayer] = useState<string | null>(null);
   const [sharedClipIds, setSharedClipIds] = useState<Set<string>>(new Set());
   const [sharingPlayer, setSharingPlayer] = useState<string | null>(null);
@@ -88,19 +92,17 @@ export const ResultsPhase = ({
   const { toast } = useToast();
   const { setSituation, clearSituationOverride, play, autoMode } = useBackgroundMusic();
 
-  // Trigger victory music when results screen mounts (auto mode only)
-  // NOTE: deps intentionally omit `play` (it changes whenever the current track
-  // changes, which would create an infinite loop with the auto-switch effect).
+  // La musique de victoire attend elle aussi un classement certifié : arriver
+  // sur un écran encore vide ne doit pas annoncer un gagnant imaginaire.
+  // NOTE: `play` reste volontairement hors dépendances (sa référence change à
+  // chaque piste et créerait une boucle avec le mode automatique).
   useEffect(() => {
-    if (autoMode) {
-      setSituation("victory", { priority: 3, holdMs: 4500, source: "results-phase" });
-      play();
-    }
-    return () => {
-      if (autoMode) clearSituationOverride("results-phase");
-    };
+    if (!autoMode || !isResultsSynchronized) return;
+    setSituation("victory", { priority: 3, holdMs: 4500, source: "results-phase" });
+    play();
+    return () => clearSituationOverride("results-phase");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoMode]);
+  }, [autoMode, isResultsSynchronized]);
 
   const handleDownloadImitation = async (playerId: string, playerName: string) => {
     setDownloadingPlayer(playerId);
@@ -213,34 +215,21 @@ export const ResultsPhase = ({
     }
   };
 
-  // Play success sound and hide animation after delay
-  useEffect(() => {
-    playSound('success');
-    // 🎉 Dopamine burst on results reveal
-    juice.confetti({ count: 140 });
-    juice.flash('primary', 320);
-    juice.shake(260, 0.8);
-    // Second wave for sustained celebration
-    const wave = setTimeout(() => juice.confetti({ count: 80 }), 700);
-    const timer = setTimeout(() => setShowVictoryAnimation(false), 4000);
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(wave);
-    };
-  }, [playSound]);
-
-  // Subscribe first, then aggregate from SQL. A vote committed just before
-  // this screen mounted is therefore still counted.
+  // Agrège depuis SQL immédiatement ; Realtime ne sert qu'à déclencher des
+  // relectures plus rapides après un vote.
   useEffect(() => {
     let isMounted = true;
     let subscribed = false;
     let channelEpoch = 0;
     let latestRequest = 0;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let channelRetryTimer: ReturnType<typeof setTimeout> | null = null;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const loadResults = async () => {
-      if (!isMounted || !subscribed) return;
+      // SQL reste la source d'autorité même si le transport Realtime est
+      // bloqué par le réseau. Le canal ne sert qu'à accélérer les relectures.
+      if (!isMounted) return;
       const requestId = ++latestRequest;
       const requestEpoch = channelEpoch;
 
@@ -354,24 +343,38 @@ export const ResultsPhase = ({
         if (!isMounted) return;
         if (status === 'SUBSCRIBED') {
           subscribed = true;
+          if (channelRetryTimer) {
+            clearTimeout(channelRetryTimer);
+            channelRetryTimer = null;
+          }
           channelEpoch += 1;
           void loadResults();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           subscribed = false;
           channelEpoch += 1;
           latestRequest += 1;
-          setIsResultsSynchronized(false);
-          if (!retryTimer) {
-            retryTimer = setTimeout(() => {
-              retryTimer = null;
+          // Une panne WebSocket n'invalide pas le dernier agrégat SQL. On le
+          // relit immédiatement et on reconnecte le canal séparément.
+          void loadResults();
+          if (!channelRetryTimer) {
+            channelRetryTimer = setTimeout(() => {
+              channelRetryTimer = null;
               setResultsRetryKey((value) => value + 1);
             }, equalJitterBackoff(resultsRetryAttemptRef.current, 1_000, 10_000));
           }
         }
       });
 
+    // Première lecture immédiate, puis secours périodique tant que le canal ne
+    // peut pas nous notifier. Les résultats restent donc disponibles en HTTP.
+    void loadResults();
+    const fallbackTimer = setInterval(() => {
+      if (!isMounted || subscribed) return;
+      void loadResults();
+    }, 4_000);
+
     const resync = () => {
-      if (navigator.onLine && subscribed) void loadResults();
+      if (navigator.onLine) void loadResults();
     };
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') resync();
@@ -385,7 +388,9 @@ export const ResultsPhase = ({
       channelEpoch += 1;
       latestRequest += 1;
       if (retryTimer) clearTimeout(retryTimer);
+      if (channelRetryTimer) clearTimeout(channelRetryTimer);
       if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(fallbackTimer);
       window.removeEventListener('online', resync);
       document.removeEventListener('visibilitychange', handleVisibility);
       void supabase.removeChannel(channel);
@@ -398,6 +403,46 @@ export const ResultsPhase = ({
   const winnerLabel = gameMode === '2v2'
     ? winnerTeam?.playerNames.join(' & ')
     : winner?.playerName;
+
+  // Son, confettis et overlay ne partent qu'une fois l'agrégat SQL certifié.
+  // Le garde par numéro de manche évite une seconde explosion à chaque update
+  // Realtime contenant exactement le même classement.
+  useEffect(() => {
+    if (
+      !isResultsSynchronized ||
+      !winnerLabel ||
+      celebratedRoundRef.current === roundNumber
+    ) return;
+
+    celebratedRoundRef.current = roundNumber;
+    setShowVictoryAnimation(true);
+    playSound('success');
+    juice.confetti({ count: 140 });
+    juice.flash('primary', 320);
+    juice.shake(260, 0.8);
+    if (victoryTimersRef.current) {
+      clearTimeout(victoryTimersRef.current.wave);
+    }
+    const wave = setTimeout(() => {
+      juice.confetti({ count: 80 });
+      victoryTimersRef.current = null;
+    }, 700);
+    victoryTimersRef.current = { wave };
+  }, [isResultsSynchronized, playSound, roundNumber, winnerLabel]);
+
+  // La fermeture dépend uniquement de l'overlay lui-même : un nouveau gagnant
+  // ou une resynchronisation ne peut donc pas annuler ce délai.
+  useEffect(() => {
+    if (!showVictoryAnimation) return;
+    const hide = setTimeout(() => setShowVictoryAnimation(false), 4000);
+    return () => clearTimeout(hide);
+  }, [roundNumber, showVictoryAnimation]);
+
+  useEffect(() => () => {
+    if (!victoryTimersRef.current) return;
+    clearTimeout(victoryTimersRef.current.wave);
+    victoryTimersRef.current = null;
+  }, []);
 
   // Fetch the challenge clip id for this round once
   useEffect(() => {
