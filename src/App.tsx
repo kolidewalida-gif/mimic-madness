@@ -7,6 +7,7 @@ import { BackgroundMusicProvider } from "@/hooks/useBackgroundMusic";
 import { SoundEffectsVolumeProvider } from "@/hooks/useSoundEffectsVolume";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
+import { AdFreeProvider } from "@/hooks/useAdFree";
 import { XpProvider } from "@/contexts/XpContext";
 import { XpGainPopup } from "@/components/XpGainPopup";
 import { RewardNotification } from "@/components/RewardNotification";
@@ -37,7 +38,8 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <ThemeProvider>
+      <AdFreeProvider>
+        <ThemeProvider>
         <BackgroundMusicProvider>
           <SoundEffectsVolumeProvider>
             <XpProvider>
@@ -68,7 +70,8 @@ const App = () => (
             </XpProvider>
           </SoundEffectsVolumeProvider>
         </BackgroundMusicProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </AdFreeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

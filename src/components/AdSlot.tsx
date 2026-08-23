@@ -6,6 +6,7 @@
  * exclusivement mesurés dans les rapports AdSense.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAdFree } from '@/hooks/useAdFree';
 import {
   createAdImpressionId,
   recordAdEvent,
@@ -352,6 +353,11 @@ export function AdSlot({
   loadAfterMs = 0,
   ...props
 }: AdSlotProps) {
+  const { isAdFree, isResolved } = useAdFree();
+
+  // Fail closed: no AdSense lifecycle starts before the entitlement is known.
+  if (!isResolved || isAdFree) return null;
+
   const lifecycleKey = [
     props.screen,
     props.placement,

@@ -7,6 +7,7 @@ import {
   Crown,
   Gift,
   Hash,
+  Heart,
   Keyboard,
   LogIn,
   Palette,
@@ -40,6 +41,7 @@ import { InkPatchNoteModal, CURRENT_VERSION } from '@/components/InkPatchNoteMod
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { AdSlot } from '@/components/AdSlot';
+import { SupportMimicMasterDialog } from '@/components/SupportMimicMasterDialog';
 
 import {
   GameAvatar,
@@ -112,6 +114,8 @@ const InkHomeScreenComponent = ({
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showFriendsDrawer, setShowFriendsDrawer] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
+  const [supportFromProfile, setSupportFromProfile] = useState(false);
   /*
    * Destinations du pôle profil. L'état vit ici et non dans
    * `InkProfileSidebar` : ces tiroirs y étaient montés *à l'intérieur* du
@@ -156,6 +160,14 @@ const InkHomeScreenComponent = ({
       setShowProfileDrawer(true);
     }
   }, [settingsFromProfile]);
+
+  const closeSupport = useCallback(() => {
+    setShowSupport(false);
+    if (supportFromProfile) {
+      setSupportFromProfile(false);
+      setShowProfileDrawer(true);
+    }
+  }, [supportFromProfile]);
   const [modeIndex, setModeIndex] = useState(1); // Audio Phone by default
   const [codeCopied, setCodeCopied] = useState(false);
   const { play, volume, setVolume } = useBackgroundMusic();
@@ -251,6 +263,7 @@ const InkHomeScreenComponent = ({
     showShortcuts ||
     showProfileDrawer ||
     showFriendsDrawer ||
+    showSupport ||
     showQuests ||
     showChatColor ||
     showTitles ||
@@ -381,6 +394,20 @@ const InkHomeScreenComponent = ({
 
         <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
           <NotificationCenter />
+          <GameButton
+            variant="primary"
+            size="sm"
+            accent="var(--c-pink)"
+            className="shrink-0 whitespace-nowrap"
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              setSupportFromProfile(false);
+              setShowSupport(true);
+            }}
+            icon={<Heart className="h-4 w-4" fill="currentColor" aria-hidden="true" />}
+          >
+            Sans pub
+          </GameButton>
           <GameIconButton
             label="Mes amis"
             onClick={() => {
@@ -684,6 +711,16 @@ const InkHomeScreenComponent = ({
                 onClick={() => goFromProfile(setShowChatColor)}
               />
               <InkMenuTile
+                icon={<Heart className="h-4 w-4" fill="currentColor" />}
+                label="Soutenir"
+                hint="Sans pub & supporter"
+                accent="var(--c-pink)"
+                onClick={() => {
+                  setSupportFromProfile(true);
+                  goFromProfile(setShowSupport);
+                }}
+              />
+              <InkMenuTile
                 icon={<Settings className="h-4 w-4" />}
                 label="Paramètres"
                 hint="Micro, caméra, son"
@@ -728,6 +765,10 @@ const InkHomeScreenComponent = ({
         onClose={() => backToProfile(setShowAchievements)}
       />
       <RewardsPanel isOpen={showRewards} onClose={() => backToProfile(setShowRewards)} />
+      <SupportMimicMasterDialog
+        isOpen={showSupport}
+        onClose={closeSupport}
+      />
 
       {/* ============== FRIENDS DRAWER ============== */}
       <InkDrawer

@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string;
   readonly VITE_SUPABASE_PUBLISHABLE_KEY: string;
   readonly VITE_SUPABASE_PROJECT_ID: string;
+  /** Jeton client Paddle; le préfixe `test_` active automatiquement le sandbox. */
+  readonly VITE_PAYMENTS_CLIENT_TOKEN?: string;
   /** Identifiant éditeur AdSense, ex. "ca-pub-XXXXXXXXXXXXXXXX". */
   readonly VITE_ADSENSE_CLIENT?: string;
   readonly VITE_ADSENSE_SLOT_RAIL_LEFT?: string;
