@@ -38,6 +38,7 @@ import {
 } from '@/components/ink/InkPrimitives';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
+import { PodiumAd } from '@/components/PodiumAd';
 
 const ACCENT = '#ec4899';
 const ACCENT_2 = 'var(--ink-accent)';
@@ -466,6 +467,11 @@ export const MonopolyGameScreen = ({
                   </motion.div>
                 ))}
               </div>
+
+              <PodiumAd
+                gameMode="monopoly"
+                instanceKey={`${game.id}:final`}
+              />
 
               <InkButton onClick={onEndGame} color="#fbbf24" size="lg" className="w-full">
                 <ArrowLeft className="w-5 h-5" />

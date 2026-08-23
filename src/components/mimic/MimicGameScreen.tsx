@@ -13,6 +13,7 @@ import { pickRandomSong } from './mimicSongs';
 import { MimicVoiceMesh } from './mimicVoice';
 import { MimicMicCheck } from './MimicMicCheck';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { PodiumAd } from '@/components/PodiumAd';
 
 interface Player { id: string; name: string; isHost: boolean; isDisconnected?: boolean; }
 interface Props { currentPlayer: Player; players: Player[]; lobbyId: string; onEndGame: () => void; }
@@ -771,6 +772,12 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
                 })}
                 {ranked.length === 0 && <p className="text-center text-base" style={{ color: MIMIC.sub }}>Aucun score</p>}
               </div>
+
+              <PodiumAd
+                gameMode="mimic"
+                instanceKey={`mimic:${totalTurns}:final`}
+              />
+
               <div className="mt-2 flex flex-col sm:flex-row items-center gap-3">
                 {isHost ? (
                   <motion.button onClick={replay} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} className="px-8 py-3.5 rounded-2xl font-black text-xl text-white flex items-center gap-2" style={{ background: MIMIC_SPECTRUM, boxShadow: `0 12px 40px ${MIMIC.magenta}55` }}><RotateCcw className="w-5 h-5" /> Rejouer</motion.button>

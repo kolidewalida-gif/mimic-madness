@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, SkipForward, RotateCcw, Home, ChevronDown, ChevronUp, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PodiumAd } from "@/components/PodiumAd";
 import {
   PulpStage,
   PulpPanel,
@@ -45,6 +46,7 @@ interface AudioPhoneRevealPhaseV2Props {
   revealData: RevealPhraseData[];
   players: Player[];
   isHost: boolean;
+  instanceKey: string;
   syncState: SyncState;
   onSyncStateChange: (isPlaying: boolean, phraseIndex: number, step: string) => void;
   onPlayAgain: () => void;
@@ -55,6 +57,7 @@ export const AudioPhoneRevealPhaseV2 = ({
   revealData,
   players,
   isHost,
+  instanceKey,
   syncState,
   onSyncStateChange,
   onPlayAgain,
@@ -191,6 +194,9 @@ export const AudioPhoneRevealPhaseV2 = ({
   }
 
   const currentStep = syncState.step;
+  const revealComplete = syncState.phraseIndex === revealData.length - 1
+    && currentStep === 'complete'
+    && !syncState.isPlaying;
   const currentImitationIndex = currentStep.startsWith('imitation_')
     ? parseInt(currentStep.split('_')[1], 10)
     : -1;
@@ -423,6 +429,13 @@ export const AudioPhoneRevealPhaseV2 = ({
                   </div>
                 ))}
               </div>
+
+              {revealComplete && (
+                <PodiumAd
+                  gameMode="audiophone"
+                  instanceKey={`${instanceKey}:reveal-complete`}
+                />
+              )}
 
               {/* End game actions */}
               {isHost && (

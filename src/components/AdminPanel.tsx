@@ -11,6 +11,7 @@ import {
   Ban,
   Megaphone,
   Gamepad2,
+  BarChart3,
   type LucideIcon,
 } from 'lucide-react';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -23,8 +24,9 @@ import {
   AdminBansTab,
   AdminLobbiesTab,
 } from './AdminSuperPanel';
+import { AdminAdsTab } from './AdminAdsTab';
 
-type AdminTab = 'account' | 'bans' | 'announce' | 'lobbies';
+type AdminTab = 'account' | 'bans' | 'announce' | 'lobbies' | 'ads';
 
 interface AdminTabDefinition {
   id: AdminTab;
@@ -72,6 +74,15 @@ const TABS: AdminTabDefinition[] = [
     description: 'Observe les salons en cours ou rejoins-les avec les droits admin.',
     icon: Gamepad2,
     accent: 'var(--c-green)',
+  },
+  {
+    id: 'ads',
+    label: 'Publicité',
+    mobileLabel: 'Pubs',
+    title: 'Publicité — 7 jours',
+    description: 'Suit la santé technique des emplacements et leur visibilité par écran.',
+    icon: BarChart3,
+    accent: 'var(--c-cyan)',
   },
 ];
 
@@ -321,6 +332,7 @@ export const AdminPanel = () => {
                         {activeTab === 'bans' && <AdminBansTab />}
                         {activeTab === 'announce' && <AdminAnnouncementsTab />}
                         {activeTab === 'lobbies' && <AdminLobbiesTab onClose={handleClose} />}
+                        {activeTab === 'ads' && <AdminAdsTab />}
                       </section>
                     </main>
                   </div>

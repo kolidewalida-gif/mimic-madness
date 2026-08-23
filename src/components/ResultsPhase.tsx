@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VictoryAnimation } from "@/components/VictoryAnimation";
 import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
-import { AdSlot } from "@/components/AdSlot";
+import { RoundBreakAd } from "@/components/RoundBreakAd";
 import {
   Trophy, ThumbsUp, ThumbsDown, ArrowRight, Medal, Sparkles,
   Swords, Download, Loader2, Share2, Check, Play, ChevronDown, ChevronUp,
@@ -791,11 +791,9 @@ export const ResultsPhase = ({
 
           {/* Bannière entre manches : au-dessus des actions hôte/joueur,
               donc visible pendant la pause sans cacher le classement. */}
-          <AdSlot
-            slot={import.meta.env.VITE_ADSENSE_SLOT_BANNER_RESULTS}
-            format="horizontal"
-            className="pointer-events-auto mx-auto h-[90px] w-full max-w-[728px] rounded-xl"
-            label="Publicité"
+          <RoundBreakAd
+            gameMode={gameMode}
+            instanceKey={`${gameMode}:${roundNumber}`}
           />
 
           {/* Host actions */}

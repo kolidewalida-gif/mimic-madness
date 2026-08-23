@@ -16,6 +16,7 @@ import { BlindtestSetup } from './BlindtestSetup';
 import { BT, BT_SPECTRUM, glow } from './blindtestTheme';
 import { BlindtestBackground } from './BlindtestBackground';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { PodiumAd } from '@/components/PodiumAd';
 
 interface Player {
   id: string;
@@ -1191,6 +1192,12 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 })}
                 {ranked.length === 0 && <p className="text-center text-base font-medium" style={{ color: BT.sub }}>Aucun score</p>}
               </div>
+
+              <PodiumAd
+                gameMode="memorise"
+                instanceKey={`memorise:${roundIndex}:${totalRounds}`}
+              />
+
               <div className="mt-2 flex flex-col sm:flex-row items-center gap-3">
                 {isHost ? (
                   <motion.button

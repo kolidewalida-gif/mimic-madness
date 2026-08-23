@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { PodiumAd } from '@/components/PodiumAd';
 
 interface Player { id: string; name: string; isHost: boolean; }
 interface UndercoverGameScreenProps {
@@ -183,7 +184,12 @@ export const UndercoverGameScreen = memo(
     const currentTurnName = gamePlayers.find((p) => p.player_id === currentTurnPlayerId)?.player_name ?? '…';
 
     return (
-      <div className="h-screen w-full flex flex-col text-white relative overflow-hidden">
+      <div
+        className={cn(
+          'w-full flex flex-col text-white relative',
+          isGameOver ? 'h-screen overflow-y-auto' : 'h-screen overflow-hidden',
+        )}
+      >
         {/* ═══ BACKGROUND IMAGE — graffiti wall ═══ */}
         <div className="absolute inset-0">
           <BackgroundWithFallback />
@@ -503,6 +509,11 @@ export const UndercoverGameScreen = memo(
                     undercoverWord={game.undercover_word}
                     accent={accent}
                     revealRoles={gamePlayers}
+                  />
+
+                  <PodiumAd
+                    gameMode="undercover"
+                    instanceKey={`${game.id}:${game.current_round}:game-over`}
                   />
 
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={onEndGame}

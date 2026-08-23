@@ -8,8 +8,12 @@ interface ImportMetaEnv {
   readonly VITE_ADSENSE_CLIENT?: string;
   readonly VITE_ADSENSE_SLOT_RAIL_LEFT?: string;
   readonly VITE_ADSENSE_SLOT_RAIL_RIGHT?: string;
-  /** Bloc bannière entre manches (résultats). */
+  /** Bloc bannière historique, utilisé comme repli. */
   readonly VITE_ADSENSE_SLOT_BANNER_RESULTS?: string;
+  /** Bloc dédié aux pauses inter-manches, chargé après 10 secondes. */
+  readonly VITE_ADSENSE_SLOT_BANNER_ROUND?: string;
+  /** Bloc dédié aux résultats finaux et podiums, chargé après 10 secondes. */
+  readonly VITE_ADSENSE_SLOT_BANNER_PODIUM?: string;
 }
 
 interface ImportMeta {

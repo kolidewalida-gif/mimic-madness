@@ -210,6 +210,7 @@ export const AudioPhoneGameScreenV2 = memo(({
           revealData={revealData}
           players={players}
           isHost={currentPlayer.isHost}
+          instanceKey={game.currentRound.id}
           syncState={syncState}
           onSyncStateChange={(isPlaying, phraseIndex, step) => {
             game.setRevealPlaybackState(isPlaying, phraseIndex, step);

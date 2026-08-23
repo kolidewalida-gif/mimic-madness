@@ -217,6 +217,7 @@ export const QuizGameScreen = ({
         <QuizFinalResults
           scores={scores}
           currentPlayerId={currentPlayer.id}
+          instanceKey={`quiz:${currentRound}`}
           onEndGame={onEndGame}
         />
         <LobbyChat

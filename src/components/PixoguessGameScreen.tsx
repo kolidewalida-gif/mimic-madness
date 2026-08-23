@@ -18,6 +18,8 @@ import { LobbyChat } from '@/components/LobbyChat';
 import { cn } from '@/lib/utils';
 import { BlurRushLiveScoreboard } from '@/components/BlurRushLiveScoreboard';
 import { BlurRushCategorySelector } from '@/components/BlurRushCategorySelector';
+import { RoundBreakAd } from '@/components/RoundBreakAd';
+import { PodiumAd } from '@/components/PodiumAd';
 import { getProxyImageCandidates, proxyImageUrl } from '@/lib/imageProxy';
 import {
   InkGameStage,
@@ -1032,6 +1034,14 @@ export const PixoguessGameScreen = ({
                   })}
                 </div>
 
+                {currentRound < totalRounds && (
+                  <RoundBreakAd
+                    gameMode="pixoguess"
+                    instanceKey={roundData?.id ?? `pixoguess:${currentRound}`}
+                    className="mb-4"
+                  />
+                )}
+
                 {isHost && (
                   <InkButton
                     onClick={nextRound}
@@ -1152,6 +1162,12 @@ export const PixoguessGameScreen = ({
                     </div>
                   ))}
                 </div>
+
+                <PodiumAd
+                  gameMode="pixoguess"
+                  instanceKey={`${roundData?.id ?? `pixoguess:${currentRound}`}:final`}
+                  className="mb-4"
+                />
 
                 {isHost && (
                   <InkButton

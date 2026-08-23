@@ -10,6 +10,7 @@ import { emitLevelUpNotification } from '@/components/RewardNotification';
 import { usePlayerLevel, XP_REWARDS } from '@/hooks/usePlayerLevel';
 import { DoodleConfetti, DoodleStage } from '@/components/doodle/Doodle';
 import { InkButton, GRAFFITI_TEXT_SHADOW, GRAFFITI_TEXT_SHADOW_SM } from '@/components/ink/InkPrimitives';
+import { PodiumAd } from '@/components/PodiumAd';
 
 interface QuizScore {
   player_id: string;
@@ -22,6 +23,7 @@ interface QuizScore {
 interface QuizFinalResultsProps {
   scores: QuizScore[];
   currentPlayerId: string;
+  instanceKey: string;
   onEndGame: () => void;
 }
 
@@ -35,6 +37,7 @@ const PODIUM = [
 export const QuizFinalResults = ({
   scores,
   currentPlayerId,
+  instanceKey,
   onEndGame,
 }: QuizFinalResultsProps) => {
   const [showConfetti, setShowConfetti] = useState(false);
@@ -297,6 +300,8 @@ export const QuizFinalResults = ({
             })}
           </div>
         </motion.div>
+
+        <PodiumAd gameMode="quiz" instanceKey={instanceKey} className="max-w-xl" />
 
         {/* End game button */}
         <motion.div

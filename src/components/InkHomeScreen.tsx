@@ -438,11 +438,17 @@ const InkHomeScreenComponent = ({
         <AdSlot
           slot={import.meta.env.VITE_ADSENSE_SLOT_RAIL_LEFT}
           format="vertical"
+          screen="home"
+          placement="home_rail_left"
+          instanceKey="home-rail-left"
           className="pointer-events-auto absolute left-6 top-1/2 hidden h-[600px] w-[160px] -translate-y-1/2 [@media(min-width:1440px)]:flex"
         />
         <AdSlot
           slot={import.meta.env.VITE_ADSENSE_SLOT_RAIL_RIGHT}
           format="vertical"
+          screen="home"
+          placement="home_rail_right"
+          instanceKey="home-rail-right"
           className="pointer-events-auto absolute right-6 top-1/2 hidden h-[600px] w-[160px] -translate-y-1/2 [@media(min-width:1440px)]:flex"
         />
         <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-5">
