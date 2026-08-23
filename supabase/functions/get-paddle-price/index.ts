@@ -24,11 +24,31 @@ interface PaddlePrice {
   billing_cycle?: { interval?: unknown; frequency?: unknown } | null;
 }
 
+interface PaddleClientToken {
+  token?: unknown;
+  status?: unknown;
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+async function getActiveClientToken(env: PaddleEnv): Promise<string> {
+  const response = await paddleApiFetch(env, '/client-side-tokens?status=active&per_page=50');
+  const payload = (await response.json()) as { data?: PaddleClientToken[] };
+  const expectedPrefix = env === 'sandbox' ? 'test_' : 'live_';
+  const activeToken = payload.data?.find((candidate) =>
+    candidate.status === 'active' &&
+    typeof candidate.token === 'string' &&
+    candidate.token.startsWith(expectedPrefix)
+  )?.token;
+  if (typeof activeToken !== 'string') {
+    throw new Error(`Paddle ${env} client-side token is missing`);
+  }
+  return activeToken;
 }
 
 Deno.serve(async (req) => {
@@ -90,6 +110,7 @@ Deno.serve(async (req) => {
       return json({ error: 'catalog_mismatch' }, 409);
     }
 
+    const clientToken = await getActiveClientToken(env);
     const checkoutIntentId = crypto.randomUUID();
     const transactionResponse = await paddleApiFetch(env, '/transactions', {
       method: 'POST',
@@ -123,6 +144,8 @@ Deno.serve(async (req) => {
 
     return json({
       transactionId,
+      clientToken,
+      environment: env,
       paddleId: price.id,
       amount: expected.amount,
       currency: expected.currency,

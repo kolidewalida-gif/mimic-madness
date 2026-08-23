@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
+const buildClientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
+const configuredEnvironment = import.meta.env.VITE_PAYMENTS_ENVIRONMENT as string | undefined;
 const PADDLE_SCRIPT_URL = 'https://cdn.paddle.com/paddle/v2/paddle.js';
 const PADDLE_SCRIPT_TIMEOUT_MS = 10_000;
 
@@ -35,18 +36,31 @@ interface PaddleSdk {
   Checkout: { open: (options: PaddleCheckoutOptions) => void };
 }
 
+interface PaddleRuntimeConfig {
+  clientToken: string;
+  environment: PaddleEnvironment;
+}
+
+interface PaddleTransaction extends PaddleRuntimeConfig {
+  transactionId: string;
+}
+
 declare global {
   interface Window {
     Paddle?: PaddleSdk;
   }
 }
 
+/** Le Sandbox est le mode sûr par défaut ; le Live doit toujours être explicite. */
 export function getPaddleEnvironment(): PaddleEnvironment {
-  return clientToken?.startsWith('test_') ? 'sandbox' : 'live';
+  if (configuredEnvironment === 'live' || configuredEnvironment === 'sandbox') {
+    return configuredEnvironment;
+  }
+  return buildClientToken?.startsWith('live_') ? 'live' : 'sandbox';
 }
 
 const paddleEventListeners = new Set<(event: PaddleEvent) => void>();
-let paddleInitializationPromise: Promise<void> | null = null;
+let paddleInitialization: { key: string; promise: Promise<void> } | null = null;
 
 function publishPaddleEvent(rawEvent: unknown) {
   if (!rawEvent || typeof rawEvent !== 'object') return;
@@ -61,24 +75,26 @@ function publishPaddleEvent(rawEvent: unknown) {
   paddleEventListeners.forEach((listener) => listener(normalized));
 }
 
-function configurePaddle(): void {
-  if (!clientToken) throw new Error('Le paiement Paddle n’est pas configuré.');
+function configurePaddle({ clientToken, environment }: PaddleRuntimeConfig): void {
   if (!window.Paddle) throw new Error('Le SDK Paddle ne s’est pas chargé.');
 
-  window.Paddle.Environment.set(
-    getPaddleEnvironment() === 'sandbox' ? 'sandbox' : 'production',
-  );
+  window.Paddle.Environment.set(environment === 'sandbox' ? 'sandbox' : 'production');
   window.Paddle.Initialize({
     token: clientToken,
     eventCallback: publishPaddleEvent,
   });
 }
 
-export async function initializePaddle(): Promise<void> {
-  if (paddleInitializationPromise) return paddleInitializationPromise;
-  if (!clientToken) throw new Error('Le paiement Paddle n’est pas configuré.');
+export async function initializePaddle(config: PaddleRuntimeConfig): Promise<void> {
+  const initializationKey = `${config.environment}:${config.clientToken}`;
+  if (paddleInitialization?.key === initializationKey) {
+    return paddleInitialization.promise;
+  }
+  if (paddleInitialization) {
+    throw new Error('La configuration Paddle a changé. Recharge la page puis réessaie.');
+  }
 
-  paddleInitializationPromise = new Promise<void>((resolve, reject) => {
+  const promise = new Promise<void>((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(
       `script[src="${PADDLE_SCRIPT_URL}"]`,
     );
@@ -95,7 +111,7 @@ export async function initializePaddle(): Promise<void> {
     };
     const handleLoad = () => finish(() => {
       try {
-        configurePaddle();
+        configurePaddle(config);
         resolve();
       } catch (error) {
         reject(error);
@@ -115,21 +131,34 @@ export async function initializePaddle(): Promise<void> {
       handleLoad();
     }
   }).catch((error: unknown) => {
-    paddleInitializationPromise = null;
+    paddleInitialization = null;
     throw error;
   });
 
-  return paddleInitializationPromise;
+  paddleInitialization = { key: initializationKey, promise };
+  return promise;
 }
 
-export async function createPaddleTransaction(offer: PaddleOffer): Promise<string> {
+export async function createPaddleTransaction(offer: PaddleOffer): Promise<PaddleTransaction> {
+  const requestedEnvironment = getPaddleEnvironment();
   const { data, error } = await supabase.functions.invoke('get-paddle-price', {
-    body: { priceId: offer, environment: getPaddleEnvironment() },
+    body: { priceId: offer, environment: requestedEnvironment },
   });
-  if (error || typeof data?.transactionId !== 'string') {
+  const expectedTokenPrefix = requestedEnvironment === 'sandbox' ? 'test_' : 'live_';
+  if (
+    error ||
+    typeof data?.transactionId !== 'string' ||
+    data?.environment !== requestedEnvironment ||
+    typeof data?.clientToken !== 'string' ||
+    !data.clientToken.startsWith(expectedTokenPrefix)
+  ) {
     throw new Error('Cette offre Paddle est momentanément indisponible.');
   }
-  return data.transactionId;
+  return {
+    transactionId: data.transactionId,
+    clientToken: data.clientToken,
+    environment: data.environment,
+  };
 }
 
 export function subscribeToPaddleEvents(listener: (event: PaddleEvent) => void): () => void {
@@ -144,14 +173,13 @@ export async function openPaddleCheckout({
   offer: PaddleOffer;
   email?: string;
 }): Promise<void> {
-  const [, transactionId] = await Promise.all([
-    initializePaddle(),
-    createPaddleTransaction(offer),
-  ]);
+  // Crée d’abord la transaction : cela évite les transactions orphelines si le SDK échoue.
+  const transaction = await createPaddleTransaction(offer);
+  await initializePaddle(transaction);
   if (!window.Paddle) throw new Error('Le SDK Paddle ne s’est pas chargé.');
 
   window.Paddle.Checkout.open({
-    transactionId,
+    transactionId: transaction.transactionId,
     ...(email ? { customer: { email } } : {}),
     settings: {
       displayMode: 'overlay',
