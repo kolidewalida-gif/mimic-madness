@@ -82,7 +82,10 @@ export const AdminAdsTab = () => {
     const from = new Date(to.getTime() - SUMMARY_DAYS * 24 * 60 * 60 * 1_000);
     diagnose.info('admin-ads', 'Chargement du résumé publicitaire', { days: SUMMARY_DAYS });
 
-    const { data, error } = await supabase.rpc('get_ad_event_summary', {
+    const { data, error } = await (supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: SummaryRow[] | null; error: { code?: string } | null }>)('get_ad_event_summary', {
       p_from: from.toISOString(),
       p_to: to.toISOString(),
     });
