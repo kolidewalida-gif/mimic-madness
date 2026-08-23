@@ -37,7 +37,7 @@ function json(body: unknown, status = 200): Response {
 }
 
 async function getActiveClientToken(env: PaddleEnv): Promise<string> {
-  const response = await paddleApiFetch(env, '/client-side-tokens?status=active&per_page=50');
+  const response = await paddleApiFetch(env, '/client-tokens?status=active&per_page=50');
   const payload = (await response.json()) as { data?: PaddleClientToken[] };
   const expectedPrefix = env === 'sandbox' ? 'test_' : 'live_';
   const activeToken = payload.data?.find((candidate) =>
