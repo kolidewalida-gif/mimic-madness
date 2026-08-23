@@ -25,6 +25,7 @@ import { playSample } from "@/lib/sfx/samples";
 import { setActiveSfxMode, type SfxMode } from "@/lib/sfx/palette";
 import { ConnectionRecoveryOverlay } from "@/components/ConnectionRecoveryOverlay";
 import { DiagnosticsOverlay } from "@/components/DiagnosticsOverlay";
+import { PublicLanding } from "@/components/PublicLanding";
 import {
   loadAudioPhoneGameScreen,
   loadGamePlayScreen,
@@ -648,22 +649,7 @@ const Index = () => {
   const renderContent = useMemo(() => {
     // For ink mode, we need user to be logged in (even before the ink intro animation)
     if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
-      return (
-        <div className="if-root min-h-screen flex items-center justify-center p-4">
-          <div className="text-center space-y-5 max-w-sm">
-            <h1 className="if-h1">MIMIC MASTER</h1>
-            <p className="if-muted text-sm">
-              Connecte-toi avec Google pour accéder au jeu.
-            </p>
-            <button
-              onClick={signInWithGoogle}
-              className="if-btn if-btn--primary if-btn--lg menu-focus w-full"
-            >
-              Connexion avec Google
-            </button>
-          </div>
-        </div>
-      );
+      return <PublicLanding onSignIn={signInWithGoogle} />;
     }
     
     return (
@@ -825,24 +811,10 @@ const Index = () => {
     );
   }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, inkModeEnabled, theme, user, authLoading, signInWithGoogle, showInkSocial, openInkSocial, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
-  // Enforce login before Ink intro animation
+  // Le jeu exige une connexion : les visiteurs non connectés reçoivent l'accueil
+  // public, qui présente réellement le jeu au lieu d'un simple bouton.
   if (inkModeEnabled && theme === 'ink' && !user && !authLoading) {
-    return (
-      <div className="if-root h-screen flex items-center justify-center p-4 overflow-hidden">
-        <div className="text-center space-y-5 max-w-sm">
-          <h1 className="if-h1">MIMIC MASTER</h1>
-          <p className="if-muted text-sm">
-            Connecte-toi avec Google pour accéder au jeu.
-          </p>
-          <button
-            onClick={signInWithGoogle}
-            className="if-btn if-btn--primary if-btn--lg menu-focus w-full"
-          >
-            Connexion avec Google
-          </button>
-        </div>
-      </div>
-    );
+    return <PublicLanding onSignIn={signInWithGoogle} />;
   }
 
   return (

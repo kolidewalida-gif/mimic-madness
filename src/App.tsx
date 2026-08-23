@@ -20,6 +20,9 @@ import { GamepadNavigation } from "@/hooks/useGamepadNavigation";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Confidentialite from "./pages/Confidentialite";
+import Conditions from "./pages/Conditions";
+import MentionsLegales from "./pages/MentionsLegales";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +64,11 @@ const App = () => (
                   <ChunkErrorBoundary>
                     <Routes>
                       <Route path="/" element={<Index />} />
+                      {/* Pages publiques : lisibles sans compte, donc
+                          indexables et vérifiables par l'examen AdSense. */}
+                      <Route path="/confidentialite" element={<Confidentialite />} />
+                      <Route path="/conditions" element={<Conditions />} />
+                      <Route path="/mentions-legales" element={<MentionsLegales />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
