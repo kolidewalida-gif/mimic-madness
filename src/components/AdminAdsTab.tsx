@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, ExternalLink, Loader2, RefreshCw, TriangleAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import { diagnose } from '@/lib/diagnostics';
 
 const SUMMARY_DAYS = 7;
 
-type SummaryRow = Database['public']['Functions']['get_ad_event_summary']['Returns'][number];
+// Les types générés ne contiennent pas encore ces fonctions : on les décrit ici.
+type SummaryRow = {
+  event_day: string;
+  screen: string;
+  placement: string;
+  game_mode: string | null;
+  sessions: number;
+  scheduled: number;
+  requested: number;
+  loaded: number;
+  viewable: number;
+  cancelled: number;
+  errors: number;
+};
 type MetricKey = 'sessions' | 'scheduled' | 'requested' | 'loaded' | 'viewable' | 'cancelled' | 'errors';
 type Totals = Record<MetricKey, number>;
 
