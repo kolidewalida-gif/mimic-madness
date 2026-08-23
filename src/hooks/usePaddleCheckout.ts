@@ -10,7 +10,7 @@ import {
 const POST_CHECKOUT_REFRESH_DELAYS_MS = [1_500, 5_000, 10_000];
 
 export function usePaddleCheckout() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { refresh } = useAdFree();
   const refreshTimers = useRef<number[]>([]);
   const [pendingOffer, setPendingOffer] = useState<PaddleOffer | null>(null);
@@ -40,6 +40,11 @@ export function usePaddleCheckout() {
       setError(new Error('Connecte-toi avant de soutenir Mimic Master.'));
       return;
     }
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      setError(new Error('Ta session a expiré. Reconnecte-toi puis réessaie.'));
+      return;
+    }
 
     setPendingOffer(offer);
     setCheckoutCompleted(false);
@@ -48,13 +53,14 @@ export function usePaddleCheckout() {
       await openPaddleCheckout({
         offer,
         email: user.email,
+        accessToken,
       });
     } catch (cause) {
       setError(cause instanceof Error ? cause : new Error('Ouverture du paiement impossible.'));
     } finally {
       setPendingOffer(null);
     }
-  }, [user]);
+  }, [session?.access_token, user]);
 
   return {
     openCheckout,

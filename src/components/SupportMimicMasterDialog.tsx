@@ -10,6 +10,7 @@ import {
 import { InkModal } from '@/components/menu/InkOverlay';
 import { GameButton, GameTag } from '@/components/game-ui/GameUI';
 import { useAdFree } from '@/hooks/useAdFree';
+import { useAuth } from '@/hooks/useAuth';
 import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
 import {
   getPaddleCustomerPortalUrl,
@@ -100,6 +101,7 @@ function OfferCard({
 }
 
 export function SupportMimicMasterDialog({ isOpen, onClose }: SupportMimicMasterDialogProps) {
+  const { session } = useAuth();
   const { isAdFree, source, expiresAt, environment, isLoading } = useAdFree();
   const { openCheckout, pendingOffer, checkoutCompleted, error } = usePaddleCheckout();
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
@@ -115,9 +117,17 @@ export function SupportMimicMasterDialog({ isOpen, onClose }: SupportMimicMaster
       return;
     }
 
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      setPortalUrl(null);
+      setPortalLoading(false);
+      setPortalError('Ta session a expiré. Reconnecte-toi pour gérer ton abonnement.');
+      return;
+    }
+
     setPortalLoading(true);
     setPortalError(null);
-    void getPaddleCustomerPortalUrl()
+    void getPaddleCustomerPortalUrl(accessToken)
       .then((url) => {
         if (!cancelled) setPortalUrl(url);
       })
@@ -134,7 +144,7 @@ export function SupportMimicMasterDialog({ isOpen, onClose }: SupportMimicMaster
     return () => {
       cancelled = true;
     };
-  }, [isAdFree, isOpen, source]);
+  }, [isAdFree, isOpen, session?.access_token, source]);
 
   const activeLabel = source === 'lifetime'
     ? 'Supporter à vie actif — toutes les publicités sont masquées.'

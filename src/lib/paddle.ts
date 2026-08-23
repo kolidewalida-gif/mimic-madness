@@ -1,7 +1,7 @@
-import { supabase } from '@/integrations/supabase/client';
-
 const buildClientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
 const configuredEnvironment = import.meta.env.VITE_PAYMENTS_ENVIRONMENT as string | undefined;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const PADDLE_SCRIPT_URL = 'https://cdn.paddle.com/paddle/v2/paddle.js';
 const PADDLE_SCRIPT_TIMEOUT_MS = 10_000;
 
@@ -139,17 +139,61 @@ export async function initializePaddle(config: PaddleRuntimeConfig): Promise<voi
   return promise;
 }
 
-export async function createPaddleTransaction(offer: PaddleOffer): Promise<PaddleTransaction> {
+/**
+ * Appelle directement la fonction avec le JWT déjà conservé par AuthProvider.
+ * Cela évite functions.invoke(), qui relit la session et peut échouer quand un
+ * autre onglet détient le verrou Navigator LockManager de Supabase Auth.
+ */
+async function invokeAuthenticatedPaymentFunction<T>(
+  functionName: 'get-paddle-price' | 'create-paddle-portal',
+  body: Record<string, unknown>,
+  accessToken: string,
+): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+      method: 'POST',
+      headers: {
+        apikey: supabasePublishableKey,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error('Le service de paiement est momentanément inaccessible.');
+  }
+
+  let payload: unknown = null;
+  try {
+    payload = await response.json();
+  } catch {
+    // Le statut HTTP reste l’autorité si le relais ne renvoie pas de JSON.
+  }
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Ta session a expiré. Reconnecte-toi puis réessaie.');
+    }
+    throw new Error('Cette offre Paddle est momentanément indisponible.');
+  }
+  return payload as T;
+}
+
+export async function createPaddleTransaction(
+  offer: PaddleOffer,
+  accessToken: string,
+): Promise<PaddleTransaction> {
   const requestedEnvironment = getPaddleEnvironment();
-  const { data, error } = await supabase.functions.invoke('get-paddle-price', {
-    body: { priceId: offer, environment: requestedEnvironment },
-  });
+  const data = await invokeAuthenticatedPaymentFunction<Record<string, unknown>>(
+    'get-paddle-price',
+    { priceId: offer, environment: requestedEnvironment },
+    accessToken,
+  );
   const expectedTokenPrefix = requestedEnvironment === 'sandbox' ? 'test_' : 'live_';
   if (
-    error ||
-    typeof data?.transactionId !== 'string' ||
-    data?.environment !== requestedEnvironment ||
-    typeof data?.clientToken !== 'string' ||
+    typeof data.transactionId !== 'string' ||
+    data.environment !== requestedEnvironment ||
+    typeof data.clientToken !== 'string' ||
     !data.clientToken.startsWith(expectedTokenPrefix)
   ) {
     throw new Error('Cette offre Paddle est momentanément indisponible.');
@@ -157,7 +201,7 @@ export async function createPaddleTransaction(offer: PaddleOffer): Promise<Paddl
   return {
     transactionId: data.transactionId,
     clientToken: data.clientToken,
-    environment: data.environment,
+    environment: requestedEnvironment,
   };
 }
 
@@ -169,12 +213,14 @@ export function subscribeToPaddleEvents(listener: (event: PaddleEvent) => void):
 export async function openPaddleCheckout({
   offer,
   email,
+  accessToken,
 }: {
   offer: PaddleOffer;
   email?: string;
+  accessToken: string;
 }): Promise<void> {
   // Crée d’abord la transaction : cela évite les transactions orphelines si le SDK échoue.
-  const transaction = await createPaddleTransaction(offer);
+  const transaction = await createPaddleTransaction(offer, accessToken);
   await initializePaddle(transaction);
   if (!window.Paddle) throw new Error('Le SDK Paddle ne s’est pas chargé.');
 
@@ -189,11 +235,13 @@ export async function openPaddleCheckout({
   });
 }
 
-export async function getPaddleCustomerPortalUrl(): Promise<string> {
-  const { data, error } = await supabase.functions.invoke('create-paddle-portal', {
-    body: { environment: getPaddleEnvironment() },
-  });
-  if (error || typeof data?.url !== 'string') {
+export async function getPaddleCustomerPortalUrl(accessToken: string): Promise<string> {
+  const data = await invokeAuthenticatedPaymentFunction<Record<string, unknown>>(
+    'create-paddle-portal',
+    { environment: getPaddleEnvironment() },
+    accessToken,
+  );
+  if (typeof data.url !== 'string') {
     throw new Error('Le portail client est momentanément indisponible.');
   }
 
