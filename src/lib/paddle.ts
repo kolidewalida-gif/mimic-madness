@@ -1,4 +1,3 @@
-const buildClientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
 const configuredEnvironment = import.meta.env.VITE_PAYMENTS_ENVIRONMENT as string | undefined;
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -53,10 +52,7 @@ declare global {
 
 /** Le Sandbox est le mode sûr par défaut ; le Live doit toujours être explicite. */
 export function getPaddleEnvironment(): PaddleEnvironment {
-  if (configuredEnvironment === 'live' || configuredEnvironment === 'sandbox') {
-    return configuredEnvironment;
-  }
-  return buildClientToken?.startsWith('live_') ? 'live' : 'sandbox';
+  return configuredEnvironment === 'live' ? 'live' : 'sandbox';
 }
 
 const paddleEventListeners = new Set<(event: PaddleEvent) => void>();

@@ -110,8 +110,8 @@ describe('payload Paddle', () => {
     });
   });
 
-  it('reste en Sandbox quand aucun jeton client n’est injecté au build', async () => {
-    vi.stubEnv('VITE_PAYMENTS_CLIENT_TOKEN', '');
+  it('reste en Sandbox même si un jeton Live est injecté sans environnement explicite', async () => {
+    vi.stubEnv('VITE_PAYMENTS_CLIENT_TOKEN', 'live_build_client_token');
     const {
       getPaddleEnvironment,
       openPaddleCheckout,
