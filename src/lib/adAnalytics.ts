@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import { diagnose } from '@/lib/diagnostics';
 
 export type AdEventType =
@@ -35,7 +34,16 @@ export type AdErrorCode =
   | 'unfilled'
   | 'load_timeout';
 
-type RecordAdEventArgs = Database['public']['Functions']['record_ad_event']['Args'];
+// Les types générés ne contiennent pas encore cette fonction : on la décrit ici.
+type RecordAdEventArgs = {
+  p_analytics_session_id: string;
+  p_impression_id: string;
+  p_event_type: string;
+  p_screen: string;
+  p_placement: string;
+  p_game_mode?: string;
+  p_error_code?: string;
+};
 
 type AdEventInput = {
   impressionId: string;
@@ -121,7 +129,12 @@ export const recordAdEvent = (event: AdEventInput): void => {
     ...(event.eventType === 'error' ? { p_error_code: event.errorCode } : {}),
   };
 
-  void Promise.resolve(supabase.rpc('record_ad_event', args))
+  void Promise.resolve(
+    (supabase.rpc as unknown as (
+      fn: string,
+      rpcArgs: RecordAdEventArgs,
+    ) => Promise<{ data: boolean | null; error: { code?: string } | null }>)('record_ad_event', args),
+  )
     .then(({ data, error }) => {
       if (error) {
         diagnose.warn('ads', 'Collecte Supabase indisponible', {
