@@ -33,7 +33,7 @@ export interface AdFreeSubscription {
 export interface AdFreePurchase {
   price_id: string;
   environment: string;
-  revoked_at: string | null;
+  revoked_at?: string | null;
 }
 
 export interface AdFreeEntitlement {
@@ -77,7 +77,7 @@ export function resolveAdFreeEntitlement(
     (purchase) =>
       purchase.environment === environment &&
       purchase.price_id === PRICE_SUPPORTER_LIFETIME &&
-      purchase.revoked_at === null,
+      (purchase.revoked_at ?? null) === null,
   );
 
   if (hasLifetimeAccess) {
@@ -151,7 +151,7 @@ export function AdFreeProvider({ children }: { children: ReactNode }) {
           .eq('environment', environment),
         supabase
           .from('purchases')
-          .select('price_id,environment,revoked_at')
+          .select('price_id,environment')
           .eq('user_id', userId)
           .eq('environment', environment),
       ]);
