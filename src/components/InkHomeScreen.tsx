@@ -30,6 +30,7 @@ import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { GAME_MODE_META, INK_GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
 import { DeviceSettings } from '@/components/DeviceSettings';
+import { LanguageMenu } from '@/components/LanguageMenu';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkQuestsPanel } from '@/components/InkQuestsPanel';
@@ -486,6 +487,7 @@ const InkHomeScreenComponent = ({
           >
             <Settings className="h-[18px] w-[18px]" />
           </GameIconButton>
+          <LanguageMenu />
           <button
             type="button"
             aria-label={`Ouvrir le profil de ${displayName}`}

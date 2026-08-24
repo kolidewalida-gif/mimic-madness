@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BackgroundMusicProvider } from "@/hooks/useBackgroundMusic";
 import { SoundEffectsVolumeProvider } from "@/hooks/useSoundEffectsVolume";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { LanguageProvider } from "@/hooks/useLanguage";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AdFreeProvider } from "@/hooks/useAdFree";
 import { XpProvider } from "@/contexts/XpContext";
@@ -43,6 +44,7 @@ const App = () => (
     <AuthProvider>
       <AdFreeProvider>
         <ThemeProvider>
+        <LanguageProvider>
         <BackgroundMusicProvider>
           <SoundEffectsVolumeProvider>
             <XpProvider>
@@ -78,6 +80,7 @@ const App = () => (
             </XpProvider>
           </SoundEffectsVolumeProvider>
         </BackgroundMusicProvider>
+        </LanguageProvider>
         </ThemeProvider>
       </AdFreeProvider>
     </AuthProvider>

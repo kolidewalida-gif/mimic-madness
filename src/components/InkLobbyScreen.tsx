@@ -32,6 +32,7 @@ import {
 } from '@/lib/gameModes';
 import { TwitchStyleLobbyChat } from '@/components/TwitchStyleLobbyChat';
 import { DeviceSettings } from '@/components/DeviceSettings';
+import { LanguageMenu } from '@/components/LanguageMenu';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { InkModal } from '@/components/menu/InkOverlay';
@@ -404,6 +405,7 @@ export const InkLobbyScreen = ({
           >
             <Settings className="h-[18px] w-[18px]" />
           </GameIconButton>
+          <LanguageMenu className="shrink-0" />
           <GameIconButton
             label="Quitter le lobby"
             data-back={showLeaveConfirm ? undefined : true}
