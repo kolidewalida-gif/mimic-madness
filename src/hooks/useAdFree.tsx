@@ -77,7 +77,7 @@ export function resolveAdFreeEntitlement(
     (purchase) =>
       purchase.environment === environment &&
       purchase.price_id === PRICE_SUPPORTER_LIFETIME &&
-      purchase.revoked_at === null,
+      (purchase.revoked_at ?? null) === null,
   );
 
   if (hasLifetimeAccess) {
