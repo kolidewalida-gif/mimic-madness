@@ -33,7 +33,7 @@ export interface AdFreeSubscription {
 export interface AdFreePurchase {
   price_id: string;
   environment: string;
-  revoked_at: string | null;
+  revoked_at?: string | null;
 }
 
 export interface AdFreeEntitlement {
