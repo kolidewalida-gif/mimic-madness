@@ -182,12 +182,14 @@ export const AudioPhoneRevealPhaseV2 = ({
   if (!revealData.length) {
     return (
       <PulpStage accent={PULP.red} accent2={PULP.blue}>
-        <div className="relative min-h-screen flex items-center justify-center p-5">
+        <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+          <div className="relative flex min-h-full items-start justify-center p-3 sm:items-center sm:p-5">
           <PulpPanel accent={PULP.red} className="w-full max-w-md">
             <div className="px-7 py-9 text-center">
               <PulpTitle size="md">Aucune donnée à afficher</PulpTitle>
             </div>
           </PulpPanel>
+          </div>
         </div>
       </PulpStage>
     );
@@ -208,7 +210,8 @@ export const AudioPhoneRevealPhaseV2 = ({
 
   return (
     <PulpStage accent={PULP.red} accent2={PULP.blue}>
-      <div className="relative min-h-screen flex items-center justify-center p-5 pb-[120px]">
+      <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div className="relative flex min-h-full items-start justify-center p-3 pb-24 sm:items-center sm:p-5 sm:pb-24 landscape:py-3 landscape:pb-24">
         <audio ref={audioRef} onEnded={handleAudioEnded} />
 
         <motion.div
@@ -218,7 +221,7 @@ export const AudioPhoneRevealPhaseV2 = ({
           className="w-full max-w-2xl"
         >
           <PulpPanel accent={PULP.red}>
-            <div className="px-6 py-7 space-y-5">
+            <div className="space-y-4 px-4 py-5 sm:space-y-5 sm:px-6 sm:py-7 landscape:space-y-3 landscape:py-4">
               {/* Header */}
               <div className="text-center space-y-2">
                 <PulpTitle size="lg" accent={PULP.red} accent2={PULP.blue}>
@@ -237,7 +240,7 @@ export const AudioPhoneRevealPhaseV2 = ({
 
               {/* Current phrase block */}
               <div
-                className="space-y-4 p-5"
+                className="space-y-3 p-3 sm:space-y-4 sm:p-5 landscape:space-y-2"
                 style={{ background: 'rgba(8,7,10,0.5)', border: `2px solid ${PULP.ink}` }}
               >
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -346,13 +349,13 @@ export const AudioPhoneRevealPhaseV2 = ({
 
               {/* Navigation */}
               {isHost && (
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-between">
                   <PulpButton onClick={goToPreviousPhrase} disabled={syncState.phraseIndex === 0 || localIsPlaying} color={PULP.blue} variant="ghost" size="sm">
                     <RotateCcw className="w-4 h-4" strokeWidth={3} />
                     Préc.
                   </PulpButton>
 
-                  <div className="flex gap-2">
+                  <div className="flex max-w-full gap-2 overflow-x-auto px-1 py-1">
                     {revealData.map((_, idx) => (
                       <button
                         key={idx}
@@ -378,7 +381,7 @@ export const AudioPhoneRevealPhaseV2 = ({
               )}
 
               {!isHost && (
-                <div className="flex justify-center gap-2">
+                <div className="flex max-w-full justify-start gap-2 overflow-x-auto px-1 py-1 sm:justify-center">
                   {revealData.map((_, idx) => (
                     <div
                       key={idx}
@@ -394,7 +397,7 @@ export const AudioPhoneRevealPhaseV2 = ({
               )}
 
               {/* All phrases */}
-              <div className="space-y-2 pt-2">
+              <div className="max-h-[min(40dvh,24rem)] space-y-2 overflow-y-auto overscroll-contain pr-1 pt-2 landscape:max-h-[32dvh]">
                 <PulpRule />
                 <h4 className="uppercase text-[color:var(--pulp-paper)]/55 text-sm" style={{ fontFamily: PULP_FONT, letterSpacing: '0.1em' }}>
                   Toutes les phrases
@@ -439,7 +442,7 @@ export const AudioPhoneRevealPhaseV2 = ({
 
               {/* End game actions */}
               {isHost && (
-                <div className="flex gap-3 pt-2">
+                <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                   <PulpButton onClick={onPlayAgain} disabled={localIsPlaying} color={PULP.blue} variant="ghost" size="sm" className="flex-1">
                     <RotateCcw className="w-4 h-4" strokeWidth={3} />
                     Rejouer
@@ -453,6 +456,7 @@ export const AudioPhoneRevealPhaseV2 = ({
             </div>
           </PulpPanel>
         </motion.div>
+        </div>
       </div>
     </PulpStage>
   );

@@ -28,6 +28,8 @@ import { useState } from "react";
 
 interface DeviceSettingsProps {
   onClose?: () => void;
+  /** Removes the internal chrome when a parent modal already provides it. */
+  embedded?: boolean;
   /** Kept for backward compatibility, no longer used (camera section removed) */
   showPreview?: boolean;
   playerId?: string;
@@ -44,6 +46,7 @@ type Tab = "audio" | "volume" | "avatar" | "theme";
 
 export const DeviceSettings = ({
   onClose,
+  embedded = false,
   playerId,
   playerName,
 }: DeviceSettingsProps) => {
@@ -89,8 +92,14 @@ export const DeviceSettings = ({
   ========================================================= */
   if (!useRichUI) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col min-h-0 h-full max-h-full">
-        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4">
+      <div
+        className={cn(
+          "relative flex min-h-0 flex-col rounded-2xl border border-border bg-card/95 shadow-2xl backdrop-blur-xl",
+          !embedded && "h-full max-h-full overflow-hidden",
+        )}
+      >
+        {!embedded && (
+          <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
               <SettingsIcon className="h-5 w-5" />
@@ -110,8 +119,14 @@ export const DeviceSettings = ({
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
-        </div>
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+          </div>
+        )}
+        <div
+          className={cn(
+            "space-y-4 p-5",
+            !embedded && "min-h-0 flex-1 overflow-y-auto",
+          )}
+        >
           <AudioSection
             audioInputs={audioInputs}
             selectedAudioId={selectedAudioId}
@@ -137,10 +152,16 @@ export const DeviceSettings = ({
      INK CARTOON RENDER — la bonne DA
   ========================================================= */
   return (
-    <div className="relative flex flex-col min-h-0 h-full max-h-full">
+    <div
+      className={cn(
+        "relative flex min-h-0 flex-col",
+        !embedded && "h-full max-h-full",
+      )}
+    >
       {/* HEADER */}
-      <div
-        className="relative px-5 py-4 flex items-center justify-between flex-shrink-0"
+      {!embedded && (
+        <div
+          className="relative flex flex-shrink-0 items-center justify-between px-5 py-4"
         style={{
           background:
             "linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))",
@@ -221,11 +242,12 @@ export const DeviceSettings = ({
             </motion.button>
           )}
         </div>
-      </div>
+        </div>
+      )}
 
       {/* TABS — graffiti pills */}
       <div
-        className="relative flex gap-1.5 px-3 py-2.5 flex-shrink-0"
+        className="custom-scrollbar relative flex flex-shrink-0 gap-1.5 overflow-x-auto px-2 py-2 sm:px-3 sm:py-2.5"
         style={{ borderBottom: '1px solid var(--ink-line)' }}
       >
         {tabs.map((tab) => {
@@ -240,7 +262,8 @@ export const DeviceSettings = ({
               whileTap={{ scale: 0.96 }}
               animate={isActive ? { rotate: -2 } : { rotate: 0 }}
               aria-pressed={isActive}
-              className="menu-focus relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-2xl"
+              aria-label={tab.label}
+              className="menu-focus relative flex min-h-[44px] min-w-[92px] flex-none items-center justify-center gap-1.5 rounded-2xl px-2 py-2 sm:min-w-0 sm:flex-1"
               style={{
                 background: isActive
                   ? `linear-gradient(180deg, ${tab.color}, ${tab.color}cc)`
@@ -259,7 +282,7 @@ export const DeviceSettings = ({
               />
               <span
                 className={cn(
-                  "text-base font-black leading-none",
+                  "whitespace-nowrap text-sm font-black leading-none sm:text-base",
                   isActive ? "text-white" : "text-white/60",
                 )}
                 style={{
@@ -275,7 +298,12 @@ export const DeviceSettings = ({
       </div>
 
       {/* SCROLL ZONE */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 relative">
+      <div
+        className={cn(
+          "relative p-3 sm:p-5",
+          !embedded && "min-h-0 flex-1 overflow-y-auto custom-scrollbar",
+        )}
+      >
         <AnimatePresence mode="wait">
           {activeTab === "audio" && (
             <motion.div
@@ -342,7 +370,7 @@ export const DeviceSettings = ({
       </div>
 
       {/* FOOTER — close button */}
-      {onClose && (
+      {onClose && !embedded && (
         <div className="px-5 py-3" style={{ borderTop: '1px solid var(--ink-line)' }}>
           <motion.button
             type="button"

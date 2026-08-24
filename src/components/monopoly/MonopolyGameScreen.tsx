@@ -329,7 +329,8 @@ export const MonopolyGameScreen = ({
   if (!game || mPlayers.length === 0) {
     return (
       <InkGameStage accent={ACCENT}>
-        <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+          <div className="flex min-h-full items-start justify-center px-3 py-6 sm:items-center sm:px-6">
           <InkCard accent={ACCENT} className="p-8 text-center max-w-md w-full" highlighted>
             <motion.div
               animate={{ rotate: 360 }}
@@ -385,6 +386,7 @@ export const MonopolyGameScreen = ({
               </motion.div>
             )}
           </InkCard>
+          </div>
         </div>
       </InkGameStage>
     );
@@ -397,7 +399,8 @@ export const MonopolyGameScreen = ({
     const ranked = [...mPlayers].sort((a, b) => b.money - a.money);
     return (
       <InkGameStage accent="#fbbf24">
-        <div className="min-h-screen flex items-center justify-center px-6 py-12">
+        <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+          <div className="flex min-h-full items-start justify-center px-3 py-6 sm:items-center sm:px-6 sm:py-12">
           <motion.div
             initial={{ scale: 0.6, rotate: -10, opacity: 0 }}
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
@@ -479,6 +482,7 @@ export const MonopolyGameScreen = ({
               </InkButton>
             </InkCard>
           </motion.div>
+          </div>
         </div>
       </InkGameStage>
     );
@@ -503,21 +507,22 @@ export const MonopolyGameScreen = ({
   ============================================================ */
   return (
     <InkGameStage accent={turnPlayerColor}>
+      <div className="menu-screen-safe flex h-[100dvh] min-h-0 flex-col overflow-hidden">
       {/* ============== HEADER ============== */}
-      <header className="relative z-30 flex items-center justify-between px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
+      <header className="relative z-30 grid flex-shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-2 py-2 sm:px-4 md:px-6 md:py-3">
         <InkButton onClick={onEndGame} color="#475569" variant="outline" size="sm">
           <ArrowLeft className="w-4 h-4" />
-          QUITTER
+          <span className="hidden sm:inline">QUITTER</span>
         </InkButton>
 
-        <div className="flex flex-col items-center gap-1.5 pointer-events-none">
+        <div className="pointer-events-none flex min-w-0 flex-col items-center gap-1 sm:gap-1.5">
           <InkPhasePill
             icon={phaseInfo.icon}
             label={phaseInfo.label}
             accent={phaseInfo.color}
           />
           <h1
-            className="text-3xl md:text-4xl font-black leading-none"
+            className="truncate text-xl font-black leading-none sm:text-2xl md:text-4xl"
             style={{
               fontFamily: "'Outfit', sans-serif",
               color: '#fff',
@@ -542,9 +547,9 @@ export const MonopolyGameScreen = ({
       </header>
 
       {/* ============== MAIN ============== */}
-      <main className="relative z-10 flex-1 flex flex-col lg:flex-row gap-4 px-4 md:px-6 pb-6 max-w-[1800px] mx-auto w-full">
+      <main className="relative z-10 flex min-h-0 w-full max-w-[1800px] flex-1 flex-col gap-3 overflow-y-auto overflow-x-hidden px-3 pb-6 sm:gap-4 sm:px-4 md:px-6 lg:flex-row lg:overflow-hidden mx-auto">
         {/* LEFT — PLAYERS */}
-        <aside className="lg:w-72 flex-shrink-0">
+        <aside className="flex-shrink-0 lg:min-h-0 lg:w-72 lg:overflow-y-auto">
           <MonopolyPlayerPanel
             players={mPlayers}
             currentTurnPlayerId={game.player_order[game.current_player_index]}
@@ -554,7 +559,7 @@ export const MonopolyGameScreen = ({
         </aside>
 
         {/* CENTER — BOARD + ACTIONS */}
-        <section className="flex-1 flex flex-col gap-4 min-w-0">
+        <section className="flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto">
           <div className="relative">
             <MonopolyBoard3DCanvas
               players={mPlayers}
@@ -834,7 +839,7 @@ export const MonopolyGameScreen = ({
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 50, scale: 0.95 }}
               transition={{ type: 'spring', damping: 18, stiffness: 220 }}
-              className="lg:w-80 flex-shrink-0"
+              className="lg:w-80 flex-shrink-0 lg:min-h-0 lg:overflow-y-auto"
             >
               <MonopolyPropertyPanel
                 properties={properties}
@@ -854,6 +859,7 @@ export const MonopolyGameScreen = ({
       {currentCard && game.phase === 'card' && (
         <MonopolyCardModal card={currentCard} onClose={handleCard} isMyTurn={isMyTurn} />
       )}
+      </div>
     </InkGameStage>
   );
 };

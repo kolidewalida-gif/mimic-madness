@@ -189,8 +189,11 @@ const MusicPlayerBarComponent = () => {
   return (
     <div
       ref={rootRef}
-      className="menu-surface ink-z-bar fixed bottom-4 left-1/2 -translate-x-1/2"
-      style={{ width: "min(94vw, 680px)" }}
+      className="menu-surface ink-z-bar fixed left-1/2 -translate-x-1/2"
+      style={{
+        bottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
+        width: "min(680px, calc(100vw - max(1rem, env(safe-area-inset-left, 0px)) - max(1rem, env(safe-area-inset-right, 0px))))",
+      }}
     >
       <div className="mp-bar relative overflow-hidden" role="region" aria-label="Lecteur de musique">
         {/* ---- Track list, expanded in place ---- */}
@@ -241,7 +244,7 @@ const MusicPlayerBarComponent = () => {
               </div>
             )}
 
-            <ul className="mp-tracks custom-scrollbar">
+            <ul className="mp-tracks custom-scrollbar" style={{ maxHeight: "min(38dvh, 250px)" }}>
               {visibleTracks.map((track) => {
                 const active = track.id === currentTrack?.id;
                 return (

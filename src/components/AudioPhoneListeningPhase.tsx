@@ -146,8 +146,9 @@ export const AudioPhoneListeningPhase = memo(({
 
   if (isLoading || !audioUrl) {
     return (
-      <div className="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
-        <Card className="max-w-md w-full p-10 bg-card/60 backdrop-blur-md border-border/30">
+      <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div className="flex min-h-full flex-col items-center justify-center p-3 sm:p-4 md:p-8">
+          <Card className="max-w-md w-full p-6 sm:p-10 bg-card/60 backdrop-blur-md border-border/30">
           <div className="flex flex-col items-center gap-5">
             <div className="relative">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center">
@@ -161,12 +162,14 @@ export const AudioPhoneListeningPhase = memo(({
             </div>
           </div>
         </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center overflow-hidden relative">
+    <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+      <div className="flex min-h-full flex-col items-center justify-start p-3 pb-24 sm:p-4 sm:pb-24 md:p-8 md:pb-24 lg:justify-center landscape:py-3 landscape:pb-24">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={cn(
@@ -185,7 +188,7 @@ export const AudioPhoneListeningPhase = memo(({
 
       {/* Header */}
       <div className={cn(
-        "text-center mb-8 relative z-10 transition-all duration-700",
+        "text-center mb-5 sm:mb-8 landscape:mb-3 relative z-10 transition-all duration-700",
         showReady ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-8"
       )}>
         <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[var(--ink-surface-2)]/15 to-blue-500/10 border border-[var(--ink-line)]/30 mb-5 backdrop-blur-sm">
@@ -193,11 +196,11 @@ export const AudioPhoneListeningPhase = memo(({
           <span className="text-sm font-semibold text-[var(--ink-text-dim)]">Phase d'écoute</span>
         </div>
         
-        <h1 className="text-3xl md:text-5xl font-black mb-3 text-foreground">
+        <h1 className="text-3xl md:text-5xl font-black mb-2 sm:mb-3 text-foreground landscape:text-3xl">
           Écoutez attentivement, <span className="bg-gradient-to-r from-[var(--ink-surface-2)] to-blue-500 bg-clip-text text-transparent">{playerName}</span> !
         </h1>
         
-        <p className="text-foreground-secondary max-w-lg mx-auto text-lg">
+        <p className="text-foreground-secondary max-w-lg mx-auto text-base sm:text-lg landscape:text-sm">
           L'audio de <span className="font-semibold text-foreground">{previousPlayerName}</span> a été inversé.
           <span className="text-[var(--ink-text-dim)] font-medium"> Essayez de deviner ce qu'il a dit !</span>
         </p>
@@ -205,7 +208,7 @@ export const AudioPhoneListeningPhase = memo(({
 
       {/* Audio Player Card */}
       <Card className={cn(
-        "max-w-xl w-full p-6 md:p-8 relative z-10 overflow-hidden transition-all duration-500 mb-6",
+        "max-w-xl w-full p-4 sm:p-6 md:p-8 relative z-10 overflow-hidden transition-all duration-500 mb-4 sm:mb-6 landscape:p-4 landscape:mb-3",
         "bg-card/60 backdrop-blur-md",
         isPlaying 
           ? "border-[var(--ink-line)]/50 shadow-lg shadow-cyan-500/20" 
@@ -231,7 +234,7 @@ export const AudioPhoneListeningPhase = memo(({
 
         {/* Visualizer */}
         <div className={cn(
-          "relative h-44 rounded-2xl border overflow-hidden mb-6 transition-all duration-300",
+          "relative h-32 sm:h-44 landscape:h-24 rounded-2xl border overflow-hidden mb-4 sm:mb-6 landscape:mb-3 transition-all duration-300",
           isPlaying 
             ? "bg-gradient-to-br from-[var(--ink-surface-2)]/10 via-background/50 to-blue-500/10 border-[var(--ink-line)]/30" 
             : "bg-background/50 border-border/50"
@@ -292,7 +295,7 @@ export const AudioPhoneListeningPhase = memo(({
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between gap-4 relative z-10">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-4 relative z-10">
           {/* Mute button */}
           <Button
             variant="outline"
@@ -308,7 +311,7 @@ export const AudioPhoneListeningPhase = memo(({
           </Button>
 
           {/* Play/Pause */}
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-3">
             {isPlaying ? (
               <Button
                 variant="outline"
@@ -338,7 +341,7 @@ export const AudioPhoneListeningPhase = memo(({
 
           {/* Plays remaining */}
           <div className={cn(
-            "px-4 py-2 rounded-xl text-sm font-bold border",
+            "col-span-2 justify-self-center px-3 py-2 rounded-xl text-sm font-bold border sm:col-span-1 sm:justify-self-auto sm:px-4",
             remainingPlays > 1 
               ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
               : remainingPlays === 1
@@ -352,7 +355,7 @@ export const AudioPhoneListeningPhase = memo(({
 
       {/* Confirm and record */}
       <Card className={cn(
-        "max-w-xl w-full p-6 relative z-10 overflow-hidden transition-all duration-700 delay-200",
+        "max-w-xl w-full p-4 sm:p-6 relative z-10 overflow-hidden transition-all duration-700 delay-200 landscape:p-4",
         "bg-card/60 backdrop-blur-md border-border/30",
         showReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       )}>
@@ -376,7 +379,7 @@ export const AudioPhoneListeningPhase = memo(({
           size="lg"
           onClick={onConfirmListened}
           disabled={!hasListened && playCount === 0}
-          className="w-full h-14 text-lg"
+          className="h-auto min-h-14 w-full whitespace-normal px-4 py-3 text-base sm:text-lg"
         >
           <ArrowRight className="h-5 w-5 mr-2" />
           J'ai compris, je passe à l'enregistrement !
@@ -388,6 +391,7 @@ export const AudioPhoneListeningPhase = memo(({
           </p>
         )}
       </Card>
+      </div>
     </div>
   );
 });

@@ -185,7 +185,8 @@ export const QuizQuestion = ({
 
   return (
     <DoodleStage accent={isUrgent ? '#f87171' : '#38bdf8'}>
-      <div className="relative z-10 min-h-screen flex flex-col lg:flex-row p-4 gap-6 pb-[120px]">
+      <div className="menu-screen-safe relative z-10 h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div className="flex min-h-full flex-col gap-4 p-3 pb-24 sm:gap-6 sm:p-4 sm:pb-24 lg:flex-row">
 
       {/* Left Sidebar - Live Scoreboard */}
       <div className="hidden lg:block w-72 flex-shrink-0 pt-4 relative z-10">
@@ -199,10 +200,10 @@ export const QuizQuestion = ({
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-5 max-w-3xl mx-auto relative z-10">
+      <div className="flex-1 min-w-0 flex flex-col items-center justify-start lg:justify-center gap-4 sm:gap-5 max-w-3xl mx-auto relative z-10">
         {/* Header with meta info */}
         <div
-          className="w-full flex items-center justify-between rounded-2xl px-5 py-3 animate-fadeInDown"
+          className="w-full flex flex-wrap items-center justify-between gap-3 rounded-2xl px-3 py-3 sm:px-5 animate-fadeInDown"
           style={{
             background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
             border: '1px solid var(--ink-line)',
@@ -226,7 +227,7 @@ export const QuizQuestion = ({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
             <span className="px-3 py-1.5 rounded-xl text-xs font-semibold backdrop-blur-sm border bg-[var(--ink-surface-3)]/10 border-[var(--ink-line)]/20 text-[var(--ink-text-dim)]">
               {answeredPlayers.length}/{players.length} reponses
             </span>
@@ -302,7 +303,7 @@ export const QuizQuestion = ({
 
         {/* Question Card */}
         <div
-          className="w-full p-6 text-center transition-all duration-500 animate-zoomInBounce rounded-3xl"
+          className="w-full p-4 text-center transition-all duration-500 animate-zoomInBounce rounded-3xl sm:p-6"
           style={{
             background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 60%, #0f0820 100%)',
             border: `4px solid ${isCritical ? '#ef4444' : 'var(--ink-line)'}`,
@@ -365,7 +366,7 @@ export const QuizQuestion = ({
 
         {/* QCM Options - 2x2 Grid */}
         {questionType === 'qcm' && options && options.length > 0 ? (
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
             {options.map((option, index) => {
               const style = optionStyles[index % 4];
               const isSelected = selectedOption === option;
@@ -377,7 +378,7 @@ export const QuizQuestion = ({
                   onClick={() => handleSelectOption(option)}
                   disabled={hasAnswered || isHidden}
                   className={cn(
-                    "relative h-auto min-h-[90px] p-5 text-left rounded-2xl",
+                    "relative h-auto min-h-[72px] p-3 text-left rounded-2xl sm:min-h-[90px] sm:p-5",
                     "transition-all duration-300 transform",
                     "flex items-center gap-4",
                     "animate-optionAppear",
@@ -396,8 +397,8 @@ export const QuizQuestion = ({
                   }}
                 >
                   {/* Letter badge */}
-                  <div
-                    className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-black text-xl text-white"
+                  <span
+                    className="relative flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center font-black text-base text-white sm:w-11 sm:h-11 sm:text-xl"
                     style={{
                       background: 'rgba(0,0,0,0.25)',
                       border: '1px solid var(--ink-line)',
@@ -406,7 +407,7 @@ export const QuizQuestion = ({
                     }}
                   >
                     {style.letter}
-                  </div>
+                  </span>
                   
                   {/* Option text */}
                   <span
@@ -432,8 +433,8 @@ export const QuizQuestion = ({
         ) : (
           /* Text Input Mode */
           <form onSubmit={handleTextSubmit} className="w-full animate-fadeInUp">
-            <div className="flex gap-3">
-              <div className="relative flex-1">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
                 <Input
                   ref={inputRef}
                   type="text"
@@ -449,13 +450,14 @@ export const QuizQuestion = ({
                     hasAnswered && "opacity-50"
                   )}
                   autoComplete="off"
+                  enterKeyHint="send"
                 />
               </div>
               <Button
                 type="submit"
                 disabled={hasAnswered || !textAnswer.trim()}
                 variant="hero"
-                className="h-14 px-6 rounded-xl"
+                className="h-14 w-full px-6 rounded-xl sm:w-auto"
               >
                 <Send className="h-5 w-5" />
               </Button>
@@ -502,7 +504,7 @@ export const QuizQuestion = ({
       </div>
       
       {/* Mobile Scoreboard Toggle */}
-      <div className="lg:hidden fixed bottom-20 left-4 right-4 z-20">
+      <div className="lg:hidden sticky bottom-20 z-20 mt-auto w-full max-w-3xl mx-auto bg-gradient-to-t from-[#0a0510] via-[#0a0510]/95 to-transparent pt-3">
         <details className="glass-ultra rounded-2xl border border-primary/30 overflow-hidden">
           <summary className="px-4 py-2.5 cursor-pointer font-semibold text-sm flex items-center gap-2 hover:bg-primary/10 transition-colors">
             <span>📊</span> Classement ({answeredPlayers.length}/{players.length} ont répondu)
@@ -516,7 +518,8 @@ export const QuizQuestion = ({
           </div>
         </details>
       </div>
-    </div>
+        </div>
+      </div>
     </DoodleStage>
   );
 };

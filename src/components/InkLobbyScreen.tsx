@@ -348,17 +348,17 @@ export const InkLobbyScreen = ({
       <GameBackdrop src="/lobby/backgroundlobby.png" />
 
       {/* ============== HEADER ============== */}
-      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-8">
-        <div className="flex min-w-0 items-center gap-3">
-          <GameLogo candidates={['/lobby/logo.png', '/home/logo.png']} imgClassName="h-8 w-auto sm:h-9" />
+      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-8 sm:py-3.5 [@media(max-height:640px)_and_(orientation:landscape)]:flex-nowrap [@media(max-height:640px)_and_(orientation:landscape)]:py-1.5">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <GameLogo candidates={['/lobby/logo.png', '/home/logo.png']} imgClassName="hidden h-7 w-auto min-[420px]:block sm:h-9 [@media(max-height:640px)_and_(orientation:landscape)]:h-7" />
           <button
             type="button"
             onClick={handleCopyCode}
-            className="if-btn if-btn--neutral menu-focus"
+            className="if-btn if-btn--neutral menu-focus min-h-[44px] min-w-0 px-2 sm:px-3"
             title="Copier le code du lobby"
           >
             <span className="if-label hidden sm:inline">Code</span>
-            <span className="font-mono text-lg font-bold tracking-[0.28em]">{lobbyCode}</span>
+            <span className="truncate font-mono text-base font-bold tracking-[0.16em] sm:text-lg sm:tracking-[0.28em]">{lobbyCode}</span>
             {codeCopied ? (
               <Check className="h-4 w-4 text-[var(--c-green)]" aria-hidden="true" />
             ) : (
@@ -367,25 +367,33 @@ export const InkLobbyScreen = ({
           </button>
         </div>
 
-        <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
+        <div className="custom-scrollbar flex w-full min-w-0 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto sm:w-auto sm:gap-2 [@media(max-height:640px)_and_(orientation:landscape)]:w-auto [@media(max-height:640px)_and_(orientation:landscape)]:gap-1">
           <GameButton
             variant="neutral"
             size="sm"
+            className="min-h-[44px] min-w-[44px] shrink-0 px-2 sm:px-3"
+            aria-label="Ouvrir le Social Studio"
             onClick={() => {
               playInkSound('brushTap', 0.3);
               onOpenSocial();
             }}
             icon={<Users className="h-4 w-4" />}
           >
-            Social
+            <span className="hidden sm:inline [@media(max-height:640px)_and_(orientation:landscape)]:hidden">
+              Social
+            </span>
           </GameButton>
           <GameButton
             variant="neutral"
             size="sm"
+            className="min-h-[44px] min-w-[44px] shrink-0 px-2 sm:px-3"
+            aria-label={linkShared ? 'Lien du lobby copié' : 'Partager le lobby'}
             onClick={handleShareLink}
             icon={linkShared ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
           >
-            {linkShared ? 'Copié' : 'Partager'}
+            <span className="hidden sm:inline [@media(max-height:640px)_and_(orientation:landscape)]:hidden">
+              {linkShared ? 'Copié' : 'Partager'}
+            </span>
           </GameButton>
           <GameIconButton
             label="Paramètres"
@@ -409,12 +417,11 @@ export const InkLobbyScreen = ({
         </div>
       </header>
 
-      {/* ============== MAIN GRID ==============
-          pb-32 clears the floating music bar. */}
-      <div className="min-h-0 flex-1 px-4 pb-28 sm:px-8 lg:overflow-hidden">
+      {/* ============== MAIN GRID ============== */}
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-4 sm:px-8 sm:pb-6 min-[1101px]:overflow-hidden">
       <div className="gm-lobby mx-auto max-w-[1600px]">
         {/* ---------- RIGHT: chat, full column height ---------- */}
-        <aside className="order-2 flex min-h-[22rem] flex-col lg:order-2 lg:min-h-0">
+        <aside className="order-2 flex min-h-[22rem] flex-col min-[1101px]:order-2 min-[1101px]:min-h-0">
           <GameCard className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <TwitchStyleLobbyChat
               lobbyId={lobbyId}
@@ -426,7 +433,7 @@ export const InkLobbyScreen = ({
         </aside>
 
         {/* ---------- MAIN STAGE: featured mode, start, shelf ---------- */}
-        <section className="order-1 flex min-h-0 flex-col gap-4 lg:order-1">
+        <section className="order-1 flex min-h-0 flex-col gap-4 min-[1101px]:order-1">
           <motion.div
             className="flex-shrink-0"
             initial={{ opacity: 0, y: 12 }}
@@ -722,7 +729,7 @@ export const InkLobbyScreen = ({
         subtitle="Micro, caméra et son"
         icon={<Settings className="h-5 w-5" />}
       >
-        <DeviceSettings showPreview onClose={() => setShowSettings(false)} />
+        <DeviceSettings embedded showPreview onClose={() => setShowSettings(false)} />
       </InkModal>
 
       {/* ============== LEAVE CONFIRM ============== */}

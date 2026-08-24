@@ -59,7 +59,7 @@ export const QuizWaitingScreen = memo(
     const { getAvatar } = useMultiplePlayerAvatars(playerIds);
 
     return (
-      <div className="min-h-screen bg-[#0a0510] text-white relative overflow-hidden">
+      <div className="menu-screen-safe relative h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain bg-[#0a0510] text-white">
         {/* BACKGROUND */}
         <div className="fixed inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-br from-[#0f1c08] via-[#0a0510] to-[#0e1c0a]" />
@@ -79,13 +79,13 @@ export const QuizWaitingScreen = memo(
           />
         </div>
 
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-start px-5 py-8 pb-[200px]">
+        <div className="relative z-10 h-full min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain flex flex-col items-center justify-start px-4 py-5 pb-24 sm:px-5 sm:py-8 sm:pb-24">
           {/* HEADER */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-6 space-y-2"
+            className="text-center mb-4 sm:mb-6 space-y-2"
           >
             <motion.div
               initial={{ scale: 0, rotate: -10 }}
@@ -111,7 +111,7 @@ export const QuizWaitingScreen = memo(
             </motion.div>
 
             <h1
-              className="text-6xl md:text-7xl font-black tracking-tight leading-none text-white"
+              className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-none text-white"
               style={{
                 fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW,
@@ -138,7 +138,7 @@ export const QuizWaitingScreen = memo(
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="w-full max-w-2xl mb-6"
+            className="w-full max-w-2xl mb-4 sm:mb-6"
           >
             <div className="flex items-center gap-2 justify-center mb-3">
               <Users className="w-3.5 h-3.5 text-white/55" />
@@ -169,7 +169,7 @@ export const QuizWaitingScreen = memo(
                       stiffness: 220,
                       damping: 14,
                     }}
-                    className="relative w-24"
+                    className="relative w-20 sm:w-24"
                   >
                     <div
                       className="relative w-16 h-16 mx-auto rounded-full flex items-center justify-center"
@@ -238,7 +238,7 @@ export const QuizWaitingScreen = memo(
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="w-full max-w-2xl space-y-4 mb-6"
+              className="w-full max-w-2xl space-y-3 mb-4 sm:space-y-4 sm:mb-6"
             >
               {/* Category */}
               <CartoonSection
@@ -273,7 +273,7 @@ export const QuizWaitingScreen = memo(
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="w-full max-w-md space-y-3"
+            className="w-full max-w-md space-y-3 pb-1"
           >
             {isHost ? (
               <motion.button
@@ -285,7 +285,7 @@ export const QuizWaitingScreen = memo(
                 }
                 whileTap={!isLoading ? { scale: 0.96 } : undefined}
                 className={cn(
-                  'relative w-full py-4 rounded-2xl flex items-center justify-center gap-3',
+                'relative w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 sm:gap-3 sm:py-4',
                   isLoading && 'opacity-50 cursor-not-allowed',
                 )}
                 style={{
@@ -312,7 +312,7 @@ export const QuizWaitingScreen = memo(
                   <>
                     <Sparkles className="w-6 h-6 text-white" strokeWidth={2.5} />
                     <span
-                      className="text-3xl font-black text-white leading-none"
+                      className="text-2xl sm:text-3xl font-black text-white leading-none"
                       style={{
                         fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW,

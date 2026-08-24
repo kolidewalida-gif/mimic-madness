@@ -806,7 +806,7 @@ const Index = () => {
   }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, theme, showInkSocial, openInkSocial, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   return (
-    <div className="h-screen overflow-hidden">
+    <div className="game-viewport relative h-screen min-h-0 w-full overflow-hidden">
       {/* Only show dynamic background in non-ink mode (and not when the 3D theme is active) */}
       {!useInkMode && theme !== 'neverlikethat' && <DynamicBackground />}
 
@@ -839,12 +839,12 @@ const Index = () => {
       
       {/* Resume session modal — shown when a player reloads/crashes and comes back */}
       {showResumeModal && resumeStatus.kind === 'ready' && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4">
+        <div className="custom-scrollbar fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/70 p-4 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]">
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Reprendre la partie en cours"
-            className="if-panel if-fade menu-dialog w-full max-w-sm p-5 space-y-3"
+            className="if-panel if-fade menu-dialog custom-scrollbar max-h-full w-full max-w-sm overflow-y-auto p-5 space-y-3"
           >
             <h2 className="if-h2">Partie en cours</h2>
             <p className="if-muted text-sm">
@@ -883,7 +883,7 @@ const Index = () => {
       )}
       
       {/* Only show music bar in non-ink mode */}
-      <MusicPlayerBar />
+      {!useInkMode && <MusicPlayerBar />}
       
       {useInkMode && (gameState === 'home' || gameState === 'lobby') && (
         <SocialStudioDialog isOpen={showInkSocial} onClose={closeInkSocial} />

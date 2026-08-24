@@ -94,31 +94,24 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
   return (
     <div
       onWheel={onWheel}
-      className="force-cursor"
+      className={cn(
+        "force-cursor relative flex min-h-0 w-full flex-col overflow-hidden rounded-2xl bg-[#0a0510] [@media(min-width:761px)_and_(min-height:621px)]:flex-row",
+        embedded
+          ? "h-full border border-[var(--ink-accent-line)]"
+          : "max-w-[1240px] border border-[var(--ink-line)] [@media(min-width:761px)_and_(min-height:621px)]:rounded-[28px]",
+      )}
       style={embedded ? {
-        position: 'relative',
-        width: '100%',
         height: '100%',
-        display: 'flex',
-        borderRadius: 16,
-        overflow: 'hidden',
-        background: '#0a0510',
-        border: '1px solid var(--ink-accent-line)',
       } : {
-        position: 'relative',
-        width: 'min(96vw, 1240px)',
-        height: 'min(92vh, 880px)',
-        display: 'flex',
-        borderRadius: 28,
-        overflow: 'hidden',
-        background: '#0a0510',
-        border: '1px solid var(--ink-line)',
+        width: 'min(calc(100vw - max(2rem, env(safe-area-inset-left, 0px)) - max(2rem, env(safe-area-inset-right, 0px))), 1240px)',
+        height: 'min(calc(100dvh - max(2rem, env(safe-area-inset-top, 0px)) - max(2rem, env(safe-area-inset-bottom, 0px))), 880px)',
+        maxHeight: '100dvh',
         boxShadow: 'none',
       }}
     >
       {/* ═══ LEFT: Video ═══ */}
       <div
-        className="relative flex-1 flex items-center justify-center bg-black min-w-0"
+        className="relative flex min-h-0 min-w-0 flex-[1_1_55%] items-center justify-center bg-black [@media(min-width:761px)_and_(min-height:621px)]:h-full"
         onDoubleClick={handleVideoDoubleClick}
         style={{ cursor: 'auto' }}
       >
@@ -163,13 +156,13 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         </AnimatePresence>
 
         {/* Nav arrows */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-20">
-          <NavBtn icon={ChevronUp} disabled={index === 0} onClick={() => go(-1)} />
-          <NavBtn icon={ChevronDown} disabled={index === posts.length - 1} onClick={() => go(1)} />
+        <div className="absolute right-2 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-2 sm:right-4 sm:gap-3">
+          <NavBtn label="Publication précédente" icon={ChevronUp} disabled={index === 0} onClick={() => go(-1)} />
+          <NavBtn label="Publication suivante" icon={ChevronDown} disabled={index === posts.length - 1} onClick={() => go(1)} />
         </div>
 
         {/* Counter badge */}
-        <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-2xl"
+        <div className="absolute left-2 top-2 z-20 rounded-2xl px-2.5 py-1 sm:left-4 sm:top-4 sm:px-3 sm:py-1.5"
           style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
           <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
             {index + 1} / {posts.length}
@@ -177,31 +170,33 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         </div>
 
         {/* Double-click hint */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full pointer-events-none"
+        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 sm:bottom-4"
           style={{ background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.1)' }}>
-          <span className="text-xs text-white/50" style={{ fontFamily: FONT }}>Double-clic pour liker ❤️</span>
+          <span className="text-xs text-white/50 [@media(pointer:coarse)]:hidden" style={{ fontFamily: FONT }}>
+            Double-clic pour liker ❤️
+          </span>
+          <span className="hidden text-xs text-white/50 [@media(pointer:coarse)]:inline" style={{ fontFamily: FONT }}>
+            Double-tap pour liker ❤️
+          </span>
         </div>
       </div>
 
       {/* ═══ RIGHT: Info + Live Chat ═══ */}
       <div
         data-comments
-        className="flex flex-col flex-shrink-0"
+        className="flex min-h-[clamp(10rem,38dvh,20rem)] w-full flex-[1_1_45%] flex-col border-t border-[var(--ink-line)] [@media(min-width:761px)_and_(min-height:621px)]:min-h-0 [@media(min-width:761px)_and_(min-height:621px)]:w-[380px] [@media(min-width:761px)_and_(min-height:621px)]:max-w-[36%] [@media(min-width:761px)_and_(min-height:621px)]:flex-none [@media(min-width:761px)_and_(min-height:621px)]:border-l [@media(min-width:761px)_and_(min-height:621px)]:border-t-0"
         style={{
-          width: 380,
-          maxWidth: '36%',
-          borderLeft: '1px solid var(--ink-line)',
           background: 'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
           cursor: 'auto',
         }}
       >
         {/* Author header */}
-        <div className="p-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--ink-line)', background: 'linear-gradient(180deg, var(--ink-accent-soft), transparent)' }}>
+        <div className="flex-shrink-0 p-3 [@media(min-width:761px)_and_(min-height:621px)]:p-4" style={{ borderBottom: '1px solid var(--ink-line)', background: 'linear-gradient(180deg, var(--ink-accent-soft), transparent)' }}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" style={{ filter: 'none' }} />
-                <h3 className="text-2xl font-black text-white truncate leading-none"
+                <h3 className="truncate text-xl font-black leading-none text-white [@media(min-width:761px)_and_(min-height:621px)]:text-2xl"
                   style={{ fontFamily: FONT, textShadow: SHADOW }}>
                   {post.owner_name}
                 </h3>
@@ -217,12 +212,13 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
               <motion.button
                 whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.88 }}
                 onClick={() => { playInkSound('cartoonPop', 0.3); onLike(post.id); }}
+                aria-label={post.liked_by_me ? `Retirer le like (${post.likes_count})` : `Liker (${post.likes_count})`}
                 className="flex flex-col items-center gap-0.5"
               >
                 <motion.div
                   animate={post.liked_by_me ? { scale: [1, 1.4, 1] } : {}}
                   transition={{ duration: 0.3 }}
-                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  className="flex h-11 w-11 items-center justify-center rounded-full [@media(min-width:761px)_and_(min-height:621px)]:h-14 [@media(min-width:761px)_and_(min-height:621px)]:w-14"
                   style={{
                     background: post.liked_by_me
                       ? 'linear-gradient(180deg, #ef4444, #b91c1c)'
@@ -244,7 +240,8 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                 <motion.button
                   whileHover={{ scale: 1.1, rotate: 8 }} whileTap={{ scale: 0.9 }}
                   onClick={() => { playInkSound('cartoonZap', 0.3); onDelete(post.id); onClose(); }}
-                  className="w-10 h-10 rounded-full flex items-center justify-center self-start"
+                  aria-label="Supprimer la publication"
+                  className="flex h-11 w-11 items-center justify-center self-start rounded-full"
                   style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
                 >
                   <Trash2 className="w-4 h-4 text-red-300" strokeWidth={2.5} />
@@ -255,7 +252,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         </div>
 
         {/* Live chat header */}
-        <div className="px-4 py-2.5 flex items-center gap-2 flex-shrink-0"
+        <div className="flex flex-shrink-0 items-center gap-2 px-3 py-2 [@media(min-width:761px)_and_(min-height:621px)]:px-4 [@media(min-width:761px)_and_(min-height:621px)]:py-2.5"
           style={{ borderBottom: '2px solid var(--ink-accent-soft)' }}>
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <MessageCircle className="w-4 h-4 text-[var(--ink-accent-text)]" strokeWidth={2.5} />
@@ -268,7 +265,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         </div>
 
         {/* Comments */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-3 space-y-2.5 min-h-0">
+        <div className="custom-scrollbar min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3 py-2 [@media(min-width:761px)_and_(min-height:621px)]:px-4 [@media(min-width:761px)_and_(min-height:621px)]:py-3">
           {comments.length === 0 ? (
             <div className="text-center py-12 space-y-3">
               <motion.div animate={{ rotate: [-5, 5, -5] }} transition={{ duration: 2, repeat: Infinity }}
@@ -326,6 +323,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
                 whileTap={draft.trim() ? { scale: 0.92 } : undefined}
                 onClick={handleSend}
                 disabled={!draft.trim() || posting}
+                aria-label="Envoyer le message"
                 className={cn('h-11 w-11 rounded-2xl flex items-center justify-center flex-shrink-0', !draft.trim() && 'opacity-40')}
                 style={{ background: 'var(--ink-accent)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
               >
@@ -345,6 +343,7 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
         <motion.button
           whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
           onClick={onClose}
+          aria-label="Fermer le viewer"
           className="absolute top-4 right-4 w-11 h-11 rounded-2xl flex items-center justify-center z-30 force-cursor"
           style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)', border: '1px solid var(--ink-line)', boxShadow: 'none', cursor: 'pointer' }}
         >
@@ -355,13 +354,14 @@ const SocialTikTokViewerComponent = ({ posts, startIndex, onClose, onLike, onDel
   );
 };
 
-const NavBtn = ({ icon: Icon, disabled, onClick }: { icon: any; disabled: boolean; onClick: () => void }) => (
+const NavBtn = ({ label, icon: Icon, disabled, onClick }: { label: string; icon: any; disabled: boolean; onClick: () => void }) => (
   <motion.button
     whileHover={!disabled ? { scale: 1.15, x: -2 } : undefined}
     whileTap={!disabled ? { scale: 0.88 } : undefined}
     onClick={onClick}
     disabled={disabled}
-    className={cn('w-12 h-12 rounded-2xl flex items-center justify-center', disabled && 'opacity-25')}
+    aria-label={label}
+    className={cn('flex h-11 w-11 items-center justify-center rounded-2xl [@media(min-width:761px)_and_(min-height:621px)]:h-12 [@media(min-width:761px)_and_(min-height:621px)]:w-12', disabled && 'opacity-25')}
     style={{
       background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
       border: '1px solid var(--ink-line)',
@@ -369,7 +369,7 @@ const NavBtn = ({ icon: Icon, disabled, onClick }: { icon: any; disabled: boolea
       cursor: disabled ? 'default' : 'pointer',
     }}
   >
-    <Icon className="w-6 h-6 text-white" strokeWidth={2.5} />
+    <Icon className="h-5 w-5 text-white [@media(min-width:761px)_and_(min-height:621px)]:h-6 [@media(min-width:761px)_and_(min-height:621px)]:w-6" strokeWidth={2.5} />
   </motion.button>
 );
 

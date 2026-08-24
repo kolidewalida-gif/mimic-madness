@@ -397,10 +397,10 @@ const InkHomeScreenComponent = ({
       <GameBackdrop src="/home/background.png" />
 
       {/* ============== HEADER — logo left, actions right ============== */}
-      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-8">
-        <GameLogo />
+      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-8 sm:py-3.5 [@media(max-height:640px)_and_(orientation:landscape)]:flex-nowrap [@media(max-height:640px)_and_(orientation:landscape)]:py-1.5">
+        <GameLogo imgClassName="h-7 w-auto sm:h-9 [@media(max-height:640px)_and_(orientation:landscape)]:h-7" />
 
-        <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
+        <div className="custom-scrollbar flex w-full min-w-0 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto sm:w-auto sm:gap-2 [@media(max-height:640px)_and_(orientation:landscape)]:w-auto [@media(max-height:640px)_and_(orientation:landscape)]:gap-1">
           {user ? (
             <NotificationCenter />
           ) : (
@@ -411,11 +411,14 @@ const InkHomeScreenComponent = ({
               <GameButton
                 variant="neutral"
                 size="sm"
-                className="shrink-0 whitespace-nowrap"
+                className="min-h-[44px] min-w-[44px] shrink-0 whitespace-nowrap px-2 sm:px-3"
                 onClick={handleGoogleSignIn}
                 icon={<LogIn className="h-4 w-4" aria-hidden="true" />}
+                aria-label="Connexion Google"
               >
-                Connexion Google
+                <span className="hidden sm:inline [@media(max-height:640px)_and_(orientation:landscape)]:hidden">
+                  Connexion Google
+                </span>
               </GameButton>
             </div>
           )}
@@ -423,7 +426,8 @@ const InkHomeScreenComponent = ({
             variant="primary"
             size="sm"
             accent="var(--c-pink)"
-            className="shrink-0 whitespace-nowrap"
+            className="min-h-[44px] min-w-[44px] shrink-0 whitespace-nowrap px-2 sm:px-3"
+            aria-label="Soutenir Mimic Master et retirer les publicités"
             title={user ? 'Soutenir Mimic Master et retirer les publicités' : 'Connexion Google requise pour conserver ton achat'}
             onClick={() => {
               if (!user) {
@@ -436,7 +440,9 @@ const InkHomeScreenComponent = ({
             }}
             icon={<Heart className="h-4 w-4" fill="currentColor" aria-hidden="true" />}
           >
-            Sans pub
+            <span className="hidden sm:inline [@media(max-height:640px)_and_(orientation:landscape)]:hidden">
+              Sans pub
+            </span>
           </GameButton>
           <GameIconButton
             label={user ? 'Mes amis' : 'Se connecter pour accéder aux amis'}
@@ -454,6 +460,8 @@ const InkHomeScreenComponent = ({
           <GameButton
             variant="neutral"
             size="sm"
+            className="min-h-[44px] min-w-[44px] shrink-0 px-2 sm:px-3"
+            aria-label="Ouvrir le Social Studio"
             title={user ? 'Ouvrir le Social Studio' : 'Connexion Google requise pour le Social Studio'}
             onClick={() => {
               if (!user) {
@@ -465,7 +473,9 @@ const InkHomeScreenComponent = ({
             }}
             icon={<Share2 className="h-4 w-4" />}
           >
-            Social
+            <span className="hidden sm:inline [@media(max-height:640px)_and_(orientation:landscape)]:hidden">
+              Social
+            </span>
           </GameButton>
           <GameIconButton
             label="Paramètres"
@@ -478,11 +488,12 @@ const InkHomeScreenComponent = ({
           </GameIconButton>
           <button
             type="button"
+            aria-label={`Ouvrir le profil de ${displayName}`}
             onClick={() => {
               playInkSound('inkClick', 0.3);
               setShowProfileDrawer(true);
             }}
-            className="if-row menu-focus min-w-0 pl-1 pr-2.5"
+            className="if-row menu-focus min-h-[44px] min-w-[44px] pl-1 pr-2.5"
           >
             <GameAvatar name={displayName} src={profile?.avatar_url ?? undefined} />
             <span className="hidden min-w-0 text-left sm:block">
@@ -497,8 +508,8 @@ const InkHomeScreenComponent = ({
 
       {/* ============== MAIN ==============
           Wide focal panel + side rail, then the mode shelf across the full
-          width. pb-32 clears the floating music bar. */}
-      <main className="custom-scrollbar relative flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 pb-28 sm:px-8 [justify-content:safe_center]">
+          width. */}
+      <main className="custom-scrollbar relative flex min-h-0 flex-1 flex-col justify-start overflow-y-auto px-3 pb-3 sm:justify-center sm:px-8 sm:pb-6 [justify-content:safe_center] [@media(max-height:640px)_and_(orientation:landscape)]:pb-2">
         {/* Rails publicitaires : dans les grandes marges latérales vides, donc
             jamais au-dessus du contenu jouable. Masqués sous 1440px. */}
         <AdSlot
@@ -517,7 +528,7 @@ const InkHomeScreenComponent = ({
           instanceKey="home-rail-right"
           className="pointer-events-auto absolute right-6 top-1/2 hidden h-[600px] w-[160px] -translate-y-1/2 [@media(min-width:1440px)]:flex"
         />
-        <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-5">
+        <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-3 sm:gap-5 [@media(max-height:640px)_and_(orientation:landscape)]:gap-2">
 
           {/* One focal panel: the selected mode and everything needed to play
               it. Splitting these into two side-by-side cards is what left a
@@ -608,7 +619,7 @@ const InkHomeScreenComponent = ({
           <div className="flex-shrink-0">
             <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
               <GameLabel>Choisis ton mode</GameLabel>
-              <span className="if-mute text-xs">
+              <span className="if-mute hidden text-xs sm:inline [@media(max-height:640px)_and_(orientation:landscape)]:hidden">
                 Flèches ← → pour naviguer
               </span>
             </div>
@@ -639,7 +650,7 @@ const InkHomeScreenComponent = ({
       </main>
 
       {/* ============== FOOTER ============== */}
-      <footer className="flex flex-shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-1.5 sm:px-8">
+      <footer className="flex flex-shrink-0 flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-1 sm:px-8 sm:py-1.5 [@media(max-height:640px)_and_(orientation:landscape)]:py-0.5">
         <div className="min-w-0 flex-1">
           {friendCode ? (
             <button
@@ -648,7 +659,7 @@ const InkHomeScreenComponent = ({
               className="if-btn if-btn--ghost if-btn--sm menu-focus"
               title="Copier mon code ami"
             >
-              <span className="if-label">Code ami</span>
+              <span className="if-label hidden sm:inline">Code ami</span>
               <span className="font-mono text-sm font-bold tracking-wider text-[var(--ink-text)]">
                 {friendCode}
               </span>
@@ -665,7 +676,7 @@ const InkHomeScreenComponent = ({
 
         <nav
           aria-label="Informations légales"
-          className="order-3 flex w-full items-center justify-center gap-3 text-[10px] text-[var(--ink-muted)] sm:order-none sm:w-auto"
+          className="custom-scrollbar order-3 flex w-full items-center justify-start gap-2 overflow-x-auto whitespace-nowrap text-xs text-[var(--ink-muted)] sm:order-none sm:w-auto sm:justify-center sm:gap-3"
         >
           <Link className="menu-focus rounded hover:text-[var(--ink-text)]" to="/confidentialite">
             Confidentialité
@@ -948,7 +959,7 @@ const InkHomeScreenComponent = ({
         subtitle="Micro, caméra et son"
         icon={<Settings className="h-5 w-5" />}
       >
-        <DeviceSettings showPreview onClose={closeSettings} />
+        <DeviceSettings embedded showPreview onClose={closeSettings} />
       </InkModal>
 
       {/* ============== PATCH NOTE ============== */}

@@ -73,12 +73,13 @@ export const AudioPhoneWaitingPhase = memo(({
 
   return (
     <InkGameStage accent={ACCENT}>
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-8 pb-[200px]">
+      <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div className="flex min-h-full flex-col items-center justify-start p-3 pb-24 sm:p-4 sm:pb-24 md:p-8 md:pb-24 lg:justify-center landscape:py-3 landscape:pb-24">
         {/* HEADER */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-6 space-y-3"
+          className="text-center mb-4 sm:mb-6 landscape:mb-3 space-y-2 sm:space-y-3"
         >
           <InkPhasePill icon={Clock} label="En attente" accent={ACCENT} />
           <InkTitle size="xl">La chaîne continue…</InkTitle>
@@ -95,9 +96,9 @@ export const AudioPhoneWaitingPhase = memo(({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="w-full max-w-md mb-4"
+          className="w-full max-w-md mb-3 sm:mb-4"
         >
-          <InkCard accent={ACCENT} highlighted className="p-5">
+          <InkCard accent={ACCENT} highlighted className="p-4 sm:p-5 landscape:p-3">
             <div className="flex items-center gap-4">
               <motion.div
                 animate={{ rotate: [-5, 5, -5] }}
@@ -175,7 +176,7 @@ export const AudioPhoneWaitingPhase = memo(({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="w-full max-w-md mb-4"
+          className="w-full max-w-md mb-3 sm:mb-4"
         >
           <InkCard accent={ACCENT} className="p-4" highlighted={false}>
             <div className="flex items-center justify-between mb-2">
@@ -205,7 +206,7 @@ export const AudioPhoneWaitingPhase = memo(({
           transition={{ delay: 0.3 }}
           className="w-full max-w-md"
         >
-          <InkCard accent="var(--ink-accent)" className="p-4" highlighted={false}>
+          <InkCard accent="var(--ink-accent)" className="p-3 sm:p-4" highlighted={false}>
             <h3
               className="text-base font-black uppercase tracking-wider text-white/80 mb-3"
               style={{
@@ -215,7 +216,7 @@ export const AudioPhoneWaitingPhase = memo(({
             >
               Ordre de passage
             </h3>
-            <div className="space-y-2">
+            <div className="max-h-[min(42dvh,24rem)] space-y-2 overflow-y-auto overscroll-contain pr-1 landscape:max-h-[34dvh]">
               {playerStatuses.map((status, idx) => (
                 <motion.div
                   key={status.playerId}
@@ -284,6 +285,7 @@ export const AudioPhoneWaitingPhase = memo(({
             </div>
           </InkCard>
         </motion.div>
+        </div>
       </div>
     </InkGameStage>
   );

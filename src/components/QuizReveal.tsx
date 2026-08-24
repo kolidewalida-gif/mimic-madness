@@ -84,14 +84,15 @@ export const QuizReveal = ({
 
   return (
     <InkGameStage accent={ACCENT}>
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 pb-[120px] gap-5">
+      <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div className="flex min-h-full flex-col items-center justify-start gap-4 p-3 pb-24 sm:gap-5 sm:p-4 sm:pb-24 sm:justify-center">
         {/* Question reminder */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-2xl w-full"
         >
-          <InkCard accent="var(--ink-accent)" showSparkles={false} className="px-5 py-4">
+          <InkCard accent="var(--ink-accent)" showSparkles={false} className="px-4 py-3 sm:px-5 sm:py-4">
             <div className="flex items-center justify-center gap-2 mb-1">
               <HelpCircle className="w-4 h-4" style={{ color: 'var(--ink-accent)' }} strokeWidth={2.5} />
               <span
@@ -117,7 +118,7 @@ export const QuizReveal = ({
           transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.1 }}
           className="max-w-2xl w-full"
         >
-          <InkCard accent={CORRECT} highlighted className="px-6 py-7 text-center">
+          <InkCard accent={CORRECT} highlighted className="px-4 py-5 text-center sm:px-6 sm:py-7">
             <div className="inline-flex items-center gap-2 mb-3">
               <span
                 className="w-8 h-8 rounded-xl flex items-center justify-center"
@@ -149,7 +150,7 @@ export const QuizReveal = ({
           transition={{ duration: 0.4 }}
           className="max-w-2xl w-full"
         >
-          <InkCard accent={ACCENT} showSparkles={false} className="px-5 py-5">
+          <InkCard accent={ACCENT} showSparkles={false} className="px-4 py-4 sm:px-5 sm:py-5">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Zap className="w-5 h-5" style={{ color: ACCENT }} fill={ACCENT} />
               <h3
@@ -161,7 +162,7 @@ export const QuizReveal = ({
               <Zap className="w-5 h-5" style={{ color: ACCENT }} fill={ACCENT} />
             </div>
 
-            <div className="space-y-2.5">
+            <div className="max-h-[min(45dvh,28rem)] space-y-2.5 overflow-y-auto overscroll-contain pr-1">
               {sortedAnswers.length > 0 ? (
                 sortedAnswers.map((answer, index) => {
                   const isRevealed = index < revealedAnswers;
@@ -177,7 +178,7 @@ export const QuizReveal = ({
                           : { opacity: 0, x: -24 }
                       }
                       transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                      className="flex items-center justify-between rounded-2xl px-3.5 py-3"
+                      className="flex min-w-0 items-center justify-between gap-2 rounded-2xl px-3 py-2.5 sm:px-3.5 sm:py-3"
                       style={{
                         background: `linear-gradient(180deg, ${color}26, ${color}10)`,
                         border: '1px solid var(--ink-line)',
@@ -248,12 +249,15 @@ export const QuizReveal = ({
           </InkCard>
         </motion.div>
 
-        <AutoAdvanceBar
-          durationMs={3500}
-          label="Classement"
-          canSkip={isHost}
-          onSkip={onContinue}
-        />
+        <div className="sticky bottom-20 z-10 w-full max-w-2xl bg-gradient-to-t from-[#0a0510] via-[#0a0510]/95 to-transparent pt-4 pb-1">
+          <AutoAdvanceBar
+            durationMs={3500}
+            label="Classement"
+            canSkip={isHost}
+            onSkip={onContinue}
+          />
+        </div>
+        </div>
       </div>
     </InkGameStage>
   );

@@ -164,7 +164,7 @@ export const UndercoverGameScreen = memo(
     // Loading
     if (loading || !game) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-[#1a0530]">
+        <div className="menu-screen-safe flex h-[100dvh] min-h-0 items-center justify-center overflow-y-auto overflow-x-hidden bg-[#1a0530]">
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
             <Loader2 className="w-10 h-10 text-[var(--ink-accent-text)]" />
           </motion.div>
@@ -184,12 +184,7 @@ export const UndercoverGameScreen = memo(
     const currentTurnName = gamePlayers.find((p) => p.player_id === currentTurnPlayerId)?.player_name ?? '…';
 
     return (
-      <div
-        className={cn(
-          'w-full flex flex-col text-white relative',
-          isGameOver ? 'h-screen overflow-y-auto' : 'h-screen overflow-hidden',
-        )}
-      >
+      <div className="menu-screen-safe relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden text-white">
         {/* ═══ BACKGROUND IMAGE — graffiti wall ═══ */}
         <div className="absolute inset-0">
           <BackgroundWithFallback />
@@ -198,10 +193,10 @@ export const UndercoverGameScreen = memo(
         </div>
 
         {/* ═══ TOP BAR — Phase info + Round counter ═══ */}
-        <header className="relative z-10 flex items-center justify-between px-5 pt-4 pb-2">
+        <header className="relative z-10 flex flex-shrink-0 items-center justify-between gap-2 px-3 pt-3 pb-2 sm:px-5 sm:pt-4">
           {/* Phase label */}
           <motion.div key={game.phase} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-            className="px-5 py-2.5 rounded-2xl"
+            className="min-w-0 px-3 py-2 rounded-2xl sm:px-5 sm:py-2.5"
             style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
             <span className="text-xl font-black" style={{ fontFamily: FONT, color: accent, textShadow: SHADOW_SM }}>
               {PHASE_LABELS[game.phase] ?? game.phase}
@@ -214,8 +209,8 @@ export const UndercoverGameScreen = memo(
           </motion.div>
 
           {/* Round counter */}
-          <div className="px-4 py-2 rounded-2xl" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-            <span className="text-2xl font-black" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+          <div className="px-3 py-1.5 rounded-2xl sm:px-4 sm:py-2" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+            <span className="text-lg font-black sm:text-2xl" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
               {game.current_round}/{game.total_rounds > 90 ? '∞' : game.total_rounds}
             </span>
           </div>
@@ -228,10 +223,12 @@ export const UndercoverGameScreen = memo(
           </div>
         )}
 
-        {/* ═══ MAIN AREA — Players grid with clue history ═══ */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 min-h-0 overflow-hidden">
+        {/* ═══ SCROLLABLE GAME BODY — players + actions ═══ */}
+        <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain scroll-pb-28">
+          {/* ═══ MAIN AREA — Players grid with clue history ═══ */}
+          <div className="flex min-h-0 flex-col items-center justify-start px-3 py-2 sm:justify-center sm:px-4">
           {/* Players columns — each player is a column with avatar on top and clues below */}
-          <div className="w-full max-w-4xl flex justify-center gap-3 md:gap-5">
+          <div className="grid w-full max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             {orderedPlayers.map((player) => {
               const isCurrent = currentTurnPlayerId === player.player_id && game.phase === 'clue_giving';
               const isMe = player.player_id === currentPlayer.id;
@@ -247,7 +244,7 @@ export const UndercoverGameScreen = memo(
               }
 
               return (
-                <div key={player.id} className="flex flex-col items-center gap-2.5 min-w-0" style={{ flex: '1 1 0', maxWidth: '220px' }}>
+                <div key={player.id} className="flex min-w-0 w-full max-w-[13rem] flex-col items-center justify-self-center gap-2 sm:gap-2.5">
                   {/* Avatar */}
                   <motion.button
                     type="button"
@@ -258,7 +255,7 @@ export const UndercoverGameScreen = memo(
                     animate={isCurrent ? { y: [0, -4, 0] } : undefined}
                     transition={isCurrent ? { duration: 1.2, repeat: Infinity } : undefined}
                     className={cn(
-                      'relative w-36 h-36 md:w-40 md:h-40 rounded-full flex items-center justify-center flex-shrink-0',
+                      'relative aspect-square w-[clamp(5rem,24vw,9rem)] rounded-full flex items-center justify-center flex-shrink-0',
                       canVotePlayer && 'cursor-pointer',
                       isEliminated && 'opacity-40 grayscale',
                     )}
@@ -272,8 +269,8 @@ export const UndercoverGameScreen = memo(
                     }}
                   >
                     {isEliminated ? <Skull className="w-14 h-14 text-white/70" /> :
-                      av.type === 'image' && av.imageUrl ? <img src={av.imageUrl} alt="" className="w-32 h-32 md:w-36 md:h-36 rounded-full object-cover" /> :
-                      <span className="text-5xl md:text-6xl font-black text-white" style={{ fontFamily: FONT }}>{player.player_name[0]?.toUpperCase()}</span>}
+                      av.type === 'image' && av.imageUrl ? <img src={av.imageUrl} alt="" className="h-[88%] w-[88%] rounded-full object-cover" /> :
+                      <span className="text-4xl font-black text-white sm:text-5xl md:text-6xl" style={{ fontFamily: FONT }}>{player.player_name[0]?.toUpperCase()}</span>}
                     {isCurrent && (
                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                         className="absolute -top-2 -right-1 px-1.5 py-0.5 rounded text-[10px] font-black text-white"
@@ -330,7 +327,7 @@ export const UndercoverGameScreen = memo(
         </div>
 
         {/* ═══ BOTTOM ZONE — Action area + Timer ═══ */}
-        <div className="relative z-10 px-4 pb-20 space-y-3">
+        <div className="px-3 pb-24 pt-2 space-y-3 sm:px-4 sm:pb-24">
           {/* Action zone — contextual per phase */}
           <div className="max-w-xl mx-auto">
             <AnimatePresence mode="wait">
@@ -364,8 +361,8 @@ export const UndercoverGameScreen = memo(
                   {isMyTurn && myPlayer?.is_alive ? (
                     <div className="flex gap-2 max-w-md mx-auto">
                       <Input value={clueInput} onChange={(e) => setClueInput(e.target.value)} placeholder="Ton indice…"
-                        maxLength={30} autoFocus onKeyDown={(e) => e.key === 'Enter' && handleSubmitClue()}
-                        className="flex-1 h-11 bg-black/50 text-center text-lg font-black text-white placeholder:text-white/30 rounded-2xl"
+                        maxLength={30} autoFocus enterKeyHint="send" onKeyDown={(e) => e.key === 'Enter' && handleSubmitClue()}
+                        className="min-w-0 flex-1 h-11 bg-black/50 text-center text-lg font-black text-white placeholder:text-white/30 rounded-2xl"
                         style={{ fontFamily: FONT, border: '1px solid var(--ink-line)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)' }} />
                       <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleSubmitClue}
                         disabled={!clueInput.trim()}
@@ -538,6 +535,7 @@ export const UndercoverGameScreen = memo(
             </div>
           )}
         </div>
+        </div>
 
         {/* ═══ ELIMINATION FX OVERLAY ═══ */}
         <AnimatePresence>
@@ -555,11 +553,11 @@ export const UndercoverGameScreen = memo(
         <AnimatePresence>
           {showWordModal && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+              className="menu-screen-safe fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/85 p-3 backdrop-blur-sm sm:p-6"
               onClick={() => { setShowWordModal(false); if (game.phase === 'word_reveal' && !hasSeenWord) confirmWordSeen(); }}>
               <motion.div initial={{ scale: 0.7, rotate: -5 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0.7 }}
                 transition={{ type: 'spring', damping: 14 }} onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-sm rounded-3xl p-8 text-center"
+                className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-3xl p-6 text-center sm:p-8"
                 style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 40px ${accent}33` }}>
                 <p className="text-xs uppercase tracking-widest text-white/40 font-black mb-4" style={{ fontFamily: FONT }}>🤫 Ton mot secret</p>
                 {myPlayer?.word ? (
@@ -620,7 +618,7 @@ const EliminationOverlay = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
       onClick={onDismiss}
-      className="fixed inset-0 z-[60] flex items-center justify-center cursor-pointer"
+      className="menu-screen-safe fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto p-3 cursor-pointer"
       style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
     >
       {/* Radial flash */}
@@ -658,7 +656,7 @@ const EliminationOverlay = ({
         exit={{ scale: 0.6, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 240, damping: 14, delay: 0.05 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex flex-col items-center gap-4 px-8 py-7 rounded-3xl"
+        className="relative flex max-h-[calc(100dvh-2rem)] max-w-full flex-col items-center gap-3 overflow-y-auto rounded-3xl px-5 py-5 sm:gap-4 sm:px-8 sm:py-7"
         style={{
           background: 'linear-gradient(180deg, #1a0d2e, #0f0820)',
           border: '1px solid var(--ink-line)',

@@ -56,7 +56,7 @@ export function MonopolyPropertyPanel({
 
   return (
     <div
-      className="rounded-3xl overflow-hidden"
+      className="flex h-[min(30rem,calc(100dvh-10rem))] max-h-[min(30rem,calc(100dvh-10rem))] min-h-0 flex-col overflow-hidden rounded-3xl lg:h-full lg:max-h-none"
       style={{
         background:
           'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -72,10 +72,10 @@ export function MonopolyPropertyPanel({
           borderBottom: '1px solid var(--ink-line)',
         }}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <Building className="w-4 h-4 text-[var(--ink-accent-text)]" strokeWidth={2.5} />
           <h3
-            className="text-lg font-black text-white uppercase tracking-wider leading-none"
+            className="min-w-0 truncate text-base font-black text-white uppercase tracking-wider leading-none sm:text-lg"
             style={{
               fontFamily: "'Outfit', sans-serif",
               textShadow: GRAFFITI_TEXT_SHADOW_SM,
@@ -97,7 +97,7 @@ export function MonopolyPropertyPanel({
         </span>
       </div>
 
-      <ScrollArea className="h-[480px]">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="p-3 space-y-3">
           {myProps.length === 0 && (
             <div className="text-center py-10">
@@ -240,7 +240,7 @@ export function MonopolyPropertyPanel({
                     >
                       {/* color stripe + name */}
                       <div
-                        className="px-2.5 py-1.5 flex items-center gap-2"
+                        className="min-w-0 px-2.5 py-1.5 flex items-center gap-2"
                         style={{
                           background: `linear-gradient(180deg, ${color}55, ${color}11)`,
                         }}

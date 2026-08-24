@@ -215,7 +215,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0510] text-white relative overflow-hidden">
+    <div className="menu-screen-safe relative h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden bg-[#0a0510] text-white overscroll-contain">
       {/* Background glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0f0820] via-[#0a0510] to-[#160a26]" />
@@ -230,13 +230,13 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-2xl px-5 py-6 space-y-5">
+      <div className="relative z-10 mx-auto max-w-2xl space-y-4 px-4 py-4 pb-24 sm:space-y-5 sm:px-5 sm:py-6 sm:pb-24">
         {/* HEADER */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <motion.div
             animate={{ rotate: [-6, 6, -6] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-            className="w-14 h-14 rounded-2xl flex items-center justify-center"
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
             style={{
               background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
               border: '1px solid var(--ink-line)',
@@ -253,7 +253,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
               Avant de jouer
             </p>
             <h1
-              className="text-4xl font-black leading-none text-white"
+              className="text-3xl sm:text-4xl font-black leading-none text-white"
               style={{
                 fontFamily: "'Outfit', sans-serif",
                 textShadow: GRAFFITI_TEXT_SHADOW,
@@ -287,7 +287,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
         </div>
 
         {/* NUM UNDERCOVER */}
-        <CartoonCard accent="#ef4444" className="px-5 py-4">
+        <CartoonCard accent="#ef4444" className="px-4 py-3 sm:px-5 sm:py-4">
           <Sparkles
             className="absolute top-3 right-3 w-4 h-4 z-10"
             style={{ color: '#ef4444', filter: 'none' }}
@@ -336,7 +336,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                 initial={{ scale: 0.6, rotate: -10 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 360, damping: 14 }}
-                className="w-20 h-16 rounded-2xl flex items-center justify-center"
+                className="w-16 h-16 sm:w-20 sm:h-16 rounded-2xl flex items-center justify-center"
                 style={{
                   background: 'rgba(0,0,0,0.45)',
                   border: '1px solid var(--ink-line)',
@@ -371,7 +371,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
         </CartoonCard>
 
         {/* ROUNDS */}
-        <CartoonCard accent="#fbbf24" className="px-5 py-4">
+        <CartoonCard accent="#fbbf24" className="px-4 py-3 sm:px-5 sm:py-4">
           <Sparkles
             className="absolute top-3 right-3 w-4 h-4 z-10"
             style={{ color: '#fbbf24', filter: 'none' }}
@@ -422,7 +422,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
         </CartoonCard>
 
         {/* MR WHITE TOGGLE */}
-        <CartoonCard accent="var(--ink-text-dim)" className="px-5 py-4">
+        <CartoonCard accent="var(--ink-text-dim)" className="px-4 py-3 sm:px-5 sm:py-4">
           <Sparkles
             className="absolute top-3 right-3 w-4 h-4 z-10"
             style={{ color: 'var(--ink-text-dim)', filter: 'none' }}
@@ -466,7 +466,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
         </CartoonCard>
 
         {/* LAUNCH BUTTON */}
-        <div className="pt-2">
+        <div className="pt-1 sm:pt-2">
           {isHost ? (
             <motion.button
               type="button"
@@ -479,7 +479,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
               }
               whileTap={!submitting && !isLaunching ? { scale: 0.97 } : undefined}
               className={cn(
-                'relative w-full px-6 py-5 rounded-2xl',
+                'relative w-full px-5 py-4 rounded-2xl sm:px-6 sm:py-5',
                 (submitting || isLaunching) && 'opacity-70 cursor-not-allowed',
               )}
               style={{
@@ -499,7 +499,7 @@ export const UndercoverPreGameSettings = memo(function UndercoverPreGameSettings
                   <Crown className="w-6 h-6 text-white" strokeWidth={2.5} />
                 )}
                 <span
-                  className="text-3xl font-black text-white leading-none"
+                  className="text-2xl sm:text-3xl font-black text-white leading-none"
                   style={{
                     fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,

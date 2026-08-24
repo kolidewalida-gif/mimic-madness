@@ -101,7 +101,7 @@ const Header = ({
     <div className="flex min-w-0 items-center gap-3">
       {icon && (
         <span
-          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-white"
+          className="ink-panel-icon flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-white"
           style={{
             background: iconGradient ?? 'var(--ink-accent)',
             border: 'var(--ink-border)',
@@ -113,11 +113,11 @@ const Header = ({
         </span>
       )}
       <div className="min-w-0">
-        <h2 id={titleId} className="ink-title truncate text-3xl">{title}</h2>
-        {subtitle && <p className="mt-0.5 truncate text-xs font-bold text-white/45">{subtitle}</p>}
+        <h2 id={titleId} className="ink-panel-title ink-title truncate text-3xl">{title}</h2>
+        {subtitle && <p className="ink-panel-subtitle mt-0.5 truncate text-xs font-bold text-white/45">{subtitle}</p>}
       </div>
     </div>
-    <div className="flex flex-shrink-0 items-center gap-2">
+    <div className="ink-panel-actions flex flex-shrink-0 items-center gap-2">
       {actions}
       <button
         type="button"
@@ -158,7 +158,7 @@ export const InkDrawer = ({
             // gradient background forces the compositor to re-sample the whole
             // viewport every frame, which showed up as flicker on open. A
             // denser solid scrim reads the same.
-            className="ink-z-drawer-backdrop fixed inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.78)]"
+            className="ink-z-drawer-backdrop viewport-overlay viewport-overlay-scrim fixed inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.78)]"
           />
           <motion.div
             ref={panelRef}
@@ -172,7 +172,7 @@ export const InkDrawer = ({
             aria-modal="true"
             aria-labelledby={titleId}
             className={cn(
-              'menu-dialog menu-dialog-safe ink-z-drawer fixed bottom-0 top-0 flex w-full max-w-md flex-col',
+              'menu-dialog ink-z-drawer viewport-panel viewport-panel-insets fixed bottom-0 top-0 flex w-full max-w-md flex-col',
               side === 'right' ? 'right-0' : 'left-0',
               className,
             )}
@@ -187,7 +187,7 @@ export const InkDrawer = ({
               subtitle={subtitle} actions={actions} onClose={close} closeLabel={closeLabel}
             />
             {toolbar}
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+            <div className="ink-panel-body game-scroll custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
           </motion.div>
         </>
       )}
@@ -209,7 +209,7 @@ export const InkModal = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="ink-z-modal fixed inset-0 flex items-center justify-center p-4">
+        <div className="ink-z-modal viewport-overlay fixed inset-0 flex items-center justify-center">
           <motion.button
             type="button"
             initial={{ opacity: 0 }}
@@ -229,7 +229,7 @@ export const InkModal = ({
             aria-modal="true"
             aria-labelledby={titleId}
             className={cn(
-              'menu-dialog menu-dialog-safe ink-panel-surface relative flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-3xl',
+              'menu-dialog ink-panel-surface viewport-panel relative flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-3xl',
               className,
             )}
           >
@@ -238,7 +238,7 @@ export const InkModal = ({
               subtitle={subtitle} actions={actions} onClose={close} closeLabel={closeLabel}
             />
             {toolbar}
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+            <div className="ink-panel-body game-scroll custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
           </motion.div>
         </div>
       )}

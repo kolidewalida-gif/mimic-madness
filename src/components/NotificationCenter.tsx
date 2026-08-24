@@ -89,17 +89,28 @@ export const NotificationCenter = () => {
 
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ type: 'spring', damping: 24, stiffness: 300 }}
-            role="dialog"
-            aria-label="Centre de notifications"
-            className="if-panel absolute right-0 top-12 z-[120] w-[min(22rem,calc(100vw-2rem))] overflow-hidden"
-            style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.5)' }}
-          >
-            <div className="flex items-center justify-between border-b border-[var(--ink-line)] px-4 py-3">
+          <>
+            <motion.button
+              type="button"
+              aria-label="Fermer le centre de notifications"
+              onClick={() => setOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[119] hidden bg-black/55 max-[760px]:block"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ type: 'spring', damping: 24, stiffness: 300 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Centre de notifications"
+              className="if-panel absolute right-0 top-12 z-[120] flex max-h-[min(32rem,calc(100dvh-2rem))] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden max-[760px]:fixed max-[760px]:bottom-0 max-[760px]:left-[env(safe-area-inset-left,0px)] max-[760px]:right-[env(safe-area-inset-right,0px)] max-[760px]:top-auto max-[760px]:max-h-[calc(100dvh-env(safe-area-inset-top,0px))] max-[760px]:w-auto max-[760px]:rounded-b-none max-[760px]:pb-[env(safe-area-inset-bottom,0px)]"
+              style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.5)' }}
+            >
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-[var(--ink-line)] px-4 py-3">
               <span className="if-label">Notifications</span>
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
@@ -118,7 +129,7 @@ export const NotificationCenter = () => {
               </div>
             </div>
 
-            <div className="max-h-[min(24rem,60vh)] overflow-y-auto custom-scrollbar">
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto max-[760px]:max-h-none min-[761px]:max-h-[min(24rem,60dvh)]">
               {items.length === 0 ? (
                 <div className="px-4 py-10 text-center text-white/45">
                   <Bell className="mx-auto mb-2 h-8 w-8 opacity-40" />
@@ -167,7 +178,8 @@ export const NotificationCenter = () => {
                 })
               )}
             </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

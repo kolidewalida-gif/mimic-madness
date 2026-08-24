@@ -369,6 +369,8 @@
     font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: hsl(var(--background));
     min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
     overflow-x: hidden;
   }
 
@@ -2044,11 +2046,104 @@ body.game-cursor-effect-glow .game-cursor-nib {
    in/out and on tiny viewports.
 ============================================================ */
 
-/* Fallback for browsers without dvh support (older iOS / Safari) */
-@supports not (height: 100dvh) {
-  .max-h-\[calc\(100dvh-2rem\)\] {
-    max-height: calc(100vh - 2rem);
-  }
+/* Shared dynamic-viewport primitives. The ordered declarations keep a usable
+   fallback on older mobile browsers while preferring the live viewport. */
+.game-viewport {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+:where(.game-scroll) {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+:where(.viewport-overlay) {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  overflow: hidden;
+  padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+}
+
+:where(.viewport-overlay.viewport-overlay-scrim) {
+  padding: 0;
+}
+
+:where(.viewport-panel) {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100vh;
+  max-height: 100svh;
+  max-height: 100dvh;
+}
+
+/* Fixed centred panels retain the existing gutter. Insets are reserved once,
+   inside the panel, and Tailwind classes supplied by callers can override it. */
+:where(.viewport-panel.viewport-panel-center) {
+  width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100svh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  padding-top: max(1.5rem, env(safe-area-inset-top, 0px));
+  padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+}
+
+:where(.viewport-panel.viewport-panel-has-close) {
+  padding-right: max(4rem, env(safe-area-inset-right, 0px));
+}
+
+:where(.viewport-panel-safe) {
+  padding-top: max(1.5rem, env(safe-area-inset-top, 0px));
+  padding-right: max(4rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+}
+
+:where(.viewport-panel-insets) {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+:where(.viewport-panel-close) {
+  top: max(0.75rem, env(safe-area-inset-top, 0px));
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+}
+
+/* Explicit fallbacks for Tailwind arbitrary dynamic-viewport utilities. */
+.h-\[100dvh\] {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+}
+
+.max-h-\[100dvh\] {
+  max-height: 100vh;
+  max-height: 100svh;
+  max-height: 100dvh;
+}
+
+.max-h-\[calc\(100dvh-2rem\)\] {
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100svh - 2rem);
+  max-height: calc(100dvh - 2rem);
 }
 
 /* Cartoon scrollbar — reused across all Ink modals */
@@ -2067,11 +2162,13 @@ body.game-cursor-effect-glow .game-cursor-nib {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Tiny screens / heavy zoom — relax the 4px black borders so they
-   don't visually swallow the modal content. */
+/* Tiny screens / heavy zoom — keep the dynamic unit last so compatible
+   browsers continue tracking browser chrome and the on-screen keyboard. */
 @media (max-height: 600px) {
   .max-h-\[calc\(100dvh-2rem\)\] {
     max-height: calc(100vh - 0.5rem);
+    max-height: calc(100svh - 0.5rem);
+    max-height: calc(100dvh - 0.5rem);
   }
 }
 
@@ -2166,16 +2263,16 @@ a, button, [role="button"], input, select, textarea, label, summary {
 
 /* 4) iOS zooms the page when focusing an input < 16px. Force 16px on touch so
    text fields never trigger the auto-zoom. */
-@media (pointer: coarse) {
+@media (pointer: coarse), (any-pointer: coarse) {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   textarea,
   select {
     font-size: 16px;
   }
-  /* Comfortable minimum tap size for icon-only controls (gentle, won't distort
-     already-large buttons). */
+  /* Comfortable minimum tap size without disabling pinch-to-zoom. */
   button, [role="button"], a[href] {
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
@@ -2233,7 +2330,7 @@ html.low-power .mix-blend-plus-lighter {
    Softens only the big decorative glow blobs — glass panels keep their blur
    so the UI still looks premium on iPad-class hardware, but frame times drop.
    ============================================================ */
-@media (pointer: coarse) {
+@media (pointer: coarse), (any-pointer: coarse) {
   .blur-3xl { filter: blur(42px); }
   .blur-2xl { filter: blur(26px); }
   /* comfortable reading size for lyrics / long text on tablets */
@@ -2281,15 +2378,11 @@ html.low-power .mix-blend-plus-lighter {
   min-height: 48px;
 }
 
-@media (pointer: coarse) {
+@media (pointer: coarse), (any-pointer: coarse) {
   .menu-surface :where(button, a[href], [role="button"]),
   .menu-dialog :where(button, a[href], [role="button"]) {
-    min-height: 44px;
-  }
-
-  .menu-surface :where(button[aria-label], a[aria-label], [role="button"][aria-label]),
-  .menu-dialog :where(button[aria-label], a[aria-label], [role="button"][aria-label]) {
     min-width: 44px;
+    min-height: 44px;
   }
 }
 
@@ -2655,6 +2748,43 @@ body.ink-mode {
 .ink-panel-header {
   background: transparent;
   border-bottom: 1px solid var(--ink-line);
+}
+
+/* Keep the shared Ink chrome usable at the narrowest phone width and when a
+   landscape browser leaves very little vertical room. Close stays 44px. */
+@media (max-width: 320px) {
+  .ink-panel-header {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  .ink-panel-header > div:first-child { gap: 0.5rem; }
+  .ink-panel-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.75rem;
+  }
+  .ink-panel-icon svg { width: 1.1rem; height: 1.1rem; }
+  .ink-panel-title { font-size: 1.25rem; }
+  .ink-panel-actions { gap: 0.25rem; }
+  .ink-panel-body { padding: 0.75rem; }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .ink-panel-header {
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .ink-panel-header > div:first-child { gap: 0.5rem; }
+  .ink-panel-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.65rem;
+  }
+  .ink-panel-icon svg { width: 1rem; height: 1rem; }
+  .ink-panel-title { font-size: 1.25rem; }
+  .ink-panel-subtitle { display: none; }
+  .ink-panel-actions { gap: 0.25rem; }
+  .ink-panel-body { padding: 0.75rem; }
 }
 
 /* One single "close" button for every menu (was 5 different sizes). */

@@ -271,7 +271,8 @@ export const PixoguessGameScreen = ({
   if (isLoading) {
     return (
       <InkGameStage accent={ACCENT}>
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+          <div className="flex min-h-full items-center justify-center p-3 sm:p-4">
           <motion.div
             className="w-20 h-20 rounded-2xl flex items-center justify-center"
             animate={{ rotate: 360 }}
@@ -284,6 +285,7 @@ export const PixoguessGameScreen = ({
           >
             <Loader2 className="w-8 h-8 text-white" strokeWidth={2.5} />
           </motion.div>
+          </div>
         </div>
       </InkGameStage>
     );
@@ -291,10 +293,11 @@ export const PixoguessGameScreen = ({
 
   return (
     <InkGameStage accent={ACCENT}>
-      <div className="min-h-screen px-4 py-5 pb-[200px]">
+      <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div className="min-h-full px-3 py-4 pb-28 sm:px-4 sm:py-5 sm:pb-32">
         <div className="max-w-6xl mx-auto space-y-4">
           {/* HEADER */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-3">
               <motion.div
                 animate={{ rotate: [-5, 5, -5] }}
@@ -455,7 +458,7 @@ export const PixoguessGameScreen = ({
 
           {/* PLAYING */}
           {phase === 'playing' && roundData && (
-            <div className="grid lg:grid-cols-3 gap-4">
+            <div className="grid min-w-0 gap-4 lg:grid-cols-3">
               {/* Main Game Area */}
               <div className="lg:col-span-2 space-y-4">
                 {/* Timer Bar */}
@@ -641,7 +644,7 @@ export const PixoguessGameScreen = ({
 
                 {/* Stats + Guess Input */}
                 <InkCard accent={ACCENT} className="p-4">
-                  <div className="grid gap-2 grid-cols-3 mb-3">
+                  <div className="grid grid-cols-1 gap-2 mb-3 sm:grid-cols-3">
                     <StatBlock
                       label="Pression"
                       value={`${roundAttemptCount}`}
@@ -663,13 +666,14 @@ export const PixoguessGameScreen = ({
                     />
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <input
                       ref={inputRef}
                       type="text"
                       value={guess}
                       onChange={(e) => setGuess(e.target.value)}
                       onKeyDown={handleKeyDown}
+                      enterKeyHint="send"
                       placeholder={
                         roundWinner
                           ? "Quelqu'un a déjà trouvé…"
@@ -683,7 +687,7 @@ export const PixoguessGameScreen = ({
                         cooldownMs > 0
                       }
                       className={cn(
-                        'flex-1 px-4 py-3 rounded-2xl text-lg font-black text-white transition-all',
+                        'min-w-0 flex-1 px-4 py-3 rounded-2xl text-lg font-black text-white transition-all',
                         showFeedback === 'correct' && 'animate-none',
                         showFeedback === 'wrong' && 'animate-shake',
                       )}
@@ -714,6 +718,7 @@ export const PixoguessGameScreen = ({
                       }
                       color="#fbbf24"
                       size="md"
+                      className="w-full sm:w-auto"
                     >
                       <Send className="w-5 h-5" strokeWidth={2.5} />
                     </InkButton>
@@ -857,7 +862,7 @@ export const PixoguessGameScreen = ({
               <InkCard
                 accent={ACCENT}
                 highlighted
-                className="p-6 text-center max-w-lg w-full"
+                className="p-4 sm:p-6 text-center max-w-lg w-full"
               >
                 <h2
                   className="text-3xl font-black text-white mb-4 leading-none"
@@ -870,7 +875,7 @@ export const PixoguessGameScreen = ({
                 </h2>
 
                 <div
-                  className="relative w-72 h-72 mx-auto mb-4 rounded-2xl overflow-hidden flex items-center justify-center"
+                  className="relative aspect-square w-full max-w-[18rem] mx-auto mb-4 rounded-2xl overflow-hidden flex items-center justify-center"
                   style={{
                     background:
                       'linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.2))',
@@ -907,7 +912,7 @@ export const PixoguessGameScreen = ({
                 </div>
 
                 <div
-                  className="text-4xl font-black text-[var(--ink-text-dim)] mb-4 capitalize leading-none"
+                  className="text-3xl sm:text-4xl font-black text-[var(--ink-text-dim)] mb-4 capitalize leading-none break-words"
                   style={{
                     fontFamily: "'Outfit', sans-serif",
                     textShadow: GRAFFITI_TEXT_SHADOW,
@@ -1185,12 +1190,13 @@ export const PixoguessGameScreen = ({
         </div>
 
         {/* Chat */}
-        <div className="fixed bottom-20 right-4 z-50">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50">
           <LobbyChat
             lobbyId={lobbyId}
             playerId={currentPlayer.id}
             playerName={currentPlayer.name}
           />
+        </div>
         </div>
       </div>
     </InkGameStage>
