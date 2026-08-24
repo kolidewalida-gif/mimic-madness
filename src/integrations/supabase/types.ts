@@ -1214,39 +1214,30 @@ export type Database = {
           created_at: string
           environment: string
           id: string
-          last_event_at: string | null
           paddle_customer_id: string | null
           paddle_transaction_id: string
           price_id: string
           product_id: string
-          revocation_reason: string | null
-          revoked_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           environment?: string
           id?: string
-          last_event_at?: string | null
           paddle_customer_id?: string | null
           paddle_transaction_id: string
           price_id: string
           product_id: string
-          revocation_reason?: string | null
-          revoked_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           environment?: string
           id?: string
-          last_event_at?: string | null
           paddle_customer_id?: string | null
           paddle_transaction_id?: string
           price_id?: string
           product_id?: string
-          revocation_reason?: string | null
-          revoked_at?: string | null
           user_id?: string
         }
         Relationships: []
