@@ -458,12 +458,16 @@ class VideoStorageSupabase {
     if (!clipIds) urlCache.clear();
 
     if (paths.length > 0) {
-      // Un seul appel groupé au stockage : vidéo, bande rythmo et vignette.
-      const toRemove = paths.flatMap((path) => [
-        path,
-        `${path.replace(/\.[^./]+$/, '')}.cues.json`,
-        posterPathFor(path),
-      ]);
+      // Un seul appel groupé au stockage : vidéo, bande rythmo, instrumental et vignette.
+      const toRemove = paths.flatMap((path) => {
+        const basePath = path.replace(/\.[^./]+$/, '');
+        return [
+          path,
+          `${basePath}.cues.json`,
+          `${basePath}.instrumental.mp3`,
+          posterPathFor(path),
+        ];
+      });
       const { error: storageError } = await supabase.storage.from(BUCKET).remove(toRemove);
       if (storageError) {
         // Les métadonnées sont déjà supprimées : les fichiers orphelins ne
@@ -588,14 +592,14 @@ class VideoStorageSupabase {
     // Invalidate cache
     urlCache.delete(clipId);
 
-    // Delete from storage, along with the clip's rythmo cue file when it has
-    // one. The cue file is a `<path>.cues.json` sibling of the video, so it is
-    // removed here rather than by every caller — otherwise deleting a clip
-    // would leave orphaned cues behind in the bucket.
-    const cuesPath = `${clip.storagePath.replace(/\.[^./]+$/, '')}.cues.json`;
+    // Delete from storage, along with the clip's rythmo cue file and
+    // instrumental track when present. Both are `<path>.*` siblings.
+    const basePath = clip.storagePath.replace(/\.[^./]+$/, '');
+    const cuesPath = `${basePath}.cues.json`;
+    const instrumentalPath = `${basePath}.instrumental.mp3`;
     const { error: storageError } = await supabase.storage
       .from('video-challenges')
-      .remove([clip.storagePath, cuesPath, posterPathFor(clip.storagePath)]);
+      .remove([clip.storagePath, cuesPath, instrumentalPath, posterPathFor(clip.storagePath)]);
 
     if (storageError) {
       console.error('Error deleting from storage:', storageError);

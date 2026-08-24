@@ -15,6 +15,12 @@ verify_jwt = true
 [functions.refine-rhythmo-text]
 verify_jwt = false
 
+[functions.separate-vocals]
+verify_jwt = true
+
+[functions.separate-vocals-status]
+verify_jwt = true
+
 [functions.transcribe-clip]
 verify_jwt = false
 

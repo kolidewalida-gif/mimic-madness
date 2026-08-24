@@ -14,6 +14,8 @@ import {
   Loader2,
   Mic,
   Eye,
+  Music2,
+  Check,
 } from "lucide-react";
 import {
   videoStorage,
@@ -40,6 +42,7 @@ import { downloadMediaBlob, probeMediaDuration } from "@/lib/rhythmo/media";
 import { listRhythmoTracks } from "@/lib/rhythmo/store";
 import { RhythmoError, rhythmoErrorLabel, type RhythmoProgress } from "@/lib/rhythmo/types";
 import { RhythmoPreviewDialog } from "@/components/rhythmo/RhythmoPreviewDialog";
+import { separateVocalsAndStore, hasInstrumental, type SeparationProgress } from "@/lib/vocalSeparation";
 import { isSchemaGapError } from "@/lib/imitationSyncClient";
 import { DEFAULT_CONCURRENCY, mapWithConcurrency } from "@/lib/concurrency";
 
@@ -223,6 +226,22 @@ export const VideoSubmissionScreen = ({
   const submitLockRef = useRef(false);
   /** Which clips already have a band. Drives the badges and the button state. */
   const [rhythmoReady, setRhythmoReady] = useState<Record<string, boolean>>({});
+  /** Which clips already have instrumental track (vocals removed). */
+  const [instrumentalReady, setInstrumentalReady] = useState<Record<string, boolean>>({});
+
+  /**
+   * UI state for the vocal separation progress overlay, similar to rhythmo.
+   */
+  const [vocalSeparation, setVocalSeparation] = useState<{
+    clipName: string;
+    index: number;
+    total: number;
+    progress: SeparationProgress;
+  } | null>(null);
+
+  const vocalAbortRef = useRef<Record<string, AbortController>>({});
+  const vocalLockRef = useRef(false);
+
   /**
    * Files kept from this session's imports, keyed by clip id. Lets a band be
    * generated without downloading the video back. Clips from earlier sessions
@@ -289,6 +308,16 @@ export const VideoSubmissionScreen = ({
       setRhythmoReady(
         Object.fromEntries(savedClips.map((clip) => [clip.id, withBand.has(clip.id)])),
       );
+
+      // Check which clips have instrumental tracks (parallel)
+      const instrumentalChecks = await Promise.all(
+        savedClips.map(async (clip) => {
+          const has = await hasInstrumental(clip);
+          return [clip.id, has] as const;
+        }),
+      );
+      if (cancelled) return;
+      setInstrumentalReady(Object.fromEntries(instrumentalChecks));
     })();
     return () => { cancelled = true; };
   }, [savedClips, currentPlayer.id]);
@@ -690,6 +719,95 @@ export const VideoSubmissionScreen = ({
   const rhythmoTargets = selectedClips
     .map((id) => savedClips.find((c) => c.id === id))
     .filter((c): c is VideoClip => !!c && rhythmoReady[c.id] !== true);
+
+  /** Selected clips that do not have instrumental track yet. */
+  const instrumentalTargets = selectedClips
+    .map((id) => savedClips.find((c) => c.id === id))
+    .filter((c): c is VideoClip => !!c && instrumentalReady[c.id] !== true);
+
+  /**
+   * Generate instrumental tracks (no vocals) for selected clips using Demucs.
+   * Pattern copied from buildRhythmoBands: concurrent processing with progress.
+   */
+  const buildInstrumentalTracks = async (clips: VideoClip[]) => {
+    if (clips.length === 0 || vocalLockRef.current) return;
+    vocalLockRef.current = true;
+
+    const controller = new AbortController();
+    vocalAbortRef.current = {};
+
+    let done = 0;
+    let failures = 0;
+
+    try {
+      // Process all clips sequentially (one at a time) like buildRhythmoBands
+      for (const [index, clip] of clips.entries()) {
+          if (controller.signal.aborted) return;
+
+          const clipController = new AbortController();
+          vocalAbortRef.current[clip.id] = clipController;
+
+          setVocalSeparation({
+            clipName: clip.name,
+            index: index + 1,
+            total: clips.length,
+            progress: { status: 'starting' },
+          });
+
+          const updateProgress = (progress: SeparationProgress) => {
+            setVocalSeparation((previous) =>
+              previous?.index === index + 1 ? { ...previous, progress } : previous,
+            );
+          };
+
+          try {
+            console.info('[vocal-separation] début', clip.name);
+            await separateVocalsAndStore(clip, updateProgress, clipController.signal);
+            console.info('[vocal-separation] terminé', clip.name);
+            setInstrumentalReady((previous) => ({ ...previous, [clip.id]: true }));
+            done += 1;
+          } catch (error) {
+            console.error('[vocal-separation] échec', clip.name, error);
+            failures += 1;
+            if (!controller.signal.aborted) {
+              toast({
+                title: `Échec pour "${clip.name}"`,
+                description: error instanceof Error ? error.message : 'Erreur inconnue',
+                variant: 'destructive',
+              });
+            }
+          } finally {
+            delete vocalAbortRef.current[clip.id];
+          }
+      }
+
+      if (done > 0) {
+        toast({
+          title: `🔇 ${done} piste${done > 1 ? 's' : ''} instrumentale${done > 1 ? 's' : ''} générée${done > 1 ? 's' : ''}`,
+          description: failures > 0 ? `${failures} échec${failures > 1 ? 's' : ''}` : undefined,
+        });
+      }
+    } catch (error) {
+      console.error('[vocal-separation] erreur globale', error);
+      if (!controller.signal.aborted) {
+        toast({
+          title: 'Erreur lors de la génération',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      vocalLockRef.current = false;
+      vocalAbortRef.current = {};
+      setVocalSeparation(null);
+    }
+  };
+
+  const cancelVocalSeparation = () => {
+    Object.values(vocalAbortRef.current).forEach((ctrl) => ctrl.abort());
+    vocalLockRef.current = false;
+    vocalAbortRef.current = {};
+    setVocalSeparation(null);
+  };
 
   const cancelRhythmo = () => {
     rhythmoAbortRef.current?.abort();
@@ -1287,6 +1405,86 @@ export const VideoSubmissionScreen = ({
                         </p>
                       )}
                     </div>
+                  )}
+
+                  {/* VOCAL SEPARATION — opt-in, removes vocals from selected clips using Demucs */}
+                  {selectedClips.length > 0 && !vocalSeparation && (
+                    <div className="rounded-2xl p-3 space-y-2"
+                      style={{ background: "var(--ink-accent-soft)", border: "1px solid var(--ink-line)" }}>
+                      <div className="flex items-start gap-2">
+                        <Music2 className="w-4 h-4 mt-0.5 shrink-0 text-[var(--ink-accent-text)]" strokeWidth={2.5} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-[var(--ink-accent-text)]"
+                            style={{ fontFamily: "'Outfit', sans-serif" }}>
+                            Supprimer les voix <span className="text-white/40">(optionnel)</span>
+                          </p>
+                          <p className="text-[10px] leading-snug text-white/45"
+                            style={{ fontFamily: "'Outfit', sans-serif" }}>
+                            Garde seulement la musique et les bruitages. Parfait pour focus sur le jeu vocal.
+                          </p>
+                        </div>
+                      </div>
+
+                      <motion.button type="button"
+                        onClick={() => void buildInstrumentalTracks(instrumentalTargets)}
+                        disabled={instrumentalTargets.length === 0}
+                        whileHover={instrumentalTargets.length > 0 ? { scale: 1.02 } : undefined}
+                        whileTap={instrumentalTargets.length > 0 ? { scale: 0.98 } : undefined}
+                        className={cn(
+                          "w-full py-2 rounded-xl flex items-center justify-center gap-1.5",
+                          instrumentalTargets.length === 0 && "opacity-45 cursor-not-allowed",
+                        )}
+                        style={{ background: ACCENT, border: "1px solid var(--ink-line)" }}>
+                        <Music2 className="w-4 h-4 text-white" strokeWidth={2.5} />
+                        <span className="text-xs font-black text-white leading-none"
+                          style={{ fontFamily: "'Outfit', sans-serif" }}>
+                          {instrumentalTargets.length === 0
+                            ? "Pistes déjà générées"
+                            : `Supprimer les voix (${instrumentalTargets.length})`}
+                        </span>
+                      </motion.button>
+
+                      {selectedClips.some((id) => instrumentalReady[id] === true) && (
+                        <p className="flex items-center justify-center gap-1 text-[10px] font-black text-white/45"
+                          style={{ fontFamily: "'Outfit', sans-serif" }}>
+                          <Check className="w-3 h-3" strokeWidth={2.5} /> Activer dans les paramètres du round
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* VOCAL SEPARATION PROGRESS */}
+                  {vocalSeparation && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-2xl p-3 space-y-2"
+                      style={{ background: "var(--ink-accent-soft)", border: "1px solid var(--ink-line)" }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 shrink-0 animate-spin text-[var(--ink-accent-text)]" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black truncate text-[var(--ink-accent-text)]"
+                            style={{ fontFamily: "'Outfit', sans-serif" }}>
+                            {vocalSeparation.progress.status === 'starting'
+                              ? 'Démarrage Demucs...'
+                              : vocalSeparation.progress.status === 'processing'
+                              ? 'Séparation des pistes audio...'
+                              : vocalSeparation.progress.status === 'succeeded'
+                              ? 'Téléchargement...'
+                              : 'Traitement...'}
+                          </p>
+                          <p className="text-[10px] text-white/45 truncate" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                            {vocalSeparation.clipName} · {vocalSeparation.index}/{vocalSeparation.total}
+                          </p>
+                        </div>
+                        <button type="button" onClick={cancelVocalSeparation}
+                          className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] px-2 py-1 rounded-full text-white/55 hover:text-white transition-colors"
+                          style={{ fontFamily: "'Outfit', sans-serif", border: "1px solid var(--ink-line)" }}>
+                          Annuler
+                        </button>
+                      </div>
+                    </motion.div>
                   )}
 
                   {previewClip && clipUrls[previewClip.id] && (
