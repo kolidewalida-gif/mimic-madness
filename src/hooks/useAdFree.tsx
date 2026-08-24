@@ -151,7 +151,7 @@ export function AdFreeProvider({ children }: { children: ReactNode }) {
           .eq('environment', environment),
         supabase
           .from('purchases')
-          .select('price_id,environment,revoked_at')
+          .select('price_id,environment')
           .eq('user_id', userId)
           .eq('environment', environment),
       ]);
