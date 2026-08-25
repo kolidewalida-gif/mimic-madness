@@ -1,5 +1,9 @@
 /* MimicMaster - Ultra Premium Modern Design System 2024 */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Bangers&family=Fredoka:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+/* `Caveat` porte tout le lettrage manuscrit du thème INK. Sans elle, la pile
+   retombait sur Bradley Hand puis Segoe Print, absentes de la plupart des
+   machines, et l'interface se rendait en cursive système ou en sans-serif —
+   ce qui suffisait à faire disparaître l'effet dessiné à la main. */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Bangers&family=Fredoka:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Caveat:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -5455,4 +5459,344 @@ body.inkbeta-mode.beta-paper {
   --primary: 353 79% 43%;
   --primary-foreground: 0 0% 100%;
   --ring: 353 79% 43%;
+}
+
+
+/* ============================================================
+   INK — menu dessiné à la main
+   ------------------------------------------------------------
+   Une page de carnet rendue interactive. Le titre est peint sur
+   la feuille, le panneau est posé par-dessus et le recouvre en
+   partie : c'est ce recouvrement qui crée la profondeur, et il
+   ne s'obtient pas en empilant des éléments dans le flux.
+
+   Tout est préfixé `.ik-` et vit sous `body.inkbeta-mode`, donc
+   les autres thèmes ne voient rien de cette couche.
+   ============================================================ */
+
+body.inkbeta-mode {
+  /* Papier et encre. Aucun noir pur : un stylo sur du papier ne
+     produit jamais #000, et cette nuance fait beaucoup. */
+  --ik-paper: #f7f4ec;
+  --ik-paper-2: #efeade;
+  --ik-ink: #1f1c19;
+  --ik-ink-soft: #4a453e;
+  --ik-ink-faint: #8d877c;
+  --ik-hand: 'Caveat', 'Bradley Hand', 'Segoe Print', cursive;
+  --ik-display: 'Bebas Neue', 'Anton', Impact, sans-serif;
+}
+
+/* ---- Coquille ---- */
+.ik-root {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--ik-paper);
+  color: var(--ik-ink);
+  font-family: 'Outfit', system-ui, sans-serif;
+}
+
+/* Feuille de papier photographiée, en fond. `multiply` la fusionne
+   avec la couleur de base au lieu de la recouvrir, ce qui garde le
+   ton chaud du papier sous la texture. */
+.ik-paper-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-position: center;
+  background-size: cover;
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+
+/* Grain fin par-dessus, pour éviter l'aplat numérique. */
+.ik-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-size: 160px 160px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+html.low-power .ik-grain,
+html.low-power .ik-paper-bg { display: none; }
+
+/* ------------------------------------------------------------
+   LE TITRE DERRIÈRE LE PANNEAU
+
+   C'est l'exigence centrale. Le titre est en `z-index: 2`, le
+   panneau en `z-index: 5` : le panneau le recouvre donc
+   physiquement, quel que soit l'ordre du DOM.
+
+   Le titre est aussi volontairement plus large que la zone du
+   panneau et légèrement décalé, pour qu'il dépasse des deux
+   côtés — sans ce débordement, l'effet « dessiné avant » ne se
+   lit pas, on croirait juste à un fond.
+
+   `multiply` remplace un détourage alpha : l'image générée est
+   de l'encre noire sur papier blanc, et ce mode de fusion fait
+   disparaître le blanc.
+   ------------------------------------------------------------ */
+.ik-stage {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+
+.ik-title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: min(1180px, 132vw);
+  aspect-ratio: 1408 / 832;
+  transform: translate(-50%, -54%) rotate(-1.4deg);
+  pointer-events: none;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+
+/* Le panneau passe devant. */
+.ik-panel {
+  position: relative;
+  z-index: 5;
+  transform: rotate(var(--ik-rotate, -0.6deg));
+}
+
+.ik-panel-body {
+  position: relative;
+  z-index: 1;
+  padding: clamp(1.1rem, 2.4vw, 1.9rem);
+}
+
+/* Fond du panneau : un papier un peu plus opaque que la page, pour
+   masquer franchement le titre là où il passe dessous. Sans cette
+   opacité le titre resterait visible au travers et la profondeur
+   disparaîtrait. */
+.ik-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--ik-paper);
+  opacity: 0.94;
+}
+
+/* Cadre tracé à la main, commun au panneau et aux boutons. */
+.ik-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: var(--ik-ink);
+  pointer-events: none;
+}
+
+/* ---- Tracé progressif ----
+   `stroke-dashoffset` donne l'impression que la ligne s'écrit.
+   Une simple montée d'opacité ne produit pas cet effet. */
+@keyframes ik-draw-on {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+.ik-draw {
+  pathLength: 1;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: ik-draw-on 620ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+/* ---- Titres ---- */
+.ik-hand {
+  font-family: var(--ik-hand);
+  font-weight: 600;
+}
+
+.ik-label {
+  font-family: var(--ik-hand);
+  font-size: 1.05rem;
+  color: var(--ik-ink-soft);
+  letter-spacing: 0.01em;
+}
+
+.ik-muted { color: var(--ik-ink-faint); }
+
+/* ---- Boutons ----
+   Fond papier, contour au stylo, aucun rayon ni dégradé. Le survol
+   incline très légèrement et redessine le trait. */
+.ik-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 1.1rem;
+  border: 0;
+  background: transparent;
+  color: var(--ik-ink);
+  font-family: var(--ik-hand);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 140ms ease, color 140ms ease;
+}
+
+.ik-btn::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  z-index: 0;
+  background: var(--ik-paper-2);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.ik-btn-label { position: relative; z-index: 3; }
+
+.ik-btn:not(:disabled):hover {
+  transform: rotate(-0.7deg) translateY(-2px);
+}
+.ik-btn:not(:disabled):hover::before { opacity: 1; }
+/* Le trait se retrace au survol : même animation que l'entrée,
+   rejouée. */
+.ik-btn:not(:disabled):hover .ik-draw {
+  animation: ik-draw-on 420ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+.ik-btn:not(:disabled):active { transform: rotate(0.3deg) translateY(1px); }
+.ik-btn:disabled { color: var(--ik-ink-faint); cursor: not-allowed; opacity: 0.55; }
+
+.ik-btn--primary { font-size: 1.5rem; min-height: 62px; }
+/* Le bouton principal est repassé une troisième fois, comme on
+   appuie sur ce qui compte. */
+.ik-btn--primary .ik-frame { color: var(--ik-ink); }
+.ik-btn--sm { min-height: 40px; font-size: 1.05rem; padding: 0 0.7rem; }
+
+/* ---- Champ de saisie ---- */
+.ik-input {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 0.8rem;
+  border: 0;
+  border-bottom: 2px solid var(--ik-ink-faint);
+  background: transparent;
+  color: var(--ik-ink);
+  font-family: var(--ik-hand);
+  font-size: 1.4rem;
+}
+.ik-input::placeholder { color: var(--ik-ink-faint); }
+.ik-input:focus {
+  outline: none;
+  border-bottom-color: var(--ik-ink);
+}
+
+.ik-field { position: relative; }
+
+/* ---- Gribouillis ---- */
+.ik-doodle {
+  position: absolute;
+  z-index: 3;
+  color: var(--ik-ink-faint);
+  pointer-events: none;
+}
+
+/* ---- Cartes de modes ----
+   Vignettes au trait, dans le même registre que le reste : contour
+   dessiné, illustration ramenée en niveaux de gris pour qu'elle lise
+   comme un croquis au crayon et non comme une image collée. */
+.ik-mode {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  border: 0;
+  background: transparent;
+  color: var(--ik-ink-soft);
+  cursor: pointer;
+  transition: transform 150ms ease, color 150ms ease;
+}
+.ik-mode:hover { transform: rotate(-1deg) translateY(-3px); color: var(--ik-ink); }
+.ik-mode:active { transform: rotate(0.4deg); }
+
+.ik-mode-art {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  font-size: 1.6rem;
+}
+.ik-mode-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Multiply + désaturation : l'illustration se fond dans la page
+     comme un dessin, au lieu de flotter en rectangle. */
+  filter: grayscale(1) contrast(1.15) brightness(1.04);
+  mix-blend-mode: multiply;
+  opacity: 0.82;
+}
+.ik-mode.is-selected .ik-mode-art img {
+  filter: grayscale(0.15) contrast(1.05);
+  opacity: 1;
+}
+
+.ik-mode-name {
+  position: relative;
+  z-index: 3;
+  font-family: var(--ik-hand);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ik-mode.is-selected { color: var(--ik-ink); }
+
+/* ---- Responsive ----
+   Le titre doit continuer à passer derrière le panneau sur petit
+   écran. On l'élargit en proportion du viewport plutôt que de le
+   réduire, sinon il cesse de dépasser et l'effet tombe. */
+@media (max-width: 900px) {
+  .ik-title { width: 150vw; transform: translate(-50%, -52%) rotate(-1.4deg); }
+}
+@media (max-width: 560px) {
+  .ik-title { width: 178vw; opacity: 0.8; }
+  .ik-btn { font-size: 1.2rem; min-height: 48px; }
+  .ik-btn--primary { font-size: 1.3rem; min-height: 54px; }
+}
+
+/* Écrans très larges : le titre ne doit pas devenir gigantesque au
+   point de sortir de la composition. */
+@media (min-width: 2200px) {
+  .ik-title { width: 1560px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ik-draw { animation: none; stroke-dashoffset: 0; }
+  .ik-btn, .ik-mode { transition: none; }
+  .ik-btn:hover, .ik-mode:hover { transform: none; }
+  .ik-btn:not(:disabled):hover .ik-draw { animation: none; }
 }

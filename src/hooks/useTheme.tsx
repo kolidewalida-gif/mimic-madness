@@ -255,10 +255,12 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return stored === null ? true : stored === 'true';
   });
 
-  /* Encre par défaut : une soirée de jeu se joue le plus souvent le soir. */
+  /* Papier par défaut : le thème INK est une page de carnet, et le fond clair
+     est ce qui porte l'identité. La surface encre reste disponible en second
+     choix pour jouer le soir. */
   const [betaSurface, setBetaSurfaceState] = useState<BetaSurface>(() => {
     const stored = localStorage.getItem('ink-beta-surface');
-    return stored === 'paper' ? 'paper' : 'ink';
+    return stored === 'ink' ? 'ink' : 'paper';
   });
 
   const setBetaSurface = (surface: BetaSurface) => {

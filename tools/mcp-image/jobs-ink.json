@@ -1,0 +1,22 @@
+[
+  {
+    "out": "kiosque/title-ink.png",
+    "seed": 8801,
+    "width": 1408,
+    "height": 832,
+    "steps": 16,
+    "cfg": 4,
+    "prompt": "Hand drawn ballpoint pen lettering on plain white paper. The words \"MIMIC\" on the upper line and \"MASTER\" on the lower line, written very large in loose sketchy capital letters. Drawn quickly by hand with a single black pen: wobbly uneven strokes, lines that overshoot at the corners, letters slightly tilted and not perfectly aligned, some letters retraced twice, small ink blobs where the pen paused. Pure flat white paper background, black ink only, nothing else on the page. Simple line drawing, no fill, no shading, no colour, no texture, no border.",
+    "negative": "colour, coloured, gradient, glow, shadow, 3d, bevel, emboss, outline font, corporate typeface, clean vector type, serif, sans-serif, printed type, perfect geometry, straight ruler lines, halftone, newsprint, grey paper, aged paper, texture, grain, frame, border, watermark, signature, extra words, paragraphs"
+  },
+  {
+    "out": "kiosque/paper.png",
+    "seed": 9902,
+    "width": 1408,
+    "height": 832,
+    "steps": 14,
+    "cfg": 3,
+    "prompt": "Plain sheet of off-white sketchbook paper, photographed flat and evenly lit. Very subtle paper fibre texture, faint tooth, a few tiny specks and one or two extremely faint pale grey pen smudges near the edges. Almost uniform warm white, nothing drawn on it, completely empty page. Extremely low contrast, no pattern, no lines, no grid.",
+    "negative": "lines, ruled paper, grid, graph paper, writing, letters, text, drawing, sketch, dark, heavy texture, crumpled, torn, folded, stains, coffee, yellow, aged, vignette, shadow, gradient, colour, pattern, border, frame"
+  }
+]
