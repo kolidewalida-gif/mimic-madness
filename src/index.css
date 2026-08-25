@@ -4888,3 +4888,480 @@ select.admin-field option { color: var(--ink-text); background: var(--ink-surfac
   .admin-primary-button,
   .admin-lobby-button { transition: none; }
 }
+
+
+/* ============================================================
+   KIOSQUE — thème `inkbeta`, beta fermée administrateurs
+   ------------------------------------------------------------
+   Le menu comme un mur d'affiches sérigraphiées : filets épais,
+   aplats, ombres dures décalées, lettrage condensé. Aucun
+   dégradé, aucun halo — c'est précisément ce vocabulaire qui
+   donnait au menu stable son air de tableau de bord généré.
+
+   Deux surfaces commutables, `body.beta-paper` et
+   `body.beta-ink`. Le filet épais est le seul langage qui reste
+   lisible sur les deux : sur papier il est noir, sur encre il
+   devient papier, ce qui donne le contour d'un sticker découpé.
+
+   Préfixe `.kq-` pour ne rien croiser avec `.if-*` / `.gm-*`,
+   que le thème `ink` stable continue d'utiliser intact.
+   ============================================================ */
+
+body.inkbeta-mode {
+  --kq-display: 'Bebas Neue', 'Anton', Impact, sans-serif;
+  --kq-body: 'Outfit', system-ui, sans-serif;
+
+  /* Géométrie franche : le sticker n'a pas de coins mous. */
+  --kq-radius: 3px;
+  --kq-radius-lg: 5px;
+  --kq-keyline: 2.5px;
+
+  /* Accents repris de PULP (audiophone/PulpComic.tsx). */
+  --kq-red: #ff2e3f;
+  --kq-blue: #2f7bff;
+  --kq-yellow: #ffce2b;
+}
+
+/* ---- Surface encre ---- */
+body.inkbeta-mode.beta-ink {
+  --kq-bg: #08070a;
+  --kq-bg-2: #0f0e13;
+  --kq-surface: #16141c;
+  --kq-surface-2: #1d1a24;
+  --kq-text: #f3ede0;
+  --kq-text-dim: #b7b0a2;
+  --kq-text-mute: #85806f;
+  /* Contour clair = découpe de sticker sur fond sombre. */
+  --kq-line: #f3ede0;
+  --kq-line-soft: rgba(243, 237, 224, 0.28);
+  --kq-shadow: #000;
+  --kq-grain-opacity: 0.085;
+  --kq-halftone: rgba(255, 255, 255, 0.05);
+}
+
+/* ---- Surface papier ---- */
+body.inkbeta-mode.beta-paper {
+  --kq-bg: #f3ede0;
+  --kq-bg-2: #e8e0cf;
+  --kq-surface: #fffdf6;
+  --kq-surface-2: #f7f1e3;
+  --kq-text: #14110d;
+  --kq-text-dim: #4a443a;
+  --kq-text-mute: #736c5e;
+  --kq-line: #14110d;
+  --kq-line-soft: rgba(20, 17, 13, 0.3);
+  --kq-shadow: #14110d;
+  /* Le grain en `overlay` mord beaucoup plus sur un fond clair. */
+  --kq-grain-opacity: 0.05;
+  --kq-halftone: rgba(20, 17, 13, 0.16);
+}
+
+/* ---- Coquille ---- */
+.kq-root {
+  position: relative;
+  isolation: isolate;
+  background: var(--kq-bg);
+  color: var(--kq-text);
+  font-family: var(--kq-body);
+}
+
+/* Trame d'impression, posée une fois sur la coquille.
+   `background-attachment` fixe évite qu'elle glisse avec le contenu. */
+.kq-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(var(--kq-halftone) 1.1px, transparent 1.6px);
+  background-size: 6px 6px;
+  transform: translateZ(0);
+}
+
+/* Grain argentique. Statique par défaut : le menu reste affiché
+   indéfiniment, et une animation infinie y coûterait de la batterie
+   pour rien. PulpComic l'anime, mais sur des phases de jeu courtes. */
+.kq-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: var(--kq-grain-opacity);
+  mix-blend-mode: overlay;
+  background-size: 150px 150px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+html.low-power .kq-grain,
+html.low-power .kq-root::before { display: none; }
+
+/* ---- Lettrage d'affiche ----
+   Le décalage de repérage — un calque d'encre imprimé de travers —
+   remplace le texte en dégradé, qui est l'un des tells les plus nets
+   d'une interface générée. */
+.kq-display {
+  font-family: var(--kq-display);
+  font-weight: 400;
+  letter-spacing: 0.015em;
+  line-height: 0.9;
+  text-transform: uppercase;
+  color: var(--kq-text);
+  text-shadow:
+    2px 0 0 color-mix(in srgb, var(--accent, var(--kq-red)) 70%, transparent),
+    -2px 0 0 color-mix(in srgb, var(--kq-blue) 45%, transparent);
+}
+
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .kq-display { text-shadow: 2px 0 0 var(--kq-red), -2px 0 0 var(--kq-blue); }
+}
+
+.kq-h1 { font-size: clamp(2rem, 5vw, 3.5rem); }
+.kq-h2 { font-size: clamp(1.35rem, 2.6vw, 1.85rem); }
+
+.kq-label {
+  font-family: var(--kq-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--kq-text-mute);
+}
+
+.kq-muted { color: var(--kq-text-dim); }
+
+/* ---- Boutons ----
+   Ombre dure, jamais de halo. L'appui écrase l'ombre à zéro et
+   déplace le bouton d'autant : le geste est celui d'un tampon. */
+.kq-btn {
+  --accent: var(--kq-red);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1.15rem;
+  border: var(--kq-keyline) solid var(--kq-line);
+  border-radius: var(--kq-radius);
+  background: var(--kq-surface);
+  color: var(--kq-text);
+  font-family: var(--kq-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 3px 3px 0 0 var(--kq-shadow);
+  transition: transform 110ms steps(2, end), box-shadow 110ms steps(2, end),
+    background 110ms ease;
+}
+.kq-btn:not(:disabled):hover { background: var(--kq-surface-2); }
+.kq-btn:not(:disabled):active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 0 var(--kq-shadow);
+}
+.kq-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+.kq-btn--primary {
+  background: var(--accent);
+  color: #0a0a0c;
+  box-shadow: 3px 3px 0 0 var(--kq-shadow);
+}
+.kq-btn--primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--accent) 82%, white);
+}
+
+.kq-btn--xl { min-height: 62px; padding: 0 1.6rem; font-size: 1.45rem; }
+.kq-btn--sm { min-height: 40px; padding: 0 0.75rem; font-size: 0.9rem; box-shadow: 2px 2px 0 0 var(--kq-shadow); }
+
+.kq-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: var(--kq-keyline) solid var(--kq-line);
+  border-radius: var(--kq-radius);
+  background: var(--kq-surface);
+  color: var(--kq-text);
+  box-shadow: 3px 3px 0 0 var(--kq-shadow);
+  transition: transform 110ms steps(2, end), box-shadow 110ms steps(2, end);
+}
+.kq-icon-btn:not(:disabled):active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 0 var(--kq-shadow);
+}
+
+/* ---- Champ de saisie ---- */
+.kq-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 0.9rem;
+  border: var(--kq-keyline) solid var(--kq-line);
+  border-radius: var(--kq-radius);
+  background: var(--kq-surface);
+  color: var(--kq-text);
+  font-family: var(--kq-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.05em;
+  box-shadow: inset 2px 2px 0 0 var(--kq-line-soft);
+}
+.kq-input::placeholder { color: var(--kq-text-mute); }
+.kq-input:focus {
+  outline: none;
+  box-shadow: inset 2px 2px 0 0 var(--kq-line-soft), 0 0 0 3px var(--accent, var(--kq-red));
+}
+
+.kq-code-input {
+  text-align: center;
+  font-size: 2.1rem;
+  letter-spacing: 0.35em;
+  text-indent: 0.35em;
+}
+
+/* ---- Étiquette ---- */
+.kq-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border: 2px solid var(--kq-line);
+  border-radius: var(--kq-radius);
+  background: var(--accent, var(--kq-yellow));
+  color: #0a0a0c;
+  font-family: var(--kq-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ---- Bandeau de tête ----
+   Filet d'impression sous le bandeau plutôt qu'une bordure discrète. */
+.kq-masthead {
+  border-bottom: var(--kq-keyline) solid var(--kq-line);
+  background: var(--kq-bg-2);
+}
+
+/* ---- Mur d'affiches ----
+   Grille, pas rangée à défilement : les sept modes tiennent à
+   l'écran d'un coup. Et l'artwork reste en pleine saturation —
+   le menu stable le désature au repos, ce qui revient à combattre
+   ses propres illustrations. */
+.kq-wall {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+}
+
+.kq-poster {
+  --accent: var(--kq-red);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.4rem 0.4rem 0.5rem;
+  border: var(--kq-keyline) solid var(--kq-line);
+  border-radius: var(--kq-radius);
+  background: var(--kq-surface);
+  color: var(--kq-text);
+  text-align: center;
+  box-shadow: 3px 3px 0 0 var(--kq-shadow);
+  transition: transform 130ms steps(3, end), box-shadow 130ms steps(3, end);
+}
+.kq-poster:not(:disabled):hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 0 var(--kq-shadow);
+}
+.kq-poster:not(:disabled):active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--kq-shadow);
+}
+
+/* Sélection marquée par l'échelle et un aplat d'accent, pas par un halo. */
+.kq-poster.is-selected {
+  background: var(--accent);
+  transform: translate(-3px, -3px);
+  box-shadow: 6px 6px 0 0 var(--kq-shadow);
+}
+.kq-poster.is-selected .kq-poster-name { color: #0a0a0c; }
+
+.kq-poster-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border: 2px solid var(--kq-line);
+  border-radius: 2px;
+  background: var(--kq-bg-2);
+  font-size: 1.9rem;
+  line-height: 1;
+}
+.kq-poster-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.kq-poster-name {
+  font-family: var(--kq-display);
+  font-size: 0.92rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.05;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tampon encreur du mode retenu, légèrement de travers. */
+.kq-stamp {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  transform: rotate(-14deg);
+  border: 2.5px solid var(--kq-line);
+  border-radius: 999px;
+  background: var(--kq-yellow);
+  color: #0a0a0c;
+}
+
+/* ---- Le billet ----
+   La zone d'action vit ici, hors du panneau descriptif, et ne bouge
+   plus quand on change de mode. Dans le menu stable elle est logée
+   dans le hero, qui se re-rend à chaque sélection. */
+.kq-ticket {
+  position: relative;
+  border: var(--kq-keyline) solid var(--kq-line);
+  border-radius: var(--kq-radius-lg);
+  background: var(--kq-surface);
+  box-shadow: 4px 4px 0 0 var(--kq-shadow);
+}
+
+/* Perforation de billet le long du bord haut. */
+.kq-ticket::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--kq-line) 1.4px, transparent 1.6px);
+  background-size: 9px 2px;
+  background-repeat: repeat-x;
+}
+
+/* ---- Panneau d'affiche mise en avant ---- */
+.kq-feature {
+  --accent: var(--kq-red);
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(0.9rem, 2vw, 1.6rem);
+  align-items: center;
+  padding: clamp(0.9rem, 1.6vw, 1.35rem);
+  border: var(--kq-keyline) solid var(--kq-line);
+  border-radius: var(--kq-radius-lg);
+  background: var(--kq-surface);
+  box-shadow: 5px 5px 0 0 var(--kq-shadow);
+}
+
+.kq-feature-art {
+  width: clamp(120px, 13vw, 186px);
+  aspect-ratio: 3 / 4;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: var(--kq-keyline) solid var(--kq-line);
+  border-radius: 2px;
+  background: var(--kq-bg-2);
+  font-size: 3rem;
+  line-height: 1;
+}
+/* `contain` : l'illustration est une carte entière, la rogner
+   couperait le lettrage dessiné en bas. */
+.kq-feature-art img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Bandeau d'accent en pied de panneau, à la place d'un halo diffus. */
+.kq-feature::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 5px;
+  background: var(--accent);
+  border-top: 2px solid var(--kq-line);
+}
+
+@media (max-width: 560px) {
+  .kq-feature { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
+  .kq-feature-art { width: 128px; }
+  .kq-wall { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
+}
+
+/* Le pas de `steps()` fait tout le caractère de ces transitions ;
+   sans mouvement, on les retire simplement. */
+@media (prefers-reduced-motion: reduce) {
+  .kq-btn, .kq-icon-btn, .kq-poster { transition: none; }
+  .kq-btn:hover, .kq-icon-btn:hover, .kq-poster:hover { transform: none; }
+}
+
+/* ------------------------------------------------------------
+   Panneaux réutilisés sous la surface papier.
+
+   Le menu beta réemploie les tiroirs et modales Ink existants
+   (`InkDrawer`, `InkModal`, `InkProfileSidebar`, `DeviceSettings`).
+   Ils lisent les tokens `--ink-*`, qui sont bleu-violet sombres :
+   ouverts par-dessus une page papier, ils s'affichaient en panneau
+   noir sur fond clair. On les réaligne sur la surface plutôt que de
+   dupliquer chaque composant.
+
+   Uniquement sous `.beta-paper` : la surface encre est déjà sombre,
+   les valeurs d'origine y conviennent.
+   ------------------------------------------------------------ */
+body.inkbeta-mode.beta-paper {
+  --ink-bg: var(--kq-bg);
+  --ink-bg-deep: var(--kq-bg-2);
+  --ink-surface: var(--kq-surface);
+  --ink-surface-2: var(--kq-surface-2);
+  --ink-surface-3: #ece4d3;
+  --ink-line: rgba(20, 17, 13, 0.22);
+  --ink-line-strong: rgba(20, 17, 13, 0.4);
+  --ink-text: var(--kq-text);
+  --ink-text-dim: var(--kq-text-dim);
+  --ink-text-mute: var(--kq-text-mute);
+
+  /* L'accent violet par défaut est illisible en texte sur papier. */
+  --ink-accent: #c4172a;
+  --ink-accent-text: #8f0f1e;
+  --ink-accent-soft: rgba(196, 23, 42, 0.14);
+  --ink-accent-softer: rgba(196, 23, 42, 0.07);
+  --ink-accent-line: rgba(196, 23, 42, 0.45);
+
+  /* Ombres douces sombres sur clair : on garde le registre dur. */
+  --ink-shadow-soft: 2px 2px 0 rgba(20, 17, 13, 0.9);
+  --ink-shadow-card: 3px 3px 0 rgba(20, 17, 13, 0.9);
+  --ink-shadow-pop: 5px 5px 0 rgba(20, 17, 13, 0.9);
+
+  /* Tokens shadcn, pour les toasts, selects et tooltips. */
+  --background: 41 44% 92%;
+  --background-secondary: 41 34% 86%;
+  --foreground: 40 22% 8%;
+  --foreground-secondary: 40 12% 26%;
+  --foreground-muted: 40 10% 42%;
+  --card: 44 60% 98%;
+  --card-foreground: 40 22% 8%;
+  --popover: 44 60% 98%;
+  --popover-foreground: 40 22% 8%;
+  --muted: 41 30% 88%;
+  --muted-foreground: 40 10% 38%;
+  --border: 40 18% 22%;
+  --input: 44 60% 98%;
+  --primary: 353 79% 43%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 353 79% 43%;
+}

@@ -22,7 +22,8 @@ import { useSoundEffectsVolume } from "@/hooks/useSoundEffectsVolume";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInkMode } from "@/hooks/useInkMode";
 import { AvatarSettings } from "@/components/AvatarSettings";
-import { useTheme, themeConfig, ThemeType } from "@/hooks/useTheme";
+import { useTheme, themeConfig, ThemeType, visibleThemes } from "@/hooks/useTheme";
+import { useAdmin } from "@/hooks/useAdmin";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -672,7 +673,10 @@ const AudioSection = ({
    THEME SECTION — cartoon theme picker (les choix des thèmes)
 ============================================================ */
 const ThemeSection = () => {
-  const { theme, setTheme, themes, inkModeEnabled, setInkModeEnabled } = useTheme();
+  const { theme, setTheme, inkModeEnabled, setInkModeEnabled } = useTheme();
+  const { isAdmin, isLoading: isAdminLoading } = useAdmin();
+  /* Les thèmes réservés aux administrateurs n'apparaissent pas pour les autres. */
+  const themes = visibleThemes(isAdmin, isAdminLoading);
 
   const handlePick = (t: ThemeType) => {
     if (t === theme) return;

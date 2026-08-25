@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useTheme, themeConfig, ThemeType } from '@/hooks/useTheme';
+import { useTheme, themeConfig, ThemeType, visibleThemes } from '@/hooks/useTheme';
+import { useAdmin } from '@/hooks/useAdmin';
 import { cn } from '@/lib/utils';
 import { Palette, Check, Sparkles, RefreshCw } from 'lucide-react';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
@@ -11,12 +12,15 @@ interface ThemeSelectorProps {
 }
 
 export const ThemeSelector = ({ variant = 'full', className, showInkToggle = true }: ThemeSelectorProps) => {
-  const { theme, setTheme, themes, inkModeEnabled, setInkModeEnabled } = useTheme();
+  const { theme, setTheme, inkModeEnabled, setInkModeEnabled } = useTheme();
+  const { isAdmin, isLoading: isAdminLoading } = useAdmin();
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredTheme, setHoveredTheme] = useState<ThemeType | null>(null);
 
-  // Filter out ink theme from normal selection if showInkToggle is enabled (it's a special mode)
-  const availableThemes = showInkToggle ? themes.filter(t => t !== 'ink') : themes;
+  // Filter out ink theme from normal selection if showInkToggle is enabled (it's a special mode).
+  // `visibleThemes` retire en plus les thèmes réservés aux administrateurs.
+  const selectable = visibleThemes(isAdmin, isAdminLoading);
+  const availableThemes = showInkToggle ? selectable.filter(t => t !== 'ink') : selectable;
 
   const handleSelectTheme = (newTheme: ThemeType) => {
     if (newTheme !== theme) {

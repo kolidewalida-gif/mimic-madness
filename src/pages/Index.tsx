@@ -18,7 +18,7 @@ import { playSoundEffect } from "@/hooks/useSoundEffects";
 import { juice } from "@/lib/juice";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme, isInkFamily, useRestrictedThemeGuard } from "@/hooks/useTheme";
 import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import { LobbyGameMode, soloBotCount } from "@/lib/gameModes";
 import { playSample } from "@/lib/sfx/samples";
@@ -43,6 +43,8 @@ import React from "react";
 // Lazy load heavy components
 const HomeScreen = React.lazy(() => import("@/components/HomeScreen").then(m => ({ default: m.HomeScreen })));
 const InkHomeScreen = React.lazy(() => import("@/components/InkHomeScreen").then(m => ({ default: m.InkHomeScreen })));
+/* Beta admin : en `lazy`, donc un joueur ordinaire ne télécharge jamais ce chunk. */
+const InkBetaHomeScreen = React.lazy(() => import("@/components/InkBetaHomeScreen").then(m => ({ default: m.InkBetaHomeScreen })));
 const NeonHomeScreen = React.lazy(() => import("@/components/neon/NeonHomeScreen").then(m => ({ default: m.NeonHomeScreen })));
 const LobbyScreen = React.lazy(() => import("@/components/LobbyScreen").then(m => ({ default: m.LobbyScreen })));
 const InkLobbyScreen = React.lazy(() => import("@/components/InkLobbyScreen").then(m => ({ default: m.InkLobbyScreen })));
@@ -113,7 +115,9 @@ const Index = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streakJustBumped]);
   const { theme, inkModeEnabled } = useTheme();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, isLoading: isAdminLoading } = useAdmin();
+  /* Ramène sur `ink` si un non-admin a un thème réservé en localStorage. */
+  useRestrictedThemeGuard(isAdmin, isAdminLoading);
   const [gameState, setGameState] = useState<GameState>("home");
   const [showInkSocial, setShowInkSocial] = useState(false);
   const openInkSocial = useCallback(() => setShowInkSocial(true), []);
@@ -165,7 +169,15 @@ const Index = () => {
   
   // Determine if we should show Ink UI. There is no intro splash any more:
   // the menu is the first thing the player sees.
-  const useInkMode = inkModeEnabled && theme === 'ink';
+  /*
+   * La beta appartient à la famille ink, donc elle hérite de toute la
+   * plomberie : pas de fond animé, pas de barre musicale, Social Studio, lobby
+   * Ink. Choisir le thème suffit — on n'exige pas en plus `inkModeEnabled`,
+   * qui est le réglage historique du seul thème `ink`.
+   */
+  const useInkMode = theme === 'inkbeta' || (inkModeEnabled && isInkFamily(theme));
+  /* L'accueil beta ne s'affiche qu'une fois le rôle admin confirmé. */
+  const useBetaHome = theme === 'inkbeta' && isAdmin;
   // Neon Hub désactivé — on reste sur l'Ink polish
   const useNeonHub = false;
 
@@ -651,6 +663,11 @@ const Index = () => {
         {gameState === "home" && (
           theme === 'neverlikethat' ? (
             <NeverLikeThatHomeScreen
+              onCreateGame={handleCreateGame}
+              onJoinGame={handleJoinGame}
+            />
+          ) : useBetaHome ? (
+            <InkBetaHomeScreen
               onCreateGame={handleCreateGame}
               onJoinGame={handleJoinGame}
             />

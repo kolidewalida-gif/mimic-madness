@@ -1,7 +1,22 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { isConsoleOrTv } from '@/lib/deviceCapabilities';
 
-export type ThemeType = 'neon' | 'cosmic' | 'fire' | 'ice' | 'ink' | 'cartoon' | 'neverlikethat';
+/*
+ * `inkbeta` s'écrit sans tiret volontairement. L'effet plus bas nettoie les
+ * classes de thème avec `replace(/theme-\w+/g, '')`, et `\w` ne matche pas le
+ * tiret : avec `ink-beta` la classe `theme-ink-beta` ne serait rognée qu'en
+ * `-beta`, résidu qui s'accumulerait sur `body` à chaque changement de thème.
+ */
+export type ThemeType = 'neon' | 'cosmic' | 'fire' | 'ice' | 'ink' | 'inkbeta' | 'cartoon' | 'neverlikethat';
+
+/**
+ * Surface du thème beta : papier clair ou encre sombre.
+ *
+ * Deux jeux de tokens complets, commutables. Les filets noirs épais du chrome
+ * « kiosque » sont le seul langage graphique qui reste lisible sur les deux,
+ * d'où ce choix de langage plutôt qu'un habillage à base de dégradés.
+ */
+export type BetaSurface = 'paper' | 'ink';
 
 interface ThemeContextType {
   theme: ThemeType;
@@ -9,11 +24,35 @@ interface ThemeContextType {
   themes: ThemeType[];
   inkModeEnabled: boolean;
   setInkModeEnabled: (enabled: boolean) => void;
+  betaSurface: BetaSurface;
+  setBetaSurface: (surface: BetaSurface) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const themes: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice', 'ink', 'cartoon', 'neverlikethat'];
+export const themes: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice', 'ink', 'inkbeta', 'cartoon', 'neverlikethat'];
+
+/**
+ * Thèmes qui n'apparaissent que pour les administrateurs.
+ *
+ * Verrou cosmétique, pas frontière de sécurité : l'écran beta est chargé en
+ * `React.lazy`, donc un joueur ordinaire ne télécharge jamais son chunk, mais
+ * quelqu'un de déterminé pourrait le forcer. C'est suffisant pour une beta
+ * fermée de thème visuel.
+ */
+export const ADMIN_ONLY_THEMES: readonly ThemeType[] = ['inkbeta'];
+
+export const isAdminOnlyTheme = (theme: ThemeType): boolean =>
+  ADMIN_ONLY_THEMES.includes(theme);
+
+/**
+ * `ink` et `inkbeta` partagent toute la plomberie d'interface : pas de fond
+ * animé, pas de barre musicale, Social Studio au lieu du hub, lobby Ink. Seul
+ * l'écran d'accueil diffère. Les écrans testent donc l'appartenance à la
+ * famille plutôt que l'égalité avec `'ink'`.
+ */
+export const isInkFamily = (theme: ThemeType): boolean =>
+  theme === 'ink' || theme === 'inkbeta';
 
 export const themeConfig: Record<ThemeType, {
   name: string;
@@ -133,6 +172,31 @@ export const themeConfig: Record<ThemeType, {
       glowSecondary: '0 75% 45%',
     },
   },
+  /*
+   * Beta fermée du menu, réservée aux administrateurs. Palette reprise de
+   * `PULP` (src/components/audiophone/PulpComic.tsx) : encre #08070a, papier
+   * #f3ede0, rouge #ff2e3f, jaune #ffce2b. Volontairement rouge et noir dans
+   * le sélecteur, pour se distinguer du violet d'`ink` d'un coup d'œil.
+   */
+  inkbeta: {
+    name: 'Ink Beta',
+    emoji: '🧪',
+    description: 'Album de stickers — beta admin',
+    colors: {
+      primary: '355 100% 59%',      // PULP.red #ff2e3f
+      secondary: '260 18% 8%',      // charbon
+      accent: '45 100% 58%',        // PULP.yellow #ffce2b
+      background: '260 18% 3%',     // PULP.ink #08070a
+      foreground: '41 44% 92%',     // PULP.paper #f3ede0
+      card: '258 18% 10%',
+      cardForeground: '41 44% 92%',
+      muted: '258 14% 16%',
+      mutedForeground: '41 12% 70%',
+      border: '0 0% 8%',
+      glow: '355 100% 59%',
+      glowSecondary: '45 100% 58%',
+    },
+  },
   cartoon: {
     name: 'Cartoon',
     emoji: '💥',
@@ -191,6 +255,17 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return stored === null ? true : stored === 'true';
   });
 
+  /* Encre par défaut : une soirée de jeu se joue le plus souvent le soir. */
+  const [betaSurface, setBetaSurfaceState] = useState<BetaSurface>(() => {
+    const stored = localStorage.getItem('ink-beta-surface');
+    return stored === 'paper' ? 'paper' : 'ink';
+  });
+
+  const setBetaSurface = (surface: BetaSurface) => {
+    setBetaSurfaceState(surface);
+    localStorage.setItem('ink-beta-surface', surface);
+  };
+
   const setTheme = (newTheme: ThemeType) => {
     // Never allow the heavy 3D Spline theme on consoles/TVs (would crash Xbox).
     const safe = newTheme === 'neverlikethat' && isConsoleOrTv() ? 'ink' : newTheme;
@@ -228,11 +303,32 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       .trim();
     document.body.classList.add(`theme-${theme}`);
     
-    // Add ink-mode class for special styling
-    if (theme === 'ink') {
+    /*
+     * `ink-mode` vaut pour les deux thèmes de la famille : c'est lui qui
+     * remappe les tokens shadcn et neutralise les `backdrop-filter`, dont la
+     * beta a autant besoin que l'ink stable.
+     */
+    if (isInkFamily(theme)) {
       document.body.classList.add('ink-mode');
     } else {
       document.body.classList.remove('ink-mode');
+    }
+
+    /* Classe dédiée pour les surcharges qui ne concernent QUE la beta. */
+    if (theme === 'inkbeta') {
+      document.body.classList.add('inkbeta-mode');
+    } else {
+      document.body.classList.remove('inkbeta-mode');
+    }
+
+    /*
+     * La surface ne s'applique que sous la beta. Sans ce garde, revenir à
+     * `ink` en ayant choisi le papier laisserait un canvas clair sous un thème
+     * conçu pour le sombre.
+     */
+    document.body.classList.remove('beta-paper', 'beta-ink');
+    if (theme === 'inkbeta') {
+      document.body.classList.add(betaSurface === 'paper' ? 'beta-paper' : 'beta-ink');
     }
 
     // Add cartoon-mode class for comic-book overrides
@@ -248,10 +344,20 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     } else {
       document.body.classList.remove('neverlikethat-mode');
     }
-  }, [theme]);
+  }, [theme, betaSurface]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, themes, inkModeEnabled, setInkModeEnabled }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        setTheme,
+        themes,
+        inkModeEnabled,
+        setInkModeEnabled,
+        betaSurface,
+        setBetaSurface,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );
@@ -263,4 +369,29 @@ export const useTheme = () => {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
+};
+
+/**
+ * Renvoie les thèmes que ce visiteur peut réellement choisir.
+ *
+ * Pendant que le statut admin se résout (`isLoading`), on laisse la liste
+ * complète : la retirer puis la remettre ferait clignoter le sélecteur.
+ */
+export const visibleThemes = (isAdmin: boolean, isLoading: boolean): ThemeType[] =>
+  isAdmin || isLoading ? themes : themes.filter((t) => !isAdminOnlyTheme(t));
+
+/**
+ * Ramène un visiteur non-admin sur `ink` s'il a un thème réservé en mémoire.
+ *
+ * `localStorage` est modifiable par l'utilisateur, et un ancien administrateur
+ * garde sa valeur. La correction attend `!isLoading` : appliquée pendant le
+ * chargement, elle éjecterait les vrais admins avant que leur rôle ne remonte.
+ */
+export const useRestrictedThemeGuard = (isAdmin: boolean, isLoading: boolean): void => {
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAdmin && isAdminOnlyTheme(theme)) setTheme('ink');
+  }, [isAdmin, isLoading, theme, setTheme]);
 };
