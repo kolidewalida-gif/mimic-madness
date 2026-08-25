@@ -4922,38 +4922,74 @@ body.inkbeta-mode {
   --kq-yellow: #ffce2b;
 }
 
-/* ---- Surface encre ---- */
+/* ---- Surface encre — journal du soir ----
+   Charbon chaud, jamais de noir pur ni de blanc pur : un journal imprimé n'a
+   ni l'un ni l'autre, et c'est ce qui distingue cette surface d'une interface
+   sombre ordinaire. */
 body.inkbeta-mode.beta-ink {
-  --kq-bg: #08070a;
-  --kq-bg-2: #0f0e13;
-  --kq-surface: #16141c;
-  --kq-surface-2: #1d1a24;
-  --kq-text: #f3ede0;
-  --kq-text-dim: #b7b0a2;
-  --kq-text-mute: #85806f;
-  /* Contour clair = découpe de sticker sur fond sombre. */
-  --kq-line: #f3ede0;
-  --kq-line-soft: rgba(243, 237, 224, 0.28);
+  --kq-bg: #131110;
+  --kq-bg-2: #0d0c0b;
+  --kq-surface: #1c1917;
+  --kq-surface-2: #24211d;
+  --kq-text: #e8e2d4;
+  --kq-text-dim: #a8a294;
+  --kq-text-mute: #7a7568;
+  /* Contour couleur papier = découpe de coupure de presse sur fond sombre. */
+  --kq-line: #e8e2d4;
+  --kq-line-soft: rgba(232, 226, 212, 0.24);
   --kq-shadow: #000;
-  --kq-grain-opacity: 0.085;
-  --kq-halftone: rgba(255, 255, 255, 0.05);
+  --kq-grain-opacity: 0.1;
+  --kq-halftone: rgba(232, 226, 212, 0.055);
+  /* Base de désaturation des accents, voir --kq-accent plus bas. */
+  --kq-mute-base: #2a2620;
+  --kq-accent-mix: 46%;
+  --kq-art-saturate: 0.4;
+  --kq-art-brightness: 0.82;
 }
 
-/* ---- Surface papier ---- */
+/* ---- Surface papier — journal du matin ---- */
 body.inkbeta-mode.beta-paper {
-  --kq-bg: #f3ede0;
-  --kq-bg-2: #e8e0cf;
-  --kq-surface: #fffdf6;
-  --kq-surface-2: #f7f1e3;
-  --kq-text: #14110d;
-  --kq-text-dim: #4a443a;
-  --kq-text-mute: #736c5e;
-  --kq-line: #14110d;
-  --kq-line-soft: rgba(20, 17, 13, 0.3);
-  --kq-shadow: #14110d;
+  --kq-bg: #ddd5c2;
+  --kq-bg-2: #cec5b0;
+  --kq-surface: #ebe4d3;
+  --kq-surface-2: #e0d8c5;
+  --kq-text: #16130f;
+  --kq-text-dim: #443e34;
+  --kq-text-mute: #6b6355;
+  --kq-line: #16130f;
+  --kq-line-soft: rgba(22, 19, 15, 0.26);
+  --kq-shadow: #16130f;
   /* Le grain en `overlay` mord beaucoup plus sur un fond clair. */
-  --kq-grain-opacity: 0.05;
-  --kq-halftone: rgba(20, 17, 13, 0.16);
+  --kq-grain-opacity: 0.055;
+  --kq-halftone: rgba(22, 19, 15, 0.15);
+  --kq-mute-base: #8a8172;
+  --kq-accent-mix: 52%;
+  --kq-art-saturate: 0.5;
+  --kq-art-brightness: 0.95;
+}
+
+/* ------------------------------------------------------------
+   Accent assourdi.
+
+   Les accents de `GAME_MODE_META` sont des couleurs pop — violet #a06bff,
+   orange #ff9640, jaune #ffce3d. Posées telles quelles sur du papier journal
+   elles ressortaient comme des néons et ruinaient la direction artistique.
+   Elles sont donc mélangées à une base neutre : chaque mode garde son
+   identité chromatique, mais dans un registre imprimé.
+
+   `--accent` reste disponible pour les rares endroits qui ont besoin de la
+   teinte franche, comme le filet de 5px en pied du panneau.
+   ------------------------------------------------------------ */
+body.inkbeta-mode {
+  --kq-accent: color-mix(
+    in srgb,
+    var(--accent, var(--kq-red)) var(--kq-accent-mix),
+    var(--kq-mute-base)
+  );
+}
+
+@supports not (color: color-mix(in srgb, red, blue)) {
+  body.inkbeta-mode { --kq-accent: var(--kq-mute-base); }
 }
 
 /* ---- Coquille ---- */
@@ -5059,12 +5095,12 @@ html.low-power .kq-root::before { display: none; }
 .kq-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
 .kq-btn--primary {
-  background: var(--accent);
-  color: #0a0a0c;
+  background: var(--kq-accent);
+  color: var(--kq-text);
   box-shadow: 3px 3px 0 0 var(--kq-shadow);
 }
 .kq-btn--primary:not(:disabled):hover {
-  background: color-mix(in srgb, var(--accent) 82%, white);
+  background: color-mix(in srgb, var(--kq-accent) 80%, var(--kq-text));
 }
 
 .kq-btn--xl { min-height: 62px; padding: 0 1.6rem; font-size: 1.45rem; }
@@ -5124,8 +5160,8 @@ html.low-power .kq-root::before { display: none; }
   padding: 0.15rem 0.5rem;
   border: 2px solid var(--kq-line);
   border-radius: var(--kq-radius);
-  background: var(--accent, var(--kq-yellow));
-  color: #0a0a0c;
+  background: var(--kq-accent);
+  color: var(--kq-text);
   font-family: var(--kq-display);
   font-size: 0.85rem;
   letter-spacing: 0.06em;
@@ -5177,11 +5213,15 @@ html.low-power .kq-root::before { display: none; }
 
 /* Sélection marquée par l'échelle et un aplat d'accent, pas par un halo. */
 .kq-poster.is-selected {
-  background: var(--accent);
+  background: var(--kq-accent);
   transform: translate(-3px, -3px);
   box-shadow: 6px 6px 0 0 var(--kq-shadow);
 }
-.kq-poster.is-selected .kq-poster-name { color: #0a0a0c; }
+/* L'illustration du mode retenu reprend sa saturation : c'est le seul point
+   de couleur franche de l'écran, ce qui en fait le sujet. */
+.kq-poster.is-selected .kq-poster-art img {
+  filter: saturate(0.75) brightness(1);
+}
 
 .kq-poster-art {
   position: relative;
@@ -5195,6 +5235,14 @@ html.low-power .kq-root::before { display: none; }
   background: var(--kq-bg-2);
   font-size: 1.9rem;
   line-height: 1;
+}
+/* Les cartes livrées sont des aplats pop très saturés. Les assourdir ici les
+   fait entrer dans la direction « papier journal » sans avoir à redessiner
+   quoi que ce soit, et laisse la sélection ressortir par contraste. */
+.kq-poster-art img,
+.kq-feature-art img {
+  filter: saturate(var(--kq-art-saturate)) brightness(var(--kq-art-brightness));
+  transition: filter 170ms ease;
 }
 .kq-poster-art img {
   width: 100%;
@@ -5287,7 +5335,9 @@ html.low-power .kq-root::before { display: none; }
    couperait le lettrage dessiné en bas. */
 .kq-feature-art img { width: 100%; height: 100%; object-fit: contain; }
 
-/* Bandeau d'accent en pied de panneau, à la place d'un halo diffus. */
+/* Bandeau d'accent en pied de panneau, à la place d'un halo diffus. Seul
+   endroit qui garde la teinte franche du mode, comme un filet d'encre
+   d'imprimeur en marge de page. */
 .kq-feature::after {
   content: '';
   position: absolute;
@@ -5295,7 +5345,48 @@ html.low-power .kq-root::before { display: none; }
   height: 5px;
   background: var(--accent);
   border-top: 2px solid var(--kq-line);
+  opacity: 0.75;
 }
+
+/* ------------------------------------------------------------
+   Wordmark de fond.
+
+   Le titre du jeu imprimé en très grand derrière toute l'interface, comme la
+   manchette d'un journal qu'on aurait posé sous les panneaux. Il porte à lui
+   seul l'identité de l'écran, ce qui permet de garder le reste sobre.
+
+   `fixed` et non `absolute` : il ne doit pas défiler avec le contenu, sinon
+   la manchette se décale et le montage se voit.
+   ------------------------------------------------------------ */
+.kq-wordmark {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transform: translateZ(0);
+}
+
+/* L'image est une coupure de presse claire : encre noire sur papier crème.
+   Sur la surface sombre on l'inverse, ce qui donne un négatif d'imprimerie —
+   lettres pâles et rongées sur fond d'encre. Posée telle quelle, le papier
+   crème aurait éclairci tout l'écran et les lettres noires se seraient
+   fondues dans le fond. */
+body.inkbeta-mode.beta-ink .kq-wordmark {
+  opacity: 0.5;
+  filter: invert(1) grayscale(1) contrast(1.15) brightness(0.72);
+}
+
+/* Sur papier, l'image est déjà dans le bon registre : aucun filtre, juste en
+   retrait pour rester un fond et non un sujet. */
+body.inkbeta-mode.beta-paper .kq-wordmark {
+  opacity: 0.3;
+  filter: grayscale(1) contrast(0.85);
+}
+
+html.low-power .kq-wordmark { display: none; }
 
 @media (max-width: 560px) {
   .kq-feature { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }

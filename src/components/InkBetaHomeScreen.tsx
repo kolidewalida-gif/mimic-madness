@@ -231,6 +231,13 @@ const InkBetaHomeScreenComponent = ({
       className="kq-root menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
       style={accentStyle}
     >
+      {/* Manchette imprimée derrière toute l'interface. Purement décorative,
+          et retirée sur machine faible par la couche CSS. */}
+      <div
+        className="kq-wordmark"
+        style={{ backgroundImage: 'url(/kiosque/wordmark.png)' }}
+        aria-hidden="true"
+      />
       <div className="kq-grain" aria-hidden="true" />
 
       {/* ============ BANDEAU DE TÊTE — trois entrées ============
@@ -363,47 +370,45 @@ const InkBetaHomeScreenComponent = ({
       </main>
 
       {/* ============ LE BILLET ============
-          Zone d'action fixe. Elle ne se re-rend pas au changement de mode,
-          donc le bouton principal reste exactement au même endroit. */}
+          Bloc d'action compact, aligné à gauche comme sur la maquette. Il vit
+          hors du panneau descriptif, donc il ne se re-rend pas au changement
+          de mode et le bouton principal ne bouge jamais. Les trois champs sont
+          empilés plutôt qu'en ligne : c'est la disposition du croquis, et elle
+          laisse la manchette de fond respirer à droite. */}
       <div className="flex-shrink-0 px-3 pb-3 sm:px-6 sm:pb-4">
-        <div className="kq-ticket mx-auto w-full max-w-[1080px] p-2.5 sm:p-3">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end">
-            <div className="min-w-0 flex-1">
-              <label htmlFor="kq-name" className="kq-label mb-1 block">
-                Ton pseudo
-              </label>
-              <input
-                id="kq-name"
-                className="kq-input"
-                placeholder="ENTRE TON PSEUDO"
-                value={playerName}
-                onChange={(event) => setPlayerName(event.target.value)}
-                maxLength={20}
-                autoComplete="nickname"
-              />
-            </div>
+        <div className="kq-ticket w-full max-w-[380px] p-3">
+          <label htmlFor="kq-name" className="kq-label mb-1 block">
+            Ton pseudo
+          </label>
+          <input
+            id="kq-name"
+            className="kq-input"
+            placeholder="ENTRE TON PSEUDO"
+            value={playerName}
+            onChange={(event) => setPlayerName(event.target.value)}
+            maxLength={20}
+            autoComplete="nickname"
+          />
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="kq-btn kq-btn--primary kq-btn--xl menu-focus flex-1 sm:flex-none"
-                disabled={!nameReady}
-                onClick={handleCreate}
-              >
-                <Play className="h-5 w-5" fill="currentColor" aria-hidden="true" />
-                Jouer
-              </button>
-              <button
-                type="button"
-                className="kq-btn kq-btn--xl menu-focus"
-                disabled={!nameReady}
-                onClick={() => { playInkSound('brushTap', 0.3); setShowJoin(true); }}
-              >
-                <LogIn className="h-[18px] w-[18px]" aria-hidden="true" />
-                Rejoindre
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            className="kq-btn kq-btn--primary kq-btn--xl menu-focus mt-2 w-full"
+            disabled={!nameReady}
+            onClick={handleCreate}
+          >
+            <Play className="h-5 w-5" fill="currentColor" aria-hidden="true" />
+            Créer une partie
+          </button>
+
+          <button
+            type="button"
+            className="kq-btn menu-focus mt-2 w-full"
+            disabled={!nameReady}
+            onClick={() => { playInkSound('brushTap', 0.3); setShowJoin(true); }}
+          >
+            <LogIn className="h-[18px] w-[18px]" aria-hidden="true" />
+            Rejoindre
+          </button>
 
           {!nameReady && (
             <p className="kq-label mt-1.5">Entre un pseudo pour commencer.</p>

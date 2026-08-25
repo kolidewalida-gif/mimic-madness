@@ -1,0 +1,12 @@
+[
+  {
+    "out": "kiosque/wordmark.png",
+    "seed": 4711,
+    "width": 1536,
+    "height": 864,
+    "steps": 24,
+    "cfg": 4,
+    "prompt": "Vintage newspaper front page background. Enormous rough hand-brushed uppercase display lettering reading \"MIMIC MASTER\" filling the entire frame, the words stacked with MIMIC across the top and MASTER across the bottom, letters cropped by the edges of the frame, drawn with a dry ink brush, ragged uneven strokes, slight ink bleed. Printed on aged dark newsprint paper: deep charcoal grey and near-black ink, muted warm grey paper tone, no bright colours at all. Heavy halftone dot texture, visible paper fibre grain, faint torn paper edges and fold creases, slight misregistration of the ink layer. Very low contrast, deliberately muted and dark so interface elements can sit on top and stay readable. Flat print, no gradient, no glow, no photorealism.",
+    "negative": "bright colours, saturated, vivid, neon, purple, orange, blue, high contrast, glow, bloom, gradient, photorealistic, 3d render, glossy, clean modern typography, sans-serif, small text, paragraphs of body text, multiple headlines, cluttered, watermark, signature, border frame"
+  }
+]
