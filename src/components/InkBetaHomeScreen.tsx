@@ -291,7 +291,7 @@ const InkBetaHomeScreenComponent = ({
           />
 
           {/* Panneau au premier plan. */}
-          <SketchPanel seed={2101} rotate={-0.7} className="w-[min(92vw,420px)]">
+          <SketchPanel seed={2101} rotate={-0.7} className="w-[min(94vw,470px)]">
             <h1 className="sr-only">Mimic Master</h1>
 
             <div className="ik-field">
@@ -353,9 +353,9 @@ const InkBetaHomeScreenComponent = ({
         </div>
 
         {/* ============ CHOIX DU MODE ============
-            Sous la scène, une rangée de vignettes au trait. Les sept modes
-            restent visibles d'un coup. */}
-        <section className="relative z-[5] mt-5 w-full max-w-[760px]">
+            Nettement détaché de la scène : collées au panneau, les vignettes
+            venaient buter dans le lettrage du titre. */}
+        <section className="relative z-[5] mt-14 w-full max-w-[820px]">
           <div className="mb-1 flex items-baseline justify-between px-1">
             <h2 className="ik-label">Choisis ton mode</h2>
             <span className="ik-label ik-muted hidden sm:inline" aria-hidden="true">← →</span>

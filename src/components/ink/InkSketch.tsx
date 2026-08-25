@@ -108,6 +108,7 @@ export const SketchFrame = memo(
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
+          strokeOpacity={0.92}
           vectorEffect="non-scaling-stroke"
           style={{ animationDelay: `${drawDelay}ms` }}
         />

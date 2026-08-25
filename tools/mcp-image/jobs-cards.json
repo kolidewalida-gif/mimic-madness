@@ -1,58 +1,72 @@
 [
   {
     "out": "lobby/cards/kiosque/normal.png",
-    "seed": 3101,
+    "seed": 6001,
+    "width": 768,
+    "height": 1024,
     "steps": 14,
     "cfg": 3.5,
-    "prompt": "Vintage newspaper advertisement illustration on aged newsprint. A single antique ribbon microphone drawn as a woodcut engraving, bold black ink lines, heavy crosshatching and coarse halftone dot shading. Printed in one dark ink on yellowed grey newsprint paper: near-black ink, muted warm grey paper, faint paper fibre and fold crease, slight ink misregistration and bleed. Centred subject, generous plain margin, thin ruled border line. Sombre, low saturation, low contrast, flat print. No text, no letters, no words, no numbers.",
-    "negative": "bright colours, saturated, vivid, neon, purple, orange, cyan, glow, bloom, gradient, photorealistic, 3d render, glossy, cartoon mascot, googly eyes, white gloves, sneakers, sticker, starburst, text, letters, words, numbers, typography, watermark, signature"
+    "prompt": "Quick ballpoint pen sketch on plain white paper. A single vintage ribbon microphone drawn with loose confident hand-drawn contour lines, light hatching for shadow, wobbly imperfect strokes, lines that overshoot slightly at corners, one small ink blob. Simple line drawing, black pen only, pure white paper, generous empty margin, nothing else on the page. No fill, no shading blocks, no colour, no text.",
+    "negative": "colour, coloured, saturated, filled shapes, solid black areas, sticker, flat vector, cartoon mascot, googly eyes, gloves, sneakers, starburst, halftone, newsprint, grey paper, photorealistic, 3d, glow, gradient, frame, border, text, letters, words, numbers, watermark, signature"
   },
   {
     "out": "lobby/cards/kiosque/audiophone.png",
-    "seed": 3102,
+    "seed": 6002,
+    "width": 768,
+    "height": 1024,
     "steps": 14,
     "cfg": 3.5,
-    "prompt": "Vintage newspaper advertisement illustration on aged newsprint. A single antique rotary dial telephone with a coiled cord, drawn as a woodcut engraving, bold black ink lines, heavy crosshatching and coarse halftone dot shading. Printed in one dark ink on yellowed grey newsprint paper: near-black ink, muted warm grey paper, faint paper fibre and fold crease, slight ink misregistration and bleed. Centred subject, generous plain margin, thin ruled border line. Sombre, low saturation, low contrast, flat print. No text, no letters, no words, no numbers.",
-    "negative": "bright colours, saturated, vivid, neon, purple, orange, cyan, glow, bloom, gradient, photorealistic, 3d render, glossy, cartoon mascot, googly eyes, white gloves, sneakers, sticker, starburst, text, letters, words, numbers, typography, watermark, signature"
+    "prompt": "Quick ballpoint pen sketch on plain white paper. A single vintage rotary dial telephone with a coiled cord, drawn with loose confident hand-drawn contour lines, light hatching for shadow, wobbly imperfect strokes, lines that overshoot slightly at corners. Simple line drawing, black pen only, pure white paper, generous empty margin, nothing else on the page. No fill, no shading blocks, no colour, no text.",
+    "negative": "colour, coloured, saturated, filled shapes, solid black areas, sticker, flat vector, cartoon mascot, googly eyes, gloves, sneakers, starburst, halftone, newsprint, grey paper, photorealistic, 3d, glow, gradient, frame, border, text, letters, words, numbers, watermark, signature"
   },
   {
     "out": "lobby/cards/kiosque/2v2.png",
-    "seed": 3103,
+    "seed": 6003,
+    "width": 768,
+    "height": 1024,
     "steps": 14,
     "cfg": 3.5,
-    "prompt": "Vintage newspaper advertisement illustration on aged newsprint. Two antique boxing gloves crossed over each other, drawn as a woodcut engraving, bold black ink lines, heavy crosshatching and coarse halftone dot shading. Printed in one dark ink on yellowed grey newsprint paper: near-black ink, muted warm grey paper, faint paper fibre and fold crease, slight ink misregistration and bleed. Centred symmetrical subject, generous plain margin, thin ruled border line. Sombre, low saturation, low contrast, flat print. No text, no letters, no words, no numbers.",
-    "negative": "bright colours, saturated, vivid, neon, glow, bloom, gradient, photorealistic, 3d render, glossy, cartoon mascot, googly eyes, sticker, starburst, text, letters, words, numbers, typography, watermark, signature"
+    "prompt": "Quick ballpoint pen sketch on plain white paper. Two boxing gloves crossed over each other, drawn with loose confident hand-drawn contour lines, light hatching for shadow, wobbly imperfect strokes. Simple line drawing, black pen only, pure white paper, generous empty margin, nothing else on the page. No fill, no shading blocks, no colour, no text.",
+    "negative": "colour, coloured, saturated, filled shapes, solid black areas, sticker, flat vector, cartoon mascot, googly eyes, starburst, halftone, newsprint, photorealistic, 3d, glow, gradient, frame, border, text, letters, words, numbers, watermark, signature"
   },
   {
     "out": "lobby/cards/kiosque/quiz.png",
-    "seed": 3104,
+    "seed": 6004,
+    "width": 768,
+    "height": 1024,
     "steps": 14,
     "cfg": 3.5,
-    "prompt": "Vintage newspaper advertisement illustration on aged newsprint. A single antique brass desk bell with a domed press button, drawn as a woodcut engraving, bold black ink lines, heavy crosshatching and coarse halftone dot shading. Printed in one dark ink on yellowed grey newsprint paper: near-black ink, muted warm grey paper, faint paper fibre and fold crease, slight ink misregistration and bleed. Centred subject, generous plain margin, thin ruled border line. Sombre, low saturation, low contrast, flat print. No text, no letters, no words, no numbers.",
-    "negative": "bright colours, saturated, vivid, neon, yellow, glow, bloom, gradient, photorealistic, 3d render, glossy, cartoon mascot, googly eyes, sticker, starburst, question mark, text, letters, words, numbers, typography, watermark, signature"
+    "prompt": "Quick ballpoint pen sketch on plain white paper. A single brass desk bell with a domed press button, drawn with loose confident hand-drawn contour lines, light hatching for shadow, wobbly imperfect strokes. Simple line drawing, black pen only, pure white paper, generous empty margin, nothing else on the page. No fill, no shading blocks, no colour, no text.",
+    "negative": "colour, coloured, saturated, filled shapes, solid black areas, sticker, flat vector, cartoon mascot, question mark, starburst, halftone, newsprint, photorealistic, 3d, glow, gradient, frame, border, text, letters, words, numbers, watermark, signature"
   },
   {
     "out": "lobby/cards/kiosque/pixoguess.png",
-    "seed": 3105,
+    "seed": 6005,
+    "width": 768,
+    "height": 1024,
     "steps": 14,
     "cfg": 3.5,
-    "prompt": "Vintage newspaper advertisement illustration on aged newsprint. A single antique magnifying glass with a turned wooden handle held over a coarse halftone dot field, drawn as a woodcut engraving, bold black ink lines, heavy crosshatching. Printed in one dark ink on yellowed grey newsprint paper: near-black ink, muted warm grey paper, faint paper fibre and fold crease, slight ink misregistration and bleed. Centred subject, generous plain margin, thin ruled border line. Sombre, low saturation, low contrast, flat print. No text, no letters, no words, no numbers.",
-    "negative": "bright colours, saturated, vivid, neon, cyan, glow, bloom, gradient, photorealistic, 3d render, glossy, cartoon mascot, googly eyes, sticker, starburst, text, letters, words, numbers, typography, watermark, signature"
+    "prompt": "Quick ballpoint pen sketch on plain white paper. A single magnifying glass with a turned wooden handle, drawn with loose confident hand-drawn contour lines, light hatching for shadow, wobbly imperfect strokes. Simple line drawing, black pen only, pure white paper, generous empty margin, nothing else on the page. No fill, no shading blocks, no colour, no text.",
+    "negative": "colour, coloured, saturated, filled shapes, solid black areas, sticker, flat vector, cartoon mascot, starburst, halftone, newsprint, photorealistic, 3d, glow, gradient, frame, border, text, letters, words, numbers, watermark, signature"
   },
   {
     "out": "lobby/cards/kiosque/undercover.png",
-    "seed": 3106,
+    "seed": 6006,
+    "width": 768,
+    "height": 1024,
     "steps": 14,
     "cfg": 3.5,
-    "prompt": "Vintage newspaper advertisement illustration on aged newsprint. A single fedora hat above a raised trench coat collar with the face left entirely blank and shadowed, drawn as a woodcut engraving, bold black ink lines, heavy crosshatching and coarse halftone dot shading. Printed in one dark ink on yellowed grey newsprint paper: near-black ink, muted warm grey paper, faint paper fibre and fold crease, slight ink misregistration and bleed. Centred subject, generous plain margin, thin ruled border line. Sombre, low saturation, low contrast, flat print. No text, no letters, no words, no numbers.",
-    "negative": "bright colours, saturated, vivid, neon, pink, glow, bloom, gradient, photorealistic, 3d render, glossy, cartoon mascot, googly eyes, sticker, starburst, visible face, eyes, text, letters, words, numbers, typography, watermark, signature"
+    "prompt": "Quick ballpoint pen sketch on plain white paper. A fedora hat above a raised trench coat collar with the face left completely empty and blank, drawn with loose confident hand-drawn contour lines, light hatching for shadow, wobbly imperfect strokes. Simple line drawing, black pen only, pure white paper, generous empty margin, nothing else on the page. No fill, no shading blocks, no colour, no text.",
+    "negative": "colour, coloured, saturated, filled shapes, solid black areas, sticker, flat vector, cartoon mascot, visible face, eyes, starburst, halftone, newsprint, photorealistic, 3d, glow, gradient, frame, border, text, letters, words, numbers, watermark, signature"
   },
   {
     "out": "lobby/cards/kiosque/memorise.png",
-    "seed": 3107,
+    "seed": 6007,
+    "width": 768,
+    "height": 1024,
     "steps": 14,
     "cfg": 3.5,
-    "prompt": "Vintage newspaper advertisement illustration on aged newsprint. A single antique gramophone with a large flared horn, drawn as a woodcut engraving, bold black ink lines, heavy crosshatching and coarse halftone dot shading. Printed in one dark ink on yellowed grey newsprint paper: near-black ink, muted warm grey paper, faint paper fibre and fold crease, slight ink misregistration and bleed. Centred subject, generous plain margin, thin ruled border line. Sombre, low saturation, low contrast, flat print. No text, no letters, no words, no numbers.",
-    "negative": "bright colours, saturated, vivid, neon, turquoise, glow, bloom, gradient, photorealistic, 3d render, glossy, cartoon mascot, googly eyes, headphones, sticker, starburst, text, letters, words, numbers, typography, watermark, signature"
+    "prompt": "Quick ballpoint pen sketch on plain white paper. A single antique gramophone with a large flared horn, drawn with loose confident hand-drawn contour lines, light hatching for shadow, wobbly imperfect strokes. Simple line drawing, black pen only, pure white paper, generous empty margin, nothing else on the page. No fill, no shading blocks, no colour, no text.",
+    "negative": "colour, coloured, saturated, filled shapes, solid black areas, sticker, flat vector, cartoon mascot, headphones, starburst, halftone, newsprint, photorealistic, 3d, glow, gradient, frame, border, text, letters, words, numbers, watermark, signature"
   }
 ]
