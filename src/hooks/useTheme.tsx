@@ -255,12 +255,19 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return stored === null ? true : stored === 'true';
   });
 
-  /* Papier par défaut : le thème INK est une page de carnet, et le fond clair
-     est ce qui porte l'identité. La surface encre reste disponible en second
-     choix pour jouer le soir. */
+  /*
+   * Le thème INK est une ardoise sombre : c'est la direction des planches de
+   * référence, et toute sa palette en dépend. La surface reste donc `ink`.
+   *
+   * `beta-paper` est conservé pour l'instant parce que la couche `.kq-*` du
+   * chantier précédent s'en sert encore, mais l'écran d'accueil n'expose plus
+   * de bascule : posée sur cette palette, elle éclaircissait les tiroirs
+   * partagés sans toucher au menu, ce qui donnait des panneaux blancs sur un
+   * écran noir.
+   */
   const [betaSurface, setBetaSurfaceState] = useState<BetaSurface>(() => {
     const stored = localStorage.getItem('ink-beta-surface');
-    return stored === 'ink' ? 'ink' : 'paper';
+    return stored === 'paper' ? 'paper' : 'ink';
   });
 
   const setBetaSurface = (surface: BetaSurface) => {

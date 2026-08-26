@@ -19,7 +19,7 @@
  */
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Hash, Moon, Settings, Sun, Trash2, User, UsersRound } from 'lucide-react';
+import { Hash, Settings, Trash2, User, UsersRound } from 'lucide-react';
 
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,12 +35,7 @@ import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkDrawer, InkModal } from '@/components/menu/InkOverlay';
 import { GameImage } from '@/components/game-ui/GameUI';
-import {
-  SketchButton,
-  SketchDoodle,
-  SketchFrame,
-  SketchPanel,
-} from '@/components/ink/InkSketch';
+import { SketchButton, SketchFrame, SketchPanel } from '@/components/ink/InkSketch';
 
 interface InkBetaHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
@@ -56,13 +51,13 @@ interface InkBetaHomeScreenProps {
  * texte, et les anciennes restent en repli si un fichier manque.
  */
 const INK_ART: Partial<Record<LobbyGameMode, string>> = {
-  normal: '/lobby/cards/kiosque/normal.png',
-  audiophone: '/lobby/cards/kiosque/audiophone.png',
-  '2v2': '/lobby/cards/kiosque/2v2.png',
-  quiz: '/lobby/cards/kiosque/quiz.png',
-  pixoguess: '/lobby/cards/kiosque/pixoguess.png',
-  undercover: '/lobby/cards/kiosque/undercover.png',
-  memorise: '/lobby/cards/kiosque/memorise.png',
+  normal: '/ink-beta/mode-normal.png',
+  audiophone: '/ink-beta/mode-audiophone.png',
+  '2v2': '/ink-beta/mode-2v2.png',
+  quiz: '/ink-beta/mode-quiz.png',
+  pixoguess: '/ink-beta/mode-pixoguess.png',
+  undercover: '/ink-beta/mode-undercover.png',
+  memorise: '/ink-beta/mode-memorise.png',
 };
 
 const MODES = INK_GAME_MODE_ORDER.map((id) => {
@@ -94,7 +89,7 @@ const InkBetaHomeScreenComponent = ({
   const { user, profile } = useAuth();
   const { play } = useBackgroundMusic();
   const { level } = usePlayerLevel();
-  const { betaSurface, setBetaSurface } = useTheme();
+
   const {
     recent: recentLobbies,
     pushLobby: pushRecentLobby,
@@ -201,10 +196,10 @@ const InkBetaHomeScreenComponent = ({
       className="ik-root menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
       style={accent}
     >
-      {/* Feuille de papier et grain, en fond de page. */}
+      {/* Poussière de craie et grain, en fond de page. */}
       <div
         className="ik-paper-bg"
-        style={{ backgroundImage: 'url(/kiosque/paper.png)' }}
+        style={{ backgroundImage: 'url("/kiosque/paper.png")' }}
         aria-hidden="true"
       />
       <div className="ik-grain" aria-hidden="true" />
@@ -218,23 +213,6 @@ const InkBetaHomeScreenComponent = ({
 
         <div className="flex flex-shrink-0 items-center gap-1.5">
           {user && <NotificationCenter />}
-
-          <button
-            type="button"
-            onClick={() => {
-              playInkSound('brushTap', 0.3);
-              setBetaSurface(betaSurface === 'paper' ? 'ink' : 'paper');
-            }}
-            className="ik-btn ik-btn--sm menu-focus !w-auto"
-            aria-label={betaSurface === 'paper' ? 'Passer en encre sombre' : 'Passer en papier clair'}
-          >
-            <SketchFrame className="ik-frame" seed={301} strokeWidth={1.6} />
-            <span className="ik-btn-label">
-              {betaSurface === 'paper'
-                ? <Moon className="h-4 w-4" aria-hidden="true" />
-                : <Sun className="h-4 w-4" aria-hidden="true" />}
-            </span>
-          </button>
 
           <button
             type="button"
@@ -264,38 +242,13 @@ const InkBetaHomeScreenComponent = ({
       {/* ============ SCÈNE ============
           Le titre et le panneau partagent le même centre. Le titre est dessous
           et dépasse, le panneau le recouvre. */}
-      <main className="custom-scrollbar relative z-[2] flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-4">
-        <div className="ik-stage relative">
-          {/* Titre géant, derrière le panneau. */}
-          <div
-            className="ik-title"
-            style={{ backgroundImage: 'url(/kiosque/title-ink.png)' }}
-            aria-hidden="true"
-          />
-
-          {/* Annotations autour de la scène, très peu nombreuses. */}
-          <SketchDoodle
-            kind="arrow"
-            drawDelay={900}
-            className="left-[-72px] top-[34%] hidden w-[68px] lg:block"
-          />
-          <SketchDoodle
-            kind="star"
-            drawDelay={1050}
-            className="right-[-46px] top-[12%] hidden w-[30px] lg:block"
-          />
-          <SketchDoodle
-            kind="scribble"
-            drawDelay={1150}
-            className="bottom-[-30px] left-[18%] hidden w-[64px] sm:block"
-          />
-
-          {/* Panneau au premier plan. */}
-          <SketchPanel seed={2101} rotate={-0.7} className="w-[min(94vw,470px)]">
-            <h1 className="sr-only">Mimic Master</h1>
-
+      <main className="custom-scrollbar relative z-[2] flex min-h-0 flex-1 flex-col justify-center gap-6 overflow-y-auto px-4 py-4 sm:px-8">
+        {/* Panneau à gauche, logo à droite, comme sur la planche. Sur mobile la
+            colonne s'empile et le logo passe au-dessus du panneau. */}
+        <div className="mx-auto flex w-full max-w-[1180px] flex-col-reverse items-center gap-6 md:flex-row md:items-center md:justify-between md:gap-10">
+          <SketchPanel seed={2101} rotate={-0.6} className="w-[min(94vw,440px)] flex-shrink-0">
             <div className="ik-field">
-              <label htmlFor="ik-name" className="ik-label mb-1 block">
+              <label htmlFor="ik-name" className="ik-label mb-0.5 block">
                 Ton pseudo
               </label>
               <input
@@ -309,7 +262,7 @@ const InkBetaHomeScreenComponent = ({
               />
             </div>
 
-            <div className="mt-4 flex flex-col gap-2.5">
+            <div className="mt-6 flex flex-col gap-3">
               <SketchButton
                 seed={4101}
                 drawDelay={420}
@@ -338,31 +291,38 @@ const InkBetaHomeScreenComponent = ({
               </SketchButton>
             </div>
 
-            {!nameReady && (
-              <p className="ik-label ik-muted mt-3">
-                Écris ton pseudo pour commencer.
-              </p>
-            )}
-
-            {/* Mode retenu, en note manuscrite sous les boutons. */}
-            <p className="ik-label mt-4 flex items-baseline gap-1.5">
-              <span className="ik-muted">Mode :</span>
-              <span className="ik-hand text-lg text-[color:var(--ik-ink)]">{selected.label}</span>
+            {/* Mode retenu, en note sous les boutons — « Mode : Invitation »
+                sur la planche, le libellé en craie et la valeur en violet. */}
+            <p className="ik-label mt-6 flex items-baseline gap-1.5">
+              <span>Mode :</span>
+              <span className="text-[color:var(--ik-violet-soft)]">{selected.label}</span>
             </p>
+
+            {!nameReady && (
+              <p className="ik-label ik-muted mt-1">Écris ton pseudo pour commencer.</p>
+            )}
           </SketchPanel>
+
+          {/* Le titre. `h1` porté par l'image pour rester accessible. */}
+          <h1
+            className="ik-title"
+            style={{ backgroundImage: 'url("/ink-beta/logo.png")' }}
+            role="img"
+            aria-label="Mimic Master"
+          />
         </div>
 
         {/* ============ CHOIX DU MODE ============
-            Nettement détaché de la scène : collées au panneau, les vignettes
-            venaient buter dans le lettrage du titre. */}
-        <section className="relative z-[5] mt-14 w-full max-w-[820px]">
-          <div className="mb-1 flex items-baseline justify-between px-1">
+            Les tuiles fournies portent déjà leur cadre et leur nom : on ne
+            superpose donc ni bordure ni libellé. */}
+        <section className="mx-auto w-full max-w-[1180px]">
+          <div className="mb-1.5 flex items-baseline justify-between px-1">
             <h2 className="ik-label">Choisis ton mode</h2>
             <span className="ik-label ik-muted hidden sm:inline" aria-hidden="true">← →</span>
           </div>
 
           <div
-            className="grid grid-cols-4 gap-2 sm:grid-cols-7"
+            className="grid grid-cols-4 gap-2.5 sm:grid-cols-7 sm:gap-3"
             role="group"
             aria-label="Modes de jeu"
           >
@@ -373,21 +333,18 @@ const InkBetaHomeScreenComponent = ({
                   key={mode.id}
                   type="button"
                   aria-pressed={isSelected}
+                  aria-label={mode.label}
                   title={mode.label}
                   onClick={() => { playInkSound('brushTap', 0.3); goToMode(index); }}
                   className={`ik-mode menu-focus${isSelected ? ' is-selected' : ''}`}
                 >
-                  {isSelected && (
-                    <SketchFrame className="ik-frame" seed={5100 + index} strokeWidth={2} />
-                  )}
-                  <span className="ik-mode-art" aria-hidden="true">
+                  <span className="ik-mode-art">
                     <GameImage
                       candidates={mode.imageCandidates}
                       alt=""
                       fallback={<span aria-hidden="true">{mode.fallbackEmoji}</span>}
                     />
                   </span>
-                  <span className="ik-mode-name">{mode.shortLabel}</span>
                 </button>
               );
             })}
