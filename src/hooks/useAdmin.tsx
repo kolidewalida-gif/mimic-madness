@@ -3,11 +3,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export const useAdmin = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    /*
+     * Tant que la session n'est pas résolue, on reste en chargement.
+     *
+     * Sans ce garde, le premier rendu voyait `user` à `null` — la session
+     * Supabase se lit de façon asynchrone — et tombait dans la branche
+     * ci-dessous, annonçant « résolu, pas administrateur ». Les consommateurs
+     * agissaient alors sur une réponse fausse : le garde-fou de thème
+     * réécrivait `ink` par-dessus le choix de l'utilisateur avant même que son
+     * compte soit connu, et les sélecteurs masquaient les entrées réservées.
+     */
+    if (authLoading) {
+      setIsLoading(true);
+      return;
+    }
+
     if (!user?.id) {
       setIsAdmin(false);
       setIsLoading(false);
@@ -27,7 +42,7 @@ export const useAdmin = () => {
     };
 
     checkAdmin();
-  }, [user?.id]);
+  }, [authLoading, user?.id]);
 
   const giveAllRewards = useCallback(async () => {
     if (!user?.id || !isAdmin) return false;

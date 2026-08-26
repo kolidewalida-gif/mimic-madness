@@ -5802,22 +5802,38 @@ html.low-power .ik-paper-bg { display: none; }
 }
 
 /* ---- Responsive ----
-   Le titre doit continuer à passer derrière le panneau sur petit
-   écran. On l'élargit en proportion du viewport plutôt que de le
-   réduire, sinon il cesse de dépasser et l'effet tombe. */
-@media (max-width: 900px) {
-  .ik-title { width: 150vw; transform: translate(-50%, -52%) rotate(-1.4deg); }
-}
-@media (max-width: 560px) {
-  .ik-title { width: 178vw; opacity: 0.8; }
-  .ik-btn { font-size: 1.2rem; min-height: 48px; }
-  .ik-btn--primary { font-size: 1.3rem; min-height: 54px; }
+
+   Les règles précédentes dataient de la version où le titre était un lavis
+   posé derrière le panneau et devait volontairement déborder : elles le
+   portaient à 150vw puis 178vw. Devenu un élément de composition placé à côté
+   du panneau, il débordait alors de l'écran sur mobile — 704 px de large
+   mesurés sur un viewport de 390.
+
+   Le titre est désormais borné par une largeur intrinsèque et ne se laisse
+   plus comprimer par le flex : sur tablette il tombait à 189 px parce que la
+   ligne était trop étroite pour le panneau et lui à la fois. */
+.ik-title {
+  flex-shrink: 0;
+  max-width: 100%;
 }
 
-/* Écrans très larges : le titre ne doit pas devenir gigantesque au
-   point de sortir de la composition. */
+@media (max-width: 1023px) {
+  /* La colonne s'empile : le titre reprend toute la largeur utile. */
+  .ik-title { width: min(560px, 88vw); }
+}
+
+@media (max-width: 560px) {
+  .ik-title { width: min(420px, 92vw); }
+  .ik-btn { font-size: 1rem; min-height: 54px; letter-spacing: 0.08em; }
+  .ik-btn--primary { min-height: 58px; }
+  .ik-input { font-size: 2rem; }
+  .ik-label { font-size: 1.15rem; }
+}
+
+/* Écrans très larges : borner le titre pour qu'il ne dévore pas la
+   composition. */
 @media (min-width: 2200px) {
-  .ik-title { width: 1560px; }
+  .ik-title { width: 860px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -116,8 +116,22 @@ const Index = () => {
   }, [streakJustBumped]);
   const { theme, inkModeEnabled } = useTheme();
   const { isAdmin, isLoading: isAdminLoading } = useAdmin();
+
+  /*
+   * Aperçu de l'écran beta sans compte administrateur, pour les captures
+   * automatisées de mise en page.
+   *
+   * `import.meta.env.DEV` est remplacé par `false` à la compilation, donc tout
+   * ce bloc est éliminé du bundle de production : le paramètre d'URL n'a aucun
+   * effet sur le site publié.
+   */
+  const devBetaPreview =
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('betapreview');
+
   /* Ramène sur `ink` si un non-admin a un thème réservé en localStorage. */
-  useRestrictedThemeGuard(isAdmin, isAdminLoading);
+  useRestrictedThemeGuard(isAdmin || devBetaPreview, isAdminLoading);
   const [gameState, setGameState] = useState<GameState>("home");
   const [showInkSocial, setShowInkSocial] = useState(false);
   const openInkSocial = useCallback(() => setShowInkSocial(true), []);
@@ -177,7 +191,7 @@ const Index = () => {
    */
   const useInkMode = theme === 'inkbeta' || (inkModeEnabled && isInkFamily(theme));
   /* L'accueil beta ne s'affiche qu'une fois le rôle admin confirmé. */
-  const useBetaHome = theme === 'inkbeta' && isAdmin;
+  const useBetaHome = theme === 'inkbeta' && (isAdmin || devBetaPreview);
   // Neon Hub désactivé — on reste sur l'Ink polish
   const useNeonHub = false;
 

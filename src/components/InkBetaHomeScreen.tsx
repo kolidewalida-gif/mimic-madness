@@ -242,10 +242,18 @@ const InkBetaHomeScreenComponent = ({
       {/* ============ SCÈNE ============
           Le titre et le panneau partagent le même centre. Le titre est dessous
           et dépasse, le panneau le recouvre. */}
-      <main className="custom-scrollbar relative z-[2] flex min-h-0 flex-1 flex-col justify-center gap-8 overflow-y-auto px-4 py-3 sm:gap-10 sm:px-10">
+      {/* `safe center` et non `center` : sur un conteneur qui défile, un
+          centrage classique fait déborder le contenu des deux côtés et rend le
+          haut inatteignable — sur mobile le logo était tronqué et la seconde
+          rangée de vignettes inaccessible. `safe` retombe sur un alignement au
+          début dès que le contenu dépasse. */}
+      <main className="custom-scrollbar relative z-[2] flex min-h-0 flex-1 flex-col justify-center gap-8 overflow-y-auto px-4 py-3 [justify-content:safe_center] sm:gap-10 sm:px-10">
         {/* Panneau à gauche, logo à droite, comme sur la planche. Sur mobile la
             colonne s'empile et le logo passe au-dessus du panneau. */}
-        <div className="mx-auto flex w-full max-w-[1440px] flex-col-reverse items-center gap-8 md:flex-row md:items-center md:justify-between md:gap-12">
+        {/* Bascule à `lg` et non `md` : à 834 px la ligne était trop étroite
+            pour le panneau et le titre ensemble, et le flex comprimait le
+            titre à 189 px de large. */}
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col-reverse items-center gap-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
           <SketchPanel seed={2101} rotate={-0.6} className="w-[min(94vw,520px)] flex-shrink-0">
             <div className="ik-field">
               <label htmlFor="ik-name" className="ik-label mb-0.5 block">

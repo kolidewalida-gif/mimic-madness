@@ -36,24 +36,45 @@ function seeded(seed: number): () => number {
  * légèrement de la droite idéale, et les quatre coins ne se rejoignent pas
  * exactement — comme un crayon qui dépasse.
  */
-function wobblyRect(seed: number, wobble = 2.2, overshoot = 1.8): string {
+/**
+ * Trace un rectangle « à main levée ».
+ *
+ * Les amplitudes sont volontairement faibles. Le `viewBox` fait 100 × 100 avec
+ * `preserveAspectRatio="none"`, donc sur un bouton large et bas — 470 × 62 par
+ * exemple — l'étirement horizontal est sept fois supérieur au vertical : un
+ * tremblement de 2 unités devenait 9 px de large contre 1 px de haut, et les
+ * côtés s'incurvaient assez pour que le cadre ne se ferme plus. À 0,9 la
+ * déviation reste sous 4 px au plus large tout en gardant le trait manuel.
+ */
+function wobblyRect(seed: number, inset = 2, wobble = 0.9): string {
   const r = seeded(seed);
   const j = (amount = wobble) => (r() - 0.5) * 2 * amount;
 
-  const x1 = 2 + j(1);
-  const y1 = 2 + j(1);
-  const x2 = 98 + j(1);
-  const y2 = 98 + j(1);
+  /*
+   * Les quatre coins sont calculés une seule fois, puis réutilisés tels quels
+   * comme extrémités des courbes, et le chemin se referme par `Z`.
+   *
+   * La version précédente retirait un décalage aléatoire à chaque mention d'un
+   * coin, y compris entre le `M` initial et la dernière courbe : les deux
+   * extrémités ne coïncidaient donc jamais et le cadre restait ouvert, ce qui
+   * donnait des boutons en forme de crochets. L'irrégularité passe désormais
+   * uniquement par les points de contrôle, où elle ne peut pas rompre le tracé.
+   */
+  const ax = inset + j(0.6);
+  const ay = inset + j(0.6);
+  const bx = 100 - inset + j(0.6);
+  const by = 100 - inset + j(0.6);
 
-  /* Les dépassements aux coins : le trait continue un peu au-delà de l'angle. */
-  const o = () => j(overshoot);
+  const midX = (ax + bx) / 2;
+  const midY = (ay + by) / 2;
 
   return [
-    `M ${x1 + o()} ${y1}`,
-    `Q ${(x1 + x2) / 2 + j()} ${y1 + j()} ${x2} ${y1 + o()}`,
-    `Q ${x2 + j()} ${(y1 + y2) / 2 + j()} ${x2 + o()} ${y2}`,
-    `Q ${(x1 + x2) / 2 + j()} ${y2 + j()} ${x1} ${y2 + o()}`,
-    `Q ${x1 + j()} ${(y1 + y2) / 2 + j()} ${x1 + o()} ${y1}`,
+    `M ${ax} ${ay}`,
+    `Q ${midX + j()} ${ay + j()} ${bx} ${ay}`,
+    `Q ${bx + j()} ${midY + j()} ${bx} ${by}`,
+    `Q ${midX + j()} ${by + j()} ${ax} ${by}`,
+    `Q ${ax + j()} ${midY + j()} ${ax} ${ay}`,
+    'Z',
   ].join(' ');
 }
 
@@ -76,8 +97,11 @@ interface SketchFrameProps {
  */
 export const SketchFrame = memo(
   ({ seed = 7, doubled = true, strokeWidth = 2, drawDelay = 0, className }: SketchFrameProps) => {
-    const primary = useMemo(() => wobblyRect(seed), [seed]);
-    const secondary = useMemo(() => wobblyRect(seed + 991, 3, 2.6), [seed]);
+    const primary = useMemo(() => wobblyRect(seed, 3.5), [seed]);
+    /* Le repassage est tracé plus à l'extérieur, via un `inset` plus faible
+       plutôt qu'une transformation : exprimé dans les mêmes coordonnées, il
+       suit l'étirement du conteneur sans se désolidariser du trait principal. */
+    const secondary = useMemo(() => wobblyRect(seed + 991, 0.8, 1.3), [seed]);
 
     return (
       <svg
@@ -87,15 +111,19 @@ export const SketchFrame = memo(
         aria-hidden="true"
         focusable="false"
       >
+        {/* Le repassage est tracé légèrement à l'extérieur du trait principal,
+            comme sur la planche de référence : superposés, les deux traits se
+            confondaient en une seule ligne épaisse. Le décalage est exprimé en
+            unités de viewBox, donc il suit l'étirement du conteneur. */}
         {doubled && (
           <path
             className="ik-draw"
             d={secondary}
             fill="none"
             stroke="currentColor"
-            strokeWidth={strokeWidth * 0.6}
+            strokeWidth={strokeWidth * 0.55}
             strokeLinecap="round"
-            strokeOpacity={0.4}
+            strokeOpacity={0.45}
             vectorEffect="non-scaling-stroke"
             style={{ animationDelay: `${drawDelay + 90}ms` }}
           />
