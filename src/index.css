@@ -5500,19 +5500,17 @@ body.inkbeta-mode {
   font-family: 'Outfit', system-ui, sans-serif;
 }
 
-/* Grain d'ardoise. `screen` et non `multiply` : sur un fond presque noir,
-   multiplier n'aurait aucun effet visible, alors qu'éclaircir fait apparaître
-   la poussière de craie. */
+/* Ardoise pleine page. `cover` et non `repeat` : la planche fournie porte son
+   propre vignettage clair sur les bords, donc la répéter afficherait une grille
+   de cadres. Elle doit couvrir une fois, comme un fond de scène. */
 .ik-paper-bg {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   background-position: center;
-  background-size: 900px auto;
-  background-repeat: repeat;
-  mix-blend-mode: screen;
-  opacity: 0.05;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 /* Grain fin par-dessus, pour éviter l'aplat numérique. */
@@ -5557,21 +5555,20 @@ html.low-power .ik-paper-bg { display: none; }
 /* ------------------------------------------------------------
    Le logo fourni.
 
-   L'image est un lettrage crème sur noir plein. `screen` fait disparaître ce
-   noir sans détourage alpha : un pixel noir laisse le fond intact, les traits
-   clairs ressortent. C'est le pendant, sur fond sombre, du `multiply` qu'on
-   emploie sur fond clair.
+   La planche est désormais livrée détourée, avec un canal alpha. Aucun mode de
+   fusion n'est donc nécessaire : la version précédente employait `screen` pour
+   effacer un fond noir plein, et il restait un rectangle visible parce que ce
+   noir ne valait pas exactement zéro sur toute sa surface.
 
-   Aucune opacité réduite ici : sur la planche de référence le titre est un
-   élément de plein droit, pas un filigrane.
+   Aucune opacité réduite : sur la référence le titre est un élément de plein
+   droit, pas un filigrane.
    ------------------------------------------------------------ */
 .ik-title {
-  width: min(680px, 52vw);
-  aspect-ratio: 1046 / 641;
+  width: min(740px, 50vw);
+  aspect-ratio: 638 / 391;
   background-position: center;
   background-size: contain;
   background-repeat: no-repeat;
-  mix-blend-mode: screen;
   pointer-events: none;
 }
 
@@ -5637,7 +5634,7 @@ html.low-power .ik-paper-bg { display: none; }
 
 .ik-label {
   font-family: var(--ik-hand);
-  font-size: 1.05rem;
+  font-size: 1.3rem;
   color: var(--ik-ink-soft);
   letter-spacing: 0.01em;
 }
@@ -5662,9 +5659,9 @@ html.low-power .ik-paper-bg { display: none; }
   background: transparent;
   color: var(--ik-ink);
   font-family: 'Outfit', system-ui, sans-serif;
-  font-size: 1.02rem;
+  font-size: 1.18rem;
   font-weight: 500;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
   transition: transform 140ms ease, color 140ms ease;
@@ -5695,7 +5692,8 @@ html.low-power .ik-paper-bg { display: none; }
 .ik-btn:not(:disabled):active { transform: rotate(0.3deg) translateY(1px); }
 .ik-btn:disabled { color: var(--ik-ink-faint); cursor: not-allowed; opacity: 0.55; }
 
-.ik-btn--primary { min-height: 58px; }
+.ik-btn { min-height: 62px; }
+.ik-btn--primary { min-height: 66px; }
 .ik-btn--sm {
   min-height: 40px;
   font-size: 0.8rem;
@@ -5711,13 +5709,13 @@ html.low-power .ik-paper-bg { display: none; }
   position: relative;
   z-index: 3;
   width: 100%;
-  min-height: 46px;
+  min-height: 52px;
   padding: 0 0.2rem;
   border: 0;
   background: transparent;
   color: var(--ik-violet-soft);
   font-family: var(--ik-hand);
-  font-size: 2rem;
+  font-size: 2.4rem;
   font-weight: 600;
 }
 .ik-input::placeholder { color: var(--ik-ink-faint); font-weight: 400; }
@@ -5795,7 +5793,7 @@ html.low-power .ik-paper-bg { display: none; }
   /* Les tuiles fournies oscillent entre 0,80 et 0,88 de rapport. Un cadre
      fixe avec `contain` les aligne sans les déformer. */
   aspect-ratio: 4 / 5;
-  font-size: 1.6rem;
+  font-size: 2.2rem;
 }
 .ik-mode-art img {
   width: 100%;

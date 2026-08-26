@@ -196,10 +196,10 @@ const InkBetaHomeScreenComponent = ({
       className="ik-root menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
       style={accent}
     >
-      {/* Poussière de craie et grain, en fond de page. */}
+      {/* Ardoise pleine page, plus un grain fin par-dessus. */}
       <div
         className="ik-paper-bg"
-        style={{ backgroundImage: 'url("/kiosque/paper.png")' }}
+        style={{ backgroundImage: 'url("/ink-beta/background.png")' }}
         aria-hidden="true"
       />
       <div className="ik-grain" aria-hidden="true" />
@@ -242,11 +242,11 @@ const InkBetaHomeScreenComponent = ({
       {/* ============ SCÈNE ============
           Le titre et le panneau partagent le même centre. Le titre est dessous
           et dépasse, le panneau le recouvre. */}
-      <main className="custom-scrollbar relative z-[2] flex min-h-0 flex-1 flex-col justify-center gap-6 overflow-y-auto px-4 py-4 sm:px-8">
+      <main className="custom-scrollbar relative z-[2] flex min-h-0 flex-1 flex-col justify-center gap-8 overflow-y-auto px-4 py-3 sm:gap-10 sm:px-10">
         {/* Panneau à gauche, logo à droite, comme sur la planche. Sur mobile la
             colonne s'empile et le logo passe au-dessus du panneau. */}
-        <div className="mx-auto flex w-full max-w-[1180px] flex-col-reverse items-center gap-6 md:flex-row md:items-center md:justify-between md:gap-10">
-          <SketchPanel seed={2101} rotate={-0.6} className="w-[min(94vw,440px)] flex-shrink-0">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col-reverse items-center gap-8 md:flex-row md:items-center md:justify-between md:gap-12">
+          <SketchPanel seed={2101} rotate={-0.6} className="w-[min(94vw,520px)] flex-shrink-0">
             <div className="ik-field">
               <label htmlFor="ik-name" className="ik-label mb-0.5 block">
                 Ton pseudo
@@ -315,14 +315,13 @@ const InkBetaHomeScreenComponent = ({
         {/* ============ CHOIX DU MODE ============
             Les tuiles fournies portent déjà leur cadre et leur nom : on ne
             superpose donc ni bordure ni libellé. */}
-        <section className="mx-auto w-full max-w-[1180px]">
-          <div className="mb-1.5 flex items-baseline justify-between px-1">
-            <h2 className="ik-label">Choisis ton mode</h2>
-            <span className="ik-label ik-muted hidden sm:inline" aria-hidden="true">← →</span>
-          </div>
+        <section className="mx-auto w-full max-w-[1440px]">
+          {/* Pas de titre de section : la référence n'en a pas, et les tuiles
+              portent déjà leur nom. */}
+          <h2 className="sr-only">Choisis ton mode</h2>
 
           <div
-            className="grid grid-cols-4 gap-2.5 sm:grid-cols-7 sm:gap-3"
+            className="grid grid-cols-4 gap-3 sm:grid-cols-7 sm:gap-4"
             role="group"
             aria-label="Modes de jeu"
           >
