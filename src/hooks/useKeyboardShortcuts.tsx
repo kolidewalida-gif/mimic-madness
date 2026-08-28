@@ -20,11 +20,10 @@ export interface ShortcutSpec {
 }
 
 const isInteractiveTarget = (target: EventTarget | null) => {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
-  if (target.isContentEditable) return true;
-  return false;
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest(
+    'input, textarea, select, button, a[href], summary, [contenteditable="true"], [role="button"], [role="link"], [role="slider"]',
+  ));
 };
 
 const matchesKey = (event: KeyboardEvent, spec: ShortcutSpec) => {
@@ -53,7 +52,11 @@ export const useKeyboardShortcuts = (shortcuts: ShortcutSpec[]) => {
       for (const spec of list) {
         if (spec.enabled === false) continue;
         if (!matchesKey(event, spec)) continue;
-        if (!spec.allowInInputs && isInteractiveTarget(event.target)) continue;
+        if (
+          !spec.allowInInputs
+          && event.key.toLowerCase() !== 'escape'
+          && isInteractiveTarget(event.target)
+        ) continue;
         if (spec.preventDefault !== false) {
           event.preventDefault();
           event.stopPropagation();

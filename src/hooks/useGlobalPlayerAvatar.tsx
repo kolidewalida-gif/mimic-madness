@@ -23,31 +23,43 @@ export const useGlobalPlayerAvatar = (playerId: string) => {
   const [avatarData, setAvatarData] = useState<PlayerAvatarData>({ type: 'initials' });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load avatar from database
+  // Load avatar from database and keep it synchronized across open surfaces.
   useEffect(() => {
-    if (!playerId) return;
+    let active = true;
+    setAvatarData({ type: 'initials' });
 
+    if (!playerId) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
     const loadAvatar = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('player_global_avatars')
         .select('*')
         .eq('player_id', playerId)
         .maybeSingle();
 
-      if (data) {
+      if (!active) return;
+      if (error) {
+        console.error('Error loading avatar:', error);
+      } else if (data) {
         setAvatarData({
           type: data.avatar_type as 'initials' | 'image',
           imageUrl: data.image_url || undefined,
           backgroundColor: data.background_color || undefined,
         });
       }
+      setIsLoading(false);
     };
 
-    loadAvatar();
+    void loadAvatar();
 
-    // Subscribe to realtime updates
+    // Each hook instance gets a unique topic. Supabase forbids adding a second
+    // postgres_changes callback to a channel that is already subscribed.
     const channel = supabase
-      .channel(`global-avatar:${playerId}`)
+      .channel(`global-avatar:${playerId}:${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
@@ -57,29 +69,37 @@ export const useGlobalPlayerAvatar = (playerId: string) => {
           filter: `player_id=eq.${playerId}`
         },
         (payload) => {
-          if (payload.new) {
-            const newData = payload.new as any;
-            setAvatarData({
-              type: newData.avatar_type as 'initials' | 'image',
-              imageUrl: newData.image_url || undefined,
-              backgroundColor: newData.background_color || undefined,
-            });
+          if (!active) return;
+          if (payload.eventType === 'DELETE') {
+            setAvatarData({ type: 'initials' });
+            return;
           }
+          const newData = payload.new as {
+            avatar_type?: 'initials' | 'image';
+            image_url?: string | null;
+            background_color?: string | null;
+          };
+          setAvatarData({
+            type: newData.avatar_type || 'initials',
+            imageUrl: newData.image_url || undefined,
+            backgroundColor: newData.background_color || undefined,
+          });
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      void supabase.removeChannel(channel);
     };
   }, [playerId]);
 
-  const setAvatarImage = useCallback(async (imageUrl: string) => {
-    if (!playerId) return;
+  const setAvatarImage = useCallback(async (imageUrl: string): Promise<boolean> => {
+    if (!playerId) return false;
     
     setIsLoading(true);
     try {
-      await supabase
+      const { error } = await supabase
         .from('player_global_avatars')
         .upsert({
           player_id: playerId,
@@ -90,10 +110,16 @@ export const useGlobalPlayerAvatar = (playerId: string) => {
         }, {
           onConflict: 'player_id'
         });
-      
+
+      if (error) {
+        console.error('Error saving avatar:', error);
+        return false;
+      }
       setAvatarData({ type: 'image', imageUrl });
+      return true;
     } catch (error) {
       console.error('Error saving avatar:', error);
+      return false;
     } finally {
       setIsLoading(false);
     }

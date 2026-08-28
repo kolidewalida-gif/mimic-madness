@@ -9991,3 +9991,322 @@ body.inkbeta-mode .ik-layout-v2 .ik-mode-position {
     min-height: auto;
   }
 }
+
+/* ============================================================
+   INK BETA — LECTEUR MUSICAL + AVATARS DU JEU
+   ------------------------------------------------------------
+   Ajouts scoppés à l’accueil beta : le lecteur partagé devient un
+   dock compact, et le profil reçoit un carrousel d’avatars Mimo.
+   ============================================================ */
+
+body.inkbeta-mode .ik-music-dock {
+  width: 100%;
+  padding: 0.15rem max(1rem, env(safe-area-inset-right, 0px)) 0.55rem max(1rem, env(safe-area-inset-left, 0px));
+  pointer-events: none;
+}
+
+.mp-shell--inline {
+  position: relative;
+  width: min(100%, 47rem);
+  margin-inline: auto;
+}
+
+body.inkbeta-mode .mp-shell--ink-beta {
+  pointer-events: auto;
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-bar {
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.34);
+  border-radius: 17px;
+  background:
+    linear-gradient(110deg, rgba(255, 98, 182, 0.14), transparent 32%),
+    linear-gradient(180deg, rgba(103, 15, 119, 0.98), rgba(70, 9, 90, 0.98));
+  box-shadow:
+    0 5px 0 rgba(53, 7, 75, 0.78),
+    0 11px 24px rgba(53, 7, 75, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-bar::before {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 1rem;
+  width: 4.5rem;
+  height: 3px;
+  border-radius: 0 0 999px 999px;
+  background: var(--ik-cyan);
+  box-shadow: 4.9rem 0 0 var(--ik-pink);
+  content: '';
+  pointer-events: none;
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-row {
+  position: relative;
+  z-index: 2;
+  min-height: 3.9rem;
+  padding: 0.55rem 0.72rem 0.68rem;
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-title {
+  color: var(--ik-white);
+  font-family: var(--ink-font-body);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-sub {
+  color: var(--ik-white-faint);
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-play {
+  background: var(--ik-cyan);
+  color: #35104f;
+  box-shadow: 0 3px 0 var(--ik-cyan-deep);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-play:hover {
+  background: #6dffe6;
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-ghost {
+  color: var(--ik-white-soft);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-ghost:hover,
+body.inkbeta-mode .mp-shell--ink-beta .mp-ghost.is-on {
+  color: var(--ik-white);
+  background: rgba(255, 98, 182, 0.24);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-seek-track {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-seek-fill,
+body.inkbeta-mode .mp-shell--ink-beta .mp-eq {
+  background: var(--ik-cyan);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-list {
+  position: relative;
+  z-index: 3;
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+  background: rgba(67, 8, 87, 0.98);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-search {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(53, 7, 75, 0.7);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-search:focus-within {
+  border-color: var(--ik-cyan);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-mood.is-on {
+  background: var(--ik-pink);
+}
+
+body.inkbeta-mode .mp-shell--ink-beta .mp-track.is-on {
+  background: rgba(45, 242, 208, 0.13);
+}
+
+body.inkbeta-mode .ik-profile-thumb {
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: 0 0 auto;
+  border: 2px solid rgba(45, 242, 208, 0.78);
+  background: var(--ik-panel-deep);
+  box-shadow: 0 2px 0 rgba(53, 7, 75, 0.6);
+}
+
+body.inkbeta-mode .ik-profile-thumb > span {
+  background: var(--ik-panel-deep);
+  color: var(--ik-white);
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ink-game-avatar-picker {
+  display: grid;
+  grid-template-columns: 2.75rem 6rem 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  min-height: 7rem;
+}
+
+body.inkbeta-mode .ink-game-avatar-arrow {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  color: var(--ik-white);
+  background: linear-gradient(180deg, var(--ik-panel-soft), var(--ik-panel-deep));
+  box-shadow: 0 4px 0 rgba(53, 7, 75, 0.72);
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+body.inkbeta-mode .ink-game-avatar-arrow svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke-width: 3;
+}
+
+body.inkbeta-mode .ink-game-avatar-arrow:hover:not(:disabled) {
+  background: var(--ik-panel-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 rgba(53, 7, 75, 0.72);
+}
+
+body.inkbeta-mode .ink-game-avatar-arrow:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(53, 7, 75, 0.72);
+}
+
+body.inkbeta-mode .ink-game-avatar-arrow:disabled {
+  opacity: 0.55;
+}
+
+body.inkbeta-mode .ink-game-avatar-preview {
+  outline: 3px solid rgba(255, 255, 255, 0.84);
+  outline-offset: 2px;
+  background: var(--ik-panel-deep);
+}
+
+body.inkbeta-mode .ink-game-avatar-edit {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 2px solid var(--ik-white);
+  border-radius: 999px;
+  color: #35104f;
+  background: var(--ik-cyan);
+  box-shadow: 0 3px 0 var(--ik-cyan-deep);
+}
+
+body.inkbeta-mode .ink-game-avatar-edit svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 2.8;
+}
+
+body.inkbeta-mode .ink-game-avatar-edit:hover:not(:disabled) {
+  background: #6dffe6;
+}
+
+body.inkbeta-mode .ink-game-avatar-spinner {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid rgba(53, 16, 79, 0.28);
+  border-top-color: #35104f;
+  border-radius: 999px;
+  animation: spin 700ms linear infinite;
+}
+
+body.inkbeta-mode .ink-game-avatar-caption {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  color: var(--ik-white);
+  background: rgba(91, 8, 105, 0.52);
+  font-family: var(--ink-font-body);
+}
+
+body.inkbeta-mode .ink-game-avatar-caption strong {
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ink-game-avatar-caption span {
+  color: var(--ik-cyan);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1100px) {
+  body.inkbeta-mode .ik-tool--profile > .ik-profile-thumb {
+    display: grid;
+  }
+
+  body.inkbeta-mode .ik-music-dock {
+    padding-inline: 1rem;
+  }
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-music-dock {
+    padding: 0.1rem 0.45rem 0.45rem;
+  }
+
+  body.inkbeta-mode .mp-shell--ink-beta .mp-bar {
+    border-radius: 14px;
+    box-shadow: 0 4px 0 rgba(53, 7, 75, 0.78);
+  }
+
+  body.inkbeta-mode .mp-shell--ink-beta .mp-row {
+    gap: 0.35rem;
+    min-height: 3.55rem;
+    padding: 0.45rem 0.48rem 0.58rem;
+  }
+
+  body.inkbeta-mode .mp-shell--ink-beta .mp-title {
+    font-size: 0.76rem;
+  }
+
+  body.inkbeta-mode .mp-shell--ink-beta .mp-time {
+    display: none;
+  }
+
+  body.inkbeta-mode .mp-shell--ink-beta .mp-ghost {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  body.inkbeta-mode .mp-shell--ink-beta .mp-play {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  body.inkbeta-mode .mp-shell--ink-beta .mp-tracks {
+    max-height: min(32dvh, 13rem) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  body.inkbeta-mode .mp-shell--ink-beta .mp-aside.is-hidden {
+    display: none;
+  }
+
+  body.inkbeta-mode .mp-shell--ink-beta .mp-sub > span:first-child {
+    max-width: 5.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode .ink-game-avatar-arrow {
+    transition: none;
+  }
+
+  body.inkbeta-mode .ink-game-avatar-arrow:hover:not(:disabled) {
+    transform: none;
+  }
+
+  body.inkbeta-mode .ink-game-avatar-spinner {
+    animation: none;
+  }
+}

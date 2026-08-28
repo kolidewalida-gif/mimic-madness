@@ -102,6 +102,67 @@ for (const viewport of targets) {
         `  titre ${title ? `${Math.round(title.width)}x${Math.round(title.height)}` : 'absent'}`,
     );
 
+    /* Entrée doit activer le bouton focalisé du lecteur, jamais le raccourci
+       global « créer une partie ». On le vérifie avant les autres captures. */
+    if (viewport.name === '1440') {
+      const playButton = page.getByRole('button', { name: /^(Lire|Mettre en pause) / });
+      await playButton.focus();
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(120);
+      if (!(await page.locator('.ik-play-panel').isVisible())) {
+        throw new Error('Entrée sur le lecteur a quitté l’accueil');
+      }
+      await playButton.focus();
+      await page.keyboard.press('Enter');
+      console.log('     clavier lecteur OK');
+    }
+
+    /* Le lecteur Ink Beta est un dock permanent. Sa liste doit rester dans le
+       viewport et se refermer avec le même contrôle sur desktop comme mobile. */
+    if (viewport.name === '1440' || viewport.name === 'mobile') {
+      const musicListButton = page.getByRole('button', { name: 'Ouvrir la liste des pistes' });
+      await musicListButton.click();
+      const musicList = page.locator('.mp-list');
+      await musicList.waitFor({ state: 'visible', timeout: 10_000 });
+      await page.waitForTimeout(200);
+      await page.screenshot({ path: `${OUT}/music-list-${viewport.name}.png`, fullPage: false });
+      const musicBox = await page.locator('.mp-shell--ink-beta').boundingBox();
+      console.log(
+        `     lecteur ouvert ${musicBox ? `${Math.round(musicBox.width)}x${Math.round(musicBox.height)}` : 'absent'}`,
+      );
+      await page.getByRole('button', { name: 'Fermer la liste des pistes' }).click();
+      await musicList.waitFor({ state: 'detached', timeout: 10_000 });
+    }
+
+    /* Planche de contrôle purement visuelle des SVG locaux : elle garantit que
+       chaque preset est décodable par le navigateur et lisible en miniature. */
+    if (viewport.name === '1440') {
+      const avatars = await page.evaluate(async () => {
+        const module = await import('/src/lib/gameAvatars.ts');
+        return module.GAME_AVATARS.map(({ id, label, src }) => ({ id, label, src }));
+      });
+      await page.evaluate((items) => {
+        const sheet = document.createElement('section');
+        sheet.id = 'game-avatar-control-sheet';
+        sheet.style.cssText = [
+          'position:fixed', 'inset:0', 'z-index:20000', 'display:grid', 'place-items:center',
+          'background:linear-gradient(135deg,#4c086e,#bf207e)', 'font-family:Outfit,sans-serif',
+        ].join(';');
+        sheet.innerHTML = `<div style="width:min(900px,92vw);padding:32px;border:3px solid rgba(255,255,255,.35);border-radius:28px;background:#721273;box-shadow:0 12px 0 #35104f">
+          <h1 style="margin:0 0 24px;color:#fff8ff;font-size:30px">Avatars Mimic Master</h1>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">${items.map((avatar) => `
+            <article style="padding:14px;text-align:center;border:2px solid rgba(255,255,255,.22);border-radius:18px;background:#5a0b62">
+              <img src="${avatar.src}" alt="${avatar.label}" style="display:block;width:128px;height:128px;margin:auto;border:4px solid #fff;border-radius:50%;object-fit:cover" />
+              <strong style="display:block;margin-top:10px;color:#fff8ff">${avatar.label}</strong>
+            </article>`).join('')}</div>
+        </div>`;
+        document.body.appendChild(sheet);
+      }, avatars);
+      await page.locator('#game-avatar-control-sheet img').first().waitFor({ state: 'visible' });
+      await page.screenshot({ path: `${OUT}/avatar-catalog.png`, fullPage: false });
+      await page.locator('#game-avatar-control-sheet').evaluate((node) => node.remove());
+    }
+
     /* Les portails ne font pas partie de l'arbre du home. Une capture du menu
        seul ne détecterait donc ni un ancien skin résiduel ni un panneau qui
        déborde sur mobile. On ouvre chaque famille d'overlay, puis on la ferme

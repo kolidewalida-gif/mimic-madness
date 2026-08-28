@@ -35,7 +35,9 @@ import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { GAME_MODE_META, INK_GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
 import { DeviceSettings } from '@/components/DeviceSettings';
+import { MusicPlayerBar } from '@/components/MusicPlayerBar';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkDrawer, InkModal } from '@/components/menu/InkOverlay';
@@ -159,6 +161,7 @@ const InkBetaHomeScreenComponent = ({
   const nameReady = playerName.trim().length > 0;
   const joinReady = nameReady && lobbyCode.trim().length === 4;
   const displayName = profile?.display_name || playerName || 'Joueur';
+  const profileAvatarUrl = user ? profile?.avatar_url || undefined : undefined;
   const anyOverlayOpen = showJoin || showSettings || showProfile || showFriends;
 
   useEffect(() => {
@@ -285,7 +288,14 @@ const InkBetaHomeScreenComponent = ({
               className="ik-tool ik-tool--profile menu-focus"
               aria-label={`Profil de ${displayName}`}
             >
-              <User aria-hidden="true" />
+              {profileAvatarUrl ? (
+                <Avatar className="ik-profile-thumb" aria-hidden="true">
+                  <AvatarImage src={profileAvatarUrl} className="object-cover" />
+                  <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+              ) : (
+                <User aria-hidden="true" />
+              )}
               <span className="max-w-[105px] truncate">{displayName}</span>
             </button>
           </div>
@@ -445,6 +455,10 @@ const InkBetaHomeScreenComponent = ({
         </div>
       </main>
 
+      <div className="ik-music-dock relative z-[7] flex-shrink-0">
+        <MusicPlayerBar placement="inline" variant="inkBeta" />
+      </div>
+
       <footer className="ik-footer relative z-[7] flex-shrink-0">
         <span className="ik-footer-brand">Mimic Master <b>Ink Beta</b></span>
         <nav aria-label="Informations légales">
@@ -471,7 +485,7 @@ const InkBetaHomeScreenComponent = ({
         className="ik-party-overlay ik-profile-drawer"
       >
         <div className="flex flex-col gap-3">
-          <InkProfileSidebar />
+          <InkProfileSidebar variant="inkBeta" />
           <button
             type="button"
             className="ik-secondary-action menu-focus"

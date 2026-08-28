@@ -12,6 +12,8 @@ import {
   LogIn,
   LogOut,
   Camera,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -21,6 +23,7 @@ import { LevelProgressBar } from '@/components/LevelProgressBar';
 import { useEquippedTitle } from '@/hooks/useEquippedTitle';
 import { rarityStyle } from '@/lib/rarity';
 import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
+import { GAME_AVATARS, findGameAvatarIndex } from '@/lib/gameAvatars';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 
@@ -30,7 +33,11 @@ const GRAFFITI_TEXT_SHADOW =
 const GRAFFITI_TEXT_SHADOW_SM =
   'none';
 
-const InkProfileSidebarComponent = () => {
+interface InkProfileSidebarProps {
+  variant?: 'default' | 'inkBeta';
+}
+
+const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarProps) => {
   const { user, profile, stats, isLoading, signInWithGoogle, signOut, updateProfile } =
     useAuth();
   const { equippedTitle } = useEquippedTitle();
@@ -40,7 +47,7 @@ const InkProfileSidebarComponent = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -64,6 +71,63 @@ const InkProfileSidebarComponent = () => {
     }
   };
 
+  const avatarImageUrl =
+    avatarData.type === 'image' && avatarData.imageUrl
+      ? avatarData.imageUrl
+      : profile?.avatar_url || undefined;
+  const selectedGameAvatarIndex = findGameAvatarIndex(avatarImageUrl);
+
+  const persistAvatarImage = async (imageUrl: string, successMessage: string) => {
+    if (!user || isSavingAvatar) return false;
+
+    const previousProfileAvatar = profile?.avatar_url ?? null;
+    let profileUpdated = false;
+    setIsSavingAvatar(true);
+    playInkSound('brushTap', 0.35);
+
+    try {
+      // Le profil est écrit en premier. Si la source globale échoue ensuite,
+      // on restaure sa valeur précédente pour ne pas laisser les deux vues
+      // (sociale et en jeu) avec des avatars différents.
+      await updateProfile({ avatar_url: imageUrl });
+      profileUpdated = true;
+
+      const globalAvatarSaved = await setAvatarImage(imageUrl);
+      if (!globalAvatarSaved) throw new Error('Global avatar persistence failed');
+
+      toast.success(successMessage);
+      playInkSound('inkSuccess', 0.5);
+      return true;
+    } catch (error) {
+      if (profileUpdated) {
+        try {
+          await updateProfile({ avatar_url: previousProfileAvatar });
+        } catch (rollbackError) {
+          console.error('Error rolling back profile avatar:', rollbackError);
+        }
+      }
+      console.error('Error selecting avatar:', error);
+      toast.error("Impossible de changer l'avatar");
+      return false;
+    } finally {
+      setIsSavingAvatar(false);
+    }
+  };
+
+  const selectGameAvatar = (nextIndex: number) => {
+    const avatar = GAME_AVATARS[nextIndex];
+    if (!avatar) return;
+    void persistAvatarImage(avatar.src, `${avatar.label} équipé !`);
+  };
+
+  const stepGameAvatar = (direction: -1 | 1) => {
+    const lastIndex = GAME_AVATARS.length - 1;
+    const nextIndex = selectedGameAvatarIndex < 0
+      ? (direction > 0 ? 0 : lastIndex)
+      : (selectedGameAvatarIndex + direction + GAME_AVATARS.length) % GAME_AVATARS.length;
+    selectGameAvatar(nextIndex);
+  };
+
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -71,38 +135,28 @@ const InkProfileSidebarComponent = () => {
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       toast.error('Format non supporté. Utilisez JPG, PNG, GIF ou WebP');
+      event.target.value = '';
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
       toast.error("L'image ne doit pas dépasser 2 Mo");
+      event.target.value = '';
       return;
     }
 
-    setIsUploadingAvatar(true);
-    playInkSound('brushTap', 0.4);
-
     try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const result = e.target?.result as string;
-        await setAvatarImage(result);
-        toast.success('Photo de profil mise à jour !');
-        playInkSound('inkSuccess', 0.5);
-        setIsUploadingAvatar(false);
-      };
-      reader.onerror = () => {
-        toast.error("Impossible de charger l'image");
-        setIsUploadingAvatar(false);
-      };
-      reader.readAsDataURL(file);
+      const imageUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error || new Error('Avatar file read failed'));
+        reader.readAsDataURL(file);
+      });
+      await persistAvatarImage(imageUrl, 'Photo de profil mise à jour !');
     } catch (error) {
-      console.error('Error uploading avatar:', error);
-      toast.error('Impossible de mettre à jour la photo');
-      setIsUploadingAvatar(false);
-    }
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      console.error('Error reading avatar:', error);
+      toast.error("Impossible de charger l'image");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -204,11 +258,6 @@ const InkProfileSidebarComponent = () => {
     );
   }
 
-  const avatarImageUrl =
-    avatarData.type === 'image' && avatarData.imageUrl
-      ? avatarData.imageUrl
-      : profile?.avatar_url || undefined;
-
   /* =========================================================
      CONNECTED — CARTOON PROFILE
   ========================================================= */
@@ -234,77 +283,150 @@ const InkProfileSidebarComponent = () => {
         <div className="relative space-y-3 z-[2]">
           {/* AVATAR + NAME */}
           <div className="text-center space-y-2.5">
-            <div className="relative inline-block">
-              {/*
-                Halo fixe. Il tournait en boucle (`rotate: 360`, `repeat:
-                Infinity`) : un dégradé conique flouté repeint sans fin derrière
-                l'avatar, à l'encontre de la règle « pas d'animation infinie » de
-                la coquille partagée, et pour un effet que l'immobilité rend tout
-                aussi lisible.
-              */}
-              <div
-                className="ink-profile-avatar-halo absolute -inset-2 rounded-full pointer-events-none"
-                style={{
-                  background:
-                    'conic-gradient(from 0deg, #fbbf24, #f87171, var(--ink-accent), #38bdf8, #34d399, #fbbf24)',
-                  filter: 'blur(8px)',
-                  opacity: 0.6,
-                }}
-              />
-              <Avatar
-                className="relative h-24 w-24 mx-auto"
-                style={{
-                  border: '1px solid var(--ink-line)',
-                  boxShadow:
-                    'none',
-                }}
-              >
-                <AvatarImage src={avatarImageUrl} className="object-cover" />
-                <AvatarFallback
-                  className="text-3xl font-black text-white"
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+
+            {variant === 'inkBeta' ? (
+              <>
+                <div
+                  className="ink-game-avatar-picker"
+                  aria-busy={isSavingAvatar || avatarLoading}
+                >
+                  <button
+                    type="button"
+                    onClick={() => stepGameAvatar(-1)}
+                    disabled={isSavingAvatar || avatarLoading}
+                    aria-label="Avatar précédent"
+                    className="ink-game-avatar-arrow menu-focus"
+                  >
+                    <ChevronLeft aria-hidden="true" />
+                  </button>
+
+                  <div className="relative">
+                    <div
+                      className="ink-profile-avatar-halo absolute -inset-2 rounded-full pointer-events-none"
+                      style={{
+                        background:
+                          'conic-gradient(from 0deg, #fbbf24, #f87171, var(--ink-accent), #38bdf8, #34d399, #fbbf24)',
+                        filter: 'blur(8px)',
+                        opacity: 0.6,
+                      }}
+                    />
+                    <Avatar
+                      className="ink-game-avatar-preview relative h-24 w-24 mx-auto"
+                      style={{ border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+                    >
+                      <AvatarImage
+                        src={avatarImageUrl}
+                        alt={`Avatar de ${profile?.display_name || 'Joueur'}`}
+                        className="object-cover"
+                      />
+                      <AvatarFallback
+                        className="text-3xl font-black text-white"
+                        style={{ background: 'var(--ink-accent)', fontFamily: "'Outfit', sans-serif" }}
+                      >
+                        {profile?.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.12, rotate: -8 }}
+                      whileTap={{ scale: 0.92 }}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isSavingAvatar || avatarLoading}
+                      aria-label="Importer une photo de profil"
+                      aria-busy={isSavingAvatar}
+                      title="Importer une photo"
+                      className="ink-game-avatar-edit menu-focus absolute -bottom-1 -right-1"
+                    >
+                      {isSavingAvatar ? (
+                        <span className="ink-game-avatar-spinner" aria-hidden="true" />
+                      ) : (
+                        <Camera aria-hidden="true" />
+                      )}
+                    </motion.button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => stepGameAvatar(1)}
+                    disabled={isSavingAvatar || avatarLoading}
+                    aria-label="Avatar suivant"
+                    className="ink-game-avatar-arrow menu-focus"
+                  >
+                    <ChevronRight aria-hidden="true" />
+                  </button>
+                </div>
+
+                <div className="ink-game-avatar-caption" aria-live="polite" aria-atomic="true">
+                  <strong>
+                    {selectedGameAvatarIndex >= 0
+                      ? GAME_AVATARS[selectedGameAvatarIndex].label
+                      : 'Choisis ton Mimo'}
+                  </strong>
+                  <span>
+                    {selectedGameAvatarIndex >= 0
+                      ? `${String(selectedGameAvatarIndex + 1).padStart(2, '0')} / ${String(GAME_AVATARS.length).padStart(2, '0')}`
+                      : `${GAME_AVATARS.length} avatars du jeu`}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="relative inline-block">
+                <div
+                  className="ink-profile-avatar-halo absolute -inset-2 rounded-full pointer-events-none"
                   style={{
-                    background: 'var(--ink-accent)',
-                    fontFamily: "'Outfit', sans-serif",
+                    background:
+                      'conic-gradient(from 0deg, #fbbf24, #f87171, var(--ink-accent), #38bdf8, #34d399, #fbbf24)',
+                    filter: 'blur(8px)',
+                    opacity: 0.6,
+                  }}
+                />
+                <Avatar
+                  className="relative h-24 w-24 mx-auto"
+                  style={{ border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+                >
+                  <AvatarImage src={avatarImageUrl} className="object-cover" />
+                  <AvatarFallback
+                    className="text-3xl font-black text-white"
+                    style={{ background: 'var(--ink-accent)', fontFamily: "'Outfit', sans-serif" }}
+                  >
+                    {profile?.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.15, rotate: -8 }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => {
+                    playInkSound('brushTap', 0.3);
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={isSavingAvatar || avatarLoading}
+                  aria-label="Changer la photo de profil"
+                  aria-busy={isSavingAvatar}
+                  className="menu-icon-control menu-focus absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
+                    border: '1px solid var(--ink-line)',
+                    boxShadow: 'none',
                   }}
                 >
-                  {profile?.display_name?.charAt(0)?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-
-              {/* Camera button */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.15, rotate: -8 }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => {
-                  playInkSound('brushTap', 0.3);
-                  fileInputRef.current?.click();
-                }}
-                disabled={isUploadingAvatar || avatarLoading}
-                aria-label="Changer la photo de profil"
-                aria-busy={isUploadingAvatar}
-                className="menu-icon-control menu-focus absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center"
-                style={{
-                  background:
-                    'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
-                  border: '1px solid var(--ink-line)',
-                  boxShadow: 'none',
-                }}
-              >
-                {isUploadingAvatar ? (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Camera className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden="true" />
-                )}
-              </motion.button>
-            </div>
+                  {isSavingAvatar ? (
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" aria-hidden="true" />
+                  ) : (
+                    <Camera className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden="true" />
+                  )}
+                </motion.button>
+              </div>
+            )}
 
             {/* Name */}
             {isEditing ? (

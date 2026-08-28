@@ -105,7 +105,15 @@ const SeekBar = ({ progress, duration, onSeek }: {
    the track list. There is deliberately no second screen to open: the list
    expands in place, above the controls, inside the same card.
 ============================================================ */
-const MusicPlayerBarComponent = () => {
+interface MusicPlayerBarProps {
+  placement?: "fixed" | "inline";
+  variant?: "default" | "inkBeta";
+}
+
+const MusicPlayerBarComponent = ({
+  placement = "fixed",
+  variant = "default",
+}: MusicPlayerBarProps) => {
   const {
     isPlaying, play, pause, currentTrack, tracks, nextTrack, previousTrack, selectTrack,
     volume: musicVolume, setVolume: setMusicVolume, progress, duration, seek,
@@ -189,11 +197,15 @@ const MusicPlayerBarComponent = () => {
   return (
     <div
       ref={rootRef}
-      className="menu-surface ink-z-bar fixed left-1/2 -translate-x-1/2"
-      style={{
+      className={cn(
+        "menu-surface ink-z-bar",
+        placement === "fixed" ? "fixed left-1/2 -translate-x-1/2" : "mp-shell--inline",
+        variant === "inkBeta" && "mp-shell--ink-beta",
+      )}
+      style={placement === "fixed" ? {
         bottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
         width: "min(680px, calc(100vw - max(1rem, env(safe-area-inset-left, 0px)) - max(1rem, env(safe-area-inset-right, 0px))))",
-      }}
+      } : undefined}
     >
       <div className="mp-bar relative overflow-hidden" role="region" aria-label="Lecteur de musique">
         {/* ---- Track list, expanded in place ---- */}
