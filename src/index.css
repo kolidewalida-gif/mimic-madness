@@ -12166,3 +12166,48 @@ body.inkbeta-mode .ik-chat-open > span:last-child {
     transition: none;
   }
 }
+
+/* ============================================================
+   INK BETA — LECTEUR MUSICAL PERMANENT
+   ------------------------------------------------------------
+   Socle fixe en bas de fenêtre, au-dessus des écrans. Le chat
+   occupe la gauche, la barre reste donc centrée sur la place qui
+   lui est laissée.
+   ============================================================ */
+
+body.inkbeta-mode .ik-music-dock--floating {
+  position: fixed;
+  z-index: 45;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 0 max(1rem, env(safe-area-inset-right, 0px)) max(0.6rem, env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px));
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-music-dock--floating .mp-shell--inline {
+  /* Décalé vers la droite de la largeur du chat, pour ne pas le recouvrir. */
+  margin-left: auto;
+  margin-right: auto;
+  width: min(47rem, calc(100% - 2rem));
+  pointer-events: auto;
+}
+
+@media (min-width: 1101px) {
+  body.inkbeta-mode .ik-music-dock--floating {
+    padding-left: calc(clamp(15rem, 20vw, 20rem) + 2rem);
+  }
+}
+
+/* Les écrans de jeu laissent la place à la barre en bas. */
+body.inkbeta-mode .ik-game-v2 .ik-main,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
+  padding-bottom: 5.2rem;
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-game-v2 .ik-main,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
+    padding-bottom: 4.6rem;
+  }
+}

@@ -3,10 +3,13 @@ import {
   ReactNode, useCallback, useMemo,
 } from 'react';
 
-// Bande-son du jeu : 3 pistes, jouées en playlist continue.
-import neonPirate from '@/assets/music/neon-pirate.mp3.asset.json';
-import captainRoxas from '@/assets/music/captain-roxas.mp3.asset.json';
-import myLuckySpot from '@/assets/music/my-lucky-spot.mp3.asset.json';
+/*
+ * Bande-son du jeu : un seul thème.
+ *
+ * Les trois morceaux d'emprunt ont été retirés — la partie a maintenant sa
+ * propre musique, et alterner avec des thèmes venus d'ailleurs cassait
+ * l'identité sonore reconstruite avec les effets.
+ */
 
 export interface MusicTrack {
   id: number;
@@ -63,9 +66,7 @@ const musicTracks: MusicTrack[] = [
     genre: 'Orchestral héroïque',
     moods: ['epic', 'tense', 'energetic', 'mysterious'],
   },
-  { id: 400, name: 'Neon Pirate', src: neonPirate.url },
-  { id: 401, name: 'Captain Roxas — Super', src: captainRoxas.url },
-  { id: 402, name: 'My Lucky Spot', src: myLuckySpot.url },
+
 ];
 
 /**

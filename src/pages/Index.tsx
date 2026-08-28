@@ -918,6 +918,20 @@ const Index = () => {
       
       {/* Only show music bar in non-ink mode */}
       {!useInkMode && <MusicPlayerBar />}
+
+      {/*
+        Beta : le lecteur est monté ici, une seule fois, pour tous les écrans.
+
+        Il vivait dans le pied de l'accueil, donc il disparaissait dès le salon
+        et pendant toute la partie — impossible de couper ou changer la musique
+        sans revenir au menu. Monté au niveau de la page, il survit aux
+        changements d'écran, et le socle fixe le garde visible partout.
+      */}
+      {useBetaHome && (
+        <div className="ik-music-dock ik-music-dock--floating">
+          <MusicPlayerBar placement="inline" variant="inkBeta" />
+        </div>
+      )}
       
       {useInkMode && (gameState === 'home' || gameState === 'lobby') && (
         <SocialStudioDialog isOpen={showInkSocial} onClose={closeInkSocial} />

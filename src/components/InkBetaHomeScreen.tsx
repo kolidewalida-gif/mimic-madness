@@ -622,9 +622,6 @@ const InkBetaHomeScreenComponent = ({
         </div>
       </main>
 
-      <div className="ik-music-dock relative z-[7] flex-shrink-0">
-        <MusicPlayerBar placement="inline" variant="inkBeta" />
-      </div>
 
       <footer className="ik-footer relative z-[7] flex-shrink-0">
         <span className="ik-footer-brand">Mimic Master <b>Ink Beta</b></span>
