@@ -12047,7 +12047,8 @@ body.inkbeta-mode :is(
  */
 body.inkbeta-mode .ik-chat-slot {
   position: fixed;
-  z-index: 40;
+  /* Au-dessus du socle musical, qui occupe le bas de la fenêtre. */
+  z-index: 46;
   bottom: 0.9rem;
   left: clamp(0.6rem, 1.6vw, 1.35rem);
   display: flex;
@@ -12155,8 +12156,10 @@ body.inkbeta-mode .ik-chat-open > span:last-child {
 @media (max-width: 1100px) {
   body.inkbeta-mode .ik-chat-slot {
     top: auto;
-    bottom: 0.75rem;
-    height: min(26rem, 62dvh);
+    /* La barre musicale est centrée sur toute la largeur sous 1100 px : le chat
+       se pose au-dessus d'elle au lieu de passer dessous. */
+    bottom: 4.8rem;
+    height: min(24rem, 56dvh);
     width: min(20rem, calc(100vw - 1.5rem));
   }
 }
@@ -12203,6 +12206,17 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--inline {
 body.inkbeta-mode .ik-game-v2 .ik-main,
 body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
   padding-bottom: 5.2rem;
+}
+
+/*
+ * Et la place du chat à gauche, dès qu'il y a la largeur pour une colonne.
+ * Sans cette réserve, la scène restait centrée sur toute la fenêtre et le
+ * panneau de discussion se posait par-dessus les défis.
+ */
+@media (min-width: 1101px) {
+  body.inkbeta-mode .ik-game-v2 .ik-main {
+    padding-left: calc(clamp(15rem, 20vw, 20rem) + 2rem);
+  }
 }
 
 @media (max-width: 680px) {

@@ -178,7 +178,14 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
    */
   const mountInBody = isInkBeta && typeof document !== 'undefined';
   const { messages, isLoading, sendMessage, isSending } = useLobbyChat(lobbyId, playerId, playerName);
-  const [isExpanded, setIsExpanded] = useState(false);
+  /*
+   * Ouvert d'emblée en beta.
+   *
+   * La discussion y est une colonne à part entière de l'écran, pas une bulle à
+   * aller chercher : replié, le chat se réduisait à une pastille de 84 px dans
+   * un coin, que personne ne trouvait.
+   */
+  const [isExpanded, setIsExpanded] = useState(variant === 'inkBeta');
   const [input, setInput] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
   const [panel, setPanel] = useState<'none' | 'gif' | 'soundboard'>('none');
