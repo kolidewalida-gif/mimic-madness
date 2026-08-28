@@ -50,45 +50,18 @@ interface SetSituationOptions {
  */
 const musicTracks: MusicTrack[] = [
   /*
-   * Les trois « Signature / Pression / Couronne » partagent un motif de quatre
-   * notes et un principe d'écriture : une phrase est énoncée, puis reprise par
-   * un autre timbre. La musique imite, comme le jeu. C'est ce qui les rend
-   * reconnaissables entre elles.
+   * La famille « Signature / Pression / Couronne » et les deux thèmes générés
+   * ont été retirés de `public/music/` et remplacés par un seul thème officiel.
+   * Il porte donc toutes les humeurs : le mode adaptatif choisit parmi les
+   * pistes qui correspondent à la situation, et n'en laisser aucune éligible
+   * priverait certaines phases de musique sans le dire.
    */
   {
-    id: 405,
-    name: 'Mimic Master — Signature',
-    src: '/music/mimic-master-signature.mp3',
-    genre: 'Hybride orchestral',
-    moods: ['epic', 'mysterious'],
-  },
-  {
-    id: 406,
-    name: 'Mimic Master — Pression',
-    src: '/music/mimic-master-pressure.mp3',
-    genre: 'Hybride orchestral',
-    moods: ['tense', 'energetic'],
-  },
-  {
-    id: 407,
-    name: 'Mimic Master — Couronne',
-    src: '/music/mimic-master-crown.mp3',
-    genre: 'Hybride orchestral',
-    moods: ['epic'],
-  },
-  {
     id: 403,
-    name: 'Mimic Master — Thème',
-    src: '/music/mimic-master-theme.mp3',
+    name: 'Mimic Master — Thème officiel',
+    src: '/music/Mimic_master_theme_official.mp3',
     genre: 'Orchestral héroïque',
-    moods: ['epic'],
-  },
-  {
-    id: 404,
-    name: 'Mimic Master — Duel',
-    src: '/music/mimic-master-showdown.mp3',
-    genre: 'Orchestral héroïque',
-    moods: ['epic', 'tense'],
+    moods: ['epic', 'tense', 'energetic', 'mysterious'],
   },
   { id: 400, name: 'Neon Pirate', src: neonPirate.url },
   { id: 401, name: 'Captain Roxas — Super', src: captainRoxas.url },

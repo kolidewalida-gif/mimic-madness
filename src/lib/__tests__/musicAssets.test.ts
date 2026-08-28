@@ -19,21 +19,13 @@ const localTrackPaths = (): string[] => {
 };
 
 describe('pistes musicales locales', () => {
-  it('référence les thèmes originaux', () => {
-    expect(localTrackPaths().length).toBeGreaterThanOrEqual(5);
-  });
-
-  it('expose la famille « Signature » au complet', () => {
+  it('référence au moins un thème local', () => {
     /*
-     * Ces trois morceaux partagent un motif et un principe d'écriture : ils
-     * n'ont d'intérêt qu'ensemble. En oublier un dans la playlist casserait
-     * l'identité sans provoquer la moindre erreur.
+     * La bande-son locale a été ramenée à un seul thème officiel. Ce qui doit
+     * rester vrai n'est plus le nombre de pistes, mais qu'il en existe au moins
+     * une : une playlist locale vide laisserait le lecteur tourner à vide.
      */
-    const paths = localTrackPaths();
-    for (const id of ['signature', 'pressure', 'crown']) {
-      expect(paths, `piste absente de la playlist : ${id}`)
-        .toContain(`/music/mimic-master-${id}.mp3`);
-    }
+    expect(localTrackPaths().length).toBeGreaterThanOrEqual(1);
   });
 
   it('a un fichier MP3 valide pour chaque piste référencée', () => {
