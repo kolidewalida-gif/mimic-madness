@@ -26,6 +26,16 @@ interface ThemeContextType {
   setInkModeEnabled: (enabled: boolean) => void;
   betaSurface: BetaSurface;
   setBetaSurface: (surface: BetaSurface) => void;
+  /**
+   * Variante sombre du thème Ink Beta.
+   *
+   * Réglage à part et non neuvième thème : la beta garde sa direction
+   * artistique — mêmes cadres épais, mêmes accents turquoise et rose — et ne
+   * change que ses valeurs de fond et de panneau. En faire un thème aurait
+   * dupliqué les quelques milliers de lignes de `.ik-*`.
+   */
+  inkbetaDark: boolean;
+  setInkbetaDark: (enabled: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -275,6 +285,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('ink-beta-surface', surface);
   };
 
+  /* Éteint par défaut : la beta est née en violet vif, c'est sa signature. */
+  const [inkbetaDark, setInkbetaDarkState] = useState<boolean>(
+    () => localStorage.getItem('inkbeta-dark') === 'true',
+  );
+
+  const setInkbetaDark = (enabled: boolean) => {
+    setInkbetaDarkState(enabled);
+    localStorage.setItem('inkbeta-dark', enabled ? 'true' : 'false');
+  };
+
   const setTheme = (newTheme: ThemeType) => {
     // Never allow the heavy 3D Spline theme on consoles/TVs (would crash Xbox).
     const safe = newTheme === 'neverlikethat' && isConsoleOrTv() ? 'ink' : newTheme;
@@ -331,6 +351,12 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }
 
     /*
+     * Variante sombre, uniquement sous la beta : hors de son thème, la classe
+     * ne correspondrait à aucune règle et resterait à traîner sur le `body`.
+     */
+    document.body.classList.toggle('inkbeta-dark', theme === 'inkbeta' && inkbetaDark);
+
+    /*
      * La surface ne s'applique que sous la beta. Sans ce garde, revenir à
      * `ink` en ayant choisi le papier laisserait un canvas clair sous un thème
      * conçu pour le sombre.
@@ -353,7 +379,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     } else {
       document.body.classList.remove('neverlikethat-mode');
     }
-  }, [theme, betaSurface]);
+  }, [theme, betaSurface, inkbetaDark]);
 
   return (
     <ThemeContext.Provider
@@ -365,6 +391,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         setInkModeEnabled,
         betaSurface,
         setBetaSurface,
+        inkbetaDark,
+        setInkbetaDark,
       }}
     >
       {children}

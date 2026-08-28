@@ -13,6 +13,8 @@ import {
   Sliders,
   Palette,
   Check,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
@@ -673,7 +675,9 @@ const AudioSection = ({
    THEME SECTION — cartoon theme picker (les choix des thèmes)
 ============================================================ */
 const ThemeSection = () => {
-  const { theme, setTheme, inkModeEnabled, setInkModeEnabled } = useTheme();
+  const {
+    theme, setTheme, inkModeEnabled, setInkModeEnabled, inkbetaDark, setInkbetaDark,
+  } = useTheme();
   const { isAdmin, isLoading: isAdminLoading } = useAdmin();
   /* Les thèmes réservés aux administrateurs n'apparaissent pas pour les autres. */
   const themes = visibleThemes(isAdmin, isAdminLoading);
@@ -759,6 +763,52 @@ const ThemeSection = () => {
           );
         })}
       </div>
+
+      {/*
+        Bascule sombre, réservée à la beta : c'est le seul thème dont le CSS
+        porte une variante `inkbeta-dark`.
+      */}
+      {theme === 'inkbeta' && (
+        <button
+          type="button"
+          onClick={() => setInkbetaDark(!inkbetaDark)}
+          aria-pressed={inkbetaDark}
+          className="ink-device-toggle menu-focus w-full flex items-center justify-between p-3 rounded-2xl"
+          style={{
+            background: inkbetaDark
+              ? "linear-gradient(180deg, rgba(45,242,208,0.18), rgba(18,188,174,0.05))"
+              : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
+            border: '1px solid var(--ink-line)',
+            boxShadow: 'none',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            {inkbetaDark ? (
+              <Moon className="h-4 w-4 text-teal-200" aria-hidden="true" />
+            ) : (
+              <Sun className="h-4 w-4 text-white/60" aria-hidden="true" />
+            )}
+            <span className="flex flex-col items-start">
+              <span
+                className="text-base font-black text-white"
+                style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  textShadow: GRAFFITI_TEXT_SHADOW_SM,
+                }}
+              >
+                Mode sombre
+              </span>
+              <span
+                className="text-sm font-bold text-white/55"
+                style={{ fontFamily: "'Outfit', sans-serif" }}
+              >
+                {inkbetaDark ? 'Prune profond' : 'Violet vif'}
+              </span>
+            </span>
+          </div>
+          <CartoonSwitch enabled={inkbetaDark} />
+        </button>
+      )}
 
       {inkModeEnabled && theme !== 'ink' && (
         <p

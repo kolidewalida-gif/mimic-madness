@@ -7628,6 +7628,14 @@ body.inkbeta-mode {
   --ik-display: 'Bangers', 'Arial Black', Impact, sans-serif;
   --ik-body: 'Outfit', 'Arial Rounded MT Bold', system-ui, sans-serif;
 
+  /*
+   * Largeur de la colonne de chat, donc de la gouttière réservée de chaque côté
+   * de la scène de jeu. Une seule source, sinon la réserve et la colonne
+   * finissent par diverger. Plus étroite que les 20 rem d'origine : réservée
+   * des deux côtés, chaque rem se paie deux fois sur la largeur utile.
+   */
+  --ik-chat-gutter: clamp(13.5rem, 15vw, 16.5rem);
+
   --ink-bg: var(--ik-bg-deep);
   --ink-bg-deep: #35054c;
   --ink-surface: var(--ik-panel);
@@ -12052,7 +12060,7 @@ body.inkbeta-mode .ik-chat-slot {
   bottom: 0.9rem;
   left: clamp(0.6rem, 1.6vw, 1.35rem);
   display: flex;
-  width: clamp(15rem, 20vw, 20rem);
+  width: var(--ik-chat-gutter);
   height: min(calc(100dvh - 7.6rem), 42rem);
   flex-direction: column;
   justify-content: flex-end;
@@ -12201,9 +12209,18 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--inline {
   pointer-events: auto;
 }
 
+/*
+ * Gouttière du chat réservée des DEUX côtés.
+ *
+ * Elle ne l'était qu'à gauche : la barre se retrouvait centrée dans une boîte
+ * amputée, donc décalée d'environ 160 px vers la droite par rapport à la
+ * fenêtre, alors que la pastille de manche en haut restait centrée sur la
+ * fenêtre. Plus rien ne tombait sur le même axe. Réserver la même largeur à
+ * droite coûte de la place mais rétablit un axe unique pour tout l'écran.
+ */
 @media (min-width: 901px) {
   body.inkbeta-mode .ik-music-dock--floating {
-    padding-left: calc(clamp(15rem, 20vw, 20rem) + 1.5rem);
+    padding-inline: calc(var(--ik-chat-gutter) + 1.5rem);
   }
 }
 
@@ -12214,13 +12231,15 @@ body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
 }
 
 /*
- * Et la place du chat à gauche, dès qu'il y a la largeur pour une colonne.
- * Sans cette réserve, la scène restait centrée sur toute la fenêtre et le
- * panneau de discussion se posait par-dessus les défis.
+ * Et la place du chat, dès qu'il y a la largeur pour une colonne. Sans cette
+ * réserve, la scène restait centrée sur toute la fenêtre et le panneau de
+ * discussion se posait par-dessus les défis. Réservée symétriquement, pour que
+ * la scène reste centrée sur la fenêtre : c'est ce qui aligne le cadre, la
+ * pastille de manche et la barre du lecteur sur le même axe.
  */
 @media (min-width: 901px) {
   body.inkbeta-mode .ik-game-v2 .ik-main {
-    padding-left: calc(clamp(15rem, 20vw, 20rem) + 1.5rem);
+    padding-inline: calc(var(--ik-chat-gutter) + 1.5rem);
   }
 }
 
@@ -13147,4 +13166,198 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
   body.inkbeta-mode .ik-layout-v2 .ik-mode {
     min-height: 3.3rem;
   }
+}
+
+/* ============================================================
+   INK BETA — SQUELETTES DE CHARGEMENT DES MENUS
+   ------------------------------------------------------------
+   Les tiroirs Amis et Profil sont démontés à la fermeture, donc
+   leurs hooks repartent de zéro à chaque ouverture : pendant
+   l'aller-retour Supabase, ils affichaient un gabarit en
+   `animate-pulse`, c'est-à-dire une opacité qui va et vient
+   toutes les deux secondes. C'était ça, le scintillement d'une
+   seconde à l'ouverture d'un menu — pas l'animation d'entrée.
+
+   Le gabarit reste, il cesse juste de pulser, et prend la
+   couleur du panneau beta au lieu du presque-noir d'origine, qui
+   tranchait avec le prune.
+   ============================================================ */
+
+body.inkbeta-mode .menu-dialog .animate-pulse {
+  animation: none;
+}
+
+body.inkbeta-mode .menu-dialog :is(
+  .ink-profile-sidebar--loading,
+  .ink-friends-sidebar--loading
+) {
+  border-color: var(--ik-edge-soft) !important;
+  background: var(--ik-panel) !important;
+}
+
+/* Blocs du gabarit : présents, calmes, sans clignotement. */
+body.inkbeta-mode .menu-dialog .animate-pulse > * {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ============================================================
+   INK BETA — MODE SOMBRE
+   ------------------------------------------------------------
+   Même direction artistique, autres valeurs : cadres épais,
+   turquoise et rose conservés, mais le violet vif descend au
+   prune profond. Réglage porté par `body.inkbeta-dark`, posé par
+   `useTheme` et mémorisé dans `localStorage`.
+
+   Presque tout passe par les variables, parce que la plupart des
+   surfaces beta sont des couches semi-transparentes posées sur le
+   fond : elles s'assombrissent d'elles-mêmes. Ne sont reprises
+   ci-dessous que les surfaces opaques, qui ne suivraient pas.
+   ============================================================ */
+
+body.inkbeta-mode.inkbeta-dark {
+  --ik-bg: #1a0b2a;
+  --ik-bg-hot: #2a0f38;
+  --ik-bg-deep: #0c0413;
+  --ik-panel: #1f0e30;
+  --ik-panel-deep: #150920;
+  --ik-panel-soft: #2a1440;
+  --ik-panel-bright: #371b52;
+  --ik-edge: #090311;
+  --ik-edge-soft: #33164a;
+  --ik-cyan: #2ae8c9;
+  --ik-cyan-deep: #0f9e93;
+  --ik-pink: #ff5cae;
+  --ik-yellow: #ffcf45;
+  --ik-white: #f5eeff;
+  --ik-white-soft: #d3c3e4;
+  --ik-white-faint: #9d8bb4;
+  --ik-shadow: #050109;
+
+  --ink-bg-deep: #0a0311;
+  --ink-line: rgba(255, 255, 255, 0.16);
+  --ink-line-strong: rgba(255, 255, 255, 0.42);
+}
+
+/* ---- Calques de scène ------------------------------------------------ */
+body.inkbeta-mode.inkbeta-dark .ik-party-bg {
+  background:
+    radial-gradient(circle at 12% 94%, rgba(120, 22, 74, 0.62) 0, rgba(74, 14, 58, 0.42) 26%, transparent 52%),
+    radial-gradient(circle at 87% 8%, rgba(48, 18, 96, 0.75) 0, rgba(38, 12, 78, 0.3) 44%, transparent 70%),
+    linear-gradient(123deg, #240c2c 0%, #1b0a29 48%, #140828 100%);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-party-rays {
+  opacity: 0.12;
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-party-dots {
+  opacity: 0.4;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.55) 1.4px, transparent 1.8px);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-root::before {
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.04), 0 2px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ---- Cadre et panneaux ---------------------------------------------- */
+body.inkbeta-mode.inkbeta-dark .ik-canvas {
+  border-color: rgba(8, 3, 16, 0.8);
+  background: rgba(34, 16, 52, 0.5);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.05), 0 8px 0 rgba(6, 2, 12, 0.5);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-play-panel {
+  background:
+    radial-gradient(circle at 6% 95%, rgba(234, 43, 139, 0.12), transparent 40%),
+    var(--ik-panel);
+}
+
+body.inkbeta-mode.inkbeta-dark :is(.ik-gpanel, .ik-chat-dock) {
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.08), transparent 44%),
+    var(--ik-panel);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-mode-panel {
+  background:
+    radial-gradient(circle at 110% -5%, rgba(255, 99, 186, 0.1), transparent 42%),
+    var(--ik-panel-soft);
+}
+
+body.inkbeta-mode.inkbeta-dark :is(.ik-play-panel, .ik-mode-panel, .ik-gpanel) {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.06), 0 5px 0 rgba(6, 2, 12, 0.66);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-panel-tabs {
+  background: rgba(14, 6, 24, 0.5);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-start-card {
+  background: rgba(28, 13, 44, 0.86);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.05), 0 6px 0 rgba(6, 2, 12, 0.7);
+}
+
+/* ---- Contrôles ------------------------------------------------------- */
+body.inkbeta-mode.inkbeta-dark .ik-tool {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(43, 20, 62, 0.76);
+  box-shadow: 0 4px 0 rgba(6, 2, 12, 0.8);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-layout-v2 .ik-tool--profile {
+  border-color: rgba(42, 232, 201, 0.6);
+  background: linear-gradient(180deg, rgba(58, 28, 84, 0.96), rgba(35, 16, 54, 0.96));
+  box-shadow: 0 4px 0 rgba(6, 2, 12, 0.85), -0.75rem 0 0 -0.65rem rgba(255, 255, 255, 0.14);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-mode {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(36, 17, 54, 0.66);
+  box-shadow: 0 3px 0 rgba(6, 2, 12, 0.6);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-mode:hover {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: color-mix(in srgb, var(--mode-accent) 26%, #2a1440);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-mode.is-selected {
+  background: color-mix(in srgb, var(--mode-accent) 58%, #2f1747);
+}
+
+/*
+ * La vignette du mode retenu mélange l'accent du mode à un violet vif : posée
+ * sur du prune sombre, elle devenait la seule tache criarde de l'écran. Même
+ * mélange, base assombrie.
+ */
+body.inkbeta-mode.inkbeta-dark .ik-mode-feature {
+  background: color-mix(in srgb, var(--mode-accent) 52%, #2c1443);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12), 0 5px 0 var(--ik-edge);
+}
+
+/*
+ * Le champ de saisie était un lilas clair à texte prune : la seule zone
+ * franchement lumineuse de l'écran. En sombre il s'inverse, sinon il éclaire
+ * toute la carte de démarrage.
+ */
+body.inkbeta-mode.inkbeta-dark .ik-input {
+  border-color: #4b2a66;
+  color: var(--ik-white);
+  background: #2b1640;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.06), 0 4px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-input::placeholder {
+  color: rgba(211, 195, 228, 0.5);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-field > svg {
+  color: #a68bbe;
+}
+
+/* ---- Socle du lecteur ----------------------------------------------- */
+body.inkbeta-mode.inkbeta-dark .ik-music-dock--floating {
+  background: linear-gradient(180deg, rgba(20, 9, 33, 0.94), rgba(9, 3, 17, 0.99));
+  box-shadow: 0 -8px 22px rgba(4, 1, 8, 0.5);
 }

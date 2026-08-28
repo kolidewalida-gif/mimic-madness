@@ -154,6 +154,11 @@ export const InkDrawer = ({
             exit={{ opacity: 0 }}
             onClick={close}
             aria-label={closeLabel ?? `Fermer ${title}`}
+            // Same duration as the panel below. Left implicit, framer-motion
+            // applied its ~0.3s default here while the panel ran in 0.22s: the
+            // scrim was still darkening after the panel had stopped, which read
+            // as a flash rather than a single movement.
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             // No backdrop-blur: fading a blur layer in over the menu's
             // gradient background forces the compositor to re-sample the whole
             // viewport every frame, which showed up as flicker on open. A
@@ -217,6 +222,8 @@ export const InkModal = ({
             exit={{ opacity: 0 }}
             onClick={close}
             aria-label={closeLabel ?? `Fermer ${title}`}
+            /* Alignée sur le panneau, pour la même raison que dans le tiroir. */
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="absolute inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.82)]"
           />
           <motion.div
