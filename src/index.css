@@ -12022,3 +12022,133 @@ body.inkbeta-mode :is(
   backface-visibility: hidden;
   transform: translateZ(0);
 }
+
+/* ============================================================
+   INK BETA — CHAT ANCRÉ
+   ------------------------------------------------------------
+   La vignette de coin devient une colonne à gauche, du bas de la
+   barre de marque au bas de l'écran. Même panneau que le reste
+   de la scène : bordure épaisse, fond prune, relief.
+   ============================================================ */
+
+body.inkbeta-mode .ik-chat-slot {
+  position: fixed;
+  z-index: 40;
+  top: clamp(5.6rem, 9.5vh, 6.6rem);
+  bottom: 0.9rem;
+  left: clamp(0.6rem, 1.6vw, 1.35rem);
+  display: flex;
+  width: clamp(15rem, 20vw, 20rem);
+  flex-direction: column;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-chat-slot > * {
+  pointer-events: auto;
+}
+
+body.inkbeta-mode .ik-chat-dock {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 3px solid var(--ik-edge-soft);
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.14), transparent 44%),
+    var(--ik-panel);
+  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.17), 0 5px 0 rgba(54, 7, 76, 0.52);
+}
+
+body.inkbeta-mode .ik-chat-head {
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.16);
+  background: rgba(72, 6, 88, 0.44);
+}
+
+body.inkbeta-mode .ik-chat-head > div:first-child > span:nth-child(2) {
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-chat-dock input {
+  font-family: var(--ik-body);
+}
+
+/* Bouton replié : même pastille que les outils de la barre. */
+body.inkbeta-mode .ik-chat-open {
+  position: relative;
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-self: flex-start;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.95rem;
+  border: 2px solid rgba(45, 242, 208, 0.58);
+  border-radius: 12px;
+  color: var(--ik-white);
+  background: linear-gradient(180deg, rgba(111, 22, 126, 0.96), rgba(76, 8, 96, 0.96));
+  box-shadow: 0 4px 0 rgba(53, 7, 75, 0.78);
+  cursor: pointer;
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+  transform: translateZ(0);
+}
+
+body.inkbeta-mode .ik-chat-open span {
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-chat-open svg {
+  color: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-chat-open:hover {
+  background: var(--ik-panel-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 rgba(53, 7, 75, 0.78);
+}
+
+body.inkbeta-mode .ik-chat-open:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(53, 7, 75, 0.78);
+}
+
+/* La pastille de non-lus garde sa couleur d'alerte, sans dégradé étranger. */
+body.inkbeta-mode .ik-chat-open > span:last-child {
+  color: var(--ik-edge);
+  font-family: var(--ik-body);
+  font-size: 0.62rem;
+  font-weight: 950;
+  text-shadow: none;
+}
+
+/* Sous 1100 px la colonne mangerait la scène : le chat redevient un panneau
+   escamotable, mais aux volumes beta. */
+@media (max-width: 1100px) {
+  body.inkbeta-mode .ik-chat-slot {
+    top: auto;
+    bottom: 0.75rem;
+    height: min(26rem, 62dvh);
+    width: min(20rem, calc(100vw - 1.5rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode .ik-chat-open {
+    transition: none;
+  }
+}

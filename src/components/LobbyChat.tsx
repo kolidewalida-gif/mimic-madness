@@ -19,6 +19,7 @@ import { playSample } from '@/lib/sfx/samples';
 import { CHAT_GIFS, CATEGORY_LABELS, searchGifs, type GifCategory } from '@/lib/chatGifs';
 
 interface LobbyChatProps {
+  variant?: 'default' | 'inkBeta';
   lobbyId: string;
   playerId: string;
   playerName: string;
@@ -159,7 +160,13 @@ ChatLine.displayName = 'ChatLine';
 /* ============================================================
    MAIN LOBBY CHAT
 ============================================================ */
-export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName }: LobbyChatProps) {
+export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName, variant = 'default' }: LobbyChatProps) {
+  /*
+   * En beta, le chat n'est plus une vignette posée dans un coin : c'est une
+   * colonne ancrée à gauche, de la barre de marque au bas de l'écran. Un jeu de
+   * soirée se joue en parlant — la discussion doit être lisible sans clic.
+   */
+  const isInkBeta = variant === 'inkBeta';
   const { messages, isLoading, sendMessage, isSending } = useLobbyChat(lobbyId, playerId, playerName);
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState('');
@@ -225,13 +232,13 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
   }, [sendMessage]);
 
   return (
-    <div className="fixed bottom-28 left-4 z-40">
+    <div className={isInkBeta ? 'ik-chat-slot' : 'fixed bottom-28 left-4 z-40'}>
       {/* Collapsed button */}
       {!isExpanded && (
         <motion.button onClick={() => { setIsExpanded(true); playSoundEffect('pop', 0.3); }}
           whileHover={{ scale: 1.06, rotate: -2 }} whileTap={{ scale: 0.94 }}
-          className="relative flex items-center gap-2 px-4 py-2.5 rounded-2xl"
-          style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+          className={isInkBeta ? 'ik-chat-open menu-focus' : 'relative flex items-center gap-2 px-4 py-2.5 rounded-2xl'}
+          style={isInkBeta ? undefined : { background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
           <MessageCircle className="w-4 h-4 text-[var(--ink-accent-text)]" />
           <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Chat</span>
           {unreadCount > 0 && (
@@ -248,12 +255,15 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
       {isExpanded && (
         <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ type: 'spring', damping: 22, stiffness: 280 }}
-          className="relative flex flex-col rounded-2xl overflow-hidden"
-          style={{ width: '320px', height: '420px', background: 'linear-gradient(180deg, rgba(20,15,30,0.97), rgba(10,8,16,0.97))', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+          className={isInkBeta ? 'ik-chat-dock' : 'relative flex flex-col rounded-2xl overflow-hidden'}
+          style={isInkBeta ? undefined : { width: '320px', height: '420px', background: 'linear-gradient(180deg, rgba(20,15,30,0.97), rgba(10,8,16,0.97))', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
           <Sparkles className="absolute top-2 right-8 w-3 h-3 text-amber-400/60 pointer-events-none" />
 
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2.5 flex-shrink-0" style={{ borderBottom: '2.5px solid rgba(255,255,255,0.1)' }}>
+          <div
+            className={cn('flex items-center justify-between flex-shrink-0', isInkBeta ? 'ik-chat-head' : 'px-3 py-2.5')}
+            style={isInkBeta ? undefined : { borderBottom: '2.5px solid rgba(255,255,255,0.1)' }}
+          >
             <div className="flex items-center gap-2">
               <motion.span className="w-2 h-2 rounded-full bg-emerald-400"
                 animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 1.5, repeat: Infinity }}

@@ -1723,6 +1723,7 @@ export const VideoSubmissionScreen = ({
 
       {/* Floating chat */}
       <LobbyChat
+        variant={isInkBeta ? 'inkBeta' : 'default'}
         lobbyId={lobbyId}
         playerId={currentPlayer.id}
         playerName={currentPlayer.name}

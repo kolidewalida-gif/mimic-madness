@@ -833,6 +833,7 @@ export const GamePlayScreen = ({
         {phaseContent}
 
         <LobbyChat
+          variant="inkBeta"
           lobbyId={lobbyId}
           playerId={currentPlayer.id}
           playerName={currentPlayer.name}
