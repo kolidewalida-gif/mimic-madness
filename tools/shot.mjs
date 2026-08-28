@@ -79,10 +79,10 @@ for (const viewport of targets) {
        rendu à la place. */
     const file = `${OUT}/menu-${viewport.name}.png`;
     try {
-      await page.waitForSelector('.ik-panel', { timeout: 15_000 });
+      await page.waitForSelector('.ik-play-panel', { timeout: 15_000 });
       await page.waitForTimeout(1200);
     } catch {
-      console.log(`     .ik-panel absent — capture de l'ecran obtenu`);
+      console.log(`     .ik-play-panel absent — capture de l'ecran obtenu`);
       const theme = await page.evaluate(() => ({
         stored: localStorage.getItem('game-theme'),
         bodyClass: document.body.className,
@@ -93,7 +93,7 @@ for (const viewport of targets) {
     }
     await page.screenshot({ path: file, fullPage: true });
 
-    const box = await page.locator('.ik-panel').boundingBox();
+    const box = await page.locator('.ik-play-panel').boundingBox();
     const title = await page.locator('.ik-title').boundingBox();
 
     console.log(
@@ -101,6 +101,56 @@ for (const viewport of targets) {
         `  panneau ${box ? `${Math.round(box.width)}x${Math.round(box.height)}` : 'absent'}` +
         `  titre ${title ? `${Math.round(title.width)}x${Math.round(title.height)}` : 'absent'}`,
     );
+
+    /* Les portails ne font pas partie de l'arbre du home. Une capture du menu
+       seul ne détecterait donc ni un ancien skin résiduel ni un panneau qui
+       déborde sur mobile. On ouvre chaque famille d'overlay, puis on la ferme
+       par son vrai bouton afin de tester aussi le cycle de focus. */
+    if (viewport.name === '1440' || viewport.name === 'mobile') {
+      const captureOverlay = async ({ trigger, panelSelector, name }) => {
+        await trigger.click();
+        const panel = page.locator(panelSelector);
+        await panel.waitFor({ state: 'visible', timeout: 10_000 });
+        await page.waitForTimeout(300);
+        await page.screenshot({ path: `${OUT}/overlay-${name}-${viewport.name}.png`, fullPage: false });
+        const panelBox = await panel.boundingBox();
+        const scroll = await panel.locator('.ink-panel-body').evaluate((node) => ({
+          clientHeight: node.clientHeight,
+          scrollHeight: node.scrollHeight,
+        }));
+        console.log(
+          `     overlay ${name.padEnd(8)} ${panelBox ? `${Math.round(panelBox.width)}x${Math.round(panelBox.height)}` : 'absent'}` +
+            `  scroll ${scroll.clientHeight}/${scroll.scrollHeight}`,
+        );
+        await panel.locator('.ink-close-button').click();
+        await panel.waitFor({ state: 'detached', timeout: 10_000 });
+      };
+
+      await captureOverlay({
+        trigger: page.getByRole('button', { name: "J'ai un code", exact: true }),
+        panelSelector: '.ik-join-modal',
+        name: 'join',
+      });
+      await captureOverlay({
+        trigger: page.getByRole('button', { name: 'Paramètres', exact: true }),
+        panelSelector: '.ik-options-modal',
+        name: 'options',
+      });
+
+      if (viewport.name === '1440') {
+        await captureOverlay({
+          trigger: page.getByRole('button', { name: 'Mes amis', exact: true }),
+          panelSelector: '.ik-friends-drawer',
+          name: 'friends',
+        });
+        await captureOverlay({
+          trigger: page.getByRole('button', { name: /^Profil de / }),
+          panelSelector: '.ik-profile-drawer',
+          name: 'profile',
+        });
+      }
+    }
+
     if (problems.length) {
       console.log(`     ${problems.length} erreur(s) console :`);
       for (const p of [...new Set(problems)].slice(0, 4)) console.log(`       ${p}`);
