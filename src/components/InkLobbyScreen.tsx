@@ -1,8 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Crown,
   Link2,
@@ -35,6 +37,7 @@ import { DeviceSettings } from '@/components/DeviceSettings';
 import { LanguageMenu } from '@/components/LanguageMenu';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
+import { InkBetaLogo, InkBetaMascot } from '@/components/InkBetaBrand';
 import { InkModal } from '@/components/menu/InkOverlay';
 import {
   GameBackdrop,
@@ -116,6 +119,38 @@ const copyText = async (text: string) => {
   }
 };
 
+/**
+ * Portrait d'un joueur dans la DA beta : l'avatar choisi occupe le cercle
+ * cerclé de la mascotte. Une image cassée retombe sur Mimo plutôt que sur un
+ * cadre vide, comme sur l'accueil.
+ */
+const InkBetaSeatPortrait = memo(({ imageUrl, alt }: { imageUrl: string; alt: string }) => {
+  const [hasImageError, setHasImageError] = useState(false);
+
+  useEffect(() => {
+    setHasImageError(false);
+  }, [imageUrl]);
+
+  if (hasImageError) return <InkBetaMascot />;
+
+  return (
+    <div className="ik-mascot ik-mascot--avatar">
+      <div className="ik-mascot-avatar-frame">
+        <img
+          src={imageUrl}
+          alt={alt}
+          className="ik-mascot-avatar-image"
+          draggable={false}
+          onError={() => setHasImageError(true)}
+        />
+      </div>
+      <span className="ik-mascot-pulse ik-mascot-pulse--one" aria-hidden="true" />
+      <span className="ik-mascot-pulse ik-mascot-pulse--two" aria-hidden="true" />
+    </div>
+  );
+});
+InkBetaSeatPortrait.displayName = 'InkBetaSeatPortrait';
+
 export const InkLobbyScreen = ({
   players,
   lobbyCode,
@@ -195,6 +230,22 @@ export const InkLobbyScreen = ({
       }
     },
     [isHost, lobbyId, players, assignRandomTeams, toast],
+  );
+
+  /*
+   * Position du mode dans le dock beta. Les flèches reprennent la navigation
+   * cyclique de l'accueil, mais passent par `handleGameModeChange` : c'est ce
+   * chemin qui écrit dans `lobbies.game_mode` et propage le choix aux invités.
+   */
+  const modeIndex = Math.max(0, MODE_CARDS.findIndex((card) => card.id === gameMode));
+
+  const goToLobbyMode = useCallback(
+    (index: number) => {
+      if (!isHost) return;
+      const next = MODE_CARDS[(index + MODE_CARDS.length) % MODE_CARDS.length];
+      void handleGameModeChange(next.id);
+    },
+    [handleGameModeChange, isHost],
   );
 
   const connectedCount = players.filter((p) => !p.isDisconnected).length;
@@ -344,26 +395,530 @@ export const InkLobbyScreen = ({
     return () => window.removeEventListener('click', close);
   }, [openMenuFor]);
 
+  /*
+   * Les dialogues sont partagés par les deux présentations : le lobby beta
+   * n'est qu'une autre disposition du même salon, pas un second écran avec ses
+   * propres réglages, invitations ou confirmation de départ.
+   */
+  const overlays = (
+    <>
+      {/* ============== INVITE PANEL ============== */}
+      <InkModal
+        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
+        isOpen={showInvitePanel}
+        onClose={() => setShowInvitePanel(false)}
+        title="Inviter des amis"
+        subtitle={`${players.length}/${MAX_PLAYERS} joueurs`}
+        icon={<Link2 className="h-5 w-5" />}
+      >
+        <LobbyInvitePanel
+          lobbyCode={lobbyCode}
+          lobbyId={lobbyId}
+          players={players}
+          maxPlayers={MAX_PLAYERS}
+          isHost={isHost}
+          inlineMode
+        />
+      </InkModal>
+
+      {/* ============== SETTINGS ============== */}
+      <InkModal
+        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="Paramètres"
+        subtitle="Micro, caméra et son"
+        icon={<Settings className="h-5 w-5" />}
+      >
+        <DeviceSettings embedded showPreview onClose={() => setShowSettings(false)} />
+      </InkModal>
+
+      {/* ============== LEAVE CONFIRM ============== */}
+      <InkModal
+        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        title="Quitter le lobby ?"
+        icon={<LogOut className="h-5 w-5" />}
+      >
+        <p className="if-muted text-sm">
+          Tu vas quitter le salon {lobbyCode}. Les autres joueurs resteront dans la partie.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <GameButton variant="ghost" block onClick={() => setShowLeaveConfirm(false)}>
+            Annuler
+          </GameButton>
+          <GameButton
+            variant="danger"
+            block
+            data-autofocus
+            onClick={() => {
+              playInkSound('cartoonSwoosh', 0.4);
+              setShowLeaveConfirm(false);
+              onLeaveGame();
+            }}
+            icon={<LogOut className="h-4 w-4" />}
+          >
+            Quitter
+          </GameButton>
+        </div>
+      </InkModal>
+
+      {/* ============== SHORTCUTS ============== */}
+      <InkShortcutsModal
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+        extra={[
+          { keys: ['S'], label: 'Ouvrir les paramètres' },
+          { keys: ['I'], label: 'Inviter des amis (host)' },
+          { keys: ['L'], label: 'Partager le lien' },
+          { keys: ['C'], label: 'Copier le code lobby' },
+          { keys: ['Enter'], label: 'Lancer la partie (host)' },
+        ]}
+      />
+    </>
+  );
+
+  /*
+   * ================= LOBBY INK BETA =================
+   * Le salon reprend la grammaire du menu beta plutôt que la coquille `.gm-*` :
+   * même barre de marque, même cadre de scène, même panneau à onglets, même
+   * dock de modes. Seules la disposition et l'habillage changent — états,
+   * canaux temps réel, chat et actions d'hôte restent ceux d'au-dessus.
+   */
+  if (isInkBeta) {
+    const selfAvatar = getAvatar(currentPlayer.id);
+
+    return (
+      <div
+        className="ik-root ik-layout-v2 ik-lobby-v2 menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
+        style={{ ['--accent' as string]: selectedCard.accent }}
+      >
+        <div className="ik-party-bg" aria-hidden="true" />
+        <div className="ik-party-rays" aria-hidden="true" />
+        <div className="ik-party-dots" aria-hidden="true" />
+
+        <header className="ik-topbar relative z-[8] flex-shrink-0">
+          <InkBetaLogo titleId="ik-lobby-brand" />
+
+          <div className="ik-topbar-side ik-topbar-side--start">
+            <button
+              type="button"
+              onClick={handleCopyCode}
+              className="ik-code-chip menu-focus"
+              aria-label={`Copier le code du salon ${lobbyCode}`}
+              title="Copier le code du lobby"
+            >
+              <span>Salon</span>
+              <strong>{lobbyCode}</strong>
+              {codeCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+            </button>
+          </div>
+
+          <div className="ik-topbar-side ik-topbar-side--end">
+            <div className="ik-tools">
+              <button
+                type="button"
+                onClick={() => {
+                  playInkSound('brushTap', 0.3);
+                  onOpenSocial();
+                }}
+                className="ik-tool menu-focus"
+                aria-label="Ouvrir le Social Studio"
+              >
+                <Users aria-hidden="true" />
+                <span>Social</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleShareLink}
+                className="ik-tool menu-focus"
+                aria-label={linkShared ? 'Lien du lobby copié' : 'Partager le lobby'}
+              >
+                {linkShared ? <Check aria-hidden="true" /> : <Share2 aria-hidden="true" />}
+                <span>{linkShared ? 'Copié' : 'Partager'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playInkSound('cartoonPop', 0.3);
+                  setShowSettings(true);
+                }}
+                className="ik-tool menu-focus"
+                aria-label="Paramètres"
+              >
+                <Settings aria-hidden="true" />
+                <span>Options</span>
+              </button>
+
+              <LanguageMenu className="shrink-0" />
+
+              <button
+                type="button"
+                data-back={showLeaveConfirm ? undefined : true}
+                onClick={() => {
+                  playInkSound('cartoonSwoosh', 0.3);
+                  setShowLeaveConfirm(true);
+                }}
+                className="ik-tool ik-tool--leave menu-focus"
+                aria-label="Quitter le lobby"
+              >
+                <LogOut aria-hidden="true" />
+                <span>Quitter</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main className="ik-main custom-scrollbar relative z-[2] min-h-0 flex-1 overflow-y-auto">
+          <div className="ik-canvas ik-lobby-canvas">
+            <section className="ik-play-panel ik-lobby-play" aria-labelledby="ik-lobby-mode-title">
+              <div className="ik-panel-tabs" aria-label="Actions du salon">
+                <span className="ik-panel-tab is-active">Le salon</span>
+                <button
+                  type="button"
+                  className="ik-panel-tab menu-focus"
+                  disabled={!isHost}
+                  onClick={() => {
+                    playInkSound('cartoonPop', 0.3);
+                    setShowInvitePanel(true);
+                  }}
+                >
+                  Inviter des amis
+                </button>
+              </div>
+
+              <div className="ik-play-title">
+                <span className="ik-play-title-spark" aria-hidden="true">✦</span>
+                <h2 id="ik-lobby-mode-title">{selectedCard.label}</h2>
+                <span className="ik-play-title-spark" aria-hidden="true">✦</span>
+              </div>
+
+              <div className="ik-play-content">
+                <div className="ik-mascot-zone">
+                  <div className="ik-lobby-portrait">
+                    {selfAvatar.type === 'image' && selfAvatar.imageUrl ? (
+                      <InkBetaSeatPortrait
+                        imageUrl={selfAvatar.imageUrl}
+                        alt={`Avatar de ${currentPlayer.name}`}
+                      />
+                    ) : (
+                      <InkBetaMascot />
+                    )}
+                  </div>
+                  <span className="ik-mascot-caption">
+                    {isHost ? <Crown aria-hidden="true" /> : <Users aria-hidden="true" />}
+                    {currentPlayer.name} · {isHost ? 'Hôte du salon' : 'Invité'}
+                  </span>
+                </div>
+
+                <div className="ik-start-card">
+                  <div className="ik-start-heading">
+                    <span>01</span>
+                    <div>
+                      <p>{isHost ? 'Lance la partie' : 'Prépare-toi'}</p>
+                      <small>
+                        {connectedCount}/{MAX_PLAYERS} joueurs connectés
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className="ik-current-mode" aria-live="polite">
+                    <span className="ik-current-mode-icon">
+                      <GameImage
+                        candidates={selectedCard.imageCandidates}
+                        alt=""
+                        fallback={<span aria-hidden="true">{selectedCard.fallbackEmoji}</span>}
+                      />
+                    </span>
+                    <span>
+                      <small>Mode sélectionné</small>
+                      <strong>{selectedCard.label}</strong>
+                    </span>
+                    {isHost && (
+                      <button
+                        type="button"
+                        className="menu-focus"
+                        onClick={() => goToLobbyMode(modeIndex + 1)}
+                      >
+                        Changer
+                      </button>
+                    )}
+                  </div>
+
+                  {isHost ? (
+                    <button
+                      type="button"
+                      className="ik-primary-action menu-focus"
+                      disabled={!canStart || isStarting}
+                      onClick={handleStartGame}
+                    >
+                      <span className="ik-primary-action-icon">
+                        <Play fill="currentColor" aria-hidden="true" />
+                      </span>
+                      <span>{isStarting ? 'Lancement…' : 'Lancer la partie'}</span>
+                    </button>
+                  ) : (
+                    <p className="ik-lobby-waiting" role="status">
+                      <span aria-hidden="true" />
+                      En attente du lancement par l'hôte…
+                    </p>
+                  )}
+
+                  {isHost && !canStart && reasons.length > 0 ? (
+                    <p className="ik-start-hint" role="status">
+                      <AlertTriangle aria-hidden="true" /> {reasons.join(' · ')}
+                    </p>
+                  ) : (
+                    <p className="ik-start-hint">
+                      {isHost
+                        ? 'Entrée pour lancer · C pour copier le code'
+                        : `Code du salon : ${lobbyCode}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <aside className="ik-lobby-seats-panel" aria-labelledby="ik-lobby-seats-title">
+              <div className="ik-lobby-panel-head">
+                <div>
+                  <span>Étape 02</span>
+                  <h2 id="ik-lobby-seats-title">La troupe</h2>
+                </div>
+                <p className="ik-lobby-count">
+                  <strong>{String(players.length).padStart(2, '0')}</strong>
+                  <span>/ {String(MAX_PLAYERS).padStart(2, '0')}</span>
+                </p>
+              </div>
+
+              {connectedCount !== players.length && (
+                <p className="ik-lobby-reconnect" role="status">
+                  <WifiOff aria-hidden="true" /> {players.length - connectedCount} en reconnexion
+                </p>
+              )}
+
+              <div className="ik-seats custom-scrollbar">
+                {players.map((p) => {
+                  const av = getAvatar(p.id);
+                  const hasPortrait = av.type === 'image' && !!av.imageUrl;
+                  const canModerate =
+                    isHost && p.id !== currentPlayer.id && (!!onKickPlayer || !!onTransferHost);
+                  return (
+                    <div
+                      key={p.id}
+                      className={cn(
+                        'ik-seat',
+                        p.id === currentPlayer.id && 'is-self',
+                        p.isDisconnected && 'is-away',
+                      )}
+                    >
+                      {p.isHost && (
+                        <Crown className="ik-seat-crown" fill="currentColor" aria-label="Hôte" />
+                      )}
+
+                      {canModerate && (
+                        <span className="ik-seat-actions">
+                          <button
+                            type="button"
+                            className="ik-seat-menu menu-focus"
+                            aria-label={`Actions pour ${p.name}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              playInkSound('cartoonPop', 0.3);
+                              setOpenMenuFor(openMenuFor === p.id ? null : p.id);
+                            }}
+                          >
+                            <MoreVertical aria-hidden="true" />
+                          </button>
+                          {openMenuFor === p.id && (
+                            <div
+                              className="ik-seat-popover"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              {onTransferHost && (
+                                <button
+                                  type="button"
+                                  className="menu-focus"
+                                  onClick={() => {
+                                    playInkSound('cartoonDing', 0.3);
+                                    onTransferHost(p.id);
+                                    setOpenMenuFor(null);
+                                  }}
+                                >
+                                  <Crown aria-hidden="true" /> Transférer l'hôte
+                                </button>
+                              )}
+                              {onKickPlayer && (
+                                <button
+                                  type="button"
+                                  className="menu-focus is-danger"
+                                  onClick={() => {
+                                    playInkSound('cartoonZap', 0.3);
+                                    onKickPlayer(p.id);
+                                    setOpenMenuFor(null);
+                                  }}
+                                >
+                                  <X aria-hidden="true" /> Exclure
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </span>
+                      )}
+
+                      <span
+                        className={cn('ik-seat-avatar', hasPortrait && 'has-portrait')}
+                        style={
+                          av.type === 'initials' && av.backgroundColor
+                            ? { background: av.backgroundColor }
+                            : undefined
+                        }
+                      >
+                        {hasPortrait ? (
+                          <img src={av.imageUrl} alt="" draggable={false} />
+                        ) : (
+                          (p.name[0] ?? '?').toUpperCase()
+                        )}
+                      </span>
+
+                      <span className="ik-seat-name">{p.name}</span>
+                      <span className="ik-seat-meta">
+                        {p.isDisconnected
+                          ? 'Absent'
+                          : p.id === currentPlayer.id
+                            ? 'Toi'
+                            : 'Prêt'}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                {Array.from({ length: Math.max(0, MAX_PLAYERS - players.length) }).map((_, i) => (
+                  <div key={`seat-free-${i}`} className="ik-seat is-free">
+                    <span className="ik-seat-avatar" aria-hidden="true">
+                      <UserPlus />
+                    </span>
+                    <span className="ik-seat-name">Libre</span>
+                  </div>
+                ))}
+              </div>
+
+              {players.length <= 1 && (
+                <p className="ik-lobby-alone">
+                  Encore tout seul&nbsp;! Partage le code <strong>{lobbyCode}</strong> pour remplir
+                  le salon.
+                </p>
+              )}
+            </aside>
+
+            <aside className="ik-lobby-chat-panel" aria-label="Discussion du salon">
+              <TwitchStyleLobbyChat
+                lobbyId={lobbyId}
+                playerId={currentPlayer.id}
+                playerName={currentPlayer.name}
+                className="h-full"
+              />
+            </aside>
+
+            <section className="ik-mode-panel ik-lobby-modes" aria-labelledby="ik-lobby-modes-title">
+              <div className="ik-mode-panel-head">
+                <span>Étape 03</span>
+                <h2 id="ik-lobby-modes-title">{isHost ? 'Choisis un mode' : 'Mode du salon'}</h2>
+              </div>
+
+              <div
+                className="ik-mode-feature"
+                style={{ ['--mode-accent' as string]: selectedCard.accent }}
+              >
+                <span className="ik-mode-feature-icon">
+                  <GameImage
+                    candidates={selectedCard.imageCandidates}
+                    alt=""
+                    fallback={<span aria-hidden="true">{selectedCard.fallbackEmoji}</span>}
+                  />
+                </span>
+                <div>
+                  <strong>{selectedCard.label}</strong>
+                  <p>{selectedCard.tagline}</p>
+                </div>
+                <span className="ik-mode-players">{selectedCard.minPlayers}+</span>
+              </div>
+
+              <p className="ik-mode-description">
+                {isHost ? selectedCard.description : "L'hôte choisit le mode de la partie."}
+              </p>
+
+              <div className="ik-mode-grid" role="group" aria-label="Modes de jeu">
+                {MODE_CARDS.map((card) => (
+                  <button
+                    key={card.id}
+                    type="button"
+                    aria-pressed={card.id === gameMode}
+                    aria-label={`${card.label} — ${card.tagline}`}
+                    title={card.label}
+                    disabled={!isHost}
+                    onClick={() => handleGameModeChange(card.id)}
+                    className={cn('ik-mode menu-focus', card.id === gameMode && 'is-selected')}
+                    style={{ ['--mode-accent' as string]: card.accent }}
+                  >
+                    <span className="ik-mode-icon">
+                      <GameImage
+                        candidates={card.imageCandidates}
+                        alt=""
+                        fallback={<span aria-hidden="true">{card.fallbackEmoji}</span>}
+                      />
+                    </span>
+                    <span className="ik-mode-name">{card.label}</span>
+                    <span className="ik-mode-check" aria-hidden="true">✓</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="ik-mode-nav" aria-label="Navigation entre les modes">
+                <button
+                  type="button"
+                  className="ik-mode-nav-btn menu-focus"
+                  disabled={!isHost}
+                  onClick={() => goToLobbyMode(modeIndex - 1)}
+                  aria-label="Mode précédent"
+                >
+                  <ChevronLeft aria-hidden="true" />
+                </button>
+                <p className="ik-mode-position" aria-live="polite">
+                  <strong>{String(modeIndex + 1).padStart(2, '0')}</strong>
+                  <span>/ {String(MODE_CARDS.length).padStart(2, '0')}</span>
+                </p>
+                <button
+                  type="button"
+                  className="ik-mode-nav-btn menu-focus"
+                  disabled={!isHost}
+                  onClick={() => goToLobbyMode(modeIndex + 1)}
+                  aria-label="Mode suivant"
+                >
+                  <ChevronRight aria-hidden="true" />
+                </button>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        {overlays}
+      </div>
+    );
+  }
+
   return (
     <div
-      className={cn(
-        'ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden',
-        isInkBeta && 'ik-root ik-lobby-v2',
-      )}
+      className="ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
       style={{ ['--accent' as string]: selectedCard.accent }}
     >
-      {isInkBeta ? (
-        <>
-          <div className="ik-party-bg" aria-hidden="true" />
-          <div className="ik-party-rays" aria-hidden="true" />
-          <div className="ik-party-dots" aria-hidden="true" />
-        </>
-      ) : (
-        <GameBackdrop src="/lobby/backgroundlobby.png" />
-      )}
+      <GameBackdrop src="/lobby/backgroundlobby.png" />
 
       {/* ============== HEADER ============== */}
-      <header className="ik-lobby-topbar flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-8 sm:py-3.5 [@media(max-height:640px)_and_(orientation:landscape)]:flex-nowrap [@media(max-height:640px)_and_(orientation:landscape)]:py-1.5">
+      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-8 sm:py-3.5 [@media(max-height:640px)_and_(orientation:landscape)]:flex-nowrap [@media(max-height:640px)_and_(orientation:landscape)]:py-1.5">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <GameLogo candidates={['/lobby/logo.png', '/home/logo.png']} imgClassName="hidden h-7 w-auto min-[420px]:block sm:h-9 [@media(max-height:640px)_and_(orientation:landscape)]:h-7" />
           <button
@@ -434,11 +989,11 @@ export const InkLobbyScreen = ({
       </header>
 
       {/* ============== MAIN GRID ============== */}
-      <div className="ik-lobby-main custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-4 sm:px-8 sm:pb-6 min-[1101px]:overflow-hidden">
-      <div className="gm-lobby ik-lobby-grid mx-auto max-w-[1600px]">
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-4 sm:px-8 sm:pb-6 min-[1101px]:overflow-hidden">
+      <div className="gm-lobby mx-auto max-w-[1600px]">
         {/* ---------- RIGHT: chat, full column height ---------- */}
-        <aside className="ik-lobby-chat order-2 flex min-h-[22rem] flex-col min-[1101px]:order-2 min-[1101px]:min-h-0">
-          <GameCard className="ik-lobby-chat-card flex min-h-0 flex-1 flex-col overflow-hidden">
+        <aside className="order-2 flex min-h-[22rem] flex-col min-[1101px]:order-2 min-[1101px]:min-h-0">
+          <GameCard className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <TwitchStyleLobbyChat
               lobbyId={lobbyId}
               playerId={currentPlayer.id}
@@ -449,9 +1004,9 @@ export const InkLobbyScreen = ({
         </aside>
 
         {/* ---------- MAIN STAGE: featured mode, start, shelf ---------- */}
-        <section className="ik-lobby-stage order-1 flex min-h-0 flex-col gap-4 min-[1101px]:order-1">
+        <section className="order-1 flex min-h-0 flex-col gap-4 min-[1101px]:order-1">
           <motion.div
-            className="ik-lobby-feature flex-shrink-0"
+            className="flex-shrink-0"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.26, ease: 'easeOut' }}
@@ -523,7 +1078,7 @@ export const InkLobbyScreen = ({
           </motion.div>
 
           {/* Mode shelf */}
-          <div className="ik-lobby-mode-dock flex-shrink-0">
+          <div className="flex-shrink-0">
             <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
               <GameLabel>{isHost ? 'Change de mode' : 'Modes du salon'}</GameLabel>
               <span className="if-mute text-xs">{MODE_CARDS.length} modes</span>
@@ -550,7 +1105,7 @@ export const InkLobbyScreen = ({
           </div>
 
           {/* ---------- Roster — grows into the remaining space ---------- */}
-          <GameCard className="ik-lobby-roster flex min-h-0 flex-1 flex-col overflow-hidden">
+          <GameCard className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--ink-line)] px-4 py-3">
               <GameLabel className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" aria-hidden="true" />
@@ -650,19 +1205,7 @@ export const InkLobbyScreen = ({
                         </span>
                       )}
 
-                      <span
-                        className={cn(
-                          'gm-player-avatar',
-                          av.type === 'image' &&
-                            av.imageUrl?.startsWith('/game-avatars/') &&
-                            'is-mimo',
-                        )}
-                        style={
-                          av.type === 'initials' && av.backgroundColor
-                            ? { background: av.backgroundColor }
-                            : undefined
-                        }
-                      >
+                      <span className="gm-player-avatar">
                         {av.type === 'image' && av.imageUrl ? (
                           <img src={av.imageUrl} alt="" draggable={false} />
                         ) : (
@@ -724,89 +1267,7 @@ export const InkLobbyScreen = ({
       </div>
       </div>
 
-      {/* ============== INVITE PANEL ==============
-          Dernier dialogue du lobby encore bâti sur `GameModal`. Il affichait
-          bien un bouton de fermeture, mais sans Échap ni piège de focus : au
-          clavier, la tabulation s'échappait vers le lobby derrière. `InkModal`
-          fournit aussi sa propre zone de défilement, d'où la disparition de
-          l'enveloppe interne. */}
-      <InkModal
-        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
-        isOpen={showInvitePanel}
-        onClose={() => setShowInvitePanel(false)}
-        title="Inviter des amis"
-        subtitle={`${players.length}/${MAX_PLAYERS} joueurs`}
-        icon={<Link2 className="h-5 w-5" />}
-      >
-        <LobbyInvitePanel
-          lobbyCode={lobbyCode}
-          lobbyId={lobbyId}
-          players={players}
-          maxPlayers={MAX_PLAYERS}
-          isHost={isHost}
-          inlineMode
-        />
-      </InkModal>
-
-      {/* ============== SETTINGS ==============
-          `InkModal` et non plus `GameModal` : ce dernier n'offre ni fermeture au
-          clavier, ni piège de focus, ni bouton de fermeture visible. C'était le
-          seul dialogue du lobby dans ce cas, alors que « Quitter le lobby ? »
-          juste en dessous utilise déjà `InkModal`. */}
-      <InkModal
-        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        title="Paramètres"
-        subtitle="Micro, caméra et son"
-        icon={<Settings className="h-5 w-5" />}
-      >
-        <DeviceSettings embedded showPreview onClose={() => setShowSettings(false)} />
-      </InkModal>
-
-      {/* ============== LEAVE CONFIRM ============== */}
-      <InkModal
-        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
-        isOpen={showLeaveConfirm}
-        onClose={() => setShowLeaveConfirm(false)}
-        title="Quitter le lobby ?"
-        icon={<LogOut className="h-5 w-5" />}
-      >
-        <p className="if-muted text-sm">
-          Tu vas quitter le salon {lobbyCode}. Les autres joueurs resteront dans la partie.
-        </p>
-        <div className="mt-4 flex gap-2">
-          <GameButton variant="ghost" block onClick={() => setShowLeaveConfirm(false)}>
-            Annuler
-          </GameButton>
-          <GameButton
-            variant="danger"
-            block
-            data-autofocus
-            onClick={() => {
-              playInkSound('cartoonSwoosh', 0.4);
-              setShowLeaveConfirm(false);
-              onLeaveGame();
-            }}
-            icon={<LogOut className="h-4 w-4" />}
-          >
-            Quitter
-          </GameButton>
-        </div>
-      </InkModal>
-
-      {/* ============== SHORTCUTS ============== */}
-      <InkShortcutsModal
-        isOpen={showShortcuts}
-        onClose={() => setShowShortcuts(false)}
-        extra={[
-          { keys: ['S'], label: 'Ouvrir les paramètres' },
-          { keys: ['I'], label: 'Inviter des amis (host)' },
-          { keys: ['L'], label: 'Partager le lien' },
-          { keys: ['C'], label: 'Copier le code lobby' },
-          { keys: ['Enter'], label: 'Lancer la partie (host)' },
-        ]}
-      />
+      {overlays}
     </div>
   );
 };

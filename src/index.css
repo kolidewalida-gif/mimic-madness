@@ -1,8 +1,8 @@
-/* MimicMaster - Ultra Premium Modern Design System 2024 */
-/* `Caveat` porte tout le lettrage manuscrit du thème INK. Sans elle, la pile
+﻿/* MimicMaster - Ultra Premium Modern Design System 2024 */
+/* `Caveat` porte tout le lettrage manuscrit du thÃ¨me INK. Sans elle, la pile
    retombait sur Bradley Hand puis Segoe Print, absentes de la plupart des
-   machines, et l'interface se rendait en cursive système ou en sans-serif —
-   ce qui suffisait à faire disparaître l'effet dessiné à la main. */
+   machines, et l'interface se rendait en cursive systÃ¨me ou en sans-serif â€”
+   ce qui suffisait Ã  faire disparaÃ®tre l'effet dessinÃ© Ã  la main. */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Bangers&family=Fredoka:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Caveat:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -253,7 +253,7 @@
     color: hsl(0 0% 25%) !important;
   }
 
-  /* CARDS — sticker / comic style with hard black outline + offset shadow */
+  /* CARDS â€” sticker / comic style with hard black outline + offset shadow */
   body.cartoon-mode .glass-ultra,
   body.cartoon-mode .glass-card,
   body.cartoon-mode .card-premium,
@@ -275,7 +275,7 @@
     box-shadow: 9px 9px 0 hsl(0 0% 8%) !important;
   }
 
-  /* BUTTONS — chunky comic buttons */
+  /* BUTTONS â€” chunky comic buttons */
   body.cartoon-mode button:not(:disabled):not([data-cartoon-skip]),
   body.cartoon-mode .btn,
   body.cartoon-mode [class*="PremiumButton"] button {
@@ -304,7 +304,7 @@
     opacity: 0.5;
   }
 
-  /* INPUTS — bold bordered inputs */
+  /* INPUTS â€” bold bordered inputs */
   body.cartoon-mode input,
   body.cartoon-mode textarea,
   body.cartoon-mode select {
@@ -352,7 +352,7 @@
     border-radius: 6px;
   }
 
-  /* Selected mode tile (GameModeSelector) — bright pop with black text */
+  /* Selected mode tile (GameModeSelector) â€” bright pop with black text */
   body.cartoon-mode button[class*="bg-gradient-to-br"] {
     background: hsl(48 100% 60%) !important;
     color: hsl(0 0% 8%) !important;
@@ -422,7 +422,7 @@
   cursor: text !important;
 }
 
-/* ===== MIMIC MASTER — Fountain pen / ink-nib cursor ===== */
+/* ===== MIMIC MASTER â€” Fountain pen / ink-nib cursor ===== */
 .game-cursor-nib,
 .game-cursor-drop,
 .game-cursor-splash {
@@ -443,7 +443,7 @@
   width: 56px;
   height: 56px;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
-  /* No transition on transform — must follow the mouse 1:1 */
+  /* No transition on transform â€” must follow the mouse 1:1 */
   transition: filter 160ms ease;
   transform-origin: 5% 5%;
 }
@@ -465,7 +465,7 @@
   opacity: 0;
 }
 
-/* ===== Hover state — interactive breathing + glint sweep ===== */
+/* ===== Hover state â€” interactive breathing + glint sweep ===== */
 .game-cursor-nib-hover {
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.55))
     drop-shadow(0 0 14px hsl(var(--primary) / 0.65))
@@ -487,7 +487,7 @@
   animation: game-cursor-pen-droplet-fast 0.9s ease-in-out infinite;
 }
 
-/* ===== Pressed — sharper tilt, brighter inner red ===== */
+/* ===== Pressed â€” sharper tilt, brighter inner red ===== */
 .game-cursor-nib-pressed .game-cursor-pen-svg {
   transform: rotate(8deg) scale(0.94);
   animation: none;
@@ -604,7 +604,7 @@
   100% { opacity: 0; }
 }
 
-/* Tier tinting — recolor the red ink dot and trail */
+/* Tier tinting â€” recolor the red ink dot and trail */
 body.game-cursor-tier-bronze .game-cursor-drop {
   background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35) 0%, #f59e0b 45%, #1a1208 100%);
   box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
@@ -1672,7 +1672,7 @@ body.game-cursor-effect-glow .game-cursor-nib {
   }
 }
 
-/* ===== JUICE FX — screen shake ===== */
+/* ===== JUICE FX â€” screen shake ===== */
 @keyframes juice-shake-kf {
   0%, 100% { transform: translate3d(0, 0, 0); }
   10% { transform: translate3d(calc(var(--juice-shake-intensity, 1) * -3px), calc(var(--juice-shake-intensity, 1) * 2px), 0) rotate(-0.4deg); }
@@ -1784,7 +1784,7 @@ body.game-cursor-effect-glow .game-cursor-nib {
 .title-bob { animation: title-bob 2.4s ease-in-out infinite; }
 
 /* ========================================================
-   CYBER NEON HUB — Console-style next-gen menus
+   CYBER NEON HUB â€” Console-style next-gen menus
    Activated by body.theme-neon
    ======================================================== */
 @layer base {
@@ -2045,7 +2045,7 @@ body.game-cursor-effect-glow .game-cursor-nib {
 
 
 /* ============================================================
-   Ink mode — responsive modal helpers
+   Ink mode â€” responsive modal helpers
    Ensures cartoon modals/drawers scale cleanly on browser zoom
    in/out and on tiny viewports.
 ============================================================ */
@@ -2150,7 +2150,7 @@ body.game-cursor-effect-glow .game-cursor-nib {
   max-height: calc(100dvh - 2rem);
 }
 
-/* Cartoon scrollbar — reused across all Ink modals */
+/* Cartoon scrollbar â€” reused across all Ink modals */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -2166,7 +2166,7 @@ body.game-cursor-effect-glow .game-cursor-nib {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Tiny screens / heavy zoom — keep the dynamic unit last so compatible
+/* Tiny screens / heavy zoom â€” keep the dynamic unit last so compatible
    browsers continue tracking browser chrome and the on-screen keyboard. */
 @media (max-height: 600px) {
   .max-h-\[calc\(100dvh-2rem\)\] {
@@ -2285,7 +2285,7 @@ a, button, [role="button"], input, select, textarea, label, summary {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 6) Safe-area (notch / home indicator) helpers — opt-in utility classes. */
+/* 6) Safe-area (notch / home indicator) helpers â€” opt-in utility classes. */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
 .pl-safe { padding-left: env(safe-area-inset-left, 0px); }
@@ -2304,7 +2304,7 @@ a, button, [role="button"], input, select, textarea, label, summary {
    Goal: minimise GPU/CPU cost so the app doesn't stutter or crash.
    ============================================================ */
 
-/* backdrop-blur is one of the heaviest effects — drop it for an opaque panel. */
+/* backdrop-blur is one of the heaviest effects â€” drop it for an opaque panel. */
 html.low-power .backdrop-blur-sm,
 html.low-power .backdrop-blur,
 html.low-power .backdrop-blur-md,
@@ -2331,7 +2331,7 @@ html.low-power .mix-blend-plus-lighter {
 
 /* ============================================================
    TABLET / TOUCH tuning (applies to phones + tablets; desktop untouched)
-   Softens only the big decorative glow blobs — glass panels keep their blur
+   Softens only the big decorative glow blobs â€” glass panels keep their blur
    so the UI still looks premium on iPad-class hardware, but frame times drop.
    ============================================================ */
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -2396,7 +2396,7 @@ html.low-power .mix-blend-plus-lighter {
 }
 
 /* ============================================================
-   INK — FLAT MENU LANGUAGE
+   INK â€” FLAT MENU LANGUAGE
    Simple, readable surfaces in the spirit of Gartic Phone /
    Make It Meme: one flat background, 1px borders, no offset
    shadows, no cursive font, motion kept to short opacity fades.
@@ -2461,7 +2461,7 @@ body.ink-mode {
 .ibs-admin-tabs button { min-height: 3.25rem; }
 
 /* ============================================================
-   SOCIAL STUDIO — clear, responsive community workspace
+   SOCIAL STUDIO â€” clear, responsive community workspace
    ============================================================ */
 .social-studio-overlay {
   position: fixed;
@@ -2656,12 +2656,12 @@ body.ink-mode {
   .social-search-wrap { width: 100%; }
 }
 
-/* ===== Mimic Master design tokens — PARTY GAME =====
+/* ===== Mimic Master design tokens â€” PARTY GAME =====
    Dark blue-violet canvas, generous radii, soft coloured depth. The legacy
    `--ink-*` names are kept because ~60 components already reference them, so
    they inherit the new look without individual edits. */
 :root {
-  /* Canvas — dark but clearly blue-violet, never grey */
+  /* Canvas â€” dark but clearly blue-violet, never grey */
   --ink-bg: #14102b;
   --ink-bg-deep: #0e0b20;
   --ink-surface: #1e1940;
@@ -2732,7 +2732,7 @@ body.ink-mode {
 .ink-z-modal-backdrop { z-index: 9400; }
 .ink-z-modal { z-index: 9410; }
 
-/* Shared heading — rounded display face, no outline shadow. */
+/* Shared heading â€” rounded display face, no outline shadow. */
 .ink-title {
   font-family: var(--ink-font-display);
   font-weight: 600;
@@ -2849,17 +2849,17 @@ body.ink-mode {
 .ink-empty p { margin-top: 0.3rem; max-width: 20rem; font-size: 0.78rem; }
 
 /* ------------------------------------------------------------
-   Bloc titré à l'intérieur d'un tiroir.
+   Bloc titrÃ© Ã  l'intÃ©rieur d'un tiroir.
 
-   Les panneaux amis, profil, quêtes et couleur du chat ont été écrits avant la
-   coquille partagée : chacun livrait sa propre carte, son propre dégradé en dur
-   (`#1a0d2e → #0f0820`, plus sombre que la surface partagée) et son propre
-   niveau de titre. On comptait quatre traitements de titre différents dans le
+   Les panneaux amis, profil, quÃªtes et couleur du chat ont Ã©tÃ© Ã©crits avant la
+   coquille partagÃ©e : chacun livrait sa propre carte, son propre dÃ©gradÃ© en dur
+   (`#1a0d2e â†’ #0f0820`, plus sombre que la surface partagÃ©e) et son propre
+   niveau de titre. On comptait quatre traitements de titre diffÃ©rents dans le
    seul tiroir du profil. Ce bloc leur donne une forme commune.
 
-   Pas de `--ink-shadow-pop` ici, contrairement à `.ink-panel-surface` : une
-   ombre portée marquée n'a de sens que pour un panneau qui flotte au-dessus de
-   la page, pas pour une section posée dans un tiroir.
+   Pas de `--ink-shadow-pop` ici, contrairement Ã  `.ink-panel-surface` : une
+   ombre portÃ©e marquÃ©e n'a de sens que pour un panneau qui flotte au-dessus de
+   la page, pas pour une section posÃ©e dans un tiroir.
    ------------------------------------------------------------ */
 .ink-section {
   background: var(--ink-surface-2);
@@ -2889,10 +2889,10 @@ body.ink-mode {
 /* ------------------------------------------------------------
    Destination de menu.
 
-   Titres, Succès et Récompenses n'étaient atteignables qu'en fouillant la carte
-   de profil ; Quêtes et Couleur du chat étaient enterrées au milieu d'un
-   défilement. Une grille de destinations met tout au même niveau, à un clic, et
-   rend la liste des menus lisible d'un coup d'œil.
+   Titres, SuccÃ¨s et RÃ©compenses n'Ã©taient atteignables qu'en fouillant la carte
+   de profil ; QuÃªtes et Couleur du chat Ã©taient enterrÃ©es au milieu d'un
+   dÃ©filement. Une grille de destinations met tout au mÃªme niveau, Ã  un clic, et
+   rend la liste des menus lisible d'un coup d'Å“il.
    ------------------------------------------------------------ */
 .ink-menu-tile {
   position: relative;
@@ -2934,7 +2934,7 @@ body.ink-mode {
   font-weight: 600;
   color: var(--ink-text-mute);
 }
-/* Compteur d'attention : demandes d'amis, quêtes à réclamer. */
+/* Compteur d'attention : demandes d'amis, quÃªtes Ã  rÃ©clamer. */
 .ink-menu-tile > .tile-badge {
   position: absolute;
   top: 0.45rem;
@@ -2977,7 +2977,7 @@ html.low-power .mp-eq-bar { animation: none; }
 
 
 /* ============================================================
-   MIMIC MASTER — PARTY GAME UI
+   MIMIC MASTER â€” PARTY GAME UI
    The single visual language for menus, lobby and overlays.
    Rounded, coloured, light depth, 150-250ms interactions.
 
@@ -3353,7 +3353,7 @@ html.low-power .if-root::before { display: none; }
 }
 
 /* ============================================================
-   STAGE LAYOUT — asymmetric composition
+   STAGE LAYOUT â€” asymmetric composition
 
    Replaces the centred single-column stack (one narrow column of
    identically sized boxes) with a wide focal panel plus a side rail, and a
@@ -3761,7 +3761,7 @@ html.low-power .if-root > .gm-backdrop { display: none; }
 }
 
 /* ============================================================
-   MUSIC BAR — one self-contained player
+   MUSIC BAR â€” one self-contained player
 
    Everything is in this card: transport, volume, playback modes, adaptive
    mode and the track list. The list expands in place above the controls
@@ -4028,7 +4028,7 @@ html.low-power .if-root > .gm-backdrop { display: none; }
 }
 
 /* ============================================================
-   INK MODE — no blur layers, anywhere
+   INK MODE â€” no blur layers, anywhere
 
    Fading a `backdrop-filter` layer in over the menu's gradient background
    forces the compositor to re-sample a large area on every frame, which is
@@ -4191,10 +4191,10 @@ body.ink-mode .glass-nav {
   background: linear-gradient(to left, #14121c, rgba(20, 18, 28, 0));
 }
 
-/* Complément affiché sous la bande pour `prefers-reduced-motion` — la bande
-   continue de défiler, car son mouvement porte l'information de timing.
-   Bornée en hauteur : une transcription complète peut faire des centaines de
-   mots et débordait du cadre au lieu de défiler. */
+/* ComplÃ©ment affichÃ© sous la bande pour `prefers-reduced-motion` â€” la bande
+   continue de dÃ©filer, car son mouvement porte l'information de timing.
+   BornÃ©e en hauteur : une transcription complÃ¨te peut faire des centaines de
+   mots et dÃ©bordait du cadre au lieu de dÃ©filer. */
 .rb-static {
   margin-top: 8px;
   max-height: 8.5rem;
@@ -4209,7 +4209,7 @@ body.ink-mode .glass-nav {
   font-size: 0.95rem;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.82);
-  /* Le défilement de la transcription ne doit pas emporter la page entière. */
+  /* Le dÃ©filement de la transcription ne doit pas emporter la page entiÃ¨re. */
   overscroll-behavior: contain;
 }
 
@@ -4895,33 +4895,33 @@ select.admin-field option { color: var(--ink-text); background: var(--ink-surfac
 
 
 /* ============================================================
-   ARCHIVE INK BETA — ancienne direction atelier, désactivée.
-   La nouvelle couche party-game est définie après ce bloc.
+   ARCHIVE INK BETA â€” ancienne direction atelier, dÃ©sactivÃ©e.
+   La nouvelle couche party-game est dÃ©finie aprÃ¨s ce bloc.
    ============================================================ */
 @media not all {
 
 /* ============================================================
-   KIOSQUE — thème `inkbeta`, beta fermée administrateurs
+   KIOSQUE â€” thÃ¨me `inkbeta`, beta fermÃ©e administrateurs
    ------------------------------------------------------------
-   Le menu comme un mur d'affiches sérigraphiées : filets épais,
-   aplats, ombres dures décalées, lettrage condensé. Aucun
-   dégradé, aucun halo — c'est précisément ce vocabulaire qui
-   donnait au menu stable son air de tableau de bord généré.
+   Le menu comme un mur d'affiches sÃ©rigraphiÃ©es : filets Ã©pais,
+   aplats, ombres dures dÃ©calÃ©es, lettrage condensÃ©. Aucun
+   dÃ©gradÃ©, aucun halo â€” c'est prÃ©cisÃ©ment ce vocabulaire qui
+   donnait au menu stable son air de tableau de bord gÃ©nÃ©rÃ©.
 
    Deux surfaces commutables, `body.beta-paper` et
-   `body.beta-ink`. Le filet épais est le seul langage qui reste
+   `body.beta-ink`. Le filet Ã©pais est le seul langage qui reste
    lisible sur les deux : sur papier il est noir, sur encre il
-   devient papier, ce qui donne le contour d'un sticker découpé.
+   devient papier, ce qui donne le contour d'un sticker dÃ©coupÃ©.
 
-   Préfixe `.kq-` pour ne rien croiser avec `.if-*` / `.gm-*`,
-   que le thème `ink` stable continue d'utiliser intact.
+   PrÃ©fixe `.kq-` pour ne rien croiser avec `.if-*` / `.gm-*`,
+   que le thÃ¨me `ink` stable continue d'utiliser intact.
    ============================================================ */
 
 body.inkbeta-mode {
   --kq-display: 'Bebas Neue', 'Anton', Impact, sans-serif;
   --kq-body: 'Outfit', system-ui, sans-serif;
 
-  /* Géométrie franche : le sticker n'a pas de coins mous. */
+  /* GÃ©omÃ©trie franche : le sticker n'a pas de coins mous. */
   --kq-radius: 3px;
   --kq-radius-lg: 5px;
   --kq-keyline: 2.5px;
@@ -4932,8 +4932,8 @@ body.inkbeta-mode {
   --kq-yellow: #ffce2b;
 }
 
-/* ---- Surface encre — journal du soir ----
-   Charbon chaud, jamais de noir pur ni de blanc pur : un journal imprimé n'a
+/* ---- Surface encre â€” journal du soir ----
+   Charbon chaud, jamais de noir pur ni de blanc pur : un journal imprimÃ© n'a
    ni l'un ni l'autre, et c'est ce qui distingue cette surface d'une interface
    sombre ordinaire. */
 body.inkbeta-mode.beta-ink {
@@ -4944,20 +4944,20 @@ body.inkbeta-mode.beta-ink {
   --kq-text: #e8e2d4;
   --kq-text-dim: #a8a294;
   --kq-text-mute: #7a7568;
-  /* Contour couleur papier = découpe de coupure de presse sur fond sombre. */
+  /* Contour couleur papier = dÃ©coupe de coupure de presse sur fond sombre. */
   --kq-line: #e8e2d4;
   --kq-line-soft: rgba(232, 226, 212, 0.24);
   --kq-shadow: #000;
   --kq-grain-opacity: 0.1;
   --kq-halftone: rgba(232, 226, 212, 0.055);
-  /* Base de désaturation des accents, voir --kq-accent plus bas. */
+  /* Base de dÃ©saturation des accents, voir --kq-accent plus bas. */
   --kq-mute-base: #2a2620;
   --kq-accent-mix: 46%;
   --kq-art-saturate: 0.4;
   --kq-art-brightness: 0.82;
 }
 
-/* ---- Surface papier — journal du matin ---- */
+/* ---- Surface papier â€” journal du matin ---- */
 body.inkbeta-mode.beta-paper {
   --kq-bg: #ddd5c2;
   --kq-bg-2: #cec5b0;
@@ -4981,11 +4981,11 @@ body.inkbeta-mode.beta-paper {
 /* ------------------------------------------------------------
    Accent assourdi.
 
-   Les accents de `GAME_MODE_META` sont des couleurs pop — violet #a06bff,
-   orange #ff9640, jaune #ffce3d. Posées telles quelles sur du papier journal
-   elles ressortaient comme des néons et ruinaient la direction artistique.
-   Elles sont donc mélangées à une base neutre : chaque mode garde son
-   identité chromatique, mais dans un registre imprimé.
+   Les accents de `GAME_MODE_META` sont des couleurs pop â€” violet #a06bff,
+   orange #ff9640, jaune #ffce3d. PosÃ©es telles quelles sur du papier journal
+   elles ressortaient comme des nÃ©ons et ruinaient la direction artistique.
+   Elles sont donc mÃ©langÃ©es Ã  une base neutre : chaque mode garde son
+   identitÃ© chromatique, mais dans un registre imprimÃ©.
 
    `--accent` reste disponible pour les rares endroits qui ont besoin de la
    teinte franche, comme le filet de 5px en pied du panneau.
@@ -5011,8 +5011,8 @@ body.inkbeta-mode {
   font-family: var(--kq-body);
 }
 
-/* Trame d'impression, posée une fois sur la coquille.
-   `background-attachment` fixe évite qu'elle glisse avec le contenu. */
+/* Trame d'impression, posÃ©e une fois sur la coquille.
+   `background-attachment` fixe Ã©vite qu'elle glisse avec le contenu. */
 .kq-root::before {
   content: '';
   position: absolute;
@@ -5024,8 +5024,8 @@ body.inkbeta-mode {
   transform: translateZ(0);
 }
 
-/* Grain argentique. Statique par défaut : le menu reste affiché
-   indéfiniment, et une animation infinie y coûterait de la batterie
+/* Grain argentique. Statique par dÃ©faut : le menu reste affichÃ©
+   indÃ©finiment, et une animation infinie y coÃ»terait de la batterie
    pour rien. PulpComic l'anime, mais sur des phases de jeu courtes. */
 .kq-grain {
   position: absolute;
@@ -5042,9 +5042,9 @@ html.low-power .kq-grain,
 html.low-power .kq-root::before { display: none; }
 
 /* ---- Lettrage d'affiche ----
-   Le décalage de repérage — un calque d'encre imprimé de travers —
-   remplace le texte en dégradé, qui est l'un des tells les plus nets
-   d'une interface générée. */
+   Le dÃ©calage de repÃ©rage â€” un calque d'encre imprimÃ© de travers â€”
+   remplace le texte en dÃ©gradÃ©, qui est l'un des tells les plus nets
+   d'une interface gÃ©nÃ©rÃ©e. */
 .kq-display {
   font-family: var(--kq-display);
   font-weight: 400;
@@ -5075,8 +5075,8 @@ html.low-power .kq-root::before { display: none; }
 .kq-muted { color: var(--kq-text-dim); }
 
 /* ---- Boutons ----
-   Ombre dure, jamais de halo. L'appui écrase l'ombre à zéro et
-   déplace le bouton d'autant : le geste est celui d'un tampon. */
+   Ombre dure, jamais de halo. L'appui Ã©crase l'ombre Ã  zÃ©ro et
+   dÃ©place le bouton d'autant : le geste est celui d'un tampon. */
 .kq-btn {
   --accent: var(--kq-red);
   display: inline-flex;
@@ -5162,7 +5162,7 @@ html.low-power .kq-root::before { display: none; }
   text-indent: 0.35em;
 }
 
-/* ---- Étiquette ---- */
+/* ---- Ã‰tiquette ---- */
 .kq-tag {
   display: inline-flex;
   align-items: center;
@@ -5179,17 +5179,17 @@ html.low-power .kq-root::before { display: none; }
   white-space: nowrap;
 }
 
-/* ---- Bandeau de tête ----
-   Filet d'impression sous le bandeau plutôt qu'une bordure discrète. */
+/* ---- Bandeau de tÃªte ----
+   Filet d'impression sous le bandeau plutÃ´t qu'une bordure discrÃ¨te. */
 .kq-masthead {
   border-bottom: var(--kq-keyline) solid var(--kq-line);
   background: var(--kq-bg-2);
 }
 
 /* ---- Mur d'affiches ----
-   Grille, pas rangée à défilement : les sept modes tiennent à
-   l'écran d'un coup. Et l'artwork reste en pleine saturation —
-   le menu stable le désature au repos, ce qui revient à combattre
+   Grille, pas rangÃ©e Ã  dÃ©filement : les sept modes tiennent Ã 
+   l'Ã©cran d'un coup. Et l'artwork reste en pleine saturation â€”
+   le menu stable le dÃ©sature au repos, ce qui revient Ã  combattre
    ses propres illustrations. */
 .kq-wall {
   display: grid;
@@ -5221,14 +5221,14 @@ html.low-power .kq-root::before { display: none; }
   box-shadow: 1px 1px 0 0 var(--kq-shadow);
 }
 
-/* Sélection marquée par l'échelle et un aplat d'accent, pas par un halo. */
+/* SÃ©lection marquÃ©e par l'Ã©chelle et un aplat d'accent, pas par un halo. */
 .kq-poster.is-selected {
   background: var(--kq-accent);
   transform: translate(-3px, -3px);
   box-shadow: 6px 6px 0 0 var(--kq-shadow);
 }
 /* L'illustration du mode retenu reprend sa saturation : c'est le seul point
-   de couleur franche de l'écran, ce qui en fait le sujet. */
+   de couleur franche de l'Ã©cran, ce qui en fait le sujet. */
 .kq-poster.is-selected .kq-poster-art img {
   filter: saturate(0.75) brightness(1);
 }
@@ -5246,9 +5246,9 @@ html.low-power .kq-root::before { display: none; }
   font-size: 1.9rem;
   line-height: 1;
 }
-/* Les cartes livrées sont des aplats pop très saturés. Les assourdir ici les
-   fait entrer dans la direction « papier journal » sans avoir à redessiner
-   quoi que ce soit, et laisse la sélection ressortir par contraste. */
+/* Les cartes livrÃ©es sont des aplats pop trÃ¨s saturÃ©s. Les assourdir ici les
+   fait entrer dans la direction Â« papier journal Â» sans avoir Ã  redessiner
+   quoi que ce soit, et laisse la sÃ©lection ressortir par contraste. */
 .kq-poster-art img,
 .kq-feature-art img {
   filter: saturate(var(--kq-art-saturate)) brightness(var(--kq-art-brightness));
@@ -5271,7 +5271,7 @@ html.low-power .kq-root::before { display: none; }
   white-space: nowrap;
 }
 
-/* Tampon encreur du mode retenu, légèrement de travers. */
+/* Tampon encreur du mode retenu, lÃ©gÃ¨rement de travers. */
 .kq-stamp {
   position: absolute;
   top: -7px;
@@ -5290,8 +5290,8 @@ html.low-power .kq-root::before { display: none; }
 
 /* ---- Le billet ----
    La zone d'action vit ici, hors du panneau descriptif, et ne bouge
-   plus quand on change de mode. Dans le menu stable elle est logée
-   dans le hero, qui se re-rend à chaque sélection. */
+   plus quand on change de mode. Dans le menu stable elle est logÃ©e
+   dans le hero, qui se re-rend Ã  chaque sÃ©lection. */
 .kq-ticket {
   position: relative;
   border: var(--kq-keyline) solid var(--kq-line);
@@ -5341,11 +5341,11 @@ html.low-power .kq-root::before { display: none; }
   font-size: 3rem;
   line-height: 1;
 }
-/* `contain` : l'illustration est une carte entière, la rogner
-   couperait le lettrage dessiné en bas. */
+/* `contain` : l'illustration est une carte entiÃ¨re, la rogner
+   couperait le lettrage dessinÃ© en bas. */
 .kq-feature-art img { width: 100%; height: 100%; object-fit: contain; }
 
-/* Bandeau d'accent en pied de panneau, à la place d'un halo diffus. Seul
+/* Bandeau d'accent en pied de panneau, Ã  la place d'un halo diffus. Seul
    endroit qui garde la teinte franche du mode, comme un filet d'encre
    d'imprimeur en marge de page. */
 .kq-feature::after {
@@ -5361,12 +5361,12 @@ html.low-power .kq-root::before { display: none; }
 /* ------------------------------------------------------------
    Wordmark de fond.
 
-   Le titre du jeu imprimé en très grand derrière toute l'interface, comme la
-   manchette d'un journal qu'on aurait posé sous les panneaux. Il porte à lui
-   seul l'identité de l'écran, ce qui permet de garder le reste sobre.
+   Le titre du jeu imprimÃ© en trÃ¨s grand derriÃ¨re toute l'interface, comme la
+   manchette d'un journal qu'on aurait posÃ© sous les panneaux. Il porte Ã  lui
+   seul l'identitÃ© de l'Ã©cran, ce qui permet de garder le reste sobre.
 
-   `fixed` et non `absolute` : il ne doit pas défiler avec le contenu, sinon
-   la manchette se décale et le montage se voit.
+   `fixed` et non `absolute` : il ne doit pas dÃ©filer avec le contenu, sinon
+   la manchette se dÃ©cale et le montage se voit.
    ------------------------------------------------------------ */
 .kq-wordmark {
   position: fixed;
@@ -5379,17 +5379,17 @@ html.low-power .kq-root::before { display: none; }
   transform: translateZ(0);
 }
 
-/* L'image est une coupure de presse claire : encre noire sur papier crème.
-   Sur la surface sombre on l'inverse, ce qui donne un négatif d'imprimerie —
-   lettres pâles et rongées sur fond d'encre. Posée telle quelle, le papier
-   crème aurait éclairci tout l'écran et les lettres noires se seraient
+/* L'image est une coupure de presse claire : encre noire sur papier crÃ¨me.
+   Sur la surface sombre on l'inverse, ce qui donne un nÃ©gatif d'imprimerie â€”
+   lettres pÃ¢les et rongÃ©es sur fond d'encre. PosÃ©e telle quelle, le papier
+   crÃ¨me aurait Ã©clairci tout l'Ã©cran et les lettres noires se seraient
    fondues dans le fond. */
 body.inkbeta-mode.beta-ink .kq-wordmark {
   opacity: 0.5;
   filter: invert(1) grayscale(1) contrast(1.15) brightness(0.72);
 }
 
-/* Sur papier, l'image est déjà dans le bon registre : aucun filtre, juste en
+/* Sur papier, l'image est dÃ©jÃ  dans le bon registre : aucun filtre, juste en
    retrait pour rester un fond et non un sujet. */
 body.inkbeta-mode.beta-paper .kq-wordmark {
   opacity: 0.3;
@@ -5404,7 +5404,7 @@ html.low-power .kq-wordmark { display: none; }
   .kq-wall { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
 }
 
-/* Le pas de `steps()` fait tout le caractère de ces transitions ;
+/* Le pas de `steps()` fait tout le caractÃ¨re de ces transitions ;
    sans mouvement, on les retire simplement. */
 @media (prefers-reduced-motion: reduce) {
   .kq-btn, .kq-icon-btn, .kq-poster { transition: none; }
@@ -5412,16 +5412,16 @@ html.low-power .kq-wordmark { display: none; }
 }
 
 /* ------------------------------------------------------------
-   Panneaux réutilisés sous la surface papier.
+   Panneaux rÃ©utilisÃ©s sous la surface papier.
 
-   Le menu beta réemploie les tiroirs et modales Ink existants
+   Le menu beta rÃ©emploie les tiroirs et modales Ink existants
    (`InkDrawer`, `InkModal`, `InkProfileSidebar`, `DeviceSettings`).
    Ils lisent les tokens `--ink-*`, qui sont bleu-violet sombres :
    ouverts par-dessus une page papier, ils s'affichaient en panneau
-   noir sur fond clair. On les réaligne sur la surface plutôt que de
+   noir sur fond clair. On les rÃ©aligne sur la surface plutÃ´t que de
    dupliquer chaque composant.
 
-   Uniquement sous `.beta-paper` : la surface encre est déjà sombre,
+   Uniquement sous `.beta-paper` : la surface encre est dÃ©jÃ  sombre,
    les valeurs d'origine y conviennent.
    ------------------------------------------------------------ */
 body.inkbeta-mode.beta-paper {
@@ -5436,7 +5436,7 @@ body.inkbeta-mode.beta-paper {
   --ink-text-dim: var(--kq-text-dim);
   --ink-text-mute: var(--kq-text-mute);
 
-  /* L'accent violet par défaut est illisible en texte sur papier. */
+  /* L'accent violet par dÃ©faut est illisible en texte sur papier. */
   --ink-accent: #c4172a;
   --ink-accent-text: #8f0f1e;
   --ink-accent-soft: rgba(196, 23, 42, 0.14);
@@ -5469,21 +5469,21 @@ body.inkbeta-mode.beta-paper {
 
 
 /* ============================================================
-   INK — menu dessiné à la main
+   INK â€” menu dessinÃ© Ã  la main
    ------------------------------------------------------------
    Une page de carnet rendue interactive. Le titre est peint sur
-   la feuille, le panneau est posé par-dessus et le recouvre en
-   partie : c'est ce recouvrement qui crée la profondeur, et il
-   ne s'obtient pas en empilant des éléments dans le flux.
+   la feuille, le panneau est posÃ© par-dessus et le recouvre en
+   partie : c'est ce recouvrement qui crÃ©e la profondeur, et il
+   ne s'obtient pas en empilant des Ã©lÃ©ments dans le flux.
 
-   Tout est préfixé `.ik-` et vit sous `body.inkbeta-mode`, donc
-   les autres thèmes ne voient rien de cette couche.
+   Tout est prÃ©fixÃ© `.ik-` et vit sous `body.inkbeta-mode`, donc
+   les autres thÃ¨mes ne voient rien de cette couche.
    ============================================================ */
 
-/* Palette relevée directement sur les planches fournies : ardoise sombre,
-   craie crème, violet d'accent. Le nom des variables reste `--ik-paper` et
-   `--ik-ink` par continuité, mais le rapport est inversé — le « papier » est
-   ici l'ardoise et l'« encre » la craie. */
+/* Palette relevÃ©e directement sur les planches fournies : ardoise sombre,
+   craie crÃ¨me, violet d'accent. Le nom des variables reste `--ik-paper` et
+   `--ik-ink` par continuitÃ©, mais le rapport est inversÃ© â€” le Â« papier Â» est
+   ici l'ardoise et l'Â« encre Â» la craie. */
 body.inkbeta-mode {
   --ik-paper: #0f0d0c;
   --ik-paper-2: #161412;
@@ -5507,8 +5507,8 @@ body.inkbeta-mode {
 }
 
 /* Ardoise pleine page. `cover` et non `repeat` : la planche fournie porte son
-   propre vignettage clair sur les bords, donc la répéter afficherait une grille
-   de cadres. Elle doit couvrir une fois, comme un fond de scène. */
+   propre vignettage clair sur les bords, donc la rÃ©pÃ©ter afficherait une grille
+   de cadres. Elle doit couvrir une fois, comme un fond de scÃ¨ne. */
 .ik-paper-bg {
   position: fixed;
   inset: 0;
@@ -5519,7 +5519,7 @@ body.inkbeta-mode {
   background-repeat: no-repeat;
 }
 
-/* Grain fin par-dessus, pour éviter l'aplat numérique. */
+/* Grain fin par-dessus, pour Ã©viter l'aplat numÃ©rique. */
 .ik-grain {
   position: fixed;
   inset: 0;
@@ -5535,20 +5535,20 @@ html.low-power .ik-grain,
 html.low-power .ik-paper-bg { display: none; }
 
 /* ------------------------------------------------------------
-   LE TITRE DERRIÈRE LE PANNEAU
+   LE TITRE DERRIÃˆRE LE PANNEAU
 
    C'est l'exigence centrale. Le titre est en `z-index: 2`, le
    panneau en `z-index: 5` : le panneau le recouvre donc
    physiquement, quel que soit l'ordre du DOM.
 
    Le titre est aussi volontairement plus large que la zone du
-   panneau et légèrement décalé, pour qu'il dépasse des deux
-   côtés — sans ce débordement, l'effet « dessiné avant » ne se
-   lit pas, on croirait juste à un fond.
+   panneau et lÃ©gÃ¨rement dÃ©calÃ©, pour qu'il dÃ©passe des deux
+   cÃ´tÃ©s â€” sans ce dÃ©bordement, l'effet Â« dessinÃ© avant Â» ne se
+   lit pas, on croirait juste Ã  un fond.
 
-   `multiply` remplace un détourage alpha : l'image générée est
+   `multiply` remplace un dÃ©tourage alpha : l'image gÃ©nÃ©rÃ©e est
    de l'encre noire sur papier blanc, et ce mode de fusion fait
-   disparaître le blanc.
+   disparaÃ®tre le blanc.
    ------------------------------------------------------------ */
 .ik-stage {
   position: relative;
@@ -5561,12 +5561,12 @@ html.low-power .ik-paper-bg { display: none; }
 /* ------------------------------------------------------------
    Le logo fourni.
 
-   La planche est désormais livrée détourée, avec un canal alpha. Aucun mode de
-   fusion n'est donc nécessaire : la version précédente employait `screen` pour
+   La planche est dÃ©sormais livrÃ©e dÃ©tourÃ©e, avec un canal alpha. Aucun mode de
+   fusion n'est donc nÃ©cessaire : la version prÃ©cÃ©dente employait `screen` pour
    effacer un fond noir plein, et il restait un rectangle visible parce que ce
-   noir ne valait pas exactement zéro sur toute sa surface.
+   noir ne valait pas exactement zÃ©ro sur toute sa surface.
 
-   Aucune opacité réduite : sur la référence le titre est un élément de plein
+   Aucune opacitÃ© rÃ©duite : sur la rÃ©fÃ©rence le titre est un Ã©lÃ©ment de plein
    droit, pas un filigrane.
    ------------------------------------------------------------ */
 .ik-title {
@@ -5591,8 +5591,8 @@ html.low-power .ik-paper-bg { display: none; }
   padding: clamp(1.1rem, 2.4vw, 1.9rem);
 }
 
-/* Fond du panneau : ardoise à peine plus claire que la page, pour que le
-   double cadre de craie soit ce qui le détache, et non un aplat contrastant. */
+/* Fond du panneau : ardoise Ã  peine plus claire que la page, pour que le
+   double cadre de craie soit ce qui le dÃ©tache, et non un aplat contrastant. */
 .ik-panel::before {
   content: '';
   position: absolute;
@@ -5601,11 +5601,11 @@ html.low-power .ik-paper-bg { display: none; }
   background: var(--ik-panel);
 }
 
-/* Cadre tracé à la main, commun au panneau et aux boutons.
+/* Cadre tracÃ© Ã  la main, commun au panneau et aux boutons.
 
-   `overflow: visible` est nécessaire : les dépassements aux coins sortent du
-   viewBox, et sans lui ils seraient rognés — or ce sont eux qui donnent le
-   trait « à main levée ». */
+   `overflow: visible` est nÃ©cessaire : les dÃ©passements aux coins sortent du
+   viewBox, et sans lui ils seraient rognÃ©s â€” or ce sont eux qui donnent le
+   trait Â« Ã  main levÃ©e Â». */
 .ik-frame {
   position: absolute;
   inset: 0;
@@ -5617,9 +5617,9 @@ html.low-power .ik-paper-bg { display: none; }
   pointer-events: none;
 }
 
-/* ---- Tracé progressif ----
-   `stroke-dashoffset` donne l'impression que la ligne s'écrit.
-   Une simple montée d'opacité ne produit pas cet effet. */
+/* ---- TracÃ© progressif ----
+   `stroke-dashoffset` donne l'impression que la ligne s'Ã©crit.
+   Une simple montÃ©e d'opacitÃ© ne produit pas cet effet. */
 @keyframes ik-draw-on {
   from { stroke-dashoffset: 1; }
   to { stroke-dashoffset: 0; }
@@ -5648,10 +5648,10 @@ html.low-power .ik-paper-bg { display: none; }
 .ik-muted { color: var(--ik-ink-faint); }
 
 /* ---- Boutons ----
-   Fond papier, contour au stylo, aucun rayon ni dégradé. Le survol
-   incline très légèrement et redessine le trait. */
-/* Les libellés de la planche de référence sont en capitales espacées, pas en
-   cursive : la craie sur ardoise se lit mal en écriture liée. */
+   Fond papier, contour au stylo, aucun rayon ni dÃ©gradÃ©. Le survol
+   incline trÃ¨s lÃ©gÃ¨rement et redessine le trait. */
+/* Les libellÃ©s de la planche de rÃ©fÃ©rence sont en capitales espacÃ©es, pas en
+   cursive : la craie sur ardoise se lit mal en Ã©criture liÃ©e. */
 .ik-btn {
   position: relative;
   display: flex;
@@ -5673,7 +5673,7 @@ html.low-power .ik-paper-bg { display: none; }
   transition: transform 140ms ease, color 140ms ease;
 }
 
-/* Voile de craie au survol, à la place d'un fond coloré. */
+/* Voile de craie au survol, Ã  la place d'un fond colorÃ©. */
 .ik-btn::before {
   content: '';
   position: absolute;
@@ -5690,8 +5690,8 @@ html.low-power .ik-paper-bg { display: none; }
   transform: rotate(-0.7deg) translateY(-2px);
 }
 .ik-btn:not(:disabled):hover::before { opacity: 1; }
-/* Le trait se retrace au survol : même animation que l'entrée,
-   rejouée. */
+/* Le trait se retrace au survol : mÃªme animation que l'entrÃ©e,
+   rejouÃ©e. */
 .ik-btn:not(:disabled):hover .ik-draw {
   animation: ik-draw-on 420ms cubic-bezier(0.65, 0, 0.35, 1) both;
 }
@@ -5708,9 +5708,9 @@ html.low-power .ik-paper-bg { display: none; }
 }
 
 /* ---- Champ de saisie ---- */
-/* Le pseudo est en violet sur la planche, souligné d'un trait de brosse.
-   Le soulignement est un dégradé aux extrémités effilées plutôt qu'une
-   bordure : une bordure donnerait un trait net d'épaisseur constante. */
+/* Le pseudo est en violet sur la planche, soulignÃ© d'un trait de brosse.
+   Le soulignement est un dÃ©gradÃ© aux extrÃ©mitÃ©s effilÃ©es plutÃ´t qu'une
+   bordure : une bordure donnerait un trait net d'Ã©paisseur constante. */
 .ik-input {
   position: relative;
   z-index: 3;
@@ -5758,13 +5758,13 @@ html.low-power .ik-paper-bg { display: none; }
 }
 
 /* ---- Vignettes de modes ----
-   Les planches fournies sont des tuiles complètes : cadre de craie,
-   illustration et nom du mode déjà dessinés dedans. On ne superpose donc ni
-   bordure ni libellé — c'était la source du nom affiché deux fois dans la
-   version précédente.
+   Les planches fournies sont des tuiles complÃ¨tes : cadre de craie,
+   illustration et nom du mode dÃ©jÃ  dessinÃ©s dedans. On ne superpose donc ni
+   bordure ni libellÃ© â€” c'Ã©tait la source du nom affichÃ© deux fois dans la
+   version prÃ©cÃ©dente.
 
-   Au repos elles sont légèrement éteintes, la sélection les ramène à pleine
-   valeur : la lisibilité du choix vient du contraste, sans ajouter de pastille
+   Au repos elles sont lÃ©gÃ¨rement Ã©teintes, la sÃ©lection les ramÃ¨ne Ã  pleine
+   valeur : la lisibilitÃ© du choix vient du contraste, sans ajouter de pastille
    ni de halo. */
 .ik-mode {
   position: relative;
@@ -5797,7 +5797,7 @@ html.low-power .ik-paper-bg { display: none; }
   place-items: center;
   width: 100%;
   /* Les tuiles fournies oscillent entre 0,80 et 0,88 de rapport. Un cadre
-     fixe avec `contain` les aligne sans les déformer. */
+     fixe avec `contain` les aligne sans les dÃ©former. */
   aspect-ratio: 4 / 5;
   font-size: 2.2rem;
 }
@@ -5809,15 +5809,15 @@ html.low-power .ik-paper-bg { display: none; }
 
 /* ---- Responsive ----
 
-   Les règles précédentes dataient de la version où le titre était un lavis
-   posé derrière le panneau et devait volontairement déborder : elles le
-   portaient à 150vw puis 178vw. Devenu un élément de composition placé à côté
-   du panneau, il débordait alors de l'écran sur mobile — 704 px de large
-   mesurés sur un viewport de 390.
+   Les rÃ¨gles prÃ©cÃ©dentes dataient de la version oÃ¹ le titre Ã©tait un lavis
+   posÃ© derriÃ¨re le panneau et devait volontairement dÃ©border : elles le
+   portaient Ã  150vw puis 178vw. Devenu un Ã©lÃ©ment de composition placÃ© Ã  cÃ´tÃ©
+   du panneau, il dÃ©bordait alors de l'Ã©cran sur mobile â€” 704 px de large
+   mesurÃ©s sur un viewport de 390.
 
-   Le titre est désormais borné par une largeur intrinsèque et ne se laisse
-   plus comprimer par le flex : sur tablette il tombait à 189 px parce que la
-   ligne était trop étroite pour le panneau et lui à la fois. */
+   Le titre est dÃ©sormais bornÃ© par une largeur intrinsÃ¨que et ne se laisse
+   plus comprimer par le flex : sur tablette il tombait Ã  189 px parce que la
+   ligne Ã©tait trop Ã©troite pour le panneau et lui Ã  la fois. */
 .ik-title {
   flex-shrink: 0;
   max-width: 100%;
@@ -5836,7 +5836,7 @@ html.low-power .ik-paper-bg { display: none; }
   .ik-label { font-size: 1.15rem; }
 }
 
-/* Écrans très larges : borner le titre pour qu'il ne dévore pas la
+/* Ã‰crans trÃ¨s larges : borner le titre pour qu'il ne dÃ©vore pas la
    composition. */
 @media (min-width: 2200px) {
   .ik-title { width: 860px; }
@@ -5850,13 +5850,13 @@ html.low-power .ik-paper-bg { display: none; }
 }
 
 /* ============================================================
-   INK BETA — ATELIER DE JEU
+   INK BETA â€” ATELIER DE JEU
 
-   Le menu est construit comme une seule affiche interactive : une scène
-   encadrée, le logo peint en arrière-plan, un billet au premier plan et le
-   programme des modes au bas de l'affiche. Les anciennes règles `.ik-*`
-   restent les fondations partagées (cadres SVG, champs et modales) ; cette
-   couche fixe la composition finale sans toucher au thème Ink stable.
+   Le menu est construit comme une seule affiche interactive : une scÃ¨ne
+   encadrÃ©e, le logo peint en arriÃ¨re-plan, un billet au premier plan et le
+   programme des modes au bas de l'affiche. Les anciennes rÃ¨gles `.ik-*`
+   restent les fondations partagÃ©es (cadres SVG, champs et modales) ; cette
+   couche fixe la composition finale sans toucher au thÃ¨me Ink stable.
    ============================================================ */
 
 body.inkbeta-mode {
@@ -5995,7 +5995,7 @@ body.inkbeta-mode {
   color: var(--ik-ink);
 }
 
-/* ---- Scène ------------------------------------------------------------ */
+/* ---- ScÃ¨ne ------------------------------------------------------------ */
 .ik-main {
   padding: 0 clamp(1rem, 3.1vw, 3.5rem);
   scroll-padding: 1rem;
@@ -6423,7 +6423,7 @@ body.inkbeta-mode {
   transform: rotate(12deg);
 }
 
-/* ---- Pied intégré à l'affiche ---------------------------------------- */
+/* ---- Pied intÃ©grÃ© Ã  l'affiche ---------------------------------------- */
 .ik-footer {
   min-height: 2rem;
   gap: 0.65rem;
@@ -6454,7 +6454,7 @@ body.inkbeta-mode {
   font-size: 0.62rem;
 }
 
-/* ---- Les portails partagent maintenant le même atelier ---------------- */
+/* ---- Les portails partagent maintenant le mÃªme atelier ---------------- */
 body.inkbeta-mode .menu-dialog.ink-panel-surface,
 body.inkbeta-mode .menu-dialog.ink-z-drawer {
   overflow: hidden;
@@ -6886,12 +6886,12 @@ body.inkbeta-mode .ink-z-drawer-backdrop {
 }
 
 /* ============================================================
-   INK BETA — CONTENUS DES SOUS-MENUS
+   INK BETA â€” CONTENUS DES SOUS-MENUS
 
-   Les composants Profil, Amis et Options sont partagés avec le thème Ink
-   stable. Cette couche est donc volontairement et systématiquement bornée par
+   Les composants Profil, Amis et Options sont partagÃ©s avec le thÃ¨me Ink
+   stable. Cette couche est donc volontairement et systÃ©matiquement bornÃ©e par
    `body.inkbeta-mode` : elle transforme leur contenu en ardoise/craie sans
-   altérer aucune autre apparence.
+   altÃ©rer aucune autre apparence.
    ============================================================ */
 
 body.inkbeta-mode {
@@ -7116,7 +7116,7 @@ body.inkbeta-mode .ink-device-preset:hover {
   color: var(--ik-ink) !important;
 }
 
-/* ---- Invités Profil / Amis ------------------------------------------ */
+/* ---- InvitÃ©s Profil / Amis ------------------------------------------ */
 body.inkbeta-mode :is(
   .ink-profile-sidebar--guest,
   .ink-profile-sidebar--loading,
@@ -7180,7 +7180,7 @@ body.inkbeta-mode :is(.ink-profile-sidebar--loading, .ink-friends-sidebar--loadi
   background: rgba(238, 225, 204, 0.08) !important;
 }
 
-/* ---- Profil connecté ------------------------------------------------- */
+/* ---- Profil connectÃ© ------------------------------------------------- */
 body.inkbeta-mode .ink-profile-sidebar--authenticated {
   border: 1px solid rgba(238, 225, 204, 0.28) !important;
   border-radius: 2px !important;
@@ -7214,7 +7214,7 @@ body.inkbeta-mode .ink-profile-sidebar--authenticated :is(.text-white, .text-whi
   text-shadow: none !important;
 }
 
-/* ---- Amis connecté --------------------------------------------------- */
+/* ---- Amis connectÃ© --------------------------------------------------- */
 body.inkbeta-mode .ink-friends-sidebar--authenticated .ink-section-title {
   color: var(--ik-ink);
   font-family: var(--ik-hand);
@@ -7296,10 +7296,10 @@ body.inkbeta-mode .ink-friends-row .menu-icon-control {
 }
 
 /* ============================================================
-   INK BETA — IDENTITÉ VECTORIELLE AUTONOME
+   INK BETA â€” IDENTITÃ‰ VECTORIELLE AUTONOME
 
-   Le pack bitmap historique peut être retiré sans casser l'écran : l'ardoise,
-   le lettrage et les sept affiches sont produits ici à partir de SVG/CSS. Les
+   Le pack bitmap historique peut Ãªtre retirÃ© sans casser l'Ã©cran : l'ardoise,
+   le lettrage et les sept affiches sont produits ici Ã  partir de SVG/CSS. Les
    cartes partagent ainsi enfin un seul trait, une seule palette et une seule
    typographie.
    ============================================================ */
@@ -7597,14 +7597,14 @@ body.inkbeta-mode .ik-mode.is-selected .ik-mode-copy small {
 }
 
 
-} /* Fin de l'archive Ink Beta désactivée. */
+} /* Fin de l'archive Ink Beta dÃ©sactivÃ©e. */
 
 /* ============================================================
-   INK BETA — PARTY STAGE
+   INK BETA â€” PARTY STAGE
    ------------------------------------------------------------
-   Une interface de party-game : scène magenta, panneaux prune,
-   volumes généreux, accents turquoise et contrôles en relief.
-   Cette couche est strictement limitée au thème Ink Beta.
+   Une interface de party-game : scÃ¨ne magenta, panneaux prune,
+   volumes gÃ©nÃ©reux, accents turquoise et contrÃ´les en relief.
+   Cette couche est strictement limitÃ©e au thÃ¨me Ink Beta.
    ============================================================ */
 
 body.inkbeta-mode {
@@ -7711,7 +7711,7 @@ body.inkbeta-mode .ik-root::before {
   pointer-events: none;
 }
 
-/* ---- En-tête et marque ---------------------------------------------- */
+/* ---- En-tÃªte et marque ---------------------------------------------- */
 body.inkbeta-mode .ik-topbar {
   display: grid;
   height: clamp(7.6rem, 16vh, 11rem);
@@ -8188,7 +8188,7 @@ body.inkbeta-mode .ik-mascot-caption svg {
   color: var(--ik-cyan);
 }
 
-/* ---- Carte de démarrage --------------------------------------------- */
+/* ---- Carte de dÃ©marrage --------------------------------------------- */
 body.inkbeta-mode .ik-start-card {
   position: relative;
   display: flex;
@@ -8434,7 +8434,7 @@ body.inkbeta-mode .ik-start-hint {
   text-align: center;
 }
 
-/* ---- Sélecteur de modes --------------------------------------------- */
+/* ---- SÃ©lecteur de modes --------------------------------------------- */
 body.inkbeta-mode .ik-mode-panel {
   display: flex;
   flex-direction: column;
@@ -9673,15 +9673,15 @@ html.low-power body.inkbeta-mode .ik-party-dots {
 }
 
 /* ============================================================
-   INK BETA — DISPOSITION V2
+   INK BETA â€” DISPOSITION V2
    ------------------------------------------------------------
    Cette couche ne change aucune couleur, police, texture, forme,
-   ombre ni apparence de portail. Elle déplace seulement la marque,
-   le panneau de partie et le sélecteur de modes afin de rompre avec
-   la composition précédente tout en gardant exactement la même DA.
+   ombre ni apparence de portail. Elle dÃ©place seulement la marque,
+   le panneau de partie et le sÃ©lecteur de modes afin de rompre avec
+   la composition prÃ©cÃ©dente tout en gardant exactement la mÃªme DA.
    ============================================================ */
 
-/* Marque à gauche, accès beta au centre, outils à droite. */
+/* Marque Ã  gauche, accÃ¨s beta au centre, outils Ã  droite. */
 body.inkbeta-mode .ik-layout-v2 .ik-topbar {
   height: clamp(6.5rem, 11vh, 7.3rem);
   grid-template-areas: 'brand beta tools';
@@ -9717,7 +9717,7 @@ body.inkbeta-mode .ik-layout-v2 .ik-topbar-side--end {
   justify-self: end;
 }
 
-/* Le sélecteur de modes devient un dock horizontal sous la partie. */
+/* Le sÃ©lecteur de modes devient un dock horizontal sous la partie. */
 body.inkbeta-mode .ik-layout-v2 .ik-main {
   align-items: center;
   padding: 0 clamp(1rem, 3.4vw, 4rem) 0.55rem;
@@ -9883,7 +9883,7 @@ body.inkbeta-mode .ik-layout-v2 .ik-mode-position {
   }
 }
 
-/* Mobile : même DA, ordre naturel et panneaux empilés. */
+/* Mobile : mÃªme DA, ordre naturel et panneaux empilÃ©s. */
 @media (max-width: 680px) {
   body.inkbeta-mode .ik-layout-v2 .ik-topbar {
     height: 5.35rem;
@@ -9993,10 +9993,10 @@ body.inkbeta-mode .ik-layout-v2 .ik-mode-position {
 }
 
 /* ============================================================
-   INK BETA — LECTEUR MUSICAL + AVATARS DU JEU
+   INK BETA â€” LECTEUR MUSICAL + AVATARS DU JEU
    ------------------------------------------------------------
-   Ajouts scoppés à l’accueil beta : le lecteur partagé devient un
-   dock compact, et le profil reçoit un carrousel d’avatars Mimo.
+   Ajouts scoppÃ©s Ã  lâ€™accueil beta : le lecteur partagÃ© devient un
+   dock compact, et le profil reÃ§oit un carrousel dâ€™avatars Mimo.
    ============================================================ */
 
 body.inkbeta-mode .ik-music-dock {
@@ -10394,583 +10394,781 @@ body.inkbeta-mode .ink-game-avatar-caption span {
 }
 
 /* ============================================================
-   INK BETA — LOBBY PARTY STAGE
+   INK BETA — LOBBY
    ------------------------------------------------------------
-   Habillage du lobby partagé. Toutes les règles restent sous la
-   variante explicite afin de préserver Ink stable et Neon.
+   Le salon réutilise la grammaire du menu beta : barre de marque,
+   cadre de scène, panneau à onglets, carte de lancement et dock de
+   modes. Cette couche n'ajoute que la disposition propre au lobby
+   et ses sièges ; tout le reste hérite déjà de Party Stage.
    ============================================================ */
 
-body.inkbeta-mode .ik-lobby-v2 {
-  height: 100dvh;
-  min-height: 100dvh;
+/* ---- Barre : marque à gauche, code au centre, outils à droite -------- */
+body.inkbeta-mode .ik-lobby-v2 .ik-code-chip {
+  display: inline-flex;
+  min-height: 2.85rem;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0 0.95rem;
+  border: 2px solid rgba(45, 242, 208, 0.6);
+  border-radius: 12px;
   color: var(--ik-white);
-  background: transparent;
-  font-family: var(--ik-body);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar {
-  position: relative;
-  z-index: 3;
-  min-height: clamp(4.9rem, 10vh, 6.15rem);
-  flex-wrap: nowrap;
-  padding: clamp(0.65rem, 1.4vw, 1rem) clamp(1rem, 3vw, 3.4rem) clamp(0.7rem, 1.2vw, 0.95rem);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar::after {
-  position: absolute;
-  right: clamp(1rem, 3vw, 3.4rem);
-  bottom: 0;
-  left: clamp(1rem, 3vw, 3.4rem);
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--ik-cyan) 0 17%, rgba(255, 255, 255, 0.2) 17% 82%, var(--ik-pink) 82%);
-  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.48);
-  content: '';
-  pointer-events: none;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child {
-  flex: 1 1 auto;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:last-child {
-  flex: 0 1 auto;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child > .select-none img {
-  height: clamp(2.35rem, 4.7vw, 3.3rem);
-  filter: drop-shadow(0 4px 0 rgba(53, 7, 75, 0.76));
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-btn,
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-icon-btn,
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .menu-icon-control {
-  border-width: 2px;
-  border-color: rgba(255, 255, 255, 0.32);
-  border-radius: 11px;
-  color: var(--ik-white-soft);
-  background: rgba(91, 8, 105, 0.76);
+  background: linear-gradient(180deg, rgba(111, 22, 126, 0.96), rgba(76, 8, 96, 0.96));
   box-shadow: 0 4px 0 rgba(53, 7, 75, 0.78);
+  cursor: pointer;
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-btn:hover:not(:disabled),
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-icon-btn:hover:not(:disabled),
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .menu-icon-control:hover:not(:disabled) {
-  color: var(--ik-white);
+body.inkbeta-mode .ik-lobby-v2 .ik-code-chip > span {
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-code-chip > strong {
+  font-family: var(--ik-display);
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-shadow: 0 3px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-code-chip svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--ik-cyan);
+  stroke-width: 3;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-code-chip:hover {
   background: var(--ik-panel-bright);
   transform: translateY(-2px);
   box-shadow: 0 6px 0 rgba(53, 7, 75, 0.78);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-btn:active:not(:disabled),
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-icon-btn:active:not(:disabled),
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .menu-icon-control:active:not(:disabled) {
+body.inkbeta-mode .ik-lobby-v2 .ik-code-chip:active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 rgba(53, 7, 75, 0.78);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child > button {
-  border-color: rgba(45, 242, 208, 0.62);
-  color: var(--ik-white);
-  background: linear-gradient(180deg, rgba(111, 22, 126, 0.96), rgba(76, 8, 96, 0.96));
+body.inkbeta-mode .ik-lobby-v2 .ik-tool--leave {
+  border-color: rgba(255, 98, 182, 0.62);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child > button .if-label {
-  color: var(--ik-cyan);
-  font-family: var(--ik-display);
-  font-size: 0.8rem;
-  font-weight: 400;
-  letter-spacing: 0.08em;
+body.inkbeta-mode .ik-lobby-v2 .ik-tool--leave:hover {
+  background: var(--ik-pink);
+  color: var(--ik-edge);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
+/* La barre du lobby est plus basse que celle de l'accueil : la scène doit
+   tenir en entier sous elle sans défilement sur un portable. */
+body.inkbeta-mode .ik-lobby-v2 .ik-topbar {
+  height: clamp(5.4rem, 9vh, 6.4rem);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-title {
+  width: min(100%, 16rem);
+}
+
+/* ---- Scène : play + troupe à gauche, chat à droite, modes en dock ---- */
+body.inkbeta-mode .ik-lobby-v2 .ik-main {
+  align-items: flex-start;
+  padding-bottom: clamp(0.55rem, 1.2vw, 1rem);
+}
+
+/*
+ * `margin: 0 auto` et non `margin: auto` : la scène du lobby est plus haute que
+ * celle de l'accueil, et un centrage vertical dans une zone défilante pousse le
+ * haut du panneau hors d'atteinte — Mimo et l'en-tête se retrouvaient coupés.
+ */
+body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
+  width: min(100%, 92rem);
+  min-height: 0;
+  margin: 0 auto;
+  grid-template-columns: minmax(0, 1.58fr) minmax(19rem, 0.82fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'play chat'
+    'seats chat'
+    'modes modes';
+  align-content: start;
+}
+
+/*
+ * L'accueil impose 27rem à son panneau de partie pour équilibrer sa mascotte.
+ * Le lobby doit en plus loger la troupe et le dock : on rend la hauteur au
+ * contenu, sinon la scène dépasse la fenêtre en 900 px de haut.
+ */
+body.inkbeta-mode .ik-lobby-v2 .ik-play-panel {
+  min-height: 0;
+  padding-top: 4.1rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-play {
+  min-height: 0;
+  grid-area: play;
+}
+
+@media (min-width: 1101px) {
+  /*
+   * Les rangées suivent leur contenu. Les forcer à remplir la fenêtre écrasait
+   * le panneau de partie et coupait à la fois son indice de raccourci et le bas
+   * des sièges, puisque ces panneaux masquent leur débordement.
+   */
+  body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
+    grid-template-rows: auto minmax(11.6rem, auto) auto;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-play {
+    min-height: 19rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes {
+    min-height: 9.4rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes .ik-mode {
+    min-height: 3rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait {
+    width: min(100%, 12rem);
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-seat {
+    min-height: 6.9rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
+    row-gap: 0.7rem;
+  }
+
+  /*
+   * Passe compacte : le salon empile un panneau de plus que l'accueil, donc
+   * chaque bloc rend quelques pixels pour que la scène entière tienne sous
+   * une fenêtre de 900 px sans défilement.
+   */
+  body.inkbeta-mode .ik-lobby-v2 .ik-play-panel {
+    padding: 3.7rem clamp(0.9rem, 1.7vw, 1.4rem) 1rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-start-card {
+    padding: 0.85rem 0.95rem 0.9rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-start-heading {
+    margin-bottom: 0.55rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-current-mode {
+    margin-top: 0.55rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-start-card > .ik-primary-action {
+    min-height: 3.3rem;
+    margin-top: 0.6rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-panel-head {
+    margin-bottom: 0.5rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-mode-panel-head {
+    margin-bottom: 0.35rem;
+  }
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel {
+  grid-area: seats;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
+  grid-area: chat;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes {
+  grid-area: modes;
+}
+
+/* Le panneau de partie garde la composition de l'accueil : Mimo à gauche,
+   carte d'action à droite. */
+body.inkbeta-mode .ik-lobby-v2 .ik-play-content {
+  width: 100%;
+  grid-template-columns: minmax(11rem, 0.72fr) minmax(19rem, 1.28fr);
+  align-items: center;
+  margin: 0;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-start-card {
+  width: 100%;
+  justify-self: stretch;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait {
   position: relative;
-  z-index: 1;
-  padding: clamp(0.7rem, 1.3vw, 1.05rem) clamp(0.75rem, 2.7vw, 3.2rem) clamp(0.8rem, 1.5vw, 1.25rem);
-  overflow: hidden;
-  scroll-padding-block: 1rem;
+  width: min(100%, 13.5rem);
+  aspect-ratio: 1;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
-  position: relative;
-  isolation: isolate;
-  box-sizing: border-box;
-  width: min(100%, 96rem);
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait .ik-mascot {
+  width: 100%;
   height: 100%;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 23.5rem);
-  gap: clamp(0.7rem, 1.2vw, 1.05rem);
-  padding: clamp(0.65rem, 1vw, 0.9rem);
-  overflow: hidden;
-  border: 3px solid rgba(58, 7, 80, 0.78);
-  border-radius: 22px;
-  background: rgba(97, 9, 116, 0.48);
-  box-shadow: inset 0 0 0 2px rgba(255, 151, 217, 0.13), 0 8px 0 rgba(57, 7, 78, 0.42);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid::before {
-  position: absolute;
-  top: 0;
-  left: clamp(1.1rem, 3vw, 3rem);
-  z-index: 3;
-  width: clamp(4rem, 8vw, 7rem);
-  height: 4px;
-  border-radius: 0 0 999px 999px;
+body.inkbeta-mode .ik-lobby-v2 .ik-panel-tab.is-active {
+  color: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-current-mode-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-start-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-start-hint svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  color: var(--ik-yellow);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-waiting {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin: 0.8rem 0 0;
+  border: 2px dashed rgba(45, 242, 208, 0.5);
+  border-radius: 12px;
+  color: var(--ik-cyan);
+  background: rgba(45, 242, 208, 0.08);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-waiting > span {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
   background: var(--ik-cyan);
-  box-shadow: clamp(4.6rem, 9vw, 8rem) 0 0 var(--ik-pink);
-  content: '';
-  pointer-events: none;
+  box-shadow: 0 0 0 3px rgba(45, 242, 208, 0.22);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-stage,
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat {
+/* ---- Panneaux troupe et chat, mêmes volumes que le dock de modes ----- */
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
   position: relative;
-  z-index: 1;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-stage {
-  gap: clamp(0.65rem, 1.05vw, 0.9rem);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero {
-  min-height: 12.6rem;
-  grid-template-columns: clamp(7.7rem, 10vw, 9.5rem) minmax(0, 1fr);
-  gap: clamp(0.9rem, 1.6vw, 1.5rem);
-  padding: clamp(0.85rem, 1.3vw, 1.15rem);
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
   border: 3px solid var(--ik-edge-soft);
   border-radius: 17px;
-  background: var(--ik-panel);
   background:
-    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--accent) 25%, transparent), transparent 42%),
-    linear-gradient(115deg, rgba(255, 98, 182, 0.11), transparent 34%),
+    radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.14), transparent 44%),
     var(--ik-panel);
-  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.14), 0 5px 0 rgba(54, 7, 76, 0.62);
+  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.17), 0 5px 0 rgba(54, 7, 76, 0.52);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero::after {
-  position: absolute;
-  right: -3.5rem;
-  bottom: -4.2rem;
-  width: 12rem;
-  height: 12rem;
-  border: 2.3rem solid rgba(255, 255, 255, 0.035);
-  border-radius: 50%;
-  content: '';
-  pointer-events: none;
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel {
+  padding: 0.85rem clamp(0.7rem, 1.2vw, 1rem) clamp(0.7rem, 1.1vw, 0.95rem);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero > * {
-  position: relative;
-  z-index: 1;
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-panel-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-art {
-  width: 100%;
-  max-width: 9.5rem;
-  padding: 0.3rem;
-  border: 3px solid var(--ik-edge);
-  border-radius: 15px;
-  background: color-mix(in srgb, var(--accent) 34%, var(--ik-panel-deep));
-  box-shadow: 0 5px 0 var(--ik-edge), 0 10px 20px rgba(53, 7, 75, 0.28);
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-panel-head span {
+  display: block;
+  color: var(--ik-white-faint);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-art img {
-  border-radius: 9px;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-name {
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-panel-head h2 {
+  margin: 0;
   color: var(--ik-cyan);
-  background: none;
   font-family: var(--ik-display);
-  font-size: clamp(1.8rem, 2.6vw, 2.55rem);
+  font-size: clamp(1.35rem, 2vw, 1.85rem);
   font-weight: 400;
   letter-spacing: 0.035em;
+  line-height: 1;
   text-transform: uppercase;
   text-shadow: 0 4px 0 var(--ik-edge);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-tagline {
-  color: color-mix(in srgb, var(--accent) 48%, var(--ik-white));
-  font-family: var(--ik-body);
-  font-size: 0.9rem;
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.25rem 0.7rem;
+  border: 2px solid rgba(255, 255, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(75, 7, 89, 0.72);
+  box-shadow: 0 3px 0 rgba(54, 7, 76, 0.62);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-count strong {
+  color: var(--ik-white);
+  font-family: var(--ik-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-count span {
+  color: var(--ik-cyan);
+  font-size: 0.68rem;
   font-weight: 900;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-desc {
-  max-width: 64ch;
-  margin-top: 0.35rem;
-  color: var(--ik-white-soft);
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.35;
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-reconnect {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.55rem;
+  color: var(--ik-yellow);
+  font-size: 0.68rem;
+  font-weight: 850;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero .if-btn--primary {
-  min-height: 3rem;
-  border: 3px solid var(--ik-edge);
-  border-radius: 12px;
-  color: var(--ik-white);
-  box-shadow: 0 5px 0 var(--ik-edge);
-  font-family: var(--ik-body);
-  font-weight: 950;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-reconnect svg {
+  width: 0.85rem;
+  height: 0.85rem;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero .if-btn--primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 7px 0 var(--ik-edge);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero .if-btn--primary:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: 0 2px 0 var(--ik-edge);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock {
-  padding: 0.65rem 0.7rem 0.15rem;
-  overflow: hidden;
-  border: 3px solid var(--ik-edge-soft);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(151, 39, 160, 0.94), rgba(95, 12, 105, 0.96));
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08), 0 5px 0 rgba(54, 7, 76, 0.58);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .if-label,
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .if-label,
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card .if-label {
-  color: var(--ik-cyan);
-  font-family: var(--ik-display);
-  font-size: 1rem;
-  font-weight: 400;
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
-  text-shadow: 0 2px 0 var(--ik-edge);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-shelf {
+/* ---- Sièges ---------------------------------------------------------- */
+body.inkbeta-mode .ik-lobby-v2 .ik-seats {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: repeat(auto-fill, minmax(6.1rem, 1fr));
+  align-content: start;
   gap: 0.55rem;
-  padding: 0.1rem 0.15rem 0.65rem;
+  overflow-y: auto;
+  padding-right: 0.15rem;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip {
-  width: clamp(6.2rem, 7.4vw, 7.4rem);
-  gap: 0.28rem;
-  padding: 0.38rem 0.38rem 0.5rem;
+body.inkbeta-mode .ik-lobby-v2 .ik-seat {
+  position: relative;
+  display: flex;
+  min-height: 7.4rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.7rem 0.4rem 0.6rem;
   border: 2px solid rgba(255, 255, 255, 0.22);
-  border-radius: 11px;
-  color: var(--ik-white-soft);
-  background: rgba(72, 7, 89, 0.74);
-  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.68);
+  border-radius: 13px;
+  background: rgba(72, 6, 88, 0.62);
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.6);
+  text-align: center;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip:not(:disabled):hover {
-  border-color: var(--ik-white);
-  color: var(--ik-white);
-  box-shadow: 0 5px 0 rgba(53, 7, 75, 0.72);
-  transform: translateY(-2px) translateZ(0);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip.is-selected {
+body.inkbeta-mode .ik-lobby-v2 .ik-seat.is-self {
   border-color: var(--ik-cyan);
-  color: var(--ik-white);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 30%, transparent), rgba(68, 6, 84, 0.9));
-  box-shadow: 0 4px 0 var(--ik-edge), 0 0 0 2px rgba(45, 242, 208, 0.12);
+  background: linear-gradient(180deg, rgba(45, 242, 208, 0.16), rgba(72, 6, 88, 0.72));
+  box-shadow: 0 3px 0 var(--ik-edge);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip:disabled {
+body.inkbeta-mode .ik-lobby-v2 .ik-seat.is-away {
   opacity: 0.62;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip-art {
-  border: 2px solid rgba(255, 255, 255, 0.13);
-  border-radius: 8px;
-  background: var(--ik-panel-deep);
+body.inkbeta-mode .ik-lobby-v2 .ik-seat.is-free {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(60, 5, 76, 0.3);
+  box-shadow: none;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip-name {
-  font-family: var(--ik-body);
-  font-size: 0.64rem;
-  font-weight: 900;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip-dot {
-  top: 0.25rem;
-  right: 0.25rem;
-  width: 1.05rem;
-  height: 1.05rem;
-  border: 2px solid var(--ik-edge);
-  color: var(--ik-edge);
-  background: var(--ik-cyan);
-  box-shadow: 0 2px 0 var(--ik-edge);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster,
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card {
-  border: 3px solid var(--ik-edge-soft);
-  border-radius: 16px;
-  background: rgba(91, 11, 102, 0.94);
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.07), 0 5px 0 rgba(54, 7, 76, 0.58);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster > div:first-child,
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card > div > div:first-child {
-  border-bottom: 2px solid rgba(255, 255, 255, 0.16);
-  background: rgba(72, 6, 88, 0.44);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster > div:first-child .if-btn {
-  border: 2px solid var(--ik-edge);
-  border-radius: 9px;
-  color: var(--ik-edge);
-  background: var(--ik-cyan);
-  box-shadow: 0 3px 0 var(--ik-edge);
-  font-weight: 950;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster > div:first-child .if-btn:hover:not(:disabled) {
-  background: #6dffe6;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 0 var(--ik-edge);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-players-grid {
-  gap: 0.55rem;
-  grid-template-columns: repeat(auto-fill, minmax(6.2rem, 1fr));
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player {
-  min-height: 7.25rem;
-  gap: 0.3rem;
-  padding: 0.65rem 0.4rem 0.55rem;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  background: rgba(70, 6, 86, 0.62);
-  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.62);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player.is-self {
-  border-color: var(--ik-cyan);
-  background: linear-gradient(180deg, rgba(45, 242, 208, 0.16), rgba(70, 6, 86, 0.7));
-  box-shadow: 0 3px 0 var(--ik-edge), inset 0 0 0 1px rgba(45, 242, 208, 0.16);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-avatar {
-  width: 3.55rem;
-  height: 3.55rem;
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-avatar {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
   border: 3px solid var(--ik-white);
+  border-radius: 50%;
+  color: var(--ik-white);
   background: linear-gradient(150deg, var(--ik-panel-bright), var(--ik-pink));
   box-shadow: 0 0 0 3px var(--ik-edge), 0 4px 0 var(--ik-edge);
   font-family: var(--ik-display);
-  font-size: 1.45rem;
-  font-weight: 400;
+  font-size: 1.4rem;
   text-shadow: 0 2px 0 var(--ik-edge);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-avatar.is-mimo {
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-avatar.has-portrait {
   background: var(--ik-panel-deep);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-avatar.is-mimo img {
-  padding: 0.14rem;
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-avatar img {
+  width: 100%;
+  height: 100%;
+  padding: 0.12rem;
   object-fit: contain;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-name {
+body.inkbeta-mode .ik-lobby-v2 .ik-seat.is-free .ik-seat-avatar {
+  border: 2px dashed rgba(45, 242, 208, 0.55);
+  color: var(--ik-cyan);
+  background: transparent;
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat.is-free .ik-seat-avatar svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-name {
+  max-width: 100%;
+  overflow: hidden;
   color: var(--ik-white);
-  font-family: var(--ik-body);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-meta {
+body.inkbeta-mode .ik-lobby-v2 .ik-seat.is-free .ik-seat-name {
   color: var(--ik-white-faint);
-  font-size: 0.62rem;
-  font-weight: 750;
+  font-weight: 800;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-crown {
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-meta {
+  color: var(--ik-cyan);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat.is-away .ik-seat-meta {
+  color: var(--ik-yellow);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-crown {
+  position: absolute;
   top: 0.35rem;
   left: 0.4rem;
+  width: 0.95rem;
+  height: 0.95rem;
   color: var(--ik-yellow);
   filter: drop-shadow(0 2px 0 var(--ik-edge));
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-slot {
-  min-height: 7.25rem;
-  border: 2px dashed rgba(255, 255, 255, 0.28);
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-actions {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-menu {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ik-white-soft);
+  background: transparent;
+  cursor: pointer;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-menu:hover {
+  color: var(--ik-edge);
+  background: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-menu svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-popover {
+  position: absolute;
+  top: 2rem;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  width: 11rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  border: 2px solid var(--ik-edge);
   border-radius: 12px;
-  color: var(--ik-white-faint);
-  background: rgba(60, 5, 76, 0.28);
+  background: var(--ik-panel-deep);
+  box-shadow: 0 6px 0 rgba(53, 7, 75, 0.8);
+  text-align: left;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-slot-ring {
-  width: 3.25rem;
-  height: 3.25rem;
-  border: 2px dashed rgba(45, 242, 208, 0.54);
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-popover button {
+  display: flex;
+  min-height: 2.2rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ik-white-soft);
+  background: transparent;
+  font-size: 0.7rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-popover button svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-popover button:hover {
+  color: var(--ik-white);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-seat-popover button.is-danger:hover {
+  color: var(--ik-edge);
+  background: var(--ik-pink);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-alone {
+  flex-shrink: 0;
+  margin: 0.6rem 0 0;
+  color: var(--ik-white-soft);
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-alone strong {
   color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card > div > div:last-child {
+/* ---- Chat ------------------------------------------------------------ */
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel .if-label {
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel > div > div:first-child {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.16);
+  background: rgba(72, 6, 88, 0.42);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel > div > div:last-child {
   border-top: 2px solid rgba(255, 255, 255, 0.16);
   background: rgba(72, 6, 88, 0.42);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card > div > div:last-child > div {
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel > div > div:last-child > div {
   border: 2px solid rgba(255, 255, 255, 0.18);
   background: rgba(48, 4, 65, 0.72) !important;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card > div > div:last-child > div:focus-within {
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel > div > div:last-child > div:focus-within {
   border-color: var(--ik-cyan);
   box-shadow: 0 0 0 3px rgba(45, 242, 208, 0.12);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card button[aria-label='Envoyer'] {
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel button[aria-label='Envoyer'] {
   border: 2px solid var(--ik-edge);
   color: var(--ik-edge);
   background: var(--ik-cyan) !important;
   box-shadow: 0 2px 0 var(--ik-edge);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card button[aria-label='Envoyer']:hover:not(:disabled) {
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel button[aria-label='Envoyer']:hover:not(:disabled) {
   background: #6dffe6 !important;
-  transform: translateY(-1px);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card button[aria-label='Envoyer un GIF'] {
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel button[aria-label='Envoyer un GIF'] {
   color: var(--ik-pink);
 }
 
+/* ---- Dock de modes --------------------------------------------------- */
+body.inkbeta-mode .ik-lobby-v2 .ik-mode-icon img,
+body.inkbeta-mode .ik-lobby-v2 .ik-mode-feature-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-mode:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-mode:disabled:not(.is-selected) {
+  opacity: 0.5;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-mode-nav-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-panel-tab:disabled {
+  opacity: 0.42;
+}
+
+/* ---- Dialogues ------------------------------------------------------- */
 body.inkbeta-mode .menu-dialog.ik-party-overlay.ik-lobby-overlay {
   width: min(calc(100vw - 1.5rem), 40rem);
   max-width: 40rem;
 }
 
-@media (max-width: 1100px) {
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
-    overflow-y: auto;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
-    width: min(100%, 52rem);
-    height: auto;
-    min-height: 100%;
-    grid-template-columns: minmax(0, 1fr);
+/*
+ * Desktop : huit colonnes fixes, la salle se lit d'un coup comme une rangée de
+ * huit places. Ce bloc vient après la grille par défaut des sièges, sinon
+ * `auto-fill` — de même spécificité mais déclaré plus bas — l'emporterait et
+ * replierait les derniers sièges sur une seconde ligne.
+ */
+@media (min-width: 1101px) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-seats {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    align-content: center;
     overflow: visible;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat {
-    min-height: 28rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-stage {
-    min-height: 0;
   }
 }
 
+/* ---- Tablette : une colonne, chat sous la troupe -------------------- */
+@media (max-width: 1100px) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
+    width: min(100%, 52rem);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      'play'
+      'modes'
+      'seats'
+      'chat';
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-play-content {
+    grid-template-columns: minmax(10rem, 0.75fr) minmax(0, 1.25fr);
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel {
+    min-height: 20rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
+    min-height: 26rem;
+  }
+}
+
+/* ---- Mobile ---------------------------------------------------------- */
 @media (max-width: 680px) {
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar {
-    min-height: 5.4rem;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    padding: 0.48rem 0.55rem 0.65rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-topbar {
+    height: auto;
+    min-height: 5.6rem;
+    grid-template-areas:
+      'brand tools'
+      'beta beta';
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0.5rem;
+    padding: 0.5rem 0.55rem 0.65rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar::after {
-    right: 0.55rem;
-    left: 0.55rem;
-    height: 2px;
+  body.inkbeta-mode .ik-lobby-v2 .ik-title {
+    width: 11.5rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child {
-    min-width: 0;
-    flex: 1 1 auto;
+  body.inkbeta-mode .ik-lobby-v2 .ik-topbar-side--start {
+    display: flex;
+    justify-self: stretch;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:last-child {
-    width: auto;
-    max-width: 100%;
-    flex: 1 1 auto;
-    justify-content: flex-end;
+  body.inkbeta-mode .ik-lobby-v2 .ik-code-chip {
+    width: 100%;
+    min-height: 2.6rem;
+    justify-content: center;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-btn,
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-icon-btn,
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .menu-icon-control {
-    border-radius: 9px;
-    box-shadow: 0 3px 0 rgba(53, 7, 75, 0.76);
+  body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
+    grid-template-areas:
+      'play'
+      'modes'
+      'seats'
+      'chat';
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
-    padding: 0.5rem 0.4rem 0.8rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
-    gap: 0.65rem;
-    padding: 0.45rem;
-    border-width: 2px;
-    border-radius: 15px;
-    box-shadow: inset 0 0 0 1px rgba(255, 151, 217, 0.13), 0 5px 0 rgba(57, 7, 78, 0.4);
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero,
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock,
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster,
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
     border-width: 2px;
     border-radius: 13px;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero {
-    min-height: 0;
-    grid-template-columns: 7.2rem minmax(0, 1fr);
-    gap: 0.7rem;
-    padding: 0.7rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-play-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-name {
-    font-size: clamp(1.55rem, 6.5vw, 2rem);
-    text-shadow: 0 3px 0 var(--ik-edge);
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait {
+    width: min(58vw, 12rem);
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-tagline {
-    font-size: 0.75rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-panel-head h2 {
+    font-size: 1.5rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-desc {
-    font-size: 0.72rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-seats {
+    grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+    gap: 0.45rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock {
-    padding: 0.55rem 0.5rem 0.1rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-seat {
+    min-height: 6.6rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip {
-    width: 6rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster > div:first-child {
-    padding: 0.7rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-players-grid {
-    grid-template-columns: repeat(auto-fill, minmax(5.65rem, 1fr));
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player,
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-slot {
-    min-height: 6.55rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-avatar {
-    width: 3rem;
-    height: 3rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-seat-avatar {
+    width: 2.9rem;
+    height: 2.9rem;
     border-width: 2px;
     box-shadow: 0 0 0 2px var(--ik-edge), 0 3px 0 var(--ik-edge);
+    font-size: 1.15rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat {
-    min-height: min(32rem, 72dvh);
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel {
+    min-height: 0;
+    padding: 0.7rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
+    min-height: min(30rem, 70dvh);
   }
 
   body.inkbeta-mode .menu-dialog.ik-party-overlay.ik-lobby-overlay {
@@ -10978,77 +11176,28 @@ body.inkbeta-mode .menu-dialog.ik-party-overlay.ik-lobby-overlay {
   }
 }
 
-@media (max-width: 560px) {
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero {
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: center;
-    text-align: center;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-art {
-    width: 7.5rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero .if-btn--primary {
-    width: 100%;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 480px) {
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar {
-    min-height: 7.3rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child,
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:last-child {
-    width: 100%;
-    flex-basis: 100%;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child {
-    justify-content: center;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:last-child {
-    justify-content: center;
-  }
-}
-
 @media (max-width: 390px) {
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
-    padding: 0.35rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-title {
+    width: 10.5rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip {
-    width: 5.65rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-players-grid {
+  body.inkbeta-mode .ik-lobby-v2 .ik-seats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (orientation: landscape) and (max-height: 720px) and (min-width: 681px) {
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar {
-    min-height: 4.4rem;
-    padding-block: 0.35rem 0.55rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-topbar {
+    height: 4.6rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
-    overflow-y: auto;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
-    height: auto;
-    min-height: 42rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait {
+    width: min(100%, 11rem);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar :is(.if-btn, .if-icon-btn, .menu-icon-control),
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip,
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .if-btn--primary {
+  body.inkbeta-mode .ik-lobby-v2 .ik-code-chip {
     transition: none;
   }
 }
