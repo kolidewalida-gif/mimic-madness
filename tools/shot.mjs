@@ -93,8 +93,19 @@ for (const viewport of targets) {
     }
     await page.screenshot({ path: file, fullPage: true });
 
+    /* Sur tablette et mobile, le menu défile dans `.ik-main` plutôt que dans
+       le document. Une capture fullPage ne voit donc que le haut du scroller :
+       on capture aussi explicitement la matrice des modes en position basse. */
+    if (viewport.name === 'tablet' || viewport.name === 'mobile') {
+      const main = page.locator('.ik-main');
+      await main.evaluate((node) => { node.scrollTop = node.scrollHeight; });
+      await page.waitForTimeout(180);
+      await page.screenshot({ path: `${OUT}/menu-${viewport.name}-modes.png`, fullPage: false });
+      await main.evaluate((node) => { node.scrollTop = 0; });
+    }
+
     const box = await page.locator('.ik-play-panel').boundingBox();
-    const title = await page.locator('.ik-title').boundingBox();
+    const title = await page.locator('.ik-home-brand').boundingBox();
 
     console.log(
       `OK   ${viewport.name.padEnd(7)} ${viewport.width}x${viewport.height}` +
@@ -137,7 +148,7 @@ for (const viewport of targets) {
         name: 'options',
       });
 
-      if (viewport.name === '1440') {
+      if (viewport.name === '1440' || viewport.name === 'mobile') {
         await captureOverlay({
           trigger: page.getByRole('button', { name: 'Mes amis', exact: true }),
           panelSelector: '.ik-friends-drawer',
@@ -165,4 +176,4 @@ for (const viewport of targets) {
 
 await browser.close();
 console.log(`\ncaptures dans ${OUT}`);
-process.exitCode = failed === targets.length ? 1 : 0;
+process.exitCode = failed > 0 ? 1 : 0;

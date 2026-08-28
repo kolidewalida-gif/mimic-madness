@@ -9671,3 +9671,2135 @@ body.inkbeta-mode .ink-friends-row .menu-icon-control {
 html.low-power body.inkbeta-mode .ik-party-dots {
   display: none;
 }
+
+/* ============================================================
+   INK BETA — CYBER SIGNAL
+   ------------------------------------------------------------
+   Rupture avec la précédente scène party-game : fond obsidienne,
+   casque synthétique, spectre vocal, géométrie technique et
+   néons fuchsia/violet. Cette couche tardive remplace visuellement
+   PARTY STAGE sans modifier les autres thèmes ni les portails.
+   ============================================================ */
+
+body.inkbeta-mode {
+  --ik-bg: #030410;
+  --ik-bg-hot: #150525;
+  --ik-bg-deep: #01020a;
+  --ik-panel: #080a1c;
+  --ik-panel-deep: #050616;
+  --ik-panel-soft: #0d1027;
+  --ik-panel-bright: #15183a;
+  --ik-edge: #24264f;
+  --ik-edge-soft: #393568;
+  --ik-cyan: #ff47d7;
+  --ik-cyan-deep: #b637f1;
+  --ik-pink: #ff2fb9;
+  --ik-yellow: #b8a7ff;
+  --ik-white: #f8f5ff;
+  --ik-white-soft: #d6d2e8;
+  --ik-white-faint: #8f8aa9;
+  --ik-shadow: #010108;
+  --ik-magenta: #ff2fbd;
+  --ik-fuchsia: #ff4fe1;
+  --ik-violet: #8d5cff;
+  --ik-indigo: #5b43e8;
+  --ik-lavender: #b9a8ff;
+  --ik-display: 'Space Grotesk', 'Outfit', system-ui, sans-serif;
+  --ik-body: 'Outfit', 'Inter', system-ui, sans-serif;
+
+  --ink-bg: var(--ik-bg);
+  --ink-bg-deep: var(--ik-bg-deep);
+  --ink-surface: var(--ik-panel);
+  --ink-surface-2: var(--ik-panel-soft);
+  --ink-surface-3: var(--ik-panel-bright);
+  --ink-line: rgba(161, 142, 255, 0.18);
+  --ink-line-strong: rgba(255, 79, 225, 0.48);
+  --ink-text: var(--ik-white);
+  --ink-text-dim: var(--ik-lavender);
+  --ink-text-mute: var(--ik-white-faint);
+  --ink-accent: var(--ik-violet);
+  --ink-accent-text: #f7efff;
+  --ink-accent-soft: rgba(141, 92, 255, 0.18);
+  --ink-accent-softer: rgba(141, 92, 255, 0.08);
+  --ink-accent-line: rgba(255, 79, 225, 0.52);
+  --ink-radius: 8px;
+  --ink-radius-sm: 6px;
+  --ink-radius-xs: 4px;
+  --ink-shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --ink-shadow-card: 0 18px 50px rgba(0, 0, 0, 0.42);
+  --ink-shadow-pop: 0 28px 80px rgba(0, 0, 0, 0.58);
+  --ink-panel-gradient: #080a1c;
+  --ink-outline: rgba(255, 79, 225, 0.42);
+
+  background: var(--ik-bg-deep);
+}
+
+body.inkbeta-mode .ik-root.ik-cyber-root {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  color: var(--ik-white);
+  background: var(--ik-bg-deep);
+  font-family: var(--ik-body);
+}
+
+body.inkbeta-mode .ik-cyber-aurora,
+body.inkbeta-mode .ik-cyber-grid,
+body.inkbeta-mode .ik-cyber-scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-cyber-aurora {
+  z-index: -5;
+  background:
+    radial-gradient(circle at 24% 46%, rgba(255, 40, 190, 0.11), transparent 28%),
+    radial-gradient(circle at 73% 34%, rgba(104, 67, 232, 0.13), transparent 35%),
+    radial-gradient(circle at 52% 108%, rgba(91, 67, 232, 0.12), transparent 38%),
+    #02030d;
+}
+
+body.inkbeta-mode .ik-cyber-grid {
+  z-index: -4;
+  opacity: 0.24;
+  background-image:
+    linear-gradient(rgba(142, 116, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(142, 116, 255, 0.1) 1px, transparent 1px);
+  background-position: center center;
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0, 0, 0, 0.82) 35%, transparent 82%);
+  mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0, 0, 0, 0.82) 35%, transparent 82%);
+}
+
+body.inkbeta-mode .ik-cyber-scanlines {
+  z-index: -3;
+  opacity: 0.18;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 3px,
+    rgba(255, 255, 255, 0.018) 4px
+  );
+}
+
+body.inkbeta-mode .ik-cyber-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, transparent 0 3%, rgba(255, 47, 189, 0.44) 3% 8%, transparent 8% 92%, rgba(141, 92, 255, 0.36) 92% 97%, transparent 97%) top / 100% 1px no-repeat,
+    linear-gradient(90deg, transparent 0 42%, rgba(255, 47, 189, 0.34) 42% 58%, transparent 58%) bottom / 100% 1px no-repeat;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* ---- Navigation système --------------------------------------------- */
+body.inkbeta-mode .ik-cyber-root .ik-topbar {
+  display: grid;
+  height: 5.35rem;
+  grid-template-columns: minmax(17rem, 1fr) auto minmax(17rem, 1fr);
+  align-items: center;
+  gap: 1rem;
+  padding: 0 clamp(1rem, 3vw, 3.4rem);
+  border-bottom: 1px solid rgba(150, 126, 255, 0.17);
+  background: rgba(3, 4, 16, 0.78);
+  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.2);
+}
+
+body.inkbeta-mode .ik-home-brand {
+  display: inline-grid;
+  width: max-content;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 0.7rem;
+  margin: 0;
+  color: var(--ik-white);
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-brand-mark {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  grid-row: 1 / 3;
+  place-items: center;
+  border: 1px solid rgba(255, 79, 225, 0.62);
+  color: var(--ik-fuchsia);
+  background: rgba(255, 47, 189, 0.08);
+  box-shadow: inset 0 0 18px rgba(255, 47, 189, 0.08), 0 0 22px rgba(255, 47, 189, 0.1);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+body.inkbeta-mode .ik-brand-mark svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  stroke-width: 1.8;
+}
+
+body.inkbeta-mode .ik-brand-name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.28rem;
+  font-family: var(--ik-display);
+  font-size: 1.08rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
+
+body.inkbeta-mode .ik-brand-name b,
+body.inkbeta-mode .ik-brand-name strong {
+  font-weight: inherit;
+}
+
+body.inkbeta-mode .ik-brand-name strong {
+  color: var(--ik-fuchsia);
+}
+
+body.inkbeta-mode .ik-brand-edition {
+  align-self: start;
+  color: var(--ik-white-faint);
+  font-family: var(--ik-display);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  line-height: 1;
+}
+
+body.inkbeta-mode .ik-system-strip {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  color: #6f6c87;
+  font-family: var(--ik-display);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-system-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-system-strip span + span::before {
+  content: '';
+  width: 1px;
+  height: 1rem;
+  margin-right: 0.75rem;
+  background: rgba(150, 126, 255, 0.2);
+}
+
+body.inkbeta-mode .ik-system-strip i,
+body.inkbeta-mode .ik-console-readout i,
+body.inkbeta-mode .ik-core-status i {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--ik-fuchsia);
+  box-shadow: 0 0 10px var(--ik-fuchsia);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-topbar-side {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.42rem;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-notifications {
+  display: inline-flex;
+  align-items: center;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-tool {
+  display: inline-flex;
+  min-width: 2.7rem;
+  min-height: 2.65rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0 0.72rem;
+  border: 1px solid rgba(151, 128, 255, 0.24);
+  border-radius: 5px;
+  color: #aaa5c0;
+  background: rgba(11, 12, 34, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+  font-family: var(--ik-display);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-tool svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 1.8;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-tool:hover {
+  border-color: rgba(255, 79, 225, 0.62);
+  color: var(--ik-white);
+  background: rgba(255, 47, 189, 0.08);
+  box-shadow: 0 0 20px rgba(255, 47, 189, 0.1);
+  transform: translateY(-1px);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-tool:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-tool--profile {
+  border-color: rgba(255, 79, 225, 0.38);
+  color: var(--ik-white-soft);
+}
+
+/* ---- Grille principale ---------------------------------------------- */
+body.inkbeta-mode .ik-cyber-root .ik-main {
+  display: flex;
+  align-items: center;
+  padding: clamp(1rem, 2.4vh, 1.6rem) clamp(1rem, 3vw, 3.4rem);
+  scroll-padding-block: 1rem;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-canvas {
+  display: grid;
+  width: min(100%, 90rem);
+  min-height: min(44rem, calc(100dvh - 9.4rem));
+  grid-template-columns: minmax(0, 1.55fr) minmax(20rem, 0.75fr);
+  gap: clamp(0.85rem, 1.35vw, 1.3rem);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-play-panel,
+body.inkbeta-mode .ik-cyber-root .ik-mode-panel {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(143, 122, 255, 0.26);
+  border-radius: 8px;
+  background: rgba(6, 7, 23, 0.88);
+  box-shadow: 0 24px 65px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.018);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-play-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-play-panel::before,
+body.inkbeta-mode .ik-cyber-root .ik-mode-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 7rem;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ik-fuchsia), transparent);
+  box-shadow: 0 0 14px rgba(255, 79, 225, 0.5);
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-play-panel::after {
+  display: none;
+}
+
+body.inkbeta-mode .ik-command-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 5.2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1.15rem 0.9rem 1.35rem;
+  border-bottom: 1px solid rgba(143, 122, 255, 0.16);
+  background: rgba(13, 14, 39, 0.74);
+}
+
+body.inkbeta-mode .ik-command-header > div > span,
+body.inkbeta-mode .ik-mode-panel-head > span {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--ik-fuchsia);
+  font-family: var(--ik-display);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-command-header h2,
+body.inkbeta-mode .ik-mode-panel-head h2 {
+  margin: 0;
+  color: var(--ik-white);
+  font-family: var(--ik-display);
+  font-size: clamp(1.25rem, 1.8vw, 1.75rem);
+  font-weight: 520;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  text-transform: none;
+  text-shadow: none;
+}
+
+body.inkbeta-mode .ik-code-access {
+  display: inline-flex;
+  min-height: 2.65rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(255, 79, 225, 0.36);
+  border-radius: 4px;
+  color: var(--ik-white-soft);
+  background: rgba(255, 47, 189, 0.07);
+  font-family: var(--ik-display);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+body.inkbeta-mode .ik-code-access svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--ik-fuchsia);
+}
+
+body.inkbeta-mode .ik-code-access:hover:not(:disabled) {
+  border-color: var(--ik-fuchsia);
+  background: rgba(255, 47, 189, 0.13);
+  box-shadow: 0 0 22px rgba(255, 47, 189, 0.12);
+}
+
+body.inkbeta-mode .ik-code-access:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-play-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(18rem, 1.08fr) minmax(18rem, 0.92fr);
+  align-items: stretch;
+  gap: clamp(0.85rem, 1.5vw, 1.35rem);
+  padding: clamp(0.9rem, 1.8vw, 1.5rem);
+}
+
+/* ---- Noyau casque / signal ----------------------------------------- */
+body.inkbeta-mode .ik-core-zone {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.7rem clamp(0.7rem, 1.5vw, 1.2rem) 1rem;
+  border: 1px solid rgba(143, 122, 255, 0.14);
+  border-radius: 5px;
+  background:
+    radial-gradient(circle at center, rgba(114, 55, 213, 0.13), transparent 54%),
+    rgba(2, 3, 15, 0.7);
+}
+
+body.inkbeta-mode .ik-core-status {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.85rem;
+  left: 0.85rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #77738f;
+  font-family: var(--ik-display);
+  font-size: 0.48rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-core-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  color: var(--ik-lavender);
+}
+
+body.inkbeta-mode .ik-core-status small {
+  font-size: inherit;
+}
+
+body.inkbeta-mode .ik-core-frame {
+  position: relative;
+  width: min(100%, 27rem);
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #020318;
+}
+
+body.inkbeta-mode .ik-core-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  filter: saturate(1.08) contrast(1.05) brightness(0.94);
+}
+
+body.inkbeta-mode .ik-core-corner {
+  position: absolute;
+  z-index: 3;
+  width: 2rem;
+  height: 2rem;
+  border-color: rgba(255, 79, 225, 0.62);
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-core-corner--tl {
+  top: 0.45rem;
+  left: 0.45rem;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+body.inkbeta-mode .ik-core-corner--tr {
+  top: 0.45rem;
+  right: 0.45rem;
+  border-top: 1px solid;
+  border-right: 1px solid;
+}
+
+body.inkbeta-mode .ik-core-corner--bl {
+  bottom: 0.45rem;
+  left: 0.45rem;
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+}
+
+body.inkbeta-mode .ik-core-corner--br {
+  right: 0.45rem;
+  bottom: 0.45rem;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+}
+
+body.inkbeta-mode .ik-core-scan {
+  position: absolute;
+  right: 12%;
+  left: 12%;
+  z-index: 2;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 79, 225, 0.72), transparent);
+  box-shadow: 0 0 12px rgba(255, 79, 225, 0.45);
+  animation: ik-cyber-scan 4.2s linear infinite;
+}
+
+body.inkbeta-mode .ik-spectrum {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  width: min(84%, 23rem);
+  height: 2.4rem;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2px, 0.35vw, 5px);
+  margin-top: -1.45rem;
+  padding: 0 0.65rem;
+  border-top: 1px solid rgba(255, 79, 225, 0.16);
+  border-bottom: 1px solid rgba(141, 92, 255, 0.14);
+  background: rgba(2, 3, 16, 0.84);
+}
+
+body.inkbeta-mode .ik-spectrum span {
+  width: 2px;
+  height: var(--signal-level);
+  min-height: 4px;
+  background: linear-gradient(180deg, var(--ik-fuchsia), var(--ik-violet));
+  box-shadow: 0 0 7px rgba(255, 79, 225, 0.52);
+  animation: ik-cyber-level 1.15s var(--signal-delay) ease-in-out infinite alternate;
+}
+
+body.inkbeta-mode .ik-core-caption {
+  display: inline-flex;
+  min-height: 1.85rem;
+  align-items: center;
+  gap: 0.42rem;
+  margin: 0.65rem 0 0;
+  color: #8e89a8;
+  font-family: var(--ik-display);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-core-caption svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--ik-fuchsia);
+}
+
+/* ---- Console de lancement ------------------------------------------ */
+body.inkbeta-mode .ik-cyber-root .ik-start-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-self: center;
+  padding: clamp(1rem, 1.7vw, 1.35rem);
+  border: 1px solid rgba(143, 122, 255, 0.2);
+  border-left: 2px solid var(--ik-fuchsia);
+  border-radius: 5px;
+  background: rgba(11, 12, 35, 0.9);
+  box-shadow: -12px 0 34px rgba(255, 47, 189, 0.035), inset 0 0 24px rgba(141, 92, 255, 0.025);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-start-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-start-heading > span {
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  min-height: 1.5rem;
+  align-items: center;
+  padding: 0 0.55rem;
+  border: 1px solid rgba(255, 79, 225, 0.42);
+  border-radius: 2px;
+  color: var(--ik-fuchsia);
+  background: rgba(255, 47, 189, 0.07);
+  box-shadow: none;
+  font-family: var(--ik-display);
+  font-size: 0.5rem;
+  font-weight: 650;
+  letter-spacing: 0.13em;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-start-heading p {
+  margin: 0;
+  color: var(--ik-white);
+  font-family: var(--ik-display);
+  font-size: clamp(0.92rem, 1.25vw, 1.1rem);
+  font-weight: 540;
+  letter-spacing: 0.015em;
+  line-height: 1.1;
+  text-transform: none;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-start-heading small {
+  display: block;
+  margin-top: 0.22rem;
+  color: var(--ik-white-faint);
+  font-size: 0.6rem;
+  font-weight: 500;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) .ik-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) .ik-field > svg {
+  position: absolute;
+  left: 0.95rem;
+  z-index: 2;
+  width: 1rem;
+  height: 1rem;
+  color: var(--ik-violet);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) .ik-input {
+  width: 100%;
+  min-height: 3.35rem;
+  padding: 0 0.95rem 0 2.65rem;
+  border: 1px solid rgba(143, 122, 255, 0.34);
+  border-radius: 4px;
+  outline: 0;
+  color: var(--ik-white);
+  caret-color: var(--ik-fuchsia);
+  background: #050619;
+  box-shadow: inset 0 0 22px rgba(91, 67, 232, 0.03);
+  font-family: var(--ik-display);
+  font-size: clamp(0.92rem, 1.2vw, 1.06rem);
+  font-weight: 520;
+  letter-spacing: 0.03em;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) .ik-input::placeholder {
+  color: #67637c;
+  opacity: 1;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) .ik-input:focus {
+  border-color: var(--ik-fuchsia);
+  background: #08081f;
+  box-shadow: 0 0 0 2px rgba(255, 79, 225, 0.11), 0 0 24px rgba(255, 47, 189, 0.08);
+  transform: none;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-current-mode {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  padding: 0.58rem 0.65rem;
+  border: 1px solid rgba(143, 122, 255, 0.17);
+  border-radius: 4px;
+  background: rgba(141, 92, 255, 0.035);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-current-mode-icon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid rgba(255, 79, 225, 0.4);
+  border-radius: 3px;
+  color: var(--ik-fuchsia);
+  background: rgba(255, 47, 189, 0.07);
+  box-shadow: 0 0 16px rgba(255, 47, 189, 0.06);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-current-mode-icon svg {
+  width: 1.08rem;
+  height: 1.08rem;
+  stroke-width: 2;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-current-mode > span:nth-child(2) {
+  min-width: 0;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-current-mode :is(small, strong) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-current-mode small {
+  color: #77738e;
+  font-family: var(--ik-display);
+  font-size: 0.48rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-current-mode strong {
+  margin-top: 0.12rem;
+  color: var(--ik-white-soft);
+  font-family: var(--ik-display);
+  font-size: 0.72rem;
+  font-weight: 550;
+  letter-spacing: 0.03em;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-current-mode > button {
+  min-height: 1.9rem;
+  padding: 0 0.45rem;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 79, 225, 0.6);
+  color: var(--ik-lavender);
+  background: transparent;
+  font-family: var(--ik-display);
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+body.inkbeta-mode .ik-console-readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.7rem 0 0;
+  color: #6e6a83;
+  font-family: var(--ik-display);
+  font-size: 0.47rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-console-readout span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) :is(.ik-primary-action, .ik-secondary-action) {
+  display: inline-flex;
+  min-height: 3.4rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0 1rem;
+  border: 1px solid rgba(255, 79, 225, 0.5);
+  border-radius: 3px;
+  font-family: var(--ik-display);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.095em;
+  text-transform: uppercase;
+  cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+  transition: filter 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) .ik-primary-action {
+  color: #fff;
+  background: linear-gradient(105deg, #e82aa9 0%, #a438e6 52%, #6746e9 100%);
+  box-shadow: 0 0 26px rgba(232, 42, 169, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-start-card > .ik-primary-action {
+  min-height: 3.75rem;
+  margin-top: 0.8rem;
+  font-size: clamp(0.72rem, 1vw, 0.84rem);
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) .ik-primary-action-icon {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 2px;
+  color: #fff;
+  background: rgba(3, 3, 18, 0.28);
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) :is(.ik-primary-action-icon svg, .ik-primary-action > svg) {
+  width: 0.95rem;
+  height: 0.95rem;
+  stroke-width: 2.3;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) .ik-secondary-action {
+  color: var(--ik-white-soft);
+  background: rgba(17, 18, 48, 0.92);
+  border-color: rgba(143, 122, 255, 0.34);
+  box-shadow: none;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) :is(.ik-primary-action, .ik-secondary-action):not(:disabled):hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+  box-shadow: 0 0 30px rgba(255, 47, 189, 0.16);
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) :is(.ik-primary-action, .ik-secondary-action):not(:disabled):active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) :is(.ik-primary-action, .ik-secondary-action):disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-start-hint {
+  min-height: 1rem;
+  margin: 0.58rem 0 0;
+  color: #706c86;
+  font-family: var(--ik-display);
+  font-size: 0.47rem;
+  font-weight: 550;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+/* ---- Matrice des modes --------------------------------------------- */
+body.inkbeta-mode .ik-cyber-root .ik-mode-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem;
+  background: rgba(8, 9, 28, 0.9);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-panel-head {
+  margin: 0 0 0.9rem;
+  text-align: left;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-panel-head h2 {
+  font-size: clamp(1.15rem, 1.7vw, 1.55rem);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-feature {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.72rem;
+  border: 1px solid rgba(255, 79, 225, 0.34);
+  border-left: 2px solid var(--ik-fuchsia);
+  border-radius: 4px;
+  color: var(--ik-white);
+  background: rgba(255, 47, 189, 0.055);
+  box-shadow: inset 0 0 28px rgba(141, 92, 255, 0.025), 0 0 24px rgba(255, 47, 189, 0.045);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-feature-icon {
+  display: grid;
+  width: 2.85rem;
+  height: 2.85rem;
+  place-items: center;
+  border: 1px solid rgba(143, 122, 255, 0.44);
+  border-radius: 3px;
+  color: var(--ik-fuchsia);
+  background: #08091d;
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-feature-icon svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  stroke-width: 2;
+}
+
+body.inkbeta-mode .ik-mode-feature > div {
+  min-width: 0;
+}
+
+body.inkbeta-mode .ik-mode-feature small {
+  display: block;
+  color: #7b7692;
+  font-family: var(--ik-display);
+  font-size: 0.45rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-feature :is(strong, p) {
+  display: block;
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-feature strong {
+  margin-top: 0.15rem;
+  color: var(--ik-white);
+  font-family: var(--ik-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-feature p {
+  margin-top: 0.15rem;
+  color: #8f89a8;
+  font-size: 0.58rem;
+  font-weight: 500;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-players {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(143, 122, 255, 0.34);
+  border-radius: 3px;
+  color: var(--ik-lavender);
+  background: rgba(141, 92, 255, 0.08);
+  font-family: var(--ik-display);
+  font-size: 0.61rem;
+  font-weight: 650;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-description {
+  min-height: 2.25rem;
+  margin: 0.65rem 0 0.8rem;
+  color: #837e9b;
+  font-size: 0.62rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-grid {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+  gap: 0.48rem;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 3.75rem;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.5rem;
+  border: 1px solid rgba(143, 122, 255, 0.16);
+  border-radius: 3px;
+  color: #9994ae;
+  background: rgba(10, 11, 31, 0.78);
+  box-shadow: none;
+  cursor: pointer;
+  transition: border-color 130ms ease, background-color 130ms ease, color 130ms ease, transform 130ms ease, box-shadow 130ms ease;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode:hover {
+  z-index: 2;
+  border-color: rgba(141, 92, 255, 0.48);
+  color: var(--ik-white-soft);
+  background: rgba(141, 92, 255, 0.075);
+  box-shadow: 0 0 18px rgba(141, 92, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode.is-selected {
+  border-color: rgba(255, 79, 225, 0.72);
+  color: var(--ik-white);
+  background: rgba(255, 47, 189, 0.085);
+  box-shadow: inset 2px 0 0 var(--ik-fuchsia), 0 0 22px rgba(255, 47, 189, 0.08);
+  transform: none;
+}
+
+body.inkbeta-mode .ik-mode-index {
+  color: #535067;
+  font-family: var(--ik-display);
+  font-size: 0.42rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode.is-selected .ik-mode-index {
+  color: var(--ik-fuchsia);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(143, 122, 255, 0.22);
+  border-radius: 3px;
+  color: var(--ik-violet);
+  background: rgba(141, 92, 255, 0.045);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode.is-selected .ik-mode-icon {
+  border-color: rgba(255, 79, 225, 0.4);
+  color: var(--ik-fuchsia);
+  background: rgba(255, 47, 189, 0.07);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-icon svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  stroke-width: 2;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-name {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--ik-display);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-check {
+  position: static;
+  display: block;
+  width: 0.42rem;
+  height: 0.42rem;
+  border: 0;
+  border-radius: 50%;
+  color: transparent;
+  background: #38354c;
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode.is-selected .ik-mode-check {
+  display: block;
+  background: var(--ik-fuchsia);
+  box-shadow: 0 0 9px var(--ik-fuchsia);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-nav-btn {
+  display: grid;
+  width: 2.45rem;
+  height: 2.3rem;
+  place-items: center;
+  border: 1px solid rgba(143, 122, 255, 0.24);
+  border-radius: 3px;
+  color: #9994af;
+  background: #090a20;
+  box-shadow: none;
+  cursor: pointer;
+  transition: border-color 130ms ease, color 130ms ease, background-color 130ms ease;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-nav-btn:hover {
+  border-color: var(--ik-fuchsia);
+  color: var(--ik-white);
+  background: rgba(255, 47, 189, 0.08);
+  transform: none;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-nav-btn:active {
+  transform: translateY(1px);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-nav-btn svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  stroke-width: 2;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-position {
+  display: flex;
+  min-width: 4.4rem;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-position strong {
+  color: var(--ik-fuchsia);
+  font-family: var(--ik-display);
+  font-size: 1.05rem;
+  font-weight: 550;
+  text-shadow: 0 0 12px rgba(255, 79, 225, 0.32);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-mode-position span {
+  color: #666278;
+  font-family: var(--ik-display);
+  font-size: 0.52rem;
+  font-weight: 600;
+}
+
+/* ---- Pied de console ------------------------------------------------ */
+body.inkbeta-mode .ik-cyber-root .ik-footer {
+  display: grid;
+  min-height: 2.65rem;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.15rem clamp(1rem, 3vw, 3.4rem) 0.35rem;
+  border-top: 1px solid rgba(143, 122, 255, 0.1);
+  color: #5f5b73;
+  background: rgba(2, 3, 13, 0.65);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-footer-brand {
+  font-family: var(--ik-display);
+  font-size: 0.48rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-footer-brand b {
+  color: var(--ik-fuchsia);
+  font-weight: inherit;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-footer nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.7rem, 1.5vw, 1.2rem);
+}
+
+body.inkbeta-mode .ik-cyber-root :is(.ik-footer a, .ik-footer-settings) {
+  color: inherit;
+  font-family: var(--ik-display);
+  font-size: 0.46rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-cyber-root :is(.ik-footer a, .ik-footer-settings):hover {
+  color: var(--ik-white-soft);
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-footer-settings {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-self: end;
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+body.inkbeta-mode .ik-cyber-root .ik-footer-settings svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/* ---- Portails cyber ------------------------------------------------- */
+body.inkbeta-mode .ink-z-modal > button,
+body.inkbeta-mode .ink-z-drawer-backdrop {
+  background: rgba(1, 2, 10, 0.88) !important;
+}
+
+body.inkbeta-mode .menu-dialog.ik-cyber-overlay {
+  overflow: hidden;
+  border: 1px solid rgba(255, 79, 225, 0.42) !important;
+  border-radius: 8px !important;
+  color: var(--ik-white);
+  background: #08091d !important;
+  box-shadow: 0 0 0 1px rgba(141, 92, 255, 0.13), 0 0 58px rgba(179, 44, 219, 0.16), 0 32px 90px rgba(0, 0, 0, 0.72) !important;
+}
+
+body.inkbeta-mode .menu-dialog.ik-cyber-overlay.ink-z-drawer {
+  max-width: 29rem;
+  border-radius: 0 8px 8px 0 !important;
+}
+
+body.inkbeta-mode .ik-join-modal {
+  max-width: 31rem;
+}
+
+body.inkbeta-mode .ik-options-modal {
+  width: min(100%, 40rem);
+  max-width: 40rem;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-panel-header {
+  position: relative;
+  border-bottom: 1px solid rgba(143, 122, 255, 0.2);
+  background: #0d0f29;
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-panel-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 1.2rem;
+  width: 6rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ik-fuchsia), transparent);
+  box-shadow: 0 0 12px rgba(255, 79, 225, 0.45);
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-panel-icon {
+  border: 1px solid rgba(255, 79, 225, 0.5) !important;
+  border-radius: 4px !important;
+  color: var(--ik-fuchsia) !important;
+  background: rgba(255, 47, 189, 0.07) !important;
+  box-shadow: inset 0 0 16px rgba(255, 47, 189, 0.06) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-panel-title {
+  position: static !important;
+  width: auto !important;
+  margin: 0 !important;
+  color: var(--ik-white) !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  font-family: var(--ik-display) !important;
+  font-size: 1.32rem !important;
+  font-weight: 560 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1 !important;
+  text-transform: none !important;
+  text-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-panel-subtitle {
+  color: var(--ik-lavender) !important;
+  font-family: var(--ik-display);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-close-button {
+  display: grid;
+  width: 2.55rem;
+  height: 2.55rem;
+  place-items: center;
+  border: 1px solid rgba(143, 122, 255, 0.3);
+  border-radius: 4px;
+  color: #aaa5bf;
+  background: #090a20;
+  box-shadow: none;
+  transition: border-color 130ms ease, color 130ms ease, background-color 130ms ease;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-close-button:hover {
+  border-color: var(--ik-fuchsia);
+  color: var(--ik-white);
+  background: rgba(255, 47, 189, 0.08);
+  transform: none;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-close-button:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-cyber-overlay > .ink-panel-body {
+  background:
+    linear-gradient(rgba(143, 122, 255, 0.025) 1px, transparent 1px),
+    #060718;
+  background-size: 100% 32px;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ik-join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ik-code-field .ik-input {
+  min-height: 4.5rem;
+  padding-left: 3rem;
+  font-family: var(--ik-display);
+  font-size: 1.85rem;
+  font-weight: 520;
+  letter-spacing: 0.28em;
+  text-align: center;
+  text-indent: 0.28em;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ik-recent-lobbies h3 {
+  margin: 0 0 0.5rem;
+  color: var(--ik-lavender);
+  font-family: var(--ik-display);
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ik-recent-lobbies ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ik-recent-lobbies li {
+  display: flex;
+  gap: 0.4rem;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ik-recent-code, .ik-recent-remove) {
+  min-height: 2.6rem;
+  border: 1px solid rgba(143, 122, 255, 0.2);
+  border-radius: 3px;
+  color: var(--ik-white-soft);
+  background: #0a0b22;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ik-recent-code {
+  flex: 1;
+  padding: 0 0.8rem;
+  font-family: var(--ik-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  text-align: left;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ik-recent-remove {
+  display: grid;
+  width: 2.6rem;
+  place-items: center;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ik-recent-code, .ik-recent-remove):hover {
+  border-color: var(--ik-fuchsia);
+  background: rgba(255, 47, 189, 0.07);
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ik-join-actions {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 0.65rem;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ik-form-message {
+  margin: -0.25rem 0 0;
+  color: #f79acb;
+  font-size: 0.64rem;
+  font-weight: 550;
+  text-align: center;
+}
+
+/* ---- Options cyber -------------------------------------------------- */
+body.inkbeta-mode .ik-cyber-overlay .ink-device-settings {
+  color: var(--ik-white);
+  font-family: var(--ik-body);
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-tabs {
+  gap: 0.4rem;
+  border-bottom: 1px solid rgba(143, 122, 255, 0.18) !important;
+  background: #08091f;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-tab {
+  border: 1px solid rgba(143, 122, 255, 0.18) !important;
+  border-radius: 3px !important;
+  color: #9792ad !important;
+  background: #0a0b22 !important;
+  box-shadow: none !important;
+  font-family: var(--ik-display);
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-tab:hover {
+  border-color: rgba(255, 79, 225, 0.45) !important;
+  color: var(--ik-white) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-tab[aria-pressed='true'] {
+  border-color: rgba(255, 79, 225, 0.66) !important;
+  color: var(--ik-white) !important;
+  background: rgba(255, 47, 189, 0.1) !important;
+  box-shadow: inset 0 -2px 0 var(--ik-fuchsia) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-tab :is(svg, span) {
+  color: currentColor !important;
+  text-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-content {
+  padding: 0.85rem;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-section {
+  border: 1px solid rgba(143, 122, 255, 0.22) !important;
+  border-radius: 5px !important;
+  color: var(--ik-white);
+  background: #0b0c24 !important;
+  box-shadow: inset 2px 0 0 rgba(255, 79, 225, 0.38) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-section-halo {
+  display: none;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-section > .absolute:not(.ink-device-section-halo) {
+  color: var(--ik-fuchsia) !important;
+  filter: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-section-icon {
+  border: 1px solid rgba(255, 79, 225, 0.48) !important;
+  border-radius: 3px !important;
+  color: var(--ik-fuchsia) !important;
+  background: rgba(255, 47, 189, 0.07) !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-section-icon svg {
+  color: currentColor !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-section header > span {
+  color: var(--ik-white) !important;
+  font-family: var(--ik-display) !important;
+  font-size: 1.05rem !important;
+  font-weight: 560 !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-section :is(p, label, span) {
+  text-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-section :is(label, p) {
+  color: var(--ik-white-soft);
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-device-error, .ink-device-well, .ink-device-toggle, .ink-device-rnnoise, .ink-device-count) {
+  border: 1px solid rgba(143, 122, 255, 0.2) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-error {
+  border-color: rgba(245, 83, 149, 0.48) !important;
+  color: #ffc2dd !important;
+  background: rgba(112, 27, 69, 0.35) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-device-authorize, .ink-device-test, .ink-device-preset) {
+  border: 1px solid rgba(143, 122, 255, 0.3) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-authorize {
+  border-color: rgba(255, 79, 225, 0.58) !important;
+  color: #fff !important;
+  background: linear-gradient(105deg, #d32ba5, #713fe1) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-device-well, .ink-device-input) {
+  background: #050619 !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-select-trigger {
+  color: var(--ik-white-soft) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-select-popover {
+  border: 1px solid rgba(255, 79, 225, 0.42) !important;
+  border-radius: 4px !important;
+  color: var(--ik-white) !important;
+  background: #0b0c24 !important;
+  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.6) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-toggle {
+  background: #090a21 !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-toggle[aria-pressed='true'] {
+  border-color: rgba(255, 79, 225, 0.56) !important;
+  background: rgba(255, 47, 189, 0.09) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-switch {
+  border: 1px solid rgba(143, 122, 255, 0.38) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-switch > span {
+  border-radius: 50% !important;
+  background: #fff !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-theme-card {
+  border: 1px solid rgba(143, 122, 255, 0.2) !important;
+  border-radius: 4px !important;
+  background: #090a21 !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-theme-card[aria-pressed='true'] {
+  border-color: rgba(255, 79, 225, 0.62) !important;
+  background: rgba(255, 47, 189, 0.08) !important;
+  box-shadow: inset 0 -2px 0 var(--ik-fuchsia) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-device-theme-card > span:first-of-type,
+body.inkbeta-mode .ik-cyber-overlay .ink-device-theme-card > span:last-of-type {
+  border-radius: 3px !important;
+  box-shadow: none !important;
+}
+
+/* ---- Profil et amis cyber ------------------------------------------ */
+body.inkbeta-mode .ik-cyber-overlay :is(
+  .ink-profile-sidebar--guest,
+  .ink-profile-sidebar--loading,
+  .ink-friends-sidebar--guest,
+  .ink-friends-sidebar--loading
+) {
+  border: 1px solid rgba(143, 122, 255, 0.25) !important;
+  border-radius: 5px !important;
+  color: var(--ik-white);
+  background: #0b0c24 !important;
+  box-shadow: inset 2px 0 0 rgba(255, 79, 225, 0.35) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-profile-login-frame, .ink-friends-login-frame) {
+  inset: 5px !important;
+  border: 1px solid rgba(143, 122, 255, 0.18) !important;
+  border-radius: 3px !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-profile-login-icon, .ink-friends-login-icon) {
+  width: 5.2rem;
+  height: 5.2rem;
+  border: 1px solid rgba(255, 79, 225, 0.54) !important;
+  border-radius: 5px !important;
+  color: var(--ik-fuchsia) !important;
+  background: rgba(255, 47, 189, 0.07) !important;
+  box-shadow: 0 0 28px rgba(255, 47, 189, 0.09) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-profile-login-icon, .ink-friends-login-icon) svg {
+  color: currentColor !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-profile-sidebar--guest, .ink-friends-sidebar--guest) p {
+  color: var(--ik-white-soft) !important;
+  font-size: 0.9rem !important;
+  font-weight: 550 !important;
+  text-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-profile-login-button, .ink-friends-login-button) {
+  min-height: 3.4rem;
+  border: 1px solid rgba(255, 79, 225, 0.52) !important;
+  border-radius: 3px !important;
+  color: #fff !important;
+  background: linear-gradient(105deg, #d82ba7, #7140e1) !important;
+  box-shadow: 0 0 26px rgba(216, 43, 167, 0.12) !important;
+  font-family: var(--ik-display);
+  font-size: 0.68rem !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.08em;
+  text-shadow: none !important;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-profile-login-button, .ink-friends-login-button):hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-profile-sidebar--loading, .ink-friends-sidebar--loading) [class*='bg-white'] {
+  border-radius: 3px !important;
+  background: rgba(143, 122, 255, 0.1) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-profile-sidebar--authenticated {
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: var(--ik-white);
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-profile-avatar-halo, .ink-profile-win-halo, .ink-profile-stat-halo) {
+  display: none;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-profile-level-card, .ink-profile-win-card, .ink-profile-stat-card) {
+  border: 1px solid rgba(143, 122, 255, 0.2) !important;
+  border-radius: 4px !important;
+  background: #0b0c24 !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-profile-stat-icon {
+  border: 1px solid rgba(255, 79, 225, 0.4) !important;
+  border-radius: 3px !important;
+  color: var(--ik-fuchsia) !important;
+  background: rgba(255, 47, 189, 0.07) !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-profile-stat-icon svg {
+  color: currentColor !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-profile-sidebar--authenticated :is(.text-white, .text-white\/80) {
+  text-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-friends-sidebar--authenticated .ink-section-title {
+  color: var(--ik-white);
+  font-family: var(--ik-display);
+  font-size: 0.9rem;
+  font-weight: 560;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+  text-transform: none;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-friends-code-card, .ink-friends-row) {
+  border: 1px solid rgba(143, 122, 255, 0.2) !important;
+  border-radius: 4px !important;
+  background: #0b0c24 !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-friends-code-card > div:first-child {
+  color: var(--ik-lavender) !important;
+  text-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay :is(.ink-friends-code-card > div:last-child, .ink-friends-send) {
+  border: 1px solid rgba(255, 79, 225, 0.48) !important;
+  border-radius: 3px !important;
+  color: #fff !important;
+  background: linear-gradient(105deg, #cf2aa2, #7040db) !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-friends-input {
+  border: 1px solid rgba(143, 122, 255, 0.28) !important;
+  border-radius: 3px !important;
+  color: var(--ik-white) !important;
+  background: #050619 !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-friends-input:focus {
+  border-color: var(--ik-fuchsia) !important;
+  box-shadow: 0 0 0 2px rgba(255, 79, 225, 0.1) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-friends-input::placeholder {
+  color: var(--ik-white-faint) !important;
+}
+
+body.inkbeta-mode .ik-cyber-overlay .ink-friends-row .menu-icon-control {
+  border: 1px solid rgba(143, 122, 255, 0.28) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+}
+
+/* ---- Mouvement ------------------------------------------------------ */
+@keyframes ik-cyber-scan {
+  0% { top: 14%; opacity: 0; }
+  12% { opacity: 0.7; }
+  88% { opacity: 0.45; }
+  100% { top: 86%; opacity: 0; }
+}
+
+@keyframes ik-cyber-level {
+  from { transform: scaleY(0.55); opacity: 0.55; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+
+/* ---- Tablette ------------------------------------------------------- */
+@media (max-width: 1100px) {
+  body.inkbeta-mode .ik-cyber-root .ik-topbar {
+    height: 5rem;
+    grid-template-columns: 1fr auto;
+    padding-inline: 1.1rem;
+  }
+
+  body.inkbeta-mode .ik-system-strip {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-tool {
+    width: 2.55rem;
+    padding: 0;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-tool > span {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-main {
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-canvas {
+    width: min(100%, 48rem);
+    min-height: auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-play-panel {
+    min-height: 36rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-panel {
+    min-height: 26rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-index {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-footer {
+    grid-template-columns: 1fr auto;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-footer-brand {
+    display: none;
+  }
+}
+
+/* ---- Mobile --------------------------------------------------------- */
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-cyber-grid {
+    opacity: 0.16;
+    background-size: 42px 42px;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-topbar {
+    height: 4.55rem;
+    padding-inline: 0.55rem;
+  }
+
+  body.inkbeta-mode .ik-brand-mark {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  body.inkbeta-mode .ik-brand-name {
+    gap: 0.18rem;
+    font-size: 0.77rem;
+    letter-spacing: 0.07em;
+  }
+
+  body.inkbeta-mode .ik-brand-edition {
+    font-size: 0.43rem;
+    letter-spacing: 0.14em;
+  }
+
+  body.inkbeta-mode .ik-home-brand {
+    gap: 0 0.45rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-topbar-side {
+    position: static;
+    padding: 0;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-tools {
+    gap: 0.2rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-notifications {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-tool {
+    width: 2.2rem;
+    min-width: 2.2rem;
+    min-height: 2.3rem;
+    border-radius: 3px;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-main {
+    padding: 0.55rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-canvas {
+    gap: 0.6rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root :is(.ik-play-panel, .ik-mode-panel) {
+    border-radius: 5px;
+  }
+
+  body.inkbeta-mode .ik-command-header {
+    min-height: 4.35rem;
+    padding: 0.7rem 0.75rem 0.65rem 0.9rem;
+  }
+
+  body.inkbeta-mode .ik-command-header h2 {
+    font-size: 1.15rem;
+  }
+
+  body.inkbeta-mode .ik-code-access {
+    min-height: 2.35rem;
+    padding: 0 0.6rem;
+    font-size: 0.52rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-play-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+    padding: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-core-zone {
+    padding: 1.4rem 0.5rem 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-core-frame {
+    width: min(72vw, 16.5rem);
+  }
+
+  body.inkbeta-mode .ik-core-status {
+    top: 0.55rem;
+    right: 0.65rem;
+    left: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-spectrum {
+    width: min(78%, 15rem);
+    height: 2rem;
+    margin-top: -1.15rem;
+  }
+
+  body.inkbeta-mode .ik-core-caption {
+    margin-top: 0.4rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-start-card {
+    padding: 0.8rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-start-heading {
+    margin-bottom: 0.7rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-start-heading small {
+    font-size: 0.53rem;
+  }
+
+  body.inkbeta-mode :is(.ik-cyber-root, .ik-cyber-overlay) .ik-input {
+    min-height: 3.15rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-current-mode {
+    margin-top: 0.6rem;
+  }
+
+  body.inkbeta-mode .ik-console-readout {
+    margin-top: 0.55rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-start-card > .ik-primary-action {
+    min-height: 3.45rem;
+    margin-top: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-panel {
+    min-height: auto;
+    padding: 0.8rem 0.7rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-panel-head {
+    margin-bottom: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-panel-head h2 {
+    font-size: 1.2rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-feature {
+    padding: 0.55rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-feature-icon {
+    width: 2.55rem;
+    height: 2.55rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-description {
+    min-height: 0;
+    margin: 0.55rem 0 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode {
+    min-height: 3.35rem;
+    padding: 0.35rem 0.4rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-name {
+    font-size: 0.52rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-mode-nav {
+    margin-top: 0.6rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-footer {
+    min-height: 2.25rem;
+    grid-template-columns: 1fr;
+    padding: 0.2rem 0.55rem 0.35rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-footer nav {
+    justify-content: center;
+    gap: 0.7rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-footer a {
+    font-size: 0.42rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-footer-settings {
+    display: none;
+  }
+
+  body.inkbeta-mode .menu-dialog.ik-cyber-overlay {
+    border-width: 1px !important;
+  }
+
+  body.inkbeta-mode .menu-dialog.ik-cyber-overlay.ink-z-drawer {
+    border-radius: 0 !important;
+  }
+
+  body.inkbeta-mode .ik-cyber-overlay .ink-panel-header {
+    padding: 0.8rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-overlay .ink-panel-title {
+    font-size: 1.08rem !important;
+  }
+
+  body.inkbeta-mode .ik-cyber-overlay .ink-panel-icon {
+    width: 2.45rem;
+    height: 2.45rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-overlay .ink-close-button {
+    width: 2.4rem;
+    height: 2.4rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-overlay > .ink-panel-body {
+    padding: 0.8rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-overlay .ink-device-content {
+    padding: 0.6rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-overlay .ink-device-section {
+    padding: 0.8rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-overlay .ink-device-tab {
+    min-width: 5rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-overlay .ik-join-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  body.inkbeta-mode .ik-brand-mark {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  body.inkbeta-mode .ik-brand-name {
+    font-size: 0.68rem;
+  }
+
+  body.inkbeta-mode .ik-brand-edition {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-tool {
+    width: 2.05rem;
+    min-width: 2.05rem;
+  }
+
+  body.inkbeta-mode .ik-core-frame {
+    width: min(76vw, 15.2rem);
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-current-mode > button {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-current-mode {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 720px) and (min-width: 681px) {
+  body.inkbeta-mode .ik-cyber-root .ik-topbar {
+    height: 4.4rem;
+  }
+
+  body.inkbeta-mode .ik-cyber-root .ik-canvas {
+    min-height: 35rem;
+  }
+
+  body.inkbeta-mode .ik-core-frame {
+    width: min(100%, 21rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode :is(.ik-core-scan, .ik-spectrum span) {
+    animation: none;
+  }
+
+  body.inkbeta-mode :is(.ik-tool, .ik-code-access, .ik-primary-action, .ik-secondary-action, .ik-mode, .ik-mode-nav-btn) {
+    transition: none;
+  }
+}
+
+html.low-power body.inkbeta-mode :is(.ik-cyber-scanlines, .ik-core-scan) {
+  display: none;
+}
