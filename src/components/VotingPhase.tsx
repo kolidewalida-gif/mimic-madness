@@ -1094,8 +1094,13 @@ export const VotingPhase = ({
         </motion.div>
 
         {/* Progress dots */}
-        <div className="flex gap-2 justify-center">
-          {Array.from({ length: displayLength }).map((_, i) => (
+        <div className={isInkBeta ? 'ik-dots' : 'flex gap-2 justify-center'}>
+          {Array.from({ length: displayLength }).map((_, i) => (isInkBeta ? (
+            <span
+              key={i}
+              className={i < currentIndex ? 'is-past' : i === currentIndex ? 'is-current' : undefined}
+            />
+          ) : (
             <motion.div key={i} animate={{ scale: i === currentIndex ? 1.3 : 1 }}
               className="h-2.5 rounded-full transition-all duration-300"
               style={{
@@ -1104,7 +1109,7 @@ export const VotingPhase = ({
                 border: '1px solid var(--ink-line)',
                 boxShadow: i === currentIndex ? "0 0 8px rgba(248,113,113,0.6)" : "none",
               }} />
-          ))}
+          )))}
         </div>
       </div>
     </div>

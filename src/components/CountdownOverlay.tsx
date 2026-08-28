@@ -28,25 +28,46 @@ export const CountdownOverlay = ({
   const [isVisible, setIsVisible] = useState(false);
   const [started, setStarted] = useState(false);
   const [tick, setTick] = useState(0);
+  /** Dernière seconde annoncée, pour ne réagir qu'aux vrais changements. */
+  const lastCountRef = useRef<number | null>(null);
   const onCompleteRef = useRef(onComplete);
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
+  /*
+   * Un seul point de vérité : la seconde restante, relevée sur l'échéance.
+   *
+   * La version précédente déclenchait `setTick` et le son *à l'intérieur* de
+   * l'updater de `setCount`. Un updater doit être pur : React le rejoue, donc le
+   * compteur changeait de clé plusieurs fois par seconde et le grand chiffre
+   * restait bloqué en animation d'entrée — l'écran affichait le voile sans
+   * jamais montrer le décompte. La comparaison passe maintenant par une réf,
+   * hors du rendu.
+   */
   useEffect(() => {
     if (!isActive) {
       setIsVisible(false);
       setStarted(false);
+      lastCountRef.current = null;
       return;
     }
 
     let completed = false;
     const deadline = completeAt ?? Date.now() + duration * 1000;
+    const remainingSeconds = () => Math.max(
+      1,
+      Math.min(duration, Math.ceil((deadline - Date.now()) / 1000)),
+    );
+
+    lastCountRef.current = remainingSeconds();
+    setCount(lastCountRef.current);
+    setTick(0);
     setIsVisible(true);
     setStarted(true);
+    playSoundEffect('countdown', 0.5);
 
     const update = () => {
-      const remainingMs = deadline - Date.now();
-      if (remainingMs <= 0) {
-        if (completed) return;
+      if (completed) return;
+      if (deadline - Date.now() <= 0) {
         completed = true;
         playSoundEffect('start', 0.6);
         setIsVisible(false);
@@ -54,20 +75,14 @@ export const CountdownOverlay = ({
         return;
       }
 
-      const nextCount = Math.max(1, Math.min(duration, Math.ceil(remainingMs / 1000)));
-      setCount((previous) => {
-        if (previous !== nextCount) {
-          playSoundEffect('countdown', 0.5);
-          setTick((value) => value + 1);
-        }
-        return nextCount;
-      });
+      const nextCount = remainingSeconds();
+      if (lastCountRef.current === nextCount) return;
+      lastCountRef.current = nextCount;
+      setCount(nextCount);
+      setTick((value) => value + 1);
+      playSoundEffect('countdown', 0.5);
     };
 
-    setCount(Math.max(1, Math.min(duration, Math.ceil((deadline - Date.now()) / 1000))));
-    playSoundEffect('countdown', 0.5);
-    setTick((value) => value + 1);
-    update();
     const timer = setInterval(update, 100);
     return () => {
       completed = true;

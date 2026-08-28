@@ -11866,3 +11866,22 @@ body.inkbeta-mode .ik-dots > span.is-current {
 body.inkbeta-mode .ik-prep-grid {
   display: contents;
 }
+
+/*
+ * Libellés des boutons de jeu.
+ *
+ * Le markup hérité force `text-white` sur ses libellés, ce qui les rendait
+ * invisibles sur les boutons beta à fond clair — « Je suis prêt », « Soumettre »
+ * et « Suivant » apparaissaient comme des barres vides. Le texte reprend donc
+ * la couleur du bouton, quel que soit l'utilitaire posé dessus.
+ */
+body.inkbeta-mode .ik-game-v2 :is(.ik-primary-action, .ik-secondary-action, .ik-vote) span,
+body.inkbeta-mode .ik-game-v2 :is(.ik-primary-action, .ik-secondary-action, .ik-vote) strong,
+body.inkbeta-mode .ik-game-v2 :is(.ik-primary-action, .ik-secondary-action, .ik-vote) svg {
+  color: inherit;
+}
+
+/* Le pictogramme de gauche garde sa pastille, mais pas la couleur du texte. */
+body.inkbeta-mode .ik-game-v2 .ik-primary-action .ik-primary-action-icon {
+  color: var(--ik-white);
+}

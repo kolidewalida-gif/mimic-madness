@@ -842,6 +842,27 @@ export const ImitationPhase = ({
                   )}
                 </>
               )}
+
+              {/* Suivi de la manche, à sa place dans le panneau. */}
+              {isInkBeta && (
+                <div className="ik-game-actions">
+                  <p className={cn('ik-game-note', hasSubmitted && 'ik-game-note--done')}>
+                    <Users aria-hidden="true" />
+                    Soumis {readyPlayers.length}/{players.length}
+                  </p>
+                  {currentPlayer.isHost && readyPlayers.length < players.length && (
+                    <button
+                      type="button"
+                      onClick={handleForceAdvance}
+                      disabled={isForceAdvancing}
+                      className="ik-secondary-action menu-focus"
+                      title="Ignorer les joueurs bloqués et passer au vote"
+                    >
+                      {isForceAdvancing ? 'Synchronisation…' : 'Passer au vote'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -859,6 +880,10 @@ export const ImitationPhase = ({
           Two pills (left/right) instead of one full-width bar avoids overlap. */}
       {/* Sous `lg`, la barre de musique occupe presque toute la largeur : les
           pilules passent au-dessus d'elle au lieu de se battre pour la place. */}
+      {/* En beta, ces pilules fixes passaient sous les boutons flottants Chat et
+          Admin : le compteur et le bouton de déblocage vivent désormais dans le
+          panneau d'imitation, où rien ne les recouvre. */}
+      {!isInkBeta && (
       <div className="fixed bottom-24 lg:bottom-3 left-3 right-3 z-30 pointer-events-none flex justify-between gap-3">
         {/*
           LEFT pill — count + avatars (scrollable)
@@ -955,6 +980,7 @@ export const ImitationPhase = ({
           </motion.button>
         )}
       </div>
+      )}
     </div>
   );
 };

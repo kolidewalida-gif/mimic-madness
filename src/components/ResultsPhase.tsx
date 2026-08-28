@@ -418,8 +418,16 @@ export const ResultsPhase = ({
     ) return;
 
     celebratedRoundRef.current = roundNumber;
-    setShowVictoryAnimation(true);
     playSound('success');
+
+    /*
+     * Sous la beta, le classement s'affiche net : pas d'overlay de victoire, pas
+     * de confettis, pas de secousse d'écran. Le son de réussite reste, lui ne
+     * cache rien.
+     */
+    if (isInkBeta) return;
+
+    setShowVictoryAnimation(true);
     juice.confetti({ count: 140 });
     juice.flash('primary', 320);
     juice.shake(260, 0.8);
@@ -431,7 +439,7 @@ export const ResultsPhase = ({
       victoryTimersRef.current = null;
     }, 700);
     victoryTimersRef.current = { wave };
-  }, [isResultsSynchronized, playSound, roundNumber, winnerLabel]);
+  }, [isInkBeta, isResultsSynchronized, playSound, roundNumber, winnerLabel]);
 
   // La fermeture dépend uniquement de l'overlay lui-même : un nouveau gagnant
   // ou une resynchronisation ne peut donc pas annuler ce délai.
@@ -721,8 +729,10 @@ export const ResultsPhase = ({
       </div>
       )}
 
-      {/* Victory overlay — only after a certified SQL aggregation. */}
-      {showVictoryAnimation && isResultsSynchronized && winnerLabel && (
+      {/* Victory overlay — only after a certified SQL aggregation.
+          La beta s'en passe : l'écran de scores doit être lisible tout de
+          suite, sans plein écran de célébration à attendre. */}
+      {!isInkBeta && showVictoryAnimation && isResultsSynchronized && winnerLabel && (
         <VictoryAnimation winnerName={winnerLabel} isTeam={gameMode === '2v2'} />
       )}
 
