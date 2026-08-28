@@ -12918,3 +12918,233 @@ body.inkbeta-mode .social-viewer-overlay {
     transition: none;
   }
 }
+
+/* ============================================================
+   INK BETA — ACCUEIL : COMPOSITION V3
+   ------------------------------------------------------------
+   Quatre défauts de la version précédente, corrigés ici sans
+   toucher au balisage :
+
+   1. six pastilles de même poids à droite, dont le pseudo
+      illisible — les utilitaires passent en icônes, le profil
+      garde son nom ;
+   2. « Accès beta » isolé au centre alors que le logo porte déjà
+      le badge — le centre est libéré ;
+   3. la scène s'arrêtait à mi-hauteur, d'où un grand vide sous le
+      dock — elle remplit maintenant la fenêtre ;
+   4. sept modes repliés sur deux lignes avec flèches et compteur
+      — ils tiennent sur une rangée, la navigation devient inutile.
+   ============================================================ */
+
+@media (min-width: 1101px) {
+  /* ---- Barre : marque à gauche, outils à droite ------------------------ */
+  body.inkbeta-mode .ik-layout-v2 .ik-topbar {
+    grid-template-areas: 'brand tools';
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  /* Le badge BETA vit déjà dans le logo : la pastille faisait doublon. */
+  body.inkbeta-mode .ik-layout-v2 .ik-topbar-side--start {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-tools {
+    gap: 0.35rem;
+  }
+
+  /* Utilitaires en icônes : c'est le profil qui doit porter du texte. */
+  body.inkbeta-mode .ik-layout-v2 .ik-tool:not(.ik-tool--profile) {
+    width: 2.85rem;
+    min-width: 2.85rem;
+    padding: 0;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-tool:not(.ik-tool--profile) > span {
+    display: none;
+  }
+
+  /* Le profil se détache du groupe : séparateur, plus de place, nom lisible. */
+  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile {
+    min-width: 0;
+    margin-left: 0.5rem;
+    padding: 0 0.85rem 0 0.5rem;
+    border-color: rgba(45, 242, 208, 0.7);
+    background: linear-gradient(180deg, rgba(111, 22, 126, 0.96), rgba(76, 8, 96, 0.96));
+    box-shadow: 0 4px 0 rgba(53, 7, 75, 0.82), -0.75rem 0 0 -0.65rem rgba(255, 255, 255, 0.18);
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile > span {
+    max-width: 9rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile > .ik-profile-thumb {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  /* ---- La scène remplit la hauteur ------------------------------------ */
+  body.inkbeta-mode .ik-layout-v2 .ik-main {
+    align-items: stretch;
+    /* Place réservée au lecteur, désormais ancré en bas de fenêtre. */
+    padding-bottom: 5.4rem;
+  }
+
+  /*
+   * La scène remplit la fenêtre par `align-content: stretch` sur des rangées
+   * `auto` : elles se dimensionnent d'abord sur le contenu, puis se partagent
+   * l'espace restant. Les deux autres pistes essayées échouent ici —
+   * `minmax(0, 1fr)` comprime la rangée sous la hauteur du contenu et rogne le
+   * bouton « Démarrer » en 1280 x 820, et `minmax(min-content, 1fr)` gonfle la
+   * rangée en forçant le texte à se recasser au plus étroit, ce qui fait
+   * défiler la page.
+   */
+  body.inkbeta-mode .ik-layout-v2 .ik-canvas {
+    min-height: 100%;
+    grid-template-rows: auto auto;
+    align-content: stretch;
+  }
+
+  /* ---- Les sept modes sur une rangée --------------------------------- */
+  body.inkbeta-mode .ik-layout-v2 .ik-mode-panel {
+    min-height: 0;
+    grid-template-columns: minmax(9.5rem, 0.6fr) minmax(13rem, 0.9fr) minmax(0, 2.6fr);
+    align-items: center;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-mode-grid {
+    grid-column: 3;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  /*
+   * Flèches et compteur retirés : ils servaient à atteindre les modes cachés
+   * par la grille sur deux lignes. Tout est visible et cliquable, donc ils
+   * n'ajoutaient qu'un rang de boutons sans fonction.
+   */
+  body.inkbeta-mode .ik-layout-v2 .ik-mode-nav {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-mode {
+    min-height: 3.6rem;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem 0.35rem;
+    text-align: center;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-mode-icon {
+    width: 2.15rem;
+    height: 2.15rem;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-mode-name {
+    font-size: 0.58rem;
+    letter-spacing: 0.02em;
+  }
+}
+
+/* ---- Le lecteur devient le socle de la scène ------------------------- */
+
+/*
+ * Socle sobre : le liseré cyan-rose est déjà porté par la barre du lecteur, à
+ * douze pixels de là. En peindre un second sur toute la largeur donnait deux
+ * accents identiques empilés. Le fond, lui, est assez couvrant pour masquer la
+ * signature de bas de page qui transparaissait.
+ */
+body.inkbeta-mode .ik-music-dock--floating {
+  padding-top: 0.55rem;
+  background: linear-gradient(180deg, rgba(64, 6, 82, 0.93), rgba(46, 5, 66, 0.99));
+  box-shadow: 0 -8px 22px rgba(40, 4, 58, 0.42);
+}
+
+body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
+  /* Posé sur un socle, il n'a plus besoin de son propre relief. */
+  border-width: 2px;
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* ---- Tablette : le profil garde son nom, le reste se resserre -------- */
+@media (max-width: 1100px) and (min-width: 681px) {
+  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile {
+    width: auto;
+    padding: 0 0.72rem;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile > span {
+    display: inline;
+    max-width: 7rem;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-main {
+    padding-bottom: 5rem;
+  }
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-layout-v2 .ik-main {
+    padding-bottom: 4.8rem;
+  }
+
+  body.inkbeta-mode .ik-music-dock--floating {
+    padding-top: 0.4rem;
+  }
+}
+
+/* ---- Fenêtres basses : la scène se resserre pour rester d'un bloc ----
+ *
+ * Le socle du lecteur prend 5,4 rem sur la hauteur utile. En 900 px et moins,
+ * la scène dépassait donc d'une trentaine de pixels et le rang de modes
+ * passait derrière le lecteur. On récupère cette hauteur sur les respirations
+ * — padding du cadre, marge du slogan, interlignes de la carte — plutôt qu'en
+ * comprimant les panneaux, qui rognent leur contenu.
+ */
+@media (min-width: 1101px) and (max-height: 940px) {
+  body.inkbeta-mode .ik-layout-v2 .ik-canvas {
+    gap: 0.55rem;
+    padding: 0.55rem;
+  }
+
+  /* Le haut reste au-dessus de 3,45 rem : c'est la hauteur des onglets. */
+  body.inkbeta-mode .ik-layout-v2 .ik-play-panel {
+    padding: 3.75rem clamp(0.9rem, 1.7vw, 1.4rem) 0.75rem;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-play-title {
+    margin-bottom: 0.3rem;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-start-card {
+    padding: 0.9rem;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-start-heading {
+    margin-bottom: 0.55rem;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-mode-panel {
+    padding: 0.6rem 0.8rem;
+  }
+}
+
+@media (min-width: 1101px) and (max-height: 860px) {
+  /*
+   * La phrase sous la vignette répète ce que la vignette dit déjà : c'est la
+   * première chose à sacrifier quand la hauteur manque.
+   */
+  body.inkbeta-mode .ik-layout-v2 .ik-mode-description {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-mascot {
+    width: min(100%, 15rem);
+  }
+
+  body.inkbeta-mode .ik-layout-v2 .ik-mode {
+    min-height: 3.3rem;
+  }
+}
