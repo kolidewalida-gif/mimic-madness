@@ -12417,3 +12417,504 @@ body.inkbeta-mode .ik-quiz-answer .ik-input {
     transition: none;
   }
 }
+
+/* ============================================================
+   INK BETA — MENUS : AMIS, OPTIONS, PROFIL, SOCIAL
+   ------------------------------------------------------------
+   Refonte purement visuelle. Aucun de ces panneaux ne change de
+   structure : la couche reprend leurs crochets existants et leur
+   applique la grammaire Party Stage — panneaux prune à bordure
+   épaisse, titres Bangers cyan, lignes en relief, contrôles qui
+   s'enfoncent. Tout est scoppé aux overlays beta, donc les autres
+   thèmes gardent leur rendu.
+   ============================================================ */
+
+/* ---- Sections communes (profil, amis) -------------------------------- */
+body.inkbeta-mode .ik-party-overlay .ink-section {
+  padding: 0.85rem 0.9rem 0.95rem;
+  border: 3px solid var(--ik-edge-soft) !important;
+  border-radius: 16px !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.12), transparent 46%),
+    var(--ik-panel) !important;
+  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.14), 0 5px 0 rgba(54, 7, 76, 0.5) !important;
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-section-title {
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-section-hint {
+  color: var(--ik-white-faint);
+  font-size: 0.66rem;
+  font-weight: 750;
+}
+
+/* ---- Amis ------------------------------------------------------------ */
+body.inkbeta-mode .ik-party-overlay .ink-friends-sidebar {
+  gap: 0.7rem;
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-friends-code-card {
+  border: 3px solid var(--ik-edge) !important;
+  border-radius: 14px !important;
+  background: linear-gradient(180deg, var(--ik-panel-bright), var(--ik-panel-deep)) !important;
+  box-shadow: 0 5px 0 var(--ik-edge) !important;
+  transform: translateZ(0);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-friends-code-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-friends-code-card:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-friends-login-frame {
+  display: none;
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-friends-login-icon {
+  border: 4px solid var(--ik-white) !important;
+  background: linear-gradient(150deg, var(--ik-panel-bright), var(--ik-pink)) !important;
+  box-shadow: 0 0 0 3px var(--ik-edge), 0 5px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-friends-login-button,
+body.inkbeta-mode .ik-party-overlay .ink-friends-send {
+  border: 3px solid var(--ik-edge) !important;
+  border-radius: 12px !important;
+  color: var(--ik-edge) !important;
+  background: var(--ik-cyan) !important;
+  box-shadow: 0 5px 0 var(--ik-edge) !important;
+  transform: translateZ(0);
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-friends-login-button:hover:not(:disabled),
+body.inkbeta-mode .ik-party-overlay .ink-friends-send:hover:not(:disabled) {
+  background: #6dffe6 !important;
+  transform: translateY(-2px);
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-friends-login-button:active:not(:disabled),
+body.inkbeta-mode .ik-party-overlay .ink-friends-send:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--ik-edge) !important;
+}
+
+/* Une ligne d'ami : tuile pleine, pas un simple fond translucide. */
+body.inkbeta-mode .ik-party-overlay .ink-friends-row {
+  border: 2px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 13px !important;
+  background: rgba(72, 6, 88, 0.62) !important;
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.58) !important;
+}
+
+body.inkbeta-mode .ik-party-overlay .ink-friends-row:hover {
+  border-color: rgba(45, 242, 208, 0.6) !important;
+}
+
+/* ---- Options (réglages micro, caméra, thème) ------------------------- */
+body.inkbeta-mode .ink-device-tabs {
+  gap: 0.4rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.16) !important;
+  background: rgba(72, 6, 88, 0.42);
+}
+
+body.inkbeta-mode .ink-device-tab {
+  border: 2px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 11px !important;
+  color: var(--ik-white-soft) !important;
+  background: rgba(72, 6, 88, 0.6) !important;
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.62) !important;
+  font-family: var(--ik-body);
+  font-weight: 900;
+  transform: translateZ(0);
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+body.inkbeta-mode .ink-device-tab:hover {
+  transform: translateY(-2px);
+}
+
+body.inkbeta-mode .ink-device-tab[aria-pressed='true'] {
+  border-color: var(--ik-cyan) !important;
+  color: var(--ik-edge) !important;
+  background: var(--ik-cyan) !important;
+  box-shadow: 0 4px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ink-device-section {
+  border: 3px solid var(--ik-edge-soft) !important;
+  border-radius: 16px !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.12), transparent 46%),
+    var(--ik-panel) !important;
+  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.14), 0 5px 0 rgba(54, 7, 76, 0.5) !important;
+}
+
+body.inkbeta-mode .ink-device-section-halo {
+  display: none;
+}
+
+body.inkbeta-mode .ink-device-section-icon {
+  border: 2px solid var(--ik-edge) !important;
+  border-radius: 10px !important;
+  color: var(--ik-edge) !important;
+  background: var(--ik-cyan) !important;
+  box-shadow: 0 3px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ink-device-well,
+body.inkbeta-mode .ink-device-count,
+body.inkbeta-mode .ink-device-rnnoise {
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+  background: rgba(48, 4, 65, 0.7) !important;
+}
+
+body.inkbeta-mode .ink-device-select-trigger {
+  color: var(--ik-white) !important;
+  font-family: var(--ik-body);
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ink-device-toggle {
+  border: 2px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 13px !important;
+  background: rgba(72, 6, 88, 0.62) !important;
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.58) !important;
+}
+
+body.inkbeta-mode .ink-device-toggle[aria-pressed='true'] {
+  border-color: var(--ik-cyan) !important;
+  background: linear-gradient(180deg, rgba(45, 242, 208, 0.2), rgba(72, 6, 88, 0.7)) !important;
+}
+
+body.inkbeta-mode .ink-device-switch {
+  border: 2px solid var(--ik-edge) !important;
+  box-shadow: 0 2px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ink-device-test,
+body.inkbeta-mode .ink-device-authorize,
+body.inkbeta-mode .ink-device-preset {
+  border: 3px solid var(--ik-edge) !important;
+  border-radius: 12px !important;
+  color: var(--ik-edge) !important;
+  background: var(--ik-cyan) !important;
+  box-shadow: 0 5px 0 var(--ik-edge) !important;
+  transform: translateZ(0);
+}
+
+body.inkbeta-mode .ink-device-test:hover:not(:disabled),
+body.inkbeta-mode .ink-device-authorize:hover:not(:disabled),
+body.inkbeta-mode .ink-device-preset:hover:not(:disabled) {
+  background: #6dffe6 !important;
+  transform: translateY(-2px);
+}
+
+body.inkbeta-mode .ink-device-test:active:not(:disabled),
+body.inkbeta-mode .ink-device-authorize:active:not(:disabled),
+body.inkbeta-mode .ink-device-preset:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ink-device-theme-card {
+  border: 2px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 13px !important;
+  background: rgba(72, 6, 88, 0.62) !important;
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.58) !important;
+}
+
+body.inkbeta-mode .ink-device-theme-card[aria-pressed='true'] {
+  border-color: var(--ik-cyan) !important;
+  background: linear-gradient(180deg, rgba(45, 242, 208, 0.22), rgba(72, 6, 88, 0.7)) !important;
+}
+
+body.inkbeta-mode .ink-device-error {
+  border: 2px solid rgba(255, 211, 78, 0.55) !important;
+  border-radius: 12px !important;
+  color: var(--ik-yellow) !important;
+  background: rgba(255, 211, 78, 0.12) !important;
+}
+
+/* ---- Profil ---------------------------------------------------------- */
+body.inkbeta-mode .ik-party-overlay .ink-profile-sidebar {
+  gap: 0.7rem;
+}
+
+/* ---- Social Studio --------------------------------------------------- */
+body.inkbeta-mode .social-studio-backdrop {
+  background: rgba(53, 7, 75, 0.84) !important;
+}
+
+body.inkbeta-mode .social-studio-dialog {
+  border: 3px solid var(--ik-edge) !important;
+  border-radius: 20px !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.16), transparent 42%),
+    var(--ik-panel) !important;
+  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.15), 0 8px 0 rgba(54, 7, 76, 0.62) !important;
+}
+
+body.inkbeta-mode .social-studio-header {
+  position: relative;
+  border-bottom: 3px solid var(--ik-edge-soft) !important;
+  background: rgba(72, 6, 88, 0.46) !important;
+}
+
+/* Le liseré cyan/rose du reste de la beta, pour raccrocher l'en-tête. */
+body.inkbeta-mode .social-studio-header::after {
+  position: absolute;
+  bottom: -3px;
+  left: 1.1rem;
+  width: 4.5rem;
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: var(--ik-cyan);
+  box-shadow: 4.9rem 0 0 var(--ik-pink);
+  content: '';
+  pointer-events: none;
+}
+
+body.inkbeta-mode .social-studio-logo {
+  border: 3px solid var(--ik-edge) !important;
+  border-radius: 12px !important;
+  color: var(--ik-edge) !important;
+  background: var(--ik-cyan) !important;
+  box-shadow: 0 4px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .social-studio-kicker {
+  color: var(--ik-cyan) !important;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+body.inkbeta-mode .social-studio-header h2 {
+  color: var(--ik-white) !important;
+  font-family: var(--ik-display);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-shadow: 0 4px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .social-studio-close {
+  border: 3px solid var(--ik-white) !important;
+  border-radius: 12px !important;
+  color: var(--ik-white) !important;
+  background: rgba(91, 8, 105, 0.72) !important;
+  box-shadow: 0 4px 0 var(--ik-edge) !important;
+  transform: translateZ(0);
+}
+
+body.inkbeta-mode .social-studio-close:hover {
+  color: var(--ik-edge) !important;
+  background: var(--ik-white) !important;
+}
+
+body.inkbeta-mode .social-studio-close:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ik-edge) !important;
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .social-studio-dialog {
+    border-width: 2px !important;
+    border-radius: 0 !important;
+  }
+
+  body.inkbeta-mode .ik-party-overlay .ink-section,
+  body.inkbeta-mode .ink-device-section {
+    border-width: 2px !important;
+    border-radius: 13px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode :is(
+    .ink-friends-code-card,
+    .ink-device-tab,
+    .ink-device-test,
+    .ink-device-authorize,
+    .ink-device-preset,
+    .social-studio-close
+  ) {
+    transition: none;
+  }
+}
+
+/* ---- Social : contenu ------------------------------------------------- */
+body.inkbeta-mode .social-sidebar {
+  border-right: 3px solid var(--ik-edge-soft) !important;
+  background: rgba(72, 6, 88, 0.42) !important;
+}
+
+body.inkbeta-mode .social-profile-card,
+body.inkbeta-mode .social-stat,
+body.inkbeta-mode .social-xp,
+body.inkbeta-mode .social-badges {
+  border: 2px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 13px !important;
+  background: rgba(72, 6, 88, 0.62) !important;
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.58) !important;
+}
+
+body.inkbeta-mode .social-profile-card {
+  transform: translateZ(0);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+body.inkbeta-mode .social-profile-card:hover {
+  border-color: rgba(45, 242, 208, 0.6) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 rgba(53, 7, 75, 0.58) !important;
+}
+
+body.inkbeta-mode .social-avatar {
+  border: 3px solid var(--ik-white) !important;
+  background: linear-gradient(150deg, var(--ik-panel-bright), var(--ik-pink)) !important;
+  box-shadow: 0 0 0 2px var(--ik-edge), 0 3px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .social-avatar > small {
+  border: 2px solid var(--ik-edge) !important;
+  color: var(--ik-edge) !important;
+  background: var(--ik-cyan) !important;
+  font-family: var(--ik-body);
+  font-weight: 950;
+}
+
+body.inkbeta-mode .social-xp > span {
+  border: 2px solid var(--ik-edge) !important;
+  background: rgba(53, 7, 75, 0.55) !important;
+}
+
+body.inkbeta-mode .social-xp > span > i {
+  background: linear-gradient(90deg, var(--ik-cyan), var(--ik-pink)) !important;
+}
+
+body.inkbeta-mode .social-nav-label,
+body.inkbeta-mode .social-feed-kicker {
+  color: var(--ik-cyan) !important;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+/* Entrées de navigation : même pastille que les outils de la barre. */
+body.inkbeta-mode .social-nav button {
+  border: 2px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 11px !important;
+  color: var(--ik-white-soft) !important;
+  background: rgba(72, 6, 88, 0.58) !important;
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.6) !important;
+  font-family: var(--ik-body);
+  font-weight: 900;
+  transform: translateZ(0);
+}
+
+body.inkbeta-mode .social-nav button:hover {
+  transform: translateY(-2px);
+}
+
+body.inkbeta-mode .social-nav button[aria-current='page'],
+body.inkbeta-mode .social-nav button.is-active {
+  border-color: var(--ik-cyan) !important;
+  color: var(--ik-edge) !important;
+  background: var(--ik-cyan) !important;
+  box-shadow: 0 4px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .social-feed-toolbar {
+  border-bottom: 3px solid var(--ik-edge-soft) !important;
+  background: rgba(72, 6, 88, 0.42) !important;
+}
+
+body.inkbeta-mode .social-feed-toolbar h3 {
+  color: var(--ik-cyan) !important;
+  font-family: var(--ik-display);
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  font-weight: 400;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  text-shadow: 0 4px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .social-feed-toolbar p {
+  color: var(--ik-white-faint) !important;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+body.inkbeta-mode .social-search-wrap {
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+  background: rgba(48, 4, 65, 0.72) !important;
+}
+
+body.inkbeta-mode .social-search-wrap:focus-within {
+  border-color: var(--ik-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(45, 242, 208, 0.12) !important;
+}
+
+body.inkbeta-mode .social-search-wrap input {
+  color: var(--ik-white) !important;
+  font-family: var(--ik-body);
+  font-weight: 800;
+}
+
+body.inkbeta-mode .social-search-results {
+  border: 2px solid var(--ik-edge) !important;
+  border-radius: 13px !important;
+  background: var(--ik-panel-deep) !important;
+  box-shadow: 0 6px 0 rgba(53, 7, 75, 0.78) !important;
+}
+
+body.inkbeta-mode .social-empty,
+body.inkbeta-mode .social-loading {
+  color: var(--ik-white-soft) !important;
+  font-family: var(--ik-body);
+  font-weight: 800;
+}
+
+body.inkbeta-mode .social-empty h4 {
+  color: var(--ik-cyan) !important;
+  font-family: var(--ik-display);
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 3px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .social-viewer-overlay {
+  background: rgba(53, 7, 75, 0.9) !important;
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .social-sidebar {
+    border-right: 0 !important;
+    border-bottom: 2px solid var(--ik-edge-soft) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode :is(.social-profile-card, .social-nav button) {
+    transition: none;
+  }
+}

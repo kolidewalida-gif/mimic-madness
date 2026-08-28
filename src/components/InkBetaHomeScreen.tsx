@@ -22,6 +22,7 @@ import {
   Mic2,
   Play,
   Settings,
+  Share2,
   SlidersHorizontal,
   Trash2,
   User,
@@ -50,6 +51,8 @@ import { InkDrawer, InkModal } from '@/components/menu/InkOverlay';
 interface InkBetaHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
   onJoinGame: (playerName: string, lobbyCode: string) => void;
+  /** Ouvre le Social Studio, monté par la page. */
+  onOpenSocial?: () => void;
 }
 
 const MODE_ICONS: Partial<Record<LobbyGameMode, typeof Mic2>> = {
@@ -306,6 +309,7 @@ const readLastMode = (): number => {
 const InkBetaHomeScreenComponent = ({
   onCreateGame,
   onJoinGame,
+  onOpenSocial,
 }: InkBetaHomeScreenProps) => {
   const { user, profile } = useAuth();
   const { play } = useBackgroundMusic();
@@ -432,6 +436,23 @@ const InkBetaHomeScreenComponent = ({
         <div className="ik-topbar-side ik-topbar-side--end">
           <div className="ik-tools">
             {user && <span className="ik-notifications"><NotificationCenter /></span>}
+
+            {/*
+              Social remis dans la barre : le dialogue était déjà monté par la
+              page pour toute la famille Ink, mais l'accueil beta n'avait aucun
+              bouton pour l'ouvrir.
+            */}
+            {onOpenSocial && (
+              <button
+                type="button"
+                onClick={() => { playInkSound('brushTap', 0.3); onOpenSocial(); }}
+                className="ik-tool menu-focus"
+                aria-label="Ouvrir le Social Studio"
+              >
+                <Share2 aria-hidden="true" />
+                <span>Social</span>
+              </button>
+            )}
 
             <button
               type="button"

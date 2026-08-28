@@ -684,6 +684,7 @@ const Index = () => {
             <InkBetaHomeScreen
               onCreateGame={handleCreateGame}
               onJoinGame={handleJoinGame}
+              onOpenSocial={openInkSocial}
             />
           ) : useNeonHub ? (
             <NeonHomeScreen
