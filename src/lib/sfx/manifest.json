@@ -20,32 +20,32 @@
     "Ink redirige les premiers vers les seconds. Tout nom absent d'ici continue",
     "d'être synthétisé comme avant."
   ],
-  "style": "Cartoon party game sound effect, warm rounded and bouncy, playful and friendly, clean dry mono recording with no reverb and no music bed, polished mobile game quality",
+  "style": "Neon arcade party game sound effect, chunky and punchy with a thick plastic transient and a short bright synth blip, saturated and lively, snappy attack with a very short tail, clean dry mono recording with no reverb and no music bed, modern polished party game quality",
   "samples": [
     {
       "id": "ui-click",
-      "prompt": "Crisp soft rubbery button click, single one-shot, tight and snappy",
+      "prompt": "Thick plastic arcade button thock with a tiny bright synth blip on top, single one-shot, very tight and punchy, no tail",
       "durationSeconds": 0.5,
       "gain": 1,
       "aliases": ["click", "clickSoft", "clickGlass", "clickMechanical", "inkClick", "cartoonPop", "pop", "selectItem", "toggleOn", "tabSwitch"]
     },
     {
       "id": "ui-hover",
-      "prompt": "Tiny delicate hover tick, feather light, barely there",
+      "prompt": "Tiny neon synth tick, glassy and dry, feather light, barely there",
       "durationSeconds": 0.5,
       "gain": 0.6,
       "aliases": ["hover", "hoverSoft", "hoverMedium", "hoverStrong", "brushTap", "inkHover", "focusIn"]
     },
     {
       "id": "ui-success",
-      "prompt": "Happy two note confirmation ding, bright little bell, satisfying",
+      "prompt": "Bright two note synth confirmation stab, punchy arcade chime, satisfying and short",
       "durationSeconds": 0.7,
       "gain": 1,
       "aliases": ["success", "inkSuccess", "cartoonDing", "notifySuccess", "ding", "resolution", "toggleOff"]
     },
     {
       "id": "ui-error",
-      "prompt": "Comedic soft descending wrong buzzer, gentle rubber honk, not harsh",
+      "prompt": "Short fat descending synth buzz, rubbery arcade error honk, punchy and not harsh",
       "durationSeconds": 0.6,
       "gain": 0.9,
       "aliases": ["error", "inkError", "notifyError"]
@@ -66,7 +66,7 @@
     },
     {
       "id": "ui-whoosh",
-      "prompt": "Fast cartoon swoosh, rubbery air sweep, quick and clean",
+      "prompt": "Fast neon synth sweep, tight filtered whoosh, quick and clean with no tail",
       "durationSeconds": 0.5,
       "gain": 0.8,
       "aliases": ["whoosh", "transition", "cartoonSwoosh", "transitionSwoosh", "transitionWoosh", "inkTransition", "paperSlide", "ambientWhoosh", "brushSwipe", "brushStroke"]
@@ -94,7 +94,7 @@
     },
     {
       "id": "ui-celebration",
-      "prompt": "Short joyful party fanfare with confetti sparkle, brass and bells, triumphant",
+      "prompt": "Short neon party fanfare, punchy synth brass stack with bright sparkle on top, triumphant arcade win",
       "durationSeconds": 1.6,
       "gain": 1,
       "aliases": ["celebration", "cartoonFanfare", "transitionMagic"]
@@ -122,7 +122,7 @@
     },
     {
       "id": "ui-xp",
-      "prompt": "Tiny bright points tick up, small coin sparkle, quick reward blip",
+      "prompt": "Tiny bright synth points tick, arcade score blip, quick and dry",
       "durationSeconds": 0.5,
       "gain": 0.8,
       "aliases": ["xpGain", "scoreUp"]
@@ -171,7 +171,7 @@
     },
     {
       "id": "ui-start",
-      "prompt": "Energetic game start swell with a punchy hit, upbeat kickoff",
+      "prompt": "Energetic neon arcade start stab, rising synth swell into a thick punchy hit, upbeat kickoff",
       "durationSeconds": 1,
       "gain": 1,
       "aliases": ["start"]
@@ -234,21 +234,21 @@
     },
     {
       "id": "vote-up",
-      "prompt": "Satisfying bright thumbs up pop with a happy upward chime, approval",
+      "prompt": "Satisfying thick pop with a bright rising synth blip, arcade approval, punchy and short",
       "durationSeconds": 0.6,
       "gain": 1,
       "aliases": ["voteUp", "vote"]
     },
     {
       "id": "vote-down",
-      "prompt": "Dull muted comedic thumbs down blip going down, playful disapproval",
+      "prompt": "Fat muted synth blip sliding down, arcade disapproval, playful and short",
       "durationSeconds": 0.6,
       "gain": 0.9,
       "aliases": ["voteDown"]
     },
     {
       "id": "ui-countdown",
-      "prompt": "Single clean countdown tick, wooden clock tock, precise",
+      "prompt": "Single punchy arcade countdown beep, thick square wave blip with a plastic transient, precise and dry, no tail",
       "durationSeconds": 0.5,
       "gain": 0.85,
       "aliases": ["countdown", "quizTick", "quizCountdown1", "quizCountdown2", "quizCountdown3"]
