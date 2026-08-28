@@ -6,10 +6,11 @@
  * l'action immédiat. Toute la logique de création, de jonction et de
  * persistance reste partagée avec les autres accueils.
  */
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AudioLines,
+  Camera,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
@@ -26,13 +27,16 @@ import {
   User,
   UsersRound,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
 import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { GAME_AVATARS, findGameAvatarIndex } from '@/lib/gameAvatars';
 import { GAME_MODE_META, INK_GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
 import { DeviceSettings } from '@/components/DeviceSettings';
 import { MusicPlayerBar } from '@/components/MusicPlayerBar';
@@ -120,6 +124,224 @@ const InkBetaMascot = memo(() => (
   </div>
 ));
 InkBetaMascot.displayName = 'InkBetaMascot';
+
+interface InkBetaAvatarPortraitProps {
+  imageUrl: string;
+  alt: string;
+}
+
+const InkBetaAvatarPortrait = memo(({ imageUrl, alt }: InkBetaAvatarPortraitProps) => {
+  const [hasImageError, setHasImageError] = useState(false);
+
+  useEffect(() => {
+    setHasImageError(false);
+  }, [imageUrl]);
+
+  if (hasImageError) return <InkBetaMascot />;
+
+  return (
+    <div className="ik-mascot ik-mascot--avatar">
+      <div className="ik-mascot-avatar-frame">
+        <img
+          src={imageUrl}
+          alt={alt}
+          className="ik-mascot-avatar-image"
+          draggable={false}
+          onError={() => setHasImageError(true)}
+        />
+      </div>
+      <span className="ik-mascot-pulse ik-mascot-pulse--one" aria-hidden="true" />
+      <span className="ik-mascot-pulse ik-mascot-pulse--two" aria-hidden="true" />
+    </div>
+  );
+});
+InkBetaAvatarPortrait.displayName = 'InkBetaAvatarPortrait';
+
+/** Sélecteur de l’avatar joueur, placé sur le grand Mimo de l’accueil. */
+const InkBetaAvatarPicker = memo(() => {
+  const { user, profile, updateProfile } = useAuth();
+  const { avatarData, setAvatarImage, isLoading: avatarLoading } = useGlobalPlayerAvatar(
+    user?.id || '',
+  );
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const avatarImageUrl =
+    avatarData.type === 'image' && avatarData.imageUrl
+      ? avatarData.imageUrl
+      : profile?.avatar_url || undefined;
+  const selectedGameAvatarIndex = findGameAvatarIndex(avatarImageUrl);
+  const selectedGameAvatar = selectedGameAvatarIndex >= 0
+    ? GAME_AVATARS[selectedGameAvatarIndex]
+    : undefined;
+
+  const persistAvatarImage = async (imageUrl: string, successMessage: string) => {
+    if (!user || isSavingAvatar) return false;
+
+    const previousProfileAvatar = profile?.avatar_url ?? null;
+    let profileUpdated = false;
+    setIsSavingAvatar(true);
+    playInkSound('brushTap', 0.35);
+
+    try {
+      await updateProfile({ avatar_url: imageUrl });
+      profileUpdated = true;
+
+      const globalAvatarSaved = await setAvatarImage(imageUrl);
+      if (!globalAvatarSaved) throw new Error('Global avatar persistence failed');
+
+      toast.success(successMessage);
+      playInkSound('inkSuccess', 0.5);
+      return true;
+    } catch (error) {
+      if (profileUpdated) {
+        try {
+          await updateProfile({ avatar_url: previousProfileAvatar });
+        } catch (rollbackError) {
+          console.error('Error rolling back profile avatar:', rollbackError);
+        }
+      }
+      console.error('Error selecting avatar:', error);
+      toast.error("Impossible de changer l'avatar");
+      return false;
+    } finally {
+      setIsSavingAvatar(false);
+    }
+  };
+
+  const selectGameAvatar = (nextIndex: number) => {
+    const avatar = GAME_AVATARS[nextIndex];
+    if (!avatar) return;
+    void persistAvatarImage(avatar.src, `${avatar.label} équipé !`);
+  };
+
+  const stepGameAvatar = (direction: -1 | 1) => {
+    const lastIndex = GAME_AVATARS.length - 1;
+    const nextIndex = selectedGameAvatarIndex < 0
+      ? (direction > 0 ? 0 : lastIndex)
+      : (selectedGameAvatarIndex + direction + GAME_AVATARS.length) % GAME_AVATARS.length;
+    selectGameAvatar(nextIndex);
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez JPG, PNG, GIF ou WebP');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 2 Mo");
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      const imageUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error || new Error('Avatar file read failed'));
+        reader.readAsDataURL(file);
+      });
+      await persistAvatarImage(imageUrl, 'Photo de profil mise à jour !');
+    } catch (error) {
+      console.error('Error reading avatar:', error);
+      toast.error("Impossible de charger l'image");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  if (!user) {
+    return (
+      <>
+        <InkBetaMascot />
+        <div className="ik-mascot-caption">
+          <AudioLines aria-hidden="true" />
+          <span>Micro prêt · talent facultatif</span>
+        </div>
+      </>
+    );
+  }
+
+  const avatarControlsDisabled = isSavingAvatar || avatarLoading;
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        onChange={handleAvatarUpload}
+        className="hidden"
+      />
+
+      <div className="ink-game-avatar-picker" aria-busy={avatarControlsDisabled}>
+        <button
+          type="button"
+          onClick={() => stepGameAvatar(-1)}
+          disabled={avatarControlsDisabled}
+          aria-label="Avatar précédent"
+          className="ink-game-avatar-arrow ink-game-avatar-arrow--previous menu-focus"
+        >
+          <ChevronLeft aria-hidden="true" />
+        </button>
+
+        <div className="ink-game-avatar-stage">
+          {avatarImageUrl ? (
+            <InkBetaAvatarPortrait
+              imageUrl={avatarImageUrl}
+              alt={`Avatar de ${profile?.display_name || 'Joueur'}`}
+            />
+          ) : (
+            <InkBetaMascot />
+          )}
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={avatarControlsDisabled}
+            aria-label="Importer une photo de profil"
+            aria-busy={isSavingAvatar}
+            title="Importer une photo"
+            className="ink-game-avatar-edit menu-focus"
+          >
+            {isSavingAvatar ? (
+              <span className="ink-game-avatar-spinner" aria-hidden="true" />
+            ) : (
+              <Camera aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => stepGameAvatar(1)}
+          disabled={avatarControlsDisabled}
+          aria-label="Avatar suivant"
+          className="ink-game-avatar-arrow ink-game-avatar-arrow--next menu-focus"
+        >
+          <ChevronRight aria-hidden="true" />
+        </button>
+      </div>
+
+      <div className="ink-game-avatar-caption" aria-live="polite" aria-atomic="true">
+        <strong>
+          {selectedGameAvatar?.label || (avatarImageUrl ? 'Photo personnalisée' : 'Choisis ton Mimo')}
+        </strong>
+        <span>
+          {selectedGameAvatar
+            ? `${String(selectedGameAvatarIndex + 1).padStart(2, '0')} / ${String(GAME_AVATARS.length).padStart(2, '0')}`
+            : `${GAME_AVATARS.length} avatars du jeu`}
+        </span>
+      </div>
+    </>
+  );
+});
+InkBetaAvatarPicker.displayName = 'InkBetaAvatarPicker';
 
 const LAST_MODE_KEY = 'mimic.lastMode';
 
@@ -325,11 +547,7 @@ const InkBetaHomeScreenComponent = ({
 
             <div className="ik-play-content">
               <div className="ik-mascot-zone">
-                <InkBetaMascot />
-                <div className="ik-mascot-caption">
-                  <AudioLines aria-hidden="true" />
-                  <span>Micro prêt · talent facultatif</span>
-                </div>
+                <InkBetaAvatarPicker />
               </div>
 
               <div className="ik-start-card">
