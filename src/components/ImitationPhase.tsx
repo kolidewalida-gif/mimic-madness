@@ -58,6 +58,7 @@ interface ImitationPhaseProps {
   gameMode?: 'normal' | '2v2' | 'quiz';
   getTeammate?: (playerId: string) => { id: string; name: string } | null;
   onAllReady: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 const ACCENT = '#f87171';
@@ -97,7 +98,9 @@ export const ImitationPhase = ({
   gameMode = 'normal',
   getTeammate,
   onAllReady,
+  variant = 'default',
 }: ImitationPhaseProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [hasRecorded, setHasRecorded] = useState(false);
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
   const [isReadySynchronized, setIsReadySynchronized] = useState(false);
@@ -575,8 +578,12 @@ export const ImitationPhase = ({
   const teammateReady = teammate ? readyPlayers.includes(teammate.id) : false;
 
   return (
-    <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
-      {/* Animated background */}
+    <div
+      className={isInkBeta ? 'contents' : 'h-[100dvh] text-white relative overflow-hidden flex flex-col'}
+      style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}
+    >
+      {/* Animated background — la beta a déjà ses couches de scène. */}
+      {!isInkBeta && (
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div animate={{ x: [0, -20, 0], y: [0, 20, 0] }} transition={{ duration: 10, repeat: Infinity }}
           className="absolute top-[-5%] right-[10%] w-[400px] h-[400px] rounded-full opacity-20"
@@ -584,9 +591,10 @@ export const ImitationPhase = ({
         <Sparkles className="absolute top-[15%] left-[5%] w-5 h-5 text-amber-400/30" />
         <Zap className="absolute bottom-[30%] right-[4%] w-4 h-4 text-pink-400/25" />
       </div>
-      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-[100px]">
+      )}
+      <div className={isInkBeta ? 'contents' : 'relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-[100px]'}>
         {/* Header */}
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4 mb-4">
+        <div className={isInkBeta ? 'hidden' : 'max-w-[1600px] mx-auto flex items-center justify-between gap-4 mb-4'}>
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
             <div className="px-4 py-2 rounded-full flex items-center gap-2"
               style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
@@ -631,11 +639,29 @@ export const ImitationPhase = ({
         {/* MAIN 2-COLUMN LAYOUT — video LEFT (big), imitation panel RIGHT */}
         <motion.div initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="max-w-[1600px] mx-auto grid lg:grid-cols-[1.55fr_1fr] gap-4 items-start pt-4">
+          className={isInkBeta ? 'contents' : 'max-w-[1600px] mx-auto grid lg:grid-cols-[1.55fr_1fr] gap-4 items-start pt-4'}>
           {/* LEFT — Video to imitate (big) */}
-          <div className="relative rounded-3xl"
-            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}22` }}>
-            <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />
+          <div className={isInkBeta ? 'ik-gpanel is-featured' : 'relative rounded-3xl'}
+            style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}22` }}>
+            {isInkBeta && (
+              <div className="ik-gpanel-head">
+                <div>
+                  <span>Manche {roundNumber}</span>
+                  <h2>Imite {currentChallenge.playerName}</h2>
+                </div>
+                <div className="ik-gpanel-aside">
+                  <button
+                    type="button"
+                    onClick={() => setShowSettings(!showSettings)}
+                    className="ik-tool menu-focus"
+                    aria-label="Réglages micro et caméra"
+                  >
+                    <Settings aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            )}
+            {!isInkBeta && <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />}
             <div className="absolute -top-3 left-6 z-20">
               <motion.div initial={{ scale: 0, rotate: -8 }} animate={{ scale: 1, rotate: -4 }}
                 transition={{ type: "spring", stiffness: 200, damping: 14 }}
@@ -657,9 +683,9 @@ export const ImitationPhase = ({
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="relative p-4 pt-6">
-              <div className="rounded-2xl overflow-hidden"
-                style={{ border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0)${isRecording ? ", 0 0 0 3px #ef4444" : ""}` }}>
+            <div className={isInkBeta ? 'ik-gpanel-body' : 'relative p-4 pt-6'}>
+              <div className={cn(isInkBeta ? 'ik-gvideo' : 'rounded-2xl overflow-hidden', isInkBeta && isRecording && 'is-recording')}
+                style={isInkBeta ? undefined : { border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0)${isRecording ? ", 0 0 0 3px #ef4444" : ""}` }}>
                 <VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" videoRef={challengeVideoRef} />
               </div>
 
@@ -722,10 +748,24 @@ export const ImitationPhase = ({
           </div>
 
           {/* RIGHT — Imitation panel */}
-          <div className="relative rounded-3xl"
-            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}22` }}>
-            <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />
-            <div className="absolute -top-3 left-6 z-20">
+          <div className={isInkBeta ? 'ik-gpanel' : 'relative rounded-3xl'}
+            style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}22` }}>
+            {isInkBeta && (
+              <div className="ik-gpanel-head">
+                <div>
+                  <span>Ton tour</span>
+                  <h2>Ton imitation</h2>
+                </div>
+                <div className="ik-gpanel-aside">
+                  <p className="ik-lobby-count">
+                    <strong>{String(readyPlayers.length).padStart(2, '0')}</strong>
+                    <span>/ {String(players.length).padStart(2, '0')}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+            {!isInkBeta && <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />}
+            <div className={isInkBeta ? 'hidden' : 'absolute -top-3 left-6 z-20'}>
               <motion.div initial={{ scale: 0, rotate: 8 }} animate={{ scale: 1, rotate: 4 }}
                 transition={{ type: "spring", stiffness: 200, damping: 14 }}
                 className="px-3 py-1 rounded-full flex items-center gap-1.5"
@@ -734,7 +774,7 @@ export const ImitationPhase = ({
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Imitation</span>
               </motion.div>
             </div>
-            <div className="relative p-4 pt-6 space-y-3">
+            <div className={isInkBeta ? 'ik-gpanel-body' : 'relative p-4 pt-6 space-y-3'}>
               {!hasRecorded ? (
                 <AudioRecorder key={uploadKey} playerId={currentPlayer.id} playerName={currentPlayer.name}
                   onAudioSaved={handleVideoSaved} lobbyId={lobbyId} roundNumber={roundNumber}
@@ -782,8 +822,10 @@ export const ImitationPhase = ({
                   <motion.button type="button" onClick={handleSubmit} disabled={hasSubmitted || isSubmitting}
                     whileHover={!hasSubmitted && !isSubmitting ? { scale: 1.03, rotate: -1 } : undefined}
                     whileTap={!hasSubmitted && !isSubmitting ? { scale: 0.97 } : undefined}
-                    className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70"
-                    style={{
+                    className={isInkBeta
+                      ? 'ik-primary-action menu-focus'
+                      : 'w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70'}
+                    style={isInkBeta ? undefined : {
                       background: hasSubmitted ? "linear-gradient(180deg, #34d399, #059669)" : `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
                       border: '1px solid var(--ink-line)', boxShadow: 'none',
                     }}>

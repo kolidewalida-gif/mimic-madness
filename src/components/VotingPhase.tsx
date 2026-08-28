@@ -60,6 +60,7 @@ interface VotingPhaseProps {
   gameMode?: 'normal' | '2v2' | 'quiz';
   teams?: Team[];
   onVotingComplete: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 interface ImitationWithClip {
@@ -93,8 +94,10 @@ export const VotingPhase = ({
   challengeVideoClipId,
   gameMode = 'normal',
   teams = [],
-  onVotingComplete
+  onVotingComplete,
+  variant = 'default',
 }: VotingPhaseProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [imitations, setImitations] = useState<ImitationWithClip[]>([]);
   const [teamImitations, setTeamImitations] = useState<TeamImitation[]>([]);
   const [votingSession, setVotingSession] = useState<VotingSessionSnapshot | null>(null);
@@ -867,8 +870,12 @@ export const VotingPhase = ({
   const isOwnVideo = voteAvailability.kind === 'own';
 
   return (
-    <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
-      {/* Animated background */}
+    <div
+      className={isInkBeta ? 'contents' : 'h-[100dvh] text-white relative overflow-hidden flex flex-col'}
+      style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}
+    >
+      {/* Animated background — la beta a déjà ses couches de scène. */}
+      {!isInkBeta && (
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div animate={{ x: [0, 20, 0], y: [0, -15, 0] }} transition={{ duration: 9, repeat: Infinity }}
           className="absolute top-[-5%] left-[15%] w-[450px] h-[450px] rounded-full opacity-20"
@@ -876,14 +883,15 @@ export const VotingPhase = ({
         <Sparkles className="absolute top-[12%] right-[6%] w-5 h-5 text-amber-400/30" />
         <Zap className="absolute bottom-[25%] left-[4%] w-4 h-4 text-pink-400/25" />
       </div>
+      )}
 
       {/* Countdown overlay */}
       <CountdownOverlay isActive={showCountdown} onComplete={handleCountdownComplete} duration={3}
         title="La vidéo commence dans..." completeAt={countdownCompleteAt ?? undefined} />
 
-      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar max-w-4xl mx-auto w-full px-4 py-5 pb-[120px] space-y-5">
-        {/* Header */}
-        <div className="text-center space-y-3">
+      <div className={isInkBeta ? 'contents' : 'relative z-10 flex-1 overflow-y-auto custom-scrollbar max-w-4xl mx-auto w-full px-4 py-5 pb-[120px] space-y-5'}>
+        {/* Header — en beta, la pastille de phase vit dans la barre de marque. */}
+        <div className={isInkBeta ? 'hidden' : 'text-center space-y-3'}>
           <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: -2 }}
             transition={{ type: "spring", stiffness: 280, damping: 16 }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
@@ -904,12 +912,26 @@ export const VotingPhase = ({
         {/* Video card */}
         <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: "spring", damping: 22 }}
-          className="relative rounded-3xl overflow-hidden"
-          style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-          <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: "2px solid rgba(248,113,113,0.3)" }} />
-          <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "none" }} />
+          className={isInkBeta ? 'ik-gpanel is-featured' : 'relative rounded-3xl overflow-hidden'}
+          style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+          {isInkBeta && (
+            <div className="ik-gpanel-head">
+              <div>
+                <span>Manche {roundNumber}</span>
+                <h2>{gameMode === '2v2' ? 'Votez pour les équipes' : 'À vous de juger'}</h2>
+              </div>
+              <div className="ik-gpanel-aside">
+                <p className="ik-lobby-count">
+                  <strong>{String(currentIndex + 1).padStart(2, '0')}</strong>
+                  <span>/ {String(displayLength).padStart(2, '0')}</span>
+                </p>
+              </div>
+            </div>
+          )}
+          {!isInkBeta && <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: "2px solid rgba(248,113,113,0.3)" }} />}
+          {!isInkBeta && <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "none" }} />}
 
-          <div className="relative p-5 space-y-4">
+          <div className={isInkBeta ? 'ik-gpanel-body' : 'relative p-5 space-y-4'}>
             {/* Player/team name */}
             <div className="text-center">
               {gameMode === '2v2' && currentTeamImitation ? (
@@ -947,7 +969,7 @@ export const VotingPhase = ({
             </div>
 
             {/* Video */}
-            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+            <div className={isInkBeta ? 'ik-gvideo' : 'rounded-2xl overflow-hidden'} style={isInkBeta ? undefined : { border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
               {gameMode === '2v2' && currentTeamImitation?.clipIds[0] ? (
                 <TeamVideoOverlay ref={teamVideoRef} videoClipId={challengeVideoClipId}
                   audioClipId1={currentTeamImitation.clipIds[0]} audioClipId2={currentTeamImitation.clipIds[1] || null}
@@ -1027,16 +1049,16 @@ export const VotingPhase = ({
                   <motion.button onClick={(e) => handleVote('dislike', e)}
                     disabled={!votingSessionId || !isSessionSynchronized || isVotePending}
                     whileHover={{ scale: 1.05, rotate: 2 }} whileTap={{ scale: 0.95 }}
-                    className="flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
-                    style={{ background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                    className={isInkBeta ? 'ik-vote ik-vote--down menu-focus flex-1' : 'flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50'}
+                    style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <ThumbsDown className="w-6 h-6 text-white" />
                     <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>Bof</span>
                   </motion.button>
                   <motion.button onClick={(e) => handleVote('like', e)}
                     disabled={!votingSessionId || !isSessionSynchronized || isVotePending}
                     whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}
-                    className="flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
-                    style={{ background: "linear-gradient(180deg, #34d399, #059669)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                    className={isInkBeta ? 'ik-vote menu-focus flex-1' : 'flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50'}
+                    style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #34d399, #059669)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <ThumbsUp className="w-6 h-6 text-white" />
                     <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>Top !</span>
                   </motion.button>
@@ -1058,8 +1080,8 @@ export const VotingPhase = ({
                   disabled={!votingSessionId || !isSessionSynchronized || isSessionActionPending}
                   whileHover={!isSessionActionPending ? { scale: 1.05, rotate: -1 } : undefined}
                   whileTap={!isSessionActionPending ? { scale: 0.97 } : undefined}
-                  className="flex items-center gap-2 px-6 py-3 rounded-2xl disabled:opacity-50"
-                  style={{ background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                  className={isInkBeta ? 'ik-primary-action menu-focus' : 'flex items-center gap-2 px-6 py-3 rounded-2xl disabled:opacity-50'}
+                  style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   {isSessionActionPending && <Loader2 className="w-5 h-5 text-white animate-spin" />}
                   <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
                     {isSessionActionPending ? 'Passage…' : 'Suivant'}

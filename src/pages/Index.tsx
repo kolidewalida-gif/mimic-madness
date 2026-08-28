@@ -750,6 +750,7 @@ const Index = () => {
 
         {gameState === "preparation" && currentPlayer && lobby && (
           <VideoSubmissionScreen
+            variant={useBetaHome ? 'inkBeta' : 'default'}
             currentPlayer={currentPlayer}
             lobbyId={lobby.id}
             players={players}
@@ -762,6 +763,7 @@ const Index = () => {
 
         {gameState === "playing" && currentPlayer && lobby && (
           <GamePlayScreen
+            variant={useBetaHome ? 'inkBeta' : 'default'}
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}

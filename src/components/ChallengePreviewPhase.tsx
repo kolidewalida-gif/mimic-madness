@@ -16,6 +16,7 @@ interface Challenge { id: string; playerId: string; playerName: string; }
 interface ChallengePreviewPhaseProps {
   lobbyId: string; roundNumber: number; currentPlayer: Player;
   players: Player[]; currentChallenge: Challenge; onAllReady: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
@@ -25,7 +26,9 @@ const ACCENT = "var(--ink-text-dim)";
 
 export const ChallengePreviewPhase = ({
   lobbyId, roundNumber, currentPlayer, players, currentChallenge, onAllReady,
+  variant = 'default',
 }: ChallengePreviewPhaseProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
   const [isReadyPending, setIsReadyPending] = useState(false);
   const readyPendingRef = useRef(false);
@@ -150,8 +153,12 @@ export const ChallengePreviewPhase = ({
   };
 
   return (
-    <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col" style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
-      {/* Animated background blobs */}
+    <div
+      className={isInkBeta ? 'contents' : 'h-[100dvh] text-white relative overflow-hidden flex flex-col'}
+      style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}
+    >
+      {/* Animated background blobs — la beta a déjà ses couches de scène. */}
+      {!isInkBeta && (
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div animate={{ x: [0, 30, 0], y: [0, -20, 0] }} transition={{ duration: 8, repeat: Infinity }}
           className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full opacity-20"
@@ -160,40 +167,47 @@ export const ChallengePreviewPhase = ({
         <Sparkles className="absolute bottom-[20%] left-[5%] w-5 h-5 text-pink-400/25" />
         <Zap className="absolute top-[40%] right-[3%] w-4 h-4 text-[var(--ink-text-dim)]/20" />
       </div>
+      )}
 
-      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-5 pb-[140px]">
-        <div className="max-w-3xl mx-auto space-y-4">
+      <div className={isInkBeta ? 'contents' : 'relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-5 pb-[140px]'}>
+        <div className={isInkBeta ? 'ik-gpanel is-featured' : 'max-w-3xl mx-auto space-y-4'}>
 
-          {/* Phase badge */}
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-3">
+          {/* Phase badge — en beta, la pastille de phase est déjà dans la barre. */}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className={isInkBeta ? 'ik-gpanel-head' : 'text-center space-y-3'}>
             <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: -2 }}
               transition={{ type: "spring", stiffness: 280, damping: 16 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+              className={isInkBeta ? 'hidden' : 'inline-flex items-center gap-2 px-4 py-2 rounded-full'}
               style={{ background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
               <Eye className="w-4 h-4 text-white" strokeWidth={2.5} />
               <span className="text-sm font-black uppercase tracking-wider text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
                 👁️ Observation · Manche {roundNumber}
               </span>
             </motion.div>
-            <h2 className="text-5xl md:text-6xl font-black leading-none text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
-              Aperçu du défi
-            </h2>
-            <p className="text-base text-white/70 font-bold" style={{ fontFamily: FONT }}>
-              Vidéo de <span style={{ color: ACCENT, textShadow: `0 2px 8px ${ACCENT}88` }}>{currentChallenge.playerName}</span>
+            <div>
+              {isInkBeta && <span>Étape 01</span>}
+              <h2
+                className={isInkBeta ? undefined : 'text-5xl md:text-6xl font-black leading-none text-white'}
+                style={isInkBeta ? undefined : { fontFamily: FONT, textShadow: SHADOW }}
+              >
+                Aperçu du défi
+              </h2>
+            </div>
+            <p className={isInkBeta ? 'ik-game-lead' : 'text-base text-white/70 font-bold'} style={isInkBeta ? undefined : { fontFamily: FONT }}>
+              Vidéo de <strong style={isInkBeta ? undefined : { color: ACCENT, textShadow: `0 2px 8px ${ACCENT}88` }}>{currentChallenge.playerName}</strong>
             </p>
           </motion.div>
 
           {/* Video card */}
           <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: 0.1, type: "spring", damping: 22 }}
-            className="relative rounded-3xl overflow-hidden"
-            style={{ background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}33` }}>
-            <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}44` }} />
-            <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "none" }} />
-            <Sparkles className="absolute top-3 right-4 w-4 h-4 text-pink-400 z-10" style={{ filter: "none" }} />
+            className={isInkBeta ? 'ik-gpanel-body' : 'relative rounded-3xl overflow-hidden'}
+            style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}33` }}>
+            {!isInkBeta && <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}44` }} />}
+            {!isInkBeta && <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "none" }} />}
+            {!isInkBeta && <Sparkles className="absolute top-3 right-4 w-4 h-4 text-pink-400 z-10" style={{ filter: "none" }} />}
 
-            <div className="relative p-5 space-y-4">
-              <div className="flex items-center gap-2">
+            <div className={isInkBeta ? 'flex min-h-0 flex-col gap-3' : 'relative p-5 space-y-4'}>
+              <div className={isInkBeta ? 'hidden' : 'flex items-center gap-2'}>
                 <motion.div animate={{ rotate: [-5, 5, -5] }} transition={{ duration: 2, repeat: Infinity }}
                   className="w-9 h-9 rounded-xl flex items-center justify-center"
                   style={{ background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
@@ -202,7 +216,10 @@ export const ChallengePreviewPhase = ({
                 <h3 className="text-2xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Vidéo à imiter</h3>
               </div>
 
-              <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+              <div
+                className={isInkBeta ? 'ik-gvideo' : 'rounded-2xl overflow-hidden'}
+                style={isInkBeta ? undefined : { border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+              >
                 <VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" />
               </div>
 
@@ -211,10 +228,12 @@ export const ChallengePreviewPhase = ({
                 whileHover={!isReady && !isReadyPending ? { scale: 1.03, rotate: -1 } : undefined}
                 whileTap={!isReady && !isReadyPending ? { scale: 0.97 } : undefined}
                 className={cn(
-                  "relative w-full py-4 rounded-2xl flex items-center justify-center gap-3",
+                  isInkBeta
+                    ? 'ik-primary-action menu-focus'
+                    : 'relative w-full py-4 rounded-2xl flex items-center justify-center gap-3',
                   (isReady || isReadyPending) && "cursor-not-allowed",
                 )}
-                style={{
+                style={isInkBeta ? undefined : {
                   background: isReady ? "linear-gradient(180deg, #34d399, #059669)" : "linear-gradient(180deg, #fbbf24, #d97706)",
                   border: '1px solid var(--ink-line)', boxShadow: 'none',
                 }}>
@@ -241,13 +260,29 @@ export const ChallengePreviewPhase = ({
 
           {/* Players grid */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="relative rounded-3xl overflow-hidden p-4"
-            style={{ background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-4 h-4 text-white/70" />
-              <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Statut des joueurs</span>
+            className={isInkBeta ? 'ik-gpanel' : 'relative rounded-3xl overflow-hidden p-4'}
+            style={isInkBeta ? undefined : { background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+            <div className={isInkBeta ? 'ik-gpanel-head' : 'flex items-center gap-2 mb-3'}>
+              {!isInkBeta && <Users className="w-4 h-4 text-white/70" />}
+              <div>
+                {isInkBeta && <span>Étape 02</span>}
+                <h2
+                  className={isInkBeta ? undefined : 'text-base font-black text-white'}
+                  style={isInkBeta ? undefined : { fontFamily: FONT, textShadow: SHADOW_SM }}
+                >
+                  {isInkBeta ? 'La troupe' : 'Statut des joueurs'}
+                </h2>
+              </div>
+              {isInkBeta && (
+                <div className="ik-gpanel-aside">
+                  <p className="ik-lobby-count">
+                    <strong>{String(readyPlayers.length).padStart(2, '0')}</strong>
+                    <span>/ {String(players.length).padStart(2, '0')}</span>
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className={isInkBeta ? 'ik-seats custom-scrollbar' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3'}>
               {players.map((player, idx) => {
                 const ready = readyPlayers.includes(player.id);
                 const isMe = player.id === currentPlayer.id;
@@ -255,22 +290,34 @@ export const ChallengePreviewPhase = ({
                 return (
                   <motion.div key={player.id} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.04 }}
-                    className="relative rounded-2xl p-3 flex flex-col items-center gap-2"
-                    style={{
+                    className={cn(
+                      isInkBeta
+                        ? 'ik-seat'
+                        : 'relative rounded-2xl p-3 flex flex-col items-center gap-2',
+                      isInkBeta && isMe && 'is-self',
+                      isInkBeta && ready && 'is-done',
+                    )}
+                    style={isInkBeta ? undefined : {
                       background: ready ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.03)",
                       border: '1px solid var(--ink-line)',
                       boxShadow: ready ? "0 0 0 rgba(0,0,0,0), 0 0 12px rgba(52,211,153,0.3)" : "0 0 0 rgba(0,0,0,0)",
                     }}>
-                    <div className="relative w-12 h-12 rounded-full flex items-center justify-center"
-                      style={{ background: isMe ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "var(--ink-accent)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                    <div
+                      className={cn(
+                        isInkBeta
+                          ? 'ik-seat-avatar'
+                          : 'relative w-12 h-12 rounded-full flex items-center justify-center',
+                        isInkBeta && av.type === 'image' && av.imageUrl && 'has-portrait',
+                      )}
+                      style={isInkBeta ? undefined : { background: isMe ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "var(--ink-accent)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                       {av.type === "image" && av.imageUrl
                         ? <img src={av.imageUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover" />
                         : <span className="text-xl font-black text-white" style={{ fontFamily: FONT }}>{player.name[0]?.toUpperCase()}</span>}
                       {player.isHost && <Crown className="absolute -top-2 -right-1 w-4 h-4 text-amber-400" fill="currentColor" style={{ filter: "none" }} />}
                     </div>
-                    <p className="text-sm font-black truncate text-white text-center max-w-full" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>{player.name}</p>
-                    <span className="text-[10px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full"
-                      style={{ background: ready ? "linear-gradient(180deg, #34d399, #059669)" : "rgba(255,255,255,0.08)", border: '1px solid var(--ink-line)', color: "white", boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
+                    <p className={isInkBeta ? 'ik-seat-name' : 'text-sm font-black truncate text-white text-center max-w-full'} style={isInkBeta ? undefined : { fontFamily: FONT, textShadow: SHADOW_SM }}>{player.name}</p>
+                    <span className={isInkBeta ? 'ik-seat-meta' : 'text-[10px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full'}
+                      style={isInkBeta ? undefined : { background: ready ? "linear-gradient(180deg, #34d399, #059669)" : "rgba(255,255,255,0.08)", border: '1px solid var(--ink-line)', color: "white", boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
                       {ready ? "✓ Prêt" : "En cours"}
                     </span>
                   </motion.div>

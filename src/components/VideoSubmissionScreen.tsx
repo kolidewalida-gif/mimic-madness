@@ -28,6 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
 import { LobbyChat } from "@/components/LobbyChat";
+import { InkBetaLogo } from "@/components/InkBetaBrand";
+import { InkBetaCount, InkBetaGameBadge } from "@/components/game-beta/InkBetaGameLayout";
 import { cn } from "@/lib/utils";
 import { CircularGallery } from "@/components/ui/circular-gallery";
 import {
@@ -60,9 +62,17 @@ interface VideoSubmissionScreenProps {
   onBackToLobby: () => void;
   onSubmitChallenges: (selectedClips: VideoClip[]) => void;
   onStartActualGame: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 const ACCENT = "var(--ink-accent)"; // purple — matches the IMITATION/2v2 menu
+
+/*
+ * Les panneaux internes n'ont pas de jetons dédiés : sous la beta, le thème
+ * remappe déjà `--ink-accent`, `--ink-accent-soft`, `--ink-accent-text` et
+ * `--ink-line` sur la palette Party Stage. Seuls les blocs qui codaient une
+ * couleur en dur reçoivent une classe beta.
+ */
 
 /**
  * Reject a promise that takes too long.
@@ -189,7 +199,9 @@ export const VideoSubmissionScreen = ({
   onBackToLobby,
   onSubmitChallenges,
   onStartActualGame,
+  variant = 'default',
 }: VideoSubmissionScreenProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [savedClips, setSavedClips] = useState<VideoClip[]>([]);
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1019,8 +1031,22 @@ export const VideoSubmissionScreen = ({
   };
 
   return (
-    <div className="h-[100dvh] bg-[#0a0510] text-white relative overflow-hidden flex flex-col">
+    <div
+      className={cn(
+        'relative flex flex-col overflow-hidden text-white',
+        isInkBeta
+          ? 'ik-root ik-layout-v2 ik-game-v2 menu-screen-safe h-[100dvh] w-full'
+          : 'h-[100dvh] bg-[#0a0510]',
+      )}
+    >
       {/* BACKGROUND */}
+      {isInkBeta ? (
+        <>
+          <div className="ik-party-bg" aria-hidden="true" />
+          <div className="ik-party-rays" aria-hidden="true" />
+          <div className="ik-party-dots" aria-hidden="true" />
+        </>
+      ) : (
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#0a0510] to-[#160a26]" />
         <div
@@ -1038,11 +1064,54 @@ export const VideoSubmissionScreen = ({
           }}
         />
       </div>
+      )}
+
+      {/* Barre de marque beta : mêmes repères que le menu et le lobby. */}
+      {isInkBeta && (
+        <header className="ik-topbar relative z-[8] flex-shrink-0">
+          <InkBetaLogo titleId="ik-prep-brand" />
+
+          <div className="ik-topbar-side ik-topbar-side--start">
+            <InkBetaGameBadge
+              label="Préparation"
+              step={`${selectedClips.length}/3`}
+              icon={<Clapperboard aria-hidden="true" />}
+            />
+          </div>
+
+          <div className="ik-topbar-side ik-topbar-side--end">
+            <div className="ik-tools">
+              <button
+                type="button"
+                onClick={onBackToLobby}
+                data-back
+                className="ik-tool menu-focus"
+                aria-label="Revenir au lobby"
+              >
+                <ArrowLeft aria-hidden="true" />
+                <span>Lobby</span>
+              </button>
+            </div>
+          </div>
+        </header>
+      )}
 
       {/* SCROLLABLE CONTENT — internal scroll so zoom / small viewports never
           clip the lobby button or the action area at the bottom. */}
-      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-5 py-4 pb-[140px]">
-        <div className="max-w-7xl mx-auto space-y-4">
+      <div
+        className={cn(
+          'relative z-10 min-h-0 flex-1 overflow-y-auto custom-scrollbar',
+          isInkBeta ? 'ik-main' : 'px-4 sm:px-5 py-4 pb-[140px]',
+        )}
+      >
+        <div
+          className={cn(
+            isInkBeta
+              ? 'ik-canvas ik-game-canvas ik-game-canvas--split'
+              : 'max-w-7xl mx-auto space-y-4',
+          )}
+        >
+          {!isInkBeta && (<>
           {/* HEADER */}
           <div className="flex items-center justify-between gap-4">
             <motion.button
@@ -1125,17 +1194,32 @@ export const VideoSubmissionScreen = ({
             </span>{" "}
             pour cette partie.
           </p>
+          </>)}
 
-          {/* GRID — always shows import zone + thumbnails + status */}
-          <div className="grid md:grid-cols-[1fr_320px] gap-4 items-start">
+          {/* GRID — always shows import zone + thumbnails + status.
+              En beta, `display: contents` laisse les deux panneaux devenir
+              directement les cellules du cadre de scène. */}
+          <div
+            className={cn(
+              isInkBeta ? 'ik-prep-grid' : 'grid md:grid-cols-[1fr_320px] gap-4 items-start',
+            )}
+          >
             {/* LEFT — Import + thumbnail grid */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <CartoonCard accent={ACCENT} highlighted>
+              <CartoonCard
+                accent={ACCENT}
+                highlighted
+                isInkBeta={isInkBeta}
+                step="Étape 01"
+                title="Tes vidéos"
+                aside={<InkBetaCount value={selectedClips.length} total={3} />}
+              >
                 <div className="space-y-3">
+                  {!isInkBeta && (
                   <div className="flex items-center gap-2">
                     <motion.div
                       animate={{ rotate: [-3, 3, -3] }}
@@ -1162,6 +1246,7 @@ export const VideoSubmissionScreen = ({
                       {selectedClips.length}/3
                     </span>
                   </div>
+                  )}
 
                   {/* Hidden file input — accepts multiple */}
                   <input ref={fileInputRef} type="file" multiple accept="video/*,.mkv,.avi,.mov,.m4v"
@@ -1174,10 +1259,12 @@ export const VideoSubmissionScreen = ({
                     onDragLeave={handleDragLeave}
                     onClick={() => fileInputRef.current?.click()}
                     className={cn(
-                      "relative rounded-2xl py-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all",
-                      isDragging && "scale-[1.02]"
+                      isInkBeta
+                        ? 'ik-drop'
+                        : 'relative rounded-2xl py-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all',
+                      isDragging && (isInkBeta ? 'is-dragging' : 'scale-[1.02]'),
                     )}
-                    style={{
+                    style={isInkBeta ? undefined : {
                       background: isDragging ? "var(--ink-accent-soft)" : "var(--ink-accent-soft)",
                       border: isDragging ? `3px solid ${ACCENT}` : "3px dashed var(--ink-accent-soft)",
                     }}
@@ -1187,18 +1274,18 @@ export const VideoSubmissionScreen = ({
                     ) : (
                       <Upload className="w-8 h-8 text-[var(--ink-accent-text)]" strokeWidth={2} />
                     )}
-                    <span className="text-base font-black text-[var(--ink-accent-text)]" style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW_SM }}>
+                    <strong className="text-base font-black text-[var(--ink-accent-text)]" style={{ fontFamily: "'Outfit', sans-serif", textShadow: isInkBeta ? undefined : GRAFFITI_TEXT_SHADOW_SM }}>
                       {isUploading
                         ? uploadStatus
                           ? `Upload ${uploadStatus.done + 1}/${uploadStatus.total}…`
                           : "Upload en cours..."
                         : isDragging ? "Lâche ici !" : "Glisse tes vidéos ici ou clique"}
-                    </span>
-                    <span className="max-w-full truncate px-4 text-xs text-white/40" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                    </strong>
+                    <small className="max-w-full truncate px-4 text-xs text-white/40" style={{ fontFamily: "'Outfit', sans-serif" }}>
                       {isUploading && uploadStatus
                         ? uploadStatus.current
                         : "MP4, WebM, MOV, MKV — plusieurs fichiers à la fois"}
-                    </span>
+                    </small>
 
                     {/* Octets réellement émis, relevés sur la requête d'envoi :
                         pourcentage, volume et temps restant sont mesurés, jamais
@@ -1505,10 +1592,12 @@ export const VideoSubmissionScreen = ({
                         disabled={isWiping}
                         onClick={() => { if (window.confirm(`Supprimer ${savedClips.length} vidéo(s) ?`)) void wipeLibrary(); }}
                         className={cn(
-                          "px-3 py-2.5 rounded-2xl flex items-center gap-1.5",
+                          isInkBeta
+                            ? 'ik-secondary-action menu-focus'
+                            : 'px-3 py-2.5 rounded-2xl flex items-center gap-1.5',
                           isWiping && "opacity-60 cursor-not-allowed",
                         )}
-                        style={{ background: "rgba(239,68,68,0.1)", border: "2.5px solid rgba(239,68,68,0.4)" }}>
+                        style={isInkBeta ? undefined : { background: "rgba(239,68,68,0.1)", border: "2.5px solid rgba(239,68,68,0.4)" }}>
                         {isWiping
                           ? <Loader2 className="w-4 h-4 text-red-300 animate-spin" />
                           : <Trash2 className="w-4 h-4 text-red-300" />}
@@ -1523,14 +1612,26 @@ export const VideoSubmissionScreen = ({
                       disabled={selectedClips.length === 0 || isSubmitting}
                       whileHover={selectedClips.length > 0 && !isSubmitting ? { scale: 1.02 } : undefined}
                       whileTap={selectedClips.length > 0 && !isSubmitting ? { scale: 0.98 } : undefined}
-                      className={cn("flex-1 py-3 rounded-2xl flex items-center justify-center gap-2", (selectedClips.length === 0 || isSubmitting) && "opacity-50 cursor-not-allowed")}
-                      style={{
+                      className={cn(
+                        isInkBeta
+                          ? 'ik-primary-action menu-focus flex-1'
+                          : 'flex-1 py-3 rounded-2xl flex items-center justify-center gap-2',
+                        (selectedClips.length === 0 || isSubmitting) && "opacity-50 cursor-not-allowed",
+                      )}
+                      style={isInkBeta ? undefined : {
                         background: selectedClips.length > 0 ? "linear-gradient(180deg, #fbbf24, #d97706)" : "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))",
                         border: '1px solid var(--ink-line)', boxShadow: 'none',
                       }}
                     >
-                      <Send className="w-5 h-5 text-white" strokeWidth={2.5} />
-                      <span className="text-xl font-black text-white leading-none" style={{ fontFamily: "'Outfit', sans-serif", textShadow: GRAFFITI_TEXT_SHADOW }}>
+                      {isInkBeta ? (
+                        <span className="ik-primary-action-icon"><Send aria-hidden="true" /></span>
+                      ) : (
+                        <Send className="w-5 h-5 text-white" strokeWidth={2.5} />
+                      )}
+                      <span
+                        className={cn('text-xl font-black leading-none', !isInkBeta && 'text-white')}
+                        style={{ fontFamily: "'Outfit', sans-serif", textShadow: isInkBeta ? undefined : GRAFFITI_TEXT_SHADOW }}
+                      >
                         {isSubmitting ? "Envoi…" : `Soumettre ${selectedClips.length} défi${selectedClips.length > 1 ? "s" : ""}`}
                       </span>
                     </motion.button>
@@ -1545,8 +1646,20 @@ export const VideoSubmissionScreen = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <CartoonCard accent="var(--ink-text-dim)">
+              <CartoonCard
+                accent="var(--ink-text-dim)"
+                isInkBeta={isInkBeta}
+                step="Étape 02"
+                title="La troupe"
+                aside={isHost ? (
+                  <span className="ik-game-badge">
+                    <Crown aria-hidden="true" fill="currentColor" />
+                    <span>Hôte</span>
+                  </span>
+                ) : undefined}
+              >
                 <div className="space-y-3">
+                  {!isInkBeta && (
                   <div className="flex items-center gap-2">
                     <motion.div
                       animate={{ rotate: [-3, 3, -3] }}
@@ -1594,6 +1707,7 @@ export const VideoSubmissionScreen = ({
                       </span>
                     )}
                   </div>
+                  )}
                   <SubmissionStatus
                     lobbyId={lobbyId}
                     players={players}
@@ -1614,12 +1728,16 @@ export const VideoSubmissionScreen = ({
         playerName={currentPlayer.name}
       />
 
+      {/* Feuille globale héritée : elle repeint la barre de défilement de tout
+          le site. La beta a la sienne, on ne la lui superpose pas. */}
+      {!isInkBeta && (
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--ink-accent-soft); border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--ink-accent-soft); }
       `}</style>
+      )}
     </div>
   );
 };
@@ -1631,11 +1749,32 @@ const CartoonCard = ({
   accent,
   highlighted = false,
   children,
+  isInkBeta = false,
+  step,
+  title,
+  aside,
 }: {
   accent: string;
   highlighted?: boolean;
   children: React.ReactNode;
-}) => (
+  isInkBeta?: boolean;
+  step?: string;
+  title?: string;
+  aside?: React.ReactNode;
+}) => (isInkBeta ? (
+  <section className={cn('ik-gpanel', highlighted && 'is-featured')}>
+    {(step || title || aside) && (
+      <div className="ik-gpanel-head">
+        <div>
+          {step && <span>{step}</span>}
+          {title && <h2>{title}</h2>}
+        </div>
+        {aside && <div className="ik-gpanel-aside">{aside}</div>}
+      </div>
+    )}
+    <div className="ik-gpanel-body">{children}</div>
+  </section>
+) : (
   <div
     className="relative rounded-3xl overflow-hidden p-4"
     style={{
@@ -1660,4 +1799,4 @@ const CartoonCard = ({
     />
     <div className="relative">{children}</div>
   </div>
-);
+));

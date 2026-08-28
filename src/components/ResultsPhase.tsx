@@ -39,6 +39,7 @@ interface ResultsPhaseProps {
   teams?: Team[];
   onNextRound: () => void;
   onEndGame: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 interface TeamResult {
@@ -65,8 +66,10 @@ export const ResultsPhase = ({
   gameMode = 'normal',
   teams = [],
   onNextRound,
-  onEndGame
+  onEndGame,
+  variant = 'default',
 }: ResultsPhaseProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [results, setResults] = useState<PlayerResult[]>([]);
   const [teamResults, setTeamResults] = useState<TeamResult[]>([]);
   const [isResultsSynchronized, setIsResultsSynchronized] = useState(false);
@@ -705,23 +708,26 @@ export const ResultsPhase = ({
   };
 
   return (
-    <div className="h-[100dvh] text-white relative overflow-hidden flex flex-col"
-      style={{ background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
-      {/* Background */}
+    <div
+      className={isInkBeta ? 'contents' : 'h-[100dvh] text-white relative overflow-hidden flex flex-col'}
+      style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #0f0820, #0a0510, #160a26)" }}>
+      {/* Background — la beta a déjà ses couches de scène. */}
+      {!isInkBeta && (
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div animate={{ x: [0, 20, 0], y: [0, -15, 0] }} transition={{ duration: 9, repeat: Infinity }}
           className="absolute top-[-5%] left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full opacity-20"
           style={{ background: "radial-gradient(ellipse, #fbbf2433, transparent 70%)", filter: "blur(80px)" }} />
         <Sparkles className="absolute top-[8%] right-[6%] w-5 h-5 text-amber-400/30" />
       </div>
+      )}
 
       {/* Victory overlay — only after a certified SQL aggregation. */}
       {showVictoryAnimation && isResultsSynchronized && winnerLabel && (
         <VictoryAnimation winnerName={winnerLabel} isTeam={gameMode === '2v2'} />
       )}
 
-      <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-4 pb-[140px]">
-        <div className="max-w-4xl mx-auto space-y-5">
+      <div className={isInkBeta ? 'contents' : 'relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 py-4 pb-[140px]'}>
+        <div className={isInkBeta ? 'ik-gpanel is-featured' : 'max-w-4xl mx-auto space-y-5'}>
 
           {/* Header */}
           <div className="text-center space-y-2">

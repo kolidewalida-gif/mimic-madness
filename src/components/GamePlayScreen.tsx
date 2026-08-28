@@ -6,6 +6,7 @@ import { ImitationPhase } from "@/components/ImitationPhase";
 import { VotingPhase } from "@/components/VotingPhase";
 import { ResultsPhase } from "@/components/ResultsPhase";
 import { LobbyChat } from "@/components/LobbyChat";
+import { InkBetaGameBadge, InkBetaGameStage } from "@/components/game-beta/InkBetaGameLayout";
 import { AlertTriangle, ArrowLeft, RefreshCcw, Swords, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +37,7 @@ interface GamePlayScreenProps {
   lobbyId: string;
   gameMode?: "normal" | "2v2" | "quiz";
   onEndGame: () => void;
+  variant?: "default" | "inkBeta";
 }
 
 interface CurrentChallenge {
@@ -49,8 +51,10 @@ export const GamePlayScreen = ({
   players,
   lobbyId,
   gameMode = "normal",
-  onEndGame
+  onEndGame,
+  variant = "default",
 }: GamePlayScreenProps) => {
+  const isInkBeta = variant === "inkBeta";
   const [durableRound, setDurableRound] = useState<DurableGameRound | null>(null);
   const [isRoundSynchronized, setIsRoundSynchronized] = useState(false);
   const [isInitializingRound, setIsInitializingRound] = useState(true);
@@ -717,6 +721,126 @@ export const GamePlayScreen = ({
     return renderInitializationState();
   }
 
+  /*
+   * Le sous-arbre de phase est identique dans les deux présentations : c'est la
+   * coquille qui change. L'extraire évite de dupliquer les `key` par manche et
+   * les gardes de rendu, qui sont ce qui protège l'enregistrement en cours.
+   */
+  const phaseContent = (
+    <>
+      {renderablePhase === "preview" && (
+        <ChallengePreviewPhase
+          key={`preview-${roundNumber}`}
+          lobbyId={lobbyId}
+          roundNumber={roundNumber}
+          currentPlayer={currentPlayer}
+          players={players}
+          currentChallenge={currentChallenge}
+          onAllReady={handlePreviewReady}
+          variant={variant}
+        />
+      )}
+
+      {renderablePhase === "imitation" && (
+        <ImitationPhase
+          key={`imitation-${roundNumber}`}
+          lobbyId={lobbyId}
+          roundNumber={roundNumber}
+          currentPlayer={currentPlayer}
+          players={players}
+          currentChallenge={currentChallenge}
+          gameMode={gameMode}
+          getTeammate={getTeammate}
+          onAllReady={handleImitationReady}
+          variant={variant}
+        />
+      )}
+
+      {renderablePhase === "voting" && (
+        <VotingPhase
+          key={`voting-${roundNumber}`}
+          lobbyId={lobbyId}
+          gameRoundId={durableRound?.id ?? ''}
+          roundNumber={roundNumber}
+          currentPlayer={currentPlayer}
+          players={players}
+          challengeVideoClipId={currentChallenge.id}
+          gameMode={gameMode}
+          teams={teams}
+          onVotingComplete={handleVotingComplete}
+          variant={variant}
+        />
+      )}
+
+      {renderablePhase === "results" && (
+        <ResultsPhase
+          key={`results-${roundNumber}`}
+          lobbyId={lobbyId}
+          roundNumber={roundNumber}
+          players={players}
+          currentPlayer={currentPlayer}
+          gameMode={gameMode}
+          teams={teams}
+          onNextRound={handleNextRound}
+          onEndGame={onEndGame}
+          variant={variant}
+        />
+      )}
+    </>
+  );
+
+  if (isInkBeta) {
+    const phaseLabel = renderablePhase === "preview"
+      ? "Aperçu"
+      : renderablePhase === "imitation"
+        ? "Imitation"
+        : renderablePhase === "voting"
+          ? "Vote"
+          : "Résultats";
+
+    return (
+      <InkBetaGameStage
+        titleId="ik-game-brand"
+        canvasClassName={renderablePhase === "imitation" ? "ik-game-canvas--stage" : "ik-game-canvas--center"}
+        badge={(
+          <InkBetaGameBadge
+            label={phaseLabel}
+            step={`Manche ${roundNumber}`}
+            icon={<Zap aria-hidden="true" />}
+          />
+        )}
+        tools={(
+          <>
+            {gameMode === "2v2" && (
+              <span className="ik-game-badge">
+                <Swords aria-hidden="true" />
+                <span>2v2</span>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onEndGame}
+              data-back
+              className="ik-tool ik-tool--leave menu-focus"
+              aria-label="Quitter la partie"
+            >
+              <ArrowLeft aria-hidden="true" />
+              <span>Quitter</span>
+            </button>
+          </>
+        )}
+      >
+        {phaseContent}
+
+        <LobbyChat
+          lobbyId={lobbyId}
+          playerId={currentPlayer.id}
+          playerName={currentPlayer.name}
+        />
+      </InkBetaGameStage>
+    );
+  }
+
   return (
     <div className="min-h-screen animated-bg relative">
       <div className="absolute top-20 right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl animate-float pointer-events-none" />
@@ -753,60 +877,7 @@ export const GamePlayScreen = ({
 
       {/* Phase content — only the SQL-confirmed phase is allowed to mount. */}
       <div className="relative z-10 pt-16 animate-fadeIn">
-        {renderablePhase === "preview" && (
-          <ChallengePreviewPhase
-            key={`preview-${roundNumber}`}
-            lobbyId={lobbyId}
-            roundNumber={roundNumber}
-            currentPlayer={currentPlayer}
-            players={players}
-            currentChallenge={currentChallenge}
-            onAllReady={handlePreviewReady}
-          />
-        )}
-
-        {renderablePhase === "imitation" && (
-          <ImitationPhase
-            key={`imitation-${roundNumber}`}
-            lobbyId={lobbyId}
-            roundNumber={roundNumber}
-            currentPlayer={currentPlayer}
-            players={players}
-            currentChallenge={currentChallenge}
-            gameMode={gameMode}
-            getTeammate={getTeammate}
-            onAllReady={handleImitationReady}
-          />
-        )}
-
-        {renderablePhase === "voting" && (
-          <VotingPhase
-            key={`voting-${roundNumber}`}
-            lobbyId={lobbyId}
-            gameRoundId={durableRound?.id ?? ''}
-            roundNumber={roundNumber}
-            currentPlayer={currentPlayer}
-            players={players}
-            challengeVideoClipId={currentChallenge.id}
-            gameMode={gameMode}
-            teams={teams}
-            onVotingComplete={handleVotingComplete}
-          />
-        )}
-
-        {renderablePhase === "results" && (
-          <ResultsPhase
-            key={`results-${roundNumber}`}
-            lobbyId={lobbyId}
-            roundNumber={roundNumber}
-            players={players}
-            currentPlayer={currentPlayer}
-            gameMode={gameMode}
-            teams={teams}
-            onNextRound={handleNextRound}
-            onEndGame={onEndGame}
-          />
-        )}
+        {phaseContent}
       </div>
 
       <LobbyChat
