@@ -15,6 +15,7 @@ interface QuizCountdownProps {
   roundNumber: number;
   totalRounds: number;
   category: string;
+  variant?: 'default' | 'inkBeta';
 }
 
 const ACCENT = '#84cc16'; // lime — matches Quiz mode
@@ -41,7 +42,9 @@ export const QuizCountdown = ({
   roundNumber,
   totalRounds,
   category,
+  variant = 'default',
 }: QuizCountdownProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [count, setCount] = useState(3);
 
   useEffect(() => {
@@ -58,16 +61,23 @@ export const QuizCountdown = ({
 
   const numberColor = NUMBER_COLORS[count] || ACCENT;
 
-  return (
-    <InkGameStage accent={ACCENT}>
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-6">
+  /*
+   * En beta, la scène et la barre de marque viennent du parent : ce composant
+   * ne rend plus que le décompte, dans un panneau.
+   */
+  const body = (
+    <div
+      className={isInkBeta
+        ? 'ik-gpanel is-featured items-center justify-center gap-4 py-8'
+        : 'min-h-screen flex flex-col items-center justify-center p-4 gap-6'}
+    >
         {/* Round counter */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-3"
         >
-          <InkPhasePill icon={Brain} label="Question" accent={ACCENT} />
+          {!isInkBeta && <InkPhasePill icon={Brain} label="Question" accent={ACCENT} />}
           <p
             className="text-6xl md:text-7xl font-black leading-none text-white"
             style={{
@@ -221,7 +231,8 @@ export const QuizCountdown = ({
         >
           Prépare-toi à répondre…
         </motion.p>
-      </div>
-    </InkGameStage>
+    </div>
   );
+
+  return isInkBeta ? body : <InkGameStage accent={ACCENT}>{body}</InkGameStage>;
 };

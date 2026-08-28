@@ -12230,3 +12230,190 @@ body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
     padding-bottom: 4.6rem;
   }
 }
+
+/* ============================================================
+   INK BETA — QUIZ
+   ------------------------------------------------------------
+   Classement à gauche, question à droite. Le minuteur reste une
+   valeur dérivée du temps serveur : rien n'est animé en boucle.
+   ============================================================ */
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--quiz {
+  width: min(100%, 84rem);
+  grid-template-columns: minmax(15rem, 0.72fr) minmax(0, 2fr);
+}
+
+body.inkbeta-mode .ik-quiz-section {
+  padding: 0.7rem 0.75rem 0.8rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 13px;
+  background: rgba(72, 6, 88, 0.55);
+}
+
+body.inkbeta-mode .ik-quiz-timer {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  border: 2px solid var(--ik-cyan);
+  border-radius: 999px;
+  color: var(--ik-cyan);
+  background: rgba(45, 242, 208, 0.1);
+  box-shadow: 0 3px 0 rgba(54, 7, 76, 0.62);
+  font-family: var(--ik-display);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+body.inkbeta-mode .ik-quiz-timer > span {
+  font-family: var(--ik-body);
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ik-quiz-timer.is-urgent {
+  border-color: var(--ik-yellow);
+  color: var(--ik-yellow);
+  background: rgba(255, 211, 78, 0.12);
+}
+
+body.inkbeta-mode .ik-quiz-timer.is-critical {
+  border-color: var(--ik-pink);
+  color: var(--ik-pink);
+  background: rgba(255, 98, 182, 0.14);
+}
+
+body.inkbeta-mode .ik-quiz-progress {
+  overflow: hidden;
+  height: 0.55rem;
+  border: 2px solid var(--ik-edge);
+  border-radius: 999px;
+  background: rgba(53, 7, 75, 0.55);
+}
+
+body.inkbeta-mode .ik-quiz-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ik-cyan), var(--ik-pink));
+  /* Une seule transition, courte : la barre suit le temps serveur sans lisser
+     au point de mentir sur les dernières secondes. */
+  transition: width 120ms linear;
+}
+
+body.inkbeta-mode .ik-quiz-question {
+  margin: 0;
+  color: var(--ik-white);
+  font-family: var(--ik-body);
+  font-size: clamp(1.15rem, 2.1vw, 1.65rem);
+  font-weight: 950;
+  line-height: 1.2;
+  text-align: center;
+}
+
+body.inkbeta-mode .ik-quiz-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+body.inkbeta-mode .ik-quiz-option {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.8rem;
+  border: 3px solid var(--ik-edge);
+  border-radius: 13px;
+  color: var(--ik-white);
+  background: linear-gradient(180deg, var(--ik-panel-bright), var(--ik-panel-deep));
+  box-shadow: 0 5px 0 var(--ik-edge);
+  font-family: var(--ik-body);
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-align: left;
+  cursor: pointer;
+  transform: translateZ(0);
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+body.inkbeta-mode .ik-quiz-option-key {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 2px solid var(--ik-edge);
+  border-radius: 9px;
+  color: var(--ik-edge);
+  background: var(--ik-white);
+  font-family: var(--ik-display);
+  font-size: 1rem;
+}
+
+body.inkbeta-mode .ik-quiz-option:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-quiz-option:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-quiz-option.is-selected {
+  border-color: var(--ik-cyan);
+  background: linear-gradient(180deg, rgba(45, 242, 208, 0.28), var(--ik-panel-deep));
+}
+
+body.inkbeta-mode .ik-quiz-option.is-selected .ik-quiz-option-key {
+  background: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-quiz-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+body.inkbeta-mode .ik-quiz-option.is-hidden {
+  opacity: 0.25;
+  text-decoration: line-through;
+}
+
+body.inkbeta-mode .ik-quiz-answer {
+  display: flex;
+  gap: 0.5rem;
+}
+
+body.inkbeta-mode .ik-quiz-answer .ik-input {
+  min-width: 0;
+  flex: 1;
+}
+
+@media (max-width: 1100px) {
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--quiz {
+    width: min(100%, 52rem);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-quiz-side {
+    order: 2;
+  }
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-quiz-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-quiz-answer {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode .ik-quiz-option {
+    transition: none;
+  }
+}

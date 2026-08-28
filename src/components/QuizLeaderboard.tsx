@@ -40,6 +40,7 @@ interface QuizLeaderboardProps {
   roundInsight: RoundInsight;
   isHost: boolean;
   onNextRound: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 const ACCENT = '#fbbf24';
@@ -63,7 +64,9 @@ export const QuizLeaderboard = ({
   roundInsight,
   isHost,
   onNextRound,
+  variant = 'default',
 }: QuizLeaderboardProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [animatedScores, setAnimatedScores] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -109,9 +112,8 @@ export const QuizLeaderboard = ({
   const isLastRound = roundNumber >= totalRounds;
   const unansweredCount = Math.max(0, sortedScores.length - roundAnswers.length);
 
-  return (
-    <DoodleStage accent={ACCENT}>
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5">
+  const body = (
+      <div className={isInkBeta ? 'ik-gpanel is-featured' : 'relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5'}>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -339,6 +341,7 @@ export const QuizLeaderboard = ({
           onSkip={onNextRound}
         />
       </div>
-    </DoodleStage>
   );
+
+  return isInkBeta ? body : <DoodleStage accent={ACCENT}>{body}</DoodleStage>;
 };

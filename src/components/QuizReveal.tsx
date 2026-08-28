@@ -26,6 +26,7 @@ interface QuizAnswer {
 interface QuizRevealProps {
   question: string;
   correctAnswer: string;
+  variant?: 'default' | 'inkBeta';
   roundAnswers: QuizAnswer[];
   isHost: boolean;
   onContinue: () => void;
@@ -42,7 +43,9 @@ export const QuizReveal = ({
   roundAnswers,
   isHost,
   onContinue,
+  variant = 'default',
 }: QuizRevealProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [showAnswers, setShowAnswers] = useState(false);
   const [revealedAnswers, setRevealedAnswers] = useState<number>(0);
 
@@ -82,10 +85,9 @@ export const QuizReveal = ({
 
   const formatTime = (ms: number) => (ms / 1000).toFixed(2) + 's';
 
-  return (
-    <InkGameStage accent={ACCENT}>
-      <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
-        <div className="flex min-h-full flex-col items-center justify-start gap-4 p-3 pb-24 sm:gap-5 sm:p-4 sm:pb-24 sm:justify-center">
+  const body = (
+      <div className={isInkBeta ? 'ik-gpanel is-featured' : 'menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain'}>
+        <div className={isInkBeta ? 'ik-gpanel-body' : 'flex min-h-full flex-col items-center justify-start gap-4 p-3 pb-24 sm:gap-5 sm:p-4 sm:pb-24 sm:justify-center'}>
         {/* Question reminder */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
@@ -259,6 +261,7 @@ export const QuizReveal = ({
         </div>
         </div>
       </div>
-    </InkGameStage>
   );
+
+  return isInkBeta ? body : <InkGameStage accent={ACCENT}>{body}</InkGameStage>;
 };

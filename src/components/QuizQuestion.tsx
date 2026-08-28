@@ -46,6 +46,7 @@ interface QuizQuestionProps {
   hiddenOptions?: string[];
   currentStreak?: number;
   bestStreak?: number;
+  variant?: 'default' | 'inkBeta';
 }
 
 
@@ -105,7 +106,9 @@ export const QuizQuestion = ({
   hiddenOptions = [],
   currentStreak = 0,
   bestStreak = 0,
+  variant = 'default',
 }: QuizQuestionProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -182,6 +185,145 @@ export const QuizQuestion = ({
   };
 
   const diffConfig = difficultyConfig[difficulty] || difficultyConfig.medium;
+
+  /*
+   * Rendu beta : deux panneaux, le classement à gauche et la question à droite.
+   * Le minuteur reste dérivé de `timeRemaining` — aucun état local de temps
+   * n'est ajouté, sinon il divergerait de l'horloge serveur.
+   */
+  const betaBody = (
+    <>
+      <section className="ik-gpanel ik-quiz-side">
+        <div className="ik-gpanel-head">
+          <div>
+            <span>Classement</span>
+            <h2>En direct</h2>
+          </div>
+        </div>
+        <div className="ik-gpanel-body">
+          <QuizLiveScoreboard
+            scores={scores}
+            currentPlayerId={currentPlayerId}
+            answeredPlayers={answeredPlayers}
+          />
+        </div>
+      </section>
+
+      <section className="ik-gpanel is-featured ik-quiz-main">
+        <div className="ik-gpanel-head">
+          <div>
+            <span>{categoryLabels[category] || category} · {diffConfig.label}</span>
+            <h2>Question {roundNumber}/{totalRounds}</h2>
+          </div>
+          <div className="ik-gpanel-aside">
+            <p
+              className={cn('ik-quiz-timer', isUrgent && 'is-urgent', isCritical && 'is-critical')}
+              role="timer"
+              aria-live="off"
+            >
+              <strong>{seconds}</strong>
+              <span aria-hidden="true">s</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="ik-gpanel-body">
+          <div className="ik-quiz-progress" aria-hidden="true">
+            <span style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
+          </div>
+
+          <p className="ik-quiz-question">{question}</p>
+
+          <p className="ik-game-note">
+            <Check aria-hidden="true" />
+            {answeredPlayers.length}/{players.length} ont répondu
+            {playersRemaining > 0 && ` · ${playersRemaining} restant${playersRemaining > 1 ? 's' : ''}`}
+          </p>
+
+          {currentStreak >= 2 && (
+            <p className="ik-game-note ik-game-note--warn">
+              <Flame aria-hidden="true" /> Série x{currentStreak}
+              {bestStreak > currentStreak && ` · record ${bestStreak}`}
+            </p>
+          )}
+
+          {jokers && !hasAnswered && (
+            <QuizJokers
+              jokers={jokers}
+              onUseFiftyFifty={() => onFiftyFifty?.()}
+              onUseFreeze={() => onFreeze?.()}
+              onUseSkip={() => onSkip?.()}
+              disabled={hasAnswered}
+            />
+          )}
+
+          {questionType === 'qcm' && options.length > 0 ? (
+            <div className="ik-quiz-options" role="group" aria-label="Réponses possibles">
+              {options.map((option, index) => {
+                const style = optionStyles[index % 4];
+                const isSelected = selectedOption === option;
+                const isHidden = hiddenOptions.includes(option);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleSelectOption(option)}
+                    disabled={hasAnswered || isHidden}
+                    aria-pressed={isSelected}
+                    className={cn(
+                      'ik-quiz-option menu-focus',
+                      isSelected && 'is-selected',
+                      isHidden && 'is-hidden',
+                    )}
+                  >
+                    <span className="ik-quiz-option-key" aria-hidden="true">{style.letter}</span>
+                    <span className="ik-quiz-option-label">{option}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <form onSubmit={handleTextSubmit} className="ik-quiz-answer">
+              <label htmlFor="ik-quiz-answer" className="sr-only">Ta réponse</label>
+              <input
+                id="ik-quiz-answer"
+                ref={inputRef}
+                type="text"
+                value={textAnswer}
+                onChange={(e) => setTextAnswer(e.target.value)}
+                placeholder="Tape ta réponse…"
+                disabled={hasAnswered}
+                autoComplete="off"
+                enterKeyHint="send"
+                className="ik-input"
+              />
+              <button
+                type="submit"
+                disabled={hasAnswered || !textAnswer.trim()}
+                className="ik-primary-action menu-focus"
+                aria-label="Valider ma réponse"
+              >
+                <span className="ik-primary-action-icon"><Send aria-hidden="true" /></span>
+                <span>Valider</span>
+              </button>
+            </form>
+          )}
+
+          {hasAnswered && (
+            <p className="ik-game-note ik-game-note--done" role="status">
+              <Check aria-hidden="true" /> Réponse envoyée
+            </p>
+          )}
+        </div>
+      </section>
+    </>
+  );
+
+  /*
+   * En beta, la scène et la barre viennent du parent : cet écran ne rend plus
+   * que ses panneaux, qui deviennent les cellules du cadre.
+   */
+  if (isInkBeta) return betaBody;
 
   return (
     <DoodleStage accent={isUrgent ? '#f87171' : '#38bdf8'}>

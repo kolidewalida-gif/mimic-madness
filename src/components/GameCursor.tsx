@@ -10,6 +10,32 @@ export const GameCursor = () => {
   const { user } = useAuth();
   const loadout = usePlayerLoadout(user?.id);
   const { isInkMode } = useInkMode();
+
+  /*
+   * Toute la famille Ink garde le curseur natif, pas seulement le thème `ink`.
+   *
+   * `useInkMode()` ne répond vrai que pour `ink` avec le réglage historique
+   * activé : sous Ink Beta le stylo dessiné s'affichait donc, et sa gerbe
+   * d'encre de 700 ms au clic — six particules animées avec ombres portées
+   * par-dessus un fond fixe dégradé et masqué — faisait scintiller tout l'écran
+   * à chaque appui.
+   *
+   * La famille est lue sur la classe que le fournisseur de thème pose déjà sur
+   * `body`, et non via `useTheme()` : ce hook lève hors de son fournisseur, et
+   * ce composant est monté seul dans ses tests.
+   */
+  const [isInkFamilyBody, setIsInkFamilyBody] = useState(
+    () => typeof document !== "undefined" && document.body.classList.contains("ink-mode"),
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const sync = () => setIsInkFamilyBody(document.body.classList.contains("ink-mode"));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
   const [enabled, setEnabled] = useState(false);
   const [pressed, setPressed] = useState(false);
   const [hovering, setHovering] = useState(false);
@@ -96,7 +122,7 @@ export const GameCursor = () => {
    * renvoie `null` : le curseur natif restait donc masqué sans remplacement, et
    * la souris devenait invisible dans toute l'application.
    */
-  const cursorVisible = enabled && !isInkMode;
+  const cursorVisible = enabled && !isInkMode && !isInkFamilyBody;
 
   useEffect(() => {
     document.body.classList.toggle("game-cursor-enabled", cursorVisible);

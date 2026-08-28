@@ -11,8 +11,10 @@ import { INITIAL_JOKERS, type JokersState } from './QuizJokers';
 import { LobbyChat } from './LobbyChat';
 import { useQuizGame } from '@/hooks/useQuizGame';
 import { useInkMode } from '@/hooks/useInkMode';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Brain, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { InkBetaGameBadge, InkBetaGameStage } from '@/components/game-beta/InkBetaGameLayout';
+import type { ReactNode } from 'react';
 
 interface Player {
   id: string;
@@ -25,14 +27,17 @@ interface QuizGameScreenProps {
   players: Player[];
   lobbyId: string;
   onEndGame: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 export const QuizGameScreen = ({
   currentPlayer,
   players,
   lobbyId,
-  onEndGame
+  onEndGame,
+  variant = 'default',
 }: QuizGameScreenProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [selectedCategory, setSelectedCategory] = useState('mixed');
   const [hostSettings, setHostSettings] = useState<QuizSettings>(DEFAULT_QUIZ_SETTINGS);
   const [jokers, setJokers] = useState<JokersState>(INITIAL_JOKERS);
@@ -85,55 +90,107 @@ export const QuizGameScreen = ({
     setJokers(j => ({ ...j, skip: false }));
   };
 
+  /*
+   * Coquille beta commune aux six phases.
+   *
+   * Chaque phase portait son propre plein écran, son dégradé et ses taches
+   * floues. En beta la scène est la même partout — barre de marque, cadre,
+   * pastille de phase — et seul le contenu central change. Le chat reste un
+   * frère du contenu : il se porte lui-même dans `document.body`.
+   */
+  const withBetaStage = (
+    label: string,
+    canvasClassName: string,
+    content: ReactNode,
+    step?: string,
+  ) => {
+    const chat = (
+      <LobbyChat
+        variant={isInkBeta ? 'inkBeta' : 'default'}
+        lobbyId={lobbyId}
+        playerId={currentPlayer.id}
+        playerName={currentPlayer.name}
+      />
+    );
+
+    if (!isInkBeta) {
+      return (
+        <>
+          {content}
+          {chat}
+        </>
+      );
+    }
+
+    return (
+      <InkBetaGameStage
+        titleId="ik-quiz-brand"
+        canvasClassName={canvasClassName}
+        badge={<InkBetaGameBadge label={label} step={step} icon={<Brain aria-hidden="true" />} />}
+        tools={(
+          <button
+            type="button"
+            onClick={onEndGame}
+            data-back
+            className="ik-tool ik-tool--leave menu-focus"
+            aria-label="Quitter le quiz"
+          >
+            <ArrowLeft aria-hidden="true" />
+            <span>Quitter</span>
+          </button>
+        )}
+      >
+        {content}
+        {chat}
+      </InkBetaGameStage>
+    );
+  };
+
   // Waiting phase - show category selector and start button for host
   if (phase === 'waiting') {
-    return (
-      <>
-        <QuizWaitingScreen
-          isHost={currentPlayer.isHost}
-          isLoading={isLoading}
-          totalRounds={totalRounds}
-          players={players}
-          currentPlayerId={currentPlayer.id}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          hostSettings={hostSettings}
-          onSettingsChange={setHostSettings}
-          onStart={() => startQuiz(selectedCategory)}
-          onLeave={onEndGame}
-        />
-        <LobbyChat
-          lobbyId={lobbyId}
-          playerId={currentPlayer.id}
-          playerName={currentPlayer.name}
-        />
-      </>
+    return withBetaStage(
+      'Quiz',
+      'ik-game-canvas--center',
+      <QuizWaitingScreen
+        variant={variant}
+        isHost={currentPlayer.isHost}
+        isLoading={isLoading}
+        totalRounds={totalRounds}
+        players={players}
+        currentPlayerId={currentPlayer.id}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        hostSettings={hostSettings}
+        onSettingsChange={setHostSettings}
+        onStart={() => startQuiz(selectedCategory)}
+        onLeave={onEndGame}
+      />,
+      `${totalRounds} questions`,
     );
   }
 
   // Countdown phase
   if (phase === 'countdown') {
-    return (
-      <>
-        <QuizCountdown 
-          roundNumber={currentRound} 
-          totalRounds={totalRounds}
-          category={currentQuestion?.category || ''}
-        />
-        <LobbyChat
-          lobbyId={lobbyId}
-          playerId={currentPlayer.id}
-          playerName={currentPlayer.name}
-        />
-      </>
+    return withBetaStage(
+      'Préparez-vous',
+      'ik-game-canvas--center',
+      <QuizCountdown
+        variant={variant}
+        roundNumber={currentRound}
+        totalRounds={totalRounds}
+        category={currentQuestion?.category || ''}
+      />,
+      `Question ${currentRound}/${totalRounds}`,
     );
   }
 
   // Answering phase
   if (phase === 'answering' && currentQuestion) {
-    return (
-      <>
-        <QuizQuestion
+    return withBetaStage(
+      'À vous',
+      'ik-game-canvas--quiz',
+      <QuizQuestion
+          variant={variant}
           question={currentQuestion.question}
           options={currentQuestion.options || []}
           questionType={currentQuestion.questionType || 'qcm'}
@@ -157,75 +214,61 @@ export const QuizGameScreen = ({
           hiddenOptions={hiddenOptions}
           currentStreak={hostSettings.enableStreak ? currentStreak : 0}
           bestStreak={hostSettings.enableStreak ? bestStreak : 0}
-        />
-        <LobbyChat
-          lobbyId={lobbyId}
-          playerId={currentPlayer.id}
-          playerName={currentPlayer.name}
-        />
-      </>
+        />,
+      `Question ${currentRound}/${totalRounds}`,
     );
   }
 
   // Reveal phase
   if (phase === 'reveal' && currentQuestion) {
-    return (
-      <>
-        <QuizReveal
-          question={currentQuestion.question}
-          correctAnswer={currentQuestion.answer}
-          roundAnswers={roundAnswers}
-          isHost={currentPlayer.isHost}
-          onContinue={advanceToScores}
-        />
-        <LobbyChat
-          lobbyId={lobbyId}
-          playerId={currentPlayer.id}
-          playerName={currentPlayer.name}
-        />
-      </>
+    return withBetaStage(
+      'Réponse',
+      'ik-game-canvas--center',
+      <QuizReveal
+        variant={variant}
+        question={currentQuestion.question}
+        correctAnswer={currentQuestion.answer}
+        roundAnswers={roundAnswers}
+        isHost={currentPlayer.isHost}
+        onContinue={advanceToScores}
+      />,
+      `Question ${currentRound}/${totalRounds}`,
     );
   }
 
   // Scores phase
   if (phase === 'scores') {
-    return (
-      <>
-        <QuizLeaderboard
-          scores={scores}
-          currentPlayerId={currentPlayer.id}
-          roundNumber={currentRound}
-          totalRounds={totalRounds}
-          roundAnswers={roundAnswers}
-          roundInsight={roundInsight}
-          isHost={currentPlayer.isHost}
-          onNextRound={nextRound}
-        />
-        <LobbyChat
-          lobbyId={lobbyId}
-          playerId={currentPlayer.id}
-          playerName={currentPlayer.name}
-        />
-      </>
+    return withBetaStage(
+      'Classement',
+      'ik-game-canvas--center',
+      <QuizLeaderboard
+        variant={variant}
+        scores={scores}
+        currentPlayerId={currentPlayer.id}
+        roundNumber={currentRound}
+        totalRounds={totalRounds}
+        roundAnswers={roundAnswers}
+        roundInsight={roundInsight}
+        isHost={currentPlayer.isHost}
+        onNextRound={nextRound}
+      />,
+      `Après ${currentRound}/${totalRounds}`,
     );
   }
 
   // Final results
   if (phase === 'final') {
-    return (
-      <>
-        <QuizFinalResults
-          scores={scores}
-          currentPlayerId={currentPlayer.id}
-          instanceKey={`quiz:${currentRound}`}
-          onEndGame={onEndGame}
-        />
-        <LobbyChat
-          lobbyId={lobbyId}
-          playerId={currentPlayer.id}
-          playerName={currentPlayer.name}
-        />
-      </>
+    return withBetaStage(
+      'Résultats',
+      'ik-game-canvas--center',
+      <QuizFinalResults
+        variant={variant}
+        scores={scores}
+        currentPlayerId={currentPlayer.id}
+        instanceKey={`quiz:${currentRound}`}
+        onEndGame={onEndGame}
+      />,
+      `${totalRounds} questions`,
     );
   }
 

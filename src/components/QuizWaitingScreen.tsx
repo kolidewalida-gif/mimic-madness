@@ -33,6 +33,7 @@ interface QuizWaitingScreenProps {
   onSettingsChange: (s: QuizSettings) => void;
   onStart: () => void;
   onLeave: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 const ACCENT = '#84cc16'; // green/lime — matches the QUIZ card color
@@ -54,13 +55,20 @@ export const QuizWaitingScreen = memo(
     onSettingsChange,
     onStart,
     onLeave,
+    variant = 'default',
   }: QuizWaitingScreenProps) => {
+    const isInkBeta = variant === 'inkBeta';
     const playerIds = useMemo(() => players.map((p) => p.id), [players]);
     const { getAvatar } = useMultiplePlayerAvatars(playerIds);
 
     return (
-      <div className="menu-screen-safe relative h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain bg-[#0a0510] text-white">
-        {/* BACKGROUND */}
+      <div
+        className={isInkBeta
+          ? 'contents'
+          : 'menu-screen-safe relative h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain bg-[#0a0510] text-white'}
+      >
+        {/* BACKGROUND — la beta a déjà ses couches de scène. */}
+        {!isInkBeta && (
         <div className="fixed inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-br from-[#0f1c08] via-[#0a0510] to-[#0e1c0a]" />
           <div
@@ -78,20 +86,25 @@ export const QuizWaitingScreen = memo(
             }}
           />
         </div>
+        )}
 
-        <div className="relative z-10 h-full min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain flex flex-col items-center justify-start px-4 py-5 pb-24 sm:px-5 sm:py-8 sm:pb-24">
+        <div
+          className={isInkBeta
+            ? 'ik-gpanel is-featured'
+            : 'relative z-10 h-full min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain flex flex-col items-center justify-start px-4 py-5 pb-24 sm:px-5 sm:py-8 sm:pb-24'}
+        >
           {/* HEADER */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-4 sm:mb-6 space-y-2"
+            className={isInkBeta ? 'ik-gpanel-head' : 'text-center mb-4 sm:mb-6 space-y-2'}
           >
             <motion.div
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: -2 }}
               transition={{ type: 'spring', stiffness: 280, damping: 16 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+              className={isInkBeta ? 'hidden' : 'inline-flex items-center gap-2 px-4 py-2 rounded-full'}
               style={{
                 background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
                 border: '1px solid var(--ink-line)',
@@ -119,17 +132,21 @@ export const QuizWaitingScreen = memo(
             >
               Quiz Time !
             </h1>
+            {/*
+              Durée réelle et non plus « 30 secondes » codées en dur : elle est
+              réglable par l'hôte, et l'annoncer fausse était trompeur.
+            */}
             <p
-              className="text-base text-white/70 max-w-md mx-auto font-bold"
-              style={{ fontFamily: "'Outfit', sans-serif" }}
+              className={isInkBeta ? 'ik-game-lead' : 'text-base text-white/70 max-w-md mx-auto font-bold'}
+              style={isInkBeta ? undefined : { fontFamily: "'Outfit', sans-serif" }}
             >
-              <span
-                className="text-lime-300"
-                style={{ textShadow: `0 2px 8px ${ACCENT}88` }}
+              <strong
+                className={isInkBeta ? undefined : 'text-lime-300'}
+                style={isInkBeta ? undefined : { textShadow: `0 2px 8px ${ACCENT}88` }}
               >
                 {totalRounds} questions
-              </span>{' '}
-              · 30 secondes chacune. Le plus rapide gagne !
+              </strong>{' '}
+              · {Math.round(hostSettings.answerDurationMs / 1000)} secondes chacune. Le plus rapide gagne !
             </p>
           </motion.div>
 
@@ -138,9 +155,9 @@ export const QuizWaitingScreen = memo(
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="w-full max-w-2xl mb-4 sm:mb-6"
+            className={isInkBeta ? 'ik-gpanel-body' : 'w-full max-w-2xl mb-4 sm:mb-6'}
           >
-            <div className="flex items-center gap-2 justify-center mb-3">
+            <div className={isInkBeta ? 'hidden' : 'flex items-center gap-2 justify-center mb-3'}>
               <Users className="w-3.5 h-3.5 text-white/55" />
               <span
                 className="text-xs uppercase tracking-[0.25em] font-black text-white/65"
@@ -149,7 +166,7 @@ export const QuizWaitingScreen = memo(
                 {players.length} joueur{players.length > 1 ? 's' : ''}
               </span>
             </div>
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className={isInkBeta ? 'ik-seats custom-scrollbar' : 'flex flex-wrap justify-center gap-3'}>
               {players.map((p, idx) => {
                 const isMe = p.id === currentPlayerId;
                 const av = getAvatar(p.id);
@@ -169,11 +186,19 @@ export const QuizWaitingScreen = memo(
                       stiffness: 220,
                       damping: 14,
                     }}
-                    className="relative w-20 sm:w-24"
+                    className={cn(
+                      isInkBeta ? 'ik-seat' : 'relative w-20 sm:w-24',
+                      isInkBeta && isMe && 'is-self',
+                    )}
                   >
                     <div
-                      className="relative w-16 h-16 mx-auto rounded-full flex items-center justify-center"
-                      style={{
+                      className={cn(
+                        isInkBeta
+                          ? 'ik-seat-avatar'
+                          : 'relative w-16 h-16 mx-auto rounded-full flex items-center justify-center',
+                        isInkBeta && hasImage && 'has-portrait',
+                      )}
+                      style={isInkBeta ? undefined : {
                         background: isMe
                           ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`
                           : 'var(--ink-accent)',
@@ -185,7 +210,7 @@ export const QuizWaitingScreen = memo(
                         <img
                           src={av.imageUrl}
                           alt={p.name}
-                          className="w-12 h-12 rounded-full object-cover ring-2 ring-[var(--ink-line)]"
+                          className={isInkBeta ? undefined : 'w-12 h-12 rounded-full object-cover ring-2 ring-[var(--ink-line)]'}
                         />
                       ) : (
                         <span
@@ -198,34 +223,40 @@ export const QuizWaitingScreen = memo(
                           {p.name[0]?.toUpperCase()}
                         </span>
                       )}
-                      {p.isHost && (
-                        <Crown
-                          className="absolute -top-2 -right-1 w-4 h-4 text-amber-400"
-                          fill="currentColor"
-                          style={{
-                            transform: 'rotate(15deg)',
-                            filter: 'none',
-                          }}
-                        />
-                      )}
                     </div>
+                    {p.isHost && (
+                      <Crown
+                        className={isInkBeta ? 'ik-seat-crown' : 'absolute -top-2 -right-1 w-4 h-4 text-amber-400'}
+                        fill="currentColor"
+                        aria-label="Hôte"
+                        style={isInkBeta ? undefined : {
+                          transform: 'rotate(15deg)',
+                          filter: 'none',
+                        }}
+                      />
+                    )}
                     <p
-                      className="text-center text-base font-black text-white truncate mt-1.5 leading-none"
-                      style={{
+                      className={isInkBeta
+                        ? 'ik-seat-name'
+                        : 'text-center text-base font-black text-white truncate mt-1.5 leading-none'}
+                      style={isInkBeta ? undefined : {
                         fontFamily: "'Outfit', sans-serif",
                         textShadow: GRAFFITI_TEXT_SHADOW_SM,
                       }}
                     >
                       {p.name}
                     </p>
-                    {isMe && (
-                      <span
-                        className="block text-[10px] uppercase tracking-wider font-black text-lime-300 text-center"
-                        style={{ fontFamily: "'Outfit', sans-serif" }}
-                      >
-                        Vous
-                      </span>
-                    )}
+                    <span
+                      className={isInkBeta
+                        ? 'ik-seat-meta'
+                        : cn(
+                          'block text-[10px] uppercase tracking-wider font-black text-lime-300 text-center',
+                          !isMe && 'invisible',
+                        )}
+                      style={isInkBeta ? undefined : { fontFamily: "'Outfit', sans-serif" }}
+                    >
+                      {isMe ? 'Vous' : 'Prêt'}
+                    </span>
                   </motion.div>
                 );
               })}
@@ -238,13 +269,16 @@ export const QuizWaitingScreen = memo(
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="w-full max-w-2xl space-y-3 mb-4 sm:space-y-4 sm:mb-6"
+              className={isInkBeta
+                ? 'ik-gpanel-body'
+                : 'w-full max-w-2xl space-y-3 mb-4 sm:space-y-4 sm:mb-6'}
             >
               {/* Category */}
               <CartoonSection
                 icon={Sparkles}
                 title="Catégorie"
                 accent={ACCENT}
+                isInkBeta={isInkBeta}
               >
                 <QuizCategorySelector
                   selectedCategory={selectedCategory}
@@ -258,6 +292,7 @@ export const QuizWaitingScreen = memo(
                 icon={SettingsIcon}
                 title="Options"
                 accent="var(--ink-accent)"
+                isInkBeta={isInkBeta}
               >
                 <QuizSettingsPanel
                   settings={hostSettings}
@@ -273,7 +308,7 @@ export const QuizWaitingScreen = memo(
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="w-full max-w-md space-y-3 pb-1"
+            className={isInkBeta ? 'ik-game-actions' : 'w-full max-w-md space-y-3 pb-1'}
           >
             {isHost ? (
               <motion.button
@@ -285,10 +320,12 @@ export const QuizWaitingScreen = memo(
                 }
                 whileTap={!isLoading ? { scale: 0.96 } : undefined}
                 className={cn(
-                'relative w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 sm:gap-3 sm:py-4',
+                  isInkBeta
+                    ? 'ik-primary-action menu-focus'
+                    : 'relative w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 sm:gap-3 sm:py-4',
                   isLoading && 'opacity-50 cursor-not-allowed',
                 )}
-                style={{
+                style={isInkBeta ? undefined : {
                   background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT}cc)`,
                   border: '1px solid var(--ink-line)',
                   boxShadow:
@@ -355,8 +392,10 @@ export const QuizWaitingScreen = memo(
               onClick={onLeave}
               whileHover={{ scale: 1.02, rotate: -1 }}
               whileTap={{ scale: 0.98 }}
-              className="relative w-full py-2.5 rounded-2xl flex items-center justify-center gap-2"
-              style={{
+              className={isInkBeta
+                ? 'ik-secondary-action menu-focus'
+                : 'relative w-full py-2.5 rounded-2xl flex items-center justify-center gap-2'}
+              style={isInkBeta ? undefined : {
                 background:
                   'linear-gradient(180deg, rgba(239,68,68,0.18), rgba(127,29,29,0.05))',
                 border: '1px solid var(--ink-line)',
@@ -364,10 +403,12 @@ export const QuizWaitingScreen = memo(
                 color: 'white',
               }}
             >
-              <ArrowLeft className="w-4 h-4 text-red-300" strokeWidth={2.5} />
+              <ArrowLeft className={isInkBeta ? undefined : 'w-4 h-4 text-red-300'} strokeWidth={2.5} />
               <span
-                className="text-base font-black uppercase tracking-wider text-red-300 leading-none"
-                style={{
+                className={isInkBeta
+                  ? undefined
+                  : 'text-base font-black uppercase tracking-wider text-red-300 leading-none'}
+                style={isInkBeta ? undefined : {
                   fontFamily: "'Outfit', sans-serif",
                   textShadow: GRAFFITI_TEXT_SHADOW_SM,
                 }}
@@ -392,29 +433,34 @@ const CartoonSection = ({
   title,
   accent,
   children,
+  isInkBeta = false,
 }: {
   icon: any;
   title: string;
   accent: string;
   children: React.ReactNode;
+  isInkBeta?: boolean;
 }) => (
   <motion.section
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
-    className="relative rounded-2xl p-4"
-    style={{
+    className={isInkBeta ? 'ik-quiz-section' : 'relative rounded-2xl p-4'}
+    style={isInkBeta ? undefined : {
       background:
         'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
       border: '1px solid var(--ink-line)',
       boxShadow: 'none',
     }}
   >
+    {!isInkBeta && (
     <div
       className="absolute inset-0 pointer-events-none opacity-25 rounded-2xl"
       style={{
         background: `radial-gradient(circle at top, ${accent}55, transparent 70%)`,
       }}
     />
+    )}
+    {!isInkBeta && (
     <Sparkles
       className="absolute -top-2 -right-2 w-4 h-4"
       style={{
@@ -422,6 +468,7 @@ const CartoonSection = ({
         filter: 'none',
       }}
     />
+    )}
     <header className="relative flex items-center gap-2 mb-3">
       <motion.div
         animate={{ rotate: [-3, 3, -3] }}

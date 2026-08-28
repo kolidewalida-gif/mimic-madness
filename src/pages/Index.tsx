@@ -774,6 +774,7 @@ const Index = () => {
 
         {gameState === "quiz" && currentPlayer && lobby && (
           <QuizGameScreen
+            variant={useBetaHome ? 'inkBeta' : 'default'}
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}

@@ -25,6 +25,7 @@ interface QuizFinalResultsProps {
   currentPlayerId: string;
   instanceKey: string;
   onEndGame: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 const ACCENT = '#fbbf24';
@@ -39,7 +40,9 @@ export const QuizFinalResults = ({
   currentPlayerId,
   instanceKey,
   onEndGame,
+  variant = 'default',
 }: QuizFinalResultsProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [showConfetti, setShowConfetti] = useState(false);
   const [showPodium, setShowPodium] = useState(false);
   const [showWinner, setShowWinner] = useState(false);
@@ -100,12 +103,13 @@ export const QuizFinalResults = ({
   const podiumOrder = [1, 0, 2];
   const podiumHeights = ['h-20', 'h-28', 'h-16'];
 
-  return (
-    <DoodleStage accent={ACCENT}>
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5">
-        <DoodleConfetti show={showConfetti} count={48} />
+  const body = (
+      <div className={isInkBeta ? 'ik-gpanel is-featured' : 'relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5'}>
+        {/* Confettis et particules seulement hors beta : l'écran de scores doit
+            rester lisible tout de suite. */}
+        {!isInkBeta && <DoodleConfetti show={showConfetti} count={48} />}
 
-        {showConfetti && (
+        {!isInkBeta && showConfetti && (
           <ParticleSystem
             type="confetti"
             count={150}
@@ -316,6 +320,7 @@ export const QuizFinalResults = ({
           </InkButton>
         </motion.div>
       </div>
-    </DoodleStage>
   );
+
+  return isInkBeta ? body : <DoodleStage accent={ACCENT}>{body}</DoodleStage>;
 };
