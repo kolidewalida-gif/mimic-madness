@@ -1,10 +1,8 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Copy,
   Crown,
   Link2,
@@ -37,7 +35,7 @@ import { DeviceSettings } from '@/components/DeviceSettings';
 import { LanguageMenu } from '@/components/LanguageMenu';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
-import { InkBetaLogo, InkBetaMascot } from '@/components/InkBetaBrand';
+import { InkBetaLogo } from '@/components/InkBetaBrand';
 import { InkModal } from '@/components/menu/InkOverlay';
 import {
   GameBackdrop,
@@ -85,6 +83,8 @@ const MODE_CARDS = INK_GAME_MODE_ORDER.map((id) => {
   return {
     id,
     label: meta.label,
+    /* Les tuiles du dock sont étroites : « Blindtest Musical » y débordait. */
+    shortLabel: meta.shortLabel,
     tagline: meta.tagline,
     minPlayers: meta.minPlayers,
     accent: meta.accent,
@@ -119,37 +119,11 @@ const copyText = async (text: string) => {
   }
 };
 
-/**
- * Portrait d'un joueur dans la DA beta : l'avatar choisi occupe le cercle
- * cerclé de la mascotte. Une image cassée retombe sur Mimo plutôt que sur un
- * cadre vide, comme sur l'accueil.
+/*
+ * Le grand portrait de soi a disparu du salon avec `InkBetaSeatPortrait` : il
+ * occupait un tiers du panneau d'ouverture pour rappeler au joueur son propre
+ * nom, alors que sa tuile figure déjà dans la troupe, marquée « Toi ».
  */
-const InkBetaSeatPortrait = memo(({ imageUrl, alt }: { imageUrl: string; alt: string }) => {
-  const [hasImageError, setHasImageError] = useState(false);
-
-  useEffect(() => {
-    setHasImageError(false);
-  }, [imageUrl]);
-
-  if (hasImageError) return <InkBetaMascot />;
-
-  return (
-    <div className="ik-mascot ik-mascot--avatar">
-      <div className="ik-mascot-avatar-frame">
-        <img
-          src={imageUrl}
-          alt={alt}
-          className="ik-mascot-avatar-image"
-          draggable={false}
-          onError={() => setHasImageError(true)}
-        />
-      </div>
-      <span className="ik-mascot-pulse ik-mascot-pulse--one" aria-hidden="true" />
-      <span className="ik-mascot-pulse ik-mascot-pulse--two" aria-hidden="true" />
-    </div>
-  );
-});
-InkBetaSeatPortrait.displayName = 'InkBetaSeatPortrait';
 
 export const InkLobbyScreen = ({
   players,
@@ -233,20 +207,10 @@ export const InkLobbyScreen = ({
   );
 
   /*
-   * Position du mode dans le dock beta. Les flèches reprennent la navigation
-   * cyclique de l'accueil, mais passent par `handleGameModeChange` : c'est ce
-   * chemin qui écrit dans `lobbies.game_mode` et propage le choix aux invités.
+   * La navigation cyclique entre modes (`modeIndex`, `goToLobbyMode`) a été
+   * retirée avec les flèches et le compteur du dock : les sept modes tiennent
+   * dans la grille, où l'on clique directement celui qu'on veut.
    */
-  const modeIndex = Math.max(0, MODE_CARDS.findIndex((card) => card.id === gameMode));
-
-  const goToLobbyMode = useCallback(
-    (index: number) => {
-      if (!isHost) return;
-      const next = MODE_CARDS[(index + MODE_CARDS.length) % MODE_CARDS.length];
-      void handleGameModeChange(next.id);
-    },
-    [handleGameModeChange, isHost],
-  );
 
   const connectedCount = players.filter((p) => !p.isDisconnected).length;
   const { canStart, reasons } = getStartStatus({
@@ -487,8 +451,6 @@ export const InkLobbyScreen = ({
    * canaux temps réel, chat et actions d'hôte restent ceux d'au-dessus.
    */
   if (isInkBeta) {
-    const selfAvatar = getAvatar(currentPlayer.id);
-
     return (
       <div
         className="ik-root ik-layout-v2 ik-lobby-v2 menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
@@ -501,19 +463,12 @@ export const InkLobbyScreen = ({
         <header className="ik-topbar relative z-[8] flex-shrink-0">
           <InkBetaLogo titleId="ik-lobby-brand" />
 
-          <div className="ik-topbar-side ik-topbar-side--start">
-            <button
-              type="button"
-              onClick={handleCopyCode}
-              className="ik-code-chip menu-focus"
-              aria-label={`Copier le code du salon ${lobbyCode}`}
-              title="Copier le code du lobby"
-            >
-              <span>Salon</span>
-              <strong>{lobbyCode}</strong>
-              {codeCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-            </button>
-          </div>
+          {/*
+            Le code ne vit plus ici. Il était dit trois fois — pastille de barre,
+            ligne d'indice sous le bouton, phrase sous les sièges — et petit à
+            chaque fois. Il est maintenant énoncé une seule fois, en grand, dans
+            le panneau d'invitation qui ouvre la scène.
+          */}
 
           <div className="ik-topbar-side ik-topbar-side--end">
             <div className="ik-tools">
@@ -530,15 +485,7 @@ export const InkLobbyScreen = ({
                 <span>Social</span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleShareLink}
-                className="ik-tool menu-focus"
-                aria-label={linkShared ? 'Lien du lobby copié' : 'Partager le lobby'}
-              >
-                {linkShared ? <Check aria-hidden="true" /> : <Share2 aria-hidden="true" />}
-                <span>{linkShared ? 'Copié' : 'Partager'}</span>
-              </button>
+              {/* Partage et invitation ont rejoint le panneau d'invitation. */}
 
               <button
                 type="button"
@@ -574,118 +521,76 @@ export const InkLobbyScreen = ({
 
         <main className="ik-main custom-scrollbar relative z-[2] min-h-0 flex-1 overflow-y-auto">
           <div className="ik-canvas ik-lobby-canvas">
-            <section className="ik-play-panel ik-lobby-play" aria-labelledby="ik-lobby-mode-title">
-              <div className="ik-panel-tabs" aria-label="Actions du salon">
-                <span className="ik-panel-tab is-active">Le salon</span>
+            {/*
+              Les quatre panneaux d'étape vivent dans une colonne à eux, le chat
+              dans l'autre. Placés directement dans la grille du cadre, le chat
+              traversait leurs quatre rangées et sa hauteur propre les étirait :
+              le panneau d'invitation se retrouvait deux fois trop haut.
+            */}
+            <div className="ik-lobby-col">
+            {/*
+              ÉTAPE 01 — inviter.
+              Le salon se remplit avant qu'on choisisse quoi que ce soit : c'est
+              donc la première chose à l'écran, et le code en est le sujet, pas
+              une mention de bas de panneau.
+            */}
+            <section className="ik-lobby-invite" aria-labelledby="ik-lobby-invite-title">
+              <div className="ik-lobby-step">
+                <span>Étape 01</span>
+                <h2 id="ik-lobby-invite-title">Invite ta troupe</h2>
+                <p>Donne ce code, ou envoie le lien : on te rejoint direct.</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="ik-lobby-code menu-focus"
+                aria-label={`Copier le code du salon ${lobbyCode}`}
+              >
+                <small>Code du salon</small>
+                <strong>{lobbyCode}</strong>
+                <span className="ik-lobby-code-action">
+                  {codeCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                  {codeCopied ? 'Copié' : 'Copier'}
+                </span>
+              </button>
+
+              <div className="ik-lobby-invite-actions">
                 <button
                   type="button"
-                  className="ik-panel-tab menu-focus"
-                  disabled={!isHost}
-                  onClick={() => {
-                    playInkSound('cartoonPop', 0.3);
-                    setShowInvitePanel(true);
-                  }}
+                  onClick={handleShareLink}
+                  className="ik-secondary-action menu-focus"
+                  aria-label={linkShared ? 'Lien du lobby copié' : 'Partager le lien du lobby'}
                 >
-                  Inviter des amis
+                  {linkShared ? <Check aria-hidden="true" /> : <Share2 aria-hidden="true" />}
+                  {linkShared ? 'Lien copié' : 'Partager le lien'}
                 </button>
-              </div>
 
-              <div className="ik-play-title">
-                <span className="ik-play-title-spark" aria-hidden="true">✦</span>
-                <h2 id="ik-lobby-mode-title">{selectedCard.label}</h2>
-                <span className="ik-play-title-spark" aria-hidden="true">✦</span>
-              </div>
-
-              <div className="ik-play-content">
-                <div className="ik-mascot-zone">
-                  <div className="ik-lobby-portrait">
-                    {selfAvatar.type === 'image' && selfAvatar.imageUrl ? (
-                      <InkBetaSeatPortrait
-                        imageUrl={selfAvatar.imageUrl}
-                        alt={`Avatar de ${currentPlayer.name}`}
-                      />
-                    ) : (
-                      <InkBetaMascot />
-                    )}
-                  </div>
-                  <span className="ik-mascot-caption">
-                    {isHost ? <Crown aria-hidden="true" /> : <Users aria-hidden="true" />}
-                    {currentPlayer.name} · {isHost ? 'Hôte du salon' : 'Invité'}
-                  </span>
-                </div>
-
-                <div className="ik-start-card">
-                  <div className="ik-start-heading">
-                    <span>01</span>
-                    <div>
-                      <p>{isHost ? 'Lance la partie' : 'Prépare-toi'}</p>
-                      <small>
-                        {connectedCount}/{MAX_PLAYERS} joueurs connectés
-                      </small>
-                    </div>
-                  </div>
-
-                  <div className="ik-current-mode" aria-live="polite">
-                    <span className="ik-current-mode-icon">
-                      <GameImage
-                        candidates={selectedCard.imageCandidates}
-                        alt=""
-                        fallback={<span aria-hidden="true">{selectedCard.fallbackEmoji}</span>}
-                      />
-                    </span>
-                    <span>
-                      <small>Mode sélectionné</small>
-                      <strong>{selectedCard.label}</strong>
-                    </span>
-                    {isHost && (
-                      <button
-                        type="button"
-                        className="menu-focus"
-                        onClick={() => goToLobbyMode(modeIndex + 1)}
-                      >
-                        Changer
-                      </button>
-                    )}
-                  </div>
-
-                  {isHost ? (
-                    <button
-                      type="button"
-                      className="ik-primary-action menu-focus"
-                      disabled={!canStart || isStarting}
-                      onClick={handleStartGame}
-                    >
-                      <span className="ik-primary-action-icon">
-                        <Play fill="currentColor" aria-hidden="true" />
-                      </span>
-                      <span>{isStarting ? 'Lancement…' : 'Lancer la partie'}</span>
-                    </button>
-                  ) : (
-                    <p className="ik-lobby-waiting" role="status">
-                      <span aria-hidden="true" />
-                      En attente du lancement par l'hôte…
-                    </p>
-                  )}
-
-                  {isHost && !canStart && reasons.length > 0 ? (
-                    <p className="ik-start-hint" role="status">
-                      <AlertTriangle aria-hidden="true" /> {reasons.join(' · ')}
-                    </p>
-                  ) : (
-                    <p className="ik-start-hint">
-                      {isHost
-                        ? 'Entrée pour lancer · C pour copier le code'
-                        : `Code du salon : ${lobbyCode}`}
-                    </p>
-                  )}
-                </div>
+                {isHost && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playInkSound('cartoonPop', 0.3);
+                      setShowInvitePanel(true);
+                    }}
+                    className="ik-secondary-action menu-focus"
+                  >
+                    <Link2 aria-hidden="true" />
+                    Inviter des amis
+                  </button>
+                )}
               </div>
             </section>
 
             <aside className="ik-lobby-seats-panel" aria-labelledby="ik-lobby-seats-title">
+              {/*
+                Sans numéro : la troupe n'est pas une action mais le résultat de
+                l'étape 01. Ne numéroter que ce qui se fait garde la séquence
+                lisible — inviter, choisir, lancer.
+              */}
               <div className="ik-lobby-panel-head">
                 <div>
-                  <span>Étape 02</span>
+                  <span>{connectedCount > 1 ? 'Tout le monde est là ?' : 'En attente de joueurs'}</span>
                   <h2 id="ik-lobby-seats-title">La troupe</h2>
                 </div>
                 <p className="ik-lobby-count">
@@ -806,47 +711,25 @@ export const InkLobbyScreen = ({
                 ))}
               </div>
 
-              {players.length <= 1 && (
-                <p className="ik-lobby-alone">
-                  Encore tout seul&nbsp;! Partage le code <strong>{lobbyCode}</strong> pour remplir
-                  le salon.
-                </p>
-              )}
-            </aside>
-
-            <aside className="ik-lobby-chat-panel" aria-label="Discussion du salon">
-              <TwitchStyleLobbyChat
-                lobbyId={lobbyId}
-                playerId={currentPlayer.id}
-                playerName={currentPlayer.name}
-                className="h-full"
-              />
+              {/*
+                La phrase « Partage le code XXXX pour remplir le salon » a été
+                retirée : le code est énoncé en grand juste au-dessus, avec son
+                bouton de copie.
+              */}
             </aside>
 
             <section className="ik-mode-panel ik-lobby-modes" aria-labelledby="ik-lobby-modes-title">
               <div className="ik-mode-panel-head">
-                <span>Étape 03</span>
+                <span>Étape 02</span>
                 <h2 id="ik-lobby-modes-title">{isHost ? 'Choisis un mode' : 'Mode du salon'}</h2>
               </div>
 
-              <div
-                className="ik-mode-feature"
-                style={{ ['--mode-accent' as string]: selectedCard.accent }}
-              >
-                <span className="ik-mode-feature-icon">
-                  <GameImage
-                    candidates={selectedCard.imageCandidates}
-                    alt=""
-                    fallback={<span aria-hidden="true">{selectedCard.fallbackEmoji}</span>}
-                  />
-                </span>
-                <div>
-                  <strong>{selectedCard.label}</strong>
-                  <p>{selectedCard.tagline}</p>
-                </div>
-                <span className="ik-mode-players">{selectedCard.minPlayers}+</span>
-              </div>
-
+              {/*
+                La vignette du mode retenu a été retirée : elle en était la
+                quatrième mention, après la tuile cochée dans la grille, la
+                description ci-dessous et la ligne du panneau de lancement. Elle
+                prenait la largeur des libellés, qui se coupaient tous.
+              */}
               <p className="ik-mode-description">
                 {isHost ? selectedCard.description : "L'hôte choisit le mode de la partie."}
               </p>
@@ -871,37 +754,75 @@ export const InkLobbyScreen = ({
                         fallback={<span aria-hidden="true">{card.fallbackEmoji}</span>}
                       />
                     </span>
-                    <span className="ik-mode-name">{card.label}</span>
+                    <span className="ik-mode-name">{card.shortLabel}</span>
                     <span className="ik-mode-check" aria-hidden="true">✓</span>
                   </button>
                 ))}
               </div>
 
-              <div className="ik-mode-nav" aria-label="Navigation entre les modes">
-                <button
-                  type="button"
-                  className="ik-mode-nav-btn menu-focus"
-                  disabled={!isHost}
-                  onClick={() => goToLobbyMode(modeIndex - 1)}
-                  aria-label="Mode précédent"
-                >
-                  <ChevronLeft aria-hidden="true" />
-                </button>
-                <p className="ik-mode-position" aria-live="polite">
-                  <strong>{String(modeIndex + 1).padStart(2, '0')}</strong>
-                  <span>/ {String(MODE_CARDS.length).padStart(2, '0')}</span>
+              {/*
+                Flèches et compteur « 01/07 » retirés : les sept modes sont tous
+                visibles et cliquables dans la grille, ces contrôles ne menaient
+                nulle part qu'on ne pouvait déjà atteindre.
+              */}
+            </section>
+
+            {/*
+              ÉTAPE 03 — lancer.
+              En bas, une fois la troupe réunie et le mode choisi. C'était
+              l'étape 01 en haut de l'écran, ce qui demandait de lancer avant
+              d'avoir rien décidé.
+            */}
+            <section className="ik-lobby-launch" aria-labelledby="ik-lobby-launch-title">
+              <div className="ik-lobby-step">
+                <span>Étape 03</span>
+                <h2 id="ik-lobby-launch-title">
+                  {isHost ? 'Lance la partie' : 'Prépare-toi'}
+                </h2>
+                <p>
+                  {selectedCard.label} · {connectedCount}/{MAX_PLAYERS} joueurs connectés
                 </p>
-                <button
-                  type="button"
-                  className="ik-mode-nav-btn menu-focus"
-                  disabled={!isHost}
-                  onClick={() => goToLobbyMode(modeIndex + 1)}
-                  aria-label="Mode suivant"
-                >
-                  <ChevronRight aria-hidden="true" />
-                </button>
+              </div>
+
+              <div className="ik-lobby-launch-action">
+                {isHost ? (
+                  <button
+                    type="button"
+                    className="ik-primary-action menu-focus"
+                    disabled={!canStart || isStarting}
+                    onClick={handleStartGame}
+                  >
+                    <span className="ik-primary-action-icon">
+                      <Play fill="currentColor" aria-hidden="true" />
+                    </span>
+                    <span>{isStarting ? 'Lancement…' : 'Lancer la partie'}</span>
+                  </button>
+                ) : (
+                  <p className="ik-lobby-waiting" role="status">
+                    <span aria-hidden="true" />
+                    En attente du lancement par l'hôte…
+                  </p>
+                )}
+
+                {isHost && !canStart && reasons.length > 0 ? (
+                  <p className="ik-start-hint" role="status">
+                    <AlertTriangle aria-hidden="true" /> {reasons.join(' · ')}
+                  </p>
+                ) : (
+                  isHost && <p className="ik-start-hint">Entrée pour lancer · ? pour les raccourcis</p>
+                )}
               </div>
             </section>
+            </div>
+
+            <aside className="ik-lobby-chat-panel" aria-label="Discussion du salon">
+              <TwitchStyleLobbyChat
+                lobbyId={lobbyId}
+                playerId={currentPlayer.id}
+                playerName={currentPlayer.name}
+                className="h-full"
+              />
+            </aside>
           </div>
         </main>
 

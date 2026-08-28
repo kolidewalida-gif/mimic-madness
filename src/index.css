@@ -10410,56 +10410,13 @@ body.inkbeta-mode .ink-game-avatar-caption span {
    et ses sièges ; tout le reste hérite déjà de Party Stage.
    ============================================================ */
 
-/* ---- Barre : marque à gauche, code au centre, outils à droite -------- */
-body.inkbeta-mode .ik-lobby-v2 .ik-code-chip {
-  display: inline-flex;
-  min-height: 2.85rem;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0 0.95rem;
-  border: 2px solid rgba(45, 242, 208, 0.6);
-  border-radius: 12px;
-  color: var(--ik-white);
-  background: linear-gradient(180deg, rgba(111, 22, 126, 0.96), rgba(76, 8, 96, 0.96));
-  box-shadow: 0 4px 0 rgba(53, 7, 75, 0.78);
-  cursor: pointer;
-  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
-}
+/*
+ * La pastille de code de la barre haute (`.ik-code-chip`) et son habillage ont
+ * disparu : le code est désormais énoncé une seule fois, en grand, dans le
+ * panneau d'invitation qui ouvre la scène.
+ */
 
-body.inkbeta-mode .ik-lobby-v2 .ik-code-chip > span {
-  color: var(--ik-cyan);
-  font-family: var(--ik-display);
-  font-size: 0.85rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-code-chip > strong {
-  font-family: var(--ik-display);
-  font-size: 1.35rem;
-  font-weight: 400;
-  letter-spacing: 0.22em;
-  text-shadow: 0 3px 0 var(--ik-edge);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-code-chip svg {
-  width: 1rem;
-  height: 1rem;
-  color: var(--ik-cyan);
-  stroke-width: 3;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-code-chip:hover {
-  background: var(--ik-panel-bright);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 0 rgba(53, 7, 75, 0.78);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-code-chip:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 rgba(53, 7, 75, 0.78);
-}
-
+/* ---- Barre : marque à gauche, outils à droite ------------------------ */
 body.inkbeta-mode .ik-lobby-v2 .ik-tool--leave {
   border-color: rgba(255, 98, 182, 0.62);
 }
@@ -10494,88 +10451,96 @@ body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
   width: min(100%, 92rem);
   min-height: 0;
   margin: 0 auto;
-  grid-template-columns: minmax(0, 1.58fr) minmax(19rem, 0.82fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas:
-    'play chat'
-    'seats chat'
-    'modes modes';
+  /*
+   * Deux colonnes, sans zones nommées : les quatre étapes sont empilées dans
+   * `.ik-lobby-col`, le chat occupe la seconde colonne. Les étapes se lisent de
+   * haut en bas dans l'ordre où l'on agit — inviter, voir qui arrive, choisir le
+   * mode, lancer.
+   *
+   * L'ancienne grille mettait le lancement en haut à gauche et le choix du mode
+   * en bandeau du bas, ce qui demandait de lancer la partie avant d'avoir rien
+   * décidé — c'est ce qui rendait le salon illisible.
+   */
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.56fr);
   align-content: start;
 }
 
-/*
- * L'accueil impose 27rem à son panneau de partie pour équilibrer sa mascotte.
- * Le lobby doit en plus loger la troupe et le dock : on rend la hauteur au
- * contenu, sinon la scène dépasse la fenêtre en 900 px de haut.
- */
-body.inkbeta-mode .ik-lobby-v2 .ik-play-panel {
-  min-height: 0;
-  padding-top: 4.1rem;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-play {
-  min-height: 0;
-  grid-area: play;
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: clamp(0.5rem, 0.9vw, 0.8rem);
 }
 
 @media (min-width: 1101px) {
   /*
-   * Les rangées suivent leur contenu. Les forcer à remplir la fenêtre écrasait
-   * le panneau de partie et coupait à la fois son indice de raccourci et le bas
-   * des sièges, puisque ces panneaux masquent leur débordement.
+   * Quatre panneaux empilés au lieu de trois : chacun rend quelques pixels pour
+   * que la scène entière tienne sous une fenêtre de 900 px sans défilement.
+   * Les rangées restent au contenu — les forcer à remplir la fenêtre écrasait
+   * les panneaux, qui masquent leur débordement.
    */
   body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
-    grid-template-rows: auto minmax(11.6rem, auto) auto;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-play {
-    min-height: 19rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes {
-    min-height: 9.4rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes .ik-mode {
-    min-height: 3rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait {
-    width: min(100%, 12rem);
+    row-gap: 0.6rem;
   }
 
   body.inkbeta-mode :is(.ik-lobby-v2, .ik-game-v2) .ik-seat {
-    min-height: 6.9rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
-    row-gap: 0.7rem;
+    min-height: 6.5rem;
   }
 
   /*
-   * Passe compacte : le salon empile un panneau de plus que l'accueil, donc
-   * chaque bloc rend quelques pixels pour que la scène entière tienne sous
-   * une fenêtre de 900 px sans défilement.
+   * Dock de modes en deux colonnes : à gauche le titre d'étape et ce que fait le
+   * mode retenu, à droite les sept tuiles sur une rangée. La grille de base en
+   * prévoit quatre — titre, vignette, tuiles, flèches — dont deux ont disparu
+   * ici, d'où ce réagencement.
    */
-  body.inkbeta-mode .ik-lobby-v2 .ik-play-panel {
-    padding: 3.7rem clamp(0.9rem, 1.7vw, 1.4rem) 1rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes {
+    grid-template-columns: minmax(9rem, 0.42fr) minmax(0, 1.58fr);
+    grid-template-rows: auto auto;
+    align-items: start;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-start-card {
-    padding: 0.85rem 0.95rem 0.9rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes .ik-mode-panel-head {
+    grid-column: 1;
+    grid-row: 1;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-start-heading {
-    margin-bottom: 0.55rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes .ik-mode-description {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-current-mode {
-    margin-top: 0.55rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes .ik-mode-grid {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    align-content: center;
+    gap: 0.4rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-start-card > .ik-primary-action {
-    min-height: 3.3rem;
-    margin-top: 0.6rem;
+  /* Tuiles étroites : l'icône passe au-dessus du nom, tout est centré. */
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes .ik-mode {
+    min-height: 3.1rem;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0.25rem;
+    padding: 0.4rem 0.3rem;
+    text-align: center;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes .ik-mode-icon {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+
+  /* Un libellé trop long se coupe proprement au lieu de sortir du panneau. */
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes .ik-mode-name {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.54rem;
+    letter-spacing: 0.02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   body.inkbeta-mode .ik-lobby-v2 .ik-lobby-panel-head {
@@ -10587,53 +10552,175 @@ body.inkbeta-mode .ik-lobby-v2 .ik-lobby-play {
   }
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel {
-  grid-area: seats;
+/*
+ * Fenêtres basses : les quatre étapes plus le socle musical dépassaient d'une
+ * quinzaine de pixels en 900 px de haut. Les respirations se resserrent, les
+ * panneaux gardent leur contenu.
+ */
+@media (min-width: 1101px) and (max-height: 940px) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-col {
+    gap: 0.45rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-launch {
+    padding-block: 0.7rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-seat {
+    min-height: 6.1rem;
+  }
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
-  grid-area: chat;
+/* ---- Surtitre et titre communs aux panneaux d'étape ------------------ */
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-step > span {
+  display: block;
+  color: var(--ik-white-faint);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-modes {
-  grid-area: modes;
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-step > h2 {
+  margin: 0;
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: clamp(1.35rem, 2vw, 1.85rem);
+  font-weight: 400;
+  letter-spacing: 0.035em;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 0 4px 0 var(--ik-edge);
 }
 
-/* Le panneau de partie garde la composition de l'accueil : Mimo à gauche,
-   carte d'action à droite. */
-body.inkbeta-mode .ik-lobby-v2 .ik-play-content {
-  width: 100%;
-  grid-template-columns: minmax(11rem, 0.72fr) minmax(19rem, 1.28fr);
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-step > p {
+  margin: 0.25rem 0 0;
+  color: var(--ik-white-soft);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+/* ---- Étape 01 : le code, sujet du panneau --------------------------- */
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
+  gap: clamp(0.7rem, 1.5vw, 1.4rem);
+  padding: 0.9rem clamp(0.8rem, 1.3vw, 1.1rem);
+}
+
+/*
+ * Le code est un bouton, pas une étiquette : le geste attendu est de le copier,
+ * autant que toute la surface y réponde.
+ */
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-code {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 0.45rem 1.1rem 0.6rem;
+  border: 3px solid var(--ik-cyan);
+  border-radius: 15px;
+  color: var(--ik-white);
+  background: rgba(45, 242, 208, 0.1);
+  box-shadow: 0 5px 0 var(--ik-edge);
+  cursor: pointer;
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-code:hover {
+  background: rgba(45, 242, 208, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-code:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-code > small {
+  color: var(--ik-cyan);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-code > strong {
+  font-family: var(--ik-display);
+  font-size: clamp(2.1rem, 3.4vw, 3.1rem);
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  /* Compense le pas d'approche, qui décale le bloc vers la gauche. */
+  text-indent: 0.2em;
+  line-height: 1;
+  text-shadow: 0 4px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-code-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--ik-cyan);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-code-action svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  stroke-width: 3;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite-actions {
+  display: grid;
+  gap: 0.4rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite-actions .ik-secondary-action {
+  min-height: 2.7rem;
+  padding: 0 0.95rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite-actions svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: 0 0 auto;
+}
+
+/* ---- Étape 03 : lancer --------------------------------------------- */
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-launch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, auto);
+  align-items: center;
+  gap: clamp(0.7rem, 1.5vw, 1.4rem);
+  padding: 0.9rem clamp(0.8rem, 1.3vw, 1.1rem);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-launch-action {
+  display: grid;
+  gap: 0.35rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-launch-action .ik-primary-action {
+  min-height: 3.4rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-launch-action .ik-lobby-waiting {
   margin: 0;
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-start-card {
-  width: 100%;
-  justify-self: stretch;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait {
-  position: relative;
-  width: min(100%, 13.5rem);
-  aspect-ratio: 1;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait .ik-mascot {
-  width: 100%;
-  height: 100%;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-panel-tab.is-active {
-  color: var(--ik-cyan);
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-current-mode-icon img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
+/*
+ * Ont disparu avec la refonte : `.ik-lobby-portrait` (le grand portrait de soi),
+ * `.ik-panel-tab.is-active` (les faux onglets « Le salon » / « Inviter des
+ * amis ») et `.ik-current-mode-icon` (le rappel du mode choisi, juste au-dessus
+ * du sélecteur qui le montrait déjà).
+ */
 
 body.inkbeta-mode .ik-lobby-v2 .ik-start-hint {
   display: flex;
@@ -10674,14 +10761,14 @@ body.inkbeta-mode .ik-lobby-v2 .ik-lobby-waiting > span {
   box-shadow: 0 0 0 3px rgba(45, 242, 208, 0.22);
 }
 
-/* ---- Panneaux troupe et chat, mêmes volumes que le dock de modes ----- */
+/* ---- Les quatre panneaux du salon partagent la même surface ---------- */
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-launch,
 body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel,
 body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
   position: relative;
-  display: flex;
   min-width: 0;
   min-height: 0;
-  flex-direction: column;
   overflow: hidden;
   border: 3px solid var(--ik-edge-soft);
   border-radius: 17px;
@@ -10689,6 +10776,16 @@ body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
     radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.14), transparent 44%),
     var(--ik-panel);
   box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.17), 0 5px 0 rgba(54, 7, 76, 0.52);
+}
+
+/*
+ * La surface est mutualisée, la disposition non : la troupe et le chat empilent
+ * en colonne, l'invitation et le lancement rangent leur contenu en grille.
+ */
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
+  display: flex;
+  flex-direction: column;
 }
 
 body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel {
@@ -10962,23 +11059,6 @@ body.inkbeta-mode :is(.ik-lobby-v2, .ik-game-v2) .ik-seat-popover button.is-dang
   background: var(--ik-pink);
 }
 
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-alone {
-  flex-shrink: 0;
-  margin: 0.6rem 0 0;
-  color: var(--ik-white-soft);
-  font-size: 0.68rem;
-  font-weight: 750;
-  text-align: center;
-}
-
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-alone strong {
-  color: var(--ik-cyan);
-  font-family: var(--ik-display);
-  font-size: 0.95rem;
-  font-weight: 400;
-  letter-spacing: 0.14em;
-}
-
 /* ---- Chat ------------------------------------------------------------ */
 body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel .if-label {
   color: var(--ik-cyan);
@@ -11072,25 +11152,26 @@ body.inkbeta-mode .menu-dialog.ik-party-overlay.ik-lobby-overlay {
   }
 }
 
-/* ---- Tablette : une colonne, chat sous la troupe -------------------- */
+/* ---- Tablette : une colonne, chat en dernier ------------------------- */
 @media (max-width: 1100px) {
   body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
     width: min(100%, 52rem);
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto;
-    grid-template-areas:
-      'play'
-      'modes'
-      'seats'
-      'chat';
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-play-content {
-    grid-template-columns: minmax(10rem, 0.75fr) minmax(0, 1.25fr);
+  /* Le code passe au-dessus de ses deux boutons, qui s'étalent côte à côte. */
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel {
-    min-height: 20rem;
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite-actions {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-launch {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
@@ -11115,38 +11196,17 @@ body.inkbeta-mode .menu-dialog.ik-party-overlay.ik-lobby-overlay {
     width: 11.5rem;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-topbar-side--start {
-    display: flex;
-    justify-self: stretch;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-code-chip {
-    width: 100%;
-    min-height: 2.6rem;
-    justify-content: center;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-canvas {
-    grid-template-areas:
-      'play'
-      'modes'
-      'seats'
-      'chat';
-  }
-
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-launch,
   body.inkbeta-mode .ik-lobby-v2 .ik-lobby-seats-panel,
   body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-panel {
     border-width: 2px;
     border-radius: 13px;
   }
 
-  body.inkbeta-mode .ik-lobby-v2 .ik-play-content {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.5rem;
-  }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait {
-    width: min(58vw, 12rem);
+  /* Les deux boutons d'invitation repassent l'un sous l'autre. */
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-invite-actions {
+    grid-auto-flow: row;
   }
 
   body.inkbeta-mode .ik-lobby-v2 .ik-lobby-panel-head h2 {
@@ -11198,14 +11258,10 @@ body.inkbeta-mode .menu-dialog.ik-party-overlay.ik-lobby-overlay {
   body.inkbeta-mode .ik-lobby-v2 .ik-topbar {
     height: 4.6rem;
   }
-
-  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-portrait {
-    width: min(100%, 11rem);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.inkbeta-mode .ik-lobby-v2 .ik-code-chip {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-code {
     transition: none;
   }
 }
@@ -12028,7 +12084,7 @@ body.inkbeta-mode :is(
   .ik-vote,
   .ik-mode,
   .ik-mode-nav-btn,
-  .ik-code-chip,
+  .ik-lobby-code,
   .ik-game-badge,
   .ik-drop,
   .ik-clip
@@ -12224,9 +12280,14 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--inline {
   }
 }
 
-/* Les écrans de jeu laissent la place à la barre en bas. */
+/*
+ * Les écrans de jeu et le salon laissent la place à la barre du bas.
+ *
+ * Le salon visait `.ik-lobby-main`, une classe qu'il ne porte pas : sa réserve
+ * n'a jamais été appliquée, et le socle musical recouvrait le bas de la scène.
+ */
 body.inkbeta-mode .ik-game-v2 .ik-main,
-body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
+body.inkbeta-mode .ik-lobby-v2 .ik-main {
   padding-bottom: 5.2rem;
 }
 
@@ -12953,37 +13014,43 @@ body.inkbeta-mode .social-viewer-overlay {
       dock — elle remplit maintenant la fenêtre ;
    4. sept modes repliés sur deux lignes avec flèches et compteur
       — ils tiennent sur une rangée, la navigation devient inutile.
+
+   Tout ce bloc est scoppé `.ik-home-v2`, et non `.ik-layout-v2`
+   comme à sa première écriture : le salon et les écrans de jeu
+   portent aussi `ik-layout-v2`, si bien que ces règles fuyaient
+   sur eux — la ligne qui masque `.ik-topbar-side--start` y
+   escamotait la pastille de manche.
    ============================================================ */
 
 @media (min-width: 1101px) {
   /* ---- Barre : marque à gauche, outils à droite ------------------------ */
-  body.inkbeta-mode .ik-layout-v2 .ik-topbar {
+  body.inkbeta-mode .ik-home-v2 .ik-topbar {
     grid-template-areas: 'brand tools';
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
   /* Le badge BETA vit déjà dans le logo : la pastille faisait doublon. */
-  body.inkbeta-mode .ik-layout-v2 .ik-topbar-side--start {
+  body.inkbeta-mode .ik-home-v2 .ik-topbar-side--start {
     display: none;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-tools {
+  body.inkbeta-mode .ik-home-v2 .ik-tools {
     gap: 0.35rem;
   }
 
   /* Utilitaires en icônes : c'est le profil qui doit porter du texte. */
-  body.inkbeta-mode .ik-layout-v2 .ik-tool:not(.ik-tool--profile) {
+  body.inkbeta-mode .ik-home-v2 .ik-tool:not(.ik-tool--profile) {
     width: 2.85rem;
     min-width: 2.85rem;
     padding: 0;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-tool:not(.ik-tool--profile) > span {
+  body.inkbeta-mode .ik-home-v2 .ik-tool:not(.ik-tool--profile) > span {
     display: none;
   }
 
   /* Le profil se détache du groupe : séparateur, plus de place, nom lisible. */
-  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile {
+  body.inkbeta-mode .ik-home-v2 .ik-tool--profile {
     min-width: 0;
     margin-left: 0.5rem;
     padding: 0 0.85rem 0 0.5rem;
@@ -12992,19 +13059,19 @@ body.inkbeta-mode .social-viewer-overlay {
     box-shadow: 0 4px 0 rgba(53, 7, 75, 0.82), -0.75rem 0 0 -0.65rem rgba(255, 255, 255, 0.18);
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile > span {
+  body.inkbeta-mode .ik-home-v2 .ik-tool--profile > span {
     max-width: 9rem;
     font-size: 0.78rem;
     letter-spacing: 0.02em;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile > .ik-profile-thumb {
+  body.inkbeta-mode .ik-home-v2 .ik-tool--profile > .ik-profile-thumb {
     width: 1.85rem;
     height: 1.85rem;
   }
 
   /* ---- La scène remplit la hauteur ------------------------------------ */
-  body.inkbeta-mode .ik-layout-v2 .ik-main {
+  body.inkbeta-mode .ik-home-v2 .ik-main {
     align-items: stretch;
     /* Place réservée au lecteur, désormais ancré en bas de fenêtre. */
     padding-bottom: 5.4rem;
@@ -13019,20 +13086,20 @@ body.inkbeta-mode .social-viewer-overlay {
    * rangée en forçant le texte à se recasser au plus étroit, ce qui fait
    * défiler la page.
    */
-  body.inkbeta-mode .ik-layout-v2 .ik-canvas {
+  body.inkbeta-mode .ik-home-v2 .ik-canvas {
     min-height: 100%;
     grid-template-rows: auto auto;
     align-content: stretch;
   }
 
   /* ---- Les sept modes sur une rangée --------------------------------- */
-  body.inkbeta-mode .ik-layout-v2 .ik-mode-panel {
+  body.inkbeta-mode .ik-home-v2 .ik-mode-panel {
     min-height: 0;
     grid-template-columns: minmax(9.5rem, 0.6fr) minmax(13rem, 0.9fr) minmax(0, 2.6fr);
     align-items: center;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-mode-grid {
+  body.inkbeta-mode .ik-home-v2 .ik-mode-grid {
     grid-column: 3;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.45rem;
@@ -13043,11 +13110,11 @@ body.inkbeta-mode .social-viewer-overlay {
    * par la grille sur deux lignes. Tout est visible et cliquable, donc ils
    * n'ajoutaient qu'un rang de boutons sans fonction.
    */
-  body.inkbeta-mode .ik-layout-v2 .ik-mode-nav {
+  body.inkbeta-mode .ik-home-v2 .ik-mode-nav {
     display: none;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-mode {
+  body.inkbeta-mode .ik-home-v2 .ik-mode {
     min-height: 3.6rem;
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
@@ -13056,12 +13123,12 @@ body.inkbeta-mode .social-viewer-overlay {
     text-align: center;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-mode-icon {
+  body.inkbeta-mode .ik-home-v2 .ik-mode-icon {
     width: 2.15rem;
     height: 2.15rem;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-mode-name {
+  body.inkbeta-mode .ik-home-v2 .ik-mode-name {
     font-size: 0.58rem;
     letter-spacing: 0.02em;
   }
@@ -13089,23 +13156,23 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
 
 /* ---- Tablette : le profil garde son nom, le reste se resserre -------- */
 @media (max-width: 1100px) and (min-width: 681px) {
-  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile {
+  body.inkbeta-mode .ik-home-v2 .ik-tool--profile {
     width: auto;
     padding: 0 0.72rem;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-tool--profile > span {
+  body.inkbeta-mode .ik-home-v2 .ik-tool--profile > span {
     display: inline;
     max-width: 7rem;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-main {
+  body.inkbeta-mode .ik-home-v2 .ik-main {
     padding-bottom: 5rem;
   }
 }
 
 @media (max-width: 680px) {
-  body.inkbeta-mode .ik-layout-v2 .ik-main {
+  body.inkbeta-mode .ik-home-v2 .ik-main {
     padding-bottom: 4.8rem;
   }
 
@@ -13123,29 +13190,29 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
  * comprimant les panneaux, qui rognent leur contenu.
  */
 @media (min-width: 1101px) and (max-height: 940px) {
-  body.inkbeta-mode .ik-layout-v2 .ik-canvas {
+  body.inkbeta-mode .ik-home-v2 .ik-canvas {
     gap: 0.55rem;
     padding: 0.55rem;
   }
 
   /* Le haut reste au-dessus de 3,45 rem : c'est la hauteur des onglets. */
-  body.inkbeta-mode .ik-layout-v2 .ik-play-panel {
+  body.inkbeta-mode .ik-home-v2 .ik-play-panel {
     padding: 3.75rem clamp(0.9rem, 1.7vw, 1.4rem) 0.75rem;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-play-title {
+  body.inkbeta-mode .ik-home-v2 .ik-play-title {
     margin-bottom: 0.3rem;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-start-card {
+  body.inkbeta-mode .ik-home-v2 .ik-start-card {
     padding: 0.9rem;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-start-heading {
+  body.inkbeta-mode .ik-home-v2 .ik-start-heading {
     margin-bottom: 0.55rem;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-mode-panel {
+  body.inkbeta-mode .ik-home-v2 .ik-mode-panel {
     padding: 0.6rem 0.8rem;
   }
 }
@@ -13155,15 +13222,15 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
    * La phrase sous la vignette répète ce que la vignette dit déjà : c'est la
    * première chose à sacrifier quand la hauteur manque.
    */
-  body.inkbeta-mode .ik-layout-v2 .ik-mode-description {
+  body.inkbeta-mode .ik-home-v2 .ik-mode-description {
     display: none;
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-mascot {
+  body.inkbeta-mode .ik-home-v2 .ik-mascot {
     width: min(100%, 15rem);
   }
 
-  body.inkbeta-mode .ik-layout-v2 .ik-mode {
+  body.inkbeta-mode .ik-home-v2 .ik-mode {
     min-height: 3.3rem;
   }
 }
@@ -13305,7 +13372,7 @@ body.inkbeta-mode.inkbeta-dark .ik-tool {
   box-shadow: 0 4px 0 rgba(6, 2, 12, 0.8);
 }
 
-body.inkbeta-mode.inkbeta-dark .ik-layout-v2 .ik-tool--profile {
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-tool--profile {
   border-color: rgba(42, 232, 201, 0.6);
   background: linear-gradient(180deg, rgba(58, 28, 84, 0.96), rgba(35, 16, 54, 0.96));
   box-shadow: 0 4px 0 rgba(6, 2, 12, 0.85), -0.75rem 0 0 -0.65rem rgba(255, 255, 255, 0.14);

@@ -419,7 +419,12 @@ const InkBetaHomeScreenComponent = ({
 
   return (
     <div
-      className="ik-root ik-layout-v2 menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
+      /*
+        `ik-home-v2` porte la composition propre à l'accueil. Elle vivait sur
+        `ik-layout-v2`, que le salon et les écrans de jeu portent aussi : ses
+        règles fuyaient sur eux et masquaient notamment leur pastille de manche.
+      */
+      className="ik-root ik-layout-v2 ik-home-v2 menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
       style={accent}
     >
       <div className="ik-party-bg" aria-hidden="true" />
