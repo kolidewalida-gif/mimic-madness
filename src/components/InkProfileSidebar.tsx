@@ -119,7 +119,7 @@ const InkProfileSidebarComponent = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative w-full rounded-3xl overflow-hidden"
+        className="ink-profile-sidebar ink-profile-sidebar--guest relative w-full rounded-3xl overflow-hidden"
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -129,14 +129,14 @@ const InkProfileSidebarComponent = () => {
         }}
       >
         <div
-          className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
+          className="ink-profile-login-frame absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
           style={{ border: '2px solid var(--ink-accent-soft)' }}
         />
         <div className="relative p-6 text-center space-y-4">
           <motion.div
             animate={{ rotate: [-3, 3, -3] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-            className="w-24 h-24 mx-auto rounded-full flex items-center justify-center"
+            className="ink-profile-login-icon w-24 h-24 mx-auto rounded-full flex items-center justify-center"
             style={{
               background: 'var(--ink-accent)',
               border: '1px solid var(--ink-line)',
@@ -160,7 +160,7 @@ const InkProfileSidebarComponent = () => {
               playInkSound('inkClick', 0.4);
               signInWithGoogle();
             }}
-            className="menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
+            className="ink-profile-login-button menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
             style={{
               background: 'var(--ink-accent)',
               border: '1px solid var(--ink-line)',
@@ -183,7 +183,7 @@ const InkProfileSidebarComponent = () => {
   if (isLoading) {
     return (
       <div
-        className="w-full rounded-3xl overflow-hidden"
+        className="ink-profile-sidebar ink-profile-sidebar--loading w-full rounded-3xl overflow-hidden"
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -227,7 +227,7 @@ const InkProfileSidebarComponent = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="ink-section relative w-full overflow-hidden"
+        className="ink-profile-sidebar ink-profile-sidebar--authenticated ink-section relative w-full overflow-hidden"
       >
         {/* `.ink-section` fournit déjà le rembourrage : le `p-4` qui était ici
             le doublait. */}
@@ -243,7 +243,7 @@ const InkProfileSidebarComponent = () => {
                 aussi lisible.
               */}
               <div
-                className="absolute -inset-2 rounded-full pointer-events-none"
+                className="ink-profile-avatar-halo absolute -inset-2 rounded-full pointer-events-none"
                 style={{
                   background:
                     'conic-gradient(from 0deg, #fbbf24, #f87171, var(--ink-accent), #38bdf8, #34d399, #fbbf24)',
@@ -425,7 +425,7 @@ const InkProfileSidebarComponent = () => {
 
           {/* LEVEL PROGRESS BAR — wrapped with cartoon frame */}
           <div
-            className="rounded-2xl p-3"
+            className="ink-profile-level-card rounded-2xl p-3"
             style={{
               background:
                 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
@@ -439,7 +439,7 @@ const InkProfileSidebarComponent = () => {
           {/* WIN RATE — big cartoon callout */}
           <motion.div
             whileHover={{ scale: 1.02, rotate: -0.5 }}
-            className="relative rounded-2xl p-4 text-center overflow-hidden"
+            className="ink-profile-win-card relative rounded-2xl p-4 text-center overflow-hidden"
             style={{
               background:
                 'linear-gradient(180deg, rgba(239,68,68,0.18), rgba(127,29,29,0.18))',
@@ -449,7 +449,7 @@ const InkProfileSidebarComponent = () => {
           >
             {/* Glow halo */}
             <div
-              className="absolute inset-0 pointer-events-none opacity-50"
+              className="ink-profile-win-halo absolute inset-0 pointer-events-none opacity-50"
               style={{
                 background:
                   'radial-gradient(circle at center, rgba(248,113,113,0.3), transparent 65%)',
@@ -571,7 +571,7 @@ const InkStatCard = ({
     animate={{ opacity: 1, scale: 1, rotate: tilt * 0.5 }}
     whileHover={{ y: -3, scale: 1.04, rotate: 0 }}
     transition={{ type: 'spring', stiffness: 280, damping: 20 }}
-    className="relative rounded-2xl py-3 px-2 text-center overflow-hidden"
+    className="ink-profile-stat-card relative rounded-2xl py-3 px-2 text-center overflow-hidden"
     style={{
       background:
         'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))',
@@ -581,13 +581,13 @@ const InkStatCard = ({
   >
     {/* Subtle color halo */}
     <div
-      className="absolute inset-0 pointer-events-none opacity-25"
+      className="ink-profile-stat-halo absolute inset-0 pointer-events-none opacity-25"
       style={{
         background: `radial-gradient(circle at top, ${glow}55, transparent 70%)`,
       }}
     />
     <div
-      className="relative w-7 h-7 mx-auto mb-1.5 rounded-lg flex items-center justify-center"
+      className="ink-profile-stat-icon relative w-7 h-7 mx-auto mb-1.5 rounded-lg flex items-center justify-center"
       style={{
         background: `linear-gradient(180deg, ${color}, ${color}aa)`,
         border: '1px solid var(--ink-line)',

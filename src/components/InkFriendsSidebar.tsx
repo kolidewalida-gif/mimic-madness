@@ -168,7 +168,7 @@ const InkFriendsSidebarComponent = ({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative w-full rounded-3xl overflow-hidden"
+        className="ink-friends-sidebar ink-friends-sidebar--guest relative w-full rounded-3xl overflow-hidden"
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -178,14 +178,14 @@ const InkFriendsSidebarComponent = ({
         }}
       >
         <div
-          className="absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
+          className="ink-friends-login-frame absolute inset-1.5 rounded-[1.3rem] pointer-events-none"
           style={{ border: '2px solid rgba(6,182,212,0.4)' }}
         />
         <div className="relative p-6 text-center space-y-4">
           <motion.div
             animate={{ rotate: [-3, 3, -3] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-            className="w-24 h-24 mx-auto rounded-full flex items-center justify-center"
+            className="ink-friends-login-icon w-24 h-24 mx-auto rounded-full flex items-center justify-center"
             style={{
               background: 'linear-gradient(135deg, var(--ink-text-dim), var(--ink-text-dim))',
               border: '1px solid var(--ink-line)',
@@ -209,7 +209,7 @@ const InkFriendsSidebarComponent = ({
               playInkSound('inkClick', 0.4);
               signInWithGoogle();
             }}
-            className="menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
+            className="ink-friends-login-button menu-focus w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white"
             style={{
               background: 'linear-gradient(180deg, var(--ink-text-dim), var(--ink-text-dim))',
               border: '1px solid var(--ink-line)',
@@ -232,7 +232,7 @@ const InkFriendsSidebarComponent = ({
   if (authLoading) {
     return (
       <div
-        className="w-full rounded-3xl overflow-hidden"
+        className="ink-friends-sidebar ink-friends-sidebar--loading w-full rounded-3xl overflow-hidden"
         style={{
           background:
             'linear-gradient(180deg, #1a0d2e 0%, #160a26 50%, #0f0820 100%)',
@@ -261,7 +261,7 @@ const InkFriendsSidebarComponent = ({
         bande d'en-tête répétant « Mes Amis » — le titre apparaissait donc deux
         fois, à deux tailles différentes, l'un sous l'autre.
       */}
-      <div>
+      <div className="ink-friends-sidebar ink-friends-sidebar--authenticated">
 
         {/*
           La cloche animée et son compteur ont été retirés : c'était la
@@ -286,7 +286,7 @@ const InkFriendsSidebarComponent = ({
                   ? `Copier le code ami ${friendCode}`
                   : 'Copier le code ami'
               }
-              className="menu-focus relative w-full rounded-2xl p-3 pr-14 text-left overflow-hidden"
+              className="ink-friends-code-card menu-focus relative w-full rounded-2xl p-3 pr-14 text-left overflow-hidden"
               style={{
                 background:
                   'linear-gradient(180deg, rgba(6,182,212,0.18), rgba(6,182,212,0.05))',
@@ -330,7 +330,7 @@ const InkFriendsSidebarComponent = ({
                 value={friendCodeInput}
                 onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendRequest()}
-                className="flex-1 h-11 text-base font-black uppercase tracking-[0.2em] bg-black/40 text-white rounded-xl placeholder:text-white/30"
+                className="ink-friends-input flex-1 h-11 text-base font-black uppercase tracking-[0.2em] bg-black/40 text-white rounded-xl placeholder:text-white/30"
                 style={{
                   fontFamily: "'Outfit', sans-serif",
                   border: '1px solid var(--ink-line)',
@@ -354,7 +354,7 @@ const InkFriendsSidebarComponent = ({
                 aria-label="Envoyer la demande d'ami"
                 aria-busy={isSending}
                 className={cn(
-                  'menu-icon-control menu-focus h-11 w-11 rounded-xl flex items-center justify-center text-white transition-opacity',
+                  'ink-friends-send menu-icon-control menu-focus h-11 w-11 rounded-xl flex items-center justify-center text-white transition-opacity',
                   (!friendCodeInput.trim() || isSending) && 'opacity-50',
                 )}
                 style={{
@@ -397,7 +397,7 @@ const InkFriendsSidebarComponent = ({
                         rotate: idx % 2 === 0 ? -0.6 : 0.6,
                       }}
                       exit={{ opacity: 0, x: 20 }}
-                      className="flex items-center gap-2 p-3 rounded-2xl"
+                      className="ink-friends-row flex items-center gap-2 p-3 rounded-2xl"
                       style={{
                         background:
                           'linear-gradient(180deg, rgba(251,191,36,0.18), rgba(217,119,6,0.05))',
@@ -494,7 +494,7 @@ const InkFriendsSidebarComponent = ({
                         x: 0,
                         rotate: idx % 2 === 0 ? -0.6 : 0.6,
                       }}
-                      className="flex items-center gap-2 p-3 rounded-2xl"
+                      className="ink-friends-row flex items-center gap-2 p-3 rounded-2xl"
                       style={{
                         background:
                           'linear-gradient(180deg, rgba(251,191,36,0.14), rgba(217,119,6,0.05))',
@@ -631,7 +631,7 @@ const InkFriendsSidebarComponent = ({
                         }}
                         transition={{ delay: idx * 0.04 }}
                         whileHover={{ x: 3, rotate: 0 }}
-                        className="flex items-center gap-2.5 p-2.5 rounded-2xl"
+                        className="ink-friends-row flex items-center gap-2.5 p-2.5 rounded-2xl"
                         style={{
                           background: isOnline
                             ? 'linear-gradient(180deg, rgba(52,211,153,0.14), rgba(5,150,105,0.04))'

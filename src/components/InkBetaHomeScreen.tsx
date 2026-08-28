@@ -19,7 +19,24 @@
  */
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Hash, Settings, Trash2, User, UsersRound } from 'lucide-react';
+import {
+  AudioLines,
+  ChevronLeft,
+  ChevronRight,
+  CircleHelp,
+  EyeOff,
+  Hash,
+  Headphones,
+  ImageIcon,
+  LogIn,
+  Mic2,
+  Play,
+  Settings,
+  SlidersHorizontal,
+  Trash2,
+  User,
+  UsersRound,
+} from 'lucide-react';
 
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,15 +44,13 @@ import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useTheme } from '@/hooks/useTheme';
 import { GAME_MODE_META, INK_GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
 import { DeviceSettings } from '@/components/DeviceSettings';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkDrawer, InkModal } from '@/components/menu/InkOverlay';
-import { GameImage } from '@/components/game-ui/GameUI';
-import { SketchButton, SketchFrame, SketchPanel } from '@/components/ink/InkSketch';
+import { SketchButton, SketchDoodle, SketchFrame, SketchPanel } from '@/components/ink/InkSketch';
 
 interface InkBetaHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
@@ -43,32 +58,97 @@ interface InkBetaHomeScreenProps {
 }
 
 /**
- * Illustrations propres au thème.
+ * Pictogrammes originaux du kiosque Ink Beta.
  *
- * Les cartes du thème stable portent le nom du mode et un compteur de joueurs
- * peints dans l'image : le nom faisait doublon avec le libellé rendu en CSS, et
- * le compteur contredisait `minPlayers`. Les gravures livrées ici n'ont aucun
- * texte, et les anciennes restent en repli si un fichier manque.
+ * Ils sont volontairement vectoriels et monochromes : l'ancien jeu d'images
+ * colorées imposait sept mini-affiches de styles différents. Ici, le double
+ * trait craie/violet est construit en CSS et reste net à toutes les tailles.
  */
-const INK_ART: Partial<Record<LobbyGameMode, string>> = {
-  normal: '/ink-beta/mode-normal.png',
-  audiophone: '/ink-beta/mode-audiophone.png',
-  '2v2': '/ink-beta/mode-2v2.png',
-  quiz: '/ink-beta/mode-quiz.png',
-  pixoguess: '/ink-beta/mode-pixoguess.png',
-  undercover: '/ink-beta/mode-undercover.png',
-  memorise: '/ink-beta/mode-memorise.png',
+const MODE_ICONS: Partial<Record<LobbyGameMode, typeof Mic2>> = {
+  normal: Mic2,
+  audiophone: AudioLines,
+  '2v2': UsersRound,
+  quiz: CircleHelp,
+  pixoguess: ImageIcon,
+  undercover: EyeOff,
+  memorise: Headphones,
 };
 
-const MODES = INK_GAME_MODE_ORDER.map((id) => {
-  const meta = GAME_MODE_META[id];
-  const art = INK_ART[id];
-  return {
-    id,
-    ...meta,
-    imageCandidates: art ? [art, ...meta.imageCandidates] : meta.imageCandidates,
-  };
-});
+const MODES = INK_GAME_MODE_ORDER.map((id) => ({
+  id,
+  ...GAME_MODE_META[id],
+  icon: MODE_ICONS[id] ?? CircleHelp,
+}));
+
+/**
+ * Lettrage vectoriel local, sans dépendance à un bitmap externe.
+ * La légère turbulence ne bouge pas : elle casse seulement les arêtes trop
+ * numériques du texte et conserve donc un rendu stable entre deux captures.
+ */
+const InkBetaLogo = memo(() => (
+  <h1 id="ik-main-title" className="ik-title" aria-label="Mimic Master">
+    <span className="sr-only">Mimic Master</span>
+    <svg
+      className="ik-logo-svg"
+      viewBox="0 0 720 400"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <filter id="ik-logo-rough" x="-8%" y="-8%" width="116%" height="116%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.012 0.055"
+            numOctaves="2"
+            seed="17"
+            result="noise"
+          />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="noise"
+            scale="3.2"
+            xChannelSelector="R"
+            yChannelSelector="B"
+          />
+        </filter>
+      </defs>
+
+      <g className="ik-logo-words" filter="url(#ik-logo-rough)">
+        <text
+          className="ik-logo-word ik-logo-word--mimic"
+          x="70"
+          y="166"
+          textLength="590"
+          lengthAdjust="spacingAndGlyphs"
+        >
+          MIMIC
+        </text>
+        <text
+          className="ik-logo-word ik-logo-word--master"
+          x="18"
+          y="337"
+          textLength="686"
+          lengthAdjust="spacingAndGlyphs"
+        >
+          MASTER
+        </text>
+      </g>
+
+      <g className="ik-logo-slashes" fill="none" strokeLinecap="round">
+        <path d="M 553 139 Q 632 105 694 73" />
+        <path d="M 569 154 Q 638 127 681 106" />
+        <path d="M 405 367 Q 531 352 650 319" />
+      </g>
+      <g className="ik-logo-flecks" aria-hidden="true">
+        <path d="M 42 120 l 13 -8 l -5 16 z" />
+        <path d="M 678 240 l 16 5 l -13 8 z" />
+        <circle cx="662" cy="64" r="4" />
+        <circle cx="56" cy="292" r="3" />
+      </g>
+    </svg>
+  </h1>
+));
+InkBetaLogo.displayName = 'InkBetaLogo';
 
 /** Le menu stable démarrait sur un index figé, sans raison. */
 const LAST_MODE_KEY = 'mimic.lastMode';
@@ -196,176 +276,215 @@ const InkBetaHomeScreenComponent = ({
       className="ik-root menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
       style={accent}
     >
-      {/* Ardoise pleine page, plus un grain fin par-dessus. */}
-      <div
-        className="ik-paper-bg"
-        style={{ backgroundImage: 'url("/ink-beta/background.png")' }}
-        aria-hidden="true"
-      />
+      <div className="ik-paper-bg" aria-hidden="true" />
       <div className="ik-grain" aria-hidden="true" />
+      <SketchFrame className="ik-shell-frame" seed={1701} strokeWidth={1.4} drawDelay={80} />
 
-      {/* ============ EN-TÊTE ============
-          Volontairement réduit à l'essentiel : le menu doit rester le point
-          focal, et la version précédente entassait huit contrôles dans une
-          bande à défilement horizontal. */}
-      <header className="relative z-[6] flex flex-shrink-0 items-center justify-between gap-3 px-4 py-3 sm:px-7">
-        <span className="ik-hand text-2xl sm:text-3xl">Mimic Master</span>
+      <header className="ik-topbar relative z-[8] flex flex-shrink-0 items-center justify-between">
+        <div className="ik-signature" aria-label="Mimic Master, atelier Ink">
+          <span className="ik-signature-name">Mimic Master</span>
+          <span className="ik-signature-edition">atelier ink · série privée</span>
+        </div>
 
-        <div className="flex flex-shrink-0 items-center gap-1.5">
+        <div className="ik-tools flex flex-shrink-0 items-center">
           {user && <NotificationCenter />}
 
           <button
             type="button"
+            onClick={() => { playInkSound('brushTap', 0.3); setShowFriends(true); }}
+            className="ik-tool menu-focus"
+            aria-label="Mes amis"
+          >
+            <SketchFrame className="ik-frame" seed={301} strokeWidth={1.5} />
+            <UsersRound className="ik-tool-icon" aria-hidden="true" />
+            <span className="ik-tool-label">Amis</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => { playInkSound('inkClick', 0.3); setShowSettings(true); }}
-            className="ik-btn ik-btn--sm menu-focus !w-auto"
+            className="ik-tool menu-focus"
             aria-label="Paramètres"
           >
-            <SketchFrame className="ik-frame" seed={302} strokeWidth={1.6} />
-            <span className="ik-btn-label"><Settings className="h-4 w-4" aria-hidden="true" /></span>
+            <SketchFrame className="ik-frame" seed={302} strokeWidth={1.5} />
+            <Settings className="ik-tool-icon" aria-hidden="true" />
+            <span className="ik-tool-label">Réglages</span>
           </button>
 
           <button
             type="button"
             onClick={() => { playInkSound('inkClick', 0.3); setShowProfile(true); }}
-            className="ik-btn ik-btn--sm menu-focus !w-auto"
+            className="ik-tool ik-tool--profile menu-focus"
             aria-label={`Profil de ${displayName}`}
           >
-            <SketchFrame className="ik-frame" seed={303} strokeWidth={1.6} />
-            <span className="ik-btn-label flex items-center gap-1.5">
-              <User className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden max-w-[110px] truncate sm:inline">{displayName}</span>
-            </span>
+            <SketchFrame className="ik-frame" seed={303} strokeWidth={1.5} />
+            <User className="ik-tool-icon" aria-hidden="true" />
+            <span className="ik-tool-label max-w-[120px] truncate">{displayName}</span>
           </button>
         </div>
       </header>
 
-      {/* ============ SCÈNE ============
-          Le titre et le panneau partagent le même centre. Le titre est dessous
-          et dépasse, le panneau le recouvre. */}
-      {/* `safe center` et non `center` : sur un conteneur qui défile, un
-          centrage classique fait déborder le contenu des deux côtés et rend le
-          haut inatteignable — sur mobile le logo était tronqué et la seconde
-          rangée de vignettes inaccessible. `safe` retombe sur un alignement au
-          début dès que le contenu dépasse. */}
-      <main className="custom-scrollbar relative z-[2] flex min-h-0 flex-1 flex-col justify-center gap-8 overflow-y-auto px-4 py-3 [justify-content:safe_center] sm:gap-10 sm:px-10">
-        {/* Panneau à gauche, logo à droite, comme sur la planche. Sur mobile la
-            colonne s'empile et le logo passe au-dessus du panneau. */}
-        {/* Bascule à `lg` et non `md` : à 834 px la ligne était trop étroite
-            pour le panneau et le titre ensemble, et le flex comprimait le
-            titre à 189 px de large. */}
-        <div className="mx-auto flex w-full max-w-[1440px] flex-col-reverse items-center gap-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
-          <SketchPanel seed={2101} rotate={-0.6} className="w-[min(94vw,520px)] flex-shrink-0">
-            <div className="ik-field">
-              <label htmlFor="ik-name" className="ik-label mb-0.5 block">
-                Ton pseudo
-              </label>
-              <input
-                id="ik-name"
-                className="ik-input"
-                placeholder="Écris ton nom…"
-                value={playerName}
-                onChange={(event) => setPlayerName(event.target.value)}
-                maxLength={20}
-                autoComplete="nickname"
-              />
-            </div>
+      <main className="ik-main custom-scrollbar relative z-[2] min-h-0 flex-1 overflow-y-auto">
+        <div className="ik-canvas">
+          <section className="ik-hero" aria-labelledby="ik-main-title">
+            <InkBetaLogo />
 
-            <div className="mt-6 flex flex-col gap-3">
-              <SketchButton
-                seed={4101}
-                drawDelay={420}
-                disabled={!nameReady}
-                onClick={handleCreate}
-                className="ik-btn--primary"
-              >
-                Créer une partie
-              </SketchButton>
+            <SketchDoodle kind="arrow" className="ik-hero-arrow" drawDelay={260} />
+            <SketchDoodle kind="star" className="ik-hero-star" drawDelay={420} />
+            <p className="ik-hero-note" aria-hidden="true">un nom. un mode. aucune excuse.</p>
 
-              <SketchButton
-                seed={4102}
-                drawDelay={520}
-                disabled={!nameReady}
-                onClick={() => { playInkSound('brushTap', 0.3); setShowJoin(true); }}
-              >
-                Rejoindre
-              </SketchButton>
+            <SketchPanel seed={2101} rotate={-0.7} className="ik-ticket">
+              <div className="ik-ticket-head">
+                <span className="ik-ticket-kicker">Ton billet pour la partie</span>
+                <span className="ik-ticket-number" aria-hidden="true">
+                  N° {String(modeIndex + 1).padStart(2, '0')}
+                </span>
+              </div>
 
-              <SketchButton
-                seed={4103}
-                drawDelay={600}
-                onClick={() => { playInkSound('inkClick', 0.3); setShowSettings(true); }}
-              >
-                Options
-              </SketchButton>
-            </div>
+              <div className="ik-field">
+                <label htmlFor="ik-name" className="ik-label block">Ton nom de scène</label>
+                <input
+                  id="ik-name"
+                  className="ik-input"
+                  placeholder="Écris ton nom…"
+                  value={playerName}
+                  onChange={(event) => setPlayerName(event.target.value)}
+                  maxLength={20}
+                  autoComplete="nickname"
+                />
+              </div>
 
-            {/* Mode retenu, en note sous les boutons — « Mode : Invitation »
-                sur la planche, le libellé en craie et la valeur en violet. */}
-            <p className="ik-label mt-6 flex items-baseline gap-1.5">
-              <span>Mode :</span>
-              <span className="text-[color:var(--ik-violet-soft)]">{selected.label}</span>
-            </p>
-
-            {!nameReady && (
-              <p className="ik-label ik-muted mt-1">Écris ton pseudo pour commencer.</p>
-            )}
-          </SketchPanel>
-
-          {/* Le titre. `h1` porté par l'image pour rester accessible. */}
-          <h1
-            className="ik-title"
-            style={{ backgroundImage: 'url("/ink-beta/logo.png")' }}
-            role="img"
-            aria-label="Mimic Master"
-          />
-        </div>
-
-        {/* ============ CHOIX DU MODE ============
-            Les tuiles fournies portent déjà leur cadre et leur nom : on ne
-            superpose donc ni bordure ni libellé. */}
-        <section className="mx-auto w-full max-w-[1440px]">
-          {/* Pas de titre de section : la référence n'en a pas, et les tuiles
-              portent déjà leur nom. */}
-          <h2 className="sr-only">Choisis ton mode</h2>
-
-          <div
-            className="grid grid-cols-4 gap-3 sm:grid-cols-7 sm:gap-4"
-            role="group"
-            aria-label="Modes de jeu"
-          >
-            {MODES.map((mode, index) => {
-              const isSelected = index === modeIndex;
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  aria-pressed={isSelected}
-                  aria-label={mode.label}
-                  title={mode.label}
-                  onClick={() => { playInkSound('brushTap', 0.3); goToMode(index); }}
-                  className={`ik-mode menu-focus${isSelected ? ' is-selected' : ''}`}
+              <div className="ik-ticket-actions">
+                <SketchButton
+                  seed={4101}
+                  drawDelay={420}
+                  disabled={!nameReady}
+                  onClick={handleCreate}
+                  className="ik-btn--primary"
                 >
-                  <span className="ik-mode-art">
-                    <GameImage
-                      candidates={mode.imageCandidates}
-                      alt=""
-                      fallback={<span aria-hidden="true">{mode.fallbackEmoji}</span>}
-                    />
-                  </span>
+                  <Play className="ik-action-icon" fill="currentColor" aria-hidden="true" />
+                  <span>Créer la partie</span>
+                </SketchButton>
+
+                <SketchButton
+                  seed={4102}
+                  drawDelay={520}
+                  disabled={!nameReady}
+                  onClick={() => { playInkSound('brushTap', 0.3); setShowJoin(true); }}
+                >
+                  <LogIn className="ik-action-icon" aria-hidden="true" />
+                  <span>Entrer un code</span>
+                </SketchButton>
+              </div>
+
+              <div className="ik-ticket-foot">
+                <p className="ik-ticket-mode">
+                  <span>À l'affiche</span>
+                  <strong>{selected.label}</strong>
+                </p>
+                <button
+                  type="button"
+                  className="ik-ticket-settings menu-focus"
+                  onClick={() => { playInkSound('inkClick', 0.3); setShowSettings(true); }}
+                >
+                  <SlidersHorizontal aria-hidden="true" />
+                  Options
                 </button>
-              );
-            })}
-          </div>
-        </section>
+              </div>
+
+              {!nameReady && (
+                <p className="ik-ticket-hint" role="status">Signe ton billet pour commencer.</p>
+              )}
+            </SketchPanel>
+          </section>
+
+          <section className="ik-program" aria-labelledby="ik-program-title">
+            <div className="ik-program-head">
+              <div>
+                <span className="ik-program-kicker">Programme du soir</span>
+                <h2 id="ik-program-title" className="ik-program-title">Choisis ton terrain de jeu</h2>
+              </div>
+
+              <div className="ik-mode-nav" aria-label="Navigation entre les modes">
+                <button
+                  type="button"
+                  className="ik-mode-nav-btn menu-focus"
+                  onClick={() => { playInkSound('brushTap', 0.25); goToMode(modeIndex - 1); }}
+                  aria-label="Mode précédent"
+                >
+                  <SketchFrame className="ik-frame" seed={5101} strokeWidth={1.5} />
+                  <ChevronLeft aria-hidden="true" />
+                </button>
+                <p className="ik-mode-position" aria-live="polite">
+                  <span>{String(modeIndex + 1).padStart(2, '0')} / {String(MODES.length).padStart(2, '0')}</span>
+                  <strong>{selected.label}</strong>
+                </p>
+                <button
+                  type="button"
+                  className="ik-mode-nav-btn menu-focus"
+                  onClick={() => { playInkSound('brushTap', 0.25); goToMode(modeIndex + 1); }}
+                  aria-label="Mode suivant"
+                >
+                  <SketchFrame className="ik-frame" seed={5102} strokeWidth={1.5} />
+                  <ChevronRight aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+
+            <div className="ik-mode-rail" role="group" aria-label="Modes de jeu">
+              {MODES.map((mode, index) => {
+                const isSelected = index === modeIndex;
+                const ModeIcon = mode.icon;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    aria-label={`${mode.label} — ${mode.tagline}`}
+                    title={mode.description}
+                    onClick={() => { playInkSound('brushTap', 0.3); goToMode(index); }}
+                    className={`ik-mode menu-focus${isSelected ? ' is-selected' : ''}`}
+                    style={{ ['--ik-mode-index' as string]: index }}
+                  >
+                    <SketchFrame
+                      className="ik-mode-frame"
+                      seed={5200 + index * 37}
+                      strokeWidth={1.45}
+                      drawDelay={390 + index * 42}
+                    />
+                    <span className="ik-mode-art">
+                      <span className="ik-mode-card-number" aria-hidden="true">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <span className="ik-mode-glyph" aria-hidden="true">
+                        <ModeIcon className="ik-mode-icon ik-mode-icon--echo" />
+                        <ModeIcon className="ik-mode-icon" />
+                      </span>
+                      <span className="ik-mode-copy">
+                        <strong>{mode.shortLabel}</strong>
+                        <small>{mode.tagline}</small>
+                      </span>
+                      <span className="ik-mode-min">
+                        {mode.minPlayers}+ joueurs
+                      </span>
+                    </span>
+                    {isSelected && <span className="ik-mode-mark" aria-hidden="true">×</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
       </main>
 
-      {/* ============ PIED ============ */}
-      <footer className="relative z-[6] flex flex-shrink-0 flex-wrap items-center justify-center gap-3 px-4 pb-2">
-        <nav aria-label="Informations légales" className="flex items-center gap-3">
-          <Link className="ik-label menu-focus hover:underline" to="/confidentialite">Confidentialité</Link>
-          <Link className="ik-label menu-focus hover:underline" to="/conditions">Conditions</Link>
-          <Link className="ik-label menu-focus hover:underline" to="/mentions-legales">Mentions légales</Link>
+      <footer className="ik-footer relative z-[7] flex flex-shrink-0 items-center justify-center">
+        <span className="ik-footer-mark" aria-hidden="true">✦</span>
+        <nav aria-label="Informations légales" className="flex items-center">
+          <Link className="menu-focus" to="/confidentialite">Confidentialité</Link>
+          <Link className="menu-focus" to="/conditions">Conditions</Link>
+          <Link className="menu-focus" to="/mentions-legales">Mentions légales</Link>
         </nav>
+        <span className="ik-footer-mark" aria-hidden="true">✦</span>
       </footer>
 
       {/* ============ TIROIRS ET MODALES ============
@@ -478,8 +597,9 @@ const InkBetaHomeScreenComponent = ({
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         title="Options"
-        subtitle="Micro, caméra, son et thème"
+        subtitle="Audio, volume, apparence et avatar"
         icon={<Settings className="h-5 w-5" />}
+        className="ik-options-modal"
       >
         <DeviceSettings embedded showPreview onClose={() => setShowSettings(false)} />
       </InkModal>

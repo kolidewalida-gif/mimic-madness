@@ -55,7 +55,7 @@ export const DeviceSettings = ({
   const { theme } = useTheme();
   // The rich tabbed UI (with the Theme picker) is used for Ink AND the
   // "Never Like That" 3D theme, so users can always switch themes from here.
-  const useRichUI = isInkMode || theme === 'neverlikethat';
+  const useRichUI = isInkMode || theme === 'inkbeta' || theme === 'neverlikethat';
   const {
     audioInputs,
     selectedAudioId,
@@ -155,7 +155,7 @@ export const DeviceSettings = ({
   return (
     <div
       className={cn(
-        "relative flex min-h-0 flex-col",
+        "ink-device-settings relative flex min-h-0 flex-col",
         !embedded && "h-full max-h-full",
       )}
     >
@@ -248,7 +248,7 @@ export const DeviceSettings = ({
 
       {/* TABS — graffiti pills */}
       <div
-        className="custom-scrollbar relative flex flex-shrink-0 gap-1.5 overflow-x-auto px-2 py-2 sm:px-3 sm:py-2.5"
+        className="ink-device-tabs custom-scrollbar relative flex flex-shrink-0 gap-1.5 overflow-x-auto px-2 py-2 sm:px-3 sm:py-2.5"
         style={{ borderBottom: '1px solid var(--ink-line)' }}
       >
         {tabs.map((tab) => {
@@ -264,7 +264,7 @@ export const DeviceSettings = ({
               animate={isActive ? { rotate: -2 } : { rotate: 0 }}
               aria-pressed={isActive}
               aria-label={tab.label}
-              className="menu-focus relative flex min-h-[44px] min-w-[92px] flex-none items-center justify-center gap-1.5 rounded-2xl px-2 py-2 sm:min-w-0 sm:flex-1"
+              className="ink-device-tab menu-focus relative flex min-h-[44px] min-w-[92px] flex-none items-center justify-center gap-1.5 rounded-2xl px-2 py-2 sm:min-w-0 sm:flex-1"
               style={{
                 background: isActive
                   ? `linear-gradient(180deg, ${tab.color}, ${tab.color}cc)`
@@ -301,7 +301,7 @@ export const DeviceSettings = ({
       {/* SCROLL ZONE */}
       <div
         className={cn(
-          "relative p-3 sm:p-5",
+          "ink-device-content relative p-3 sm:p-5",
           !embedded && "min-h-0 flex-1 overflow-y-auto custom-scrollbar",
         )}
       >
@@ -433,12 +433,12 @@ const AudioSection = ({
   onStopMicTest,
   onToggleNoiseSuppression,
 }: AudioSectionProps) => (
-  <div className="space-y-4">
+  <div className="ink-device-audio space-y-4">
     {error && (
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
-        className="rounded-2xl p-3"
+        className="ink-device-error rounded-2xl p-3"
         style={{
           background:
             "linear-gradient(180deg, rgba(239,68,68,0.18), rgba(127,29,29,0.05))",
@@ -482,7 +482,7 @@ const AudioSection = ({
           }}
           disabled={isLoading}
           aria-busy={isLoading}
-          className="menu-focus px-3 py-1.5 rounded-xl text-base font-black text-white disabled:opacity-50"
+          className="ink-device-authorize menu-focus px-3 py-1.5 rounded-xl text-base font-black text-white disabled:opacity-50"
           style={{
             background: "var(--ink-accent)",
             border: '1px solid var(--ink-line)',
@@ -496,7 +496,7 @@ const AudioSection = ({
       </div>
 
       <div
-        className="rounded-xl"
+        className="ink-device-well rounded-xl"
         style={{
           background: "rgba(0,0,0,0.4)",
           border: '1px solid var(--ink-line)',
@@ -508,10 +508,10 @@ const AudioSection = ({
           onValueChange={onChangeAudioInput}
           disabled={isLoading || audioInputs.length === 0}
         >
-          <SelectTrigger className="border-0 bg-transparent text-white font-bold h-11">
+          <SelectTrigger className="ink-device-select-trigger border-0 bg-transparent text-white font-bold h-11">
             <SelectValue placeholder="Sélectionne un microphone" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="ink-device-select-popover">
             {audioInputs.map((device) => (
               <SelectItem key={device.deviceId} value={device.deviceId}>
                 {device.label || "Microphone"}
@@ -526,7 +526,7 @@ const AudioSection = ({
         type="button"
         onClick={onToggleNoiseSuppression}
         aria-pressed={noiseSuppressionEnabled}
-        className="menu-focus w-full flex items-center justify-between p-3 rounded-2xl"
+        className="ink-device-toggle menu-focus w-full flex items-center justify-between p-3 rounded-2xl"
         style={{
           background: noiseSuppressionEnabled
             ? "linear-gradient(180deg, rgba(52,211,153,0.18), rgba(5,150,105,0.05))"
@@ -562,7 +562,7 @@ const AudioSection = ({
         onClick={isMicTesting ? onStopMicTest : onStartMicTest}
         disabled={!isMicTesting && (isLoading || !selectedAudioId)}
         aria-pressed={isMicTesting}
-        className="menu-focus w-full py-3 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white disabled:opacity-50"
+        className="ink-device-test menu-focus w-full py-3 rounded-2xl flex items-center justify-center gap-2 text-xl font-black text-white disabled:opacity-50"
         style={{
           background: isMicTesting
             ? "linear-gradient(180deg, #ef4444, #b91c1c)"
@@ -634,7 +634,7 @@ const AudioSection = ({
       )}
 
       {/* Noise reduction toggle */}
-      <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl p-3"
+      <div className="ink-device-rnnoise mt-4 flex items-center justify-between gap-3 rounded-2xl p-3"
         style={{
           background: 'linear-gradient(180deg, rgba(52,211,153,0.06), rgba(52,211,153,0.02))',
           border: '1px solid var(--ink-line)',
@@ -654,7 +654,7 @@ const AudioSection = ({
 
     {/* DEVICE INFO */}
     <div
-      className="rounded-2xl p-3 text-base font-bold text-white/55"
+      className="ink-device-count rounded-2xl p-3 text-base font-bold text-white/55"
       style={{
         background:
           "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
@@ -714,7 +714,7 @@ const ThemeSection = () => {
               whileHover={{ scale: 1.03, y: -2, rotate: -0.5 }}
               whileTap={{ scale: 0.96 }}
               aria-pressed={isSelected}
-              className="menu-focus relative rounded-2xl p-3 flex items-center gap-2.5 overflow-hidden text-left"
+              className="ink-device-theme-card menu-focus relative rounded-2xl p-3 flex items-center gap-2.5 overflow-hidden text-left"
               style={{
                 background: isSelected
                   ? `linear-gradient(135deg, hsl(${config.colors.primary}), hsl(${config.colors.secondary}))`
@@ -893,7 +893,7 @@ const CartoonPresetButton = ({
     whileHover={{ scale: 1.06, y: -2, rotate: -1 }}
     whileTap={{ scale: 0.94 }}
     onClick={onClick}
-    className="menu-focus flex-1 py-2 rounded-xl text-base font-black text-white"
+    className="ink-device-preset menu-focus flex-1 py-2 rounded-xl text-base font-black text-white"
     style={{
       background: `linear-gradient(180deg, ${color}, ${color}cc)`,
       border: '1px solid var(--ink-line)',
@@ -925,7 +925,7 @@ const CartoonSection = ({
   <motion.section
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
-    className="relative rounded-2xl p-4 space-y-3"
+    className="ink-device-section relative rounded-2xl p-4 space-y-3"
     style={{
       background:
         "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
@@ -935,7 +935,7 @@ const CartoonSection = ({
   >
     {/* Glow halo */}
     <div
-      className="absolute inset-0 pointer-events-none opacity-40 rounded-2xl"
+      className="ink-device-section-halo absolute inset-0 pointer-events-none opacity-40 rounded-2xl"
       style={{
         background: `radial-gradient(circle at top, ${glow}, transparent 65%)`,
       }}
@@ -951,7 +951,7 @@ const CartoonSection = ({
       <motion.div
         animate={{ rotate: [-3, 3, -3] }}
         transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-        className="w-8 h-8 rounded-xl flex items-center justify-center"
+        className="ink-device-section-icon w-8 h-8 rounded-xl flex items-center justify-center"
         style={{
           background: `linear-gradient(135deg, ${accent}, ${accent}aa)`,
           border: '1px solid var(--ink-line)',
@@ -979,7 +979,7 @@ const CartoonSection = ({
 ============================================================ */
 const CartoonSwitch = ({ enabled }: { enabled: boolean }) => (
   <span
-    className="relative inline-flex items-center w-12 h-7 rounded-full transition-colors"
+    className="ink-device-switch relative inline-flex items-center w-12 h-7 rounded-full transition-colors"
     style={{
       background: enabled
         ? "linear-gradient(180deg, #34d399, #059669)"
