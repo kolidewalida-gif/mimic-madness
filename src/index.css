@@ -10392,3 +10392,663 @@ body.inkbeta-mode .ink-game-avatar-caption span {
     animation: none;
   }
 }
+
+/* ============================================================
+   INK BETA — LOBBY PARTY STAGE
+   ------------------------------------------------------------
+   Habillage du lobby partagé. Toutes les règles restent sous la
+   variante explicite afin de préserver Ink stable et Neon.
+   ============================================================ */
+
+body.inkbeta-mode .ik-lobby-v2 {
+  height: 100dvh;
+  min-height: 100dvh;
+  color: var(--ik-white);
+  background: transparent;
+  font-family: var(--ik-body);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar {
+  position: relative;
+  z-index: 3;
+  min-height: clamp(4.9rem, 10vh, 6.15rem);
+  flex-wrap: nowrap;
+  padding: clamp(0.65rem, 1.4vw, 1rem) clamp(1rem, 3vw, 3.4rem) clamp(0.7rem, 1.2vw, 0.95rem);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar::after {
+  position: absolute;
+  right: clamp(1rem, 3vw, 3.4rem);
+  bottom: 0;
+  left: clamp(1rem, 3vw, 3.4rem);
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ik-cyan) 0 17%, rgba(255, 255, 255, 0.2) 17% 82%, var(--ik-pink) 82%);
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.48);
+  content: '';
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child {
+  flex: 1 1 auto;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:last-child {
+  flex: 0 1 auto;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child > .select-none img {
+  height: clamp(2.35rem, 4.7vw, 3.3rem);
+  filter: drop-shadow(0 4px 0 rgba(53, 7, 75, 0.76));
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-btn,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-icon-btn,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .menu-icon-control {
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.32);
+  border-radius: 11px;
+  color: var(--ik-white-soft);
+  background: rgba(91, 8, 105, 0.76);
+  box-shadow: 0 4px 0 rgba(53, 7, 75, 0.78);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-btn:hover:not(:disabled),
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-icon-btn:hover:not(:disabled),
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .menu-icon-control:hover:not(:disabled) {
+  color: var(--ik-white);
+  background: var(--ik-panel-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 rgba(53, 7, 75, 0.78);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-btn:active:not(:disabled),
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-icon-btn:active:not(:disabled),
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .menu-icon-control:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(53, 7, 75, 0.78);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child > button {
+  border-color: rgba(45, 242, 208, 0.62);
+  color: var(--ik-white);
+  background: linear-gradient(180deg, rgba(111, 22, 126, 0.96), rgba(76, 8, 96, 0.96));
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child > button .if-label {
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
+  position: relative;
+  z-index: 1;
+  padding: clamp(0.7rem, 1.3vw, 1.05rem) clamp(0.75rem, 2.7vw, 3.2rem) clamp(0.8rem, 1.5vw, 1.25rem);
+  overflow: hidden;
+  scroll-padding-block: 1rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  width: min(100%, 96rem);
+  height: 100%;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 23.5rem);
+  gap: clamp(0.7rem, 1.2vw, 1.05rem);
+  padding: clamp(0.65rem, 1vw, 0.9rem);
+  overflow: hidden;
+  border: 3px solid rgba(58, 7, 80, 0.78);
+  border-radius: 22px;
+  background: rgba(97, 9, 116, 0.48);
+  box-shadow: inset 0 0 0 2px rgba(255, 151, 217, 0.13), 0 8px 0 rgba(57, 7, 78, 0.42);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid::before {
+  position: absolute;
+  top: 0;
+  left: clamp(1.1rem, 3vw, 3rem);
+  z-index: 3;
+  width: clamp(4rem, 8vw, 7rem);
+  height: 4px;
+  border-radius: 0 0 999px 999px;
+  background: var(--ik-cyan);
+  box-shadow: clamp(4.6rem, 9vw, 8rem) 0 0 var(--ik-pink);
+  content: '';
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-stage,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat {
+  position: relative;
+  z-index: 1;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-stage {
+  gap: clamp(0.65rem, 1.05vw, 0.9rem);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero {
+  min-height: 12.6rem;
+  grid-template-columns: clamp(7.7rem, 10vw, 9.5rem) minmax(0, 1fr);
+  gap: clamp(0.9rem, 1.6vw, 1.5rem);
+  padding: clamp(0.85rem, 1.3vw, 1.15rem);
+  border: 3px solid var(--ik-edge-soft);
+  border-radius: 17px;
+  background: var(--ik-panel);
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--accent) 25%, transparent), transparent 42%),
+    linear-gradient(115deg, rgba(255, 98, 182, 0.11), transparent 34%),
+    var(--ik-panel);
+  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.14), 0 5px 0 rgba(54, 7, 76, 0.62);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero::after {
+  position: absolute;
+  right: -3.5rem;
+  bottom: -4.2rem;
+  width: 12rem;
+  height: 12rem;
+  border: 2.3rem solid rgba(255, 255, 255, 0.035);
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-art {
+  width: 100%;
+  max-width: 9.5rem;
+  padding: 0.3rem;
+  border: 3px solid var(--ik-edge);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--accent) 34%, var(--ik-panel-deep));
+  box-shadow: 0 5px 0 var(--ik-edge), 0 10px 20px rgba(53, 7, 75, 0.28);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-art img {
+  border-radius: 9px;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-name {
+  color: var(--ik-cyan);
+  background: none;
+  font-family: var(--ik-display);
+  font-size: clamp(1.8rem, 2.6vw, 2.55rem);
+  font-weight: 400;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  text-shadow: 0 4px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-tagline {
+  color: color-mix(in srgb, var(--accent) 48%, var(--ik-white));
+  font-family: var(--ik-body);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-desc {
+  max-width: 64ch;
+  margin-top: 0.35rem;
+  color: var(--ik-white-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero .if-btn--primary {
+  min-height: 3rem;
+  border: 3px solid var(--ik-edge);
+  border-radius: 12px;
+  color: var(--ik-white);
+  box-shadow: 0 5px 0 var(--ik-edge);
+  font-family: var(--ik-body);
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero .if-btn--primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero .if-btn--primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock {
+  padding: 0.65rem 0.7rem 0.15rem;
+  overflow: hidden;
+  border: 3px solid var(--ik-edge-soft);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(151, 39, 160, 0.94), rgba(95, 12, 105, 0.96));
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08), 0 5px 0 rgba(54, 7, 76, 0.58);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .if-label,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .if-label,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card .if-label {
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-shelf {
+  gap: 0.55rem;
+  padding: 0.1rem 0.15rem 0.65rem;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip {
+  width: clamp(6.2rem, 7.4vw, 7.4rem);
+  gap: 0.28rem;
+  padding: 0.38rem 0.38rem 0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-radius: 11px;
+  color: var(--ik-white-soft);
+  background: rgba(72, 7, 89, 0.74);
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.68);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip:not(:disabled):hover {
+  border-color: var(--ik-white);
+  color: var(--ik-white);
+  box-shadow: 0 5px 0 rgba(53, 7, 75, 0.72);
+  transform: translateY(-2px) translateZ(0);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip.is-selected {
+  border-color: var(--ik-cyan);
+  color: var(--ik-white);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 30%, transparent), rgba(68, 6, 84, 0.9));
+  box-shadow: 0 4px 0 var(--ik-edge), 0 0 0 2px rgba(45, 242, 208, 0.12);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip:disabled {
+  opacity: 0.62;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip-art {
+  border: 2px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  background: var(--ik-panel-deep);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip-name {
+  font-family: var(--ik-body);
+  font-size: 0.64rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip-dot {
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid var(--ik-edge);
+  color: var(--ik-edge);
+  background: var(--ik-cyan);
+  box-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card {
+  border: 3px solid var(--ik-edge-soft);
+  border-radius: 16px;
+  background: rgba(91, 11, 102, 0.94);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.07), 0 5px 0 rgba(54, 7, 76, 0.58);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster > div:first-child,
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card > div > div:first-child {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.16);
+  background: rgba(72, 6, 88, 0.44);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster > div:first-child .if-btn {
+  border: 2px solid var(--ik-edge);
+  border-radius: 9px;
+  color: var(--ik-edge);
+  background: var(--ik-cyan);
+  box-shadow: 0 3px 0 var(--ik-edge);
+  font-weight: 950;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster > div:first-child .if-btn:hover:not(:disabled) {
+  background: #6dffe6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-players-grid {
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fill, minmax(6.2rem, 1fr));
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player {
+  min-height: 7.25rem;
+  gap: 0.3rem;
+  padding: 0.65rem 0.4rem 0.55rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(70, 6, 86, 0.62);
+  box-shadow: 0 3px 0 rgba(53, 7, 75, 0.62);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player.is-self {
+  border-color: var(--ik-cyan);
+  background: linear-gradient(180deg, rgba(45, 242, 208, 0.16), rgba(70, 6, 86, 0.7));
+  box-shadow: 0 3px 0 var(--ik-edge), inset 0 0 0 1px rgba(45, 242, 208, 0.16);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-avatar {
+  width: 3.55rem;
+  height: 3.55rem;
+  border: 3px solid var(--ik-white);
+  background: linear-gradient(150deg, var(--ik-panel-bright), var(--ik-pink));
+  box-shadow: 0 0 0 3px var(--ik-edge), 0 4px 0 var(--ik-edge);
+  font-family: var(--ik-display);
+  font-size: 1.45rem;
+  font-weight: 400;
+  text-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-avatar.is-mimo {
+  background: var(--ik-panel-deep);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-avatar.is-mimo img {
+  padding: 0.14rem;
+  object-fit: contain;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-name {
+  color: var(--ik-white);
+  font-family: var(--ik-body);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-meta {
+  color: var(--ik-white-faint);
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-crown {
+  top: 0.35rem;
+  left: 0.4rem;
+  color: var(--ik-yellow);
+  filter: drop-shadow(0 2px 0 var(--ik-edge));
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-slot {
+  min-height: 7.25rem;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+  color: var(--ik-white-faint);
+  background: rgba(60, 5, 76, 0.28);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-slot-ring {
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 2px dashed rgba(45, 242, 208, 0.54);
+  color: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card > div > div:last-child {
+  border-top: 2px solid rgba(255, 255, 255, 0.16);
+  background: rgba(72, 6, 88, 0.42);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card > div > div:last-child > div {
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(48, 4, 65, 0.72) !important;
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card > div > div:last-child > div:focus-within {
+  border-color: var(--ik-cyan);
+  box-shadow: 0 0 0 3px rgba(45, 242, 208, 0.12);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card button[aria-label='Envoyer'] {
+  border: 2px solid var(--ik-edge);
+  color: var(--ik-edge);
+  background: var(--ik-cyan) !important;
+  box-shadow: 0 2px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card button[aria-label='Envoyer']:hover:not(:disabled) {
+  background: #6dffe6 !important;
+  transform: translateY(-1px);
+}
+
+body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card button[aria-label='Envoyer un GIF'] {
+  color: var(--ik-pink);
+}
+
+body.inkbeta-mode .menu-dialog.ik-party-overlay.ik-lobby-overlay {
+  width: min(calc(100vw - 1.5rem), 40rem);
+  max-width: 40rem;
+}
+
+@media (max-width: 1100px) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
+    overflow-y: auto;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
+    width: min(100%, 52rem);
+    height: auto;
+    min-height: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat {
+    min-height: 28rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-stage {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar {
+    min-height: 5.4rem;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.48rem 0.55rem 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar::after {
+    right: 0.55rem;
+    left: 0.55rem;
+    height: 2px;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:last-child {
+    width: auto;
+    max-width: 100%;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-btn,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .if-icon-btn,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar .menu-icon-control {
+    border-radius: 9px;
+    box-shadow: 0 3px 0 rgba(53, 7, 75, 0.76);
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
+    padding: 0.5rem 0.4rem 0.8rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
+    gap: 0.65rem;
+    padding: 0.45rem;
+    border-width: 2px;
+    border-radius: 15px;
+    box-shadow: inset 0 0 0 1px rgba(255, 151, 217, 0.13), 0 5px 0 rgba(57, 7, 78, 0.4);
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat-card {
+    border-width: 2px;
+    border-radius: 13px;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero {
+    min-height: 0;
+    grid-template-columns: 7.2rem minmax(0, 1fr);
+    gap: 0.7rem;
+    padding: 0.7rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-name {
+    font-size: clamp(1.55rem, 6.5vw, 2rem);
+    text-shadow: 0 3px 0 var(--ik-edge);
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-tagline {
+    font-size: 0.75rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-desc {
+    font-size: 0.72rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock {
+    padding: 0.55rem 0.5rem 0.1rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip {
+    width: 6rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster > div:first-child {
+    padding: 0.7rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-players-grid {
+    grid-template-columns: repeat(auto-fill, minmax(5.65rem, 1fr));
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-slot {
+    min-height: 6.55rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-player-avatar {
+    width: 3rem;
+    height: 3rem;
+    border-width: 2px;
+    box-shadow: 0 0 0 2px var(--ik-edge), 0 3px 0 var(--ik-edge);
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-chat {
+    min-height: min(32rem, 72dvh);
+  }
+
+  body.inkbeta-mode .menu-dialog.ik-party-overlay.ik-lobby-overlay {
+    width: min(calc(100vw - 0.75rem), 40rem);
+  }
+}
+
+@media (max-width: 560px) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero-art {
+    width: 7.5rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .gm-hero .if-btn--primary {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar {
+    min-height: 7.3rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:last-child {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:first-child {
+    justify-content: center;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar > div:last-child {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 390px) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
+    padding: 0.35rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip {
+    width: 5.65rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-roster .gm-players-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 720px) and (min-width: 681px) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar {
+    min-height: 4.4rem;
+    padding-block: 0.35rem 0.55rem;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-main {
+    overflow-y: auto;
+  }
+
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-grid {
+    height: auto;
+    min-height: 42rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-topbar :is(.if-btn, .if-icon-btn, .menu-icon-control),
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-mode-dock .gm-chip,
+  body.inkbeta-mode .ik-lobby-v2 .ik-lobby-feature .if-btn--primary {
+    transition: none;
+  }
+}

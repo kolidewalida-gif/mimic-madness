@@ -73,6 +73,7 @@ interface InkLobbyScreenProps {
   onTransferHost?: (playerId: string) => void;
   onOpenSocial: () => void;
   isSocialOpen: boolean;
+  variant?: 'default' | 'inkBeta';
 }
 
 /** Modes available in the lobby (Monopoly and Mimic excluded). */
@@ -127,7 +128,9 @@ export const InkLobbyScreen = ({
   onTransferHost,
   onOpenSocial,
   isSocialOpen,
+  variant = 'default',
 }: InkLobbyScreenProps) => {
+  const isInkBeta = variant === 'inkBeta';
   const [showSettings, setShowSettings] = useState(false);
   const [showInvitePanel, setShowInvitePanel] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -343,13 +346,24 @@ export const InkLobbyScreen = ({
 
   return (
     <div
-      className="ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
+      className={cn(
+        'ibs-shell if-root menu-surface menu-screen-safe flex h-screen w-full flex-col overflow-hidden',
+        isInkBeta && 'ik-root ik-lobby-v2',
+      )}
       style={{ ['--accent' as string]: selectedCard.accent }}
     >
-      <GameBackdrop src="/lobby/backgroundlobby.png" />
+      {isInkBeta ? (
+        <>
+          <div className="ik-party-bg" aria-hidden="true" />
+          <div className="ik-party-rays" aria-hidden="true" />
+          <div className="ik-party-dots" aria-hidden="true" />
+        </>
+      ) : (
+        <GameBackdrop src="/lobby/backgroundlobby.png" />
+      )}
 
       {/* ============== HEADER ============== */}
-      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-8 sm:py-3.5 [@media(max-height:640px)_and_(orientation:landscape)]:flex-nowrap [@media(max-height:640px)_and_(orientation:landscape)]:py-1.5">
+      <header className="ik-lobby-topbar flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-8 sm:py-3.5 [@media(max-height:640px)_and_(orientation:landscape)]:flex-nowrap [@media(max-height:640px)_and_(orientation:landscape)]:py-1.5">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <GameLogo candidates={['/lobby/logo.png', '/home/logo.png']} imgClassName="hidden h-7 w-auto min-[420px]:block sm:h-9 [@media(max-height:640px)_and_(orientation:landscape)]:h-7" />
           <button
@@ -420,11 +434,11 @@ export const InkLobbyScreen = ({
       </header>
 
       {/* ============== MAIN GRID ============== */}
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-4 sm:px-8 sm:pb-6 min-[1101px]:overflow-hidden">
-      <div className="gm-lobby mx-auto max-w-[1600px]">
+      <div className="ik-lobby-main custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-4 sm:px-8 sm:pb-6 min-[1101px]:overflow-hidden">
+      <div className="gm-lobby ik-lobby-grid mx-auto max-w-[1600px]">
         {/* ---------- RIGHT: chat, full column height ---------- */}
-        <aside className="order-2 flex min-h-[22rem] flex-col min-[1101px]:order-2 min-[1101px]:min-h-0">
-          <GameCard className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <aside className="ik-lobby-chat order-2 flex min-h-[22rem] flex-col min-[1101px]:order-2 min-[1101px]:min-h-0">
+          <GameCard className="ik-lobby-chat-card flex min-h-0 flex-1 flex-col overflow-hidden">
             <TwitchStyleLobbyChat
               lobbyId={lobbyId}
               playerId={currentPlayer.id}
@@ -435,9 +449,9 @@ export const InkLobbyScreen = ({
         </aside>
 
         {/* ---------- MAIN STAGE: featured mode, start, shelf ---------- */}
-        <section className="order-1 flex min-h-0 flex-col gap-4 min-[1101px]:order-1">
+        <section className="ik-lobby-stage order-1 flex min-h-0 flex-col gap-4 min-[1101px]:order-1">
           <motion.div
-            className="flex-shrink-0"
+            className="ik-lobby-feature flex-shrink-0"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.26, ease: 'easeOut' }}
@@ -509,7 +523,7 @@ export const InkLobbyScreen = ({
           </motion.div>
 
           {/* Mode shelf */}
-          <div className="flex-shrink-0">
+          <div className="ik-lobby-mode-dock flex-shrink-0">
             <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
               <GameLabel>{isHost ? 'Change de mode' : 'Modes du salon'}</GameLabel>
               <span className="if-mute text-xs">{MODE_CARDS.length} modes</span>
@@ -536,7 +550,7 @@ export const InkLobbyScreen = ({
           </div>
 
           {/* ---------- Roster — grows into the remaining space ---------- */}
-          <GameCard className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <GameCard className="ik-lobby-roster flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--ink-line)] px-4 py-3">
               <GameLabel className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" aria-hidden="true" />
@@ -547,17 +561,19 @@ export const InkLobbyScreen = ({
                   </span>
                 )}
               </GameLabel>
-              <GameButton
-                variant="neutral"
-                size="sm"
-                onClick={() => {
-                  playInkSound('cartoonPop', 0.3);
-                  setShowInvitePanel(true);
-                }}
-                icon={<UserPlus className="h-4 w-4" />}
-              >
-                Inviter des amis
-              </GameButton>
+              {isHost && (
+                <GameButton
+                  variant="neutral"
+                  size="sm"
+                  onClick={() => {
+                    playInkSound('cartoonPop', 0.3);
+                    setShowInvitePanel(true);
+                  }}
+                  icon={<UserPlus className="h-4 w-4" />}
+                >
+                  Inviter des amis
+                </GameButton>
+              )}
             </div>
 
             <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3.5">
@@ -634,7 +650,19 @@ export const InkLobbyScreen = ({
                         </span>
                       )}
 
-                      <span className="gm-player-avatar">
+                      <span
+                        className={cn(
+                          'gm-player-avatar',
+                          av.type === 'image' &&
+                            av.imageUrl?.startsWith('/game-avatars/') &&
+                            'is-mimo',
+                        )}
+                        style={
+                          av.type === 'initials' && av.backgroundColor
+                            ? { background: av.backgroundColor }
+                            : undefined
+                        }
+                      >
                         {av.type === 'image' && av.imageUrl ? (
                           <img src={av.imageUrl} alt="" draggable={false} />
                         ) : (
@@ -703,6 +731,7 @@ export const InkLobbyScreen = ({
           fournit aussi sa propre zone de défilement, d'où la disparition de
           l'enveloppe interne. */}
       <InkModal
+        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
         isOpen={showInvitePanel}
         onClose={() => setShowInvitePanel(false)}
         title="Inviter des amis"
@@ -725,6 +754,7 @@ export const InkLobbyScreen = ({
           seul dialogue du lobby dans ce cas, alors que « Quitter le lobby ? »
           juste en dessous utilise déjà `InkModal`. */}
       <InkModal
+        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         title="Paramètres"
@@ -736,6 +766,7 @@ export const InkLobbyScreen = ({
 
       {/* ============== LEAVE CONFIRM ============== */}
       <InkModal
+        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
         isOpen={showLeaveConfirm}
         onClose={() => setShowLeaveConfirm(false)}
         title="Quitter le lobby ?"

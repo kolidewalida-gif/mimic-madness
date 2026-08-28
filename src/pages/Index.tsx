@@ -720,6 +720,7 @@ const Index = () => {
             />
           ) : (useInkMode || useNeonHub) ? (
             <InkLobbyScreen
+              variant={useBetaHome ? 'inkBeta' : 'default'}
               players={players}
               lobbyCode={lobby.code}
               lobbyId={lobby.id}
@@ -834,7 +835,7 @@ const Index = () => {
 
       </React.Suspense>
     );
-  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useNeonHub, theme, showInkSocial, openInkSocial, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useBetaHome, useNeonHub, theme, showInkSocial, openInkSocial, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   return (
     <div className="game-viewport relative h-screen min-h-0 w-full overflow-hidden">
