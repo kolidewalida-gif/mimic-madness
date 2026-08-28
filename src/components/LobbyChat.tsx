@@ -10,6 +10,7 @@
  * - Collapsed/expanded toggle
  */
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { useLobbyChat, type ChatMessage } from '@/hooks/useLobbyChat';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Image as ImageIcon, Search, Sparkles, Volume2, MessageCircle } from 'lucide-react';
@@ -167,6 +168,15 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
    * soirée se joue en parlant — la discussion doit être lisible sans clic.
    */
   const isInkBeta = variant === 'inkBeta';
+  /*
+   * Le chat beta est monté dans `document.body`.
+   *
+   * Il vivait dans l'arbre de l'écran, et un seul ancêtre transformé — une
+   * transition d'écran, un panneau à couche de composition — suffisait à en
+   * faire le référent de son positionnement fixe, voire à le rogner. Le portail
+   * supprime cette classe entière de disparitions.
+   */
+  const mountInBody = isInkBeta && typeof document !== 'undefined';
   const { messages, isLoading, sendMessage, isSending } = useLobbyChat(lobbyId, playerId, playerName);
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState('');
@@ -231,7 +241,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
     setAutoScroll(true);
   }, [sendMessage]);
 
-  return (
+  const tree = (
     <div className={isInkBeta ? 'ik-chat-slot' : 'fixed bottom-28 left-4 z-40'}>
       {/* Collapsed button */}
       {!isExpanded && (
@@ -455,4 +465,6 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
       )}
     </div>
   );
+
+  return mountInBody ? createPortal(tree, document.body) : tree;
 });

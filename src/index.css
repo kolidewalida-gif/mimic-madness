@@ -11278,8 +11278,14 @@ body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--split {
   grid-template-columns: minmax(0, 1.62fr) minmax(19rem, 0.8fr);
 }
 
+/*
+ * Phase d'imitation : la vidéo à imiter est ce qu'on regarde en continu, le
+ * panneau d'enregistrement ne sert qu'à quelques gestes. La scène lui laisse
+ * donc les deux tiers de la largeur.
+ */
 body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--stage {
-  grid-template-columns: minmax(0, 1.55fr) minmax(20rem, 0.85fr);
+  width: min(100%, 104rem);
+  grid-template-columns: minmax(0, 2.2fr) minmax(15.5rem, 0.72fr);
 }
 
 body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--center {
@@ -12031,14 +12037,22 @@ body.inkbeta-mode :is(
    de la scène : bordure épaisse, fond prune, relief.
    ============================================================ */
 
+/*
+ * Ancré par le bas, jamais par le haut.
+ *
+ * Avec `top` et `bottom` ensemble, la colonne se calait sur son bloc conteneur.
+ * Or un écran traversé par une transition porte `will-change: transform`, ce qui
+ * en fait le référent des éléments fixes : le bouton replié se retrouvait alors
+ * sous le bord bas de la fenêtre, donc invisible.
+ */
 body.inkbeta-mode .ik-chat-slot {
   position: fixed;
   z-index: 40;
-  top: clamp(5.6rem, 9.5vh, 6.6rem);
   bottom: 0.9rem;
   left: clamp(0.6rem, 1.6vw, 1.35rem);
   display: flex;
   width: clamp(15rem, 20vw, 20rem);
+  height: min(calc(100dvh - 7.6rem), 42rem);
   flex-direction: column;
   justify-content: flex-end;
   pointer-events: none;
