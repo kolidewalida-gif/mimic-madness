@@ -13,6 +13,8 @@ import { buildHint, buildOptions, entryKey, mulberry, shuffle } from '@/lib/blin
 import { itunesSearch, pickBestPreview, itunesPoster } from '@/lib/itunes';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
 import { BlindtestSetup } from './BlindtestSetup';
+import { InkBetaBlindtestSetup } from './InkBetaBlindtestSetup';
+import { InkBetaBlindtestResults } from './InkBetaBlindtestResults';
 import { BT, BT_SPECTRUM, glow } from './blindtestTheme';
 import { BlindtestBackground } from './BlindtestBackground';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
@@ -29,6 +31,7 @@ interface MemoriseGameScreenProps {
   players: Player[];
   lobbyId: string;
   onEndGame: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 type Phase = 'intro' | 'listen' | 'reveal' | 'final';
@@ -110,8 +113,9 @@ function pushRecent(key: string) {
 
 
 
-export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: MemoriseGameScreenProps) => {
+export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame, variant = 'default' }: MemoriseGameScreenProps) => {
   const isHost = currentPlayer.isHost;
+  const isInkBeta = variant === 'inkBeta';
   const { isPlaying: isBackgroundPlaying, pause: pauseBackground, play: playBackground, setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
 
   const [phase, setPhase] = useState<Phase>('intro');
@@ -706,6 +710,18 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
     [scoreboard, namesById],
   );
 
+  const betaRanked = useMemo(
+    () => players
+      .map((player) => ({
+        id: player.id,
+        name: player.name,
+        pts: scoreboard[player.id] ?? 0,
+        isDisconnected: player.isDisconnected,
+      }))
+      .sort((left, right) => right.pts - left.pts || left.name.localeCompare(right.name)),
+    [players, scoreboard],
+  );
+
   // Every participant (incl. 0 pts) for the live left scoreboard.
   const standings = useMemo(
     () => players
@@ -743,7 +759,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
   /* ============================================================ */
   const accent = catMeta?.color ?? BT.violet;
   return (
-    <div className="menu-surface menu-screen-safe h-screen w-full flex flex-col items-center text-white relative overflow-hidden" style={{ background: BT.bg }}>
+    <div
+      className={cn(
+        'menu-surface menu-screen-safe h-screen w-full flex flex-col items-center text-white relative overflow-hidden',
+        isInkBeta && 'ibt-root',
+      )}
+      data-phase={phase}
+      style={isInkBeta ? undefined : { background: BT.bg }}
+    >
       <audio
         ref={mediaRef}
         className="hidden"
@@ -760,11 +783,19 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
         onError={() => { setMediaError(true); if (isHost) errorFlagRef.current = true; }}
       />
 
-      {/* neon lounge background */}
-      <BlindtestBackground accent={accent} />
+      {/* Theme-owned backdrop: the stable renderer keeps Neon Vinyl untouched. */}
+      {isInkBeta ? (
+        <div className="ibt-backdrop" aria-hidden="true">
+          <span className="ibt-glow ibt-glow--pink" />
+          <span className="ibt-glow ibt-glow--cyan" />
+          <span className="ibt-equalizer-bg" />
+        </div>
+      ) : (
+        <BlindtestBackground accent={accent} />
+      )}
 
       {/* header */}
-      <div className="relative z-10 w-full flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4 gap-2">
+      <div className={cn('relative z-10 w-full flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4 gap-2', isInkBeta && 'ibt-header')}>
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <motion.div
             animate={{ rotate: 360 }}
@@ -795,19 +826,23 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
       </div>
 
       {/* body */}
-      <div className="relative z-10 flex-1 w-full flex flex-col items-center justify-center px-4 min-h-0 overflow-y-auto custom-scrollbar py-4">
+      <div className={cn('relative z-10 flex-1 w-full flex flex-col items-center justify-center px-4 min-h-0 overflow-y-auto custom-scrollbar py-4', isInkBeta && 'ibt-main')}>
         <AnimatePresence mode="wait">
           {/* INTRO — host category chooser */}
           {phase === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center">
-              <BlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} onStart={startGame} />
+              {isInkBeta ? (
+                <InkBetaBlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} onStart={startGame} />
+              ) : (
+                <BlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} onStart={startGame} />
+              )}
             </motion.div>
           )}
 
           {/* LISTEN */}
           {phase === 'listen' && track && (
-            <motion.div key={`listen-${roundIndex}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="w-full max-w-lg flex flex-col items-center gap-5">
-              <div className="flex items-center gap-2 flex-wrap justify-center">
+            <motion.div key={`listen-${roundIndex}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={cn('w-full max-w-lg flex flex-col items-center gap-5', isInkBeta && 'ibt-listen')}>
+              <div className="ibt-listen-status flex items-center gap-2 flex-wrap justify-center">
                 <div className="flex items-center gap-1.5 font-black text-lg px-3.5 py-1.5 rounded-full text-white tabular-nums" style={{ background: urgent ? BT.rose : 'rgba(255,255,255,0.06)', border: `1px solid ${urgent ? BT.rose : BT.hair}`, boxShadow: urgent ? glow(BT.rose, 0.5) : 'none' }}>
                   <Clock className="w-4 h-4" /> {secondsLeft}s
                 </div>
@@ -829,14 +864,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                   initial={{ scale: 0.6, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1, boxShadow: [`0 0 20px ${BT.gold}66`, `0 0 34px ${BT.gold}aa`, `0 0 20px ${BT.gold}66`] }}
                   transition={{ boxShadow: { duration: 1.3, repeat: Infinity } }}
-                  className="flex items-center gap-2 px-4 py-1.5 rounded-full text-black font-black text-sm -mb-1"
+                  className="ibt-double flex items-center gap-2 px-4 py-1.5 rounded-full text-black font-black text-sm -mb-1"
                   style={{ background: `linear-gradient(90deg, ${BT.gold}, #ff9a3d)` }}
                 >
                   <Zap className="w-4 h-4" fill="currentColor" /> MANCHE DOUBLE ×2
                 </motion.div>
               )}
 
-              <div className="relative w-52 h-52 flex items-center justify-center">
+              <div className="ibt-turntable relative w-52 h-52 flex items-center justify-center">
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
                   <defs>
                     <linearGradient id="btRing" x1="0" y1="0" x2="1" y2="1">
@@ -867,11 +902,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
               </div>
 
               {mediaError ? (
-                <p className="flex items-center gap-2 text-sm font-medium" style={{ color: BT.gold }}>
+                <p className="ibt-sound-status flex items-center gap-2 text-sm font-medium" style={{ color: BT.gold }}>
                   <AlertTriangle className="w-4 h-4" /> Extrait indisponible… {isHost ? 'on passe à la suivante' : "l'hôte change de piste"}
                 </p>
               ) : needsSoundUnlock ? (
-                <motion.button onClick={resumeSound} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-black text-lg" style={{ background: BT_SPECTRUM, boxShadow: `0 10px 34px ${BT.magenta}55` }}>
+                <motion.button onClick={resumeSound} animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="ibt-sound-status flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-black text-lg" style={{ background: BT_SPECTRUM, boxShadow: `0 10px 34px ${BT.magenta}55` }}>
                   <Volume2 className="w-5 h-5" /> Activer le son 🔊
                 </motion.button>
               ) : (
@@ -896,7 +931,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 </motion.div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+              <div className="ibt-options grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                 {options.map((opt, i) => {
                   const selected = myChoice === i;
                   // Team mode: show teammates (my team, excluding me) who already
@@ -965,7 +1000,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
           {/* REVEAL */}
           {phase === 'reveal' && track && (
-            <motion.div key={`r-${roundIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full max-w-2xl flex flex-col items-center gap-5">
+            <motion.div key={`r-${roundIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={cn('w-full max-w-2xl flex flex-col items-center gap-5', isInkBeta && 'ibt-reveal')}>
               <motion.div
                 initial={{ scale: 0.5, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1114,6 +1149,22 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
           {/* FINAL */}
           {phase === 'final' && (
+            isInkBeta ? (
+              <InkBetaBlindtestResults
+                ranked={betaRanked}
+                currentPlayerId={currentPlayer.id}
+                isHost={isHost}
+                teamsEnabled={teamsEnabled}
+                teamScores={teamScores}
+                teamOf={teamOf}
+                avgReaction={avgReaction}
+                getAvatar={getAvatar}
+                roundIndex={roundIndex}
+                totalRounds={totalRounds}
+                onReplay={replay}
+                onEndGame={onEndGame}
+              />
+            ) : (
             <motion.div key="final" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md flex flex-col items-center gap-5">
               <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}>
                 <Trophy className="w-16 h-16" style={{ color: BT.gold, filter: `drop-shadow(0 6px 22px ${BT.gold}88)` }} />
@@ -1225,13 +1276,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
                 </motion.button>
               </div>
             </motion.div>
+            )
           )}
         </AnimatePresence>
       </div>
 
       {/* left live scoreboard (real-time) */}
       {(phase === 'listen' || phase === 'reveal') && standings.length > 0 && (
-        <div className="hidden lg:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl" style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
+        <div className={cn('hidden lg:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl', isInkBeta && 'ibt-live-board')} style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
           <div className="flex items-center gap-2 px-1 pb-2 mb-0.5" style={{ borderBottom: `1px solid ${BT.hair}` }}>
             <Trophy className="w-4 h-4" style={{ color: BT.gold }} />
             <span className="text-sm font-black text-white uppercase tracking-[0.15em]">Scores</span>
@@ -1279,7 +1331,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame 
 
       {/* vertical volume bar (persisted) */}
       {(phase === 'listen' || phase === 'reveal') && (
-        <div className="fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl" style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
+        <div className={cn('fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl', isInkBeta && 'ibt-volume')} style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
           <button onClick={toggleMute} className="text-white/70 hover:text-white transition-colors" aria-label="Son">
             {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>

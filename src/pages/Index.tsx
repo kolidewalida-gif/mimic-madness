@@ -884,6 +884,7 @@ const Index = () => {
 
         {gameState === "memorise" && currentPlayer && lobby && (
           <MemoriseGameScreen
+            variant={useBetaHome ? 'inkBeta' : 'default'}
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}
