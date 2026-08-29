@@ -140,6 +140,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
   const [myStreak, setMyStreak] = useState(0);
   const [channelReady, setChannelReady] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
   const [revealVotes, setRevealVotes] = useState<Record<string, number>>({});
   // ── new game options ──
   const [listenMs, setListenMs] = useState<number>(BLINDTEST_LISTEN_MS);
@@ -619,6 +620,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
     if (startedRef.current) return;
     startedRef.current = true;
     setStarting(true);
+    setStartError(null);
 
     // lock in the chosen options for the whole game
     configRef.current = config;
@@ -674,11 +676,21 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
     queueRef.current = [...fresh, ...stale];
     const total = Math.max(1, Math.min(config.rounds, uniqueEntries.length));
 
-    // Fetch the first track now — still inside the click's activation window —
-    // so the host's first playTrack() is allowed to play with sound.
-    const first = await fetchNextTrack();
+    // Resolve the first playable preview before leaving the setup. A catalogue
+    // or CSP outage must stay retryable instead of looking like a completed game.
+    let first: { entry: BlindtestEntry; track: RoundTrack } | null = null;
+    try {
+      first = await fetchNextTrack();
+    } catch {
+      first = null;
+    }
     if (!mountedRef.current) return;
-    if (!first) { broadcastPhase({ phase: 'final', roundIndex: 0, scoreboard: {} }); return; }
+    if (!first) {
+      startedRef.current = false;
+      setStarting(false);
+      setStartError('Catalogue musical indisponible. Réessaie dans un instant.');
+      return;
+    }
     runRound(0, total, first);
   }, [runRound, fetchNextTrack, broadcastPhase]);
 
@@ -832,9 +844,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
           {phase === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center">
               {isInkBeta ? (
-                <InkBetaBlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} onStart={startGame} />
+                <InkBetaBlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} error={startError} onStart={startGame} />
               ) : (
-                <BlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} onStart={startGame} />
+                <BlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} error={startError} onStart={startGame} />
               )}
             </motion.div>
           )}

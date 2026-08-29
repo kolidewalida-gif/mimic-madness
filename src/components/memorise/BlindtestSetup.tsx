@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Disc3, Check, Loader2, Radio, Headphones, Users, Zap, Lightbulb, Clock } from 'lucide-react';
+import { Play, Disc3, Check, Loader2, Radio, Headphones, Users, Zap, Lightbulb, Clock, AlertTriangle } from 'lucide-react';
 import { CATEGORY_META, BLINDTEST_ENTRIES_UNIQUE, BLINDTEST_ROUND_OPTIONS, BLINDTEST_LISTEN_OPTIONS, type BlindtestCategory } from '@/lib/blindtestTracks';
 import { SetupSection } from '@/components/menu/MenuPrimitives';
 import { BT, BT_SPECTRUM, glow } from './blindtestTheme';
@@ -10,6 +10,7 @@ interface BlindtestSetupProps {
   isHost: boolean;
   canStart: boolean;
   starting: boolean;
+  error: string | null;
   onStart: (categories: BlindtestCategory[], config: BlindtestConfig) => void;
 }
 
@@ -51,7 +52,7 @@ const Toggle = ({ icon: Icon, label, on, color, onClick }: { icon: any; label: s
   </button>
 );
 
-export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: BlindtestSetupProps) => {
+export const BlindtestSetup = ({ isHost, canStart, starting, error, onStart }: BlindtestSetupProps) => {
   const [selected, setSelected] = useState<Set<BlindtestCategory>>(new Set(CATS));
   const [roundsSel, setRoundsSel] = useState<number>(10);
   const [listenSel, setListenSel] = useState<number>(20000);
@@ -154,6 +155,7 @@ export const BlindtestSetup = ({ isHost, canStart, starting, onStart }: Blindtes
             {starting ? 'Préparation…' : 'LANCER LE BLINDTEST'}
           </motion.button>
           {!canStart && <p className="mt-2 flex items-center justify-center gap-1.5 text-xs" style={{ color: BT.sub }}><Radio className="h-3.5 w-3.5 animate-pulse" /> Connexion au salon…</p>}
+          {error && <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs" role="alert" style={{ color: BT.gold }}><AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" /> {error}</p>}
         </div>
       </aside>
     </motion.div>

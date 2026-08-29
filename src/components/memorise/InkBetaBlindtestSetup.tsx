@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import {
+  AlertTriangle,
   Check,
   Clock3,
   Disc3,
@@ -26,6 +27,7 @@ interface InkBetaBlindtestSetupProps {
   isHost: boolean;
   canStart: boolean;
   starting: boolean;
+  error: string | null;
   onStart: (categories: BlindtestCategory[], config: BlindtestConfig) => void;
 }
 
@@ -63,6 +65,7 @@ export const InkBetaBlindtestSetup = ({
   isHost,
   canStart,
   starting,
+  error,
   onStart,
 }: InkBetaBlindtestSetupProps) => {
   const [selected, setSelected] = useState<Set<BlindtestCategory>>(new Set(CATEGORIES));
@@ -212,6 +215,7 @@ export const InkBetaBlindtestSetup = ({
             <small>{playableRounds} manches · {listenMs / 1_000}s par extrait</small>
           </motion.button>
           {!canStart && <p className="ibt-network-note"><Radio className="animate-pulse" aria-hidden="true" /> Connexion au salon…</p>}
+          {error && <p className="ibt-network-note" role="alert"><AlertTriangle aria-hidden="true" /> {error}</p>}
         </aside>
       </div>
     </motion.section>
