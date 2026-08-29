@@ -1,4 +1,4 @@
-﻿{
+{
   "$comment": [
     "Source unique des effets sonores échantillonnés.",
     "Lu par `scripts/generate-sfx.mjs` (génération hors ligne via ElevenLabs) et",
@@ -6,9 +6,29 @@
     "",
     "`style` est ajouté à CHAQUE prompt par le script. C'est ce qui donne une",
     "identité sonore commune : sans lui, quarante prompts écrits séparément",
-    "produisent quarante sons qui ne vont pas ensemble. Le jeu est un jeu de",
-    "soirée cartoon, pas une application d'entreprise — les sons doivent être",
-    "chauds, ronds et rebondissants.",
+    "produisent quarante sons qui ne vont pas ensemble.",
+    "",
+    "POURQUOI CE BANC A ÉTÉ REFAIT",
+    "",
+    "La première version demandait « neon arcade », « thick plastic transient »,",
+    "« bright synth blip » et surtout « saturated ». Chacun de ces mots pousse le",
+    "générateur vers ce qui fatigue : une attaque dure qui claque, de l'énergie",
+    "dans les 4 à 8 kHz où l'oreille est la plus sensible, et de la distorsion.",
+    "Le décompte allait jusqu'à demander « thick square wave blip » — l'onde la",
+    "plus agressive du répertoire. Sur un clic joué soixante-dix fois par partie,",
+    "ça n'est pas un détail de goût : c'est une gêne physique.",
+    "",
+    "La nouvelle direction part de l'usage plutôt que du genre. Un son d'interface",
+    "est entendu des centaines de fois : il doit se faire remarquer une fois puis",
+    "se laisser oublier. D'où des matières molles — feutre, bois, caoutchouc —",
+    "plutôt que plastique et métal, une attaque arrondie plutôt que claquante, des",
+    "aigus tenus en retrait, et aucune saturation. Les sons de fête (fanfare,",
+    "niveau, applaudissements) gardent leur énergie : on leur retire le mordant,",
+    "pas la joie.",
+    "",
+    "Les niveaux (`gain`) suivent la même logique : plus un son est fréquent, plus",
+    "il est bas. Le clic et le survol reculent nettement, les récompenses gardent",
+    "leur présence.",
     "",
     "ATTENTION : l'API refuse toute durée inférieure à 0,5 s, alors que sa page de",
     "documentation annonce 0,1 s. Vérifié à l'exécution. Un son d'interface plus",
@@ -20,350 +40,515 @@
     "Ink redirige les premiers vers les seconds. Tout nom absent d'ici continue",
     "d'être synthétisé comme avant."
   ],
-  "style": "Neon arcade party game sound effect, chunky and punchy with a thick plastic transient and a short bright synth blip, saturated and lively, snappy attack with a very short tail, clean dry mono recording with no reverb and no music bed, modern polished party game quality",
+  "style": "Soft warm party game UI sound, rounded cushioned attack, mellow body, highs rolled off, no piercing sheen, no metal, felt and wood, clean with no saturation, quiet and pleasant when repeated, mono",
   "samples": [
     {
       "id": "ui-click",
-      "prompt": "Thick plastic arcade button thock with a tiny bright synth blip on top, single one-shot, very tight and punchy, no tail",
+      "prompt": "Very soft muted felt tap, small rounded wooden tock, quiet and low, one short hit, no click spike, no ring",
       "durationSeconds": 0.5,
-      "gain": 1,
-      "aliases": ["click", "clickSoft", "clickGlass", "clickMechanical", "inkClick", "cartoonPop", "pop", "selectItem", "toggleOn", "tabSwitch"]
+      "gain": 0.7,
+      "aliases": [
+        "click",
+        "clickSoft",
+        "clickGlass",
+        "clickMechanical",
+        "inkClick",
+        "cartoonPop",
+        "pop",
+        "selectItem",
+        "toggleOn",
+        "tabSwitch"
+      ]
     },
     {
       "id": "ui-hover",
-      "prompt": "Tiny neon synth tick, glassy and dry, feather light, barely there",
+      "prompt": "Barely audible soft air tick, a feather brushing paper, extremely quiet and rounded",
       "durationSeconds": 0.5,
-      "gain": 0.6,
-      "aliases": ["hover", "hoverSoft", "hoverMedium", "hoverStrong", "brushTap", "inkHover", "focusIn"]
+      "gain": 0.45,
+      "aliases": [
+        "hover",
+        "hoverSoft",
+        "hoverMedium",
+        "hoverStrong",
+        "brushTap",
+        "inkHover",
+        "focusIn"
+      ]
     },
     {
       "id": "ui-success",
-      "prompt": "Bright two note synth confirmation stab, punchy arcade chime, satisfying and short",
+      "prompt": "Warm mellow two note wooden marimba confirmation rising gently, damped, no bell shimmer",
       "durationSeconds": 0.7,
-      "gain": 1,
-      "aliases": ["success", "inkSuccess", "cartoonDing", "notifySuccess", "ding", "resolution", "toggleOff"]
+      "gain": 0.8,
+      "aliases": [
+        "success",
+        "inkSuccess",
+        "cartoonDing",
+        "notifySuccess",
+        "ding",
+        "resolution",
+        "toggleOff"
+      ]
     },
     {
       "id": "ui-error",
-      "prompt": "Short fat descending synth buzz, rubbery arcade error honk, punchy and not harsh",
+      "prompt": "Soft low muted wooden thud sliding gently down, apologetic and round, no buzz, no honk",
       "durationSeconds": 0.6,
-      "gain": 0.9,
-      "aliases": ["error", "inkError", "notifyError"]
+      "gain": 0.75,
+      "aliases": [
+        "error",
+        "inkError",
+        "notifyError"
+      ]
     },
     {
       "id": "ui-notify",
-      "prompt": "Soft friendly notification blip, single neutral chime, unobtrusive",
+      "prompt": "Gentle single soft mallet chime, warm and unobtrusive, politely asking for attention",
       "durationSeconds": 0.5,
-      "gain": 0.8,
-      "aliases": ["notifyInfo", "notifyWarning", "alertMild"]
+      "gain": 0.65,
+      "aliases": [
+        "notifyInfo",
+        "notifyWarning",
+        "alertMild"
+      ]
     },
     {
       "id": "ui-alert",
-      "prompt": "Comedic cartoon air horn blast, loud and silly, party party",
+      "prompt": "Warm rounded three note horn call, friendly and a little comic, present but never shrill",
       "durationSeconds": 1,
-      "gain": 1,
-      "aliases": ["alertUrgent"]
+      "gain": 0.85,
+      "aliases": [
+        "alertUrgent"
+      ]
     },
     {
       "id": "ui-whoosh",
-      "prompt": "Fast neon synth sweep, tight filtered whoosh, quick and clean with no tail",
+      "prompt": "Soft cloth swipe, gentle air pass with a low filtered body, smooth in and out, no hiss",
       "durationSeconds": 0.5,
-      "gain": 0.8,
-      "aliases": ["whoosh", "transition", "cartoonSwoosh", "transitionSwoosh", "transitionWoosh", "inkTransition", "paperSlide", "ambientWhoosh", "brushSwipe", "brushStroke"]
+      "gain": 0.6,
+      "aliases": [
+        "whoosh",
+        "transition",
+        "cartoonSwoosh",
+        "transitionSwoosh",
+        "transitionWoosh",
+        "inkTransition",
+        "paperSlide",
+        "ambientWhoosh",
+        "brushSwipe",
+        "brushStroke"
+      ]
     },
     {
       "id": "ui-boing",
-      "prompt": "Ultra springy cartoon boing, wobbly metal spring, comedic bounce",
+      "prompt": "Soft rubbery bounce, warm springy wobble settling down, comic but muffled",
       "durationSeconds": 0.6,
-      "gain": 0.9,
-      "aliases": ["cartoonBoing", "inkDrip"]
+      "gain": 0.75,
+      "aliases": [
+        "cartoonBoing",
+        "inkDrip"
+      ]
     },
     {
       "id": "ui-wobble",
-      "prompt": "Wobbling jelly cartoon wobble, rubbery pitch wobble, goofy",
+      "prompt": "Wobbling jelly pitch bend, soft rubber and low, goofy and undistorted",
       "durationSeconds": 0.7,
-      "gain": 0.85,
-      "aliases": ["cartoonWobble", "paperFold"]
+      "gain": 0.7,
+      "aliases": [
+        "cartoonWobble",
+        "paperFold"
+      ]
     },
     {
       "id": "ui-zap",
-      "prompt": "Snappy cartoon electric zap descending, quick spark crackle",
+      "prompt": "Short muffled spark, dry low crackle sliding down, small and contained, no piercing fizz",
       "durationSeconds": 0.5,
-      "gain": 0.85,
-      "aliases": ["cartoonZap", "electric", "glitch", "transitionZap", "transitionDigital"]
+      "gain": 0.7,
+      "aliases": [
+        "cartoonZap",
+        "electric",
+        "glitch",
+        "transitionZap",
+        "transitionDigital"
+      ]
     },
     {
       "id": "ui-celebration",
-      "prompt": "Short neon party fanfare, punchy synth brass stack with bright sparkle on top, triumphant arcade win",
+      "prompt": "Warm little brass and marimba fanfare, joyful and full bodied, soft sparkle behind, no harsh edge",
       "durationSeconds": 1.6,
-      "gain": 1,
-      "aliases": ["celebration", "cartoonFanfare", "transitionMagic"]
+      "gain": 0.9,
+      "aliases": [
+        "celebration",
+        "cartoonFanfare",
+        "transitionMagic"
+      ]
     },
     {
       "id": "ui-applause",
-      "prompt": "Small warm crowd applause and cheering, short burst, friendly",
+      "prompt": "Small warm friendly crowd applause, soft handclaps at a gentle distance, short burst",
       "durationSeconds": 1.8,
-      "gain": 0.9,
-      "aliases": ["applause"]
+      "gain": 0.8,
+      "aliases": [
+        "applause"
+      ]
     },
     {
       "id": "ui-level-up",
-      "prompt": "Rising four note level up jingle, bright ascending arpeggio, rewarding",
+      "prompt": "Rising four note wooden mallet jingle, warm and rewarding, a gentle glow rather than sparkle",
       "durationSeconds": 1.3,
-      "gain": 1,
-      "aliases": ["levelUp", "levelComplete"]
+      "gain": 0.9,
+      "aliases": [
+        "levelUp",
+        "levelComplete"
+      ]
     },
     {
       "id": "ui-achievement",
-      "prompt": "Shining trophy unlock chime with shimmering bell tail, proud and warm",
+      "prompt": "Soft glowing unlock chime with a warm mellow tail, proud and generous, no metallic bell",
       "durationSeconds": 1.4,
-      "gain": 1,
-      "aliases": ["achievementEarned", "badgeUnlocked"]
+      "gain": 0.9,
+      "aliases": [
+        "achievementEarned",
+        "badgeUnlocked"
+      ]
     },
     {
       "id": "ui-xp",
-      "prompt": "Tiny bright synth points tick, arcade score blip, quick and dry",
+      "prompt": "Tiny soft wooden points tick, small warm blip, quiet and quick",
       "durationSeconds": 0.5,
-      "gain": 0.8,
-      "aliases": ["xpGain", "scoreUp"]
+      "gain": 0.6,
+      "aliases": [
+        "xpGain",
+        "scoreUp"
+      ]
     },
     {
       "id": "ui-power-up",
-      "prompt": "Bouncy cartoon power up sweep upward, energetic rubber rise",
+      "prompt": "Warm bouncy rise, soft rubber sweep lifting upward, energetic and rounded",
       "durationSeconds": 0.8,
-      "gain": 0.95,
-      "aliases": ["powerUp", "healthUp", "shield"]
+      "gain": 0.8,
+      "aliases": [
+        "powerUp",
+        "healthUp",
+        "shield"
+      ]
     },
     {
       "id": "ui-game-over",
-      "prompt": "Comedic sad trombone deflating slide down, cartoon defeat, funny not cruel",
+      "prompt": "Soft comic trombone deflating downward, warm and mellow, funny and kind",
       "durationSeconds": 1.4,
-      "gain": 0.9,
-      "aliases": ["gameOver", "powerDown", "healthDown"]
+      "gain": 0.8,
+      "aliases": [
+        "gameOver",
+        "powerDown",
+        "healthDown"
+      ]
     },
     {
       "id": "ui-suspense",
-      "prompt": "Rising suspense tension build with soft drum roll, comedic drama",
+      "prompt": "Slow warm tension rise with a soft brushed drum roll, muffled and building",
       "durationSeconds": 2,
-      "gain": 0.85,
-      "aliases": ["suspenseBuild", "anticipation", "tension"]
+      "gain": 0.75,
+      "aliases": [
+        "suspenseBuild",
+        "anticipation",
+        "tension"
+      ]
     },
     {
       "id": "ui-coin",
-      "prompt": "Bright cartoon coin drop chime, golden and bouncy",
+      "prompt": "Warm rounded coin drop, soft golden mallet note with a short damped tail",
       "durationSeconds": 0.6,
-      "gain": 0.9,
-      "aliases": ["coinDrop"]
+      "gain": 0.75,
+      "aliases": [
+        "coinDrop"
+      ]
     },
     {
       "id": "ui-gem",
-      "prompt": "Crystal gem collect sparkle, glassy bright ping",
+      "prompt": "Soft glassy pick up ping, clear but mellow, gently damped, no shrill top",
       "durationSeconds": 0.7,
-      "gain": 0.9,
-      "aliases": ["gemCollect"]
+      "gain": 0.75,
+      "aliases": [
+        "gemCollect"
+      ]
     },
     {
       "id": "ui-reveal",
-      "prompt": "Magical reveal shimmer sweeping upward, sparkling curtain lift",
+      "prompt": "Warm rising shimmer opening up, soft curtain lift with airy low mids, magical, never bright",
       "durationSeconds": 0.9,
-      "gain": 0.9,
-      "aliases": ["reveal", "quizReveal", "transitionCosmic", "transitionPortal", "hologram"]
+      "gain": 0.8,
+      "aliases": [
+        "reveal",
+        "quizReveal",
+        "transitionCosmic",
+        "transitionPortal",
+        "hologram"
+      ]
     },
     {
       "id": "ui-start",
-      "prompt": "Energetic neon arcade start stab, rising synth swell into a thick punchy hit, upbeat kickoff",
+      "prompt": "Warm swelling kickoff, soft rise into a full rounded low hit, upbeat and inviting, no crack",
       "durationSeconds": 1,
-      "gain": 1,
-      "aliases": ["start"]
+      "gain": 0.9,
+      "aliases": [
+        "start"
+      ]
     },
     {
       "id": "ui-join",
-      "prompt": "Friendly bouncy two note arrival blip, someone pops in, welcoming",
+      "prompt": "Friendly soft two note arrival blip lifting up, warm and welcoming",
       "durationSeconds": 0.5,
-      "gain": 0.9,
-      "aliases": ["join"]
+      "gain": 0.7,
+      "aliases": [
+        "join"
+      ]
     },
     {
       "id": "ui-leave",
-      "prompt": "Soft descending two note departure blip, someone pops out",
+      "prompt": "Soft two note departure blip settling down, warm and quiet",
       "durationSeconds": 0.5,
-      "gain": 0.85,
-      "aliases": ["leave"]
+      "gain": 0.65,
+      "aliases": [
+        "leave"
+      ]
     },
     {
       "id": "invite-received",
-      "prompt": "Inviting doorbell style double chime with a cheerful lift, someone is calling you to play",
+      "prompt": "Warm inviting double chime with a gentle lift, soft mallets, someone calls you to play",
       "durationSeconds": 1.2,
-      "gain": 1,
-      "aliases": ["inviteReceived"]
+      "gain": 0.85,
+      "aliases": [
+        "inviteReceived"
+      ]
     },
     {
       "id": "invite-sent",
-      "prompt": "Light paper plane swoosh away with a small sparkle, message flying off",
+      "prompt": "Light paper swoosh away with a tiny soft glimmer, message flying off",
       "durationSeconds": 0.7,
-      "gain": 0.85,
-      "aliases": ["inviteSent"]
+      "gain": 0.7,
+      "aliases": [
+        "inviteSent"
+      ]
     },
     {
       "id": "invite-accepted",
-      "prompt": "Warm approving two note yes chime with a soft pop, agreement",
+      "prompt": "Warm approving two note yes chime with a soft round pop, agreement",
       "durationSeconds": 0.8,
-      "gain": 0.95,
-      "aliases": ["inviteAccepted"]
+      "gain": 0.8,
+      "aliases": [
+        "inviteAccepted"
+      ]
     },
     {
       "id": "invite-declined",
-      "prompt": "Short polite decline blip, soft downward two tone, no drama",
+      "prompt": "Short polite soft decline blip stepping down, no drama",
       "durationSeconds": 0.6,
-      "gain": 0.8,
-      "aliases": ["inviteDeclined"]
+      "gain": 0.65,
+      "aliases": [
+        "inviteDeclined"
+      ]
     },
     {
       "id": "message-in",
-      "prompt": "Soft bubbly incoming chat message pop, round and friendly",
+      "prompt": "Soft round bubble pop for an incoming chat message, warm and friendly, very quiet",
       "durationSeconds": 0.5,
-      "gain": 0.8,
-      "aliases": ["messageReceive", "message"]
+      "gain": 0.6,
+      "aliases": [
+        "messageReceive",
+        "message"
+      ]
     },
     {
       "id": "message-out",
-      "prompt": "Quick light outgoing message whoosh pop, sent",
+      "prompt": "Quick light soft breath pop for a sent message, small and rounded",
       "durationSeconds": 0.5,
-      "gain": 0.75,
-      "aliases": ["messageSend", "gifSend", "imageSend"]
+      "gain": 0.55,
+      "aliases": [
+        "messageSend",
+        "gifSend",
+        "imageSend"
+      ]
     },
     {
       "id": "vote-up",
-      "prompt": "Satisfying thick pop with a bright rising synth blip, arcade approval, punchy and short",
+      "prompt": "Satisfying soft thick pop lifting slightly upward, warm approval, no bright blip on top",
       "durationSeconds": 0.6,
-      "gain": 1,
-      "aliases": ["voteUp", "vote"]
+      "gain": 0.8,
+      "aliases": [
+        "voteUp",
+        "vote"
+      ]
     },
     {
       "id": "vote-down",
-      "prompt": "Fat muted synth blip sliding down, arcade disapproval, playful and short",
+      "prompt": "Soft muted pop sliding down, warm disapproval, playful and short",
       "durationSeconds": 0.6,
-      "gain": 0.9,
-      "aliases": ["voteDown"]
+      "gain": 0.75,
+      "aliases": [
+        "voteDown"
+      ]
     },
     {
       "id": "ui-countdown",
-      "prompt": "Single punchy arcade countdown beep, thick square wave blip with a plastic transient, precise and dry, no tail",
+      "prompt": "Single soft rounded wooden tick, quiet metronome tock, precise and dry, no edge, no beep",
       "durationSeconds": 0.5,
-      "gain": 0.85,
-      "aliases": ["countdown", "quizTick", "quizCountdown1", "quizCountdown2", "quizCountdown3"]
+      "gain": 0.65,
+      "aliases": [
+        "countdown",
+        "quizTick",
+        "quizCountdown1",
+        "quizCountdown2",
+        "quizCountdown3"
+      ]
     },
     {
       "id": "quiz-correct",
-      "prompt": "Bright rewarding correct answer ding dong, happy bell pair, well done",
+      "prompt": "Warm rewarding two note mallet ding dong, happy and soft, well done",
       "durationSeconds": 0.9,
-      "gain": 1,
-      "aliases": ["quizCorrect"]
+      "gain": 0.85,
+      "aliases": [
+        "quizCorrect"
+      ]
     },
     {
       "id": "quiz-wrong",
-      "prompt": "Comedic wrong answer double buzz, rubbery low honk, gentle fail",
+      "prompt": "Soft comic double thud, warm low rubber honk, gentle fail, no buzz",
       "durationSeconds": 0.8,
-      "gain": 0.9,
-      "aliases": ["quizWrong"]
+      "gain": 0.75,
+      "aliases": [
+        "quizWrong"
+      ]
     },
     {
       "id": "quiz-timeup",
-      "prompt": "Time is up alarm bell ring cutting off, urgent but comedic",
+      "prompt": "Warm muffled bell ring fading out, time is up, urgent but softened",
       "durationSeconds": 1.2,
-      "gain": 0.95,
-      "aliases": ["quizTimeUp"]
+      "gain": 0.8,
+      "aliases": [
+        "quizTimeUp"
+      ]
     },
     {
       "id": "quiz-rush",
-      "prompt": "Fast accelerating ticking rush with rising pitch, hurry up",
+      "prompt": "Accelerating soft wooden ticking with a gentle rise, hurry up, muffled and even",
       "durationSeconds": 2,
-      "gain": 0.85,
-      "aliases": ["quizRush"]
+      "gain": 0.7,
+      "aliases": [
+        "quizRush"
+      ]
     },
     {
       "id": "quiz-streak",
-      "prompt": "Hyped combo streak stinger with a bright stack of dings, on fire",
+      "prompt": "Warm combo stinger, a small stack of soft mallet notes climbing, hyped but rounded",
       "durationSeconds": 1,
-      "gain": 0.95,
-      "aliases": ["quizStreak", "quizCombo", "quizBonus", "quizPerfect"]
+      "gain": 0.8,
+      "aliases": [
+        "quizStreak",
+        "quizCombo",
+        "quizBonus",
+        "quizPerfect"
+      ]
     },
     {
       "id": "process-rewind",
-      "prompt": "Cassette tape rewinding fast backwards, warbling reversed whirr with spinning reels, time travelling backwards, continuous and even",
+      "prompt": "Cassette tape rewinding backwards, soft warbling reversed whirr, muffled reels, continuous and even",
       "durationSeconds": 8,
-      "gain": 0.8,
-      "aliases": ["processRewind"]
+      "gain": 0.55,
+      "aliases": [
+        "processRewind"
+      ]
     },
     {
       "id": "process-loading",
-      "prompt": "Gentle mechanical loading hum with soft rhythmic clicks, machine working, continuous and even",
+      "prompt": "Gentle mechanical loading hum with soft muffled clicks, quietly working, continuous and even",
       "durationSeconds": 8,
-      "gain": 0.6,
-      "aliases": ["processLoading"]
+      "gain": 0.45,
+      "aliases": [
+        "processLoading"
+      ]
     },
     {
       "id": "process-done",
-      "prompt": "Machine finishing with a satisfying clunk and a bright ready ding",
+      "prompt": "Machine settling with a soft clunk and a warm ready note, calm and satisfying",
       "durationSeconds": 0.9,
-      "gain": 0.95,
-      "aliases": ["processDone"]
+      "gain": 0.8,
+      "aliases": [
+        "processDone"
+      ]
     },
     {
       "id": "mode-imitation",
-      "prompt": "Playful microphone tap then a cheerful vocal style flourish, imitation game intro sting",
+      "prompt": "Soft microphone tap then a warm cheerful vocal flourish, imitation game intro, mellow",
       "durationSeconds": 1.2,
-      "gain": 0.95,
-      "aliases": ["modeNormal", "mode2v2"]
+      "gain": 0.85,
+      "aliases": [
+        "modeNormal",
+        "mode2v2"
+      ]
     },
     {
       "id": "mode-undercover",
-      "prompt": "Sneaky spy tiptoe pizzicato sting with a soft mysterious whistle, secret agent intro",
+      "prompt": "Sneaky soft pizzicato tiptoe with a muted mysterious whistle, secret agent intro, hushed",
       "durationSeconds": 1.4,
-      "gain": 0.95,
-      "aliases": ["modeUndercover"]
+      "gain": 0.85,
+      "aliases": [
+        "modeUndercover"
+      ]
     },
     {
       "id": "mode-quiz",
-      "prompt": "Quiz show buzzer flourish with a bright game show bell, intro sting",
+      "prompt": "Warm game show flourish with a soft rounded bell, quiz intro, no buzzer rasp",
       "durationSeconds": 1.2,
-      "gain": 0.95,
-      "aliases": ["modeQuiz"]
+      "gain": 0.85,
+      "aliases": [
+        "modeQuiz"
+      ]
     },
     {
       "id": "mode-blurrush",
-      "prompt": "Fast camera shutter and a zippy focus sweep into a bright ping, image guessing intro",
+      "prompt": "Soft camera shutter and a gentle focus sweep into a warm ping, image guessing intro",
       "durationSeconds": 1.2,
-      "gain": 0.95,
-      "aliases": ["modePixoguess"]
+      "gain": 0.85,
+      "aliases": [
+        "modePixoguess"
+      ]
     },
     {
       "id": "mode-monopoly",
-      "prompt": "Dice rolling on a wooden board then a cheerful board game jingle, intro sting",
+      "prompt": "Dice tumbling on a wooden board then a warm little board game jingle, cosy intro",
       "durationSeconds": 1.4,
-      "gain": 0.95,
-      "aliases": ["modeMonopoly"]
+      "gain": 0.85,
+      "aliases": [
+        "modeMonopoly"
+      ]
     },
     {
       "id": "mode-audiophone",
-      "prompt": "Old telephone ring then a warbling reversed whoosh, broken telephone intro sting",
+      "prompt": "Soft old telephone ring then a warbling muffled reverse whoosh, broken telephone intro",
       "durationSeconds": 1.4,
-      "gain": 0.95,
-      "aliases": ["modeAudiophone"]
+      "gain": 0.85,
+      "aliases": [
+        "modeAudiophone"
+      ]
     },
     {
       "id": "mode-blindtest",
-      "prompt": "Vinyl scratch then a bright musical note stack, blind test intro sting",
+      "prompt": "Soft vinyl scratch then a warm musical note stack, blind test intro, mellow",
       "durationSeconds": 1.2,
-      "gain": 0.95,
-      "aliases": ["modeMemorise"]
+      "gain": 0.85,
+      "aliases": [
+        "modeMemorise"
+      ]
     },
     {
       "id": "mode-mimic",
-      "prompt": "Microphone feedback pop then a karaoke style cheer, singing game intro sting",
+      "prompt": "Soft microphone bump then a warm karaoke cheer, singing game intro, rounded",
       "durationSeconds": 1.2,
-      "gain": 0.95,
-      "aliases": ["modeMimic"]
+      "gain": 0.85,
+      "aliases": [
+        "modeMimic"
+      ]
     }
   ]
 }

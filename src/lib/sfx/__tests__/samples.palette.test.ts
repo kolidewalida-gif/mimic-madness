@@ -190,7 +190,7 @@ describe('la palette du mode atteint le graphe audio', () => {
 
     const urls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
       .map((call) => String(call[0]));
-    expect(urls.some((url) => url.endsWith('/sfx/quiz-correct.mp3'))).toBe(true);
-    expect(urls.some((url) => url.endsWith('/sfx/ui-success.mp3'))).toBe(false);
+    expect(urls.some((url) => url.endsWith('/sfx/quiz-correct.wav'))).toBe(true);
+    expect(urls.some((url) => url.endsWith('/sfx/ui-success.wav'))).toBe(false);
   });
 });

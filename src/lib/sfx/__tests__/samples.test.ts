@@ -189,20 +189,33 @@ describe('couche d’échantillons', () => {
 });
 
 describe('cohérence du manifeste avec les fichiers générés', () => {
-  it('a un fichier MP3 valide pour chaque échantillon déclaré', () => {
+  it('a un fichier WAV valide et silencieux aux deux bouts pour chaque échantillon', () => {
     /*
      * Garde-fou concret : le manifeste et `public/sfx` doivent rester alignés.
      * Un identifiant déclaré sans fichier ferait silencieusement retomber le son
      * sur la synthèse, ce qui passerait inaperçu.
+     *
+     * On vérifie aussi les bords. Un échantillon qui commence ou finit à
+     * amplitude non nulle produit un claquement à chaque déclenchement : c'est
+     * le défaut le plus audible d'une banque d'interface, et le seul qu'on
+     * puisse attraper sans écouter.
      */
     for (const id of sampleIds()) {
-      const path = resolve(process.cwd(), 'public/sfx', `${id}.mp3`);
+      const path = resolve(process.cwd(), 'public/sfx', `${id}.wav`);
       expect(existsSync(path), `fichier manquant pour ${id}`).toBe(true);
 
-      const head = readFileSync(path).subarray(0, 3);
-      const isId3 = head[0] === 0x49 && head[1] === 0x44 && head[2] === 0x33;
-      const isMpegSync = head[0] === 0xff;
-      expect(isId3 || isMpegSync, `${id}.mp3 n'est pas un MP3`).toBe(true);
+      const file = readFileSync(path);
+      expect(file.subarray(0, 4).toString('ascii'), `${id}.wav sans en-tête RIFF`).toBe('RIFF');
+      expect(file.subarray(8, 12).toString('ascii'), `${id}.wav n'est pas du WAVE`).toBe('WAVE');
+      expect(file.readUInt16LE(22), `${id}.wav n'est pas mono`).toBe(1);
+      expect(file.readUInt16LE(34), `${id}.wav n'est pas en 16 bits`).toBe(16);
+
+      /* Premier et dernier échantillon, en valeur absolue sur 32767. */
+      const dataStart = 44;
+      const first = Math.abs(file.readInt16LE(dataStart));
+      const last = Math.abs(file.readInt16LE(file.length - 2));
+      expect(first, `${id}.wav démarre à ${first}, donc il claque`).toBeLessThan(64);
+      expect(last, `${id}.wav se coupe à ${last}, donc il claque`).toBeLessThan(64);
     }
   });
 

@@ -40,9 +40,18 @@ type LoadState =
 
 const cache = new Map<string, LoadState>();
 
+/**
+ * Le banc est en WAV 24 kHz mono.
+ *
+ * Il était en MP3, sorti d'un service génératif. Il est maintenant synthétisé
+ * par `scripts/synth-sfx.mjs`, qui écrit du PCM : pas d'encodeur à embarquer,
+ * pas de perte, et un contrôle direct du timbre. À 24 kHz mono, un son
+ * d'interface pèse une vingtaine de kilo-octets — l'écart avec le MP3 ne se voit
+ * pas sur des fichiers aussi courts, et ils sont mis en cache une fois.
+ */
 const sampleUrl = (id: string): string => {
   const base = import.meta.env.BASE_URL ?? '/';
-  return `${base.endsWith('/') ? base : `${base}/`}sfx/${id}.mp3`;
+  return `${base.endsWith('/') ? base : `${base}/`}sfx/${id}.wav`;
 };
 
 /**
@@ -213,6 +222,21 @@ export const playSustainedSample = (name: string, volume = 0.5): SustainedSample
     const level = volume * (sample.gain ?? 1) * getSoundEffectsVolume();
     const safe = Number.isFinite(level) ? Math.max(0, Math.min(1, level)) : 0;
     gain.gain.value = safe;
+
+    /*
+     * Fondu d'entrée de 60 ms.
+     *
+     * L'arrêt avait le sien depuis toujours, l'attaque non : le son démarrait à
+     * pleine amplitude, ce qui claque si le premier échantillon du fichier n'est
+     * pas nul. Symétrique, donc, et sous test d'existence — les doubles de test
+     * n'implémentent que `gain.value`.
+     */
+    if (typeof gain.gain.setValueAtTime === 'function'
+      && typeof gain.gain.linearRampToValueAtTime === 'function') {
+      const now = context.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(safe, now + 0.06);
+    }
 
     source.connect(gain);
     gain.connect(context.destination);

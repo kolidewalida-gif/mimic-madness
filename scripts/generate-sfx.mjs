@@ -25,8 +25,36 @@ const MANIFEST = resolve(ROOT, 'src/lib/sfx/manifest.json');
 const OUT_DIR = resolve(ROOT, 'public/sfx');
 
 const API_URL = 'https://api.elevenlabs.io/v1/sound-generation';
-/** MP3 44,1 kHz 128 kbps : largement suffisant pour des sons de moins d'une seconde. */
-const OUTPUT_FORMAT = 'mp3_44100_128';
+/**
+ * PCM brut 24 kHz, emballé en WAV avant écriture.
+ *
+ * Le banc était en MP3 ; il est désormais en WAV 24 kHz mono, parce que
+ * `scripts/synth-sfx.mjs` — la voie locale, sans crédits — écrit du PCM. Les
+ * deux chemins doivent produire le même format, sinon le chargeur ne sait plus
+ * quoi demander. 24 kHz suffit : au-dessus de 12 kHz, il n'y a que ce qui
+ * fatigue l'oreille.
+ */
+const OUTPUT_FORMAT = 'pcm_24000';
+const SAMPLE_RATE = 24_000;
+
+/** En-tête WAV mono 16 bits, ajouté au PCM renvoyé par l'API. */
+const wrapPcmInWav = (pcm) => {
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write('WAVE', 8, 'ascii');
+  header.write('fmt ', 12, 'ascii');
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(SAMPLE_RATE, 24);
+  header.writeUInt32LE(SAMPLE_RATE * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36, 'ascii');
+  header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+};
 /**
  * Interprétation plutôt littérale du prompt. Des sons d'interface doivent être
  * prévisibles et sobres, pas « créatifs ».
@@ -58,11 +86,23 @@ const exists = async (path) => {
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
+/**
+ * Longueur maximale du texte envoyé, style compris.
+ *
+ * Vérifiée avant l'appel : sans ce garde-fou, un style un peu long fait échouer
+ * les quarante-neuf requêtes l'une après l'autre avec un message noyé dans du
+ * JSON, alors que la cause est la même pour toutes.
+ */
+const MAX_TEXT_LENGTH = 450;
+
+const assemblePrompt = (sample, style) =>
+  style ? `${sample.prompt}. ${style}.` : sample.prompt;
+
 /** Retente uniquement ce qui est retentable : 429 et 5xx. */
 async function generate(sample, style) {
   // Le style commun est ajouté à chaque prompt : c'est lui qui fait que les
   // sons vont ensemble au lieu de sonner comme quarante banques différentes.
-  const text = style ? `${sample.prompt}. ${style}.` : sample.prompt;
+  const text = assemblePrompt(sample, style);
   const body = JSON.stringify({
     text,
     duration_seconds: sample.durationSeconds,
@@ -106,6 +146,21 @@ if (selected.length === 0) {
   process.exit(1);
 }
 
+/* Tout vérifier avant le premier appel : un texte trop long est une erreur de
+   rédaction, pas un aléa réseau, et elle vaut pour toute la sélection. */
+const overLimit = selected
+  .map((sample) => ({ id: sample.id, length: assemblePrompt(sample, manifest.style).length }))
+  .filter((entry) => entry.length > MAX_TEXT_LENGTH);
+
+if (overLimit.length > 0) {
+  console.error(
+    `Texte trop long : l'API refuse au-delà de ${MAX_TEXT_LENGTH} caractères, style compris.\n` +
+    `Le style en occupe déjà ${(manifest.style ?? '').length + 2}. À raccourcir :`,
+  );
+  for (const entry of overLimit) console.error(`  ${entry.id} — ${entry.length}`);
+  process.exit(1);
+}
+
 await mkdir(OUT_DIR, { recursive: true });
 
 let written = 0;
@@ -114,7 +169,7 @@ let failed = 0;
 let billedSeconds = 0;
 
 for (const sample of selected) {
-  const target = resolve(OUT_DIR, `${sample.id}.mp3`);
+  const target = resolve(OUT_DIR, `${sample.id}.wav`);
 
   if (!force && (await exists(target))) {
     skipped += 1;
@@ -123,7 +178,7 @@ for (const sample of selected) {
   }
 
   try {
-    const audio = await generate(sample, manifest.style);
+    const audio = wrapPcmInWav(await generate(sample, manifest.style));
     await writeFile(target, audio);
     written += 1;
     billedSeconds += sample.durationSeconds;
