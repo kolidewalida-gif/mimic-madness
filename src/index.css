@@ -13358,47 +13358,467 @@ body.inkbeta-mode .social-viewer-overlay {
 /* ============================================================
    INK BETA — ACCUEIL : COMPOSITION
    ------------------------------------------------------------
-   L'accueil suit la même grammaire que le salon : des étapes
-   numérotées dans l'ordre où on les fait, une action par
-   panneau, et rien qui soit dit deux fois.
+   Une seule scène, deux décisions : choisir son identité puis
+   entrer dans la partie. Les surfaces sont limitées aux zones
+   réellement interactives pour éviter l'effet « formulaire dans
+   un cadre dans un cadre ». Le mode reste choisi dans le salon.
 
-   1. Étape 01 — ton pseudo et ton avatar ;
-   2. Étape 02 — jouer : créer un salon, ou rejoindre avec un
-      code.
-
-   Le choix du mode n'est plus ici. Il ne décidait de rien :
-   `createLobby` n'écrit pas le mode reçu, si bien que le salon
-   naissait toujours sur le mode par défaut quoi qu'on ait
-   cliqué. Et le salon a déjà son propre sélecteur, lui branché
-   sur `lobbies.game_mode` — le mode se choisit là, la troupe
-   réunie. Ont disparu pour cause de doublon : les faux onglets,
-   le rappel « Mode sélectionné », la vignette du mode dans le
-   dock, les flèches et le compteur 01/07, et la pastille
-   « Accès beta » que le logo porte déjà.
-
-   Tout ce bloc est scoppé `.ik-home-v2`, et non `.ik-layout-v2` :
-   le salon et les écrans de jeu portent aussi `ik-layout-v2`, si
-   bien que ces règles fuyaient sur eux.
+   Toutes les règles sont descendantes de `.ik-home-v2` : le
+   lobby et les écrans de jeu ne partagent que la grammaire Ink.
    ============================================================ */
 
-@media (min-width: 1101px) {
-  /* ---- Barre : marque à gauche, outils à droite ------------------------ */
-  body.inkbeta-mode .ik-home-v2 .ik-topbar {
-    grid-template-areas: 'brand tools';
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-tools {
-    gap: 0.35rem;
-  }
+body.inkbeta-mode .ik-home-v2 {
+  --ik-home-dock-space: 5.35rem;
+  box-sizing: border-box;
+  padding-bottom: var(--ik-home-dock-space);
 }
 
-/*
- * Entre 1101 et 1399 px, les utilitaires se réduisent à leurs icônes pour que
- * le pseudo du profil reste lisible. Au-delà, ils reprennent leurs mots : une
- * rangée d'icônes muettes se devine, elle ne se lit pas.
- */
-@media (min-width: 1101px) and (max-width: 1399px) {
+/* ---- Barre compacte : marque à gauche, outils à droite --------------- */
+body.inkbeta-mode .ik-home-v2 .ik-topbar {
+  height: clamp(5.35rem, 10vh, 6.2rem);
+  grid-template-areas: 'brand tools';
+  grid-template-columns: minmax(13rem, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.45rem clamp(1.25rem, 3.3vw, 3.5rem) 0;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-title {
+  position: relative;
+  top: auto;
+  left: auto;
+  grid-area: brand;
+  width: min(18rem, 27vw);
+  margin: 0;
+  align-self: center;
+  justify-self: start;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-topbar-side {
+  position: static;
+  top: auto;
+  grid-area: tools;
+  padding: 0;
+  justify-self: end;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-tools {
+  gap: 0.35rem;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-tool--profile {
+  min-width: 0;
+  margin-left: 0.5rem;
+  padding: 0 0.85rem 0 0.5rem;
+  border-color: rgba(45, 242, 208, 0.7);
+  background: linear-gradient(180deg, rgba(111, 22, 126, 0.96), rgba(76, 8, 96, 0.96));
+  box-shadow: 0 4px 0 rgba(53, 7, 75, 0.82), -0.75rem 0 0 -0.65rem rgba(255, 255, 255, 0.18);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-tool--profile > span {
+  display: inline;
+  max-width: 9rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-tool--profile > .ik-profile-thumb {
+  display: grid;
+  width: 1.85rem;
+  height: 1.85rem;
+}
+
+/* ---- Scène sans cadre extérieur -------------------------------------- */
+body.inkbeta-mode .ik-home-v2 .ik-main {
+  align-items: center;
+  padding: 0.15rem clamp(1rem, 3.4vw, 3.5rem) 0.55rem;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-canvas {
+  display: grid;
+  width: min(100%, 79rem);
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  gap: clamp(0.75rem, 1.4vw, 1.2rem);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ---- Promesse : une accroche, pas un troisième panneau --------------- */
+body.inkbeta-mode .ik-home-v2 .ik-home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: end;
+  gap: clamp(1rem, 3vw, 3rem);
+  padding: 0 clamp(0.15rem, 0.7vw, 0.55rem);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-hero-copy {
+  min-width: 0;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+  color: var(--ik-yellow);
+  font-size: clamp(0.64rem, 0.9vw, 0.76rem);
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-kicker svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 3;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-hero h2 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.12em 0.25em;
+  margin: 0;
+  color: var(--ik-white);
+  font-family: var(--ik-display);
+  font-size: clamp(2.2rem, 4.15vw, 4.1rem);
+  font-weight: 400;
+  letter-spacing: 0.025em;
+  line-height: 0.86;
+  text-transform: uppercase;
+  text-shadow: 0 5px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-hero h2 em {
+  color: var(--ik-cyan);
+  font-style: normal;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-hero-copy > p {
+  max-width: 46rem;
+  margin: 0.65rem 0 0;
+  color: var(--ik-white-soft);
+  font-size: clamp(0.76rem, 1.05vw, 0.9rem);
+  font-weight: 720;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-promises {
+  display: grid;
+  gap: 0.45rem;
+  padding-bottom: 0.15rem;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-promises > span {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  color: var(--ik-white-soft);
+  background: rgba(65, 7, 82, 0.5);
+  font-size: 0.64rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-promises svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--ik-cyan);
+  stroke-width: 3;
+}
+
+/* ---- Deux surfaces utiles : identité et lancement -------------------- */
+body.inkbeta-mode .ik-home-v2 .ik-home-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.48fr) minmax(19.5rem, 0.72fr);
+  align-items: stretch;
+  gap: clamp(0.7rem, 1.15vw, 1rem);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 3px solid var(--ik-edge-soft);
+  border-radius: 22px;
+  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.14), 0 7px 0 rgba(54, 7, 76, 0.56);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-card::before {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 0.38rem;
+  background: linear-gradient(90deg, var(--ik-cyan) 0 58%, var(--ik-pink) 58% 78%, var(--ik-yellow) 78% 100%);
+  content: '';
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-card-index {
+  position: absolute;
+  z-index: 0;
+  top: 0.2rem;
+  right: 0.7rem;
+  color: rgba(255, 255, 255, 0.075);
+  font-family: var(--ik-display);
+  font-size: clamp(4.5rem, 7vw, 6.7rem);
+  line-height: 1;
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-identity {
+  min-height: clamp(19rem, 39vh, 24rem);
+  padding: clamp(1rem, 1.8vw, 1.5rem);
+  background:
+    radial-gradient(circle at 8% 105%, rgba(242, 48, 157, 0.28), transparent 39%),
+    radial-gradient(circle at 92% 5%, rgba(45, 242, 208, 0.12), transparent 35%),
+    var(--ik-panel);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-identity-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  height: 100%;
+  grid-template-columns: minmax(12rem, 0.78fr) minmax(0, 1.22fr);
+  align-items: center;
+  gap: clamp(1rem, 2.3vw, 2.25rem);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-mascot-zone {
+  min-width: 0;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-avatar-label {
+  display: inline-flex;
+  margin-bottom: 0.25rem;
+  color: var(--ik-cyan);
+  font-size: 0.6rem;
+  font-weight: 950;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-mascot,
+body.inkbeta-mode .ik-home-v2 .ink-game-avatar-picker {
+  width: min(100%, 15.75rem);
+}
+
+body.inkbeta-mode .ik-home-v2 .ink-game-avatar-caption {
+  margin-top: 0.5rem;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-name-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-name-card .ik-step {
+  margin-bottom: 1rem;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-step > h3 {
+  margin: 0;
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: clamp(1.8rem, 3vw, 2.85rem);
+  font-weight: 400;
+  letter-spacing: 0.035em;
+  line-height: 0.95;
+  text-transform: uppercase;
+  text-shadow: 0 4px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-step > p {
+  max-width: 32rem;
+  margin-top: 0.45rem;
+  font-size: clamp(0.72rem, 1vw, 0.84rem);
+  line-height: 1.35;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-name-card .ik-input {
+  min-height: 4.15rem;
+  font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-name-state {
+  display: flex;
+  min-height: 1.25rem;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.75rem 0 0;
+  color: var(--ik-white-faint);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-name-state > span {
+  width: 0.48rem;
+  height: 0.48rem;
+  flex: 0 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  background: transparent;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-name-state.is-ready {
+  color: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-name-state.is-ready > span {
+  border-color: var(--ik-cyan);
+  background: var(--ik-cyan);
+  box-shadow: 0 0 0 3px rgba(45, 242, 208, 0.13);
+}
+
+/* ---- La rampe d'action ----------------------------------------------- */
+body.inkbeta-mode .ik-home-v2 .ik-home-launch {
+  display: flex;
+  min-height: clamp(19rem, 39vh, 24rem);
+  flex-direction: column;
+  padding: clamp(1.2rem, 2vw, 1.6rem);
+  background:
+    radial-gradient(circle at 115% -8%, rgba(45, 242, 208, 0.2), transparent 38%),
+    radial-gradient(circle at -15% 112%, rgba(255, 98, 182, 0.2), transparent 42%),
+    var(--ik-panel-soft);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-launch > :not(.ik-home-card-index) {
+  position: relative;
+  z-index: 1;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-launch .ik-step {
+  padding-right: 2.25rem;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-launch .ik-step > h3 {
+  font-size: clamp(1.65rem, 2.25vw, 2.25rem);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-mode-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid var(--ik-cyan);
+  border-radius: 0 10px 10px 0;
+  color: var(--ik-white-soft);
+  background: rgba(45, 242, 208, 0.075);
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-mode-note svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  color: var(--ik-cyan);
+  stroke-width: 3;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-launch-action {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-launch-buttons {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-launch-buttons :is(.ik-primary-action, .ik-secondary-action) {
+  min-height: 4.35rem;
+  justify-content: flex-start;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-launch-buttons .ik-primary-action {
+  color: #2c1551;
+  background: linear-gradient(135deg, var(--ik-cyan), #82ffe9);
+  box-shadow: 0 7px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-launch-buttons .ik-primary-action-icon {
+  width: 2.45rem;
+  height: 2.45rem;
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-launch-buttons .ik-secondary-action {
+  border-color: var(--ik-edge);
+  background: linear-gradient(135deg, var(--ik-panel-bright), #8a247f);
+  box-shadow: 0 6px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-launch-buttons .ik-secondary-action > svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: 0 0 auto;
+  margin-inline: 0.52rem 0.58rem;
+  color: var(--ik-pink);
+  stroke-width: 3;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-action-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+  text-transform: none;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-action-copy strong {
+  font-size: 0.92rem;
+  font-weight: 950;
+  letter-spacing: 0.015em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-home-action-copy small {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  opacity: 0.72;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-launch-action .ik-start-hint {
+  margin: 0;
+  font-size: 0.59rem;
+}
+
+body.inkbeta-mode .ik-home-v2 .ik-footer {
+  min-height: 2.35rem;
+  padding-bottom: 0.45rem;
+}
+
+/* Les utilitaires deviennent des icônes avant que le profil ne se tasse. */
+@media (min-width: 901px) and (max-width: 1399px) {
   body.inkbeta-mode .ik-home-v2 .ik-tool:not(.ik-tool--profile) {
     width: 2.85rem;
     min-width: 2.85rem;
@@ -13407,90 +13827,6 @@ body.inkbeta-mode .social-viewer-overlay {
 
   body.inkbeta-mode .ik-home-v2 .ik-tool:not(.ik-tool--profile) > span {
     display: none;
-  }
-}
-
-@media (min-width: 1101px) {
-
-  /* Le profil se détache du groupe : séparateur, plus de place, nom lisible. */
-  body.inkbeta-mode .ik-home-v2 .ik-tool--profile {
-    min-width: 0;
-    margin-left: 0.5rem;
-    padding: 0 0.85rem 0 0.5rem;
-    border-color: rgba(45, 242, 208, 0.7);
-    background: linear-gradient(180deg, rgba(111, 22, 126, 0.96), rgba(76, 8, 96, 0.96));
-    box-shadow: 0 4px 0 rgba(53, 7, 75, 0.82), -0.75rem 0 0 -0.65rem rgba(255, 255, 255, 0.18);
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-tool--profile > span {
-    max-width: 9rem;
-    font-size: 0.78rem;
-    letter-spacing: 0.02em;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-tool--profile > .ik-profile-thumb {
-    width: 1.85rem;
-    height: 1.85rem;
-  }
-
-  /* ---- La scène remplit la hauteur ------------------------------------ */
-  body.inkbeta-mode .ik-home-v2 .ik-main {
-    align-items: stretch;
-    padding-bottom: 0.4rem;
-  }
-
-  /*
-   * La place du lecteur est réservée par le pied, et non plus par la scène : le
-   * socle est ancré au bas de la fenêtre, et le pied vient après la scène. Avec
-   * la réserve sur la scène, les liens légaux et « Réglages rapides » se
-   * retrouvaient derrière le socle, donc hors d'atteinte.
-   */
-  body.inkbeta-mode .ik-home-v2 .ik-footer {
-    padding-bottom: 5.9rem;
-  }
-
-  /*
-   * Trois rangées sous le slogan : identité, lancement, et le slogan lui-même.
-   * La scène remplit la fenêtre par `align-content: stretch` sur des rangées
-   * `auto` : elles se dimensionnent d'abord sur le contenu, puis se partagent
-   * l'espace restant. Les deux autres pistes essayées échouent ici —
-   * `minmax(0, 1fr)` comprime les rangées sous la hauteur du contenu et rogne le
-   * bas des panneaux, et `minmax(min-content, 1fr)` les gonfle en forçant le
-   * texte à se recasser au plus étroit, ce qui fait défiler la page.
-   */
-  body.inkbeta-mode .ik-home-v2 .ik-canvas {
-    min-height: 100%;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
-    align-content: stretch;
-  }
-
-  /* Le panneau d'identité n'a plus d'onglets à loger en haut. */
-  body.inkbeta-mode .ik-home-v2 .ik-play-panel {
-    min-height: 0;
-    padding: 1rem clamp(1rem, 2vw, 1.7rem) clamp(1rem, 2vw, 1.4rem);
-  }
-
-  /*
-   * Mimo à gauche, le pseudo à droite, d'un bord à l'autre du panneau. Le
-   * contenu était plafonné à 57 rem et centré, hérité de la version où ce
-   * panneau portait aussi le bouton de lancement : il laissait un vide de deux
-   * cents pixels de chaque côté.
-   */
-  body.inkbeta-mode .ik-home-v2 .ik-play-content {
-    width: 100%;
-    grid-template-columns: minmax(11rem, 0.44fr) minmax(0, 1fr);
-    align-items: center;
-    margin: 0;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-start-card {
-    width: 100%;
-    justify-self: stretch;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-start-card .ik-step {
-    margin-bottom: 0.7rem;
   }
 }
 
@@ -13514,34 +13850,306 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
   box-shadow: 0 3px 0 rgba(53, 7, 75, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-/* ---- Tablette : le profil garde son nom, le reste se resserre -------- */
+/* ---- Laptop : deux colonnes conservées, proportions resserrées ------- */
 @media (max-width: 1100px) and (min-width: 681px) {
+  body.inkbeta-mode .ik-home-v2 {
+    --ik-home-dock-space: 5.15rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-topbar {
+    height: 5.7rem;
+    grid-template-areas: 'brand tools';
+    grid-template-columns: minmax(13rem, 1fr) auto;
+    padding-inline: 1rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-title {
+    width: 15.5rem;
+  }
+
   body.inkbeta-mode .ik-home-v2 .ik-tool--profile {
     width: auto;
-    padding: 0 0.72rem;
+    padding: 0 0.72rem 0 0.45rem;
   }
 
   body.inkbeta-mode .ik-home-v2 .ik-tool--profile > span {
     display: inline;
-    max-width: 7rem;
+    max-width: 6rem;
   }
 
   body.inkbeta-mode .ik-home-v2 .ik-main {
-    padding-bottom: 0.4rem;
+    align-items: flex-start;
+    padding: 0.2rem 0.8rem 0.55rem;
   }
 
-  body.inkbeta-mode .ik-home-v2 .ik-footer {
-    padding-bottom: 5.5rem;
+  body.inkbeta-mode .ik-home-v2 .ik-canvas {
+    width: min(100%, 64rem);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-hero h2 {
+    font-size: clamp(2.15rem, 4.8vw, 3.2rem);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-stage {
+    grid-template-columns: minmax(0, 1.32fr) minmax(18rem, 0.68fr);
+  }
+
+  body.inkbeta-mode .ik-home-v2 :is(.ik-home-identity, .ik-home-launch) {
+    min-height: 18.5rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-identity-layout {
+    grid-template-columns: minmax(10.5rem, 0.72fr) minmax(0, 1.28fr);
+    gap: 1rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 :is(.ik-mascot, .ink-game-avatar-picker) {
+    width: min(100%, 13.25rem);
   }
 }
 
+/* Sous 920 px, l'action passe sous l'identité mais reste horizontale. */
+@media (max-width: 920px) and (min-width: 681px) {
+  body.inkbeta-mode .ik-home-v2 .ik-home-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-identity {
+    min-height: 18rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-launch {
+    display: grid;
+    min-height: 0;
+    grid-template-columns: minmax(0, 0.9fr) minmax(18rem, 1.1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 1rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-launch > .ik-step {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-mode-note {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-launch-action {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    margin-top: 0;
+  }
+}
+
+/* ---- Mobile : marque puis outils, parcours vertical naturel ---------- */
 @media (max-width: 680px) {
+  body.inkbeta-mode .ik-home-v2 {
+    --ik-home-dock-space: 4.75rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-topbar {
+    height: auto;
+    min-height: 7.35rem;
+    grid-template-areas:
+      'brand'
+      'tools';
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 4rem 2.75rem;
+    align-items: center;
+    gap: 0;
+    padding: 0.25rem 0.55rem 0.35rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-title {
+    width: 11.25rem;
+    align-self: center;
+    justify-self: center;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-topbar-side {
+    position: static;
+    top: auto;
+    right: auto;
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-tools {
+    width: min(100%, 18rem);
+    justify-content: center;
+    gap: 0.3rem;
+    margin-inline: auto;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-tool,
+  body.inkbeta-mode .ik-home-v2 .ik-tool--profile {
+    width: 2.45rem;
+    min-width: 2.45rem;
+    min-height: 2.4rem;
+    margin: 0;
+    padding: 0;
+    box-shadow: 0 3px 0 rgba(53, 7, 75, 0.76);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-tool > span,
+  body.inkbeta-mode .ik-home-v2 .ik-tool--profile > span {
+    display: none;
+  }
+
   body.inkbeta-mode .ik-home-v2 .ik-main {
-    padding-bottom: 0.4rem;
+    align-items: flex-start;
+    padding: 0.15rem 0.55rem 0.5rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-canvas {
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0 0.2rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-kicker {
+    margin-bottom: 0.25rem;
+    font-size: 0.58rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-hero h2 {
+    display: block;
+    font-size: clamp(2rem, 10.5vw, 2.75rem);
+    line-height: 0.9;
+    text-shadow: 0 4px 0 var(--ik-edge);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-hero h2 em {
+    display: block;
+    margin-top: 0.12em;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-hero-copy > p {
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-promises {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-promises > span {
+    min-height: 1.9rem;
+    flex: 1 1 9rem;
+    justify-content: center;
+    padding-inline: 0.55rem;
+    font-size: 0.56rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-stage {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.7rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-card {
+    border-width: 2px;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px rgba(255, 166, 223, 0.12), 0 5px 0 rgba(54, 7, 76, 0.52);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-card::before {
+    height: 0.28rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-card-index {
+    right: 0.45rem;
+    font-size: 4.2rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-identity {
+    min-height: 0;
+    padding: 0.85rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-identity-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-avatar-label {
+    margin-bottom: 0;
+  }
+
+  body.inkbeta-mode .ik-home-v2 :is(.ik-mascot, .ink-game-avatar-picker) {
+    width: min(46vw, 11.5rem);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ink-game-avatar-caption {
+    margin-top: 0.35rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-name-card {
+    width: 100%;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-name-card .ik-step {
+    margin-bottom: 0.7rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-step > h3 {
+    font-size: 1.65rem;
+    text-shadow: 0 3px 0 var(--ik-edge);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-step > p {
+    margin-top: 0.3rem;
+    font-size: 0.67rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-name-card .ik-input {
+    min-height: 3.45rem;
+    font-size: 1.05rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-name-state {
+    margin-top: 0.55rem;
+    font-size: 0.59rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-launch {
+    display: flex;
+    min-height: 0;
+    padding: 1rem 0.85rem 0.9rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-launch .ik-step > h3 {
+    font-size: 1.6rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-mode-note {
+    margin-top: 0.75rem;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.61rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-launch-action {
+    margin-top: 0.8rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-launch-buttons :is(.ik-primary-action, .ik-secondary-action) {
+    min-height: 4rem;
   }
 
   body.inkbeta-mode .ik-home-v2 .ik-footer {
-    padding-bottom: 5.3rem;
+    min-height: 2.15rem;
+    padding-bottom: 0.35rem;
   }
 
   body.inkbeta-mode .ik-music-dock--floating {
@@ -13549,45 +14157,114 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
   }
 }
 
-/* ---- Fenêtres basses : la scène se resserre pour rester d'un bloc ----
- *
- * Le socle du lecteur prend 5,4 rem sur la hauteur utile. En 900 px et moins,
- * la scène dépassait donc d'une trentaine de pixels et le bas du panneau de
- * lancement passait derrière le lecteur. On récupère cette hauteur sur les
- * respirations — padding du cadre, marge du slogan, interlignes de la carte —
- * plutôt qu'en comprimant les panneaux, qui rognent leur contenu.
- */
-@media (min-width: 1101px) and (max-height: 940px) {
-  body.inkbeta-mode .ik-home-v2 .ik-canvas {
-    gap: 0.55rem;
-    padding: 0.55rem;
+@media (max-width: 390px) {
+  body.inkbeta-mode .ik-home-v2 .ik-topbar {
+    min-height: 7rem;
+    grid-template-rows: 3.75rem 2.65rem;
   }
 
-  body.inkbeta-mode .ik-home-v2 .ik-play-panel {
-    padding: 0.8rem clamp(0.9rem, 1.7vw, 1.4rem);
+  body.inkbeta-mode .ik-home-v2 .ik-title {
+    width: 10.25rem;
   }
 
-  body.inkbeta-mode .ik-home-v2 .ik-play-title {
-    margin-bottom: 0.15rem;
+  body.inkbeta-mode .ik-home-v2 .ik-tools {
+    gap: 0.22rem;
   }
 
-  body.inkbeta-mode .ik-home-v2 .ik-start-card {
-    padding: 0.9rem;
+  body.inkbeta-mode .ik-home-v2 .ik-tool,
+  body.inkbeta-mode .ik-home-v2 .ik-tool--profile {
+    width: 2.25rem;
+    min-width: 2.25rem;
   }
 
-  body.inkbeta-mode .ik-home-v2 .ik-start-card .ik-step {
-    margin-bottom: 0.55rem;
+  body.inkbeta-mode .ik-home-v2 .ik-home-promises {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  body.inkbeta-mode .ik-home-v2 .ik-launch {
-    padding-block: 0.7rem;
+  body.inkbeta-mode .ik-home-v2 :is(.ik-mascot, .ink-game-avatar-picker) {
+    width: min(50vw, 10.5rem);
   }
 }
 
-@media (min-width: 1101px) and (max-height: 860px) {
-  /* Mimo cède quelques pixels avant que les panneaux ne rognent leur contenu. */
-  body.inkbeta-mode .ik-home-v2 .ik-mascot {
-    width: min(100%, 14rem);
+/* ---- Fenêtres basses : on resserre, mais le main reste défilable ----- */
+@media (min-width: 921px) and (max-height: 820px) {
+  body.inkbeta-mode .ik-home-v2 {
+    --ik-home-dock-space: 5.05rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-topbar {
+    height: 5rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-canvas {
+    gap: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-kicker {
+    margin-bottom: 0.2rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-hero h2 {
+    font-size: clamp(2rem, 3.25vw, 2.8rem);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-hero-copy > p {
+    margin-top: 0.4rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 :is(.ik-home-identity, .ik-home-launch) {
+    min-height: 17rem;
+    padding: 0.9rem 1rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 :is(.ik-mascot, .ink-game-avatar-picker) {
+    width: min(100%, 12.25rem);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-name-card .ik-step {
+    margin-bottom: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-mode-note,
+  body.inkbeta-mode .ik-home-v2 .ik-launch-action {
+    margin-top: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-launch-buttons :is(.ik-primary-action, .ik-secondary-action) {
+    min-height: 3.75rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 720px) and (min-width: 681px) and (max-width: 920px) {
+  body.inkbeta-mode .ik-home-v2 .ik-home-stage {
+    grid-template-columns: minmax(0, 1.3fr) minmax(17rem, 0.7fr);
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-launch {
+    display: flex;
+  }
+
+  body.inkbeta-mode .ik-home-v2 .ik-home-identity-layout {
+    grid-template-columns: minmax(9.5rem, 0.68fr) minmax(0, 1.32fr);
+  }
+}
+
+/* La hauteur réelle du lecteur inclut son socle et son ombre basse. Cette
+   réserve mesurée garde le footer entièrement cliquable au-dessus de lui. */
+body.inkbeta-mode .ik-home-v2 {
+  --ik-home-dock-space: 5.8rem;
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-home-v2 {
+    --ik-home-dock-space: 5.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode .ik-home-v2 :is(.ik-home-name-state > span, .ik-home-card) {
+    transition: none;
   }
 }
 
@@ -13783,4 +14460,56 @@ body.inkbeta-mode.inkbeta-dark .ik-field > svg {
 body.inkbeta-mode.inkbeta-dark .ik-music-dock--floating {
   background: linear-gradient(180deg, rgba(20, 9, 33, 0.94), rgba(9, 3, 17, 0.99));
   box-shadow: 0 -8px 22px rgba(4, 1, 8, 0.5);
+}
+
+/* ---- Accueil : contraste sombre sans recréer de cadre extérieur ------ */
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-canvas {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-home-promises > span {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(18, 8, 29, 0.62);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-home-card {
+  border-color: #35174d;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.045), 0 7px 0 rgba(5, 1, 10, 0.72);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-home-identity {
+  background:
+    radial-gradient(circle at 8% 105%, rgba(242, 48, 157, 0.13), transparent 39%),
+    radial-gradient(circle at 92% 5%, rgba(42, 232, 201, 0.07), transparent 35%),
+    var(--ik-panel);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-home-launch {
+  background:
+    radial-gradient(circle at 115% -8%, rgba(42, 232, 201, 0.1), transparent 38%),
+    radial-gradient(circle at -15% 112%, rgba(255, 92, 174, 0.1), transparent 42%),
+    var(--ik-panel-soft);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-home-card-index {
+  color: rgba(255, 255, 255, 0.045);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-home-mode-note {
+  background: rgba(42, 232, 201, 0.055);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-launch-buttons .ik-secondary-action {
+  background: linear-gradient(135deg, #32194a, #582044);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-mascot-avatar-frame {
+  border-color: #ded3ea;
+  background: #b96b31;
+  box-shadow:
+    inset 0 0 0 0.32rem var(--ik-edge),
+    0 0 0 0.34rem #b96b31,
+    0 0 0 0.52rem var(--ik-edge);
 }

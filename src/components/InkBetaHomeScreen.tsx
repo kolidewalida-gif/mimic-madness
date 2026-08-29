@@ -451,113 +451,124 @@ const InkBetaHomeScreenComponent = ({
         </div>
       </header>
 
-      <main className="ik-main custom-scrollbar relative z-[2] min-h-0 flex-1 overflow-y-auto">
-        <div className="ik-canvas">
-          {/*
-            Le slogan quitte le panneau de partie pour ouvrir la scène : dans le
-            panneau, il tenait la place d'un titre alors que le titre du panneau
-            est l'étape en cours.
-          */}
-          <div className="ik-play-title">
-            <span className="ik-play-title-spark" aria-hidden="true">✦</span>
-            <h2 id="ik-main-title">Fais du bruit, imite tout !</h2>
-            <span className="ik-play-title-spark" aria-hidden="true">✦</span>
+      <main
+        className="ik-main custom-scrollbar relative z-[2] min-h-0 flex-1 overflow-y-auto"
+        aria-labelledby="ik-home-tagline"
+      >
+        <div className="ik-canvas ik-home-scene">
+          <section className="ik-home-hero" aria-labelledby="ik-home-tagline">
+            <div className="ik-home-hero-copy">
+              <span className="ik-home-kicker">
+                <AudioLines aria-hidden="true" />
+                Le party game qui donne de la voix
+              </span>
+              <h2 id="ik-home-tagline">
+                Fais du bruit.
+                <em>Marque les esprits.</em>
+              </h2>
+              <p>Choisis ton pseudo, ouvre le salon et laisse ta troupe décider du chaos.</p>
+            </div>
+
+            <div className="ik-home-promises" aria-label="Les points forts de la partie">
+              <span><Play fill="currentColor" aria-hidden="true" /> Salon prêt en un instant</span>
+              <span><UsersRound aria-hidden="true" /> Mode choisi en équipe</span>
+            </div>
+          </section>
+
+          <div className="ik-home-stage">
+            <section className="ik-home-card ik-home-identity" aria-labelledby="ik-home-name-title">
+              <span className="ik-home-card-index" aria-hidden="true">01</span>
+
+              <div className="ik-home-identity-layout">
+                <div className="ik-mascot-zone">
+                  <span className="ik-home-avatar-label">Ton avatar</span>
+                  <InkBetaAvatarPicker />
+                </div>
+
+                <div className="ik-home-name-card">
+                  <div className="ik-step">
+                    <span>Étape 01</span>
+                    <h3 id="ik-home-name-title">Entre dans le jeu</h3>
+                    <p>Un pseudo, et la troupe saura qui applaudir — ou accuser.</p>
+                  </div>
+
+                  <div className="ik-field">
+                    <label htmlFor="ik-name" className="sr-only">Ton pseudo</label>
+                    <User aria-hidden="true" />
+                    <input
+                      id="ik-name"
+                      className="ik-input"
+                      placeholder="Ton pseudo cool"
+                      value={playerName}
+                      onChange={(event) => setPlayerName(event.target.value)}
+                      maxLength={20}
+                      autoComplete="nickname"
+                    />
+                  </div>
+
+                  <p className={`ik-home-name-state${nameReady ? ' is-ready' : ''}`} role="status">
+                    <span aria-hidden="true" />
+                    {nameReady
+                      ? 'Pseudo prêt — la scène t’attend.'
+                      : 'Écris ton pseudo pour déverrouiller le salon.'}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="ik-home-card ik-home-launch" aria-labelledby="ik-home-launch-title">
+              <span className="ik-home-card-index" aria-hidden="true">02</span>
+
+              <div className="ik-step">
+                <span>Étape 02</span>
+                <h3 id="ik-home-launch-title">Rassemble la troupe</h3>
+                <p>Crée une partie ou rejoins un salon en quelques secondes.</p>
+              </div>
+
+              <div className="ik-home-mode-note">
+                <UsersRound aria-hidden="true" />
+                <span>Le mode se choisit ensemble, une fois dans le salon.</span>
+              </div>
+
+              <div className="ik-launch-action">
+                <div className="ik-launch-buttons">
+                  <button
+                    type="button"
+                    disabled={!nameReady}
+                    onClick={handleCreate}
+                    className="ik-primary-action menu-focus"
+                  >
+                    <span className="ik-primary-action-icon">
+                      <Play fill="currentColor" aria-hidden="true" />
+                    </span>
+                    <span className="ik-home-action-copy">
+                      <strong>Créer mon salon</strong>
+                      <small>Je deviens l'hôte</small>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!nameReady}
+                    onClick={() => { playInkSound('brushTap', 0.3); setShowJoin(true); }}
+                    className="ik-secondary-action menu-focus"
+                  >
+                    <Hash aria-hidden="true" />
+                    <span className="ik-home-action-copy">
+                      <strong>J'ai un code</strong>
+                      <small>Je rejoins la troupe</small>
+                    </span>
+                  </button>
+                </div>
+
+                {!nameReady ? (
+                  <p className="ik-start-hint" role="status">Entre ton pseudo pour lancer la partie.</p>
+                ) : (
+                  <p className="ik-start-hint">Entrée : créer · J : rejoindre</p>
+                )}
+              </div>
+            </section>
           </div>
-
-          {/*
-            ÉTAPE 01 — qui tu es.
-            Les faux onglets « Nouvelle partie » / « J'ai un code » ont disparu :
-            le premier n'était même pas cliquable, le second ouvrait une modale.
-            Rejoindre par code est devenu une vraie action, à l'étape 03.
-          */}
-          <section className="ik-play-panel" aria-labelledby="ik-home-name-title">
-            <div className="ik-play-content">
-              <div className="ik-mascot-zone">
-                <InkBetaAvatarPicker />
-              </div>
-
-              <div className="ik-start-card">
-                <div className="ik-step">
-                  <span>Étape 01</span>
-                  <h2 id="ik-home-name-title">Choisis ton pseudo</h2>
-                  <p>Il sera visible par toute la troupe</p>
-                </div>
-
-                <div className="ik-field">
-                  <label htmlFor="ik-name" className="sr-only">Ton pseudo</label>
-                  <User aria-hidden="true" />
-                  <input
-                    id="ik-name"
-                    className="ik-input"
-                    placeholder="Ton pseudo cool"
-                    value={playerName}
-                    onChange={(event) => setPlayerName(event.target.value)}
-                    maxLength={20}
-                    autoComplete="nickname"
-                  />
-                </div>
-
-                {/*
-                  Le rappel « Mode sélectionné · Changer » et le bouton de
-                  lancement ont quitté cette carte : le premier redisait le
-                  panneau de modes qui le suivait, le second mettait l'action
-                  finale au milieu du parcours, avant même son étape.
-                */}
-              </div>
-            </div>
-          </section>
-
-          {/*
-            Le choix du mode a quitté l'accueil.
-            Il n'a jamais rien décidé : `handleCreateGame` reçoit bien un mode,
-            mais `createLobby` ne l'écrit pas, et le salon naît donc toujours sur
-            le mode par défaut. Le seul sélecteur qui compte est celui du salon,
-            qui écrit `lobbies.game_mode` — et c'est aussi le bon endroit, puisque
-            le mode se décide avec la troupe réunie, pas avant de l'avoir invitée.
-          */}
-
-          {/*
-            ÉTAPE 02 — jouer.
-            Les deux façons d'entrer en partie sont ici, côte à côte : créer un
-            salon, ou rejoindre celui de quelqu'un avec son code.
-          */}
-          <section className="ik-launch" aria-labelledby="ik-home-launch-title">
-            <div className="ik-step">
-              <span>Étape 02</span>
-              <h2 id="ik-home-launch-title">Lance la partie</h2>
-              <p>Tu choisiras le mode dans le salon, avec ta troupe.</p>
-            </div>
-
-            <div className="ik-launch-action">
-              <div className="ik-launch-buttons">
-                <button
-                  type="button"
-                  disabled={!nameReady}
-                  onClick={handleCreate}
-                  className="ik-primary-action menu-focus"
-                >
-                  <span className="ik-primary-action-icon"><Play fill="currentColor" aria-hidden="true" /></span>
-                  <span>Démarrer</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={!nameReady}
-                  onClick={() => { playInkSound('brushTap', 0.3); setShowJoin(true); }}
-                  className="ik-secondary-action menu-focus"
-                >
-                  <Hash aria-hidden="true" />
-                  J'ai un code
-                </button>
-              </div>
-
-              {!nameReady ? (
-                <p className="ik-start-hint" role="status">Entre un pseudo pour lancer la partie.</p>
-              ) : (
-                <p className="ik-start-hint">Entrée pour jouer · J pour rejoindre</p>
-              )}
-            </div>
-          </section>
         </div>
       </main>
 
