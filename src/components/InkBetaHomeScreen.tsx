@@ -415,7 +415,10 @@ const InkBetaHomeScreenComponent = ({
     () => ({ ['--accent' as string]: selected.accent }),
     [selected.accent],
   );
-  const SelectedModeIcon = selected.icon;
+  /*
+   * `SelectedModeIcon` a disparu avec le rappel du mode dans la carte et la
+   * vignette du dock : la tuile cochée de la grille porte déjà cette icône.
+   */
 
   return (
     <div
@@ -432,9 +435,7 @@ const InkBetaHomeScreenComponent = ({
       <div className="ik-party-dots" aria-hidden="true" />
 
       <header className="ik-topbar relative z-[8] flex-shrink-0">
-        <div className="ik-topbar-side ik-topbar-side--start">
-          <span className="ik-beta-chip"><span /> Accès beta</span>
-        </div>
+        {/* La pastille « Accès beta » a été retirée : le logo porte déjà le badge. */}
 
         <InkBetaLogo />
 
@@ -501,37 +502,34 @@ const InkBetaHomeScreenComponent = ({
 
       <main className="ik-main custom-scrollbar relative z-[2] min-h-0 flex-1 overflow-y-auto">
         <div className="ik-canvas">
-          <section className="ik-play-panel" aria-labelledby="ik-main-title">
-            <div className="ik-panel-tabs" aria-label="Actions de partie">
-              <span className="ik-panel-tab is-active">Nouvelle partie</span>
-              <button
-                type="button"
-                className="ik-panel-tab menu-focus"
-                disabled={!nameReady}
-                onClick={() => { playInkSound('brushTap', 0.3); setShowJoin(true); }}
-              >
-                J'ai un code
-              </button>
-            </div>
+          {/*
+            Le slogan quitte le panneau de partie pour ouvrir la scène : dans le
+            panneau, il tenait la place d'un titre alors que le titre du panneau
+            est l'étape en cours.
+          */}
+          <div className="ik-play-title">
+            <span className="ik-play-title-spark" aria-hidden="true">✦</span>
+            <h2 id="ik-main-title">Fais du bruit, imite tout !</h2>
+            <span className="ik-play-title-spark" aria-hidden="true">✦</span>
+          </div>
 
-            <div className="ik-play-title">
-              <span className="ik-play-title-spark" aria-hidden="true">✦</span>
-              <h2>Fais du bruit, imite tout !</h2>
-              <span className="ik-play-title-spark" aria-hidden="true">✦</span>
-            </div>
-
+          {/*
+            ÉTAPE 01 — qui tu es.
+            Les faux onglets « Nouvelle partie » / « J'ai un code » ont disparu :
+            le premier n'était même pas cliquable, le second ouvrait une modale.
+            Rejoindre par code est devenu une vraie action, à l'étape 03.
+          */}
+          <section className="ik-play-panel" aria-labelledby="ik-home-name-title">
             <div className="ik-play-content">
               <div className="ik-mascot-zone">
                 <InkBetaAvatarPicker />
               </div>
 
               <div className="ik-start-card">
-                <div className="ik-start-heading">
-                  <span>01</span>
-                  <div>
-                    <p>Choisis ton pseudo</p>
-                    <small>Il sera visible par toute la troupe</small>
-                  </div>
+                <div className="ik-step">
+                  <span>Étape 01</span>
+                  <h2 id="ik-home-name-title">Choisis ton pseudo</h2>
+                  <p>Il sera visible par toute la troupe</p>
                 </div>
 
                 <div className="ik-field">
@@ -548,36 +546,12 @@ const InkBetaHomeScreenComponent = ({
                   />
                 </div>
 
-                <div className="ik-current-mode" aria-live="polite">
-                  <span className="ik-current-mode-icon"><SelectedModeIcon aria-hidden="true" /></span>
-                  <span>
-                    <small>Mode sélectionné</small>
-                    <strong>{selected.label}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    className="menu-focus"
-                    onClick={() => { playInkSound('brushTap', 0.25); goToMode(modeIndex + 1); }}
-                  >
-                    Changer
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={!nameReady}
-                  onClick={handleCreate}
-                  className="ik-primary-action menu-focus"
-                >
-                  <span className="ik-primary-action-icon"><Play fill="currentColor" aria-hidden="true" /></span>
-                  <span>Démarrer</span>
-                </button>
-
-                {!nameReady ? (
-                  <p className="ik-start-hint" role="status">Entre un pseudo pour lancer la partie.</p>
-                ) : (
-                  <p className="ik-start-hint">Entrée pour jouer · J pour rejoindre</p>
-                )}
+                {/*
+                  Le rappel « Mode sélectionné · Changer » et le bouton de
+                  lancement ont quitté cette carte : le premier redisait ce que
+                  l'étape 02 montre en grand juste dessous, le second demandait
+                  de lancer la partie avant d'avoir choisi le mode.
+                */}
               </div>
             </div>
           </section>
@@ -588,15 +562,12 @@ const InkBetaHomeScreenComponent = ({
               <h2 id="ik-mode-title">Choisis un mode</h2>
             </div>
 
-            <div className="ik-mode-feature" style={{ ['--mode-accent' as string]: selected.accent }}>
-              <span className="ik-mode-feature-icon"><SelectedModeIcon aria-hidden="true" /></span>
-              <div>
-                <strong>{selected.label}</strong>
-                <p>{selected.tagline}</p>
-              </div>
-              <span className="ik-mode-players">{selected.minPlayers}+</span>
-            </div>
-
+            {/*
+              La vignette du mode retenu a été retirée, comme au salon : la tuile
+              cochée dans la grille, la description ci-dessous et la ligne de
+              l'étape 03 la disaient déjà, et elle prenait la largeur des
+              libellés.
+            */}
             <p className="ik-mode-description">{selected.description}</p>
 
             <div className="ik-mode-grid" role="group" aria-label="Modes de jeu">
@@ -622,29 +593,55 @@ const InkBetaHomeScreenComponent = ({
               })}
             </div>
 
-            <div className="ik-mode-nav" aria-label="Navigation entre les modes">
-              <button
-                type="button"
-                className="ik-mode-nav-btn menu-focus"
-                onClick={() => { playInkSound('brushTap', 0.25); goToMode(modeIndex - 1); }}
-                aria-label="Mode précédent"
-              >
-                <ChevronLeft aria-hidden="true" />
-              </button>
-              <p className="ik-mode-position" aria-live="polite">
-                <strong>{String(modeIndex + 1).padStart(2, '0')}</strong>
-                <span>/ {String(MODES.length).padStart(2, '0')}</span>
-              </p>
-              <button
-                type="button"
-                className="ik-mode-nav-btn menu-focus"
-                onClick={() => { playInkSound('brushTap', 0.25); goToMode(modeIndex + 1); }}
-                aria-label="Mode suivant"
-              >
-                <ChevronRight aria-hidden="true" />
-              </button>
-            </div>
+            {/*
+              Flèches et compteur « 01/07 » retirés : les sept modes tiennent sur
+              une rangée, où l'on clique directement celui qu'on veut. Ils
+              étaient déjà masqués par le CSS depuis la refonte précédente.
+            */}
           </aside>
+
+          {/*
+            ÉTAPE 03 — jouer.
+            Les deux façons d'entrer en partie sont ici, côte à côte : créer un
+            salon, ou rejoindre celui de quelqu'un avec son code.
+          */}
+          <section className="ik-launch" aria-labelledby="ik-home-launch-title">
+            <div className="ik-step">
+              <span>Étape 03</span>
+              <h2 id="ik-home-launch-title">Lance la partie</h2>
+              <p>{selected.label} · {selected.minPlayers} joueurs minimum</p>
+            </div>
+
+            <div className="ik-launch-action">
+              <div className="ik-launch-buttons">
+                <button
+                  type="button"
+                  disabled={!nameReady}
+                  onClick={handleCreate}
+                  className="ik-primary-action menu-focus"
+                >
+                  <span className="ik-primary-action-icon"><Play fill="currentColor" aria-hidden="true" /></span>
+                  <span>Démarrer</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!nameReady}
+                  onClick={() => { playInkSound('brushTap', 0.3); setShowJoin(true); }}
+                  className="ik-secondary-action menu-focus"
+                >
+                  <Hash aria-hidden="true" />
+                  J'ai un code
+                </button>
+              </div>
+
+              {!nameReady ? (
+                <p className="ik-start-hint" role="status">Entre un pseudo pour lancer la partie.</p>
+              ) : (
+                <p className="ik-start-hint">Entrée pour jouer · J pour rejoindre</p>
+              )}
+            </div>
+          </section>
         </div>
       </main>
 

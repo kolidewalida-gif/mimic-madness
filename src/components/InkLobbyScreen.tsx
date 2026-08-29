@@ -535,7 +535,7 @@ export const InkLobbyScreen = ({
               une mention de bas de panneau.
             */}
             <section className="ik-lobby-invite" aria-labelledby="ik-lobby-invite-title">
-              <div className="ik-lobby-step">
+              <div className="ik-step">
                 <span>Étape 01</span>
                 <h2 id="ik-lobby-invite-title">Invite ta troupe</h2>
                 <p>Donne ce code, ou envoie le lien : on te rejoint direct.</p>
@@ -773,8 +773,8 @@ export const InkLobbyScreen = ({
               l'étape 01 en haut de l'écran, ce qui demandait de lancer avant
               d'avoir rien décidé.
             */}
-            <section className="ik-lobby-launch" aria-labelledby="ik-lobby-launch-title">
-              <div className="ik-lobby-step">
+            <section className="ik-launch" aria-labelledby="ik-lobby-launch-title">
+              <div className="ik-step">
                 <span>Étape 03</span>
                 <h2 id="ik-lobby-launch-title">
                   {isHost ? 'Lance la partie' : 'Prépare-toi'}
@@ -784,7 +784,7 @@ export const InkLobbyScreen = ({
                 </p>
               </div>
 
-              <div className="ik-lobby-launch-action">
+              <div className="ik-launch-action">
                 {isHost ? (
                   <button
                     type="button"
