@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VideoPreview } from "@/components/VideoPreview";
-import { AudioRecorder } from "@/components/AudioRecorder";
+import { AudioRecorder, type AudioRecorderState } from "@/components/AudioRecorder";
 import { DeviceSettings } from "@/components/DeviceSettings";
 import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
 import { VolumeSlider } from "@/components/VolumeSlider";
@@ -114,8 +114,11 @@ export const ImitationPhase = ({
   const [recordedClipId, setRecordedClipId] = useState<string | null>(null);
   const [uploadKey, setUploadKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const settingsDialogRef = useRef<HTMLDivElement | null>(null);
   const [challengeClipData, setChallengeClipData] = useState<VideoClip | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [recorderState, setRecorderState] = useState<AudioRecorderState>('idle');
   const [includeOriginalAudio, setIncludeOriginalAudio] = useState(false);
   const [originalAudioVolume, setOriginalAudioVolume] = useState(50);
   const { toast } = useToast();
@@ -135,6 +138,50 @@ export const ImitationPhase = ({
   // Per-device timing preference. Zero preserves exact media-time alignment;
   // positive values bring words to the playhead slightly earlier.
   const [rhythmoLeadSeconds, setRhythmoLeadSeconds] = useState(readRhythmoLeadSeconds);
+
+  const closeSettings = useCallback(() => {
+    setShowSettings(false);
+    window.requestAnimationFrame(() => settingsTriggerRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    if (!showSettings) return;
+
+    const dialog = settingsDialogRef.current;
+    const getFocusableElements = () => Array.from(dialog?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], audio[controls], [tabindex]:not([tabindex="-1"])',
+    ) ?? []).filter((element) => element.getClientRects().length > 0);
+    (getFocusableElements()[0] ?? dialog)?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSettings();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog?.focus();
+        return;
+      }
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+      if (event.shiftKey && (activeElement === first || !dialog?.contains(activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (activeElement === last || !dialog?.contains(activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [closeSettings, showSettings]);
 
   const teammate = gameMode === '2v2' && getTeammate ? getTeammate(currentPlayer.id) : null;
   const { broadcastStatus } = useBroadcastRecordingStatus(
@@ -576,6 +623,7 @@ export const ImitationPhase = ({
   };
 
   const teammateReady = teammate ? readyPlayers.includes(teammate.id) : false;
+  const hasReachedReview = hasRecorded || recorderState === 'preview';
 
   return (
     <div
@@ -616,45 +664,68 @@ export const ImitationPhase = ({
             </div>
           </motion.div>
 
-          <motion.button type="button" onClick={() => setShowSettings(!showSettings)}
-            whileHover={{ scale: 1.05, rotate: showSettings ? -90 : 90 }} whileTap={{ scale: 0.95 }}
+          <motion.button
+            type="button"
+            onClick={(event) => {
+              settingsTriggerRef.current = event.currentTarget;
+              setShowSettings(true);
+            }}
+            aria-haspopup="dialog"
+            aria-expanded={showSettings}
+            aria-controls="imitation-audio-settings"
+            whileHover={{ scale: 1.05, rotate: 90 }} whileTap={{ scale: 0.95 }}
             className="w-9 h-9 rounded-xl flex items-center justify-center"
             style={{ background: showSettings ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "rgba(255,255,255,0.08)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
             <Settings className="w-4 h-4 text-white" strokeWidth={2.5} />
           </motion.button>
         </div>
 
-        <AnimatePresence>
-          {showSettings && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-              className="max-w-[1600px] mx-auto mb-4 overflow-hidden rounded-2xl"
-              style={{ background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-              <div className="p-4">
-                <DeviceSettings onClose={() => setShowSettings(false)} showPreview={false} />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* MAIN 2-COLUMN LAYOUT — video LEFT (big), imitation panel RIGHT */}
         <motion.div initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4 }}
           className={isInkBeta ? 'contents' : 'max-w-[1600px] mx-auto grid lg:grid-cols-[1.55fr_1fr] gap-4 items-start pt-4'}>
+          {isInkBeta && (
+            <ol className="ik-imitation-steps" aria-label="Progression de ton imitation">
+              <li className="is-complete">
+                <span aria-hidden="true">01</span>
+                <strong>Observer</strong>
+              </li>
+              <li className={hasReachedReview ? 'is-complete' : 'is-current'} aria-current={!hasReachedReview ? 'step' : undefined}>
+                <span aria-hidden="true">02</span>
+                <strong>Enregistrer</strong>
+              </li>
+              <li className={hasSubmitted ? 'is-complete' : hasReachedReview ? 'is-current' : undefined} aria-current={hasReachedReview && !hasSubmitted ? 'step' : undefined}>
+                <span aria-hidden="true">03</span>
+                <strong>Écouter</strong>
+              </li>
+              <li className={hasSubmitted ? 'is-complete is-current' : undefined} aria-current={hasSubmitted ? 'step' : undefined}>
+                <span aria-hidden="true">04</span>
+                <strong>Soumettre</strong>
+              </li>
+            </ol>
+          )}
+
           {/* LEFT — Video to imitate (big) */}
-          <div className={isInkBeta ? 'ik-gpanel is-featured' : 'relative rounded-3xl'}
+          <div className={isInkBeta ? 'ik-gpanel is-featured ik-imitation-reference' : 'relative rounded-3xl'}
             style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}22` }}>
             {isInkBeta && (
               <div className="ik-gpanel-head">
                 <div>
-                  <span>Manche {roundNumber}</span>
+                  <span>Référence · Manche {roundNumber}</span>
                   <h2>Imite {currentChallenge.playerName}</h2>
                 </div>
                 <div className="ik-gpanel-aside">
                   <button
                     type="button"
-                    onClick={() => setShowSettings(!showSettings)}
+                    onClick={(event) => {
+                      settingsTriggerRef.current = event.currentTarget;
+                      setShowSettings(true);
+                    }}
                     className="ik-tool menu-focus"
-                    aria-label="Réglages micro et caméra"
+                    aria-label="Ouvrir les réglages audio"
+                    aria-haspopup="dialog"
+                    aria-expanded={showSettings}
+                    aria-controls="imitation-audio-settings"
                   >
                     <Settings aria-hidden="true" />
                   </button>
@@ -662,7 +733,7 @@ export const ImitationPhase = ({
               </div>
             )}
             {!isInkBeta && <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: `2px solid ${ACCENT}33` }} />}
-            <div className="absolute -top-3 left-6 z-20">
+            <div className={isInkBeta ? 'hidden' : 'absolute -top-3 left-6 z-20'}>
               <motion.div initial={{ scale: 0, rotate: -8 }} animate={{ scale: 1, rotate: -4 }}
                 transition={{ type: "spring", stiffness: 200, damping: 14 }}
                 className="px-3 py-1 rounded-full flex items-center gap-1.5"
@@ -672,18 +743,33 @@ export const ImitationPhase = ({
             </div>
             <AnimatePresence>
               {isRecording && (
-                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, rotate: 6, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
-                  className="absolute -top-3 right-6 z-20 px-3 py-1 rounded-full flex items-center gap-1.5"
-                  style={{ background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75 animate-ping" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
-                  </span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT }}>REC</span>
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, rotate: isInkBeta ? 0 : 6, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  className={isInkBeta ? 'ik-grec' : 'absolute -top-3 right-6 z-20 px-3 py-1 rounded-full flex items-center gap-1.5'}
+                  style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #ef4444, #b91c1c)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+                  role="status"
+                  aria-live="polite"
+                >
+                  {isInkBeta ? (
+                    <>
+                      <span aria-hidden="true" />
+                      <strong>REC</strong>
+                    </>
+                  ) : (
+                    <>
+                      <span className="relative flex h-2 w-2" aria-hidden="true">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75 animate-ping" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT }}>REC</span>
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className={isInkBeta ? 'ik-gpanel-body' : 'relative p-4 pt-6'}>
+            <div className={isInkBeta ? 'ik-gpanel-body ik-imitation-reference-body' : 'relative p-4 pt-6'}>
               <div className={cn(isInkBeta ? 'ik-gvideo' : 'rounded-2xl overflow-hidden', isInkBeta && isRecording && 'is-recording')}
                 style={isInkBeta ? undefined : { border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0)${isRecording ? ", 0 0 0 3px #ef4444" : ""}` }}>
                 <VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" videoRef={challengeVideoRef} />
@@ -748,7 +834,7 @@ export const ImitationPhase = ({
           </div>
 
           {/* RIGHT — Imitation panel */}
-          <div className={isInkBeta ? 'ik-gpanel' : 'relative rounded-3xl'}
+          <div className={isInkBeta ? 'ik-gpanel ik-imitation-console' : 'relative rounded-3xl'}
             style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 30px ${ACCENT}22` }}>
             {isInkBeta && (
               <div className="ik-gpanel-head">
@@ -774,17 +860,18 @@ export const ImitationPhase = ({
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Imitation</span>
               </motion.div>
             </div>
-            <div className={isInkBeta ? 'ik-gpanel-body' : 'relative p-4 pt-6 space-y-3'}>
+            <div className={isInkBeta ? 'ik-gpanel-body ik-imitation-console-body' : 'relative p-4 pt-6 space-y-3'}>
               {!hasRecorded ? (
                 <AudioRecorder key={uploadKey} playerId={currentPlayer.id} playerName={currentPlayer.name}
                   onAudioSaved={handleVideoSaved} lobbyId={lobbyId} roundNumber={roundNumber}
                   onRecordingStart={handleRecordingStart} onRecordingStop={handleRecordingStop}
                   onRecordingPause={handleRecordingPause} onRecordingResume={handleRecordingResume}
-                  showVoiceFilters />
+                  onStateChange={setRecorderState}
+                  showVoiceFilters variant={variant} />
               ) : (
                 <>
-                  <div className="rounded-2xl p-3 space-y-2"
-                    style={{ background: "rgba(52,211,153,0.08)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                  <div className={cn("rounded-2xl p-3 space-y-2", isInkBeta && "ik-imitation-review")}
+                    style={isInkBeta ? undefined : { background: "rgba(52,211,153,0.08)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-emerald-400" />
@@ -805,8 +892,8 @@ export const ImitationPhase = ({
                       </div>
                     )}
                   </div>
-                  <div className="rounded-2xl p-3 space-y-2"
-                    style={{ background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                  <div className={cn("rounded-2xl p-3 space-y-2", isInkBeta && "ik-imitation-mix")}
+                    style={isInkBeta ? undefined : { background: "rgba(255,255,255,0.03)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
                         {includeOriginalAudio ? <Volume2 className="w-4 h-4" style={{ color: ACCENT }} /> : <VolumeX className="w-4 h-4 text-white/40" />}
@@ -845,7 +932,10 @@ export const ImitationPhase = ({
 
               {/* Suivi de la manche, à sa place dans le panneau. */}
               {isInkBeta && (
-                <div className="ik-game-actions">
+                <div className={cn(
+                  'ik-game-actions',
+                  currentPlayer.isHost && readyPlayers.length < players.length && 'has-secondary',
+                )}>
                   <p className={cn('ik-game-note', hasSubmitted && 'ik-game-note--done')}>
                     <Users aria-hidden="true" />
                     Soumis {readyPlayers.length}/{players.length}
@@ -874,6 +964,36 @@ export const ImitationPhase = ({
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            className="ik-imitation-settings-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) closeSettings();
+            }}
+          >
+            <motion.div
+              id="imitation-audio-settings"
+              ref={settingsDialogRef}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Réglages audio de l’imitation"
+              className="ik-imitation-settings-dialog custom-scrollbar menu-dialog"
+              initial={{ opacity: 0, y: 18, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.97 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <DeviceSettings onClose={closeSettings} showPreview={false} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* PLAYERS PROGRESS BAR — sticky bottom-left/right, but leaves a centered gap
           for the floating MusicPlayerBar (which is centered ~560px wide at bottom-4).

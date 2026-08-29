@@ -22,6 +22,7 @@ import {
 } from "@/lib/voiceFilters";
 import { InkVoiceFilterPicker } from "@/components/InkVoiceFilterPicker";
 import { diagnose } from "@/lib/diagnostics";
+import { cn } from "@/lib/utils";
 
 /**
  * Trim leading silence from an audio blob. Decodes to PCM, finds the first
@@ -213,6 +214,8 @@ const concatAudioBlobs = async (blobs: Blob[]): Promise<Blob> => {
 };
 
 
+export type AudioRecorderState = 'idle' | 'live' | 'paused' | 'processing' | 'preview';
+
 interface AudioRecorderProps {
   playerId: string;
   playerName: string;
@@ -230,6 +233,10 @@ interface AudioRecorderProps {
   onRecordingResume?: () => void;
   /** Show the voice-filter picker above the mic button (Ink mode). */
   showVoiceFilters?: boolean;
+  /** Applies the dedicated Ink Beta stage composition without changing recorder behaviour. */
+  variant?: 'default' | 'inkBeta';
+  /** Reports presentation state so the parent stepper mirrors the recorder without driving it. */
+  onStateChange?: (state: AudioRecorderState) => void;
 }
 
 export interface AudioRecorderHandle {
@@ -292,7 +299,7 @@ const SegmentList = ({ filters }: { filters: VoiceFilterId[][] }) => {
   if (filters.length === 0) return null;
 
   return (
-    <div className="rounded-lg bg-background/40 p-3 space-y-2">
+    <div className="ik-recorder-segments rounded-lg bg-background/40 p-3 space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wide text-foreground-secondary">
         {filters.length} segment{filters.length > 1 ? 's' : ''} enregistré{filters.length > 1 ? 's' : ''}
       </p>
@@ -341,6 +348,8 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   onRecordingPause,
   onRecordingResume,
   showVoiceFilters = false,
+  variant = 'default',
+  onStateChange,
 }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -387,6 +396,20 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   };
 
   const { toast } = useToast();
+  const isInkBeta = variant === 'inkBeta';
+  const recorderState: AudioRecorderState = isProcessingTake
+    ? 'processing'
+    : recordedBlob
+      ? 'preview'
+      : isPaused
+        ? 'paused'
+        : isRecording
+          ? 'live'
+          : 'idle';
+
+  useEffect(() => {
+    onStateChange?.(recorderState);
+  }, [onStateChange, recorderState]);
 
   /** Cumul du segment en cours d'enregistrement. */
   const activeVoice = {
@@ -946,18 +969,32 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   };
 
   return (
-    <Card className="p-6 bg-background-secondary/50 border-glass-border">
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Mic className="h-5 w-5 text-secondary" />
-          <h3 className="text-xl font-semibold text-gradient">
-            Enregistrer votre imitation
-          </h3>
+    <Card
+      data-state={recorderState}
+      className={cn(
+        "p-6 bg-background-secondary/50 border-glass-border",
+        isInkBeta && "ik-recorder-console",
+      )}
+    >
+      <div className={cn("space-y-6", isInkBeta && "ik-recorder-stack")}>
+        <div className={cn("flex items-center gap-2", isInkBeta && "ik-recorder-heading")}>
+          <span className={isInkBeta ? "ik-recorder-heading-icon" : undefined}>
+            <Mic className="h-5 w-5 text-secondary" aria-hidden="true" />
+          </span>
+          <div>
+            <h3 className="text-xl font-semibold text-gradient">
+              {isInkBeta ? 'Prépare ton imitation' : 'Enregistrer votre imitation'}
+            </h3>
+            {isInkBeta && <p>Choisis ta voix, puis lance une prise synchronisée avec la référence.</p>}
+          </div>
         </div>
 
         {isProcessingTake && !recordedBlob && (
           <div
-            className="rounded-2xl border border-secondary/30 bg-secondary/5 px-5 py-8 text-center space-y-3"
+            className={cn(
+              "rounded-2xl border border-secondary/30 bg-secondary/5 px-5 py-8 text-center space-y-3",
+              isInkBeta && "ik-recorder-state ik-recorder-state--processing",
+            )}
             role="status"
             aria-live="polite"
           >
@@ -972,22 +1009,26 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         )}
 
         {!isProcessingTake && !isRecording && !isPaused && !recordedBlob && (
-          <div className="space-y-4">
+          <div className={cn("space-y-4", isInkBeta && "ik-recorder-state ik-recorder-state--idle")}>
             {showVoiceFilters && (
-              <InkVoiceFilterPicker
-                value={voiceFilters}
-                onChange={setVoiceFilters}
-              />
+              <div className={isInkBeta ? "ik-recorder-filter-bank" : undefined}>
+                <InkVoiceFilterPicker
+                  value={voiceFilters}
+                  onChange={setVoiceFilters}
+                  compact={isInkBeta}
+                />
+              </div>
             )}
-            <p className="text-sm text-foreground-secondary text-center">
-              Cliquez pour commencer à enregistrer votre voix
+            <p className={cn("text-sm text-foreground-secondary text-center", isInkBeta && "ik-recorder-instruction")}>
+              {isInkBeta ? 'Quand tu es prêt, lance la prise : la vidéo repart automatiquement.' : 'Cliquez pour commencer à enregistrer votre voix'}
             </p>
-            <div className="flex justify-center">
+            <div className={cn("flex justify-center", isInkBeta && "ik-recorder-trigger-wrap")}>
               <Button
                 onClick={startRecording}
                 variant="hero"
                 size="lg"
-                className="w-32 h-32 rounded-full"
+                className={cn("w-32 h-32 rounded-full", isInkBeta && "ik-recorder-trigger menu-focus")}
+                aria-label="Commencer l’enregistrement de ton imitation"
               >
                 <Mic className="h-12 w-12" />
               </Button>
@@ -996,9 +1037,9 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         )}
 
         {isRecording && (
-          <div className="space-y-6">
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative">
+          <div className={cn("space-y-6", isInkBeta && "ik-recorder-state ik-recorder-state--live")}>
+            <div className={cn("flex flex-col items-center gap-4", isInkBeta && "ik-recorder-live-layout")}>
+              <div className={cn("relative", isInkBeta && "ik-recorder-live-mic")}>
                 <div className="w-32 h-32 rounded-full bg-destructive/20 flex items-center justify-center">
                   <Mic className="h-12 w-12 text-destructive animate-pulse" />
                 </div>
@@ -1008,7 +1049,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
                 />
               </div>
 
-              <div className="flex gap-2 items-end h-16" aria-label="Niveau du microphone">
+              <div className={cn("flex gap-2 items-end h-16", isInkBeta && "ik-recorder-meter")} aria-label="Niveau du microphone">
                 {AUDIO_METER_WEIGHTS.map((weight, index) => (
                   <div
                     key={index}
@@ -1044,7 +1085,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
 
               <SegmentList filters={segmentFilters} />
 
-              <div className="grid w-full grid-cols-2 gap-3 mt-2">
+              <div className={cn("grid w-full grid-cols-2 gap-3 mt-2", isInkBeta && "ik-recorder-live-actions")}>
                 <Button onClick={pauseRecording} variant="outline" size="lg">
                   <PauseCircle className="h-5 w-5 mr-2" />
                   Pause
@@ -1063,7 +1104,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         )}
 
         {isPaused && !recordedBlob && (
-          <div className="space-y-4">
+          <div className={cn("space-y-4", isInkBeta && "ik-recorder-state ik-recorder-state--paused")}>
             <div className="text-center space-y-1">
               <p className="text-lg font-semibold text-secondary">⏸️ En pause</p>
               <p className="text-sm text-foreground-secondary">
@@ -1075,7 +1116,9 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
             <SegmentList filters={segmentFilters} />
 
             {showVoiceFilters && (
-              <InkVoiceFilterPicker value={voiceFilters} onChange={setVoiceFilters} />
+              <div className={isInkBeta ? "ik-recorder-filter-bank" : undefined}>
+                <InkVoiceFilterPicker value={voiceFilters} onChange={setVoiceFilters} compact={isInkBeta} />
+              </div>
             )}
 
             <div
@@ -1106,7 +1149,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         )}
 
         {recordedBlob && previewUrl && (
-          <div className="space-y-4">
+          <div className={cn("space-y-4", isInkBeta && "ik-recorder-state ik-recorder-state--preview")}>
             <p className="text-center text-sm text-foreground-secondary">
               ✅ Enregistrement terminé ! Écoutez, puis envoyez.
             </p>

@@ -22259,3 +22259,664 @@ body.inkbeta-mode .social-studio-dialog {
     border-left: 1px solid var(--viewer-edge);
   }
 }
+
+/* ============================================================
+   INK BETA — SCÈNE D’IMITATION
+   La référence reste dominante et la console conserve un volume stable entre
+   préparation, prise, pause, traitement et écoute. Les règles ne modifient
+   jamais le montage du recorder ni le cycle de vie du microphone.
+   ============================================================ */
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--stage {
+  column-gap: clamp(0.8rem, 1.25vw, 1.2rem);
+  row-gap: clamp(0.55rem, 1vw, 0.9rem);
+}
+
+body.inkbeta-mode .ik-imitation-steps {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.42rem;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  background: rgba(44, 5, 61, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  list-style: none;
+}
+
+body.inkbeta-mode .ik-imitation-steps li {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--ik-white-faint);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+body.inkbeta-mode .ik-imitation-steps li::after {
+  position: absolute;
+  top: 50%;
+  right: -0.31rem;
+  z-index: 1;
+  width: 0.22rem;
+  height: 0.22rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.24);
+  content: '';
+}
+
+body.inkbeta-mode .ik-imitation-steps li:last-child::after {
+  display: none;
+}
+
+body.inkbeta-mode .ik-imitation-steps li > span {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  font-family: var(--ik-display);
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+body.inkbeta-mode .ik-imitation-steps li > strong {
+  overflow: hidden;
+  font-size: 0.69rem;
+  font-weight: 900;
+  letter-spacing: 0.095em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-imitation-steps li.is-complete {
+  color: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-imitation-steps li.is-current {
+  border-color: rgba(255, 98, 182, 0.72);
+  color: var(--ik-white);
+  background: rgba(255, 98, 182, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 98, 182, 0.12);
+}
+
+body.inkbeta-mode .ik-imitation-steps li.is-current > span {
+  color: var(--ik-edge);
+  border-color: var(--ik-pink);
+  background: var(--ik-pink);
+}
+
+body.inkbeta-mode .ik-imitation-reference,
+body.inkbeta-mode .ik-imitation-console {
+  align-self: start;
+}
+
+body.inkbeta-mode .ik-imitation-reference {
+  position: sticky;
+  top: 0;
+}
+
+body.inkbeta-mode .ik-imitation-reference .ik-gpanel-head,
+body.inkbeta-mode .ik-imitation-console .ik-gpanel-head {
+  min-height: 2.9rem;
+  margin-bottom: 0.45rem;
+}
+
+body.inkbeta-mode .ik-imitation-reference-body {
+  gap: 0.45rem;
+}
+
+body.inkbeta-mode .ik-imitation-reference-body > .ik-gvideo {
+  isolation: isolate;
+}
+
+body.inkbeta-mode .ik-imitation-reference-body > .mt-3 {
+  margin-top: 0.25rem;
+}
+
+body.inkbeta-mode .ik-imitation-reference .ik-grec {
+  top: 0.72rem;
+  right: 4.3rem;
+}
+
+body.inkbeta-mode .ik-imitation-reference .ik-grec strong {
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+body.inkbeta-mode .ik-imitation-console {
+  background:
+    linear-gradient(180deg, rgba(255, 98, 182, 0.075), transparent 30%),
+    var(--ik-panel);
+}
+
+body.inkbeta-mode .ik-imitation-console-body {
+  justify-content: space-between;
+}
+
+body.inkbeta-mode .ik-imitation-console-body > .ik-game-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 0.15rem;
+}
+
+body.inkbeta-mode .ik-imitation-console-body > .ik-game-actions.has-secondary {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* Le Card générique disparaît visuellement : le panneau de scène est déjà le
+   cadre, et un second cadre réduisait inutilement la console. */
+body.inkbeta-mode .ik-recorder-console {
+  width: 100%;
+  min-width: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0;
+  color: var(--ik-white);
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-recorder-stack {
+  display: flex;
+  min-height: clamp(20rem, 42vh, 29rem);
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+body.inkbeta-mode .ik-recorder-stack > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0;
+}
+
+body.inkbeta-mode .ik-recorder-heading {
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid rgba(45, 242, 208, 0.25);
+  border-radius: 12px;
+  background: rgba(45, 242, 208, 0.055);
+}
+
+body.inkbeta-mode .ik-recorder-heading-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 2px solid var(--ik-edge);
+  border-radius: 9px;
+  color: var(--ik-edge);
+  background: var(--ik-cyan);
+  box-shadow: 0 3px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-recorder-heading-icon svg {
+  width: 1rem;
+  height: 1rem;
+  color: inherit;
+  stroke-width: 3;
+}
+
+body.inkbeta-mode .ik-recorder-heading h3 {
+  margin: 0;
+  color: var(--ik-white);
+  background: none;
+  font-family: var(--ik-display);
+  font-size: clamp(1.05rem, 1.45vw, 1.3rem);
+  font-weight: 400;
+  letter-spacing: 0.035em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  -webkit-text-fill-color: currentColor;
+}
+
+body.inkbeta-mode .ik-recorder-heading p {
+  margin: 0.2rem 0 0;
+  color: var(--ik-white-faint);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+body.inkbeta-mode .ik-recorder-state {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+}
+
+body.inkbeta-mode .ik-recorder-state--idle {
+  gap: 0.65rem;
+  justify-content: flex-start;
+}
+
+body.inkbeta-mode .ik-recorder-filter-bank {
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
+  background: rgba(28, 4, 40, 0.48);
+}
+
+body.inkbeta-mode .ik-recorder-filter-bank > div {
+  margin: 0;
+}
+
+body.inkbeta-mode .ik-recorder-filter-bank > div > .grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.38rem;
+}
+
+body.inkbeta-mode .ik-recorder-filter-bank button {
+  min-width: 0;
+  border-width: 2px !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-recorder-filter-bank button[aria-pressed='true'] {
+  border-color: var(--ik-cyan) !important;
+  box-shadow: inset 0 0 0 1px rgba(45, 242, 208, 0.3) !important;
+}
+
+body.inkbeta-mode .ik-recorder-filter-bank button > span:first-child {
+  font-size: clamp(0.9rem, 1.5vw, 1.15rem);
+}
+
+body.inkbeta-mode .ik-recorder-filter-bank button > span:nth-child(2) {
+  font-size: 0.56rem;
+}
+
+body.inkbeta-mode .ik-recorder-instruction {
+  max-width: 17rem;
+  margin: auto auto 0;
+  color: var(--ik-white-faint);
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+body.inkbeta-mode .ik-recorder-trigger-wrap {
+  position: relative;
+  padding: 0.4rem 0 0.25rem;
+}
+
+body.inkbeta-mode .ik-recorder-trigger-wrap::before,
+body.inkbeta-mode .ik-recorder-trigger-wrap::after {
+  position: absolute;
+  top: 50%;
+  width: min(24%, 3.4rem);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(45, 242, 208, 0.65));
+  content: '';
+}
+
+body.inkbeta-mode .ik-recorder-trigger-wrap::before {
+  left: 4%;
+}
+
+body.inkbeta-mode .ik-recorder-trigger-wrap::after {
+  right: 4%;
+  transform: scaleX(-1);
+}
+
+body.inkbeta-mode .ik-recorder-trigger {
+  width: clamp(4.75rem, 7.5vw, 5.6rem) !important;
+  height: clamp(4.75rem, 7.5vw, 5.6rem) !important;
+  min-width: 4.75rem;
+  min-height: 4.75rem;
+  border: 3px solid var(--ik-edge) !important;
+  color: var(--ik-edge) !important;
+  background: var(--ik-pink) !important;
+  box-shadow: 0 6px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ik-recorder-trigger:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ik-recorder-trigger:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ik-recorder-trigger svg {
+  width: 2rem;
+  height: 2rem;
+  color: inherit;
+  stroke-width: 3;
+}
+
+body.inkbeta-mode .ik-recorder-live-layout {
+  gap: 0.65rem;
+}
+
+body.inkbeta-mode .ik-recorder-live-mic > div {
+  width: 5.2rem;
+  height: 5.2rem;
+  border: 3px solid var(--ik-pink);
+  background: rgba(255, 98, 182, 0.13);
+}
+
+body.inkbeta-mode .ik-recorder-live-mic > div svg {
+  width: 2rem;
+  height: 2rem;
+  color: var(--ik-pink);
+}
+
+body.inkbeta-mode .ik-recorder-live-mic > span {
+  border-width: 2px;
+  border-color: var(--ik-pink);
+}
+
+body.inkbeta-mode .ik-recorder-meter {
+  height: 2.6rem;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+body.inkbeta-mode .ik-recorder-meter > div {
+  width: 0.38rem;
+  max-height: 2.6rem;
+  background: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-recorder-state--live > div > p:nth-of-type(1) {
+  margin: 0;
+  color: var(--ik-pink);
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-recorder-live-actions,
+body.inkbeta-mode .ik-recorder-state--paused > .grid,
+body.inkbeta-mode .ik-recorder-state--preview > .grid {
+  gap: 0.5rem;
+}
+
+body.inkbeta-mode .ik-recorder-live-actions button,
+body.inkbeta-mode .ik-recorder-state--paused > .grid button,
+body.inkbeta-mode .ik-recorder-state--preview > .grid button {
+  min-height: 2.75rem;
+  border: 2px solid var(--ik-edge);
+  border-radius: 10px;
+  box-shadow: 0 3px 0 var(--ik-edge);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-recorder-segments {
+  width: 100%;
+  max-height: 7rem;
+  overflow-y: auto;
+  padding: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(28, 4, 40, 0.42);
+}
+
+body.inkbeta-mode .ik-recorder-segments p {
+  color: var(--ik-white-faint);
+  font-size: 0.58rem;
+}
+
+body.inkbeta-mode .ik-recorder-segments ol {
+  gap: 0.35rem;
+}
+
+body.inkbeta-mode .ik-recorder-segments li {
+  min-width: 0;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.62rem;
+}
+
+body.inkbeta-mode .ik-recorder-state--processing {
+  min-height: 16rem;
+  border-color: rgba(45, 242, 208, 0.35);
+  color: var(--ik-white);
+  background: rgba(45, 242, 208, 0.065);
+}
+
+body.inkbeta-mode .ik-recorder-state--processing svg {
+  color: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-recorder-state--processing p {
+  color: var(--ik-white-soft);
+}
+
+body.inkbeta-mode .ik-recorder-state--preview > .bg-background\/50 {
+  padding: 0.7rem;
+  border: 1px solid rgba(45, 242, 208, 0.24);
+  background: rgba(45, 242, 208, 0.055);
+}
+
+body.inkbeta-mode .ik-recorder-state--preview audio {
+  height: 2.6rem;
+  color-scheme: dark;
+}
+
+body.inkbeta-mode .ik-imitation-review,
+body.inkbeta-mode .ik-imitation-mix {
+  padding: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(28, 4, 40, 0.48);
+}
+
+body.inkbeta-mode .ik-imitation-review {
+  border-color: rgba(45, 242, 208, 0.4);
+  background: rgba(45, 242, 208, 0.06);
+}
+
+body.inkbeta-mode .ik-imitation-review video {
+  max-height: min(31vh, 15rem);
+  object-fit: contain;
+}
+
+body.inkbeta-mode .ik-imitation-review h3 {
+  color: var(--ik-cyan) !important;
+  text-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-imitation-mix label {
+  color: var(--ik-white);
+}
+
+/* Réglages hors flux : leur ouverture ne change plus les colonnes ni la taille
+   de la vidéo. Le même conteneur sert en desktop et devient une sheet mobile. */
+.ik-imitation-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+  background: rgba(8, 3, 18, 0.82);
+  backdrop-filter: blur(8px);
+}
+
+.ik-imitation-settings-dialog {
+  width: min(62rem, 100%);
+  max-height: min(90dvh, 52rem);
+  overflow-y: auto;
+  border: 2px solid var(--ink-line, rgba(255, 255, 255, 0.16));
+  border-radius: 18px;
+  color: white;
+  background: #14091f;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  outline: none;
+}
+
+body.inkbeta-mode .ik-imitation-settings-dialog {
+  border: 3px solid var(--ik-edge);
+  color: var(--ik-white);
+  background: var(--ik-panel-deep);
+  box-shadow: 0 8px 0 var(--ik-edge), 0 28px 80px rgba(0, 0, 0, 0.55);
+}
+
+@media (max-width: 1100px) {
+  body.inkbeta-mode .ik-imitation-reference {
+    position: relative;
+    top: auto;
+  }
+
+  body.inkbeta-mode .ik-recorder-stack {
+    min-height: 0;
+  }
+
+  body.inkbeta-mode .ik-recorder-filter-bank > div > .grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .ik-recorder-trigger-wrap::before,
+  body.inkbeta-mode .ik-recorder-trigger-wrap::after {
+    width: min(34%, 9rem);
+  }
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-imitation-steps {
+    gap: 0.25rem;
+    padding: 0.3rem;
+    border-width: 1px;
+    border-radius: 11px;
+  }
+
+  body.inkbeta-mode .ik-imitation-steps li {
+    min-height: 2.25rem;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+  }
+
+  body.inkbeta-mode .ik-imitation-steps li > span {
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 6px;
+    font-size: 0.58rem;
+  }
+
+  body.inkbeta-mode .ik-imitation-steps li > strong {
+    font-size: 0.54rem;
+    letter-spacing: 0.04em;
+  }
+
+  body.inkbeta-mode .ik-imitation-reference .ik-grec {
+    top: 0.68rem;
+    right: 3.8rem;
+  }
+
+  body.inkbeta-mode .ik-recorder-heading {
+    padding: 0.55rem;
+  }
+
+  body.inkbeta-mode .ik-recorder-heading p {
+    font-size: 0.64rem;
+  }
+
+  body.inkbeta-mode .ik-recorder-filter-bank > div > .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .ik-imitation-console-body > .ik-game-actions.has-secondary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ik-imitation-settings-overlay {
+    align-items: end;
+    padding: max(0.5rem, env(safe-area-inset-top)) max(0.5rem, env(safe-area-inset-right)) 0 max(0.5rem, env(safe-area-inset-left));
+  }
+
+  .ik-imitation-settings-dialog,
+  body.inkbeta-mode .ik-imitation-settings-dialog {
+    width: 100%;
+    max-height: calc(92dvh - env(safe-area-inset-top));
+    padding-bottom: env(safe-area-inset-bottom);
+    border-bottom: 0;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 36px rgba(0, 0, 0, 0.45);
+  }
+}
+
+@media (max-width: 430px) {
+  body.inkbeta-mode .ik-imitation-steps li > strong {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  body.inkbeta-mode .ik-recorder-live-actions,
+  body.inkbeta-mode .ik-recorder-state--paused > .grid,
+  body.inkbeta-mode .ik-recorder-state--preview > .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Les petits écrans paysage disposent de peu de hauteur mais assez de largeur :
+   remettre les deux panneaux côte à côte évite un long tunnel vertical. */
+@media (min-width: 620px) and (max-width: 900px) and (max-height: 600px) and (orientation: landscape) {
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--stage {
+    width: min(100%, 68rem);
+    grid-template-columns: minmax(0, 1.45fr) minmax(14.5rem, 0.9fr);
+  }
+
+  body.inkbeta-mode .ik-imitation-reference {
+    position: sticky;
+    top: 0;
+  }
+
+  body.inkbeta-mode .ik-imitation-steps {
+    padding: 0.25rem;
+  }
+
+  body.inkbeta-mode .ik-imitation-steps li {
+    min-height: 2rem;
+    padding-block: 0.2rem;
+  }
+
+  body.inkbeta-mode .ik-recorder-heading p,
+  body.inkbeta-mode .ik-recorder-instruction {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-recorder-stack {
+    min-height: 0;
+  }
+
+  body.inkbeta-mode .ik-recorder-filter-bank > div > .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode .ik-recorder-trigger,
+  body.inkbeta-mode .ik-recorder-live-actions button,
+  .ik-imitation-settings-dialog {
+    transition: none;
+  }
+
+  body.inkbeta-mode .ik-recorder-live-mic > span {
+    animation: none;
+  }
+}
