@@ -10,6 +10,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AudioLines,
+  Bell,
   Camera,
   ChevronLeft,
   ChevronRight,
@@ -29,25 +30,21 @@ import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
-import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { GAME_AVATARS, findGameAvatarIndex } from '@/lib/gameAvatars';
 import { type LobbyGameMode } from '@/lib/gameModes';
-import { DeviceSettings } from '@/components/DeviceSettings';
-import { MusicPlayerBar } from '@/components/MusicPlayerBar';
-import { NotificationCenter } from '@/components/NotificationCenter';
+import { type PersonalHubTab } from '@/components/personal-hub/types';
 import { InkBetaLogo, InkBetaMascot } from '@/components/InkBetaBrand';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { InkProfileSidebar } from '@/components/InkProfileSidebar';
-import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
-import { InkDrawer, InkModal } from '@/components/menu/InkOverlay';
+import { InkModal } from '@/components/menu/InkOverlay';
 
 interface InkBetaHomeScreenProps {
-  onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void;
-  onJoinGame: (playerName: string, lobbyCode: string) => void;
-  /** Ouvre le Social Studio, monté par la page. */
-  onOpenSocial?: () => void;
+  onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void | Promise<void>;
+  onJoinGame: (playerName: string, lobbyCode: string) => void | Promise<void>;
+  onOpenPersonalHub: (tab: PersonalHubTab) => void;
+  isPersonalHubOpen: boolean;
+  notificationCount?: number;
 }
 
 /*
@@ -283,11 +280,12 @@ InkBetaAvatarPicker.displayName = 'InkBetaAvatarPicker';
 const InkBetaHomeScreenComponent = ({
   onCreateGame,
   onJoinGame,
-  onOpenSocial,
+  onOpenPersonalHub,
+  isPersonalHubOpen,
+  notificationCount = 0,
 }: InkBetaHomeScreenProps) => {
   const { user, profile } = useAuth();
   const { play } = useBackgroundMusic();
-  const { level } = usePlayerLevel();
 
   const {
     recent: recentLobbies,
@@ -301,15 +299,12 @@ const InkBetaHomeScreenComponent = ({
   const [lobbyCode, setLobbyCode] = useState('');
 
   const [showJoin, setShowJoin] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-  const [showFriends, setShowFriends] = useState(false);
 
   const nameReady = playerName.trim().length > 0;
   const joinReady = nameReady && lobbyCode.trim().length === 4;
   const displayName = profile?.display_name || playerName || 'Joueur';
   const profileAvatarUrl = user ? profile?.avatar_url || undefined : undefined;
-  const anyOverlayOpen = showJoin || showSettings || showProfile || showFriends;
+  const anyOverlayOpen = showJoin || isPersonalHubOpen;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -364,7 +359,7 @@ const InkBetaHomeScreenComponent = ({
     {
       key: 's',
       enabled: !anyOverlayOpen,
-      handler: () => setShowSettings(true),
+      handler: () => onOpenPersonalHub('settings'),
       label: 'Paramètres',
     },
   ]);
@@ -392,30 +387,35 @@ const InkBetaHomeScreenComponent = ({
 
         <div className="ik-topbar-side ik-topbar-side--end">
           <div className="ik-tools">
-            {user && <span className="ik-notifications"><NotificationCenter /></span>}
-
-            {/*
-              Social remis dans la barre : le dialogue était déjà monté par la
-              page pour toute la famille Ink, mais l'accueil beta n'avait aucun
-              bouton pour l'ouvrir.
-            */}
-            {onOpenSocial && (
-              <button
-                type="button"
-                onClick={() => { playInkSound('brushTap', 0.3); onOpenSocial(); }}
-                className="ik-tool menu-focus"
-                aria-label="Ouvrir le Social Studio"
-              >
-                <Share2 aria-hidden="true" />
-                <span>Social</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => { playInkSound('inkClick', 0.3); onOpenPersonalHub('notifications'); }}
+              className="ik-tool menu-focus"
+              aria-label={`Notifications${notificationCount > 0 ? `, ${notificationCount} non lue${notificationCount > 1 ? 's' : ''}` : ''}`}
+              aria-haspopup="dialog"
+            >
+              <Bell aria-hidden="true" />
+              <span>Alertes</span>
+              {notificationCount > 0 && <b className="ik-tool-badge" aria-hidden="true">{notificationCount > 9 ? '9+' : notificationCount}</b>}
+            </button>
 
             <button
               type="button"
-              onClick={() => { playInkSound('brushTap', 0.3); setShowFriends(true); }}
+              onClick={() => { playInkSound('brushTap', 0.3); onOpenPersonalHub('social'); }}
               className="ik-tool menu-focus"
-              aria-label="Mes amis"
+              aria-label="Ouvrir Social"
+              aria-haspopup="dialog"
+            >
+              <Share2 aria-hidden="true" />
+              <span>Social</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { playInkSound('brushTap', 0.3); onOpenPersonalHub('friends'); }}
+              className="ik-tool menu-focus"
+              aria-label="Ouvrir les amis"
+              aria-haspopup="dialog"
             >
               <UsersRound aria-hidden="true" />
               <span>Amis</span>
@@ -423,9 +423,10 @@ const InkBetaHomeScreenComponent = ({
 
             <button
               type="button"
-              onClick={() => { playInkSound('inkClick', 0.3); setShowSettings(true); }}
+              onClick={() => { playInkSound('inkClick', 0.3); onOpenPersonalHub('settings'); }}
               className="ik-tool menu-focus"
-              aria-label="Paramètres"
+              aria-label="Ouvrir les réglages"
+              aria-haspopup="dialog"
             >
               <Settings aria-hidden="true" />
               <span>Options</span>
@@ -433,9 +434,11 @@ const InkBetaHomeScreenComponent = ({
 
             <button
               type="button"
-              onClick={() => { playInkSound('inkClick', 0.3); setShowProfile(true); }}
+              onClick={() => { playInkSound('inkClick', 0.3); onOpenPersonalHub('profile'); }}
               className="ik-tool ik-tool--profile menu-focus"
-              aria-label={`Profil de ${displayName}`}
+              aria-label={`Ouvrir le profil de ${displayName}`}
+              aria-haspopup="dialog"
+              aria-expanded={isPersonalHubOpen}
             >
               {profileAvatarUrl ? (
                 <Avatar className="ik-profile-thumb" aria-hidden="true">
@@ -583,44 +586,11 @@ const InkBetaHomeScreenComponent = ({
         <button
           type="button"
           className="ik-footer-settings menu-focus"
-          onClick={() => setShowSettings(true)}
+          onClick={() => onOpenPersonalHub('settings')}
         >
           <SlidersHorizontal aria-hidden="true" /> Réglages rapides
         </button>
       </footer>
-
-      <InkDrawer
-        isOpen={showProfile}
-        onClose={() => setShowProfile(false)}
-        side="left"
-        title="Mon profil"
-        subtitle={`Niveau ${level}`}
-        icon={<User className="h-5 w-5" />}
-        className="ik-party-overlay ik-profile-drawer"
-      >
-        <div className="flex flex-col gap-3">
-          <InkProfileSidebar variant="inkBeta" />
-          <button
-            type="button"
-            className="ik-secondary-action menu-focus"
-            onClick={() => { setShowProfile(false); setShowFriends(true); }}
-          >
-            <UsersRound className="h-4 w-4" aria-hidden="true" />
-            Mes amis
-          </button>
-        </div>
-      </InkDrawer>
-
-      <InkDrawer
-        isOpen={showFriends}
-        onClose={() => setShowFriends(false)}
-        side="left"
-        title="Mes amis"
-        icon={<UsersRound className="h-5 w-5" />}
-        className="ik-party-overlay ik-friends-drawer"
-      >
-        <InkFriendsSidebar />
-      </InkDrawer>
 
       <InkModal
         isOpen={showJoin}
@@ -700,17 +670,6 @@ const InkBetaHomeScreenComponent = ({
             <p className="ik-form-message">Le code doit contenir 4 caractères et ton pseudo doit être renseigné.</p>
           )}
         </form>
-      </InkModal>
-
-      <InkModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        title="Options"
-        subtitle="Audio, volume et apparence"
-        icon={<Settings className="h-5 w-5" />}
-        className="ik-party-overlay ik-options-modal"
-      >
-        <DeviceSettings embedded showPreview onClose={() => setShowSettings(false)} />
       </InkModal>
     </div>
   );

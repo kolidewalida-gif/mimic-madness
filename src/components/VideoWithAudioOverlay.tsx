@@ -14,6 +14,14 @@ interface VideoWithAudioOverlayProps {
   onPlayStateChange?: (isPlaying: boolean) => void;
   includeOriginalAudio?: boolean;
   originalAudioVolume?: number;
+  /** Volume of the separate imitation track, from 0 to 1. */
+  overlayAudioVolume?: number;
+  /** Mutes the separate imitation track without pausing the video. */
+  overlayAudioMuted?: boolean;
+  /** Resume from the paused position instead of seeking to the external offset. */
+  preservePositionOnResume?: boolean;
+  /** Restart synchronized media when its imitation track ends. */
+  loopPlayback?: boolean;
 }
 
 export interface VideoWithAudioOverlayRef {
@@ -31,7 +39,11 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
   playbackPositionSeconds = 0,
   onPlayStateChange,
   includeOriginalAudio = false,
-  originalAudioVolume = 50
+  originalAudioVolume = 50,
+  overlayAudioVolume = 1,
+  overlayAudioMuted = false,
+  preservePositionOnResume = false,
+  loopPlayback = false,
 }, ref) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -43,6 +55,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const hasPlaybackStartedRef = useRef(false);
 
   /**
    * Apply the saved original-audio volume. This must also re-run once the
@@ -58,16 +71,32 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
     video.volume = includeOriginalAudio ? safe / 100 : 0;
   };
 
+  const applyOverlayVolume = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const safe = Number.isFinite(overlayAudioVolume)
+      ? Math.max(0, Math.min(1, overlayAudioVolume))
+      : 1;
+    audio.muted = overlayAudioMuted;
+    audio.volume = safe;
+  };
+
   useEffect(() => {
     applyOriginalVolume();
   }, [originalAudioVolume, includeOriginalAudio, videoUrl]);
 
   useEffect(() => {
+    applyOverlayVolume();
+  }, [audioUrl, overlayAudioMuted, overlayAudioVolume]);
+
+  useEffect(() => {
     let isMounted = true;
     let retryTimeout: NodeJS.Timeout | null = null;
+    hasPlaybackStartedRef.current = false;
     
     const loadUrls = async (retryCount = 0) => {
       if (!isMounted) return;
+      let retryScheduled = false;
       
       setIsLoading(true);
       setError(null);
@@ -90,6 +119,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
           // Retry if URLs not found
           if (retryCount < 3) {
             console.log(`URLs not found, retrying in ${(retryCount + 1) * 1000}ms...`);
+            retryScheduled = true;
             retryTimeout = setTimeout(() => loadUrls(retryCount + 1), (retryCount + 1) * 1000);
             return;
           }
@@ -111,7 +141,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
           setError("Erreur de chargement des médias");
         }
       } finally {
-        if (isMounted) {
+        if (isMounted && !retryScheduled) {
           setIsLoading(false);
         }
       }
@@ -134,6 +164,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
 
   const handleAudioCanPlay = () => {
     console.log("Audio can play");
+    applyOverlayVolume();
     setMediaReady(prev => ({ ...prev, audio: true }));
   };
 
@@ -146,18 +177,22 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
     console.error("Audio error:", e);
   };
 
-  const handlePlay = async (fromSeconds = 0) => {
+  const handlePlay = async (fromSeconds = 0, preserveCurrentPosition = false) => {
     if (!videoRef.current) return;
     
     try {
       const startTime = videoClipData?.startTime ?? 0;
-      // Seek to the authoritative elapsed position so a late or reconnected
-      // client joins where everyone else already is.
-      const offset = Number.isFinite(fromSeconds) ? Math.max(0, fromSeconds) : 0;
-      videoRef.current.currentTime = startTime + offset;
-      
-      if (audioRef.current) {
-        audioRef.current.currentTime = offset;
+      const shouldResume = preserveCurrentPosition && hasPlaybackStartedRef.current;
+      if (shouldResume) {
+        if (audioRef.current) {
+          audioRef.current.currentTime = Math.max(0, videoRef.current.currentTime - startTime);
+        }
+      } else {
+        // Seek to the authoritative elapsed position so a late or reconnected
+        // client joins where everyone else already is.
+        const offset = Number.isFinite(fromSeconds) ? Math.max(0, fromSeconds) : 0;
+        videoRef.current.currentTime = startTime + offset;
+        if (audioRef.current) audioRef.current.currentTime = offset;
       }
       
       await videoRef.current.play();
@@ -170,6 +205,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
         }
       }
       
+      hasPlaybackStartedRef.current = true;
       setIsPlaying(true);
       onPlayStateChange?.(true);
     } catch (err) {
@@ -210,6 +246,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
         }
       }
       
+      hasPlaybackStartedRef.current = true;
       setIsPlaying(true);
       onPlayStateChange?.(true);
     } catch (err) {
@@ -233,7 +270,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
       // If there is no audio URL we only need video.
       const audioReady = !audioUrl || mediaReady.audio;
       if (mediaReady.video && audioReady) {
-        void handlePlay(playbackPositionSeconds);
+        void handlePlay(playbackPositionSeconds, preservePositionOnResume);
       }
     } else {
       handlePause();
@@ -245,14 +282,17 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
     mediaReady.audio,
     mediaReady.video,
     playbackPositionSeconds,
+    preservePositionOnResume,
   ]);
 
   const handleVideoEnded = () => {
+    if (loopPlayback && externalControl && isPlayingExternal && !audioUrl) {
+      void handleRestart();
+      return;
+    }
     setIsPlaying(false);
     onPlayStateChange?.(false);
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    if (audioRef.current) audioRef.current.pause();
   };
 
   if (isLoading) {
@@ -331,9 +371,11 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
           onLoadedData={handleAudioCanPlay}
           onError={handleAudioError}
           onEnded={() => {
+            if (loopPlayback && externalControl && isPlayingExternal) {
+              void handleRestart();
+              return;
+            }
             // When the imitation audio ends, stop the video too.
-            // This prevents the original video from playing past the
-            // imitation duration (e.g. 40s imitation on a 1min video).
             if (videoRef.current) videoRef.current.pause();
             setIsPlaying(false);
             onPlayStateChange?.(false);

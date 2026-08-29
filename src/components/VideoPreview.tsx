@@ -11,6 +11,8 @@ interface VideoPreviewProps {
   videoRef?: Ref<HTMLVideoElement>;
   /** Start playing automatically as soon as the clip is ready (TikTok-style). */
   autoPlay?: boolean;
+  /** Playback volume from 0 to 1. */
+  volume?: number;
   /** Loop the clip continuously (respects trim range). */
   loop?: boolean;
 }
@@ -23,6 +25,7 @@ export const VideoPreview = ({
   muted = false,
   videoRef: externalVideoRef,
   autoPlay = false,
+  volume = 1,
   loop = false,
 }: VideoPreviewProps) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -103,6 +106,12 @@ export const VideoPreview = ({
   }, [clipId]);
 
 
+  useEffect(() => {
+    const element = (videoRef as any).current as HTMLVideoElement | null;
+    if (!element) return;
+    element.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
+  }, [videoRef, videoUrl, volume]);
+
   // Attempt playback; if the browser blocks unmuted autoplay, retry muted so
   // the clip still plays without any manual click.
   const playWithFallback = async () => {
@@ -124,6 +133,7 @@ export const VideoPreview = ({
       if (effectiveStartTime > 0) {
         el.currentTime = effectiveStartTime;
       }
+      el.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
       if (autoPlay) void playWithFallback();
     }
   };

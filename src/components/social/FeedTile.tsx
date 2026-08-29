@@ -49,7 +49,7 @@ export const FeedTile = memo(({
     className={cn('social-feed-tile group', square && 'social-feed-tile--square')}
   >
     <button type="button" onClick={() => { playInkSound('cartoonPop', 0.3); onOpen(); }} className="social-feed-media menu-focus" aria-label={`Ouvrir la création de ${post.owner_name}`}>
-      <FeedVideo clipId={post.challenge_clip_id || post.clip_id} soundActive={soundActive} volume={volume} className="absolute inset-0 h-full w-full" />
+      <FeedVideo clipId={post.challenge_clip_id || post.clip_id} playing={soundActive} soundActive={soundActive} volume={volume} className="absolute inset-0 h-full w-full" />
       <span className="social-feed-shade" />
       <span className="social-feed-play"><Play aria-hidden="true" /></span>
     </button>

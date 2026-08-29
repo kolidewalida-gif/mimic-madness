@@ -20,11 +20,17 @@ export const useMediaDevices = () => {
     try {
       setIsLoading(true);
 
-      // Request audio permission only (camera section was removed)
-      await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-
-      // Enumerate devices
-      const devices = await navigator.mediaDevices.enumerateDevices();
+      // Request audio permission only (camera section was removed). The
+      // temporary stream exists solely to reveal device labels: stop it as
+      // soon as enumeration completes so opening Settings never leaves the
+      // browser microphone indicator active.
+      const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      let devices: globalThis.MediaDeviceInfo[];
+      try {
+        devices = await navigator.mediaDevices.enumerateDevices();
+      } finally {
+        permissionStream.getTracks().forEach((track) => track.stop());
+      }
 
       const audioDevices: MediaDeviceInfo[] = [];
       const videoDevices: MediaDeviceInfo[] = [];

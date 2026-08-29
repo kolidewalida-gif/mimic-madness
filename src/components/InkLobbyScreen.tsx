@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
+  Bell,
   Check,
   Copy,
   Crown,
@@ -12,6 +13,7 @@ import {
   Settings,
   Share2,
   UserPlus,
+  UserRound,
   Users,
   WifiOff,
   X,
@@ -38,6 +40,7 @@ import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { PlayerModerationActions } from '@/components/PlayerModerationActions';
 import { InkBetaLogo } from '@/components/InkBetaBrand';
 import { InkModal } from '@/components/menu/InkOverlay';
+import { type PersonalHubTab } from '@/components/personal-hub/types';
 import {
   GameBackdrop,
   GameButton,
@@ -63,7 +66,7 @@ interface Player {
   disconnectedTimeLeft?: number;
 }
 
-interface InkLobbyScreenProps {
+interface InkLobbyBaseProps {
   players: Player[];
   lobbyCode: string;
   lobbyId: string;
@@ -73,10 +76,25 @@ interface InkLobbyScreenProps {
   onLeaveGame: () => void;
   onKickPlayer?: (playerId: string) => void;
   onTransferHost?: (playerId: string) => void;
-  onOpenSocial: () => void;
-  isSocialOpen: boolean;
-  variant?: 'default' | 'inkBeta';
 }
+
+type InkLobbyScreenProps =
+  | (InkLobbyBaseProps & {
+      variant: 'inkBeta';
+      onOpenPersonalHub: (tab: PersonalHubTab) => void;
+      isPersonalHubOpen: boolean;
+      notificationCount?: number;
+      onOpenSocial?: never;
+      isSocialOpen?: never;
+    })
+  | (InkLobbyBaseProps & {
+      variant?: 'default';
+      onOpenSocial: () => void;
+      isSocialOpen: boolean;
+      onOpenPersonalHub?: never;
+      isPersonalHubOpen?: never;
+      notificationCount?: never;
+    });
 
 /** Modes available in the lobby (Monopoly and Mimic excluded). */
 const MODE_CARDS = INK_GAME_MODE_ORDER.map((id) => {
@@ -126,21 +144,22 @@ const copyText = async (text: string) => {
  * nom, alors que sa tuile figure déjà dans la troupe, marquée « Toi ».
  */
 
-export const InkLobbyScreen = ({
-  players,
-  lobbyCode,
-  lobbyId,
-  isHost,
-  currentPlayer,
-  onStartGame,
-  onLeaveGame,
-  onKickPlayer,
-  onTransferHost,
-  onOpenSocial,
-  isSocialOpen,
-  variant = 'default',
-}: InkLobbyScreenProps) => {
-  const isInkBeta = variant === 'inkBeta';
+export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
+  const {
+    players,
+    lobbyCode,
+    lobbyId,
+    isHost,
+    currentPlayer,
+    onStartGame,
+    onLeaveGame,
+    onKickPlayer,
+    onTransferHost,
+  } = props;
+  const isInkBeta = props.variant === 'inkBeta';
+  const isPersonalHubOpen = props.variant === 'inkBeta' ? props.isPersonalHubOpen : false;
+  const isSocialOpen = props.variant === 'inkBeta' ? false : props.isSocialOpen;
+  const notificationCount = props.variant === 'inkBeta' ? props.notificationCount ?? 0 : 0;
   const [showSettings, setShowSettings] = useState(false);
   const [showInvitePanel, setShowInvitePanel] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -153,6 +172,20 @@ export const InkLobbyScreen = ({
   const [codeCopied, setCodeCopied] = useState(false);
   const { teams, assignRandomTeams } = useGameTeams(lobbyId);
   const { toast } = useToast();
+
+  const openPersonalHub = useCallback((tab: PersonalHubTab) => {
+    if (props.variant === 'inkBeta') props.onOpenPersonalHub(tab);
+  }, [props]);
+
+  const openSocialSurface = useCallback(() => {
+    if (props.variant === 'inkBeta') props.onOpenPersonalHub('social');
+    else props.onOpenSocial();
+  }, [props]);
+
+  const openSettingsSurface = useCallback(() => {
+    if (props.variant === 'inkBeta') props.onOpenPersonalHub('settings');
+    else setShowSettings(true);
+  }, [props]);
 
   const playerIds = useMemo(() => players.map((p) => p.id), [players]);
   const { getAvatar } = useMultiplePlayerAvatars(playerIds);
@@ -294,7 +327,7 @@ export const InkLobbyScreen = ({
 
   // Global lobby shortcuts
   const lobbyAnyModalOpen =
-    isSocialOpen ||
+    isPersonalHubOpen || isSocialOpen ||
     showSettings || showInvitePanel || showLeaveConfirm || showShortcuts || !!openMenuFor;
   useKeyboardShortcuts([
     {
@@ -321,7 +354,7 @@ export const InkLobbyScreen = ({
     {
       key: 's',
       enabled: !lobbyAnyModalOpen,
-      handler: () => setShowSettings(true),
+      handler: openSettingsSurface,
       label: 'Ouvrir les paramètres',
     },
     {
@@ -387,17 +420,18 @@ export const InkLobbyScreen = ({
         />
       </InkModal>
 
-      {/* ============== SETTINGS ============== */}
-      <InkModal
-        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        title="Paramètres"
-        subtitle="Micro, caméra et son"
-        icon={<Settings className="h-5 w-5" />}
-      >
-        <DeviceSettings embedded showPreview onClose={() => setShowSettings(false)} />
-      </InkModal>
+      {/* ============== SETTINGS (présentation Ink stable uniquement) ============== */}
+      {!isInkBeta && (
+        <InkModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          title="Paramètres"
+          subtitle="Micro, caméra et son"
+          icon={<Settings className="h-5 w-5" />}
+        >
+          <DeviceSettings embedded showPreview onClose={() => setShowSettings(false)} />
+        </InkModal>
+      )}
 
       {/* ============== LEAVE CONFIRM ============== */}
       <InkModal
@@ -477,14 +511,58 @@ export const InkLobbyScreen = ({
               <button
                 type="button"
                 onClick={() => {
-                  playInkSound('brushTap', 0.3);
-                  onOpenSocial();
+                  playInkSound('inkClick', 0.3);
+                  openPersonalHub('notifications');
                 }}
                 className="ik-tool menu-focus"
-                aria-label="Ouvrir le Social Studio"
+                aria-label={`Notifications${notificationCount > 0 ? `, ${notificationCount} non lue${notificationCount > 1 ? 's' : ''}` : ''}`}
+                aria-haspopup="dialog"
+              >
+                <Bell aria-hidden="true" />
+                <span>Alertes</span>
+                {notificationCount > 0 && <b className="ik-tool-badge" aria-hidden="true">{notificationCount > 9 ? '9+' : notificationCount}</b>}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playInkSound('brushTap', 0.3);
+                  openSocialSurface();
+                }}
+                className="ik-tool menu-focus"
+                aria-label="Ouvrir Social"
+                aria-haspopup="dialog"
+              >
+                <Share2 aria-hidden="true" />
+                <span>Social</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playInkSound('brushTap', 0.3);
+                  openPersonalHub('friends');
+                }}
+                className="ik-tool menu-focus"
+                aria-label="Ouvrir les amis"
+                aria-haspopup="dialog"
               >
                 <Users aria-hidden="true" />
-                <span>Social</span>
+                <span>Amis</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playInkSound('inkClick', 0.3);
+                  openPersonalHub('profile');
+                }}
+                className="ik-tool menu-focus"
+                aria-label="Ouvrir mon profil"
+                aria-haspopup="dialog"
+              >
+                <UserRound aria-hidden="true" />
+                <span>Profil</span>
               </button>
 
               {/* Partage et invitation ont rejoint le panneau d'invitation. */}
@@ -493,10 +571,11 @@ export const InkLobbyScreen = ({
                 type="button"
                 onClick={() => {
                   playInkSound('cartoonPop', 0.3);
-                  setShowSettings(true);
+                  openSettingsSurface();
                 }}
                 className="ik-tool menu-focus"
                 aria-label="Paramètres"
+                aria-haspopup="dialog"
               >
                 <Settings aria-hidden="true" />
                 <span>Options</span>
@@ -881,7 +960,7 @@ export const InkLobbyScreen = ({
             aria-label="Ouvrir le Social Studio"
             onClick={() => {
               playInkSound('brushTap', 0.3);
-              onOpenSocial();
+              openSocialSurface();
             }}
             icon={<Users className="h-4 w-4" />}
           >

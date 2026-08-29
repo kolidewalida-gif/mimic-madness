@@ -1,176 +1,114 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Crown, Check, Star, Shield, Award, Sparkles, Zap, Sun, Trophy, Compass, Circle, User, Loader2 } from 'lucide-react';
+import { Crown, Check, Star, Shield, Award, Sparkles, Zap, Sun, Trophy, Compass, Circle, User, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePlayerLevel, LEVEL_REWARDS, LevelReward } from '@/hooks/usePlayerLevel';
+import { usePlayerLevel, LEVEL_REWARDS, type LevelReward } from '@/hooks/usePlayerLevel';
 import { useEquippedTitle } from '@/hooks/useEquippedTitle';
 import { InkDrawer } from '@/components/menu/InkOverlay';
-import { RARITY_STYLE as RARITY_TABLE } from '@/lib/rarity';
+import { RARITY_STYLE } from '@/lib/rarity';
 import { rewardPerk } from '@/lib/rewardPerks';
 import { toast } from 'sonner';
 
-interface TitleSelectorProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const iconMap: Record<string, React.ReactNode> = {
-  star: <Star className="h-4 w-4" />,
-  sparkles: <Sparkles className="h-4 w-4" />,
-  crown: <Crown className="h-4 w-4" />,
-  trophy: <Trophy className="h-4 w-4" />,
-  award: <Award className="h-4 w-4" />,
-  shield: <Shield className="h-4 w-4" />,
-  compass: <Compass className="h-4 w-4" />,
-  zap: <Zap className="h-4 w-4" />,
-  sun: <Sun className="h-4 w-4" />,
-  circle: <Circle className="h-4 w-4" />,
+const iconMap: Record<string, ReactNode> = {
+  star: <Star className="h-4 w-4" />, sparkles: <Sparkles className="h-4 w-4" />,
+  crown: <Crown className="h-4 w-4" />, trophy: <Trophy className="h-4 w-4" />,
+  award: <Award className="h-4 w-4" />, shield: <Shield className="h-4 w-4" />,
+  compass: <Compass className="h-4 w-4" />, zap: <Zap className="h-4 w-4" />,
+  sun: <Sun className="h-4 w-4" />, circle: <Circle className="h-4 w-4" />,
   user: <User className="h-4 w-4" />,
 };
 
-/** Rarity presentation now comes from the shared table (was a 4th copy). */
-const RARITY_STYLE = RARITY_TABLE;
+type TitleSelectorProps =
+  | { embedded: true; isOpen?: never; onClose?: never }
+  | { embedded?: false; isOpen: boolean; onClose: () => void };
 
-/* Les descriptions viennent de `@/lib/rewardPerks`, partagées avec
-   `RewardsPanel`. La table locale qui vivait ici formulait les mêmes trois
-   titres autrement, alors que les deux panneaux sont maintenant deux tuiles
-   voisines de la même grille. */
-
-export const TitleSelector = ({ isOpen, onClose }: TitleSelectorProps) => {
+export const TitleSelector = (props: TitleSelectorProps) => {
   const { isRewardUnlocked } = usePlayerLevel();
   const { equippedTitle, equipTitle, unequipTitle, isLoading } = useEquippedTitle();
-  const [isEquipping, setIsEquipping] = useState(false);
-
-  const titles = LEVEL_REWARDS.filter(r => r.type === 'title');
-  const unlockedTitles = titles.filter(t => isRewardUnlocked(t.id));
+  const [equippingId, setEquippingId] = useState<string | null>(null);
+  const titles = LEVEL_REWARDS.filter((reward) => reward.type === 'title');
+  const unlockedTitles = titles.filter((title) => isRewardUnlocked(title.id));
 
   const handleEquip = async (reward: LevelReward) => {
-    setIsEquipping(true);
+    setEquippingId(reward.id);
     const success = await equipTitle(reward.id);
-    if (success) toast.success(`Titre "${reward.name}" équipé !`);
+    if (success) toast.success(`Titre « ${reward.name} » équipé !`);
     else toast.error("Erreur lors de l'équipement");
-    setIsEquipping(false);
+    setEquippingId(null);
   };
 
   const handleUnequip = async () => {
-    setIsEquipping(true);
+    setEquippingId('remove');
     const success = await unequipTitle();
     if (success) toast.success('Titre retiré');
-    setIsEquipping(false);
+    setEquippingId(null);
   };
 
-  return (
-    <InkDrawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Mes titres"
-      subtitle={`${unlockedTitles.length}/${titles.length} débloqués`}
-      icon={<Crown className="h-5 w-5" strokeWidth={2.5} />}
-      iconGradient="var(--ink-accent)"
-      toolbar={
-        <div className="flex-shrink-0 border-b-2 border-white/10 px-5 pb-4">
-              <p className="text-xs text-white/40 mb-2 uppercase tracking-wider font-medium">Titre équipé</p>
-              {equippedTitle ? (
-                <div className="flex items-center justify-between p-3 rounded-xl"
-                  style={{ background: `${RARITY_STYLE[equippedTitle.rarity].color}0d`, border: `1px solid ${RARITY_STYLE[equippedTitle.rarity].color}33` }}>
-                  <div className="flex items-center gap-3">
-                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-white bg-gradient-to-br', RARITY_STYLE[equippedTitle.rarity].gradient)}>
-                      {iconMap[equippedTitle.icon]}
-                    </div>
-                    <span className="font-semibold text-white text-sm">{equippedTitle.name}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleUnequip}
-                    disabled={isEquipping || isLoading}
-                    aria-busy={isEquipping}
-                    className="menu-focus inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
-                  >
-                    {isEquipping && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}
-                    Retirer
-                  </button>
-                </div>
-              ) : (
-                <div className="rounded-xl p-3 text-center text-sm text-white/30" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)' }}>
-                  Aucun titre équipé
-                </div>
-              )}
+  const toolbar = (
+    <div className="flex-shrink-0 border-b-2 border-white/10 px-5 pb-4 pt-1">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wider text-white/40">Titre équipé</p>
+      {equippedTitle ? (
+        <div className="flex items-center justify-between gap-3 rounded-xl p-3" style={{ background: `${RARITY_STYLE[equippedTitle.rarity].color}0d`, border: `1px solid ${RARITY_STYLE[equippedTitle.rarity].color}33` }}>
+          <div className="flex min-w-0 items-center gap-3"><div className={cn('flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white', RARITY_STYLE[equippedTitle.rarity].gradient)}>{iconMap[equippedTitle.icon]}</div><span className="truncate text-sm font-semibold text-white">{equippedTitle.name}</span></div>
+          <button type="button" onClick={handleUnequip} disabled={Boolean(equippingId) || isLoading} aria-busy={equippingId === 'remove'} className="menu-focus inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50">{equippingId === 'remove' && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}Retirer</button>
         </div>
-      }
-    >
-            <div className="space-y-2.5">
-              {unlockedTitles.length === 0 ? (
-                <div className="ink-empty">
-                  <Crown aria-hidden="true" />
-                  <strong>Aucun titre débloqué</strong>
-                  <p>Monte en niveau en jouant pour débloquer tes premiers titres.</p>
-                </div>
+      ) : <div className="rounded-xl p-3 text-center text-sm text-white/30" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)' }}>Aucun titre équipé</div>}
+    </div>
+  );
+
+  const content = (
+    <div className="ik-title-collection">
+      {titles.length === 0 ? (
+        <div className="ink-empty"><Crown aria-hidden="true" /><strong>Aucun titre disponible</strong><p>De nouveaux titres apparaîtront avec les prochaines récompenses.</p></div>
+      ) : titles.map((title, index) => {
+        const style = RARITY_STYLE[title.rarity];
+        const unlocked = isRewardUnlocked(title.id);
+        const isEquipped = equippedTitle?.id === title.id;
+        const isEquippingThisTitle = equippingId === title.id;
+        const perk = rewardPerk(title.id);
+        return (
+          <motion.article
+            key={title.id}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(index, 12) * 0.035 }}
+            className={cn('ik-title-card', isEquipped && 'is-equipped', !unlocked && 'is-locked')}
+            style={{ background: isEquipped ? `${style.color}0d` : 'rgba(255,255,255,0.02)', borderColor: isEquipped ? `${style.color}55` : 'rgba(255,255,255,0.08)' }}
+          >
+            <div className={cn('ik-title-card-icon bg-gradient-to-br', style.gradient)} style={{ boxShadow: unlocked ? `0 0 12px ${style.color}22` : undefined }}>
+              {unlocked ? iconMap[title.icon] : <Lock className="h-4 w-4" aria-hidden="true" />}
+            </div>
+            <div className="ik-title-card-copy">
+              <div><h3>{title.name}</h3><span style={{ color: style.color, background: `${style.color}15` }}>Niveau {title.level}</span></div>
+              <p>{title.description}</p>
+              {perk && <small style={{ color: unlocked ? `${style.color}cc` : undefined }}><Zap aria-hidden="true" /> {perk}</small>}
+            </div>
+            <div className="ik-title-card-action">
+              {isEquipped ? (
+                <span className="is-equipped"><Check aria-hidden="true" /> Équipé</span>
+              ) : unlocked ? (
+                <button
+                  type="button"
+                  onClick={() => void handleEquip(title)}
+                  disabled={Boolean(equippingId) || isLoading}
+                  aria-busy={isEquippingThisTitle}
+                  className="menu-focus"
+                  style={{ background: `${style.color}15`, color: style.color, borderColor: `${style.color}44` }}
+                >
+                  {isEquippingThisTitle && <Loader2 className="animate-spin" aria-hidden="true" />}
+                  Équiper
+                </button>
               ) : (
-                unlockedTitles.map((title, i) => {
-                  const style = RARITY_STYLE[title.rarity];
-                  const isEquipped = equippedTitle?.id === title.id;
-                  const perk = rewardPerk(title.id);
-
-                  return (
-                    <motion.div
-                      key={title.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="rounded-xl p-3.5"
-                      style={{
-                        background: isEquipped ? `${style.color}0d` : 'rgba(255,255,255,0.02)',
-                        border: `1px solid ${isEquipped ? `${style.color}44` : 'rgba(255,255,255,0.05)'}`,
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center text-white bg-gradient-to-br', style.gradient)}
-                            style={{ boxShadow: `0 0 10px ${style.color}22` }}>
-                            {iconMap[title.icon]}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-white">{title.name}</h3>
-                            <p className="text-xs text-white/40">{title.description}</p>
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md mt-1 inline-block"
-                              style={{ background: `${style.color}15`, color: style.color }}>
-                              Niveau {title.level}
-                            </span>
-                          </div>
-                        </div>
-
-                        {isEquipped ? (
-                          <div className="flex items-center gap-1 text-green-400">
-                            <Check className="h-4 w-4" />
-                            <span className="text-xs font-medium">Équipé</span>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleEquip(title)}
-                            disabled={isEquipping || isLoading}
-                            aria-busy={isEquipping}
-                            className="menu-focus inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
-                            style={{ background: `${style.color}15`, color: style.color, border: `1px solid ${style.color}33` }}
-                          >
-                            {isEquipping && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}
-                            Équiper
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Perk */}
-                      {perk && (
-                        <div className="mt-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md" style={{ background: `${style.color}08` }}>
-                          <Zap className="h-3 w-3 flex-shrink-0" style={{ color: style.color }} />
-                          <span className="text-[11px] font-medium" style={{ color: `${style.color}bb` }}>{perk}</span>
-                        </div>
-                      )}
-                    </motion.div>
-                  );
-                })
+                <span className="is-locked"><Lock aria-hidden="true" /> Niv. {title.level}</span>
               )}
             </div>
-    </InkDrawer>
+          </motion.article>
+        );
+      })}
+    </div>
   );
+
+  if (props.embedded) return <div className="ik-embedded-panel"><div className="ik-embedded-toolbar">{toolbar}</div><div className="ik-embedded-content">{content}</div></div>;
+
+  return <InkDrawer isOpen={props.isOpen} onClose={props.onClose} title="Mes titres" subtitle={`${unlockedTitles.length}/${titles.length} débloqués`} icon={<Crown className="h-5 w-5" strokeWidth={2.5} />} iconGradient="var(--ink-accent)" toolbar={toolbar}>{content}</InkDrawer>;
 };

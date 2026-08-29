@@ -138,10 +138,16 @@ export const useSocialComments = (postId: string | null) => {
   );
 
   const removeComment = useCallback(
-    async (commentId: string) => {
-      if (!user) return;
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-      await db.from('social_post_comments').delete().eq('id', commentId).eq('user_id', user.id);
+    async (commentId: string): Promise<boolean> => {
+      if (!user) return false;
+      const { error } = await db
+        .from('social_post_comments')
+        .delete()
+        .eq('id', commentId)
+        .eq('user_id', user.id);
+      if (error) return false;
+      setComments((prev) => prev.filter((comment) => comment.id !== commentId));
+      return true;
     },
     [user],
   );

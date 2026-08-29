@@ -23,6 +23,7 @@ import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import { LobbyGameMode, soloBotCount } from "@/lib/gameModes";
 import { playSample } from "@/lib/sfx/samples";
 import { setActiveSfxMode, type SfxMode } from "@/lib/sfx/palette";
+import { type PersonalHubTab } from "@/components/personal-hub/types";
 import { ConnectionRecoveryOverlay } from "@/components/ConnectionRecoveryOverlay";
 import { DiagnosticsOverlay } from "@/components/DiagnosticsOverlay";
 import {
@@ -45,6 +46,7 @@ const HomeScreen = React.lazy(() => import("@/components/HomeScreen").then(m => 
 const InkHomeScreen = React.lazy(() => import("@/components/InkHomeScreen").then(m => ({ default: m.InkHomeScreen })));
 /* Beta admin : en `lazy`, donc un joueur ordinaire ne télécharge jamais ce chunk. */
 const InkBetaHomeScreen = React.lazy(() => import("@/components/InkBetaHomeScreen").then(m => ({ default: m.InkBetaHomeScreen })));
+const InkPersonalHub = React.lazy(() => import("@/components/InkPersonalHub").then(m => ({ default: m.InkPersonalHub })));
 const NeonHomeScreen = React.lazy(() => import("@/components/neon/NeonHomeScreen").then(m => ({ default: m.NeonHomeScreen })));
 const LobbyScreen = React.lazy(() => import("@/components/LobbyScreen").then(m => ({ default: m.LobbyScreen })));
 const InkLobbyScreen = React.lazy(() => import("@/components/InkLobbyScreen").then(m => ({ default: m.InkLobbyScreen })));
@@ -69,6 +71,11 @@ interface Player {
 
 type GameState = "home" | "lobby" | "preparation" | "playing" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise" | "mimic";
 type GameMode = "normal" | "2v2" | "quiz" | "audiophone" | "pixoguess" | "monopoly" | "undercover" | "memorise" | "mimic";
+
+interface PersonalHubState {
+  isOpen: boolean;
+  tab: PersonalHubTab;
+}
 
 const resolveLobbyGameState = (phase?: string, mode?: string): GameState => {
   if (phase === 'playing') {
@@ -136,6 +143,15 @@ const Index = () => {
   const [showInkSocial, setShowInkSocial] = useState(false);
   const openInkSocial = useCallback(() => setShowInkSocial(true), []);
   const closeInkSocial = useCallback(() => setShowInkSocial(false), []);
+  const [personalHub, setPersonalHub] = useState<PersonalHubState>({ isOpen: false, tab: 'profile' });
+  const [personalHubUnreadCount, setPersonalHubUnreadCount] = useState(0);
+  const openPersonalHub = useCallback((tab: PersonalHubTab) => {
+    setShowInkSocial(false);
+    setPersonalHub({ isOpen: true, tab });
+  }, []);
+  const closePersonalHub = useCallback(() => {
+    setPersonalHub((current) => ({ ...current, isOpen: false }));
+  }, []);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [submittedChallenges, setSubmittedChallenges] = useState<VideoClip[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>("normal");
@@ -195,29 +211,41 @@ const Index = () => {
   // Neon Hub désactivé — on reste sur l'Ink polish
   const useNeonHub = false;
 
-  // Social Studio belongs to the menu shell, never to a running game. The
-  // global event is emitted by comment notifications; in Ink it must open the
-  // actual feed rather than the unrelated friends drawer.
+  // Les notifications ouvrent la destination correspondante de la coquille
+  // active : hub intégré en Beta, dialogue historique pour Ink stable.
   useEffect(() => {
     if (!useInkMode) return;
+
+    const canOpenMenuSurface = () => gameState === 'home' || gameState === 'lobby';
     const openSocial = () => {
-      if (gameState === 'home' || gameState === 'lobby') openInkSocial();
+      if (!canOpenMenuSurface()) return;
+      if (useBetaHome) openPersonalHub('social');
+      else openInkSocial();
     };
+    const openFriends = () => {
+      if (useBetaHome && canOpenMenuSurface()) openPersonalHub('friends');
+    };
+
     window.addEventListener('mimic:open-social', openSocial);
-    return () => window.removeEventListener('mimic:open-social', openSocial);
-  }, [gameState, openInkSocial, useInkMode]);
+    window.addEventListener('mimic:open-friends', openFriends);
+    return () => {
+      window.removeEventListener('mimic:open-social', openSocial);
+      window.removeEventListener('mimic:open-friends', openFriends);
+    };
+  }, [gameState, openInkSocial, openPersonalHub, useBetaHome, useInkMode]);
 
   useEffect(() => {
-    if (!useInkMode || (gameState !== 'home' && gameState !== 'lobby')) {
-      closeInkSocial();
-    }
-  }, [closeInkSocial, gameState, useInkMode]);
+    const isMenuScreen = gameState === 'home' || gameState === 'lobby';
+    if (!useInkMode || !isMenuScreen) closeInkSocial();
+    if (!useBetaHome || !isMenuScreen) closePersonalHub();
+  }, [closeInkSocial, closePersonalHub, gameState, useBetaHome, useInkMode]);
   const { 
     lobby, 
     players, 
     wasKicked, 
     lobbyDeleted, 
     createLobby, 
+    preflightJoinLobby,
     joinLobby, 
     leaveLobby, 
     kickPlayer,
@@ -308,60 +336,85 @@ const Index = () => {
     };
   }, []);
 
-  const handleAcceptInvitation = useCallback(async (invitationId: string) => {
-    const lobbyCode = await acceptInvitation(invitationId);
-    setActiveInvitation(null);
-
-    if (!lobbyCode) return;
-
-    // Resolve a stable display name for the receiver across every game state
-    const storedName =
-      localStorage.getItem('playerName') ||
-      profile?.display_name ||
-      `Joueur${Math.floor(Math.random() * 1000)}`;
-
-    // Bug fix: previously this only worked when the receiver was on the home
-    // page. If they were already in a lobby or in a game, accepting the
-    // invitation did nothing and silently dropped the user. We now leave the
-    // current lobby first (if any), reset transient state, and join the new
-    // lobby regardless of where the receiver currently is.
+  const resolveMenuPlayerName = useCallback(() => {
     try {
-      if (gameState !== 'home' && lobby) {
-        await leaveLobby(currentPlayer?.id ?? '');
-      }
-    } catch (err) {
-      console.error('[invitation] failed to leave current lobby:', err);
+      return localStorage.getItem('playerName') || profile?.display_name || `Joueur${Math.floor(Math.random() * 1000)}`;
+    } catch {
+      return profile?.display_name || `Joueur${Math.floor(Math.random() * 1000)}`;
+    }
+  }, [profile?.display_name]);
+
+  const switchToLobby = useCallback(async (lobbyCode: string, playerName: string) => {
+    const normalizedCode = lobbyCode.trim().toUpperCase();
+    const normalizedName = playerName.trim() || resolveMenuPlayerName();
+    const playerId = getGamePlayerId(user?.id);
+
+    if (lobby?.code?.toUpperCase() === normalizedCode) {
+      closePersonalHub();
+      closeInkSocial();
+      setActiveInvitation(null);
+      setGameState('lobby');
+      return true;
     }
 
-    // If the user was mid-game, fully reset transient state so the new lobby
-    // doesn't render under stale game/preparation state.
+    // Never release the current seat for an already invalid, full or started
+    // target. claimLobbySeat still performs the authoritative final check.
+    const targetIsJoinable = !lobby || await preflightJoinLobby(normalizedCode, playerId);
+    if (!targetIsJoinable) {
+      playSoundEffect('error', 0.4);
+      return false;
+    }
+
+    closePersonalHub();
+    closeInkSocial();
+    setActiveInvitation(null);
+    clearResumeSession();
+
+    try {
+      if (lobby) await leaveLobby(currentPlayer?.id ?? playerId);
+    } catch (error) {
+      // Une présence locale périmée ne doit pas empêcher de rejoindre le
+      // nouveau salon : l'appel de jointure reste la source de vérité.
+      console.error('[lobby-switch] failed to leave current lobby:', error);
+    }
+
     setSubmittedChallenges([]);
     setGameMode('normal');
     setGameState('home');
+    resetState();
 
-    const playerId = crypto.randomUUID();
-    const newPlayer: Player = {
-      id: playerId,
-      name: storedName,
-      isHost: false,
-    };
-
-    setCurrentPlayer(newPlayer);
-    const result = await joinLobby(lobbyCode, playerId, storedName);
+    const nextPlayer: Player = { id: playerId, name: normalizedName, isHost: false };
+    setCurrentPlayer(nextPlayer);
+    const result = await joinLobby(normalizedCode, playerId, normalizedName);
 
     if (result) {
+      saveResumeSession({
+        lobbyCode: normalizedCode,
+        lobbyId: result.lobby.id,
+        playerId,
+        playerName: normalizedName,
+      });
       playSoundEffect('join', 0.4);
       setGameState('lobby');
-    } else {
-      playSoundEffect('error', 0.4);
-      setCurrentPlayer(null);
-      toast({
-        title: 'Lobby introuvable',
-        description: "L'invitation ne pointe plus vers un lobby actif.",
-        variant: 'destructive',
-      });
+      return true;
     }
-  }, [acceptInvitation, gameState, lobby, leaveLobby, joinLobby, profile?.display_name, toast]);
+
+    // joinLobby owns the precise error message (full, started, seat taken,
+    // network error). Avoid replacing it with a misleading second toast.
+    playSoundEffect('error', 0.4);
+    setCurrentPlayer(null);
+    return false;
+  }, [closeInkSocial, closePersonalHub, currentPlayer?.id, joinLobby, leaveLobby, lobby, preflightJoinLobby, resetState, resolveMenuPlayerName, user?.id]);
+
+  const handleJoinFromPersonalHub = useCallback(async (lobbyCode: string) => {
+    await switchToLobby(lobbyCode, resolveMenuPlayerName());
+  }, [resolveMenuPlayerName, switchToLobby]);
+
+  const handleAcceptInvitation = useCallback(async (invitationId: string) => {
+    const lobbyCode = await acceptInvitation(invitationId);
+    setActiveInvitation(null);
+    if (lobbyCode) await switchToLobby(lobbyCode, resolveMenuPlayerName());
+  }, [acceptInvitation, resolveMenuPlayerName, switchToLobby]);
 
   const handleDeclineInvitation = useCallback(async (invitationId: string) => {
     await declineInvitation(invitationId);
@@ -437,31 +490,8 @@ const Index = () => {
   }, [createLobby, user?.id, questTracker]);
 
   const handleJoinGame = useCallback(async (playerName: string, code: string) => {
-    // Use persistent player ID (auth user ID when logged in)
-    const playerId = getGamePlayerId(user?.id);
-    const newPlayer: Player = {
-      id: playerId,
-      name: playerName,
-      isHost: false,
-    };
-    
-    setCurrentPlayer(newPlayer);
-    const result = await joinLobby(code, playerId, playerName);
-    
-    if (result) {
-      playSoundEffect('join', 0.4);
-      saveResumeSession({
-        lobbyCode: code.trim().toUpperCase(),
-        lobbyId: result.lobby.id,
-        playerId,
-        playerName,
-      });
-      // Routing waits for the subscribed, SQL-certified hook snapshot.
-    } else {
-      playSoundEffect('error', 0.4);
-      setCurrentPlayer(null);
-    }
-  }, [joinLobby, user?.id]);
+    await switchToLobby(code, playerName);
+  }, [switchToLobby]);
 
   const handleStartGame = useCallback(async (mode: GameMode = 'normal') => {
     console.log('[Index] handleStartGame called with mode:', mode);
@@ -690,7 +720,9 @@ const Index = () => {
             <InkBetaHomeScreen
               onCreateGame={handleCreateGame}
               onJoinGame={handleJoinGame}
-              onOpenSocial={openInkSocial}
+              onOpenPersonalHub={openPersonalHub}
+              isPersonalHubOpen={personalHub.isOpen}
+              notificationCount={personalHubUnreadCount}
             />
           ) : useNeonHub ? (
             <NeonHomeScreen
@@ -726,20 +758,38 @@ const Index = () => {
               onTransferHost={handleTransferHost}
             />
           ) : (useInkMode || useNeonHub) ? (
-            <InkLobbyScreen
-              variant={useBetaHome ? 'inkBeta' : 'default'}
-              players={players}
-              lobbyCode={lobby.code}
-              lobbyId={lobby.id}
-              isHost={currentPlayer.isHost}
-              currentPlayer={currentPlayer}
-              onStartGame={handleStartGame}
-              onLeaveGame={handleLeaveGame}
-              onKickPlayer={handleKickPlayer}
-              onTransferHost={handleTransferHost}
-              onOpenSocial={openInkSocial}
-              isSocialOpen={showInkSocial}
-            />
+            useBetaHome ? (
+              <InkLobbyScreen
+                variant="inkBeta"
+                players={players}
+                lobbyCode={lobby.code}
+                lobbyId={lobby.id}
+                isHost={currentPlayer.isHost}
+                currentPlayer={currentPlayer}
+                onStartGame={handleStartGame}
+                onLeaveGame={handleLeaveGame}
+                onKickPlayer={handleKickPlayer}
+                onTransferHost={handleTransferHost}
+                onOpenPersonalHub={openPersonalHub}
+                isPersonalHubOpen={personalHub.isOpen}
+                notificationCount={personalHubUnreadCount}
+              />
+            ) : (
+              <InkLobbyScreen
+                variant="default"
+                players={players}
+                lobbyCode={lobby.code}
+                lobbyId={lobby.id}
+                isHost={currentPlayer.isHost}
+                currentPlayer={currentPlayer}
+                onStartGame={handleStartGame}
+                onLeaveGame={handleLeaveGame}
+                onKickPlayer={handleKickPlayer}
+                onTransferHost={handleTransferHost}
+                onOpenSocial={openInkSocial}
+                isSocialOpen={showInkSocial}
+              />
+            )
           ) : (
             <LobbyScreen
               players={players}
@@ -846,7 +896,7 @@ const Index = () => {
 
       </React.Suspense>
     );
-  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useBetaHome, useNeonHub, theme, showInkSocial, openInkSocial, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useBetaHome, useNeonHub, theme, showInkSocial, personalHub.isOpen, personalHubUnreadCount, openInkSocial, openPersonalHub, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   return (
     <div className="game-viewport relative h-screen min-h-0 w-full overflow-hidden">
@@ -942,7 +992,25 @@ const Index = () => {
         </div>
       )}
       
-      {useInkMode && (gameState === 'home' || gameState === 'lobby') && (
+      {useBetaHome && (gameState === 'home' || gameState === 'lobby') && (
+        <React.Suspense fallback={null}>
+          <InkPersonalHub
+            isOpen={personalHub.isOpen}
+            activeTab={personalHub.tab}
+            onTabChange={openPersonalHub}
+            onClose={closePersonalHub}
+            onJoinLobby={handleJoinFromPersonalHub}
+            onAcceptInvitation={handleAcceptInvitation}
+            onDeclineInvitation={handleDeclineInvitation}
+            onUnreadCountChange={setPersonalHubUnreadCount}
+            currentLobbyCode={lobby?.code}
+            playerId={currentPlayer?.id ?? getGamePlayerId(user?.id)}
+            playerName={currentPlayer?.name ?? profile?.display_name ?? undefined}
+          />
+        </React.Suspense>
+      )}
+
+      {useInkMode && !useBetaHome && (gameState === 'home' || gameState === 'lobby') && (
         <SocialStudioDialog isOpen={showInkSocial} onClose={closeInkSocial} />
       )}
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Grid3x3, Heart, Loader2, Lock } from 'lucide-react';
@@ -9,7 +9,9 @@ import { weeklyPeriodKey } from '@/lib/questDefinitions';
 import { computeSocialBadges, levelFromXp } from '@/lib/socialBadges';
 import { FeedTile } from '@/components/social/FeedTile';
 import { SocialTikTokViewer } from '@/components/SocialTikTokViewer';
+import { useDialogBehaviour } from '@/components/menu/InkOverlay';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { cn } from '@/lib/utils';
 
 const FONT = "'Outfit', sans-serif";
@@ -20,9 +22,22 @@ interface PublicProfileViewProps {
   onClose: () => void;
   /** like a post (reuses the feed toggle so counts stay in sync) */
   onLike?: (id: string) => void;
+  audioVolume: number;
+  audioMuted: boolean;
+  onAudioVolumeChange: (value: number) => void;
+  onAudioMutedChange: (muted: boolean) => void;
 }
 
-export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: PublicProfileViewProps) => {
+export const PublicProfileView = ({
+  userId,
+  fallbackName,
+  onClose,
+  onLike,
+  audioVolume,
+  audioMuted,
+  onAudioVolumeChange,
+  onAudioMutedChange,
+}: PublicProfileViewProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null);
@@ -31,12 +46,26 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
   const [isTopWeek, setIsTopWeek] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [soundId, setSoundId] = useState<string | null>(null);
-  const [volume, setVolume] = useState<number>(() => {
-    const v = parseFloat(localStorage.getItem('feedVolume') || '0.7');
-    return isNaN(v) ? 0.7 : v;
-  });
-  const setVol = (v: number) => { setVolume(v); try { localStorage.setItem('feedVolume', String(v)); } catch { /* ignore */ } };
+  const titleId = useId();
   const isMe = user?.id === userId;
+  const volume = Math.max(0, Math.min(1, audioVolume));
+  const closeProfile = useCallback(() => onClose(), [onClose]);
+  const closeViewer = useCallback(() => setViewerIndex(null), []);
+  const viewerOpen = viewerIndex !== null && Boolean(posts[viewerIndex]);
+  const isViewerTopLayer = useCallback(() => (
+    typeof document === 'undefined' || document.querySelector('.ik-game-invite-layer') === null
+  ), []);
+  const isProfileTopLayer = useCallback(() => {
+    if (typeof document === 'undefined') return true;
+    return document.querySelector('.social-viewer-overlay, .ik-game-invite-layer') === null;
+  }, []);
+  const profileDialogRef = useDialogBehaviour(true, closeProfile, isProfileTopLayer);
+  const viewerDialogRef = useDialogBehaviour(viewerOpen, closeViewer, isViewerTopLayer);
+  useBodyScrollLock(true);
+
+  const setVol = useCallback((next: number) => {
+    onAudioVolumeChange(Math.max(0, Math.min(1, next)));
+  }, [onAudioVolumeChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,11 +124,16 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[10055] flex items-center justify-center p-4"
+      className="social-public-profile-overlay fixed inset-0 z-[10055] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) closeProfile(); }}
     >
       <motion.div
+        ref={profileDialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         initial={{ scale: 0.94, y: 20, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.94, y: 20, opacity: 0 }}
@@ -109,10 +143,10 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
       >
         {/* header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 flex-shrink-0">
-          <button onClick={onClose} className="w-9 h-9 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10">
-            <ArrowLeft className="w-4 h-4" />
+          <button type="button" onClick={closeProfile} aria-label="Fermer le profil public" className="w-9 h-9 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10">
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           </button>
-          <span className="text-lg font-black text-white" style={{ fontFamily: FONT }}>Profil</span>
+          <h2 id={titleId} className="text-lg font-black text-white" style={{ fontFamily: FONT }}>Profil</h2>
         </div>
 
         {loading ? (
@@ -204,14 +238,28 @@ export const PublicProfileView = ({ userId, fallbackName, onClose, onLike }: Pub
       <AnimatePresence>
         {viewerIndex !== null && posts[viewerIndex] && (
           <motion.div
+            ref={viewerDialogRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Créations de ${displayName}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="force-cursor"
-            style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 10002, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(14px)' }}
-            onClick={(e) => { if (e.target === e.currentTarget) setViewerIndex(null); }}
+            className="social-viewer-overlay social-viewer-overlay--modern force-cursor"
+            onClick={(e) => { if (e.target === e.currentTarget) closeViewer(); }}
           >
-            <SocialTikTokViewer posts={posts} startIndex={viewerIndex} onClose={() => setViewerIndex(null)} onLike={localLike} />
+            <SocialTikTokViewer
+              posts={posts}
+              startIndex={viewerIndex}
+              onClose={closeViewer}
+              onLike={localLike}
+              audioVolume={volume}
+              audioMuted={audioMuted}
+              onAudioVolumeChange={setVol}
+              onAudioMutedChange={onAudioMutedChange}
+              isKeyboardActive={isViewerTopLayer}
+            />
           </motion.div>
         )}
       </AnimatePresence>

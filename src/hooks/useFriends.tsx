@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useContext } from 'react';
+import { useState, useEffect, useCallback, useContext, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { XpContext } from '@/contexts/XpContext';
@@ -30,6 +30,9 @@ export const useFriends = () => {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Every hook instance owns its own Realtime channel. A fixed topic caused a
+  // second consumer (notifications + open Friends tab) to disconnect the first.
+  const channelInstanceId = useRef(Math.random().toString(36).slice(2)).current;
 
   const fetchFriends = useCallback(async () => {
     if (!user) {
@@ -114,13 +117,7 @@ export const useFriends = () => {
 
     fetchFriends();
 
-    const channelName = `friendships-changes-${user.id}`;
-    
-    // Remove any existing channel with this name first
-    const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
-    if (existingChannel) {
-      supabase.removeChannel(existingChannel);
-    }
+    const channelName = `friendships-changes-${user.id}-${channelInstanceId}`;
 
     const channel = supabase
       .channel(channelName)

@@ -53,6 +53,7 @@ interface UseLobbyResult {
   connectionState: LobbyConnectionState;
   retryConnection: () => void;
   createLobby: (hostId: string, hostName: string) => Promise<{ lobby: Lobby; code: string } | null>;
+  preflightJoinLobby: (code: string, playerId: string) => Promise<boolean>;
   joinLobby: (code: string, playerId: string, playerName: string) => Promise<{ lobby: Lobby } | null>;
   leaveLobby: (playerId: string) => Promise<void>;
   kickPlayer: (playerId: string) => Promise<void>;
@@ -299,6 +300,77 @@ export const useLobbySync = (): UseLobbyResult => {
     }
   }, [toast]);
 
+  // Validate a target before releasing the current seat. This is intentionally
+  // read-only: claimLobbySeat remains the final authority after the switch.
+  const preflightJoinLobby = useCallback(async (code: string, playerId: string): Promise<boolean> => {
+    const normalizedCode = code.trim().toUpperCase();
+    if (!normalizedCode || !playerId) {
+      toast({
+        title: "Informations manquantes",
+        description: "Le code du lobby ou l'identifiant joueur est absent.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const { data: lobbyData, error: lobbyError } = await supabase
+        .from('lobbies')
+        .select('id, status, game_phase')
+        .eq('code', normalizedCode)
+        .maybeSingle();
+
+      if (lobbyError) throw lobbyError;
+      if (!lobbyData) {
+        toast({
+          title: "Lobby introuvable",
+          description: `Le code "${normalizedCode}" ne correspond à aucun lobby`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      const { data: existingPlayers, error: playersError } = await supabase
+        .from('lobby_players')
+        .select('player_id, connection_status, disconnected_at')
+        .eq('lobby_id', lobbyData.id);
+
+      if (playersError) throw playersError;
+      const existingPlayer = existingPlayers?.find((player) => player.player_id === playerId);
+      const connectedPlayers = existingPlayers?.filter((player) => (
+        player.connection_status === 'connected' || !player.disconnected_at
+      )) ?? [];
+
+      if (!existingPlayer && connectedPlayers.length >= 8) {
+        toast({
+          title: "Lobby complet",
+          description: "Ce lobby a atteint le nombre maximum de joueurs",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (!existingPlayer && lobbyData.status === 'playing' && lobbyData.game_phase !== 'lobby') {
+        toast({
+          title: "Partie en cours",
+          description: "Cette partie a déjà commencé",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[lobby-preflight] failed to validate target lobby:', error);
+      toast({
+        title: "Vérification impossible",
+        description: "Le lobby actuel a été conservé. Réessaie dans un instant.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [toast]);
+
   // Join an existing lobby
   const joinLobby = useCallback(async (code: string, playerId: string, playerName: string) => {
     if (!code || !playerId || !playerName) {
@@ -362,12 +434,15 @@ export const useLobbySync = (): UseLobbyResult => {
         throw new Error('Erreur lors de la vérification du lobby');
       }
 
-      // Count only connected players
-      const connectedPlayers = existingPlayers?.filter(p => 
+      const existingPlayer = existingPlayers?.find(p => p.player_id === playerId);
+
+      // Count only connected players. Reconnecting to one's own existing seat
+      // remains allowed even when the lobby is otherwise full.
+      const connectedPlayers = existingPlayers?.filter(p =>
         p.connection_status === 'connected' || !p.disconnected_at
       ) || [];
 
-      if (connectedPlayers.length >= 8) {
+      if (!existingPlayer && connectedPlayers.length >= 8) {
         toast({
           title: "Lobby complet",
           description: "Ce lobby a atteint le nombre maximum de joueurs",
@@ -375,8 +450,6 @@ export const useLobbySync = (): UseLobbyResult => {
         });
         return null;
       }
-
-      const existingPlayer = existingPlayers?.find(p => p.player_id === playerId);
 
       // Une partie déjà lancée ne s'ouvre pas à un nouvel arrivant.
       if (!existingPlayer && lobbyData.status === 'playing' && lobbyData.game_phase !== 'lobby') {
@@ -1078,6 +1151,7 @@ export const useLobbySync = (): UseLobbyResult => {
     connectionState,
     retryConnection,
     createLobby,
+    preflightJoinLobby,
     joinLobby,
     leaveLobby,
     kickPlayer,
