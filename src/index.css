@@ -13363,16 +13363,18 @@ body.inkbeta-mode .social-viewer-overlay {
    panneau, et rien qui soit dit deux fois.
 
    1. Étape 01 — ton pseudo et ton avatar ;
-   2. Étape 02 — le mode ;
-   3. Étape 03 — jouer : créer un salon, ou rejoindre avec un
+   2. Étape 02 — jouer : créer un salon, ou rejoindre avec un
       code.
 
-   Le bouton « Démarrer » vivait dans l'étape 01, au-dessus du
-   choix du mode : l'écran demandait de lancer la partie avant
-   d'avoir rien choisi. Ont disparu pour cause de doublon : les
-   faux onglets, le rappel « Mode sélectionné », la vignette du
-   mode dans le dock, les flèches et le compteur 01/07, et la
-   pastille « Accès beta » que le logo porte déjà.
+   Le choix du mode n'est plus ici. Il ne décidait de rien :
+   `createLobby` n'écrit pas le mode reçu, si bien que le salon
+   naissait toujours sur le mode par défaut quoi qu'on ait
+   cliqué. Et le salon a déjà son propre sélecteur, lui branché
+   sur `lobbies.game_mode` — le mode se choisit là, la troupe
+   réunie. Ont disparu pour cause de doublon : les faux onglets,
+   le rappel « Mode sélectionné », la vignette du mode dans le
+   dock, les flèches et le compteur 01/07, et la pastille
+   « Accès beta » que le logo porte déjà.
 
    Tout ce bloc est scoppé `.ik-home-v2`, et non `.ik-layout-v2` :
    le salon et les écrans de jeu portent aussi `ik-layout-v2`, si
@@ -13448,18 +13450,18 @@ body.inkbeta-mode .social-viewer-overlay {
   }
 
   /*
-   * Trois panneaux empilés sous le slogan. La scène remplit la fenêtre par
-   * `align-content: stretch` sur des rangées `auto` : elles se dimensionnent
-   * d'abord sur le contenu, puis se partagent l'espace restant. Les deux autres
-   * pistes essayées échouent ici — `minmax(0, 1fr)` comprime les rangées sous la
-   * hauteur du contenu et rogne le bas des panneaux, et
-   * `minmax(min-content, 1fr)` les gonfle en forçant le texte à se recasser au
-   * plus étroit, ce qui fait défiler la page.
+   * Trois rangées sous le slogan : identité, lancement, et le slogan lui-même.
+   * La scène remplit la fenêtre par `align-content: stretch` sur des rangées
+   * `auto` : elles se dimensionnent d'abord sur le contenu, puis se partagent
+   * l'espace restant. Les deux autres pistes essayées échouent ici —
+   * `minmax(0, 1fr)` comprime les rangées sous la hauteur du contenu et rogne le
+   * bas des panneaux, et `minmax(min-content, 1fr)` les gonfle en forçant le
+   * texte à se recasser au plus étroit, ce qui fait défiler la page.
    */
   body.inkbeta-mode .ik-home-v2 .ik-canvas {
     min-height: 100%;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto;
     align-content: stretch;
   }
 
@@ -13489,55 +13491,6 @@ body.inkbeta-mode .social-viewer-overlay {
 
   body.inkbeta-mode .ik-home-v2 .ik-start-card .ik-step {
     margin-bottom: 0.7rem;
-  }
-
-  /* ---- Étape 02 : les sept modes sur une rangée ----------------------- */
-  body.inkbeta-mode .ik-home-v2 .ik-mode-panel {
-    min-height: 0;
-    grid-template-columns: minmax(10rem, 0.5fr) minmax(0, 2.5fr);
-    grid-template-rows: auto auto;
-    align-items: start;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-mode-panel-head {
-    grid-column: 1;
-    grid-row: 1;
-    margin-bottom: 0;
-    text-align: left;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-mode-description {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: start;
-    text-align: left;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-mode-grid {
-    grid-column: 2;
-    grid-row: 1 / 3;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    align-content: center;
-    gap: 0.45rem;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-mode {
-    min-height: 3.6rem;
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: center;
-    gap: 0.3rem;
-    padding: 0.5rem 0.35rem;
-    text-align: center;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-mode-icon {
-    width: 2.15rem;
-    height: 2.15rem;
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-mode-name {
-    font-size: 0.58rem;
-    letter-spacing: 0.02em;
   }
 }
 
@@ -13599,10 +13552,10 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
 /* ---- Fenêtres basses : la scène se resserre pour rester d'un bloc ----
  *
  * Le socle du lecteur prend 5,4 rem sur la hauteur utile. En 900 px et moins,
- * la scène dépassait donc d'une trentaine de pixels et le rang de modes
- * passait derrière le lecteur. On récupère cette hauteur sur les respirations
- * — padding du cadre, marge du slogan, interlignes de la carte — plutôt qu'en
- * comprimant les panneaux, qui rognent leur contenu.
+ * la scène dépassait donc d'une trentaine de pixels et le bas du panneau de
+ * lancement passait derrière le lecteur. On récupère cette hauteur sur les
+ * respirations — padding du cadre, marge du slogan, interlignes de la carte —
+ * plutôt qu'en comprimant les panneaux, qui rognent leur contenu.
  */
 @media (min-width: 1101px) and (max-height: 940px) {
   body.inkbeta-mode .ik-home-v2 .ik-canvas {
@@ -13626,7 +13579,6 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
     margin-bottom: 0.55rem;
   }
 
-  body.inkbeta-mode .ik-home-v2 .ik-mode-panel,
   body.inkbeta-mode .ik-home-v2 .ik-launch {
     padding-block: 0.7rem;
   }
@@ -13636,10 +13588,6 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--ink-beta .mp-bar {
   /* Mimo cède quelques pixels avant que les panneaux ne rognent leur contenu. */
   body.inkbeta-mode .ik-home-v2 .ik-mascot {
     width: min(100%, 14rem);
-  }
-
-  body.inkbeta-mode .ik-home-v2 .ik-mode {
-    min-height: 3.3rem;
   }
 }
 

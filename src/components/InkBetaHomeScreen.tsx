@@ -6,20 +6,15 @@
  * l'action immédiat. Toute la logique de création, de jonction et de
  * persistance reste partagée avec les autres accueils.
  */
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AudioLines,
   Camera,
   ChevronLeft,
   ChevronRight,
-  CircleHelp,
-  EyeOff,
   Hash,
-  Headphones,
-  ImageIcon,
   LogIn,
-  Mic2,
   Play,
   Settings,
   Share2,
@@ -38,7 +33,7 @@ import { usePlayerLevel } from '@/hooks/usePlayerLevel';
 import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { GAME_AVATARS, findGameAvatarIndex } from '@/lib/gameAvatars';
-import { GAME_MODE_META, INK_GAME_MODE_ORDER, type LobbyGameMode } from '@/lib/gameModes';
+import { type LobbyGameMode } from '@/lib/gameModes';
 import { DeviceSettings } from '@/components/DeviceSettings';
 import { MusicPlayerBar } from '@/components/MusicPlayerBar';
 import { NotificationCenter } from '@/components/NotificationCenter';
@@ -55,21 +50,11 @@ interface InkBetaHomeScreenProps {
   onOpenSocial?: () => void;
 }
 
-const MODE_ICONS: Partial<Record<LobbyGameMode, typeof Mic2>> = {
-  normal: Mic2,
-  audiophone: AudioLines,
-  '2v2': UsersRound,
-  quiz: CircleHelp,
-  pixoguess: ImageIcon,
-  undercover: EyeOff,
-  memorise: Headphones,
-};
-
-const MODES = INK_GAME_MODE_ORDER.map((id) => ({
-  id,
-  ...GAME_MODE_META[id],
-  icon: MODE_ICONS[id] ?? CircleHelp,
-}));
+/*
+ * La table d'icônes de mode et la liste `MODES` ont disparu avec le sélecteur de
+ * l'accueil : seul le salon choisit le mode, et ses tuiles portent leurs propres
+ * vignettes, chargées depuis `GAME_MODE_META`.
+ */
 
 /*
  * La marque et Mimo vivent dans `InkBetaBrand` : le lobby beta affiche
@@ -295,17 +280,6 @@ const InkBetaAvatarPicker = memo(() => {
 });
 InkBetaAvatarPicker.displayName = 'InkBetaAvatarPicker';
 
-const LAST_MODE_KEY = 'mimic.lastMode';
-
-const readLastMode = (): number => {
-  try {
-    const index = MODES.findIndex((mode) => mode.id === localStorage.getItem(LAST_MODE_KEY));
-    return index >= 0 ? index : 0;
-  } catch {
-    return 0;
-  }
-};
-
 const InkBetaHomeScreenComponent = ({
   onCreateGame,
   onJoinGame,
@@ -325,14 +299,12 @@ const InkBetaHomeScreenComponent = ({
     try { return localStorage.getItem('playerName') ?? ''; } catch { return ''; }
   });
   const [lobbyCode, setLobbyCode] = useState('');
-  const [modeIndex, setModeIndex] = useState(readLastMode);
 
   const [showJoin, setShowJoin] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
 
-  const selected = MODES[modeIndex];
   const nameReady = playerName.trim().length > 0;
   const joinReady = nameReady && lobbyCode.trim().length === 4;
   const displayName = profile?.display_name || playerName || 'Joueur';
@@ -355,19 +327,16 @@ const InkBetaHomeScreenComponent = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.display_name]);
 
-  const goToMode = useCallback((next: number) => {
-    const length = MODES.length;
-    const index = ((next % length) + length) % length;
-    setModeIndex(index);
-    try { localStorage.setItem(LAST_MODE_KEY, MODES[index].id); } catch { /* idem */ }
-  }, []);
-
   const handleCreate = useCallback(() => {
     if (!nameReady) return;
     play();
     playInkSound('inkSuccess', 0.5);
-    onCreateGame(playerName.trim(), selected.id as LobbyGameMode);
-  }, [nameReady, play, onCreateGame, playerName, selected.id]);
+    /*
+     * Aucun mode transmis : `createLobby` ne l'écrit pas, et le salon a son
+     * propre sélecteur, qui est la seule source de vérité.
+     */
+    onCreateGame(playerName.trim());
+  }, [nameReady, play, onCreateGame, playerName]);
 
   const handleJoin = useCallback(() => {
     const code = lobbyCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
@@ -379,18 +348,7 @@ const InkBetaHomeScreenComponent = ({
   }, [lobbyCode, nameReady, play, pushRecentLobby, onJoinGame, playerName]);
 
   useKeyboardShortcuts([
-    {
-      key: 'ArrowLeft',
-      enabled: !anyOverlayOpen,
-      handler: () => { playInkSound('brushTap', 0.25); goToMode(modeIndex - 1); },
-      label: 'Mode précédent',
-    },
-    {
-      key: 'ArrowRight',
-      enabled: !anyOverlayOpen,
-      handler: () => { playInkSound('brushTap', 0.25); goToMode(modeIndex + 1); },
-      label: 'Mode suivant',
-    },
+    /* Les flèches gauche et droite parcouraient les modes : plus rien à parcourir. */
     {
       key: 'Enter',
       enabled: !anyOverlayOpen && nameReady,
@@ -411,24 +369,17 @@ const InkBetaHomeScreenComponent = ({
     },
   ]);
 
-  const accent = useMemo(
-    () => ({ ['--accent' as string]: selected.accent }),
-    [selected.accent],
-  );
-  /*
-   * `SelectedModeIcon` a disparu avec le rappel du mode dans la carte et la
-   * vignette du dock : la tuile cochée de la grille porte déjà cette icône.
-   */
-
   return (
     <div
       /*
         `ik-home-v2` porte la composition propre à l'accueil. Elle vivait sur
         `ik-layout-v2`, que le salon et les écrans de jeu portent aussi : ses
         règles fuyaient sur eux et masquaient notamment leur pastille de manche.
+
+        La variable `--accent`, qui suivait le mode choisi, a disparu avec le
+        sélecteur : plus aucune règle beta ne la lit.
       */
       className="ik-root ik-layout-v2 ik-home-v2 menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
-      style={accent}
     >
       <div className="ik-party-bg" aria-hidden="true" />
       <div className="ik-party-rays" aria-hidden="true" />
@@ -548,68 +499,33 @@ const InkBetaHomeScreenComponent = ({
 
                 {/*
                   Le rappel « Mode sélectionné · Changer » et le bouton de
-                  lancement ont quitté cette carte : le premier redisait ce que
-                  l'étape 02 montre en grand juste dessous, le second demandait
-                  de lancer la partie avant d'avoir choisi le mode.
+                  lancement ont quitté cette carte : le premier redisait le
+                  panneau de modes qui le suivait, le second mettait l'action
+                  finale au milieu du parcours, avant même son étape.
                 */}
               </div>
             </div>
           </section>
 
-          <aside className="ik-mode-panel" aria-labelledby="ik-mode-title">
-            <div className="ik-mode-panel-head">
-              <span>Étape 02</span>
-              <h2 id="ik-mode-title">Choisis un mode</h2>
-            </div>
-
-            {/*
-              La vignette du mode retenu a été retirée, comme au salon : la tuile
-              cochée dans la grille, la description ci-dessous et la ligne de
-              l'étape 03 la disaient déjà, et elle prenait la largeur des
-              libellés.
-            */}
-            <p className="ik-mode-description">{selected.description}</p>
-
-            <div className="ik-mode-grid" role="group" aria-label="Modes de jeu">
-              {MODES.map((mode, index) => {
-                const isSelected = index === modeIndex;
-                const ModeIcon = mode.icon;
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    aria-pressed={isSelected}
-                    aria-label={`${mode.label} — ${mode.tagline}`}
-                    title={mode.description}
-                    onClick={() => { playInkSound('brushTap', 0.3); goToMode(index); }}
-                    className={`ik-mode menu-focus${isSelected ? ' is-selected' : ''}`}
-                    style={{ ['--mode-accent' as string]: mode.accent }}
-                  >
-                    <span className="ik-mode-icon"><ModeIcon aria-hidden="true" /></span>
-                    <span className="ik-mode-name">{mode.shortLabel}</span>
-                    <span className="ik-mode-check" aria-hidden="true">✓</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/*
-              Flèches et compteur « 01/07 » retirés : les sept modes tiennent sur
-              une rangée, où l'on clique directement celui qu'on veut. Ils
-              étaient déjà masqués par le CSS depuis la refonte précédente.
-            */}
-          </aside>
+          {/*
+            Le choix du mode a quitté l'accueil.
+            Il n'a jamais rien décidé : `handleCreateGame` reçoit bien un mode,
+            mais `createLobby` ne l'écrit pas, et le salon naît donc toujours sur
+            le mode par défaut. Le seul sélecteur qui compte est celui du salon,
+            qui écrit `lobbies.game_mode` — et c'est aussi le bon endroit, puisque
+            le mode se décide avec la troupe réunie, pas avant de l'avoir invitée.
+          */}
 
           {/*
-            ÉTAPE 03 — jouer.
+            ÉTAPE 02 — jouer.
             Les deux façons d'entrer en partie sont ici, côte à côte : créer un
             salon, ou rejoindre celui de quelqu'un avec son code.
           */}
           <section className="ik-launch" aria-labelledby="ik-home-launch-title">
             <div className="ik-step">
-              <span>Étape 03</span>
+              <span>Étape 02</span>
               <h2 id="ik-home-launch-title">Lance la partie</h2>
-              <p>{selected.label} · {selected.minPlayers} joueurs minimum</p>
+              <p>Tu choisiras le mode dans le salon, avec ta troupe.</p>
             </div>
 
             <div className="ik-launch-action">
