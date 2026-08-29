@@ -21,11 +21,13 @@ import {
   PULP,
   PULP_FONT,
 } from "@/components/audiophone/PulpComic";
+import { InkBetaPanel } from "@/components/game-beta/InkBetaGameLayout";
 
 interface AudioPhoneInstructionsPhaseProps {
   isHost: boolean;
   playerCount: number;
   onStart: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 const STEPS = [
@@ -36,7 +38,8 @@ const STEPS = [
 ];
 
 export const AudioPhoneInstructionsPhase = memo(
-  ({ isHost, playerCount, onStart }: AudioPhoneInstructionsPhaseProps) => {
+  ({ isHost, playerCount, onStart, variant = 'default' }: AudioPhoneInstructionsPhaseProps) => {
+    const isInkBeta = variant === 'inkBeta';
     const [activeStep, setActiveStep] = useState(0);
     const [isStarting, setIsStarting] = useState(false);
 
@@ -53,6 +56,65 @@ export const AudioPhoneInstructionsPhase = memo(
       playSoundEffect("start", 0.5);
       onStart();
     };
+
+    if (isInkBeta) {
+      /*
+       * Les quatre étapes sont montrées d'un bloc, sans surbrillance tournante :
+       * ici elles expliquent la règle, elles ne disent pas où l'on en est. Un
+       * halo qui se déplace toutes les deux secondes ferait croire le contraire.
+       */
+      return (
+        <InkBetaPanel step="Comment ça marche" title="Audio Phone" titleId="ik-ap-rules-title">
+          <p className="ik-game-lead">
+            Un téléphone arabe où le son est <strong>joué à l'envers</strong>. Chacun enregistre une
+            phrase, tout le monde tente de la reproduire à l'oreille, et on écoute les dégâts
+            ensemble à la fin.
+          </p>
+
+          <ol className="ik-ap-flow">
+            {STEPS.map((step, idx) => {
+              const Icon = step.icon;
+              return (
+                <li key={step.title} className="ik-ap-flow-step">
+                  <span className="ik-ap-flow-num">{idx + 1}</span>
+                  <span className="ik-ap-flow-icon">
+                    <Icon aria-hidden="true" />
+                  </span>
+                  <strong>{step.title}</strong>
+                  <small>{step.desc}</small>
+                </li>
+              );
+            })}
+          </ol>
+
+          {isHost ? (
+            <button
+              type="button"
+              onClick={handleStart}
+              disabled={isStarting}
+              className="ik-primary-action menu-focus"
+            >
+              <span className="ik-primary-action-icon">
+                {isStarting ? (
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <ArrowRight aria-hidden="true" />
+                )}
+              </span>
+              <span>{isStarting ? 'Démarrage…' : "C'est parti !"}</span>
+            </button>
+          ) : (
+            <p className="ik-game-note">
+              <Loader2 className="animate-spin" aria-hidden="true" /> En attente de l'hôte…
+            </p>
+          )}
+
+          <p className="ik-progress-label">
+            {playerCount} joueur{playerCount > 1 ? 's' : ''} · parle clairement, accepte le chaos
+          </p>
+        </InkBetaPanel>
+      );
+    }
 
     return (
       <PulpStage accent={PULP.red} accent2={PULP.blue}>

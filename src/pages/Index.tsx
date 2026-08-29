@@ -785,6 +785,7 @@ const Index = () => {
 
         {gameState === "audiophone" && currentPlayer && lobby && (
           <AudioPhoneGameScreen
+            variant={useBetaHome ? 'inkBeta' : 'default'}
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}

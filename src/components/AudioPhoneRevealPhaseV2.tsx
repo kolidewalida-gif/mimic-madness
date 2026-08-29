@@ -13,6 +13,7 @@ import {
   PULP,
   PULP_FONT,
 } from "@/components/audiophone/PulpComic";
+import { InkBetaPanel } from "@/components/game-beta/InkBetaGameLayout";
 
 interface RevealPhraseData {
   original: {
@@ -43,6 +44,7 @@ interface SyncState {
 }
 
 interface AudioPhoneRevealPhaseV2Props {
+  variant?: 'default' | 'inkBeta';
   revealData: RevealPhraseData[];
   players: Player[];
   isHost: boolean;
@@ -54,6 +56,7 @@ interface AudioPhoneRevealPhaseV2Props {
 }
 
 export const AudioPhoneRevealPhaseV2 = ({
+  variant = 'default',
   revealData,
   players,
   isHost,
@@ -207,6 +210,147 @@ export const AudioPhoneRevealPhaseV2 = ({
     active
       ? { background: `${color}26`, border: `2px solid ${color}`, color }
       : { background: 'rgba(8,7,10,0.4)', border: '2px solid rgba(243,237,224,0.12)', color: 'rgba(243,237,224,0.45)' };
+
+  /* ---------- INK BETA ---------- */
+  if (variant === 'inkBeta') {
+    /*
+     * La chaîne de lecture est le sujet de cette phase : l'originale, la même à
+     * l'envers, puis chaque imitation. On la montre comme une file d'étapes avec
+     * l'étape en cours marquée, plutôt qu'en pastilles dispersées.
+     */
+    const chain: Array<{ key: string; label: string }> = [
+      { key: 'original', label: 'Original' },
+      { key: 'reversed', label: 'À l\'envers' },
+      ...(currentPhrase?.imitations.map((im, idx) => ({
+        key: `imitation_${idx}`,
+        label: im.imitator_player_name,
+      })) ?? []),
+    ];
+    const currentChainIndex = chain.findIndex((entry) => entry.key === currentStep);
+
+    return (
+      <>
+        <audio ref={audioRef} onEnded={handleAudioEnded} />
+
+        <InkBetaPanel
+          featured
+          step={`Phrase ${syncState.phraseIndex + 1} sur ${revealData.length}`}
+          title={`Phrase de ${currentPhrase?.original.player_name ?? '—'}`}
+          titleId="ik-ap-reveal-current"
+          aside={currentStep === 'complete' ? (
+            <span className="ik-seat-flag" aria-hidden="true"><Volume2 /></span>
+          ) : undefined}
+        >
+          <ol className="ik-ap-chain">
+            {chain.map((entry, idx) => (
+              <li
+                key={entry.key}
+                className={cn(
+                  'ik-ap-chain-step',
+                  currentChainIndex > idx && 'is-past',
+                  entry.key === currentStep && 'is-current',
+                )}
+              >
+                <Volume2 aria-hidden="true" />
+                <span>{entry.label}</span>
+              </li>
+            ))}
+          </ol>
+
+          {isHost ? (
+            <div className="ik-game-actions--split">
+              <button
+                type="button"
+                onClick={localIsPlaying ? pausePlayback : startPhrasePlayback}
+                className="ik-primary-action menu-focus"
+              >
+                <span className="ik-primary-action-icon">
+                  {localIsPlaying ? (
+                    <Pause aria-hidden="true" />
+                  ) : (
+                    <Play fill="currentColor" aria-hidden="true" />
+                  )}
+                </span>
+                <span>
+                  {localIsPlaying
+                    ? 'Pause'
+                    : currentStep === 'idle'
+                      ? 'Démarrer'
+                      : currentStep === 'complete'
+                        ? 'Rejouer'
+                        : 'Reprendre'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={goToNextPhrase}
+                disabled={syncState.phraseIndex === revealData.length - 1 || localIsPlaying}
+                className="ik-secondary-action menu-focus"
+              >
+                Phrase suivante <SkipForward aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <p className="ik-game-note">
+              {localIsPlaying ? (
+                <>
+                  <Volume2 aria-hidden="true" /> Lecture en cours…
+                </>
+              ) : (
+                <>
+                  <Play aria-hidden="true" /> L'hôte pilote la lecture.
+                </>
+              )}
+            </p>
+          )}
+
+          {revealData.length > 1 && (
+            <div className="ik-dots" aria-hidden="true">
+              {revealData.map((phrase, idx) => (
+                <span
+                  key={phrase.original.id}
+                  className={cn(
+                    idx < syncState.phraseIndex && 'is-past',
+                    idx === syncState.phraseIndex && 'is-current',
+                  )}
+                />
+              ))}
+            </div>
+          )}
+        </InkBetaPanel>
+
+        {revealComplete && (
+          <PodiumAd gameMode="audiophone" instanceKey={`${instanceKey}:reveal-complete`} />
+        )}
+
+        {isHost && (
+          <InkBetaPanel step="Et après" title="La suite" titleId="ik-ap-reveal-next">
+            <div className="ik-game-actions--split">
+              <button
+                type="button"
+                onClick={onPlayAgain}
+                disabled={localIsPlaying}
+                className="ik-secondary-action menu-focus"
+              >
+                <RotateCcw aria-hidden="true" /> Rejouer une manche
+              </button>
+              <button
+                type="button"
+                onClick={onEndGame}
+                disabled={localIsPlaying}
+                className="ik-primary-action menu-focus"
+              >
+                <span className="ik-primary-action-icon">
+                  <Home aria-hidden="true" />
+                </span>
+                <span>Terminer</span>
+              </button>
+            </div>
+          </InkBetaPanel>
+        )}
+      </>
+    );
+  }
 
   return (
     <PulpStage accent={PULP.red} accent2={PULP.blue}>

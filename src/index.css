@@ -12543,6 +12543,283 @@ body.inkbeta-mode .ik-quiz-answer .ik-input {
 }
 
 /* ============================================================
+   INK BETA — AUDIO PHONE
+   ------------------------------------------------------------
+   Le mode avait sa propre direction artistique complète, héritée
+   d'un chantier « pulp comic » : fond papier, grain, trame, police
+   Bebas. Elle reste en place pour les autres thèmes ; ici les
+   phases reprennent les panneaux prune, les titres Bangers et les
+   boutons en relief du menu.
+
+   Trois objets propres au mode, le reste est réemployé : le bouton
+   micro et son halo de niveau, la file d'étapes des règles, et la
+   chaîne de lecture de la révélation. Le minuteur d'enregistrement
+   est celui du quiz, les tuiles joueurs celles du lobby.
+   ============================================================ */
+
+/* ---- La scène occupe la fenêtre -------------------------------------- */
+
+/*
+ * Les phases de travail — micro et imitation — tiennent peu de contenu et
+ * `.ik-main` les colle en haut : la scène s'arrêtait à mi-hauteur avec trois
+ * cents pixels de vide dessous. Elles prennent la hauteur utile, moins la barre
+ * du haut et le socle du lecteur, et leurs deux panneaux s'étirent.
+ */
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-ap-canvas.ik-game-canvas--stage {
+  min-height: calc(100dvh - 12.5rem);
+  align-content: stretch;
+}
+
+/*
+ * Les écrans courts — règles, attente, révélation — n'ont rien à étirer : on les
+ * pose au milieu de la fenêtre plutôt qu'en haut avec un vide dessous.
+ */
+body.inkbeta-mode .ik-game-v2 .ik-main:has(.ik-ap-canvas.ik-game-canvas--center) {
+  align-items: center;
+}
+
+/*
+ * Seule la zone du micro se centre dans la place restante. Centrer tout le corps
+ * du panneau décollait la consigne de son titre : on lisait un titre, un vide,
+ * puis le texte et le micro au milieu.
+ */
+body.inkbeta-mode .ik-ap-mic-zone {
+  flex: 1;
+  align-content: center;
+}
+
+/* ---- Règles : les quatre temps du mode ------------------------------- */
+body.inkbeta-mode .ik-ap-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body.inkbeta-mode .ik-ap-flow-step {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 0.85rem 0.5rem 0.7rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 13px;
+  background: rgba(72, 6, 88, 0.55);
+  box-shadow: 0 3px 0 rgba(54, 7, 76, 0.55);
+  text-align: center;
+}
+
+/* Le numéro chevauche le coin, comme les cases d'une planche. */
+body.inkbeta-mode .ik-ap-flow-num {
+  position: absolute;
+  top: -0.55rem;
+  left: -0.35rem;
+  display: grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  place-items: center;
+  border: 2px solid var(--ik-edge);
+  border-radius: 50%;
+  color: var(--ik-edge);
+  background: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+body.inkbeta-mode .ik-ap-flow-icon {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  color: var(--ik-cyan);
+  background: rgba(45, 242, 208, 0.12);
+}
+
+body.inkbeta-mode .ik-ap-flow-icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  stroke-width: 2.8;
+}
+
+body.inkbeta-mode .ik-ap-flow-step strong {
+  color: var(--ik-white);
+  font-family: var(--ik-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-ap-flow-step small {
+  color: var(--ik-white-faint);
+  font-size: 0.66rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+/* ---- Le micro -------------------------------------------------------- */
+body.inkbeta-mode .ik-ap-mic-zone {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0;
+}
+
+body.inkbeta-mode .ik-ap-mic {
+  position: relative;
+  display: grid;
+  width: 7.5rem;
+  height: 7.5rem;
+  place-items: center;
+  border: 4px solid var(--ik-edge);
+  border-radius: 50%;
+  color: var(--ik-edge);
+  background: radial-gradient(circle at 35% 28%, var(--ik-cyan), var(--ik-cyan-deep));
+  box-shadow: 0 6px 0 var(--ik-edge);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+body.inkbeta-mode .ik-ap-mic svg {
+  width: 2.6rem;
+  height: 2.6rem;
+  stroke-width: 2.6;
+}
+
+body.inkbeta-mode .ik-ap-mic:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-ap-mic:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-ap-mic:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+body.inkbeta-mode .ik-ap-mic.is-recording {
+  color: var(--ik-white);
+  background: radial-gradient(circle at 35% 28%, var(--ik-pink), #c11f6d);
+}
+
+/*
+ * Le halo suit le niveau du micro, transmis en variable par le composant.
+ *
+ * C'est une transformation d'échelle sur une couche à part, et non une
+ * animation en boucle : rien ne bouge quand personne ne parle, et le rendu
+ * n'occupe pas le fil principal à repeindre un panneau entier.
+ */
+body.inkbeta-mode .ik-ap-mic-ring {
+  position: absolute;
+  inset: -0.55rem;
+  border: 3px solid rgba(255, 98, 182, 0);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: scale(1);
+  transition: transform 90ms linear, border-color 90ms linear;
+}
+
+body.inkbeta-mode .ik-ap-mic.is-recording > .ik-ap-mic-ring {
+  border-color: rgba(255, 98, 182, calc(0.25 + var(--ap-level, 0) * 0.75));
+  transform: scale(calc(1 + var(--ap-level, 0) * 0.35));
+}
+
+/* ---- Réécoute avant envoi ------------------------------------------- */
+body.inkbeta-mode .ik-ap-review {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 13px;
+  background: rgba(72, 6, 88, 0.55);
+}
+
+body.inkbeta-mode .ik-ap-audio {
+  width: 100%;
+  height: 2.4rem;
+}
+
+/* ---- Révélation : la chaîne de lecture ------------------------------ */
+body.inkbeta-mode .ik-ap-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body.inkbeta-mode .ik-ap-chain-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  color: var(--ik-white-faint);
+  background: rgba(53, 7, 75, 0.45);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-ap-chain-step svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex: 0 0 auto;
+  stroke-width: 3;
+}
+
+/* Déjà joué : validé, mais en retrait. */
+body.inkbeta-mode .ik-ap-chain-step.is-past {
+  border-color: rgba(45, 242, 208, 0.45);
+  color: var(--ik-cyan);
+}
+
+/* En cours : c'est ce qu'on entend. */
+body.inkbeta-mode .ik-ap-chain-step.is-current {
+  border-color: var(--ik-pink);
+  color: var(--ik-white);
+  background: rgba(255, 98, 182, 0.2);
+  box-shadow: 0 3px 0 rgba(54, 7, 76, 0.6);
+}
+
+/* ---- Tablette et mobile --------------------------------------------- */
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-ap-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .ik-ap-mic {
+    width: 6.5rem;
+    height: 6.5rem;
+    border-width: 3px;
+  }
+
+  body.inkbeta-mode .ik-ap-mic svg {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode .ik-ap-mic,
+  body.inkbeta-mode .ik-ap-mic-ring {
+    transition: none;
+  }
+}
+
+/* ============================================================
    INK BETA — MENUS : AMIS, OPTIONS, PROFIL, SOCIAL
    ------------------------------------------------------------
    Refonte purement visuelle. Aucun de ces panneaux ne change de

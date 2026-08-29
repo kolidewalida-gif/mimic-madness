@@ -94,6 +94,63 @@ export const computePlayerOrderIndex = (
 };
 
 /**
+ * Les joueurs réellement attendus dans la manche.
+ *
+ * `player_order` est tiré une fois, à la création de la manche, et ne bouge
+ * plus. Deux cas cassaient donc le déroulé quand on comparait les envois à la
+ * liste des joueurs du salon :
+ *
+ * - un joueur qui **part** en cours de manche reste dans l'ordre mais n'a plus
+ *   de siège : on attendait un enregistrement qui ne viendrait jamais ;
+ * - un joueur qui **arrive** après le tirage est dans le salon mais absent de
+ *   l'ordre : son envoi est refusé (`computePlayerOrderIndex` renvoie -1), et
+ *   pourtant on l'attendait.
+ *
+ * Dans les deux cas la manche se figeait sans aucune sortie. On ne compte donc
+ * que l'intersection : présent dans le salon **et** dans l'ordre de la manche.
+ *
+ * Un ordre vide veut dire « pas encore de manche » : on rend la liste telle
+ * quelle plutôt qu'une liste vide, pour ne pas faire croire à un salon désert.
+ */
+export const rosterForRound = <T extends { id: string }>(
+  players: T[],
+  playerOrder: string[]
+): T[] => {
+  if (playerOrder.length === 0) return players;
+  const inRound = new Set(playerOrder);
+  return players.filter((p) => inRound.has(p.id));
+};
+
+/**
+ * Ce joueur peut-il agir dans cette manche, ou la regarde-t-il ?
+ *
+ * Sert à afficher un état de spectateur assumé au joueur arrivé en retard,
+ * plutôt qu'un micro dont l'envoi sera silencieusement refusé.
+ */
+export const canParticipateInRound = (
+  playerOrder: string[],
+  playerId: string
+): boolean => playerOrder.length === 0 || playerOrder.includes(playerId);
+
+/**
+ * Y a-t-il de quoi lancer la phase d'imitation ?
+ *
+ * Il faut au moins une phrase à imiter et au moins un imitateur possible, sinon
+ * la phase s'ouvre sur un écran vide dont personne ne peut sortir. Cette borne
+ * est ce qui autorise l'hôte à passer outre les joueurs manquants sans risquer
+ * de bloquer la manche plus loin.
+ */
+export const canStartImitationPhase = (params: {
+  roster: Array<{ id: string }>;
+  recordings: Array<{ player_id: string }>;
+}): boolean => {
+  const { roster, recordings } = params;
+  if (recordings.length === 0) return false;
+  /* Une phrase et son seul auteur : personne à qui la faire imiter. */
+  return roster.length >= 2;
+};
+
+/**
  * Determine if all players have submitted their original phrases.
  */
 export const allOriginalPhrasesSubmitted = (

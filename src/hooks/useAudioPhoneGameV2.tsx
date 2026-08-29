@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { reverseAudioBufferWithInfo } from '@/lib/audioReverser';
@@ -18,6 +18,11 @@ import {
   computePhraseProgress,
   computeNextPhraseIndex,
   sortRecordingsByOrder,
+  rosterForRound,
+  canParticipateInRound,
+  canStartImitationPhase,
+  isValidPhaseTransition,
+  type AudioPhonePhase,
 } from '@/lib/audioPhoneLogic';
 
 interface Player {
@@ -167,6 +172,68 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     currentRoundIdRef.current = currentRound?.id ?? null;
   }, [currentRound?.id]);
 
+  /*
+   * L'effectif de la manche, et non celui du salon.
+   *
+   * `player_order` est figé au tirage : un joueur parti y reste, un joueur
+   * arrivé après n'y est pas. Compter les envois sur `players` gelait la manche
+   * dans les deux cas — on attendait indéfiniment quelqu'un qui ne pouvait plus
+   * répondre. Tout ce qui suit raisonne donc sur l'intersection.
+   */
+  const roster = useMemo(
+    () => rosterForRound(players, currentRound?.player_order ?? []),
+    [players, currentRound?.player_order],
+  );
+
+  /* Un joueur hors de l'ordre regarde la manche : son envoi serait refusé. */
+  const isSpectator = !canParticipateInRound(
+    currentRound?.player_order ?? [],
+    currentPlayer.id,
+  );
+
+  /**
+   * Écrit une phase, mais seulement si la transition est légale et si personne
+   * ne l'a déjà écrite.
+   *
+   * Deux gardes, pour deux problèmes distincts :
+   *
+   * - `isValidPhaseTransition` existait dans la logique pure, était testé, et
+   *   n'était appelé par personne : la machine à états n'était pas appliquée à
+   *   l'exécution. Un ordre qui arrive en retard pouvait ramener la manche en
+   *   arrière.
+   * - `.eq('phase', from)` rend l'écriture conditionnelle côté serveur. Deux
+   *   clients qui avancent en même temps — l'hôte et son avance automatique, par
+   *   exemple — n'appliquent plus la transition deux fois.
+   */
+  const writePhase = useCallback(
+    async (
+      from: GamePhase,
+      to: GamePhase,
+      extra: Record<string, unknown> = {},
+    ): Promise<boolean> => {
+      if (!currentRound) return false;
+      if (from === to) return false;
+
+      if (!isValidPhaseTransition(from as AudioPhonePhase, to as AudioPhonePhase)) {
+        console.warn(`[AudioPhoneV2] Transition refusée : ${from} → ${to}`);
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('audio_phone_rounds')
+        .update({ phase: to, ...extra })
+        .eq('id', currentRound.id)
+        .eq('phase', from);
+
+      if (error) {
+        console.error(`[AudioPhoneV2] Écriture de phase ${from} → ${to} échouée :`, error);
+        return false;
+      }
+      return true;
+    },
+    [currentRound],
+  );
+
   // Realtime subscriptions — Bug fix #7 + #8: filter by lobby's current round
   // (cannot filter by round_id directly because it changes; we filter client-side)
   // Bug fix: stable session ID to disambiguate channels on remount
@@ -303,14 +370,8 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
   // Start recording phase (all players record)
   const startRecordingPhase = useCallback(async () => {
     if (!currentRound) return;
-    
-    const { error } = await supabase
-      .from('audio_phone_rounds')
-      .update({ phase: 'recording_all' })
-      .eq('id', currentRound.id);
-
-    if (error) console.error('Error starting recording phase:', error);
-  }, [currentRound]);
+    await writePhase(currentRound.phase, 'recording_all');
+  }, [currentRound, writePhase]);
 
   // Submit original phrase recording — Bug fix #1, #2, #6
   const submitOriginalPhrase = useCallback(async (audioBlob: Blob): Promise<boolean> => {
@@ -410,32 +471,39 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
 
   // Check if all players have submitted their original phrases
   const allPhrasesSubmitted = useCallback(() => {
-    return allOriginalPhrasesSubmittedFn(players, originalRecordings);
-  }, [players, originalRecordings]);
+    return allOriginalPhrasesSubmittedFn(roster, originalRecordings);
+  }, [roster, originalRecordings]);
 
   const getSubmittedOriginalPlayerIds = useCallback(() => {
     return originalRecordings.map((recording) => recording.player_id);
   }, [originalRecordings]);
 
   const getPendingOriginalPlayers = useCallback(() => {
-    return getPendingOriginalPlayersFn(players, originalRecordings);
-  }, [players, originalRecordings]);
+    return getPendingOriginalPlayersFn(roster, originalRecordings);
+  }, [roster, originalRecordings]);
+
+  /*
+   * Y a-t-il de quoi imiter ? C'est cette borne qui permet à l'hôte de passer
+   * outre un joueur muet sans ouvrir une phase d'imitation vide.
+   */
+  const canStartImitation = useCallback(
+    () => canStartImitationPhase({ roster, recordings: originalRecordings }),
+    [roster, originalRecordings],
+  );
 
   // Start imitation phase (host only)
   const startImitationPhase = useCallback(async () => {
     if (!currentRound) return;
+    if (!canStartImitationPhase({ roster, recordings: originalRecordings })) {
+      console.warn('[AudioPhoneV2] Imitation refusée : pas de quoi imiter');
+      return;
+    }
 
-    const { error } = await supabase
-      .from('audio_phone_rounds')
-      .update({ 
-        phase: 'imitation',
-        current_phrase_index: 0,
-        current_player_index: 0,
-      })
-      .eq('id', currentRound.id);
-
-    if (error) console.error('Error starting imitation phase:', error);
-  }, [currentRound]);
+    await writePhase(currentRound.phase, 'imitation', {
+      current_phrase_index: 0,
+      current_player_index: 0,
+    });
+  }, [currentRound, roster, originalRecordings, writePhase]);
 
   // Get the current phrase being imitated
   const getCurrentPhraseToImitate = useCallback(() => {
@@ -448,8 +516,8 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
   const getPlayersToImitateCurrentPhrase = useCallback(() => {
     const currentPhrase = getCurrentPhraseToImitate();
     if (!currentPhrase) return [];
-    return getPlayersToImitate(players, currentPhrase.player_id);
-  }, [getCurrentPhraseToImitate, players]);
+    return getPlayersToImitate(roster, currentPhrase.player_id);
+  }, [getCurrentPhraseToImitate, roster]);
 
   // Check if current player needs to imitate the current phrase
   const shouldImitateCurrentPhrase = useCallback(() => {
@@ -554,17 +622,17 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     const currentPhrase = getCurrentPhraseToImitate();
     if (!currentPhrase) return false;
     return allImitationsForPhraseDone({
-      players,
+      players: roster,
       originalAuthorId: currentPhrase.player_id,
       originalRecordingId: currentPhrase.id,
       imitations,
     });
-  }, [getCurrentPhraseToImitate, players, imitations]);
+  }, [getCurrentPhraseToImitate, roster, imitations]);
 
   const getCurrentPhraseProgress = useCallback(() => {
     const currentPhrase = getCurrentPhraseToImitate();
     const progress = computePhraseProgress({
-      players,
+      players: roster,
       originalAuthorId: currentPhrase?.player_id ?? null,
       originalRecordingId: currentPhrase?.id ?? null,
       imitations,
@@ -572,9 +640,9 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     return {
       requiredCount: progress.requiredCount,
       completedCount: progress.completedCount,
-      pendingPlayers: players.filter((p) => progress.pendingPlayerIds.includes(p.id)),
+      pendingPlayers: roster.filter((p) => progress.pendingPlayerIds.includes(p.id)),
     };
-  }, [getCurrentPhraseToImitate, players, imitations]);
+  }, [getCurrentPhraseToImitate, roster, imitations]);
 
   // Move to next phrase (host only) — Bug fix #9: lock
   const moveToNextPhrase = useCallback(async () => {
@@ -583,47 +651,99 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     moveToNextPhraseLockRef.current = true;
 
     try {
-      const next = computeNextPhraseIndex(
-        currentRound.current_phrase_index ?? 0,
-        originalRecordings.length
-      );
+      const current = currentRound.current_phrase_index ?? 0;
+      const next = computeNextPhraseIndex(current, originalRecordings.length);
 
       if (next === -1) {
-        // All phrases done, go to waiting_reveal
-        const { error } = await supabase
-          .from('audio_phone_rounds')
-          .update({ phase: 'waiting_reveal' })
-          .eq('id', currentRound.id);
-        if (error) console.error('Error moving to waiting_reveal:', error);
+        // Toutes les phrases sont passées : on attend la révélation.
+        await writePhase(currentRound.phase, 'waiting_reveal');
       } else {
-        // Move to next phrase
+        /*
+         * `.eq('current_phrase_index', current)` : l'avance ne s'applique que si
+         * personne ne l'a déjà faite. Sans cette condition, l'hôte et son avance
+         * automatique pouvaient sauter deux phrases d'un coup — le verrou de
+         * 500 ms ne protège que ce client, pas la manche.
+         */
         const { error } = await supabase
           .from('audio_phone_rounds')
           .update({ current_phrase_index: next })
-          .eq('id', currentRound.id);
+          .eq('id', currentRound.id)
+          .eq('current_phrase_index', current);
         if (error) console.error('Error moving to next phrase:', error);
       }
     } finally {
       setTimeout(() => { moveToNextPhraseLockRef.current = false; }, 500);
     }
-  }, [currentRound, originalRecordings.length]);
+  }, [currentRound, originalRecordings.length, writePhase]);
+
+  /*
+   * AVANCE AUTOMATIQUE
+   * ------------------------------------------------------------------
+   * Deux étapes n'avançaient que sur un clic de l'hôte : le passage aux
+   * imitations quand tout le monde avait enregistré, et le passage à la phrase
+   * suivante quand toutes les imitations étaient déposées. Hôte parti, onglet en
+   * veille ou simple distraction, et la manche restait figée sur un écran qui
+   * disait pourtant que tout était prêt.
+   *
+   * Maintenant que `writePhase` et l'avance de phrase sont conditionnées côté
+   * serveur — `.eq('phase', from)` et `.eq('current_phrase_index', current)` —
+   * une écriture répétée est sans effet. On peut donc laisser n'importe quel
+   * client pousser l'étape : le premier arrivé l'emporte, les autres ne font
+   * rien. L'hôte garde la main en agissant plus tôt ; les autres ne prennent le
+   * relais que s'il ne l'a pas fait.
+   */
+  const autoAdvanceRef = useRef<string | null>(null);
+  const isHost = currentPlayer.isHost;
+
+  useEffect(() => {
+    if (!currentRound) return;
+
+    const phase = currentRound.phase;
+    let key: string | null = null;
+    let action: (() => Promise<void>) | null = null;
+
+    if (phase === 'recording_all' && allPhrasesSubmitted() && canStartImitation()) {
+      key = `${currentRound.id}:to-imitation`;
+      action = startImitationPhase;
+    } else if (phase === 'imitation' && allImitationsForCurrentPhraseDone()) {
+      key = `${currentRound.id}:phrase:${currentRound.current_phrase_index ?? 0}`;
+      action = moveToNextPhrase;
+    }
+
+    if (!key || !action) return;
+    /* Déjà poussée depuis ce client : ne pas insister. */
+    if (autoAdvanceRef.current === key) return;
+
+    /* L'hôte agit vite ; les autres laissent passer sa fenêtre d'abord. */
+    const delay = isHost ? 2000 : 6500;
+    const stepKey = key;
+    const run = action;
+
+    const timer = setTimeout(() => {
+      autoAdvanceRef.current = stepKey;
+      void run();
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [
+    currentRound,
+    isHost,
+    allPhrasesSubmitted,
+    canStartImitation,
+    allImitationsForCurrentPhraseDone,
+    startImitationPhase,
+    moveToNextPhrase,
+  ]);
 
   // Start reveal (host only)
   const startReveal = useCallback(async () => {
     if (!currentRound) return;
-
-    const { error } = await supabase
-      .from('audio_phone_rounds')
-      .update({ 
-        phase: 'reveal', 
-        reveal_phrase_index: 0,
-        reveal_step: 'idle',
-        reveal_is_playing: false,
-      })
-      .eq('id', currentRound.id);
-
-    if (error) console.error('Error starting reveal:', error);
-  }, [currentRound]);
+    await writePhase(currentRound.phase, 'reveal', {
+      reveal_phrase_index: 0,
+      reveal_step: 'idle',
+      reveal_is_playing: false,
+    });
+  }, [currentRound, writePhase]);
 
   // Control reveal playback (host only) - synced for all players
   const setRevealPlaybackState = useCallback(async (
@@ -728,7 +848,12 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     isLoading,
     isSubmitting,
     uploadErrors,
-    
+
+    /** Effectif réel de la manche : présents dans le salon ET dans l'ordre tiré. */
+    roster,
+    /** Ce joueur est arrivé après le tirage : il regarde cette manche. */
+    isSpectator,
+
     // Actions
     startGame,
     startRecordingPhase,
@@ -743,6 +868,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     // Helpers
     hasSubmittedOriginalPhrase,
     allPhrasesSubmitted,
+    canStartImitation,
     getSubmittedOriginalPlayerIds,
     getPendingOriginalPlayers,
     getCurrentPhraseToImitate,
