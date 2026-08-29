@@ -44,7 +44,7 @@ import React from "react";
 // Lazy load heavy components
 const HomeScreen = React.lazy(() => import("@/components/HomeScreen").then(m => ({ default: m.HomeScreen })));
 const InkHomeScreen = React.lazy(() => import("@/components/InkHomeScreen").then(m => ({ default: m.InkHomeScreen })));
-/* Beta admin : en `lazy`, donc un joueur ordinaire ne télécharge jamais ce chunk. */
+/* Accueil Ink Beta public, chargé à la demande. */
 const InkBetaHomeScreen = React.lazy(() => import("@/components/InkBetaHomeScreen").then(m => ({ default: m.InkBetaHomeScreen })));
 const InkPersonalHub = React.lazy(() => import("@/components/InkPersonalHub").then(m => ({ default: m.InkPersonalHub })));
 const NeonHomeScreen = React.lazy(() => import("@/components/neon/NeonHomeScreen").then(m => ({ default: m.NeonHomeScreen })));
@@ -124,21 +124,8 @@ const Index = () => {
   const { theme, inkModeEnabled } = useTheme();
   const { isAdmin, isLoading: isAdminLoading } = useAdmin();
 
-  /*
-   * Aperçu de l'écran beta sans compte administrateur, pour les captures
-   * automatisées de mise en page.
-   *
-   * `import.meta.env.DEV` est remplacé par `false` à la compilation, donc tout
-   * ce bloc est éliminé du bundle de production : le paramètre d'URL n'a aucun
-   * effet sur le site publié.
-   */
-  const devBetaPreview =
-    import.meta.env.DEV &&
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).has('betapreview');
-
-  /* Ramène sur `ink` si un non-admin a un thème réservé en localStorage. */
-  useRestrictedThemeGuard(isAdmin || devBetaPreview, isAdminLoading);
+  /* Garde générique pour d’éventuels futurs thèmes internes. */
+  useRestrictedThemeGuard(isAdmin, isAdminLoading);
   const [gameState, setGameState] = useState<GameState>("home");
   const [showInkSocial, setShowInkSocial] = useState(false);
   const [personalHub, setPersonalHub] = useState<PersonalHubState>({ isOpen: false, tab: 'profile' });
@@ -209,8 +196,8 @@ const Index = () => {
    * qui est le réglage historique du seul thème `ink`.
    */
   const useInkMode = theme === 'inkbeta' || (inkModeEnabled && isInkFamily(theme));
-  /* L'accueil beta ne s'affiche qu'une fois le rôle admin confirmé. */
-  const useBetaHome = theme === 'inkbeta' && (isAdmin || devBetaPreview);
+  /* Ink Beta est public : choisir le thème suffit pour charger son accueil. */
+  const useBetaHome = theme === 'inkbeta';
   // Neon Hub désactivé — on reste sur l'Ink polish
   const useNeonHub = false;
 

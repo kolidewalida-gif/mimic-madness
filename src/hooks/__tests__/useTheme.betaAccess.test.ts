@@ -1,10 +1,5 @@
 /**
- * Accès au thème beta réservé aux administrateurs.
- *
- * Deux invariants comptent ici, et le second est facile à casser :
- *  - un joueur ordinaire ne doit jamais voir `inkbeta` dans un sélecteur ;
- *  - pendant que le rôle admin se résout, la liste ne doit pas changer, sinon
- *    le sélecteur clignote chez les administrateurs à chaque chargement.
+ * Accès public au thème Ink Beta, désormais expérience par défaut.
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -13,41 +8,31 @@ import {
   isAdminOnlyTheme,
   isInkFamily,
   ADMIN_ONLY_THEMES,
+  DEFAULT_THEME,
   type ThemeType,
 } from '../useTheme';
 
-describe('thèmes réservés aux administrateurs', () => {
-  it('inkbeta est déclaré comme réservé', () => {
-    expect(isAdminOnlyTheme('inkbeta')).toBe(true);
-    expect(ADMIN_ONLY_THEMES).toContain('inkbeta');
+describe('thème Ink Beta public', () => {
+  it('est le thème par défaut des nouveaux visiteurs', () => {
+    expect(DEFAULT_THEME).toBe('inkbeta');
   });
 
-  it("aucun thème historique n'est devenu réservé", () => {
-    const publics: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice', 'ink', 'cartoon', 'neverlikethat'];
-    for (const theme of publics) {
-      expect(isAdminOnlyTheme(theme)).toBe(false);
-    }
+  it('n’est plus réservé aux administrateurs', () => {
+    expect(isAdminOnlyTheme('inkbeta')).toBe(false);
+    expect(ADMIN_ONLY_THEMES).not.toContain('inkbeta');
   });
 
-  it('reste sélectionnable par un administrateur', () => {
+  it('reste visible pour tous les visiteurs', () => {
     expect(visibleThemes(true, false)).toContain('inkbeta');
+    expect(visibleThemes(false, false)).toContain('inkbeta');
   });
 
-  it("n'apparaît pas pour un joueur ordinaire", () => {
-    expect(visibleThemes(false, false)).not.toContain('inkbeta');
+  it('ne filtre aucun thème public', () => {
+    expect(visibleThemes(false, false)).toEqual(themes);
   });
 
-  it('ne retire rien d\'autre que les thèmes réservés', () => {
-    const visible = visibleThemes(false, false);
-    expect(visible).toHaveLength(themes.length - ADMIN_ONLY_THEMES.length);
-    expect(visible).toContain('ink');
-    expect(visible).toContain('cartoon');
-  });
-
-  it('garde la liste stable tant que le rôle admin est en cours de résolution', () => {
-    // `useAdmin` part à isAdmin=false puis interroge Supabase. Filtrer pendant
-    // ce laps de temps ferait disparaître puis réapparaître l'entrée.
-    expect(visibleThemes(false, true)).toContain('inkbeta');
+  it('garde la même liste pendant la résolution du rôle', () => {
+    expect(visibleThemes(false, true)).toEqual(themes);
   });
 });
 

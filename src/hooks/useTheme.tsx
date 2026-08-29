@@ -41,16 +41,15 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const themes: ThemeType[] = ['neon', 'cosmic', 'fire', 'ice', 'ink', 'inkbeta', 'cartoon', 'neverlikethat'];
+export const DEFAULT_THEME: ThemeType = 'inkbeta';
 
 /**
- * Thèmes qui n'apparaissent que pour les administrateurs.
+ * Thèmes éventuellement réservés aux administrateurs.
  *
- * Verrou cosmétique, pas frontière de sécurité : l'écran beta est chargé en
- * `React.lazy`, donc un joueur ordinaire ne télécharge jamais son chunk, mais
- * quelqu'un de déterminé pourrait le forcer. C'est suffisant pour une beta
- * fermée de thème visuel.
+ * Ink Beta est désormais public et constitue l’expérience par défaut. Le
+ * mécanisme reste disponible pour de futures variantes internes.
  */
-export const ADMIN_ONLY_THEMES: readonly ThemeType[] = ['inkbeta'];
+export const ADMIN_ONLY_THEMES: readonly ThemeType[] = [];
 
 export const isAdminOnlyTheme = (theme: ThemeType): boolean =>
   ADMIN_ONLY_THEMES.includes(theme);
@@ -183,15 +182,14 @@ export const themeConfig: Record<ThemeType, {
     },
   },
   /*
-   * Beta fermée du menu, réservée aux administrateurs. Palette reprise de
-   * `PULP` (src/components/audiophone/PulpComic.tsx) : encre #08070a, papier
-   * #f3ede0, rouge #ff2e3f, jaune #ffce2b. Volontairement rouge et noir dans
-   * le sélecteur, pour se distinguer du violet d'`ink` d'un coup d'œil.
+   * Variante publique par défaut. Palette reprise de `PULP`
+   * (src/components/audiophone/PulpComic.tsx) : encre #08070a, papier
+   * #f3ede0, rouge #ff2e3f, jaune #ffce2b.
    */
   inkbeta: {
     name: 'Ink Beta',
     emoji: '🧪',
-    description: 'Album de stickers — beta admin',
+    description: 'Album de stickers — expérience par défaut',
     colors: {
       primary: '355 100% 59%',      // PULP.red #ff2e3f
       secondary: '260 18% 8%',      // charbon
@@ -250,8 +248,8 @@ export const themeConfig: Record<ThemeType, {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setThemeState] = useState<ThemeType>(() => {
     const saved = localStorage.getItem('game-theme');
-    // Ink is the default experience for everyone (unless they picked another theme)
-    const initial = (saved as ThemeType) || 'ink';
+    // Ink Beta is the default for new visitors; an explicit saved choice wins.
+    const initial = (saved as ThemeType) || DEFAULT_THEME;
     // Consoles / smart-TVs can't handle the heavy 3D Spline theme (react-spline
     // + three.js + physics) — it crashes/freezes the Xbox browser. Force a
     // lightweight theme there so the app stays stable.
