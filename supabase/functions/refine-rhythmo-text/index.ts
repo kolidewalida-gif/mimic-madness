@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeadersFor, guardOpenFunction } from "../_shared/guard.ts";
+
+/* Voir `_shared/guard.ts` : l'origine `*` ouvrait cet appel de modèle payant à
+ * tout le web. */
+let corsHeaders: Record<string, string> = {};
 
 const MAX_WORDS = 2000;
 
@@ -91,9 +92,19 @@ async function refineWithGemini(
 }
 
 serve(async (req) => {
+  corsHeaders = corsHeadersFor(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Une passe de correction par bande : vingt par minute est déjà très large.
+  const verdict = await guardOpenFunction(req, {
+    bucket: "refine-rhythmo-text",
+    limit: 20,
+    windowSeconds: 60,
+  });
+  if (!verdict.allowed) return verdict.response!;
 
   let words: string[] = [];
   try {

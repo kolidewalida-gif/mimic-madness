@@ -501,15 +501,21 @@ const Index = () => {
           const botNames = ['Bot Alpha', 'Bot Bravo', 'Bot Charlie', 'Bot Delta'];
           const botsToAdd = botNames.slice(0, neededBots);
 
+          /*
+           * `lobby_players` n'accepte plus d'écriture directe. Les bots entrent
+           * donc par `admin_join_lobby`, qui revérifie côté serveur que
+           * l'appelant a bien le rôle admin — le garde-fou `isAdmin` juste
+           * au-dessus est purement local, il ne prouvait rien.
+           */
           for (const botName of botsToAdd) {
             const botId = `bot-${crypto.randomUUID().slice(0, 8)}`;
-            await supabase.from('lobby_players').insert({
-              lobby_id: lobby.id,
-              player_id: botId,
-              player_name: botName,
-              is_host: false,
-              connection_status: 'connected',
+            const { error: botError } = await supabase.rpc('admin_join_lobby', {
+              p_lobby_id: lobby.id,
+              p_player_id: botId,
+              p_display_name: botName,
+              p_ghost: false,
             });
+            if (botError) console.error('[Index] bot join refused', botError);
           }
 
           console.log(`[Index] Added ${botsToAdd.length} bots for admin solo play`);

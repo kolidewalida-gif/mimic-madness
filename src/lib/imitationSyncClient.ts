@@ -244,31 +244,19 @@ export async function castImitationVote(
   return true;
 }
 
-export async function setLobbyPlayerConnection(
-  lobbyId: string,
-  playerId: string,
-  connected: boolean,
-): Promise<void> {
-  const { error } = await supabase.rpc('set_lobby_player_connection', {
-    p_lobby_id: lobbyId,
-    p_player_id: playerId,
-    p_connected: connected,
-  });
-  if (!error) return;
-  if (!isSchemaGapError(error)) throw error;
-
-  const { error: updateError } = await supabase
-    .from('lobby_players')
-    .update(
-      connected
-        ? { connection_status: 'connected', disconnected_at: null }
-        : { connection_status: 'disconnected', disconnected_at: new Date().toISOString() },
-    )
-    .eq('lobby_id', lobbyId)
-    .eq('player_id', playerId)
-    .eq('connection_status', connected ? 'disconnected' : 'connected');
-  if (updateError) throw updateError;
-}
+/*
+ * `setLobbyPlayerConnection` vivait ici. Elle prenait un `player_id` en
+ * argument, si bien que n'importe qui pouvait déclarer n'importe quel joueur
+ * déconnecté — et le faire retirer du salon par le ménage soixante secondes plus
+ * tard. Son repli écrivait même directement dans `lobby_players`.
+ *
+ * Elle est remplacée par `touchLobbySeat` et `markStaleLobbySeats` de
+ * `@/lib/lobbySession` : le battement de cœur est authentifié par le jeton de
+ * siège et ne parle que de soi, et l'absence des autres se constate à la
+ * fraîcheur de leur dernier passage au lieu de se déclarer. La fonction SQL
+ * `set_lobby_player_connection` reste en base pour les tâches serveur, mais son
+ * exécution est révoquée pour `anon` et `authenticated`.
+ */
 
 /**
  * Appel de RPC non encore décrit par `integrations/supabase/types.ts`.

@@ -1,0 +1,24 @@
+#
+# En-têtes de sécurité.
+#
+# Le dépôt n'en définissait aucun : ni CSP, ni HSTS, ni Referrer-Policy, ni
+# Permissions-Policy. Tout dépendait des valeurs par défaut de l'hébergeur.
+#
+# Ce fichier est lu par Netlify et Cloudflare Pages. Si la plateforme d'hébergement
+# l'ignore, il ne fait rien de mal — la politique de contenu est aussi posée en
+# `<meta http-equiv>` dans `index.html`, où elle s'applique quel que soit l'hôte.
+# Ce fichier porte donc surtout ce qu'une balise ne peut pas exprimer :
+# `frame-ancestors`, HSTS, et les en-têtes hors CSP.
+#
+# `frame-ancestors` volontairement large : les surfaces de prévisualisation
+# Lovable affichent le jeu dans une iframe, et le courtier de session
+# (`previewAuthStorage.ts`) en dépend. Un `X-Frame-Options: DENY` casserait cet
+# usage, donc on nomme les hôtes autorisés au lieu de tout interdire.
+
+/*
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Permissions-Policy: microphone=(self), camera=(self), geolocation=(), payment=(self), usb=(), midi=(), magnetometer=(), gyroscope=(), accelerometer=()
+  Content-Security-Policy: frame-ancestors 'self' https://lovable.dev https://*.lovable.dev https://*.lovable.app https://*.lovableproject.com https://gptengineer.app https://*.gptengineer.app

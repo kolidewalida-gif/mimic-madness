@@ -11,7 +11,19 @@ import {
   type SnapshotState,
   type TransportState,
 } from '@/lib/syncState';
-import { setLobbyPlayerConnection } from '@/lib/imitationSyncClient';
+import { playerNameSchema, safeParse } from '@/lib/validation';
+import {
+  LobbyFullError,
+  SeatUnavailableError,
+  claimLobbySeat,
+  forgetAllLobbyTokensExcept,
+  kickLobbyPlayer,
+  markStaleLobbySeats,
+  pruneLobbyPlayers,
+  releaseLobbySeat,
+  touchLobbySeat,
+  transferLobbyHost,
+} from '@/lib/lobbySession';
 
 interface Player {
   id: string;
@@ -150,29 +162,14 @@ export const useLobbySync = (): UseLobbyResult => {
         return;
       }
 
-      // Update lobby host_id
-      const { error: lobbyError } = await supabase
-        .from('lobbies')
-        .update({ host_id: newHostId })
-        .eq('id', lobby.id);
-
-      if (lobbyError) throw lobbyError;
-
-      // Update old host's is_host to false
-      await supabase
-        .from('lobby_players')
-        .update({ is_host: false })
-        .eq('lobby_id', lobby.id)
-        .eq('is_host', true);
-
-      // Update new host's is_host to true
-      const { error: playerError } = await supabase
-        .from('lobby_players')
-        .update({ is_host: true })
-        .eq('lobby_id', lobby.id)
-        .eq('player_id', newHostId);
-
-      if (playerError) throw playerError;
+      /*
+       * La passation se fait en un appel : le serveur vérifie que le jeton de
+       * siège est bien celui de l'hôte, puis met à jour `lobbies.host_id` et les
+       * drapeaux `is_host` d'un bloc. Les trois écritures directes qui vivaient
+       * ici permettaient à n'importe qui de se déclarer hôte.
+       */
+      const transferred = await transferLobbyHost(lobby.id, newHostId);
+      if (!transferred) throw new Error('transfer_lobby_host refusé');
 
       playSoundEffect('success', 0.5);
       toast({
@@ -195,6 +192,22 @@ export const useLobbySync = (): UseLobbyResult => {
       toast({
         title: "Erreur",
         description: "Informations manquantes",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    /*
+     * Le pseudo passe par le même schéma que la base : 24 caractères, aucun
+     * caractère de contrôle. Sans ce filtre, la contrainte serveur renvoie un
+     * 400 que l'appelant traduisait en « Impossible de créer le lobby », ce qui
+     * ne dit pas au joueur ce qu'il doit corriger.
+     */
+    const safeHostName = safeParse(playerNameSchema, hostName);
+    if (!safeHostName) {
+      toast({
+        title: "Pseudo invalide",
+        description: "Un pseudo fait 1 à 24 caractères, sans caractère spécial invisible.",
         variant: "destructive",
       });
       return null;
@@ -248,19 +261,21 @@ export const useLobbySync = (): UseLobbyResult => {
         throw new Error('Impossible de générer un code unique');
       }
 
-      const { error: playerError } = await supabase
-        .from('lobby_players')
-        .insert({
-          lobby_id: lobbyData.id,
-          player_id: hostId,
-          player_name: hostName.trim(),
-          is_host: true,
-          connection_status: 'connected'
+      /*
+       * Le siège est pris par le serveur, qui renvoie le jeton de session. En
+       * cas d'échec on efface le salon qu'on vient de créer, comme avant.
+       */
+      try {
+        forgetAllLobbyTokensExcept(lobbyData.id);
+        await claimLobbySeat({
+          lobbyId: lobbyData.id,
+          playerId: hostId,
+          playerName: safeHostName,
+          isHost: true,
         });
-
-      if (playerError) {
+      } catch (seatError) {
         await supabase.from('lobbies').delete().eq('id', lobbyData.id);
-        throw playerError;
+        throw seatError;
       }
 
       setLobby(lobbyData);
@@ -290,6 +305,16 @@ export const useLobbySync = (): UseLobbyResult => {
       toast({
         title: "Erreur",
         description: "Informations manquantes",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    const safePlayerName = safeParse(playerNameSchema, playerName);
+    if (!safePlayerName) {
+      toast({
+        title: "Pseudo invalide",
+        description: "Un pseudo fait 1 à 24 caractères, sans caractère spécial invisible.",
         variant: "destructive",
       });
       return null;
@@ -353,48 +378,57 @@ export const useLobbySync = (): UseLobbyResult => {
 
       const existingPlayer = existingPlayers?.find(p => p.player_id === playerId);
 
+      // Une partie déjà lancée ne s'ouvre pas à un nouvel arrivant.
+      if (!existingPlayer && lobbyData.status === 'playing' && lobbyData.game_phase !== 'lobby') {
+        toast({
+          title: "Partie en cours",
+          description: "Cette partie a déjà commencé",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      /*
+       * Entrée et reconnexion sont le même appel : le serveur voit lui-même s'il
+       * s'agit d'une reprise de siège, et refuse la reprise d'un siège encore
+       * tenu par une session active. Auparavant, la branche de reconnexion se
+       * contentait d'un UPDATE sur `player_id`, si bien qu'annoncer l'identifiant
+       * de quelqu'un d'autre suffisait à s'installer à sa place.
+       */
+      try {
+        forgetAllLobbyTokensExcept(lobbyData.id);
+        await claimLobbySeat({
+          lobbyId: lobbyData.id,
+          playerId,
+          playerName: safePlayerName,
+        });
+      } catch (seatError) {
+        if (seatError instanceof LobbyFullError) {
+          toast({
+            title: "Lobby complet",
+            description: "Ce lobby a atteint le nombre maximum de joueurs",
+            variant: "destructive",
+          });
+          return null;
+        }
+        if (seatError instanceof SeatUnavailableError) {
+          toast({
+            title: "Place déjà prise",
+            description: seatError.message,
+            variant: "destructive",
+          });
+          return null;
+        }
+        throw seatError;
+      }
+
       if (existingPlayer) {
-        // Player exists, update their connection status (reconnecting)
-        await supabase
-          .from('lobby_players')
-          .update({ 
-            connection_status: 'connected',
-            disconnected_at: null 
-          })
-          .eq('lobby_id', lobbyData.id)
-          .eq('player_id', playerId);
-        
         playSoundEffect('success', 0.5);
         toast({
           title: "Reconnecté !",
           description: "Bienvenue de retour dans le lobby",
         });
       } else {
-        // Check if game already started (only for new players)
-        if (lobbyData.status === 'playing' && lobbyData.game_phase !== 'lobby') {
-          toast({
-            title: "Partie en cours",
-            description: "Cette partie a déjà commencé",
-            variant: "destructive",
-          });
-          return null;
-        }
-
-        const { error: playerError } = await supabase
-          .from('lobby_players')
-          .insert({
-            lobby_id: lobbyData.id,
-            player_id: playerId,
-            player_name: playerName.trim(),
-            is_host: false,
-            connection_status: 'connected'
-          });
-
-        if (playerError) {
-          console.error('Error adding player:', playerError);
-          throw new Error('Impossible de rejoindre le lobby');
-        }
-
         toast({
           title: "Connecté !",
           description: `Bienvenue dans le lobby ${normalizedCode}`,
@@ -434,19 +468,8 @@ export const useLobbySync = (): UseLobbyResult => {
           // Transfer host to first available player
           const newHost = otherPlayers[0];
           console.log('Transferring host to:', newHost.name);
-          
-          // Update lobby host_id
-          await supabase
-            .from('lobbies')
-            .update({ host_id: newHost.id })
-            .eq('id', lobby.id);
-
-          // Update new host's is_host to true
-          await supabase
-            .from('lobby_players')
-            .update({ is_host: true })
-            .eq('lobby_id', lobby.id)
-            .eq('player_id', newHost.id);
+          // Passation avant de libérer le siège : le jeton est encore valide.
+          await transferLobbyHost(lobby.id, newHost.id);
         } else {
           // No other players, delete the lobby
           console.log('No other players, deleting lobby');
@@ -457,12 +480,8 @@ export const useLobbySync = (): UseLobbyResult => {
         }
       }
 
-      // Remove player from lobby
-      await supabase
-        .from('lobby_players')
-        .delete()
-        .eq('lobby_id', lobby.id)
-        .eq('player_id', playerId);
+      // Le serveur ne libère que le siège dont on détient le jeton.
+      await releaseLobbySeat(lobby.id);
 
       resetState();
     } catch (error) {
@@ -476,18 +495,18 @@ export const useLobbySync = (): UseLobbyResult => {
 
     try {
       console.log('Kicking player:', playerId);
-      
-      const { error } = await supabase
-        .from('lobby_players')
-        .delete()
-        .eq('lobby_id', lobby.id)
-        .eq('player_id', playerId);
 
-      if (error) {
-        console.error('Error kicking player:', error);
+      /*
+       * Le serveur revérifie que le jeton présenté est celui de l'hôte du salon.
+       * Le DELETE direct qui vivait ici n'exigeait rien : n'importe qui pouvait
+       * vider un salon, y compris depuis l'extérieur de la partie.
+       */
+      const kicked = await kickLobbyPlayer(lobby.id, playerId);
+
+      if (!kicked) {
         toast({
           title: "Erreur",
-          description: "Impossible d'exclure ce joueur",
+          description: "Impossible d'exclure ce joueur. Seul l'hôte peut le faire.",
           variant: "destructive",
         });
         return;
@@ -518,33 +537,21 @@ export const useLobbySync = (): UseLobbyResult => {
     }
   }, [lobby]);
 
-  // Cleanup disconnected players after timeout
+  /*
+   * Ménage des sièges abandonnés.
+   *
+   * La condition est structurelle — déconnecté depuis plus longtemps que la
+   * fenêtre de reconnexion — donc le serveur l'applique sans demander de jeton :
+   * elle ne peut pas servir à éjecter quelqu'un de présent. C'est aussi ce qui
+   * évite d'enfermer un joueur qui aurait perdu son jeton.
+   */
   const cleanupDisconnectedPlayers = useCallback(async () => {
     if (!lobby) return;
 
     try {
-      const cutoffTime = new Date(Date.now() - RECONNECTION_TIMEOUT).toISOString();
-      
-      // Get players to remove
-      const { data: expiredPlayers } = await supabase
-        .from('lobby_players')
-        .select('player_id, player_name')
-        .eq('lobby_id', lobby.id)
-        .eq('connection_status', 'disconnected')
-        .lt('disconnected_at', cutoffTime);
-
-      if (expiredPlayers && expiredPlayers.length > 0) {
-        // Remove expired disconnected players
-        await supabase
-          .from('lobby_players')
-          .delete()
-          .eq('lobby_id', lobby.id)
-          .eq('connection_status', 'disconnected')
-          .lt('disconnected_at', cutoffTime);
-
-        expiredPlayers.forEach(p => {
-          console.log(`Removed disconnected player: ${p.player_name}`);
-        });
+      const removed = await pruneLobbyPlayers(lobby.id);
+      if (removed > 0) {
+        console.log(`Removed ${removed} disconnected player(s)`);
       }
     } catch (error) {
       console.error('Error cleaning up disconnected players:', error);
@@ -755,22 +762,22 @@ export const useLobbySync = (): UseLobbyResult => {
     }
 
     // Inline heartbeat helpers using refs (avoid stale closures + re-subscriptions)
+    /*
+     * Le battement ne concerne que son propre siège, et il est authentifié par
+     * le jeton de session : personne ne peut plus écrire l'état de présence d'un
+     * autre joueur. Le balayage qui suit s'occupe de constater les absences.
+     */
     const beatConnected = async () => {
       const pid = currentPlayerIdRef.current;
       if (!pid) return;
       try {
-        await setLobbyPlayerConnection(lobbyId, pid, true);
+        await touchLobbySeat(lobbyId, true);
+        await markStaleLobbySeats(lobbyId);
       } catch (e) { console.error('heartbeat connected error', e); }
     };
     const cleanupExpired = async () => {
       try {
-        const cutoff = new Date(Date.now() - RECONNECTION_TIMEOUT).toISOString();
-        await supabase
-          .from('lobby_players')
-          .delete()
-          .eq('lobby_id', lobbyId)
-          .eq('connection_status', 'disconnected')
-          .lt('disconnected_at', cutoff);
+        await pruneLobbyPlayers(lobbyId);
       } catch (e) { console.error('cleanup error', e); }
     };
 
@@ -800,28 +807,14 @@ export const useLobbySync = (): UseLobbyResult => {
       const elected = connected[0];
       if (elected !== me) return; // only the elected player performs the update
       try {
-        const { data: migratedLobby, error: lobbyErr } = await supabase
-          .from('lobbies')
-          .update({ host_id: me })
-          .eq('id', lobbyId)
-          .eq('host_id', host.id)
-          .select('host_id')
-          .maybeSingle();
-        if (lobbyErr || !migratedLobby) return;
-
-        const { error: clearHostError } = await supabase
-          .from('lobby_players')
-          .update({ is_host: false })
-          .eq('lobby_id', lobbyId)
-          .eq('is_host', true);
-        if (clearHostError) throw clearHostError;
-
-        const { error: setHostError } = await supabase
-          .from('lobby_players')
-          .update({ is_host: true })
-          .eq('lobby_id', lobbyId)
-          .eq('player_id', me);
-        if (setHostError) throw setHostError;
+        /*
+         * Le serveur revérifie la condition qui rend cette promotion légitime :
+         * l'hôte en place doit être déconnecté ou absent du salon. L'élection
+         * locale reste utile — elle évite que tous les clients tentent en même
+         * temps — mais elle ne fait plus autorité à elle seule.
+         */
+        const migrated = await transferLobbyHost(lobbyId, me);
+        if (!migrated) return;
         void requestLobbySnapshot('host-migration');
       } catch (e) {
         console.error('host migration failed', e);
@@ -907,18 +900,23 @@ export const useLobbySync = (): UseLobbyResult => {
         const ids = new Set<string>(Object.keys(state));
         onlinePresenceRef.current = ids;
         presenceSynchronized = true;
-        // Mark presence-based disconnects (faster than DB heartbeat)
+        /*
+         * La présence ne décide plus de l'état des autres, elle ne fait que
+         * déclencher le constat. Écrire directement « ce joueur est absent »
+         * était pratique et immédiat, mais c'était aussi un bannissement à
+         * distance : rien n'empêchait de le faire sur un joueur bien présent,
+         * qui se voyait ensuite retirer du salon par le ménage. Le serveur ne
+         * retient désormais que les sièges réellement silencieux.
+         */
         const list = playersRef.current;
-        list.forEach(p => {
-          const presentOnSocket = ids.has(p.id);
-          if (!presentOnSocket && !p.isDisconnected && p.id !== currentPlayerIdRef.current) {
-            // Presence key keeps all metas for the same player; this runs only
-            // after the last tab/socket has disappeared.
-            void setLobbyPlayerConnection(lobbyId, p.id, false).catch((error) => {
-              console.error('presence disconnect error', error);
-            });
-          }
-        });
+        const someoneVanished = list.some(
+          (p) => !ids.has(p.id) && !p.isDisconnected && p.id !== currentPlayerIdRef.current,
+        );
+        if (someoneVanished) {
+          void markStaleLobbySeats(lobbyId).catch((error) => {
+            console.error('presence sweep error', error);
+          });
+        }
       })
       .on(
         'postgres_changes',

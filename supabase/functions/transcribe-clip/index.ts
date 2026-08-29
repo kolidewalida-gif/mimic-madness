@@ -9,11 +9,15 @@
  * La clé n'existe que côté serveur, dans le secret `ASSEMBLYAI_API_KEY`.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeadersFor, guardOpenFunction } from "../_shared/guard.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+/*
+ * L'ancien `Access-Control-Allow-Origin: "*"` autorisait tout site du web à
+ * appeler cette fonction depuis le navigateur de ses visiteurs, alors qu'elle
+ * consomme du crédit AssemblyAI. Les en-têtes sont maintenant construits par
+ * requête, et ne portent l'autorisation que pour les origines du jeu.
+ */
+let corsHeaders: Record<string, string> = {};
 
 /** Région Europe : résidence des données dans l'UE. */
 const API_BASE = "https://api.eu.assemblyai.com";
@@ -90,9 +94,23 @@ async function submitWithRetry(apiKey: string, body: unknown): Promise<Response>
 }
 
 serve(async (req) => {
+  corsHeaders = corsHeadersFor(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  /*
+   * Une transcription est une opération lourde et payante. Dix soumissions par
+   * minute et par adresse laissent largement de quoi travailler sur ses clips à
+   * plusieurs derrière la même connexion, et coupent net une boucle.
+   */
+  const verdict = await guardOpenFunction(req, {
+    bucket: "transcribe-clip",
+    limit: 10,
+    windowSeconds: 60,
+  });
+  if (!verdict.allowed) return verdict.response!;
 
   try {
     const body = await req.json().catch(() => null);

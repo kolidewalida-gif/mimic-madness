@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { chatMessageSchema, safeParse } from '@/lib/validation';
+import { chatMessageSchema, playerNameSchema, safeParse } from '@/lib/validation';
+import { mutedPlayerIds, onMutedPlayersChanged } from '@/lib/playerModeration';
+import { toast } from 'sonner';
 
 export interface ChatMessage {
   id: string;
@@ -28,6 +30,20 @@ export const useLobbyChat = (
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  /*
+   * Sourdine locale. Le filtre vit ici, au point de passage unique du chat, pour
+   * qu'il s'applique à tous les thèmes sans avoir à toucher cinq écrans. Il est
+   * purement local et immédiat : mettre quelqu'un en sourdine ne demande la
+   * permission de personne et prend effet au clic, ce qui est exactement ce dont
+   * a besoin un joueur qui subit une conversation pénible en pleine partie.
+   */
+  const [muted, setMuted] = useState<ReadonlySet<string>>(() => mutedPlayerIds());
+
+  useEffect(
+    () => onMutedPlayersChanged(() => setMuted(mutedPlayerIds())),
+    [],
+  );
 
   // Fetch initial messages
   useEffect(() => {
@@ -141,18 +157,30 @@ export const useLobbyChat = (
         if (!cleaned) return;
       }
 
+      /*
+       * Le pseudo vient de l'appelant et atterrit dans une colonne bornée à 24
+       * caractères sans caractère de contrôle. On le nettoie ici plutôt que de
+       * laisser la contrainte serveur rejeter tout le message : un pseudo un peu
+       * long ne doit pas empêcher de parler.
+       */
+      const safeName = safeParse(playerNameSchema, playerName) ?? 'Joueur';
+
       setIsSending(true);
       try {
         const { error } = await supabase.from('chat_messages').insert({
           lobby_id: lobbyId,
           player_id: playerId,
-          player_name: playerName,
+          player_name: safeName,
           content: cleaned,
           message_type: messageType,
         });
 
         if (error) {
           console.error('Error sending message:', error);
+          // 54000 est le code que renvoie la limite de débit du chat en base.
+          if (error.code === '54000') {
+            toast.info('Doucement, laisse respirer le salon quelques secondes.');
+          }
         }
         
         // XP is now handled externally via useXpActions hook
@@ -165,8 +193,13 @@ export const useLobbyChat = (
     [lobbyId, playerId, playerName]
   );
 
+  const visibleMessages = useMemo(
+    () => (muted.size === 0 ? messages : messages.filter((m) => !muted.has(m.playerId))),
+    [messages, muted],
+  );
+
   return {
-    messages,
+    messages: visibleMessages,
     isLoading,
     sendMessage,
     isSending,

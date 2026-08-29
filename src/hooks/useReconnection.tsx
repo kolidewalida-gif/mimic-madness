@@ -2,6 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import {
+  claimLobbySeat,
+  pruneLobbyPlayers,
+  releaseLobbySeat,
+  touchLobbySeat,
+} from '@/lib/lobbySession';
+import { playerNameSchema, safeParse } from '@/lib/validation';
 
 const RECONNECTION_TIMEOUT = 60000; // 60 seconds
 
@@ -34,41 +41,28 @@ export const useReconnection = ({
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Mark player as connected
+  /*
+   * Ces deux fonctions écrivaient directement dans `lobby_players` en filtrant
+   * sur `player_id`. La table est désormais en lecture seule côté client : l'état
+   * de présence passe par le jeton de siège, qui ne permet de parler que de soi.
+   */
   const markConnected = useCallback(async () => {
-    if (!lobbyId || !playerId) return;
-
+    if (!lobbyId) return;
     try {
-      await supabase
-        .from('lobby_players')
-        .update({ 
-          connection_status: 'connected',
-          disconnected_at: null 
-        })
-        .eq('lobby_id', lobbyId)
-        .eq('player_id', playerId);
+      await touchLobbySeat(lobbyId, true);
     } catch (error) {
       console.error('Error marking player as connected:', error);
     }
-  }, [lobbyId, playerId]);
+  }, [lobbyId]);
 
-  // Mark player as disconnected
   const markDisconnected = useCallback(async () => {
-    if (!lobbyId || !playerId) return;
-
+    if (!lobbyId) return;
     try {
-      await supabase
-        .from('lobby_players')
-        .update({ 
-          connection_status: 'disconnected',
-          disconnected_at: new Date().toISOString()
-        })
-        .eq('lobby_id', lobbyId)
-        .eq('player_id', playerId);
+      await touchLobbySeat(lobbyId, false);
     } catch (error) {
       console.error('Error marking player as disconnected:', error);
     }
-  }, [lobbyId, playerId]);
+  }, [lobbyId]);
 
   // Attempt to reconnect
   const attemptReconnect = useCallback(async (code: string) => {
@@ -106,18 +100,14 @@ export const useReconnection = ({
         .maybeSingle();
 
       if (lobby && lobby.status !== 'ended') {
-        // Rejoin the lobby
-        const { error } = await supabase
-          .from('lobby_players')
-          .insert({
-            lobby_id: lobby.id,
-            player_id: playerId,
-            player_name: playerName,
-            is_host: false,
-            connection_status: 'connected'
+        // Le serveur reprend le siège et redélivre un jeton.
+        const safeName = safeParse(playerNameSchema, playerName) ?? 'Joueur';
+        try {
+          await claimLobbySeat({
+            lobbyId: lobby.id,
+            playerId,
+            playerName: safeName,
           });
-
-        if (!error) {
           playSoundEffect('join', 0.5);
           toast({
             title: "Reconnecté !",
@@ -126,6 +116,8 @@ export const useReconnection = ({
           onReconnected();
           setIsReconnecting(false);
           return true;
+        } catch (seatError) {
+          console.error('Reconnection seat claim failed:', seatError);
         }
       }
 
@@ -161,14 +153,9 @@ export const useReconnection = ({
     if (!lobbyId) return;
 
     try {
-      const cutoffTime = new Date(Date.now() - RECONNECTION_TIMEOUT).toISOString();
-      
-      await supabase
-        .from('lobby_players')
-        .delete()
-        .eq('lobby_id', lobbyId)
-        .eq('connection_status', 'disconnected')
-        .lt('disconnected_at', cutoffTime);
+      // Même condition qu'avant, mais appliquée par le serveur : le client ne
+      // choisit plus qui disparaît, il déclenche seulement le ménage.
+      await pruneLobbyPlayers(lobbyId);
     } catch (error) {
       console.error('Error cleaning up disconnected players:', error);
     }

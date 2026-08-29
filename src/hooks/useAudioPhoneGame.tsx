@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { reverseAudioBufferWithInfo } from '@/lib/audioReverser';
+import {
+  assertVoiceUploadAllowed,
+  noteOrphanedVoiceUpload,
+  voiceContentType,
+} from '@/lib/voiceUpload';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 interface Player {
@@ -315,12 +320,14 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
       const originalPath = `${lobbyId}/${currentRound.id}/${currentPlayer.id}_${timestamp}_original.${originalExt}`;
       const reversedPath = `${lobbyId}/${currentRound.id}/${currentPlayer.id}_${timestamp}_reversed.wav`;
 
+      assertVoiceUploadAllowed(audioBlob, 'Ta phrase');
+      assertVoiceUploadAllowed(reversedBlob, 'La version inversée de ta phrase');
+
       // Upload original audio
       const { error: originalUploadError } = await supabase.storage
         .from('audio-phone')
         .upload(originalPath, audioBlob, {
-          contentType: audioBlob.type || 'audio/webm',
-          upsert: true,
+          contentType: voiceContentType(audioBlob),
         });
 
       if (originalUploadError) throw originalUploadError;
@@ -330,12 +337,11 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
         .from('audio-phone')
         .upload(reversedPath, reversedBlob, {
           contentType: 'audio/wav',
-          upsert: true,
         });
 
       if (reversedUploadError) {
-        // Clean up original if reversed upload fails
-        await supabase.storage.from('audio-phone').remove([originalPath]);
+        // Le seau n'accorde plus de suppression au navigateur : on trace.
+        noteOrphanedVoiceUpload([originalPath], 'inversion non envoyee');
         throw reversedUploadError;
       }
 
@@ -353,8 +359,7 @@ export const useAudioPhoneGame = ({ lobbyId, currentPlayer, players }: UseAudioP
         });
 
       if (insertError) {
-        // Clean up uploaded files if DB insert fails
-        await supabase.storage.from('audio-phone').remove([originalPath, reversedPath]);
+        noteOrphanedVoiceUpload([originalPath, reversedPath], 'echec d insertion des metadonnees');
         throw insertError;
       }
 

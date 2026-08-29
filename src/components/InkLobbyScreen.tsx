@@ -35,6 +35,7 @@ import { DeviceSettings } from '@/components/DeviceSettings';
 import { LanguageMenu } from '@/components/LanguageMenu';
 import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
+import { PlayerModerationActions } from '@/components/PlayerModerationActions';
 import { InkBetaLogo } from '@/components/InkBetaBrand';
 import { InkModal } from '@/components/menu/InkOverlay';
 import {
@@ -609,8 +610,15 @@ export const InkLobbyScreen = ({
                 {players.map((p) => {
                   const av = getAvatar(p.id);
                   const hasPortrait = av.type === 'image' && !!av.imageUrl;
-                  const canModerate =
-                    isHost && p.id !== currentPlayer.id && (!!onKickPlayer || !!onTransferHost);
+                  const isSelf = p.id === currentPlayer.id;
+                  const canHostAct = isHost && !isSelf && (!!onKickPlayer || !!onTransferHost);
+                  /*
+                   * Le menu s'ouvre désormais pour tout le monde, et plus
+                   * seulement pour l'hôte : la sourdine et le signalement sont à
+                   * la portée de chaque joueur. Sans ça, quelqu'un qui subissait
+                   * un comportement pénible n'avait aucun recours dans l'appli.
+                   */
+                  const canModerate = !isSelf;
                   return (
                     <div
                       key={p.id}
@@ -643,7 +651,13 @@ export const InkLobbyScreen = ({
                               className="ik-seat-popover"
                               onClick={(event) => event.stopPropagation()}
                             >
-                              {onTransferHost && (
+                              <PlayerModerationActions
+                                lobbyId={lobbyId}
+                                playerId={p.id}
+                                playerName={p.name}
+                                onDone={() => setOpenMenuFor(null)}
+                              />
+                              {canHostAct && onTransferHost && (
                                 <button
                                   type="button"
                                   className="menu-focus"
@@ -656,7 +670,7 @@ export const InkLobbyScreen = ({
                                   <Crown aria-hidden="true" /> Transférer l'hôte
                                 </button>
                               )}
-                              {onKickPlayer && (
+                              {canHostAct && onKickPlayer && (
                                 <button
                                   type="button"
                                   className="menu-focus is-danger"
@@ -1056,8 +1070,10 @@ export const InkLobbyScreen = ({
               <div className="gm-players-grid">
                 {players.map((p) => {
                   const av = getAvatar(p.id);
-                  const canModerate =
-                    isHost && p.id !== currentPlayer.id && (!!onKickPlayer || !!onTransferHost);
+                  const isSelf = p.id === currentPlayer.id;
+                  const canHostAct = isHost && !isSelf && (!!onKickPlayer || !!onTransferHost);
+                  // Même règle que la variante ci-dessus : tout joueur peut agir.
+                  const canModerate = !isSelf;
                   return (
                     <div
                       key={p.id}
@@ -1091,9 +1107,16 @@ export const InkLobbyScreen = ({
                           {openMenuFor === p.id && (
                             <div
                               onClick={(e) => e.stopPropagation()}
-                              className="if-panel if-fade absolute right-0 top-8 z-50 w-44 overflow-hidden p-1 text-left"
+                              className="ik-seat-popover if-panel if-fade absolute right-0 top-8 z-50 w-48 overflow-hidden p-1 text-left"
                             >
-                              {onTransferHost && (
+                              <PlayerModerationActions
+                                lobbyId={lobbyId}
+                                playerId={p.id}
+                                playerName={p.name}
+                                onDone={() => setOpenMenuFor(null)}
+                                compact
+                              />
+                              {canHostAct && onTransferHost && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1107,7 +1130,7 @@ export const InkLobbyScreen = ({
                                   Transférer l'hôte
                                 </button>
                               )}
-                              {onKickPlayer && (
+                              {canHostAct && onKickPlayer && (
                                 <button
                                   type="button"
                                   onClick={() => {

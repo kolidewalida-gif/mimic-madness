@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeadersFor, guardOpenFunction } from "../_shared/guard.ts";
+
+/* Voir `_shared/guard.ts` : l'origine `*` ouvrait cet appel de modèle payant à
+ * tout le web. */
+let corsHeaders: Record<string, string> = {};
 
 // Build the subtitle prompt shared by both providers.
 function buildPrompts(safeDuration: number, safeDesc: string) {
@@ -131,9 +132,19 @@ async function generateWithLovable(
 }
 
 serve(async (req) => {
+  corsHeaders = corsHeadersFor(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Génération de sous-titres : vingt par minute et par adresse.
+  const verdict = await guardOpenFunction(req, {
+    bucket: "generate-subtitles",
+    limit: 20,
+    windowSeconds: 60,
+  });
+  if (!verdict.allowed) return verdict.response!;
 
   try {
     const { videoDescription, duration } = await req.json();

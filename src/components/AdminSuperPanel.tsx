@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Shield, Ban, Megaphone, Gamepad2, Search, Loader2, Trash2, Ghost, LogIn,
+  X, Shield, Ban, Megaphone, Gamepad2, Search, Loader2, Trash2, Ghost, LogIn, Flag,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-type Tab = 'bans' | 'announce' | 'lobbies';
+type Tab = 'bans' | 'reports' | 'announce' | 'lobbies';
 type BanType = 'global' | 'chat' | 'lobby' | 'mute';
 
 const BAN_LABELS: Record<BanType, string> = {
@@ -55,7 +55,7 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
       </div>
 
       <div className="ibs-admin-tabs flex md:flex-col border-b md:border-b-0 md:border-r border-border bg-black/15">
-        {(['bans', 'announce', 'lobbies'] as Tab[]).map(t => (
+        {(['bans', 'reports', 'announce', 'lobbies'] as Tab[]).map(t => (
           <button
             key={t}
             type="button"
@@ -67,6 +67,7 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
             )}
           >
             {t === 'bans' && <><Ban className="w-4 h-4" /> Bans</>}
+            {t === 'reports' && <><Flag className="w-4 h-4" /> Signalements</>}
             {t === 'announce' && <><Megaphone className="w-4 h-4" /> Annonces</>}
             {t === 'lobbies' && <><Gamepad2 className="w-4 h-4" /> Lobbies</>}
           </button>
@@ -75,12 +76,172 @@ export const AdminSuperPanel = ({ onClose }: { onClose: () => void }) => {
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
         {tab === 'bans' && <AdminBansTab />}
+        {tab === 'reports' && <AdminReportsTab />}
         {tab === 'announce' && <AdminAnnouncementsTab />}
         {tab === 'lobbies' && <AdminLobbiesTab onClose={onClose} />}
       </div>
     </motion.div>
   );
 };
+
+// ========================= REPORTS TAB =========================
+/*
+ * File de tri des signalements joueurs.
+ *
+ * La console savait bannir, mais rien ne remontait du terrain : un joueur
+ * n'avait aucun moyen de signaler un comportement abusif. `report_lobby_player`
+ * alimente maintenant `player_reports`, et cet onglet en donne la lecture
+ * groupée par cible, pour voir d'un coup d'œil qui revient plusieurs fois.
+ *
+ * La table est fermée au client ; `list_player_reports` est une fonction
+ * `SECURITY DEFINER` qui revérifie le rôle admin côté serveur, en plus des
+ * policies. La console n'est donc pas le garde-fou, elle n'est que l'écran.
+ */
+const REPORT_REASON_LABELS: Record<string, string> = {
+  harcelement: 'Harcèlement',
+  contenu_choquant: 'Contenu choquant',
+  usurpation: 'Usurpation',
+  triche: 'Triche',
+  spam: 'Spam',
+  autre: 'Autre',
+};
+
+interface ReportGroup {
+  target_player_id: string;
+  target_user_id: string | null;
+  target_player_name: string;
+  report_count: number;
+  pending_count: number;
+  reasons: string[];
+  last_report_at: string;
+  last_details: string | null;
+}
+
+const AdminReportsTabComponent = () => {
+  const [groups, setGroups] = useState<ReportGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const client = supabase as unknown as {
+      rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+    };
+    const { data, error } = await client.rpc('list_player_reports', { p_limit: 100 });
+    if (error) {
+      toast.error('Impossible de charger les signalements');
+      setGroups([]);
+    } else {
+      setGroups((data as ReportGroup[]) ?? []);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const markHandled = async (playerId: string, status: 'reviewed' | 'dismissed') => {
+    setBusy(playerId);
+    const { error } = await supabase
+      .from('player_reports' as never)
+      .update({ status, reviewed_at: new Date().toISOString() } as never)
+      .eq('target_player_id', playerId)
+      .eq('status', 'pending');
+    setBusy(null);
+    if (error) {
+      toast.error("Le classement n'a pas abouti");
+      return;
+    }
+    toast.success(status === 'dismissed' ? 'Signalements écartés' : 'Signalements marqués vus');
+    void load();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Chargement des signalements…
+      </div>
+    );
+  }
+
+  if (groups.length === 0) {
+    return (
+      <div className="space-y-2">
+        <h3 className="text-lg font-bold">Signalements</h3>
+        <p className="text-sm text-muted-foreground">
+          Aucun signalement. C'est la bonne nouvelle du jour.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold">Signalements</h3>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="text-xs text-muted-foreground underline"
+        >
+          Rafraîchir
+        </button>
+      </div>
+
+      {groups.map((g) => (
+        <div
+          key={g.target_player_id}
+          className="space-y-2 rounded-xl border border-border bg-black/20 p-3"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-bold">{g.target_player_name}</span>
+            <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-xs text-rose-200">
+              {g.pending_count} en attente / {g.report_count} au total
+            </span>
+            {!g.target_user_id && (
+              <span className="text-xs text-muted-foreground">invité (pas de compte)</span>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Motifs : {g.reasons.map((r) => REPORT_REASON_LABELS[r] ?? r).join(', ')}
+            {' · '}
+            dernier le {new Date(g.last_report_at).toLocaleString('fr-FR')}
+          </p>
+
+          {g.last_details && (
+            <p className="rounded-lg bg-black/30 p-2 text-xs italic">« {g.last_details} »</p>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy === g.target_player_id || g.pending_count === 0}
+              onClick={() => void markHandled(g.target_player_id, 'reviewed')}
+              className="rounded-lg border border-border px-2.5 py-1 text-xs"
+            >
+              Marquer vu
+            </button>
+            <button
+              type="button"
+              disabled={busy === g.target_player_id || g.pending_count === 0}
+              onClick={() => void markHandled(g.target_player_id, 'dismissed')}
+              className="rounded-lg border border-border px-2.5 py-1 text-xs"
+            >
+              Écarter
+            </button>
+            {g.target_user_id && (
+              <span className="self-center text-xs text-muted-foreground">
+                Compte lié : bannissable depuis l'onglet Bans
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const AdminReportsTab = memo(AdminReportsTabComponent);
 
 // ============================ BANS TAB ============================
 const AdminBansTabComponent = () => {

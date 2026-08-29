@@ -9,11 +9,11 @@
  * la conversion en secondes est faite côté client (`assemblyai.ts`).
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeadersFor, guardOpenFunction } from "../_shared/guard.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+/* Voir `_shared/guard.ts` : l'origine `*` autorisait tout le web à consommer
+ * notre crédit AssemblyAI depuis un navigateur. */
+let corsHeaders: Record<string, string> = {};
 
 const API_BASE = "https://api.eu.assemblyai.com";
 
@@ -37,9 +37,23 @@ interface RawWord {
 }
 
 serve(async (req) => {
+  corsHeaders = corsHeadersFor(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  /*
+   * Le client interroge cette fonction en boucle jusqu'à un statut terminal, le
+   * plafond doit donc être généreux : cent appels par minute laissent tourner
+   * plusieurs transcriptions de front sans jamais gêner.
+   */
+  const verdict = await guardOpenFunction(req, {
+    bucket: "transcribe-clip-status",
+    limit: 100,
+    windowSeconds: 60,
+  });
+  if (!verdict.allowed) return verdict.response!;
 
   try {
     const body = await req.json().catch(() => null);

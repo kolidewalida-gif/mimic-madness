@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { reverseAudioBufferWithInfo } from '@/lib/audioReverser';
+import {
+  assertVoiceUploadAllowed,
+  noteOrphanedVoiceUpload,
+  voiceContentType,
+} from '@/lib/voiceUpload';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { emitXpGain } from '@/components/XpGainPopup';
 import { emitLevelUpNotification } from '@/components/RewardNotification';
@@ -429,13 +434,16 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
        * dont se plaignaient les joueurs. Le nettoyage retire ce qui a été déposé
        * quand l'un des deux échoue.
        */
+      assertVoiceUploadAllowed(audioBlob, 'Ta phrase');
+      assertVoiceUploadAllowed(reversedBlob, 'La version inversée de ta phrase');
+
       const [originalUpload, reversedUpload] = await Promise.all([
         supabase.storage
           .from('audio-phone')
-          .upload(originalPath, audioBlob, { contentType: audioBlob.type || 'audio/webm', upsert: true }),
+          .upload(originalPath, audioBlob, { contentType: voiceContentType(audioBlob) }),
         supabase.storage
           .from('audio-phone')
-          .upload(reversedPath, reversedBlob, { contentType: 'audio/wav', upsert: true }),
+          .upload(reversedPath, reversedBlob, { contentType: 'audio/wav' }),
       ]);
 
       if (originalUpload.error || reversedUpload.error) {
@@ -443,9 +451,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
           originalUpload.error ? null : originalPath,
           reversedUpload.error ? null : reversedPath,
         ].filter((path): path is string => path !== null);
-        if (landed.length > 0) {
-          await supabase.storage.from('audio-phone').remove(landed);
-        }
+        noteOrphanedVoiceUpload(landed, 'envoi partiel');
         throw originalUpload.error ?? reversedUpload.error;
       }
 
@@ -453,7 +459,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
       const playerIndex = computePlayerOrderIndex(currentRound.player_order, currentPlayer.id);
       if (playerIndex < 0) {
         console.error('[AudioPhoneV2] Player not in round order — aborting submission');
-        await supabase.storage.from('audio-phone').remove([originalPath, reversedPath]);
+        noteOrphanedVoiceUpload([originalPath, reversedPath], 'joueur absent de l ordre du tour');
         return false;
       }
 
@@ -471,7 +477,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         });
 
       if (insertError) {
-        await supabase.storage.from('audio-phone').remove([originalPath, reversedPath]);
+        noteOrphanedVoiceUpload([originalPath, reversedPath], 'echec d insertion des metadonnees');
         throw insertError;
       }
 
@@ -601,14 +607,17 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
 
       onStage?.('Envoi de ton imitation…');
 
+      assertVoiceUploadAllowed(audioBlob, 'Ton imitation');
+      assertVoiceUploadAllowed(reversedBlob, 'La version inversée de ton imitation');
+
       /* Les deux fichiers partent ensemble, comme pour la phrase originale. */
       const [imitationUpload, reversedUpload] = await Promise.all([
         supabase.storage
           .from('audio-phone')
-          .upload(imitationPath, audioBlob, { contentType: audioBlob.type || 'audio/webm', upsert: true }),
+          .upload(imitationPath, audioBlob, { contentType: voiceContentType(audioBlob) }),
         supabase.storage
           .from('audio-phone')
-          .upload(reversedPath, reversedBlob, { contentType: 'audio/wav', upsert: true }),
+          .upload(reversedPath, reversedBlob, { contentType: 'audio/wav' }),
       ]);
 
       if (imitationUpload.error || reversedUpload.error) {
@@ -616,9 +625,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
           imitationUpload.error ? null : imitationPath,
           reversedUpload.error ? null : reversedPath,
         ].filter((path): path is string => path !== null);
-        if (landed.length > 0) {
-          await supabase.storage.from('audio-phone').remove(landed);
-        }
+        noteOrphanedVoiceUpload(landed, 'envoi partiel d une imitation');
         throw imitationUpload.error ?? reversedUpload.error;
       }
 
@@ -636,7 +643,10 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         });
 
       if (insertError) {
-        await supabase.storage.from('audio-phone').remove([imitationPath, reversedPath]);
+        noteOrphanedVoiceUpload(
+          [imitationPath, reversedPath],
+          'echec d insertion des metadonnees d imitation',
+        );
         throw insertError;
       }
 
