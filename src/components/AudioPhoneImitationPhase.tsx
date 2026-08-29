@@ -40,7 +40,8 @@ interface AudioPhoneImitationPhaseProps {
   isHost: boolean;
   isSubmitting: boolean;
   maxSeconds: number;
-  onSubmitImitation: (audioBlob: Blob) => Promise<boolean>;
+  /** `onStage` remonte l'étape en cours pour l'afficher pendant l'attente. */
+  onSubmitImitation: (audioBlob: Blob, onStage?: (label: string) => void) => Promise<boolean>;
   onNextPhrase: () => void;
 }
 
@@ -248,9 +249,9 @@ export const AudioPhoneImitationPhase = ({
     if (!recordedBlob) return;
     // Même mise en scène que la phase d'enregistrement : l'imitation est
     // inversée puis envoyée, ce n'est pas instantané.
-    const success = await staged.run(() => onSubmitImitation(recordedBlob), {
+    const success = await staged.run((report) => onSubmitImitation(recordedBlob, report), {
       label: 'Inversion de ton imitation…',
-      minDurationMs: 6_000,
+      minDurationMs: 1_000,
       sound: 'processRewind',
       endSound: 'processDone',
     });

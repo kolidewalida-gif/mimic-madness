@@ -255,9 +255,9 @@ export const AudioPhoneGameScreenV2 = memo(({
         isHost={currentPlayer.isHost}
         isSubmitting={game.isSubmitting}
         maxSeconds={game.currentRound.max_recording_seconds}
-        onSubmitImitation={async (blob) => {
+        onSubmitImitation={async (blob, onStage) => {
           if (currentPhrase) {
-            return await game.submitImitation(blob, currentPhrase.id);
+            return await game.submitImitation(blob, currentPhrase.id, onStage);
           }
           return false;
         }}

@@ -69,13 +69,27 @@ export const useStagedTask = () => {
   }, [cleanup]);
 
   const run = useCallback(
-    async <T,>(task: () => Promise<T>, options: StagedRunOptions): Promise<T> => {
+    async <T,>(
+      /**
+       * La tâche reçoit un rapporteur d'étape. Une barre plafonnée à 92 % ne
+       * mentait pas, mais elle ne disait pas non plus ce qu'elle attendait : au
+       * bout de quelques secondes elle passait pour un blocage. Dire « inversion »
+       * puis « envoi » coûte un mot et lève le doute.
+       */
+      task: (report: (label: string) => void) => Promise<T>,
+      options: StagedRunOptions,
+    ): Promise<T> => {
       const minDurationMs = Math.max(0, options.minDurationMs ?? 6_000);
       const startedAt = Date.now();
       let settledAt: number | null = null;
 
       cleanup();
       setState({ isRunning: true, ratio: 0, label: options.label });
+
+      const report = (label: string) => {
+        if (!mountedRef.current) return;
+        setState((previous) => (previous.isRunning ? { ...previous, label } : previous));
+      };
       if (options.sound) {
         soundRef.current = playSustainedSample(options.sound, 0.5);
       }
@@ -101,7 +115,7 @@ export const useStagedTask = () => {
       };
 
       try {
-        const result = await task();
+        const result = await task(report);
         settledAt = Date.now();
         await waitForBar();
         if (mountedRef.current && options.endSound) playSample(options.endSound, 0.5);

@@ -68,8 +68,13 @@ export const ProcessingOverlay = ({
               aria-valuenow={percent}
               aria-label={state.label}
             >
+              {/*
+                Au plafond, la barre reçoit un balayage : c'est le seul moment où
+                elle n'avance plus alors que la tâche continue, et sans ce signe
+                elle passait pour figée.
+              */}
               <motion.div
-                className="h-full rounded-full"
+                className={percent >= 92 ? 'processing-bar processing-bar--pending h-full rounded-full' : 'processing-bar h-full rounded-full'}
                 style={{ background: accent }}
                 animate={{ width: `${percent}%` }}
                 transition={{ ease: 'linear', duration: 0.08 }}
@@ -80,7 +85,7 @@ export const ProcessingOverlay = ({
               className="mt-2 text-xs font-black tabular-nums text-white/45"
               style={{ fontFamily: "'Outfit', sans-serif" }}
             >
-              {percent}%
+              {percent >= 92 ? 'Envoi en cours…' : `${percent}%`}
             </p>
           </motion.div>
         </motion.div>

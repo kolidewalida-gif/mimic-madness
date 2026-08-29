@@ -43,7 +43,8 @@ interface AudioPhoneRecordingAllPhaseProps {
   playerIds?: string[];
   isHost: boolean;
   isSubmitting: boolean;
-  onSubmit: (audioBlob: Blob) => Promise<boolean>;
+  /** `onStage` remonte l'étape en cours pour l'afficher pendant l'attente. */
+  onSubmit: (audioBlob: Blob, onStage?: (label: string) => void) => Promise<boolean>;
   onStartImitation: () => void;
 }
 
@@ -185,9 +186,15 @@ export const AudioPhoneRecordingAllPhase = ({
      * bouton, alors qu'elle enchaîne un décodage, un retournement échantillon par
      * échantillon, un ré-encodage WAV et deux envois. On la met en scène.
      */
-    const success = await staged.run(() => onSubmit(recordedBlob), {
+    /*
+     * Le plancher passe de six secondes à une : il existe pour que l'étape ne
+     * clignote pas, pas pour faire attendre. L'inversion puis les deux envois
+     * prennent déjà plus que ça, et le rapporteur d'étape dit lequel des deux
+     * est en cours.
+     */
+    const success = await staged.run((report) => onSubmit(recordedBlob, report), {
       label: 'Inversion de ta phrase…',
-      minDurationMs: 6_000,
+      minDurationMs: 1_000,
       sound: 'processRewind',
       endSound: 'processDone',
     });

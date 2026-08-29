@@ -12588,6 +12588,41 @@ body.inkbeta-mode .ik-ap-mic-zone {
   align-content: center;
 }
 
+/* ---- Barre du voile d'étape ------------------------------------------ */
+
+/*
+ * Cette barre n'est pas propre à Audio Phone : elle appartient au voile
+ * `ProcessingOverlay`, réutilisable par tous les modes. Elle vit ici parce que
+ * c'est ce mode qui l'exerce.
+ *
+ * Le balayage ne se joue qu'au plafond, c'est-à-dire quand la tâche dépasse la
+ * durée annoncée. Il n'invente aucune progression : il dit seulement que le
+ * travail continue.
+ */
+@keyframes ik-processing-sweep {
+  from { background-position: 0 0; }
+  to { background-position: 2rem 0; }
+}
+
+body .processing-bar--pending {
+  background-image: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.32) 0 25%,
+    rgba(255, 255, 255, 0) 25% 50%,
+    rgba(255, 255, 255, 0.32) 50% 75%,
+    rgba(255, 255, 255, 0) 75% 100%
+  );
+  background-repeat: repeat;
+  background-size: 2rem 100%;
+  animation: ik-processing-sweep 700ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .processing-bar--pending {
+    animation: none;
+  }
+}
+
 /* ---- Règles : les quatre temps du mode ------------------------------- */
 body.inkbeta-mode .ik-ap-flow {
   display: grid;

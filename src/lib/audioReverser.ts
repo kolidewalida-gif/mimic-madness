@@ -20,8 +20,38 @@ const decodeAudioBlob = async (
  * Reverses an audio Blob and returns both the reversed WAV Blob and a reliable duration.
  * Uses decodeAudioData which is generally more reliable than HTMLAudio metadata for blob URLs.
  */
+/**
+ * Fréquence d'échantillonnage du fichier inversé.
+ *
+ * Le WAV produit ici n'est pas un master : il existe pour être écouté une fois
+ * et imité. À 48 kHz stéréo — ce que rend un micro décodé sans consigne — huit
+ * secondes pèsent 1,5 Mo de PCM non compressé, qu'il faut ensuite envoyer sur le
+ * lien montant du joueur. C'est ce fichier qui faisait durer l'envoi.
+ *
+ * 24 kHz mono garde 12 kHz de bande utile, largement au-dessus de la voix, et
+ * divise le poids par quatre.
+ */
+const REVERSED_SAMPLE_RATE = 24_000;
+
+/**
+ * Contexte de décodage à fréquence imposée quand le navigateur l'accepte.
+ *
+ * `decodeAudioData` ré-échantillonne vers la fréquence du contexte : demander
+ * 24 kHz ici évite d'allouer puis de parcourir un tampon deux fois plus grand.
+ * Certains navigateurs refusent une fréquence hors de leur plage matérielle, on
+ * retombe alors sur le contexte par défaut — le résultat reste correct, il est
+ * juste plus lourd.
+ */
+const createDecodeContext = (): AudioContext => {
+  try {
+    return new AudioContext({ sampleRate: REVERSED_SAMPLE_RATE });
+  } catch {
+    return new AudioContext();
+  }
+};
+
 export const reverseAudioBufferWithInfo = async (audioBlob: Blob): Promise<ReverseAudioResult> => {
-  const audioContext = new AudioContext();
+  const audioContext = createDecodeContext();
 
   try {
     const audioBuffer = await decodeAudioBlob(audioContext, audioBlob);
@@ -59,16 +89,21 @@ export const reverseAudioBuffer = async (audioBlob: Blob): Promise<Blob> => {
 };
 
 /**
- * Encodes an AudioBuffer to a WAV Blob
+ * Encode un AudioBuffer en WAV **mono**.
+ *
+ * La source est un micro : ses canaux portent le même signal, et écrire les deux
+ * doublait le poids du fichier pour rien. S'il y en a plusieurs, on les
+ * moyenne — c'est un repli correct, pas une perte d'information utile.
  */
 const encodeAudioBuffer = async (buffer: AudioBuffer): Promise<Blob> => {
-  const numberOfChannels = buffer.numberOfChannels;
-  const length = buffer.length * numberOfChannels * 2;
+  const sourceChannels = buffer.numberOfChannels;
+  const frames = buffer.length;
+  const length = frames * 2; // mono, 16 bits
   const sampleRate = buffer.sampleRate;
-  
+
   const arrayBuffer = new ArrayBuffer(44 + length);
   const view = new DataView(arrayBuffer);
-  
+
   // WAV header
   writeString(view, 0, 'RIFF');
   view.setUint32(4, 36 + length, true);
@@ -76,29 +111,30 @@ const encodeAudioBuffer = async (buffer: AudioBuffer): Promise<Blob> => {
   writeString(view, 12, 'fmt ');
   view.setUint32(16, 16, true); // Subchunk1Size
   view.setUint16(20, 1, true); // AudioFormat (PCM)
-  view.setUint16(22, numberOfChannels, true);
+  view.setUint16(22, 1, true); // NumChannels
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * numberOfChannels * 2, true); // ByteRate
-  view.setUint16(32, numberOfChannels * 2, true); // BlockAlign
+  view.setUint32(28, sampleRate * 2, true); // ByteRate
+  view.setUint16(32, 2, true); // BlockAlign
   view.setUint16(34, 16, true); // BitsPerSample
   writeString(view, 36, 'data');
   view.setUint32(40, length, true);
-  
-  // Interleave channels
+
   const channels: Float32Array[] = [];
-  for (let i = 0; i < numberOfChannels; i++) {
+  for (let i = 0; i < sourceChannels; i++) {
     channels.push(buffer.getChannelData(i));
   }
-  
+
   let offset = 44;
-  for (let i = 0; i < buffer.length; i++) {
-    for (let channel = 0; channel < numberOfChannels; channel++) {
-      const sample = Math.max(-1, Math.min(1, channels[channel][i]));
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-      offset += 2;
+  for (let i = 0; i < frames; i++) {
+    let sample = 0;
+    for (let channel = 0; channel < sourceChannels; channel++) {
+      sample += channels[channel][i];
     }
+    sample = Math.max(-1, Math.min(1, sample / sourceChannels));
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+    offset += 2;
   }
-  
+
   return new Blob([arrayBuffer], { type: 'audio/wav' });
 };
 

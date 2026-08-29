@@ -373,8 +373,31 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     await writePhase(currentRound.phase, 'recording_all');
   }, [currentRound, writePhase]);
 
+  /*
+   * L'XP ne fait plus attendre le joueur.
+   *
+   * Elle était accordée avant le `return`, donc le voile d'envoi restait à
+   * l'écran pendant un aller-retour de plus, sans aucun effet sur la manche. Elle
+   * part maintenant en arrière-plan ; un échec se journalise sans rien bloquer.
+   */
+  const awardRecordingXp = useCallback(() => {
+    void (async () => {
+      try {
+        const result = await addXp('recordingMade');
+        emitXpGain(XP_REWARDS.recordingMade, 'recordingMade');
+        if (result?.leveledUp) emitLevelUpNotification(result.newLevel);
+      } catch (error) {
+        console.warn('[AudioPhoneV2] XP non accordée :', error);
+      }
+    })();
+  }, [addXp]);
+
   // Submit original phrase recording — Bug fix #1, #2, #6
-  const submitOriginalPhrase = useCallback(async (audioBlob: Blob): Promise<boolean> => {
+  const submitOriginalPhrase = useCallback(async (
+    audioBlob: Blob,
+    /** Permet à l'appelant d'afficher l'étape en cours pendant l'attente. */
+    onStage?: (label: string) => void,
+  ): Promise<boolean> => {
     if (!currentRound) return false;
 
     // Bug fix #1 + #2: validate phase + no duplicate submission
@@ -389,6 +412,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
 
     try {
       setIsSubmitting(true);
+      onStage?.('Inversion de ta phrase…');
 
       // Reverse the audio
       const { reversedBlob, durationSeconds } = await reverseAudioBufferWithInfo(audioBlob);
@@ -397,19 +421,32 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
       const originalPath = `${lobbyId}/${currentRound.id}/${currentPlayer.id}_${timestamp}_original.webm`;
       const reversedPath = `${lobbyId}/${currentRound.id}/${currentPlayer.id}_${timestamp}_reversed.wav`;
 
-      // Upload original
-      const { error: uploadErr1 } = await supabase.storage
-        .from('audio-phone')
-        .upload(originalPath, audioBlob, { contentType: audioBlob.type || 'audio/webm', upsert: true });
-      if (uploadErr1) throw uploadErr1;
+      onStage?.('Envoi de ta phrase…');
 
-      // Upload reversed
-      const { error: uploadErr2 } = await supabase.storage
-        .from('audio-phone')
-        .upload(reversedPath, reversedBlob, { contentType: 'audio/wav', upsert: true });
-      if (uploadErr2) {
-        await supabase.storage.from('audio-phone').remove([originalPath]);
-        throw uploadErr2;
+      /*
+       * Les deux fichiers partent ensemble. En série, on payait deux allers-retours
+       * complets alors qu'ils ne dépendent pas l'un de l'autre — et c'est l'attente
+       * dont se plaignaient les joueurs. Le nettoyage retire ce qui a été déposé
+       * quand l'un des deux échoue.
+       */
+      const [originalUpload, reversedUpload] = await Promise.all([
+        supabase.storage
+          .from('audio-phone')
+          .upload(originalPath, audioBlob, { contentType: audioBlob.type || 'audio/webm', upsert: true }),
+        supabase.storage
+          .from('audio-phone')
+          .upload(reversedPath, reversedBlob, { contentType: 'audio/wav', upsert: true }),
+      ]);
+
+      if (originalUpload.error || reversedUpload.error) {
+        const landed = [
+          originalUpload.error ? null : originalPath,
+          reversedUpload.error ? null : reversedPath,
+        ].filter((path): path is string => path !== null);
+        if (landed.length > 0) {
+          await supabase.storage.from('audio-phone').remove(landed);
+        }
+        throw originalUpload.error ?? reversedUpload.error;
       }
 
       // Bug fix #6: handle missing player gracefully (don't silently fall to 0)
@@ -438,13 +475,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         throw insertError;
       }
 
-      // Award XP for recording
-      const result = await addXp('recordingMade');
-      emitXpGain(XP_REWARDS.recordingMade, 'recordingMade');
-      if (result?.leveledUp) {
-        emitLevelUpNotification(result.newLevel);
-      }
-
+      awardRecordingXp();
       playSoundEffect('success', 0.5);
       return true;
     } catch (error: any) {
@@ -462,7 +493,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentRound, currentPlayer, lobbyId, toast, addXp, originalRecordings]);
+  }, [currentRound, currentPlayer, lobbyId, toast, awardRecordingXp, originalRecordings]);
 
   // Check if current player has submitted their original phrase
   const hasSubmittedOriginalPhrase = useCallback(() => {
@@ -532,7 +563,12 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
   }, [getCurrentPhraseToImitate, currentPlayer.id, imitations]);
 
   // Submit an imitation — Bug fix #3, #4, #5
-  const submitImitation = useCallback(async (audioBlob: Blob, originalRecordingId: string): Promise<boolean> => {
+  const submitImitation = useCallback(async (
+    audioBlob: Blob,
+    originalRecordingId: string,
+    /** Permet à l'appelant d'afficher l'étape en cours pendant l'attente. */
+    onStage?: (label: string) => void,
+  ): Promise<boolean> => {
     if (!currentRound) return false;
 
     // Bug fix #3, #4, #5: validate phase + not author + no duplicate
@@ -554,6 +590,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
 
     try {
       setIsSubmitting(true);
+      onStage?.('Inversion de ton imitation…');
 
       // Reverse the imitation
       const { reversedBlob, durationSeconds } = await reverseAudioBufferWithInfo(audioBlob);
@@ -562,19 +599,27 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
       const imitationPath = `${lobbyId}/${currentRound.id}/imitation_${currentPlayer.id}_${originalRecordingId}_${timestamp}.webm`;
       const reversedPath = `${lobbyId}/${currentRound.id}/imitation_${currentPlayer.id}_${originalRecordingId}_${timestamp}_reversed.wav`;
 
-      // Upload imitation
-      const { error: uploadErr1 } = await supabase.storage
-        .from('audio-phone')
-        .upload(imitationPath, audioBlob, { contentType: audioBlob.type || 'audio/webm', upsert: true });
-      if (uploadErr1) throw uploadErr1;
+      onStage?.('Envoi de ton imitation…');
 
-      // Upload reversed imitation
-      const { error: uploadErr2 } = await supabase.storage
-        .from('audio-phone')
-        .upload(reversedPath, reversedBlob, { contentType: 'audio/wav', upsert: true });
-      if (uploadErr2) {
-        await supabase.storage.from('audio-phone').remove([imitationPath]);
-        throw uploadErr2;
+      /* Les deux fichiers partent ensemble, comme pour la phrase originale. */
+      const [imitationUpload, reversedUpload] = await Promise.all([
+        supabase.storage
+          .from('audio-phone')
+          .upload(imitationPath, audioBlob, { contentType: audioBlob.type || 'audio/webm', upsert: true }),
+        supabase.storage
+          .from('audio-phone')
+          .upload(reversedPath, reversedBlob, { contentType: 'audio/wav', upsert: true }),
+      ]);
+
+      if (imitationUpload.error || reversedUpload.error) {
+        const landed = [
+          imitationUpload.error ? null : imitationPath,
+          reversedUpload.error ? null : reversedPath,
+        ].filter((path): path is string => path !== null);
+        if (landed.length > 0) {
+          await supabase.storage.from('audio-phone').remove(landed);
+        }
+        throw imitationUpload.error ?? reversedUpload.error;
       }
 
       // Save to DB
@@ -595,13 +640,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         throw insertError;
       }
 
-      // Award XP for imitation recording
-      const result = await addXp('recordingMade');
-      emitXpGain(XP_REWARDS.recordingMade, 'recordingMade');
-      if (result?.leveledUp) {
-        emitLevelUpNotification(result.newLevel);
-      }
-
+      awardRecordingXp();
       playSoundEffect('success', 0.5);
       return true;
     } catch (error: any) {
@@ -615,7 +654,7 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentRound, currentPlayer, lobbyId, toast, addXp, originalRecordings, imitations]);
+  }, [currentRound, currentPlayer, lobbyId, toast, awardRecordingXp, originalRecordings, imitations]);
 
   // Check if all imitations for current phrase are done
   const allImitationsForCurrentPhraseDone = useCallback(() => {
