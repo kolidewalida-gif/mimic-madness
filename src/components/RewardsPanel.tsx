@@ -17,6 +17,8 @@ const iconMap: Record<string, ReactNode> = {
 };
 
 type RewardTab = 'all' | 'unlocked' | 'locked';
+const RewardTabs = InkTabs<RewardTab>;
+
 type RewardsPanelProps =
   | { embedded: true; isOpen?: never; onClose?: never }
   | { embedded?: false; isOpen: boolean; onClose: () => void };
@@ -29,6 +31,11 @@ export const RewardsPanel = (props: RewardsPanelProps) => {
   const totalCount = rewards.length;
   const percentage = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
   const filtered = useMemo(() => rewards.filter((reward) => activeTab === 'unlocked' ? isRewardUnlocked(reward.id) : activeTab === 'locked' ? !isRewardUnlocked(reward.id) : true), [activeTab, isRewardUnlocked, rewards]);
+  const rewardTabs: { key: RewardTab; label: string }[] = [
+    { key: 'all', label: `Tout (${totalCount})` },
+    { key: 'unlocked', label: `Débloqué (${unlockedCount})` },
+    { key: 'locked', label: `À venir (${totalCount - unlockedCount})` },
+  ];
 
   const toolbar = (
     <>
@@ -36,7 +43,7 @@ export const RewardsPanel = (props: RewardsPanelProps) => {
         <div className="mb-1.5 flex items-center justify-between text-xs font-bold text-white/45"><span>Progression</span><span className="tabular-nums text-white/70">{percentage}%</span></div>
         <div className="ink-progress" role="progressbar" aria-valuenow={percentage} aria-valuemin={0} aria-valuemax={100} aria-label="Progression des récompenses"><motion.span style={{ background: 'linear-gradient(90deg, #ef4444, #f97316, #fbbf24)' }} initial={{ width: 0 }} animate={{ width: `${percentage}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} /></div>
       </div>
-      <InkTabs<RewardTab> value={activeTab} onChange={setActiveTab} accent="#f87171" items={[{ key: 'all', label: `Tout (${totalCount})` }, { key: 'unlocked', label: `Débloqué (${unlockedCount})` }, { key: 'locked', label: `À venir (${totalCount - unlockedCount})` }]} />
+      <RewardTabs value={activeTab} onChange={setActiveTab} accent="#f87171" items={rewardTabs} />
     </>
   );
 

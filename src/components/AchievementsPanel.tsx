@@ -35,18 +35,25 @@ const BADGE_PERKS: Record<string, string> = {
   community_star: 'Badge visible par tous les joueurs en lobby',
 };
 
+type AchievementTab = 'unlocked' | 'locked';
+const AchievementTabs = InkTabs<AchievementTab>;
+
 type AchievementsPanelProps =
   | { embedded: true; isOpen?: never; onClose?: never }
   | { embedded?: false; isOpen: boolean; onClose: () => void };
 
 export const AchievementsPanel = (props: AchievementsPanelProps) => {
   const { getUnlockedAchievements, getLockedAchievements, getProgress, stats } = useAchievements();
-  const [tab, setTab] = useState<'unlocked' | 'locked'>('unlocked');
+  const [tab, setTab] = useState<AchievementTab>('unlocked');
 
   const progress = getProgress();
   const unlocked = getUnlockedAchievements();
   const locked = getLockedAchievements();
   const list = tab === 'unlocked' ? unlocked : locked;
+  const achievementTabs: { key: AchievementTab; label: string }[] = [
+    { key: 'unlocked', label: `Débloqués (${unlocked.length})` },
+    { key: 'locked', label: `À décrocher (${locked.length})` },
+  ];
 
   const toolbar = (
     <>
@@ -68,7 +75,7 @@ export const AchievementsPanel = (props: AchievementsPanelProps) => {
           ))}
         </div>
       </div>
-      <InkTabs<'unlocked' | 'locked'> value={tab} onChange={setTab} accent="#fbbf24" items={[{ key: 'unlocked', label: `Débloqués (${unlocked.length})` }, { key: 'locked', label: `À décrocher (${locked.length})` }]} />
+      <AchievementTabs value={tab} onChange={setTab} accent="#fbbf24" items={achievementTabs} />
     </>
   );
 
