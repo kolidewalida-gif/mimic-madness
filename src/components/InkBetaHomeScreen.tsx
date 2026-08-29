@@ -43,7 +43,9 @@ interface InkBetaHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void | Promise<void>;
   onJoinGame: (playerName: string, lobbyCode: string) => void | Promise<void>;
   onOpenPersonalHub: (tab: PersonalHubTab) => void;
+  onOpenSocial: () => void;
   isPersonalHubOpen: boolean;
+  isSocialOpen: boolean;
   notificationCount?: number;
 }
 
@@ -281,7 +283,9 @@ const InkBetaHomeScreenComponent = ({
   onCreateGame,
   onJoinGame,
   onOpenPersonalHub,
+  onOpenSocial,
   isPersonalHubOpen,
+  isSocialOpen,
   notificationCount = 0,
 }: InkBetaHomeScreenProps) => {
   const { user, profile } = useAuth();
@@ -304,7 +308,7 @@ const InkBetaHomeScreenComponent = ({
   const joinReady = nameReady && lobbyCode.trim().length === 4;
   const displayName = profile?.display_name || playerName || 'Joueur';
   const profileAvatarUrl = user ? profile?.avatar_url || undefined : undefined;
-  const anyOverlayOpen = showJoin || isPersonalHubOpen;
+  const anyOverlayOpen = showJoin || isPersonalHubOpen || isSocialOpen;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -401,10 +405,11 @@ const InkBetaHomeScreenComponent = ({
 
             <button
               type="button"
-              onClick={() => { playInkSound('brushTap', 0.3); onOpenPersonalHub('social'); }}
+              onClick={() => { playInkSound('brushTap', 0.3); onOpenSocial(); }}
               className="ik-tool menu-focus"
               aria-label="Ouvrir Social"
               aria-haspopup="dialog"
+              aria-expanded={isSocialOpen}
             >
               <Share2 aria-hidden="true" />
               <span>Social</span>

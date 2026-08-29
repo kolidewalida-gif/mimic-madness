@@ -141,10 +141,13 @@ const Index = () => {
   useRestrictedThemeGuard(isAdmin || devBetaPreview, isAdminLoading);
   const [gameState, setGameState] = useState<GameState>("home");
   const [showInkSocial, setShowInkSocial] = useState(false);
-  const openInkSocial = useCallback(() => setShowInkSocial(true), []);
-  const closeInkSocial = useCallback(() => setShowInkSocial(false), []);
   const [personalHub, setPersonalHub] = useState<PersonalHubState>({ isOpen: false, tab: 'profile' });
   const [personalHubUnreadCount, setPersonalHubUnreadCount] = useState(0);
+  const openInkSocial = useCallback(() => {
+    setPersonalHub((current) => ({ ...current, isOpen: false }));
+    setShowInkSocial(true);
+  }, []);
+  const closeInkSocial = useCallback(() => setShowInkSocial(false), []);
   const openPersonalHub = useCallback((tab: PersonalHubTab) => {
     setShowInkSocial(false);
     setPersonalHub({ isOpen: true, tab });
@@ -219,8 +222,7 @@ const Index = () => {
     const canOpenMenuSurface = () => gameState === 'home' || gameState === 'lobby';
     const openSocial = () => {
       if (!canOpenMenuSurface()) return;
-      if (useBetaHome) openPersonalHub('social');
-      else openInkSocial();
+      openInkSocial();
     };
     const openFriends = () => {
       if (useBetaHome && canOpenMenuSurface()) openPersonalHub('friends');
@@ -721,7 +723,9 @@ const Index = () => {
               onCreateGame={handleCreateGame}
               onJoinGame={handleJoinGame}
               onOpenPersonalHub={openPersonalHub}
+              onOpenSocial={openInkSocial}
               isPersonalHubOpen={personalHub.isOpen}
+              isSocialOpen={showInkSocial}
               notificationCount={personalHubUnreadCount}
             />
           ) : useNeonHub ? (
@@ -771,7 +775,9 @@ const Index = () => {
                 onKickPlayer={handleKickPlayer}
                 onTransferHost={handleTransferHost}
                 onOpenPersonalHub={openPersonalHub}
+                onOpenSocial={openInkSocial}
                 isPersonalHubOpen={personalHub.isOpen}
+                isSocialOpen={showInkSocial}
                 notificationCount={personalHubUnreadCount}
               />
             ) : (
@@ -998,6 +1004,7 @@ const Index = () => {
             isOpen={personalHub.isOpen}
             activeTab={personalHub.tab}
             onTabChange={openPersonalHub}
+            onOpenSocial={openInkSocial}
             onClose={closePersonalHub}
             onJoinLobby={handleJoinFromPersonalHub}
             onAcceptInvitation={handleAcceptInvitation}
@@ -1010,7 +1017,7 @@ const Index = () => {
         </React.Suspense>
       )}
 
-      {useInkMode && !useBetaHome && (gameState === 'home' || gameState === 'lobby') && (
+      {useInkMode && (gameState === 'home' || gameState === 'lobby') && (
         <SocialStudioDialog isOpen={showInkSocial} onClose={closeInkSocial} />
       )}
 

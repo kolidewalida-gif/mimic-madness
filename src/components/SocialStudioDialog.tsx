@@ -15,12 +15,15 @@ const SocialStudioDialogComponent = ({
   isOpen,
   onClose,
 }: SocialStudioDialogProps) => {
-  const isTopLayer = useCallback(
-    () =>
-      typeof document === 'undefined' ||
-      document.querySelector('.social-viewer-overlay') === null,
-    [],
-  );
+  const isTopLayer = useCallback(() => {
+    if (typeof document === 'undefined') return true;
+    return document.querySelector([
+      '.social-viewer-overlay',
+      '.social-public-profile-overlay',
+      '.ik-game-invite-layer',
+      '[data-radix-portal] [role="dialog"][data-state="open"]',
+    ].join(',')) === null;
+  }, []);
   const dialogRef = useDialogBehaviour(isOpen, onClose, isTopLayer);
   useBodyScrollLock(isOpen);
 

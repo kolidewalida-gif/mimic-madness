@@ -38,19 +38,22 @@ export const RewardsPanel = (props: RewardsPanelProps) => {
   ];
 
   const toolbar = (
-    <>
-      <div className="flex-shrink-0 px-5 pb-3 pt-1">
-        <div className="mb-1.5 flex items-center justify-between text-xs font-bold text-white/45"><span>Progression</span><span className="tabular-nums text-white/70">{percentage}%</span></div>
+    <div className="ik-collection-toolbar ik-reward-toolbar">
+      <div className="ik-collection-overview">
+        <div><span>Inventaire</span><strong>{unlockedCount}<small> / {totalCount}</small></strong><p>récompenses acquises</p></div>
+        <div className="ik-collection-progress-copy"><strong>{percentage}%</strong><span>complété</span></div>
+      </div>
+      <div className="px-5 pb-3 pt-1">
         <div className="ink-progress" role="progressbar" aria-valuenow={percentage} aria-valuemin={0} aria-valuemax={100} aria-label="Progression des récompenses"><motion.span style={{ background: 'linear-gradient(90deg, #ef4444, #f97316, #fbbf24)' }} initial={{ width: 0 }} animate={{ width: `${percentage}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} /></div>
       </div>
       <RewardTabs value={activeTab} onChange={setActiveTab} accent="#f87171" items={rewardTabs} />
-    </>
+    </div>
   );
 
   const content = filtered.length === 0 ? (
     <div className="ink-empty"><Gift aria-hidden="true" /><strong>{activeTab === 'unlocked' ? 'Aucune récompense débloquée' : 'Tout est débloqué'}</strong><p>{activeTab === 'unlocked' ? 'Monte de niveau en jouant pour débloquer tes premières récompenses.' : 'Tu as récupéré toutes les récompenses disponibles. Beau parcours.'}</p></div>
   ) : (
-    <div className="space-y-2.5">{filtered.map((reward, index) => <RewardCard key={reward.id} reward={reward} isUnlocked={isRewardUnlocked(reward.id)} currentLevel={level} index={index} />)}</div>
+    <div className="ik-reward-grid grid gap-2.5">{filtered.map((reward, index) => <RewardCard key={reward.id} reward={reward} isUnlocked={isRewardUnlocked(reward.id)} currentLevel={level} index={index} />)}</div>
   );
 
   if (props.embedded) return <div className="ik-embedded-panel"><div className="ik-embedded-toolbar">{toolbar}</div><div className="ik-embedded-content">{content}</div></div>;
@@ -63,7 +66,7 @@ const RewardCard = ({ reward, isUnlocked, currentLevel, index }: { reward: Level
   const perk = rewardPerk(reward.id);
   const progress = isUnlocked ? 100 : Math.min(100, Math.round((currentLevel / reward.level) * 100));
   return (
-    <motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index, 12) * 0.03 }} className={cn('relative rounded-xl p-3.5 transition-all', isUnlocked ? 'bg-white/[0.03]' : 'bg-white/[0.015]')} style={{ border: `1px solid ${isUnlocked ? `${style.color}33` : 'rgba(255,255,255,0.05)'}` }}>
+    <motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index, 12) * 0.03 }} className={cn('ik-reward-card relative rounded-xl p-3.5 transition-all', isUnlocked ? 'is-unlocked bg-white/[0.03]' : 'is-locked bg-white/[0.015]')} style={{ border: `1px solid ${isUnlocked ? `${style.color}33` : 'rgba(255,255,255,0.05)'}` }}>
       <div className="flex items-start gap-3"><div className={cn('flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl', isUnlocked ? `bg-gradient-to-br ${style.gradient}` : 'bg-white/5')} style={isUnlocked ? { boxShadow: `0 0 12px ${style.color}22` } : undefined} aria-hidden="true">{isUnlocked ? <span className="text-white">{iconMap[reward.icon]}</span> : <Lock className="h-4 w-4 text-white/30" />}</div>
         <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className={cn('truncate text-sm font-semibold', isUnlocked ? 'text-white' : 'text-white/50')}>{reward.name}</h3>{isUnlocked && <Check className="h-3.5 w-3.5 flex-shrink-0 text-green-400" aria-label="Débloqué" />}</div><p className="mt-0.5 text-xs text-white/40">{reward.description}</p>
           <div className="mt-1.5 flex items-center gap-2"><span className="rounded-md px-1.5 py-0.5 text-[10px] font-medium" style={{ background: `${style.color}15`, color: style.color }}>{style.label}</span><span className="flex items-center gap-0.5 text-[10px] text-white/30"><Star className="h-2.5 w-2.5" aria-hidden="true" /> Niv. {reward.level}</span></div>

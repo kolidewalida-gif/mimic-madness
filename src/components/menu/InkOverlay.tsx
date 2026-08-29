@@ -61,10 +61,10 @@ export const useDialogBehaviour = (
       }
     };
 
-    window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('keydown', onKeyDown);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('keydown', onKeyDown);
       const trigger = restoreRef.current;
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Star, Zap, MessageSquare, Mic, Award, Target, Flame, Crown, Heart, Sparkles, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -56,27 +56,35 @@ export const AchievementsPanel = (props: AchievementsPanelProps) => {
   ];
 
   const toolbar = (
-    <>
-      <div className="flex-shrink-0 px-5 pb-3 pt-1">
+    <div className="ik-collection-toolbar ik-achievement-toolbar">
+      <div className="ik-collection-overview">
+        <div>
+          <span>Collection</span>
+          <strong>{progress.unlocked}<small> / {progress.total}</small></strong>
+          <p>badges débloqués</p>
+        </div>
+        <div className="ik-collection-progress-copy"><strong>{progress.percentage}%</strong><span>complété</span></div>
+      </div>
+      <div className="px-5 pb-3 pt-1">
         <div className="ink-progress" role="progressbar" aria-valuenow={progress.percentage} aria-valuemin={0} aria-valuemax={100} aria-label="Progression des badges">
           <motion.span style={{ background: 'linear-gradient(90deg, #fbbf24, #f97316)' }} initial={{ width: 0 }} animate={{ width: `${progress.percentage}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="ik-collection-stats">
           {[
             { label: 'Victoires', value: stats.winsCount, color: '#fbbf24' },
             { label: 'Messages', value: stats.messagesCount, color: '#38bdf8' },
             { label: 'Records', value: stats.recordingsCount, color: '#34d399' },
             { label: 'Hébergées', value: stats.gamesHosted, color: 'var(--ink-accent)' },
           ].map((item) => (
-            <div key={item.label} className="rounded-lg py-2 text-center" style={{ background: `${item.color}12` }}>
-              <div className="text-base font-bold tabular-nums" style={{ color: item.color }}>{item.value}</div>
-              <div className="text-[10px] text-white/45">{item.label}</div>
+            <div key={item.label} style={{ '--collection-color': item.color } as CSSProperties}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
             </div>
           ))}
         </div>
       </div>
       <AchievementTabs value={tab} onChange={setTab} accent="#fbbf24" items={achievementTabs} />
-    </>
+    </div>
   );
 
   const content = list.length === 0 ? (
@@ -86,7 +94,7 @@ export const AchievementsPanel = (props: AchievementsPanelProps) => {
       <p>{tab === 'unlocked' ? 'Joue une partie, envoie un message ou enregistre une imitation pour décrocher ton premier badge.' : 'Collection complète. Il ne reste plus rien à décrocher.'}</p>
     </div>
   ) : (
-    <div className="space-y-2.5">
+    <div className="ik-achievement-grid grid gap-2.5">
       {list.map((achievement, index) => <BadgeCard key={achievement.id} achievement={achievement} isUnlocked={tab === 'unlocked'} index={index} />)}
     </div>
   );
@@ -106,7 +114,7 @@ const BadgeCard = ({ achievement, isUnlocked, index }: { achievement: Achievemen
   const style = rarityStyle(achievement.rarity);
   const perk = BADGE_PERKS[achievement.id];
   return (
-    <motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index, 12) * 0.04 }} className={cn('relative rounded-xl p-3.5 transition-all', isUnlocked ? 'bg-white/[0.03]' : 'bg-white/[0.015] opacity-60')} style={{ border: `1px solid ${isUnlocked ? `${style.color}33` : 'rgba(255,255,255,0.05)'}` }}>
+    <motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index, 12) * 0.04 }} className={cn('ik-achievement-card relative rounded-xl p-3.5 transition-all', isUnlocked ? 'is-unlocked bg-white/[0.03]' : 'is-locked bg-white/[0.015] opacity-60')} style={{ border: `1px solid ${isUnlocked ? `${style.color}33` : 'rgba(255,255,255,0.05)'}` }}>
       <div className="flex items-start gap-3">
         <div className={cn('flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl', isUnlocked ? `bg-gradient-to-br ${style.gradient}` : 'bg-white/5')} style={isUnlocked ? { boxShadow: `0 0 12px ${style.color}33` } : undefined} aria-hidden="true">
           {isUnlocked ? <span className="text-white">{iconMap[achievement.icon]}</span> : <Lock className="h-4 w-4 text-white/30" />}

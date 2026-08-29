@@ -27,7 +27,7 @@ import { AvatarSettings } from "@/components/AvatarSettings";
 import { useTheme, themeConfig, ThemeType, visibleThemes } from "@/hooks/useTheme";
 import { useAdmin } from "@/hooks/useAdmin";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface DeviceSettingsProps {
   onClose?: () => void;
@@ -80,13 +80,14 @@ export const DeviceSettings = ({
 
   const showAvatarTab = !!(playerId && playerName);
   const [activeTab, setActiveTab] = useState<Tab>("audio");
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  const tabs: { id: Tab; label: string; icon: any; color: string }[] = [
-    { id: "audio", label: "Audio", icon: Mic, color: "var(--ink-accent)" },
-    { id: "volume", label: "Volume", icon: Sliders, color: "#fbbf24" },
-    { id: "theme", label: "Thème", icon: Palette, color: "#38bdf8" },
+  const tabs: { id: Tab; label: string; description: string; icon: any; color: string }[] = [
+    { id: "audio", label: "Audio", description: "Micro et test", icon: Mic, color: "var(--ink-accent)" },
+    { id: "volume", label: "Volume", description: "Musique et effets", icon: Sliders, color: "#fbbf24" },
+    { id: "theme", label: "Thème", description: "Ambiance visuelle", icon: Palette, color: "#38bdf8" },
     ...(showAvatarTab
-      ? [{ id: "avatar" as Tab, label: "Avatar", icon: User, color: "var(--ink-text-dim)" }]
+      ? [{ id: "avatar" as Tab, label: "Avatar", description: "Identité en jeu", icon: User, color: "var(--ink-text-dim)" }]
       : []),
   ];
 
@@ -252,19 +253,37 @@ export const DeviceSettings = ({
       <div
         className="ink-device-tabs custom-scrollbar relative flex flex-shrink-0 gap-1.5 overflow-x-auto px-2 py-2 sm:px-3 sm:py-2.5"
         style={{ borderBottom: '1px solid var(--ink-line)' }}
+        role="tablist"
+        aria-label="Catégories de réglages"
       >
-        {tabs.map((tab) => {
+        {tabs.map((tab, index) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
           return (
             <motion.button
+              ref={(element) => { tabRefs.current[index] = element; }}
               key={tab.id}
+              id={`ink-device-tab-${tab.id}`}
               type="button"
+              role="tab"
+              tabIndex={isActive ? 0 : -1}
+              aria-selected={isActive}
+              aria-controls={`ink-device-panel-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(event) => {
+                let nextIndex: number | null = null;
+                if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % tabs.length;
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + tabs.length) % tabs.length;
+                if (event.key === 'Home') nextIndex = 0;
+                if (event.key === 'End') nextIndex = tabs.length - 1;
+                if (nextIndex === null) return;
+                event.preventDefault();
+                setActiveTab(tabs[nextIndex].id);
+                tabRefs.current[nextIndex]?.focus({ preventScroll: true });
+              }}
               whileHover={{ scale: isActive ? 1 : 1.04, y: isActive ? 0 : -2 }}
               whileTap={{ scale: 0.96 }}
               animate={isActive ? { rotate: -2 } : { rotate: 0 }}
-              aria-pressed={isActive}
               aria-label={tab.label}
               className="ink-device-tab menu-focus relative flex min-h-[44px] min-w-[92px] flex-none items-center justify-center gap-1.5 rounded-2xl px-2 py-2 sm:min-w-0 sm:flex-1"
               style={{
@@ -283,17 +302,20 @@ export const DeviceSettings = ({
                 strokeWidth={2.5}
                 aria-hidden="true"
               />
-              <span
-                className={cn(
-                  "whitespace-nowrap text-sm font-black leading-none sm:text-base",
-                  isActive ? "text-white" : "text-white/60",
-                )}
-                style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  textShadow: isActive ? GRAFFITI_TEXT_SHADOW_SM : "none",
-                }}
-              >
-                {tab.label}
+              <span className="ink-device-tab-copy">
+                <strong
+                  className={cn(
+                    "whitespace-nowrap text-sm font-black leading-none sm:text-base",
+                    isActive ? "text-white" : "text-white/60",
+                  )}
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    textShadow: isActive ? GRAFFITI_TEXT_SHADOW_SM : "none",
+                  }}
+                >
+                  {tab.label}
+                </strong>
+                <small>{tab.description}</small>
               </span>
             </motion.button>
           );
@@ -311,6 +333,9 @@ export const DeviceSettings = ({
           {activeTab === "audio" && (
             <motion.div
               key="audio"
+              id="ink-device-panel-audio"
+              role="tabpanel"
+              aria-labelledby="ink-device-tab-audio"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -335,6 +360,9 @@ export const DeviceSettings = ({
           {activeTab === "volume" && (
             <motion.div
               key="volume"
+              id="ink-device-panel-volume"
+              role="tabpanel"
+              aria-labelledby="ink-device-tab-volume"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -345,6 +373,9 @@ export const DeviceSettings = ({
           {activeTab === "theme" && (
             <motion.div
               key="theme"
+              id="ink-device-panel-theme"
+              role="tabpanel"
+              aria-labelledby="ink-device-tab-theme"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -355,6 +386,9 @@ export const DeviceSettings = ({
           {activeTab === "avatar" && showAvatarTab && (
             <motion.div
               key="avatar"
+              id="ink-device-panel-avatar"
+              role="tabpanel"
+              aria-labelledby="ink-device-tab-avatar"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -543,14 +577,9 @@ const AudioSection = ({
           ) : (
             <Volume2 className="h-4 w-4 text-white/60" aria-hidden="true" />
           )}
-          <span
-            className="text-base font-black text-white"
-            style={{
-              fontFamily: "'Outfit', sans-serif",
-              textShadow: GRAFFITI_TEXT_SHADOW_SM,
-            }}
-          >
-            Suppression de bruit
+          <span className="ink-device-filter-copy">
+            <strong>Filtre navigateur</strong>
+            <small>Réduction légère fournie par ton appareil</small>
           </span>
         </div>
         <CartoonSwitch enabled={noiseSuppressionEnabled} />
@@ -644,10 +673,10 @@ const AudioSection = ({
         }}>
         <div className="flex-1 min-w-0">
           <p className="text-base font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
-            🔇 Suppression de bruit
+            Isolation avancée
           </p>
           <p className="text-xs text-white/55 font-bold" style={{ fontFamily: "'Outfit', sans-serif" }}>
-            Enlève le bruit ambiant en temps réel (RNNoise)
+            Nettoyage local en temps réel avec RNNoise
           </p>
         </div>
         <NoiseReductionToggle showLabel={false} compact />

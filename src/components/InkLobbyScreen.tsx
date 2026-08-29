@@ -84,8 +84,8 @@ type InkLobbyScreenProps =
       onOpenPersonalHub: (tab: PersonalHubTab) => void;
       isPersonalHubOpen: boolean;
       notificationCount?: number;
-      onOpenSocial?: never;
-      isSocialOpen?: never;
+      onOpenSocial: () => void;
+      isSocialOpen: boolean;
     })
   | (InkLobbyBaseProps & {
       variant?: 'default';
@@ -158,7 +158,7 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
   } = props;
   const isInkBeta = props.variant === 'inkBeta';
   const isPersonalHubOpen = props.variant === 'inkBeta' ? props.isPersonalHubOpen : false;
-  const isSocialOpen = props.variant === 'inkBeta' ? false : props.isSocialOpen;
+  const isSocialOpen = props.isSocialOpen;
   const notificationCount = props.variant === 'inkBeta' ? props.notificationCount ?? 0 : 0;
   const [showSettings, setShowSettings] = useState(false);
   const [showInvitePanel, setShowInvitePanel] = useState(false);
@@ -178,8 +178,7 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
   }, [props]);
 
   const openSocialSurface = useCallback(() => {
-    if (props.variant === 'inkBeta') props.onOpenPersonalHub('social');
-    else props.onOpenSocial();
+    props.onOpenSocial();
   }, [props]);
 
   const openSettingsSurface = useCallback(() => {
@@ -532,6 +531,7 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
                 className="ik-tool menu-focus"
                 aria-label="Ouvrir Social"
                 aria-haspopup="dialog"
+                aria-expanded={isSocialOpen}
               >
                 <Share2 aria-hidden="true" />
                 <span>Social</span>

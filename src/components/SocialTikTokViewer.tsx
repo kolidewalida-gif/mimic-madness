@@ -57,6 +57,8 @@ interface PointerGesture {
   startX: number;
   startY: number;
   lastY: number;
+  canvas: HTMLElement | null;
+  pointerType: string;
 }
 
 const clampIndex = (index: number, length: number) => (
@@ -130,7 +132,8 @@ const SocialTikTokViewerComponent = ({
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const gestureRef = useRef<PointerGesture | null>(null);
   const suppressClickRef = useRef(false);
-  const lastTapRef = useRef<{ at: number; x: number; y: number; postId: string } | null>(null);
+  const tapTimerRef = useRef<number | null>(null);
+  const lastTapRef = useRef<{ at: number; x: number; y: number; postId: string; pointerType: string } | null>(null);
   const lastHeartAtRef = useRef(0);
   const heartIdRef = useRef(0);
 
@@ -150,6 +153,10 @@ const SocialTikTokViewerComponent = ({
   }, [audioMuted]);
 
   useEffect(() => {
+    if (tapTimerRef.current) window.clearTimeout(tapTimerRef.current);
+    tapTimerRef.current = null;
+    lastTapRef.current = null;
+    suppressClickRef.current = false;
     setIsPlaying(true);
     setDraft('');
     setDragY(0);
@@ -168,6 +175,7 @@ const SocialTikTokViewerComponent = ({
 
   useEffect(() => () => {
     if (wheelTimer.current) window.clearTimeout(wheelTimer.current);
+    if (tapTimerRef.current) window.clearTimeout(tapTimerRef.current);
   }, []);
 
   const go = useCallback((direction: 1 | -1) => {
@@ -275,6 +283,8 @@ const SocialTikTokViewerComponent = ({
       startX: event.clientX,
       startY: event.clientY,
       lastY: event.clientY,
+      canvas: target.closest<HTMLElement>('.social-viewer-canvas'),
+      pointerType: event.pointerType,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
@@ -303,14 +313,55 @@ const SocialTikTokViewerComponent = ({
     }
 
     if (Math.hypot(deltaX, deltaY) > 14 || !post) return;
+    const canvas = gesture.canvas;
+    if (!canvas?.isConnected) {
+      lastTapRef.current = null;
+      return;
+    }
     const now = Date.now();
     const previousTap = lastTapRef.current;
-    if (previousTap && previousTap.postId === post.id && now - previousTap.at < 320) {
-      const rect = event.currentTarget.getBoundingClientRect();
+    const isNearbyDoubleTap = Boolean(
+      previousTap
+      && previousTap.postId === post.id
+      && previousTap.pointerType === gesture.pointerType
+      && now - previousTap.at < 320
+      && Math.hypot(event.clientX - previousTap.x, event.clientY - previousTap.y) <= 48
+    );
+
+    if (isNearbyDoubleTap) {
+      if (tapTimerRef.current) window.clearTimeout(tapTimerRef.current);
+      tapTimerRef.current = null;
+      if (gesture.pointerType !== 'mouse') {
+        suppressClickRef.current = true;
+        window.setTimeout(() => { suppressClickRef.current = false; }, 0);
+      }
+      const rect = canvas.getBoundingClientRect();
       showHeart(event.clientX - rect.left, event.clientY - rect.top);
       lastTapRef.current = null;
-    } else {
-      lastTapRef.current = { at: now, x: event.clientX, y: event.clientY, postId: post.id };
+      return;
+    }
+
+    const nextTap = {
+      at: now,
+      x: event.clientX,
+      y: event.clientY,
+      postId: post.id,
+      pointerType: gesture.pointerType,
+    };
+    lastTapRef.current = nextTap;
+
+    if (gesture.pointerType !== 'mouse') {
+      if (tapTimerRef.current) {
+        window.clearTimeout(tapTimerRef.current);
+        togglePlayback();
+      }
+      suppressClickRef.current = true;
+      tapTimerRef.current = window.setTimeout(() => {
+        if (lastTapRef.current === nextTap) lastTapRef.current = null;
+        suppressClickRef.current = false;
+        tapTimerRef.current = null;
+        togglePlayback();
+      }, 330);
     }
   };
 
@@ -391,6 +442,7 @@ const SocialTikTokViewerComponent = ({
     >
       <section
         className="social-viewer-stage"
+        aria-label={`Création de ${post.owner_name}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={finishPointerGesture}
@@ -398,89 +450,125 @@ const SocialTikTokViewerComponent = ({
           gestureRef.current = null;
           setDragY(0);
         }}
-        onDoubleClick={handleDoubleClick}
-        onClick={handleMediaClick}
         style={{ touchAction: 'pan-x' }}
-        aria-label={`Création de ${post.owner_name}`}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={post.id}
-            className="social-viewer-media"
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: dragY, scale: dragY === 0 ? 1 : 0.985 }}
-            exit={{ opacity: 0, y: -28 }}
-            transition={{ duration: 0.18 }}
-          >
-            {post.challenge_clip_id ? (
-              <VideoWithAudioOverlay
-                videoClipId={post.challenge_clip_id}
-                audioClipId={post.clip_id}
-                className="social-viewer-dual-media"
-                externalControl
-                isPlayingExternal={isPlaying}
-                overlayAudioVolume={volume}
-                overlayAudioMuted={muted}
-                preservePositionOnResume
-                loopPlayback
-                onPlayStateChange={setIsPlaying}
-              />
-            ) : (
-              <VideoPreview
-                clipId={post.clip_id}
-                className="social-viewer-single-media"
-                videoRef={simpleVideoRef}
-                autoPlay={isPlaying}
-                muted={muted}
-                volume={volume}
-                loop
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
+        <div
+          className="social-viewer-canvas"
+          onDoubleClick={handleDoubleClick}
+          onClick={handleMediaClick}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={post.id}
+              className="social-viewer-media"
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: dragY, scale: dragY === 0 ? 1 : 0.985 }}
+              exit={{ opacity: 0, y: -28 }}
+              transition={{ duration: 0.18 }}
+            >
+              {post.challenge_clip_id ? (
+                <VideoWithAudioOverlay
+                  videoClipId={post.challenge_clip_id}
+                  audioClipId={post.clip_id}
+                  className="social-viewer-dual-media"
+                  externalControl
+                  isPlayingExternal={isPlaying}
+                  overlayAudioVolume={volume}
+                  overlayAudioMuted={muted}
+                  preservePositionOnResume
+                  loopPlayback
+                  onPlayStateChange={setIsPlaying}
+                />
+              ) : (
+                <VideoPreview
+                  clipId={post.clip_id}
+                  className="social-viewer-single-media"
+                  videoRef={simpleVideoRef}
+                  autoPlay={isPlaying}
+                  muted={muted}
+                  volume={volume}
+                  loop
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
 
-        <div className="social-viewer-topbar" data-no-swipe>
-          <span className="social-viewer-counter" aria-live="polite">{index + 1}<i>/</i>{posts.length}</span>
-          <span className="social-viewer-gesture-hint">Glisse verticalement</span>
-          {!embedded && (
-            <button type="button" className="menu-focus" onClick={onClose} aria-label="Fermer le lecteur"><X aria-hidden="true" /></button>
+          <div className="social-viewer-topbar" data-no-swipe>
+            <span className="social-viewer-counter" aria-live="polite">{index + 1}<i>/</i>{posts.length}</span>
+            <span className="social-viewer-gesture-hint">Glisse verticalement</span>
+            {!embedded && (
+              <button type="button" className="menu-focus" onClick={onClose} aria-label="Fermer le lecteur"><X aria-hidden="true" /></button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className={cn('social-viewer-play menu-focus', isPlaying && 'is-playing')}
+            onClick={(event) => { event.stopPropagation(); togglePlayback(); }}
+            aria-label={isPlaying ? 'Mettre la vidéo en pause' : 'Lire la vidéo'}
+            data-no-swipe
+          >
+            {isPlaying ? <Pause aria-hidden="true" /> : <Play fill="currentColor" aria-hidden="true" />}
+          </button>
+
+          <AnimatePresence>
+            {heartPos && (
+              <motion.div
+                key={heartPos.id}
+                className="social-viewer-heart-burst"
+                style={{ left: heartPos.x, top: heartPos.y }}
+                initial={{ scale: 0, opacity: 1, rotate: -12 }}
+                animate={{ scale: [0, 1.7, 1.35], opacity: [1, 1, 0], y: -90, rotate: 8 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              >
+                <Heart fill="currentColor" aria-hidden="true" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="social-viewer-mobile-meta" data-no-swipe>
+            <button type="button" onClick={() => onOpenProfile?.(post)} disabled={!onOpenProfile} className="menu-focus">@{post.owner_name}</button>
+            {post.caption && <p>{post.caption}</p>}
+          </div>
+        </div>
+
+        <div className={cn('social-viewer-actions', isOwner && onDelete && 'has-delete')} aria-label="Actions de la publication" data-no-swipe>
+          <button
+            type="button"
+            className={cn('menu-focus', post.liked_by_me && 'is-liked')}
+            onClick={() => { playInkSound('cartoonPop', 0.3); onLike(post.id); }}
+            aria-label={post.liked_by_me ? 'Retirer le j’aime de cette publication' : 'Aimer cette publication'}
+            aria-pressed={Boolean(post.liked_by_me)}
+          >
+            <span className="social-viewer-action-icon"><Heart fill={post.liked_by_me ? 'currentColor' : 'none'} aria-hidden="true" /></span>
+            <span><strong>{compactNumber.format(post.likes_count)}</strong><small>{post.liked_by_me ? 'Aimé' : 'J’aime'}</small></span>
+          </button>
+          <button
+            type="button"
+            className={cn('menu-focus', commentsOpen && 'is-active')}
+            onClick={() => setCommentsOpen((current) => !current)}
+            aria-label={commentsOpen ? 'Masquer les commentaires' : 'Afficher les commentaires'}
+            aria-expanded={commentsOpen}
+          >
+            <span className="social-viewer-action-icon"><MessageCircle aria-hidden="true" /></span>
+            <span><strong>{comments.length}</strong><small>Commentaires</small></span>
+          </button>
+          <button type="button" className="menu-focus" onClick={() => void handleShare()} disabled={sharing} aria-label="Partager cette publication">
+            <span className="social-viewer-action-icon">{sharing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Share2 aria-hidden="true" />}</span>
+            <span><strong>Partager</strong><small>Lien ou app</small></span>
+          </button>
+          {isOwner && onDelete && (
+            <button type="button" className="menu-focus is-danger" onClick={() => void handleDeletePost()} aria-label="Supprimer définitivement cette publication">
+              <span className="social-viewer-action-icon"><Trash2 aria-hidden="true" /></span>
+              <span><strong>Supprimer</strong><small>Définitif</small></span>
+            </button>
           )}
         </div>
 
         <div className="social-viewer-nav" data-no-swipe>
           <NavButton label="Publication précédente" icon={ChevronUp} disabled={index === 0} onClick={() => go(-1)} />
           <NavButton label="Publication suivante" icon={ChevronDown} disabled={index === posts.length - 1} onClick={() => go(1)} />
-        </div>
-
-        <button
-          type="button"
-          className={cn('social-viewer-play menu-focus', isPlaying && 'is-playing')}
-          onClick={(event) => { event.stopPropagation(); togglePlayback(); }}
-          aria-label={isPlaying ? 'Mettre la vidéo en pause' : 'Lire la vidéo'}
-          data-no-swipe
-        >
-          {isPlaying ? <Pause aria-hidden="true" /> : <Play fill="currentColor" aria-hidden="true" />}
-        </button>
-
-        <AnimatePresence>
-          {heartPos && (
-            <motion.div
-              key={heartPos.id}
-              className="social-viewer-heart-burst"
-              style={{ left: heartPos.x, top: heartPos.y }}
-              initial={{ scale: 0, opacity: 1, rotate: -12 }}
-              animate={{ scale: [0, 1.7, 1.35], opacity: [1, 1, 0], y: -90, rotate: 8 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-            >
-              <Heart fill="currentColor" aria-hidden="true" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="social-viewer-mobile-meta" data-no-swipe>
-          <button type="button" onClick={() => onOpenProfile?.(post)} disabled={!onOpenProfile} className="menu-focus">@{post.owner_name}</button>
-          {post.caption && <p>{post.caption}</p>}
         </div>
       </section>
 
@@ -503,39 +591,6 @@ const SocialTikTokViewerComponent = ({
             <span><MessageCircle aria-hidden="true" /> {comments.length} commentaires</span>
           </div>
         </header>
-
-        <div className={cn('social-viewer-actions', isOwner && onDelete && 'has-delete')} aria-label="Actions de la publication">
-          <button
-            type="button"
-            className={cn('menu-focus', post.liked_by_me && 'is-liked')}
-            onClick={() => { playInkSound('cartoonPop', 0.3); onLike(post.id); }}
-            aria-label={post.liked_by_me ? 'Retirer le j’aime de cette publication' : 'Aimer cette publication'}
-            aria-pressed={Boolean(post.liked_by_me)}
-          >
-            <Heart fill={post.liked_by_me ? 'currentColor' : 'none'} aria-hidden="true" />
-            <span><strong>{compactNumber.format(post.likes_count)}</strong><small>{post.liked_by_me ? 'Aimé' : 'J’aime'}</small></span>
-          </button>
-          <button
-            type="button"
-            className={cn('menu-focus', commentsOpen && 'is-active')}
-            onClick={() => setCommentsOpen((current) => !current)}
-            aria-label={commentsOpen ? 'Masquer les commentaires' : 'Afficher les commentaires'}
-            aria-expanded={commentsOpen}
-          >
-            <MessageCircle aria-hidden="true" />
-            <span><strong>{comments.length}</strong><small>Commentaires</small></span>
-          </button>
-          <button type="button" className="menu-focus" onClick={() => void handleShare()} disabled={sharing} aria-label="Partager cette publication">
-            {sharing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Share2 aria-hidden="true" />}
-            <span><strong>Partager</strong><small>Lien ou app</small></span>
-          </button>
-          {isOwner && onDelete && (
-            <button type="button" className="menu-focus is-danger" onClick={() => void handleDeletePost()} aria-label="Supprimer définitivement cette publication">
-              <Trash2 aria-hidden="true" />
-              <span><strong>Supprimer</strong><small>Définitif</small></span>
-            </button>
-          )}
-        </div>
 
         <div className="social-viewer-audio" data-no-swipe>
           <button type="button" className="menu-focus" onClick={() => updateMuted(!muted)} aria-pressed={muted} aria-label={muted ? 'Activer le son' : 'Couper le son'}>

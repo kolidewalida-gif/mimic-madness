@@ -26,7 +26,6 @@ import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkQuestsPanel } from '@/components/InkQuestsPanel';
 import { RewardsPanel } from '@/components/RewardsPanel';
-import { SocialExperience } from '@/components/SocialExperience';
 import { TitleSelector } from '@/components/TitleSelector';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { InkModal } from '@/components/menu/InkOverlay';
@@ -48,6 +47,7 @@ interface InkPersonalHubProps {
   isOpen: boolean;
   activeTab: PersonalHubTab;
   onTabChange: (tab: PersonalHubTab) => void;
+  onOpenSocial: () => void;
   onClose: () => void;
   onJoinLobby: (lobbyCode: string) => void | Promise<void>;
   onAcceptInvitation: (invitationId: string) => void | Promise<void>;
@@ -59,7 +59,7 @@ interface InkPersonalHubProps {
 }
 
 interface HubNavItem {
-  id: PersonalHubTab;
+  id: PersonalHubTab | 'social';
   label: string;
   shortLabel: string;
   description: string;
@@ -111,24 +111,29 @@ const HubSectionHeading = ({ eyebrow, title, copy }: { eyebrow: string; title: s
 
 const HubProfile = ({ onNavigate }: { onNavigate: (tab: PersonalHubTab) => void }) => (
   <div className="ik-hub-page ik-hub-profile-page">
-    <div className="ik-hub-profile-main">
-      <HubSectionHeading eyebrow="Identité" title="Ton espace joueur" copy="Modifie ton profil et retrouve tes statistiques essentielles au même endroit." />
-      <InkProfileSidebar variant="default" />
+    <HubSectionHeading eyebrow="Identité" title="Ton espace joueur" copy="Ton profil, ton rythme et les raccourcis utiles réunis dans un tableau de bord sans détour." />
+    <div className="ik-hub-profile-layout">
+      <div className="ik-hub-profile-main">
+        <InkProfileSidebar variant="hub" />
+      </div>
+      <aside className="ik-hub-shortcuts" aria-label="Raccourcis de mon espace">
+        <div className="ik-hub-shortcuts-heading">
+          <span className="ik-hub-kicker">Actions rapides</span>
+          <p>Continue exactement là où tu en as besoin.</p>
+        </div>
+        {[
+          { tab: 'appearance' as const, icon: Crown, title: 'Composer mon style', copy: 'Titre, avatar et équipement', accent: '#b497ff' },
+          { tab: 'progress' as const, icon: Trophy, title: 'Continuer mon parcours', copy: 'Quêtes, succès et récompenses', accent: '#ffd34e' },
+          { tab: 'friends' as const, icon: UsersRound, title: 'Retrouver ma troupe', copy: 'Messages, demandes et parties', accent: '#65edb5' },
+        ].map(({ tab, icon: Icon, title, copy, accent }) => (
+          <button key={tab} type="button" className="ik-hub-shortcut menu-focus" onClick={() => onNavigate(tab)} style={{ '--hub-item-accent': accent } as CSSProperties}>
+            <span><Icon aria-hidden="true" /></span>
+            <span><strong>{title}</strong><small>{copy}</small></span>
+            <ChevronRight aria-hidden="true" />
+          </button>
+        ))}
+      </aside>
     </div>
-    <aside className="ik-hub-shortcuts" aria-label="Raccourcis de mon espace">
-      <span className="ik-hub-kicker">À portée de main</span>
-      {[
-        { tab: 'appearance' as const, icon: Crown, title: 'Personnaliser mon style', copy: 'Titre, avatar et apparence automatique', accent: '#b497ff' },
-        { tab: 'progress' as const, icon: Trophy, title: 'Voir ma progression', copy: 'Quêtes, succès et récompenses', accent: '#ffd34e' },
-        { tab: 'friends' as const, icon: UsersRound, title: 'Retrouver mes amis', copy: 'Messages, demandes et parties', accent: '#65edb5' },
-      ].map(({ tab, icon: Icon, title, copy, accent }) => (
-        <button key={tab} type="button" className="ik-hub-shortcut menu-focus" onClick={() => onNavigate(tab)} style={{ '--hub-item-accent': accent } as CSSProperties}>
-          <span><Icon aria-hidden="true" /></span>
-          <span><strong>{title}</strong><small>{copy}</small></span>
-          <ChevronRight aria-hidden="true" />
-        </button>
-      ))}
-    </aside>
   </div>
 );
 
@@ -252,6 +257,7 @@ const HubNotifications = ({
   remove,
   clear,
   onNavigate,
+  onOpenSocial,
 }: {
   items: CenterNotification[];
   unreadCount: number;
@@ -260,10 +266,12 @@ const HubNotifications = ({
   remove: (id: string) => void;
   clear: () => void;
   onNavigate: (tab: PersonalHubTab) => void;
+  onOpenSocial: () => void;
 }) => {
   const act = (notification: CenterNotification) => {
     markRead(notification.id);
-    onNavigate(notification.type === 'comment' ? 'social' : 'friends');
+    if (notification.type === 'comment') onOpenSocial();
+    else onNavigate('friends');
   };
 
   return (
@@ -307,6 +315,7 @@ const InkPersonalHubComponent = ({
   isOpen,
   activeTab,
   onTabChange,
+  onOpenSocial,
   onClose,
   onJoinLobby,
   onAcceptInvitation,
@@ -328,6 +337,11 @@ const InkPersonalHubComponent = ({
     playInkSound('cartoonPop', 0.25);
     onTabChange(tab);
   }, [onTabChange]);
+
+  const openSocial = useCallback(() => {
+    playInkSound('brushTap', 0.3);
+    onOpenSocial();
+  }, [onOpenSocial]);
 
   const isTopLayer = useCallback(() => {
     if (typeof document === 'undefined') return true;
@@ -355,22 +369,36 @@ const InkPersonalHubComponent = ({
       lockBody
     >
       <div className="ik-hub-shell">
-        <nav className="ik-hub-nav" aria-label="Navigation de mon espace">
-          <span className="ik-hub-nav-heading">Mon espace</span>
+        <nav className="ik-hub-nav custom-scrollbar" aria-label="Navigation de mon espace">
+          <div className="ik-hub-nav-brand">
+            <span><Sparkles aria-hidden="true" /></span>
+            <div><strong>Centre joueur</strong><small>Tout ton univers Mimic</small></div>
+          </div>
+          <span className="ik-hub-nav-heading">Navigation</span>
           {NAV_ITEMS.map(({ id, label, shortLabel, description, icon: Icon, accent }) => {
-            const active = id === activeTab;
+            const opensDialog = id === 'social';
+            const active = !opensDialog && id === activeTab;
             const badge = id === 'notifications' ? notifications.unreadCount : 0;
             return (
-              <button key={id} type="button" className={cn('ik-hub-nav-item menu-focus', active && 'is-active')} onClick={() => navigate(id)} aria-current={active ? 'page' : undefined} style={{ '--hub-item-accent': accent } as CSSProperties}>
+              <button
+                key={id}
+                type="button"
+                className={cn('ik-hub-nav-item menu-focus', active && 'is-active', opensDialog && 'is-dialog-action')}
+                onClick={() => opensDialog ? openSocial() : navigate(id)}
+                aria-current={active ? 'page' : undefined}
+                aria-haspopup={opensDialog ? 'dialog' : undefined}
+                style={{ '--hub-item-accent': accent } as CSSProperties}
+              >
                 <span className="ik-hub-nav-icon"><Icon aria-hidden="true" />{badge > 0 && <b aria-label={`${badge} notification${badge > 1 ? 's' : ''} non lue${badge > 1 ? 's' : ''}`}>{badge > 9 ? '9+' : badge}</b>}</span>
                 <span className="ik-hub-nav-copy"><strong>{label}</strong><small>{description}</small></span>
                 <span className="ik-hub-nav-short">{shortLabel}</span>
+                {opensDialog && <ChevronRight className="ik-hub-nav-launch" aria-hidden="true" />}
               </button>
             );
           })}
         </nav>
 
-        <main className={cn('ik-hub-content custom-scrollbar', activeTab === 'social' && 'ik-hub-content--social')}>
+        <main className="ik-hub-content custom-scrollbar">
           {activeTab === 'profile' && <HubProfile onNavigate={navigate} />}
           {activeTab === 'friends' && (
             <div className="ik-hub-page ik-hub-friends-page">
@@ -378,10 +406,9 @@ const InkPersonalHubComponent = ({
               <InkFriendsSidebar mode="hub" currentLobbyCode={currentLobbyCode} onJoinFriend={onJoinLobby} onAcceptGameInvitation={onAcceptInvitation} onDeclineGameInvitation={onDeclineInvitation} />
             </div>
           )}
-          {activeTab === 'social' && <SocialExperience />}
           {activeTab === 'progress' && <HubProgress />}
           {activeTab === 'appearance' && <HubAppearance playerId={playerId} playerName={playerName} />}
-          {activeTab === 'notifications' && <HubNotifications {...notifications} onNavigate={navigate} />}
+          {activeTab === 'notifications' && <HubNotifications {...notifications} onNavigate={navigate} onOpenSocial={openSocial} />}
           {activeTab === 'settings' && (
             <div className="ik-hub-page ik-hub-settings-page">
               <HubSectionHeading eyebrow="Réglages" title="À ta façon" copy="Teste ton micro, règle les volumes et change l’ambiance sans multiplier les fenêtres." />

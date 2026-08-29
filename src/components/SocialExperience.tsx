@@ -155,7 +155,7 @@ const SocialExperienceComponent = () => {
   useEffect(() => {
     const query = search.trim();
     if (searchTimer.current) window.clearTimeout(searchTimer.current);
-    if (query.length < 2) {
+    if (view !== 'foryou' || query.length < 2) {
       setUserResults([]);
       setSearchingUsers(false);
       return;
@@ -179,7 +179,7 @@ const SocialExperienceComponent = () => {
       cancelled = true;
       if (searchTimer.current) window.clearTimeout(searchTimer.current);
     };
-  }, [search]);
+  }, [search, view]);
 
   const displayName = profile?.display_name || 'Toi';
   const initial = displayName.charAt(0).toUpperCase();
@@ -196,6 +196,12 @@ const SocialExperienceComponent = () => {
     ));
   }, [posts, search]);
   const activeView = NAV.find((item) => item.id === view) ?? NAV[0];
+  const ActiveViewIcon = activeView.icon;
+  const searchPlaceholder = view === 'profile'
+    ? 'Dans tes créations…'
+    : view === 'trending'
+      ? 'Dans le classement…'
+      : 'Créateur ou légende…';
   const emptyCopy = useMemo(() => {
     if (view === 'profile') return { emoji: '📭', title: 'Aucune création', sub: 'Partage tes meilleurs moments après une partie.' };
     if (view === 'trending') return { emoji: '🔥', title: 'Le classement arrive', sub: 'Les créations les plus aimées apparaîtront ici.' };
@@ -223,75 +229,112 @@ const SocialExperienceComponent = () => {
   return (
     <div className="social-experience social-experience--hub">
       <header className="social-commandbar">
-        <button
-          type="button"
-          onClick={() => user && openProfile(user.id, displayName)}
-          disabled={!user}
-          className="social-profile-card menu-focus"
-          aria-label={user ? 'Ouvrir mon profil social public' : 'Connecte-toi pour ouvrir ton profil social'}
-        >
-          <span className="social-avatar">
-            {profile?.avatar_url ? <img src={profile.avatar_url} alt={displayName} /> : <span>{initial}</span>}
-            <small>{level}</small>
-          </span>
-          <span className="social-profile-copy">
-            <small>Ton profil</small>
-            <strong>{displayName}</strong>
-            {friendCode && <em><Hash aria-hidden="true" /> {friendCode}</em>}
-          </span>
-          <span className="social-profile-progress" aria-label={`Progression de niveau ${Math.round(progressPercent)} %`}>
-            <i style={{ width: `${progressPercent}%` }} />
-          </span>
-        </button>
+        <div className="social-commandbar-primary">
+          <button
+            type="button"
+            onClick={() => user && openProfile(user.id, displayName)}
+            disabled={!user}
+            className="social-profile-card menu-focus"
+            aria-label={user ? 'Ouvrir mon profil social public' : 'Connecte-toi pour ouvrir ton profil social'}
+          >
+            <span className="social-avatar">
+              {profile?.avatar_url ? <img src={profile.avatar_url} alt={displayName} /> : <span>{initial}</span>}
+              <small>{level}</small>
+            </span>
+            <span className="social-profile-copy">
+              <small>Ton profil</small>
+              <strong>{displayName}</strong>
+              {friendCode && <em><Hash aria-hidden="true" /> {friendCode}</em>}
+            </span>
+            <span className="social-profile-progress" aria-label={`Progression de niveau ${Math.round(progressPercent)} %`}>
+              <i style={{ width: `${progressPercent}%` }} />
+            </span>
+          </button>
 
-        <nav className="social-nav" aria-label="Navigation Social" role="tablist">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            const active = view === item.id;
-            return (
-              <button
-                key={item.id}
-                id={`social-tab-${item.id}`}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                aria-controls={`social-panel-${item.id}`}
-                onClick={() => {
-                  playInkSound('cartoonPop', 0.3);
-                  setView(item.id);
-                }}
-                className={cn('social-nav-item menu-focus', active && 'is-active')}
-                style={{ '--social-accent': item.color } as CSSProperties}
-              >
-                <span><Icon aria-hidden="true" /></span>
-                <span><strong>{item.label}</strong><small>{item.description}</small></span>
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="social-quick-stats" aria-label="Statistiques de mon profil social">
-          <span><Grid3x3 aria-hidden="true" /><strong>{myStats.posts}</strong><small>posts</small></span>
-          <span><Heart aria-hidden="true" /><strong>{myStats.likes}</strong><small>likes</small></span>
-          {myStats.top && <span className="is-top"><Trophy aria-hidden="true" /><strong>Top</strong><small>semaine</small></span>}
-        </div>
-
-        <div className="social-search-wrap">
-          <Search aria-hidden="true" />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Joueur, légende…" aria-label="Rechercher dans Social" />
-          {search && <button type="button" onClick={() => setSearch('')} aria-label="Effacer la recherche"><X aria-hidden="true" /></button>}
-          {search.trim().length >= 2 && (searchingUsers || userResults.length > 0) && (
-            <div className="social-search-results">
-              {searchingUsers ? (
-                <span className="social-search-loading"><Loader2 className="animate-spin" aria-hidden="true" /> Recherche…</span>
-              ) : userResults.map((result) => (
-                <button key={result.user_id} type="button" onClick={() => openProfile(result.user_id, result.display_name || 'Joueur')}>
-                  <span>{result.avatar_url ? <img src={result.avatar_url} alt="" /> : (result.display_name || '?').charAt(0).toUpperCase()}</span>
-                  <span><strong>{result.display_name || 'Joueur'}</strong><small>Voir le profil</small></span>
+          <nav className="social-nav" aria-label="Navigation Social" role="tablist">
+            {NAV.map((item) => {
+              const Icon = item.icon;
+              const active = view === item.id;
+              return (
+                <button
+                  key={item.id}
+                  id={`social-tab-${item.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls={`social-panel-${item.id}`}
+                  onClick={() => {
+                    playInkSound('cartoonPop', 0.3);
+                    setView(item.id);
+                  }}
+                  className={cn('social-nav-item menu-focus', active && 'is-active')}
+                  style={{ '--social-accent': item.color } as CSSProperties}
+                >
+                  <span><Icon aria-hidden="true" /></span>
+                  <span><strong>{item.label}</strong><small>{item.description}</small></span>
                 </button>
-              ))}
+              );
+            })}
+          </nav>
+
+          {view === 'profile' && (
+            <div className="social-quick-stats" aria-label="Statistiques de mon profil social">
+              <span><Grid3x3 aria-hidden="true" /><strong>{myStats.posts}</strong><small>posts</small></span>
+              <span><Heart aria-hidden="true" /><strong>{myStats.likes}</strong><small>likes</small></span>
+              {myStats.top && <span className="is-top"><Trophy aria-hidden="true" /><strong>Top</strong><small>semaine</small></span>}
             </div>
           )}
+        </div>
+
+        <div className="social-commandbar-secondary">
+          <div className="social-context-heading" style={{ '--social-accent': activeView.color } as CSSProperties}>
+            <span><ActiveViewIcon aria-hidden="true" /></span>
+            <div><small>{activeView.eyebrow}</small><strong>{activeView.label}</strong><p>{activeView.description}</p></div>
+          </div>
+
+          <div className="social-context-tools">
+            {view === 'profile' && (
+              <div className="social-badges" aria-label="Badges sociaux">
+                {myBadges.map((badge) => (
+                  <span
+                    key={badge.id}
+                    title={badge.description}
+                    className={cn(!badge.unlocked && 'is-locked')}
+                    style={{ '--badge-color': badge.color } as CSSProperties}
+                  >
+                    <i>{badge.emoji}</i><small>{badge.label}</small>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="social-search-wrap">
+              <Search aria-hidden="true" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={searchPlaceholder}
+                aria-label={`Rechercher dans ${activeView.label}`}
+                role={view === 'foryou' ? 'combobox' : 'searchbox'}
+                aria-autocomplete={view === 'foryou' ? 'list' : undefined}
+                aria-expanded={view === 'foryou' ? search.trim().length >= 2 && (searchingUsers || userResults.length > 0) : undefined}
+                aria-controls={view === 'foryou' ? 'social-global-search-results' : undefined}
+              />
+              {search && <button type="button" onClick={() => setSearch('')} aria-label="Effacer la recherche"><X aria-hidden="true" /></button>}
+              {view === 'foryou' && search.trim().length >= 2 && (searchingUsers || userResults.length > 0) && (
+                <div id="social-global-search-results" className="social-search-results" role="listbox" aria-label="Profils trouvés">
+                  {searchingUsers ? (
+                    <span className="social-search-loading" role="status"><Loader2 className="animate-spin" aria-hidden="true" /> Recherche…</span>
+                  ) : userResults.map((result) => (
+                    <button key={result.user_id} type="button" role="option" aria-selected="false" onClick={() => openProfile(result.user_id, result.display_name || 'Joueur')}>
+                      <span>{result.avatar_url ? <img src={result.avatar_url} alt="" /> : (result.display_name || '?').charAt(0).toUpperCase()}</span>
+                      <span><strong>{result.display_name || 'Joueur'}</strong><small>Voir le profil</small></span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -301,28 +344,6 @@ const SocialExperienceComponent = () => {
         role="tabpanel"
         aria-labelledby={`social-tab-${view}`}
       >
-        <header className="social-feed-toolbar">
-          <div>
-            <span className="social-feed-kicker">{activeView.eyebrow}</span>
-            <h3>{activeView.label}</h3>
-            <p>{activeView.description}</p>
-          </div>
-          {view === 'profile' && (
-            <div className="social-badges" aria-label="Badges sociaux">
-              {myBadges.map((badge) => (
-                <span
-                  key={badge.id}
-                  title={badge.description}
-                  className={cn(!badge.unlocked && 'is-locked')}
-                  style={{ '--badge-color': badge.color } as CSSProperties}
-                >
-                  <i>{badge.emoji}</i><small>{badge.label}</small>
-                </span>
-              ))}
-            </div>
-          )}
-        </header>
-
         <div className={cn('social-feed-scroll custom-scrollbar', view === 'foryou' && 'social-feed-scroll--foryou')}>
           {loading ? (
             <div className="social-loading"><Loader2 className="animate-spin" aria-hidden="true" /><span>Chargement des créations…</span></div>

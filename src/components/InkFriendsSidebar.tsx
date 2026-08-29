@@ -313,9 +313,205 @@ const InkFriendsSidebarComponent = ({
     );
   }
 
+  if (mode === 'hub') {
+    return (
+      <>
+        <div className="ink-friends-sidebar ink-friends-dashboard">
+          <section className="ink-friends-dashboard-connect" aria-label="Ajouter et partager un code ami">
+            <button
+              type="button"
+              onClick={() => void copyFriendCode()}
+              className="ink-friends-dashboard-code menu-focus"
+              aria-label={friendCode ? `Copier le code ami ${friendCode}` : 'Code ami en chargement'}
+            >
+              <span><Hash aria-hidden="true" /> Ton code</span>
+              <strong>{friendCode || '••••••'}</strong>
+              <small>{copied ? <><Check aria-hidden="true" /> Copié</> : <><Copy aria-hidden="true" /> Copier</>}</small>
+            </button>
+
+            <form
+              className="ink-friends-dashboard-add"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleSendRequest();
+              }}
+            >
+              <label htmlFor="ink-friend-code-hub"><UserPlus aria-hidden="true" /> Ajouter un ami</label>
+              <div>
+                <Input
+                  id="ink-friend-code-hub"
+                  placeholder="Saisis son code"
+                  value={friendCodeInput}
+                  onChange={(event) => setFriendCodeInput(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="ink-friends-input"
+                />
+                <button
+                  type="submit"
+                  disabled={!friendCodeInput.trim() || busyAction === 'send-request'}
+                  aria-busy={busyAction === 'send-request'}
+                  className="menu-focus"
+                >
+                  {busyAction === 'send-request' ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
+                  <span>Envoyer</span>
+                </button>
+              </div>
+            </form>
+
+            <dl className="ink-friends-dashboard-stats">
+              <div><dt>Amis</dt><dd>{friends.length}</dd></div>
+              <div><dt>En ligne</dt><dd>{onlineCount}</dd></div>
+              <div><dt>À traiter</dt><dd>{pendingRequests.length + pendingInvitations.length + unreadMessageCount}</dd></div>
+            </dl>
+          </section>
+
+          <div className="ink-friends-dashboard-layout">
+            <section className="ink-friends-dashboard-roster" aria-labelledby="ink-friends-roster-title">
+              <header className="ink-friends-dashboard-heading">
+                <div><span>Roster</span><h4 id="ink-friends-roster-title">Ta troupe</h4></div>
+                <p><i aria-hidden="true" /> {onlineCount} en ligne sur {friends.length}</p>
+              </header>
+
+              {isLoading ? (
+                <div className="ink-friends-loading"><Loader2 className="animate-spin" aria-hidden="true" /><span>Chargement des amis…</span></div>
+              ) : friends.length === 0 ? (
+                <EmptyState icon={<Users />} title="Ta troupe t’attend" copy="Partage ton code ou ajoute un ami pour commencer." />
+              ) : (
+                <div className="ink-friends-dashboard-list">
+                  {friends.map((friend, index) => {
+                    const status = getUserStatus(friend.user_id);
+                    const lobbyCode = status.lobbyCode;
+                    const isCurrentLobby = Boolean(lobbyCode && lobbyCode === currentLobbyCode);
+                    const unread = unreadCounts[friend.user_id] || 0;
+                    const friendName = friend.display_name || 'Joueur';
+                    return (
+                      <motion.article
+                        key={friend.id}
+                        className={cn('ink-friends-dashboard-person', status.online && 'is-online', lobbyCode && 'is-playing')}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: Math.min(index, 10) * 0.025 }}
+                      >
+                        <div className="ink-friends-avatar-wrap">
+                          <Avatar className="ink-friends-avatar">
+                            <AvatarImage src={friend.avatar_url || undefined} alt={`Avatar de ${friendName}`} />
+                            <AvatarFallback>{friendName.charAt(0).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <i aria-label={lobbyCode ? 'En partie' : status.online ? 'En ligne' : 'Hors ligne'} />
+                        </div>
+                        <div className="ink-friends-person-copy">
+                          <strong>{friendName}</strong>
+                          <small>{isCurrentLobby ? 'Dans ton salon' : lobbyCode ? `En partie · ${lobbyCode}` : status.online ? 'Disponible' : 'Hors ligne'}</small>
+                        </div>
+                        <div className="ink-friends-person-actions">
+                          <button type="button" className="menu-focus" onClick={() => { playInkSound('brushTap', 0.3); setChatFriend(friend); }} aria-label={`Envoyer un message à ${friendName}`}>
+                            <MessageCircle aria-hidden="true" />
+                            {unread > 0 && <b>{unread > 9 ? '9+' : unread}</b>}
+                          </button>
+                          {lobbyCode && !isCurrentLobby && (
+                            <button type="button" className="menu-focus is-primary" disabled={busyAction === `join:${lobbyCode}`} onClick={() => void handleJoinFriend(lobbyCode)} aria-label={`Rejoindre la partie de ${friendName}`}>
+                              {busyAction === `join:${lobbyCode}` ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Play fill="currentColor" aria-hidden="true" />}
+                            </button>
+                          )}
+                          {currentLobbyCode && !lobbyCode && (
+                            <button type="button" className="menu-focus is-invite" disabled={busyAction === `invite:${friend.user_id}`} onClick={() => void handleInviteFriend(friend.user_id)} aria-label={`Inviter ${friendName} dans le salon`}>
+                              {busyAction === `invite:${friend.user_id}` ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
+                            </button>
+                          )}
+                        </div>
+                      </motion.article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <aside className="ink-friends-dashboard-attention" aria-labelledby="ink-friends-attention-title">
+              <header className="ink-friends-dashboard-heading">
+                <div><span>À traiter</span><h4 id="ink-friends-attention-title">Ton attention</h4></div>
+                <b>{pendingRequests.length + pendingInvitations.length + unreadMessageCount}</b>
+              </header>
+
+              {pendingRequests.length === 0 && pendingInvitations.length === 0 && conversationFriends.length === 0 ? (
+                <EmptyState icon={<Inbox />} title="Tout est calme" copy="Demandes, invitations et messages apparaîtront ici." />
+              ) : (
+                <div className="ink-friends-dashboard-attention-list">
+                  {pendingRequests.length > 0 && (
+                    <section aria-labelledby="ink-friends-requests-title">
+                      <h5 id="ink-friends-requests-title"><UserPlus aria-hidden="true" /> Demandes <b>{pendingRequests.length}</b></h5>
+                      {pendingRequests.map((request) => {
+                        const requesterName = request.requesterProfile?.display_name || 'Joueur inconnu';
+                        const isBusy = busyAction === `request:${request.id}`;
+                        return (
+                          <article key={request.id} className="ink-friends-dashboard-attention-row">
+                            <Avatar className="ink-friends-avatar"><AvatarImage src={request.requesterProfile?.avatar_url || undefined} alt={`Avatar de ${requesterName}`} /><AvatarFallback>{requesterName.charAt(0).toUpperCase()}</AvatarFallback></Avatar>
+                            <div className="ink-friends-person-copy"><strong>{requesterName}</strong><small>Demande d’ami</small></div>
+                            <div className="ink-friends-person-actions">
+                              <button type="button" className="menu-focus is-primary" disabled={isBusy} onClick={() => void handleAcceptRequest(request.id)} aria-label={`Accepter la demande de ${requesterName}`}>{isBusy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Check aria-hidden="true" />}</button>
+                              <button type="button" className="menu-focus is-danger" disabled={isBusy} onClick={() => void handleRejectRequest(request.id)} aria-label={`Refuser la demande de ${requesterName}`}><X aria-hidden="true" /></button>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </section>
+                  )}
+
+                  {pendingInvitations.length > 0 && (
+                    <section aria-labelledby="ink-friends-invitations-title">
+                      <h5 id="ink-friends-invitations-title"><Gamepad2 aria-hidden="true" /> Invitations <b>{pendingInvitations.length}</b></h5>
+                      {pendingInvitations.map((invitation) => {
+                        const isBusy = busyAction === `invitation:${invitation.id}`;
+                        return (
+                          <article key={invitation.id} className="ink-friends-dashboard-attention-row">
+                            <span className="ink-friends-activity-icon"><Mail aria-hidden="true" /></span>
+                            <div className="ink-friends-person-copy"><strong>{invitation.sender_name}</strong><small>Salon {invitation.lobby_code}</small></div>
+                            <div className="ink-friends-person-actions">
+                              <button type="button" className="menu-focus is-primary" disabled={isBusy} onClick={() => void handleAcceptInvitation(invitation.id)} aria-label={`Accepter l'invitation de ${invitation.sender_name}`}>{isBusy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Play fill="currentColor" aria-hidden="true" />}</button>
+                              <button type="button" className="menu-focus is-danger" disabled={isBusy} onClick={() => void handleDeclineInvitation(invitation.id)} aria-label={`Refuser l'invitation de ${invitation.sender_name}`}><X aria-hidden="true" /></button>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </section>
+                  )}
+
+                  {conversationFriends.length > 0 && (
+                    <section aria-labelledby="ink-friends-messages-title">
+                      <h5 id="ink-friends-messages-title"><MessageCircle aria-hidden="true" /> Messages <b>{unreadMessageCount}</b></h5>
+                      {conversationFriends.map((friend) => {
+                        const unread = unreadCounts[friend.user_id] || 0;
+                        const friendName = friend.display_name || 'Joueur';
+                        return (
+                          <button key={friend.id} type="button" className="ink-friends-dashboard-message menu-focus" onClick={() => setChatFriend(friend)}>
+                            <Avatar className="ink-friends-avatar"><AvatarImage src={friend.avatar_url || undefined} alt="" /><AvatarFallback>{friendName.charAt(0).toUpperCase()}</AvatarFallback></Avatar>
+                            <span><strong>{friendName}</strong><small>Ouvrir la conversation</small></span>
+                            <b>{unread > 99 ? '99+' : unread}</b>
+                          </button>
+                        );
+                      })}
+                    </section>
+                  )}
+                </div>
+              )}
+            </aside>
+          </div>
+        </div>
+
+        <DirectMessageDialog
+          open={Boolean(chatFriend)}
+          onOpenChange={(open) => {
+            if (!open) setChatFriend(null);
+          }}
+          friend={chatFriend}
+        />
+      </>
+    );
+  }
+
   return (
     <>
-      <div className={cn('ink-friends-sidebar ink-friends-workspace', mode === 'hub' && 'is-hub')}>
+      <div className="ink-friends-sidebar ink-friends-workspace">
         <section className="ink-friends-connect" aria-label="Code ami et ajout">
           <button
             type="button"

@@ -1,7 +1,6 @@
 export const PERSONAL_HUB_TABS = [
   'profile',
   'friends',
-  'social',
   'progress',
   'appearance',
   'notifications',

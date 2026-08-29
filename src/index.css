@@ -6949,7 +6949,7 @@ body.inkbeta-mode .ink-device-tab:hover {
   color: var(--ik-ink-soft) !important;
 }
 
-body.inkbeta-mode .ink-device-tab[aria-pressed='true'] {
+body.inkbeta-mode .ink-device-tab[aria-selected='true'] {
   border-color: rgba(238, 225, 204, 0.62) !important;
   background: var(--ik-violet-deep) !important;
   color: var(--ik-ink) !important;
@@ -8976,7 +8976,7 @@ body.inkbeta-mode .ink-device-tab:hover {
   color: var(--ik-white) !important;
 }
 
-body.inkbeta-mode .ink-device-tab[aria-pressed='true'] {
+body.inkbeta-mode .ink-device-tab[aria-selected='true'] {
   border-color: var(--ik-edge) !important;
   color: var(--ik-edge) !important;
   background: var(--ik-cyan) !important;
@@ -14735,7 +14735,7 @@ body.inkbeta-mode .ink-device-tab:hover {
   transform: translateY(-2px);
 }
 
-body.inkbeta-mode .ink-device-tab[aria-pressed='true'] {
+body.inkbeta-mode .ink-device-tab[aria-selected='true'] {
   border-color: var(--ik-cyan) !important;
   color: var(--ik-edge) !important;
   background: var(--ik-cyan) !important;
@@ -14845,79 +14845,75 @@ body.inkbeta-mode .ik-party-overlay .ink-profile-sidebar {
 
 /* ---- Social Studio --------------------------------------------------- */
 body.inkbeta-mode .social-studio-backdrop {
-  background: rgba(53, 7, 75, 0.84) !important;
+  background: rgba(4, 7, 12, 0.9) !important;
 }
 
 body.inkbeta-mode .social-studio-dialog {
-  border: 3px solid var(--ik-edge) !important;
+  border: 1px solid rgba(216, 230, 255, 0.16) !important;
   border-radius: 20px !important;
-  background:
-    radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.16), transparent 42%),
-    var(--ik-panel) !important;
-  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.15), 0 8px 0 rgba(54, 7, 76, 0.62) !important;
+  background: #0d1119 !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.62) !important;
 }
 
 body.inkbeta-mode .social-studio-header {
   position: relative;
-  border-bottom: 3px solid var(--ik-edge-soft) !important;
-  background: rgba(72, 6, 88, 0.46) !important;
+  border-bottom: 1px solid rgba(216, 230, 255, 0.11) !important;
+  background: #111721 !important;
 }
 
-/* Le liseré cyan/rose du reste de la beta, pour raccrocher l'en-tête. */
 body.inkbeta-mode .social-studio-header::after {
   position: absolute;
-  bottom: -3px;
+  bottom: -1px;
   left: 1.1rem;
-  width: 4.5rem;
-  height: 3px;
+  width: 7.5rem;
+  height: 2px;
   border-radius: 999px 999px 0 0;
-  background: var(--ik-cyan);
-  box-shadow: 4.9rem 0 0 var(--ik-pink);
+  background: linear-gradient(90deg, #56e0cb, #ff6ca8);
   content: '';
   pointer-events: none;
 }
 
 body.inkbeta-mode .social-studio-logo {
-  border: 3px solid var(--ik-edge) !important;
+  border: 1px solid rgba(86, 224, 203, 0.4) !important;
   border-radius: 12px !important;
-  color: var(--ik-edge) !important;
-  background: var(--ik-cyan) !important;
-  box-shadow: 0 4px 0 var(--ik-edge) !important;
+  color: #071410 !important;
+  background: #56e0cb !important;
+  box-shadow: none !important;
 }
 
 body.inkbeta-mode .social-studio-kicker {
-  color: var(--ik-cyan) !important;
+  color: #56e0cb !important;
   font-size: 0.6rem;
   font-weight: 900;
   letter-spacing: 0.18em;
 }
 
 body.inkbeta-mode .social-studio-header h2 {
-  color: var(--ik-white) !important;
+  color: #f4f7fb !important;
   font-family: var(--ik-display);
   font-size: clamp(1.5rem, 2.4vw, 2rem);
   font-weight: 400;
   letter-spacing: 0.03em;
-  text-shadow: 0 4px 0 var(--ik-edge);
+  text-shadow: none;
 }
 
 body.inkbeta-mode .social-studio-close {
-  border: 3px solid var(--ik-white) !important;
+  border: 1px solid rgba(216, 230, 255, 0.16) !important;
   border-radius: 12px !important;
-  color: var(--ik-white) !important;
-  background: rgba(91, 8, 105, 0.72) !important;
-  box-shadow: 0 4px 0 var(--ik-edge) !important;
+  color: #f4f7fb !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  box-shadow: none !important;
   transform: translateZ(0);
 }
 
 body.inkbeta-mode .social-studio-close:hover {
-  color: var(--ik-edge) !important;
-  background: var(--ik-white) !important;
+  color: #08130f !important;
+  background: #56e0cb !important;
 }
 
 body.inkbeta-mode .social-studio-close:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--ik-edge) !important;
+  transform: translateY(1px);
+  box-shadow: none !important;
 }
 
 @media (max-width: 680px) {
@@ -19473,66 +19469,11 @@ body.inkbeta-mode .ik-personal-hub :where(button, a[href], input, select, textar
   outline-offset: -3px;
 }
 
-/* Les règles Ink Beta historiques étaient plus spécifiques que la commandbar. */
-body.inkbeta-mode .social-experience--hub .social-commandbar .social-profile-card {
-  border: 1px solid var(--social-edge) !important;
-  border-radius: 12px !important;
-  background: rgba(255, 255, 255, 0.035) !important;
-  box-shadow: none !important;
-  transform: none;
-}
-
-body.inkbeta-mode .social-experience--hub .social-commandbar .social-profile-card:hover {
-  border-color: rgba(45, 242, 208, 0.46) !important;
-  background: rgba(45, 242, 208, 0.065) !important;
-  box-shadow: none !important;
-  transform: translateY(-1px);
-}
-
-body.inkbeta-mode .social-experience--hub .social-commandbar .social-nav button {
-  border: 1px solid transparent !important;
-  color: var(--ik-white-faint) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  transform: none;
-}
-
-body.inkbeta-mode .social-experience--hub .social-commandbar .social-nav button:hover {
-  border-color: color-mix(in srgb, var(--social-accent) 38%, transparent) !important;
-  color: var(--ik-white) !important;
-  background: color-mix(in srgb, var(--social-accent) 8%, transparent) !important;
-  transform: none;
-}
-
-body.inkbeta-mode .social-experience--hub .social-commandbar .social-nav button.is-active {
-  border-color: color-mix(in srgb, var(--social-accent) 52%, transparent) !important;
-  color: var(--ik-white) !important;
-  background: color-mix(in srgb, var(--social-accent) 12%, transparent) !important;
-  box-shadow: inset 0 -3px 0 var(--social-accent) !important;
-}
-
-body.inkbeta-mode .social-experience--hub .social-feed-toolbar {
-  border-bottom: 1px solid var(--social-edge) !important;
-  background: rgba(23, 10, 35, 0.96) !important;
-}
-
-body.inkbeta-mode .social-experience--hub .social-commandbar .social-search-wrap,
-body.inkbeta-mode .social-experience--hub .social-commandbar .social-search-wrap:focus-within {
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-body.inkbeta-mode .social-experience--hub .social-badges {
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
+/* La commandbar 2026 possède ses propres hooks sémantiques ci-dessous.
+   Les anciens correctifs !important ont été retirés pour que ses deux niveaux
+   restent pilotés par une seule cascade. */
 body.inkbeta-mode .social-viewer-overlay--modern {
-  background: rgba(8, 3, 14, 0.94) !important;
+  background: rgba(5, 8, 13, 0.96);
 }
 
 /* Le conteneur, et non son enfant en vw, porte les gouttières du hub. */
@@ -19688,5 +19629,2633 @@ body.inkbeta-mode .social-viewer-overlay--modern {
     min-width: 2.75rem;
     height: 2.75rem;
     flex: 0 0 2.75rem;
+  }
+}
+
+/* ============================================================
+   INK BETA — HUB REDESIGN 2026
+   Compositions sémantiques propres au hub. Les sélecteurs sont
+   bornés à sa modale pour ne pas modifier l'expérience Ink stable.
+   ============================================================ */
+
+body.inkbeta-mode .ik-personal-hub {
+  --hub-canvas: #0d1119;
+  --hub-surface: #141a25;
+  --hub-surface-raised: #1a2230;
+  --hub-line: rgba(216, 230, 255, 0.11);
+  --hub-line-strong: rgba(216, 230, 255, 0.2);
+  --hub-copy: #f4f7fb;
+  --hub-copy-muted: #98a5b8;
+  --hub-cyan: #56e0cb;
+  --hub-pink: #ff6ca8;
+  --hub-yellow: #ffd168;
+  background: var(--hub-canvas);
+}
+
+body.inkbeta-mode .ik-personal-hub > .ink-panel-header {
+  border-bottom-color: var(--hub-line);
+  background: rgba(17, 23, 33, 0.98);
+}
+
+body.inkbeta-mode .ik-personal-hub > .ink-panel-header::after {
+  background: linear-gradient(90deg, var(--hub-cyan), var(--hub-pink) 58%, transparent 88%);
+}
+
+body.inkbeta-mode .ik-personal-hub-body,
+body.inkbeta-mode .ik-personal-hub .ik-hub-content {
+  background: var(--hub-canvas);
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-shell {
+  grid-template-columns: 15rem minmax(0, 1fr);
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-nav {
+  gap: 0.35rem;
+  border-right-color: var(--hub-line);
+  background: #111722;
+}
+
+body.inkbeta-mode .ik-hub-nav-brand {
+  display: grid;
+  grid-template-columns: 2.45rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.68rem;
+  margin: 0 0.15rem 0.55rem;
+  padding: 0.62rem;
+  border: 1px solid var(--hub-line);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+body.inkbeta-mode .ik-hub-nav-brand > span {
+  display: grid;
+  width: 2.45rem;
+  height: 2.45rem;
+  place-items: center;
+  border-radius: 10px;
+  color: #071410;
+  background: var(--hub-cyan);
+}
+
+body.inkbeta-mode .ik-hub-nav-brand svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+body.inkbeta-mode .ik-hub-nav-brand strong,
+body.inkbeta-mode .ik-hub-nav-brand small {
+  display: block;
+  min-width: 0;
+}
+
+body.inkbeta-mode .ik-hub-nav-brand strong {
+  color: var(--hub-copy);
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+body.inkbeta-mode .ik-hub-nav-brand small {
+  margin-top: 0.16rem;
+  overflow: hidden;
+  color: var(--hub-copy-muted);
+  font-size: 0.58rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-nav-item {
+  min-height: 3.75rem;
+  border-color: transparent;
+  border-radius: 11px;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-nav-item:hover,
+body.inkbeta-mode .ik-personal-hub .ik-hub-nav-item.is-active {
+  background: color-mix(in srgb, var(--hub-item-accent) 9%, #171e2a);
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-nav-item.is-dialog-action {
+  margin-top: 0.28rem;
+  border-color: rgba(255, 108, 168, 0.2);
+  background: rgba(255, 108, 168, 0.045);
+}
+
+body.inkbeta-mode .ik-hub-nav-launch {
+  position: absolute;
+  right: 0.55rem;
+  width: 0.8rem;
+  color: var(--hub-item-accent);
+  opacity: 0.72;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-content {
+  container-name: hub-content;
+  container-type: inline-size;
+  background:
+    radial-gradient(circle at 92% 0, rgba(86, 224, 203, 0.045), transparent 28rem),
+    var(--hub-canvas);
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-page {
+  width: min(100%, 80rem);
+  padding: clamp(1.1rem, 2.4vw, 2.1rem);
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-section-heading {
+  max-width: 52rem;
+  margin-bottom: 1.35rem;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-section-heading > span {
+  color: var(--hub-cyan);
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-section-heading h3 {
+  color: var(--hub-copy);
+  font-size: clamp(2rem, 4cqi, 3.15rem);
+  text-shadow: none;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-section-heading p {
+  color: var(--hub-copy-muted);
+  font-size: 0.78rem;
+}
+
+/* ---- Profil : identité, performance et destinations ---------------- */
+body.inkbeta-mode .ik-personal-hub .ik-hub-profile-page {
+  display: block;
+}
+
+body.inkbeta-mode .ik-hub-profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 19rem);
+  align-items: start;
+  gap: 1rem;
+}
+
+body.inkbeta-mode .ik-personal-hub .ink-profile-dashboard {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-identity,
+body.inkbeta-mode .ink-profile-dashboard-performance > *,
+body.inkbeta-mode .ink-profile-metric,
+body.inkbeta-mode .ik-personal-hub .ik-hub-shortcuts {
+  border: 1px solid var(--hub-line);
+  background: var(--hub-surface);
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 17px;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-avatar-wrap {
+  position: relative;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-avatar {
+  width: 5.8rem;
+  height: 5.8rem;
+  border: 3px solid #eef5ff;
+  box-shadow: 0 0 0 4px rgba(86, 224, 203, 0.22);
+}
+
+body.inkbeta-mode .ink-profile-dashboard-avatar > span {
+  color: #08130f;
+  background: var(--hub-cyan);
+  font-size: 2rem;
+  font-weight: 950;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-camera {
+  position: absolute;
+  right: -0.2rem;
+  bottom: -0.2rem;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 3px solid var(--hub-surface);
+  border-radius: 999px;
+  color: #08130f;
+  background: var(--hub-cyan);
+}
+
+body.inkbeta-mode .ink-profile-dashboard-camera svg,
+body.inkbeta-mode .ink-profile-dashboard-editor button svg,
+body.inkbeta-mode .ink-profile-dashboard-name-row button svg,
+body.inkbeta-mode .ink-profile-dashboard-signout svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-spinner {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-copy {
+  min-width: 0;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-eyebrow,
+body.inkbeta-mode .ink-profile-score-card > div:last-child > span,
+body.inkbeta-mode .ink-profile-level-overview header > span {
+  color: var(--hub-copy-muted);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-name-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.2rem;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-name-row h4 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--hub-copy);
+  font-family: var(--ik-display);
+  font-size: clamp(1.8rem, 4cqi, 2.65rem);
+  font-weight: 400;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-name-row button,
+body.inkbeta-mode .ink-profile-dashboard-editor button {
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--hub-line-strong);
+  border-radius: 8px;
+  color: var(--hub-copy-muted);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+body.inkbeta-mode .ink-profile-dashboard-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-input {
+  height: 2.35rem;
+  border-color: var(--hub-line-strong);
+  color: var(--hub-copy);
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-editor button.is-confirm {
+  color: #07140f;
+  background: var(--hub-cyan);
+}
+
+body.inkbeta-mode .ink-profile-dashboard-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-title-row > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--profile-title-color) 42%, transparent);
+  border-radius: 999px;
+  color: var(--profile-title-color);
+  background: color-mix(in srgb, var(--profile-title-color) 9%, transparent);
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-title-row > span.is-empty {
+  --profile-title-color: var(--hub-copy-muted);
+}
+
+body.inkbeta-mode .ink-profile-dashboard-title-row svg {
+  width: 0.75rem;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-title-row small {
+  color: #6f7c8f;
+  font-size: 0.59rem;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-signout {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(255, 108, 134, 0.2);
+  border-radius: 9px;
+  color: #ff91a7;
+  background: rgba(255, 108, 134, 0.055);
+  font-size: 0.62rem;
+  font-weight: 850;
+}
+
+body.inkbeta-mode .ink-profile-dashboard-performance {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.9fr) minmax(18rem, 1.1fr);
+  gap: 0.85rem;
+}
+
+body.inkbeta-mode .ink-profile-score-card,
+body.inkbeta-mode .ink-profile-level-overview {
+  min-width: 0;
+  border-radius: 15px;
+  padding: 0.9rem;
+}
+
+body.inkbeta-mode .ink-profile-score-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.9rem;
+}
+
+body.inkbeta-mode .ink-profile-score-ring {
+  display: grid;
+  width: 5.6rem;
+  height: 5.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+}
+
+body.inkbeta-mode .ink-profile-score-ring > span {
+  display: grid;
+  width: 4.35rem;
+  height: 4.35rem;
+  place-items: center;
+  align-content: center;
+  border-radius: inherit;
+  background: var(--hub-surface);
+}
+
+body.inkbeta-mode .ink-profile-score-ring strong,
+body.inkbeta-mode .ink-profile-score-ring small {
+  display: block;
+  text-align: center;
+}
+
+body.inkbeta-mode .ink-profile-score-ring strong {
+  color: var(--hub-copy);
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+body.inkbeta-mode .ink-profile-score-ring small {
+  margin-top: 0.2rem;
+  color: var(--hub-copy-muted);
+  font-size: 0.53rem;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ink-profile-score-card h5 {
+  margin: 0.28rem 0 0;
+  color: var(--hub-copy);
+  font-size: 0.92rem;
+}
+
+body.inkbeta-mode .ink-profile-score-card p {
+  margin: 0.25rem 0 0;
+  color: var(--hub-copy-muted);
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+
+body.inkbeta-mode .ink-profile-level-overview header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.65rem;
+}
+
+body.inkbeta-mode .ink-profile-level-overview header strong {
+  color: var(--hub-yellow);
+  font-size: 0.67rem;
+}
+
+body.inkbeta-mode .ink-profile-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+body.inkbeta-mode .ink-profile-metric {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.72rem;
+  border-radius: 13px;
+}
+
+body.inkbeta-mode .ink-profile-metric > span {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--profile-metric-color);
+  background: color-mix(in srgb, var(--profile-metric-color) 11%, transparent);
+}
+
+body.inkbeta-mode .ink-profile-metric svg {
+  width: 0.95rem;
+}
+
+body.inkbeta-mode .ink-profile-metric strong,
+body.inkbeta-mode .ink-profile-metric small {
+  display: block;
+}
+
+body.inkbeta-mode .ink-profile-metric strong {
+  color: var(--hub-copy);
+  font-size: 1rem;
+}
+
+body.inkbeta-mode .ink-profile-metric small {
+  margin-top: 0.12rem;
+  overflow: hidden;
+  color: var(--hub-copy-muted);
+  font-size: 0.56rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-shortcuts {
+  position: sticky;
+  top: 0;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border-radius: 17px;
+}
+
+body.inkbeta-mode .ik-hub-shortcuts-heading {
+  padding: 0.15rem 0.15rem 0.4rem;
+}
+
+body.inkbeta-mode .ik-hub-shortcuts-heading .ik-hub-kicker {
+  padding: 0;
+}
+
+body.inkbeta-mode .ik-hub-shortcuts-heading p {
+  margin: 0.32rem 0 0;
+  color: var(--hub-copy-muted);
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-shortcut {
+  min-height: 4rem;
+  border-color: var(--hub-line);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+/* ---- Amis : roster + colonne d'attention ---------------------------- */
+body.inkbeta-mode .ik-personal-hub .ink-friends-dashboard {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-connect,
+body.inkbeta-mode .ink-friends-dashboard-roster,
+body.inkbeta-mode .ink-friends-dashboard-attention {
+  min-width: 0;
+  border: 1px solid var(--hub-line);
+  border-radius: 16px;
+  background: var(--hub-surface);
+}
+
+body.inkbeta-mode .ink-friends-dashboard-connect {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.7fr) minmax(16rem, 1.2fr) auto;
+  align-items: stretch;
+  gap: 0.65rem;
+  padding: 0.7rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-code {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0.12rem 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(86, 224, 203, 0.22);
+  border-radius: 11px;
+  color: var(--hub-copy);
+  background: rgba(86, 224, 203, 0.055);
+  text-align: left;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-code > span,
+body.inkbeta-mode .ink-friends-dashboard-code > small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--hub-copy-muted);
+  font-size: 0.55rem;
+  font-weight: 800;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-code > strong {
+  grid-row: 2;
+  color: var(--hub-cyan);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-code > small {
+  grid-row: 1 / 3;
+  grid-column: 2;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-code svg,
+body.inkbeta-mode .ink-friends-dashboard-add svg {
+  width: 0.75rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-add {
+  display: grid;
+  align-content: center;
+  gap: 0.35rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-add > label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--hub-copy-muted);
+  font-size: 0.58rem;
+  font-weight: 850;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-add > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-add input {
+  height: 2.35rem;
+  border-color: var(--hub-line-strong);
+  color: var(--hub-copy);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+body.inkbeta-mode .ink-friends-dashboard-add button {
+  display: inline-flex;
+  min-height: 2.35rem;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.72rem;
+  border-radius: 9px;
+  color: #071410;
+  background: var(--hub-cyan);
+  font-size: 0.63rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(4rem, 1fr));
+  gap: 0.35rem;
+  margin: 0;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-stats > div {
+  display: grid;
+  min-width: 4rem;
+  place-items: center;
+  align-content: center;
+  padding: 0.4rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+body.inkbeta-mode .ink-friends-dashboard-stats dt {
+  grid-row: 2;
+  color: var(--hub-copy-muted);
+  font-size: 0.52rem;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-stats dd {
+  margin: 0;
+  color: var(--hub-copy);
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(20rem, 1.25fr) minmax(18rem, 0.75fr);
+  align-items: start;
+  gap: 0.85rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-roster,
+body.inkbeta-mode .ink-friends-dashboard-attention {
+  padding: 0.8rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-heading span {
+  color: var(--hub-cyan);
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-heading h4 {
+  margin: 0.16rem 0 0;
+  color: var(--hub-copy);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-heading p {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  color: var(--hub-copy-muted);
+  font-size: 0.58rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-heading p i {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: #59d99b;
+  box-shadow: 0 0 0 3px rgba(89, 217, 155, 0.1);
+}
+
+body.inkbeta-mode .ink-friends-dashboard-heading > b {
+  display: grid;
+  min-width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #160912;
+  background: var(--hub-pink);
+  font-size: 0.64rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-list,
+body.inkbeta-mode .ink-friends-dashboard-attention-list {
+  display: grid;
+  gap: 0.48rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-person,
+body.inkbeta-mode .ink-friends-dashboard-attention-row,
+body.inkbeta-mode .ink-friends-dashboard-message {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.62rem;
+  min-height: 3.85rem;
+  padding: 0.5rem 0.58rem;
+  border: 1px solid var(--hub-line);
+  border-radius: 11px;
+  color: var(--hub-copy);
+  background: rgba(255, 255, 255, 0.022);
+  text-align: left;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-person.is-online {
+  border-color: rgba(89, 217, 155, 0.2);
+}
+
+body.inkbeta-mode .ink-friends-dashboard-person.is-playing {
+  border-color: rgba(86, 224, 203, 0.3);
+  background: rgba(86, 224, 203, 0.04);
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-avatar {
+  width: 2.45rem;
+  height: 2.45rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-person-copy strong {
+  color: var(--hub-copy);
+  font-size: 0.72rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-person-copy small {
+  color: var(--hub-copy-muted);
+  font-size: 0.57rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-person-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-person-actions button {
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  place-items: center;
+  border: 1px solid var(--hub-line-strong);
+  border-radius: 8px;
+  color: var(--hub-copy-muted);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-person-actions button.is-primary {
+  color: #08140f;
+  background: var(--hub-cyan);
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-person-actions button.is-invite {
+  color: var(--hub-yellow);
+  border-color: rgba(255, 209, 104, 0.25);
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-person-actions button.is-danger {
+  color: #ff91a7;
+  border-color: rgba(255, 108, 134, 0.2);
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-person-actions svg {
+  width: 0.85rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-attention-list > section {
+  display: grid;
+  gap: 0.4rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-attention-list > section + section {
+  margin-top: 0.38rem;
+  padding-top: 0.72rem;
+  border-top: 1px solid var(--hub-line);
+}
+
+body.inkbeta-mode .ink-friends-dashboard-attention-list h5 {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.12rem;
+  color: var(--hub-copy-muted);
+  font-size: 0.6rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-attention-list h5 svg {
+  width: 0.8rem;
+  color: var(--hub-pink);
+}
+
+body.inkbeta-mode .ink-friends-dashboard-attention-list h5 b {
+  margin-left: auto;
+  color: var(--hub-copy);
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-activity-icon {
+  display: grid;
+  width: 2.45rem;
+  height: 2.45rem;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--hub-yellow);
+  background: rgba(255, 209, 104, 0.08);
+}
+
+body.inkbeta-mode .ink-friends-dashboard .ink-friends-activity-icon svg {
+  width: 0.95rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-message > b {
+  display: grid;
+  min-width: 1.45rem;
+  height: 1.45rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #160912;
+  background: var(--hub-pink);
+  font-size: 0.58rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-message > span strong,
+body.inkbeta-mode .ink-friends-dashboard-message > span small {
+  display: block;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-message > span strong {
+  font-size: 0.7rem;
+}
+
+body.inkbeta-mode .ink-friends-dashboard-message > span small {
+  margin-top: 0.12rem;
+  color: var(--hub-copy-muted);
+  font-size: 0.56rem;
+}
+
+/* ---- Collections Progression --------------------------------------- */
+body.inkbeta-mode .ik-personal-hub .ik-hub-subnav {
+  gap: 0.55rem;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-subnav-item {
+  border-color: var(--hub-line);
+  background: var(--hub-surface);
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-subnav-item.is-active {
+  border-color: rgba(255, 209, 104, 0.45);
+  background: rgba(255, 209, 104, 0.07);
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-hub-embedded-panel,
+body.inkbeta-mode .ik-personal-hub .ik-embedded-panel {
+  border-color: var(--hub-line);
+  background: var(--hub-surface);
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-collection-overview {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem 0.55rem;
+}
+
+body.inkbeta-mode .ik-collection-overview > div:first-child > span,
+body.inkbeta-mode .ik-collection-overview > div:first-child > p,
+body.inkbeta-mode .ik-collection-progress-copy span {
+  display: block;
+  color: var(--hub-copy-muted);
+  font-size: 0.56rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-collection-overview > div:first-child > strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--hub-copy);
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+body.inkbeta-mode .ik-collection-overview > div:first-child > strong small {
+  color: var(--hub-copy-muted);
+  font-size: 0.75rem;
+}
+
+body.inkbeta-mode .ik-collection-overview > div:first-child > p {
+  margin: 0.25rem 0 0;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+body.inkbeta-mode .ik-collection-progress-copy {
+  text-align: right;
+}
+
+body.inkbeta-mode .ik-collection-progress-copy strong {
+  display: block;
+  color: var(--hub-yellow);
+  font-size: 1rem;
+}
+
+body.inkbeta-mode .ik-collection-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+body.inkbeta-mode .ik-collection-stats > div {
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--collection-color) 18%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--collection-color) 5%, transparent);
+  text-align: center;
+}
+
+body.inkbeta-mode .ik-collection-stats strong,
+body.inkbeta-mode .ik-collection-stats span {
+  display: block;
+}
+
+body.inkbeta-mode .ik-collection-stats strong {
+  color: var(--collection-color);
+  font-size: 0.9rem;
+}
+
+body.inkbeta-mode .ik-collection-stats span {
+  margin-top: 0.1rem;
+  color: var(--hub-copy-muted);
+  font-size: 0.52rem;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-achievement-grid,
+body.inkbeta-mode .ik-personal-hub .ik-reward-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+body.inkbeta-mode .ik-personal-hub :is(.ik-achievement-card, .ik-reward-card) {
+  min-width: 0;
+  height: 100%;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+body.inkbeta-mode .ik-personal-hub :is(.ik-achievement-card, .ik-reward-card).is-locked {
+  opacity: 0.62;
+}
+
+/* ---- Apparence : titre équipé, collection et roadmap ---------------- */
+body.inkbeta-mode .ik-personal-hub .ik-title-hero {
+  display: grid;
+  grid-template-columns: minmax(11rem, 0.7fr) minmax(15rem, 1.3fr);
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem;
+  border-bottom: 1px solid var(--hub-line);
+}
+
+body.inkbeta-mode .ik-title-hero-copy > span,
+body.inkbeta-mode .ik-title-shelf > header span {
+  color: #bba6ff;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-title-hero-copy h3,
+body.inkbeta-mode .ik-title-shelf > header h3 {
+  margin: 0.2rem 0 0;
+  color: var(--hub-copy);
+  font-size: 0.9rem;
+}
+
+body.inkbeta-mode .ik-title-hero-copy p {
+  margin: 0.25rem 0 0;
+  color: var(--hub-copy-muted);
+  font-size: 0.59rem;
+  line-height: 1.4;
+}
+
+body.inkbeta-mode .ik-title-equipped {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 3.65rem;
+  padding: 0.55rem;
+  border: 1px solid var(--hub-line);
+  border-radius: 12px;
+}
+
+body.inkbeta-mode .ik-title-equipped.is-empty {
+  grid-template-columns: auto minmax(0, 1fr);
+  color: var(--hub-copy-muted);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+body.inkbeta-mode .ik-title-equipped-icon {
+  display: grid;
+  width: 2.45rem;
+  height: 2.45rem;
+  place-items: center;
+  border-radius: 9px;
+  color: #fff;
+}
+
+body.inkbeta-mode .ik-title-equipped small,
+body.inkbeta-mode .ik-title-equipped strong {
+  display: block;
+}
+
+body.inkbeta-mode .ik-title-equipped small {
+  font-size: 0.53rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-title-equipped strong {
+  margin-top: 0.12rem;
+  color: var(--hub-copy);
+  font-size: 0.73rem;
+}
+
+body.inkbeta-mode .ik-title-equipped button {
+  display: inline-flex;
+  min-height: 2.15rem;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.6rem;
+  border: 1px solid rgba(255, 108, 134, 0.22);
+  border-radius: 8px;
+  color: #ff91a7;
+  background: rgba(255, 108, 134, 0.055);
+  font-size: 0.58rem;
+  font-weight: 850;
+}
+
+body.inkbeta-mode .ik-title-equipped button svg {
+  width: 0.75rem;
+}
+
+body.inkbeta-mode .ik-title-library {
+  display: grid;
+  gap: 1rem;
+}
+
+body.inkbeta-mode .ik-title-shelf > header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.55rem;
+}
+
+body.inkbeta-mode .ik-title-shelf > header > b {
+  display: grid;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #171022;
+  background: #bba6ff;
+  font-size: 0.62rem;
+}
+
+body.inkbeta-mode .ik-title-roadmap {
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--hub-line);
+}
+
+body.inkbeta-mode .ik-title-roadmap > header span {
+  color: var(--hub-copy-muted);
+}
+
+body.inkbeta-mode .ik-title-roadmap > header > b {
+  color: var(--hub-copy-muted);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+body.inkbeta-mode .ik-title-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-title-card {
+  grid-template-columns: 2.65rem minmax(0, 1fr);
+  align-content: start;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-title-card-action {
+  grid-column: 1 / -1;
+}
+
+body.inkbeta-mode .ik-personal-hub .ik-title-card-action > :is(button, span) {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ---- Réglages : rail de console ------------------------------------ */
+body.inkbeta-mode .ik-hub-settings-page .ink-device-settings {
+  display: grid;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+  border-color: var(--hub-line);
+  border-radius: 16px;
+  background: var(--hub-surface);
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ik-hub-settings-page .ink-device-tabs {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow: visible;
+  padding: 0.7rem;
+  border-right: 1px solid var(--hub-line);
+  border-bottom: 0;
+  background: #111722;
+}
+
+body.inkbeta-mode .ik-hub-settings-page .ink-device-tab {
+  display: grid;
+  min-width: 0;
+  min-height: 3.7rem;
+  flex: 0 0 auto;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  justify-content: stretch;
+  gap: 0.55rem;
+  padding: 0.5rem;
+  border-radius: 10px;
+  text-align: left;
+  transform: none;
+}
+
+body.inkbeta-mode .ik-hub-settings-page .ink-device-tab-copy {
+  display: block;
+  min-width: 0;
+}
+
+body.inkbeta-mode .ik-hub-settings-page .ink-device-tab-copy strong,
+body.inkbeta-mode .ik-hub-settings-page .ink-device-tab-copy small {
+  display: block;
+  min-width: 0;
+}
+
+body.inkbeta-mode .ik-hub-settings-page .ink-device-tab-copy small {
+  margin-top: 0.18rem;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.53rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-hub-settings-page .ink-device-content {
+  min-width: 0;
+  padding: 0.85rem;
+}
+
+body.inkbeta-mode .ik-hub-settings-page .ink-device-section {
+  border-color: var(--hub-line);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: none;
+}
+
+body.inkbeta-mode .ink-device-filter-copy strong,
+body.inkbeta-mode .ink-device-filter-copy small {
+  display: block;
+  text-align: left;
+}
+
+body.inkbeta-mode .ink-device-filter-copy strong {
+  color: #fff;
+  font-size: 0.78rem;
+}
+
+body.inkbeta-mode .ink-device-filter-copy small {
+  margin-top: 0.12rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.55rem;
+}
+
+/* ---- Container queries : la largeur utile, pas le viewport ---------- */
+@container hub-content (max-width: 62rem) {
+  body.inkbeta-mode .ik-hub-profile-layout,
+  body.inkbeta-mode .ink-friends-dashboard-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-personal-hub .ik-hub-shortcuts {
+    position: static;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .ik-hub-shortcuts-heading {
+    grid-column: 1 / -1;
+  }
+
+  body.inkbeta-mode .ink-friends-dashboard-attention-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  body.inkbeta-mode .ink-friends-dashboard-attention-list > section + section {
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 0.6rem;
+    border-top: 0;
+    border-left: 1px solid var(--hub-line);
+  }
+}
+
+@container hub-content (max-width: 48rem) {
+  body.inkbeta-mode .ink-profile-dashboard-performance,
+  body.inkbeta-mode .ik-personal-hub .ik-title-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ink-profile-metric-grid,
+  body.inkbeta-mode .ik-collection-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .ink-friends-dashboard-connect {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ink-friends-dashboard-stats {
+    grid-column: 1 / -1;
+  }
+
+  body.inkbeta-mode .ink-friends-dashboard-attention-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ink-friends-dashboard-attention-list > section + section {
+    margin-top: 0.38rem;
+    padding-top: 0.72rem;
+    padding-left: 0;
+    border-top: 1px solid var(--hub-line);
+    border-left: 0;
+  }
+
+  body.inkbeta-mode .ik-personal-hub :is(.ik-achievement-grid, .ik-reward-grid, .ik-title-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-hub-settings-page .ink-device-settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-hub-settings-page .ink-device-tabs {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 0.5rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--hub-line);
+  }
+
+  body.inkbeta-mode .ik-hub-settings-page .ink-device-tab {
+    min-width: 8.5rem;
+    flex: 0 0 8.5rem;
+  }
+}
+
+@container hub-content (max-width: 34rem) {
+  body.inkbeta-mode .ink-profile-dashboard-identity {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ink-profile-dashboard-signout {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  body.inkbeta-mode .ink-profile-dashboard-avatar {
+    width: 4.6rem;
+    height: 4.6rem;
+  }
+
+  body.inkbeta-mode .ink-profile-score-card {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+  }
+
+  body.inkbeta-mode .ink-profile-metric-grid,
+  body.inkbeta-mode .ik-personal-hub .ik-hub-shortcuts,
+  body.inkbeta-mode .ink-friends-dashboard-connect {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ink-friends-dashboard-stats,
+  body.inkbeta-mode .ink-friends-dashboard-connect > * {
+    grid-column: 1;
+  }
+
+  body.inkbeta-mode .ink-friends-dashboard-person,
+  body.inkbeta-mode .ink-friends-dashboard-attention-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ink-friends-dashboard .ink-friends-person-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  body.inkbeta-mode .ik-title-equipped {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-title-equipped button {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 900px) {
+  body.inkbeta-mode .ik-hub-nav-brand {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    padding: 0.4rem;
+  }
+
+  body.inkbeta-mode .ik-hub-nav-brand > div {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  body.inkbeta-mode .ik-hub-nav-brand {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-hub-nav-launch {
+    display: none;
+  }
+}
+
+/* ============================================================
+   SOCIAL STUDIO — EXPÉRIENCE DÉDIÉE 2026
+   Deux niveaux de commande, scène portrait et discussion secondaire.
+   ============================================================ */
+
+body.inkbeta-mode .social-studio-dialog {
+  width: min(calc(100vw - 1.5rem), 98rem);
+  max-width: 98rem;
+  height: min(calc(100dvh - 1.5rem), 66rem);
+  max-height: calc(100dvh - 1.5rem);
+}
+
+.social-experience--hub {
+  --social-canvas: #090d14;
+  --social-surface: #111721;
+  --social-surface-raised: #171f2c;
+  --social-edge: rgba(216, 230, 255, 0.11);
+  --social-edge-strong: rgba(216, 230, 255, 0.19);
+  --social-copy: #f4f7fb;
+  --social-muted: #94a2b6;
+  --social-cyan: #56e0cb;
+  --social-pink: #ff6ca8;
+  background: var(--social-canvas);
+}
+
+.social-experience--hub .social-commandbar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--social-edge);
+  background: var(--social-surface);
+}
+
+.social-commandbar-primary {
+  display: grid;
+  grid-template-columns: minmax(11rem, 13.5rem) minmax(24rem, 34rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  min-height: 4.55rem;
+  padding: 0.55rem 0.8rem;
+}
+
+.social-experience--hub .social-commandbar .social-profile-card {
+  border-color: var(--social-edge);
+  color: var(--social-copy);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: none;
+  transform: none;
+}
+
+.social-experience--hub .social-commandbar .social-profile-card:hover {
+  border-color: rgba(86, 224, 203, 0.38);
+  background: rgba(86, 224, 203, 0.055);
+  transform: translateY(-1px);
+}
+
+.social-experience--hub .social-commandbar .social-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.38rem;
+}
+
+.social-experience--hub .social-commandbar .social-nav button {
+  min-height: 3.35rem;
+  border: 1px solid transparent;
+  color: var(--social-muted);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.social-experience--hub .social-commandbar .social-nav button:hover {
+  border-color: color-mix(in srgb, var(--social-accent) 30%, transparent);
+  color: var(--social-copy);
+  background: color-mix(in srgb, var(--social-accent) 6%, transparent);
+}
+
+.social-experience--hub .social-commandbar .social-nav button.is-active {
+  border-color: color-mix(in srgb, var(--social-accent) 44%, transparent);
+  color: var(--social-copy);
+  background: color-mix(in srgb, var(--social-accent) 9%, transparent);
+  box-shadow: inset 0 -2px 0 var(--social-accent);
+}
+
+.social-commandbar-primary .social-quick-stats {
+  justify-self: end;
+}
+
+.social-commandbar-secondary {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(13rem, auto) minmax(16rem, 1fr);
+  align-items: center;
+  gap: 1rem;
+  min-height: 4.1rem;
+  padding: 0.48rem 0.8rem;
+  border-top: 1px solid var(--social-edge);
+  background: rgba(7, 11, 17, 0.66);
+}
+
+.social-context-heading {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 2.45rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.social-context-heading > span {
+  display: grid;
+  width: 2.45rem;
+  height: 2.45rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--social-accent) 34%, transparent);
+  border-radius: 10px;
+  color: var(--social-accent);
+  background: color-mix(in srgb, var(--social-accent) 8%, transparent);
+}
+
+.social-context-heading svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.social-context-heading small,
+.social-context-heading strong,
+.social-context-heading p {
+  display: block;
+  min-width: 0;
+}
+
+.social-context-heading small {
+  color: var(--social-accent);
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.social-context-heading strong {
+  margin-top: 0.12rem;
+  color: var(--social-copy);
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.social-context-heading p {
+  overflow: hidden;
+  margin: 0.1rem 0 0;
+  color: var(--social-muted);
+  font-size: 0.55rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.social-context-tools {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.social-experience--hub .social-context-tools .social-badges {
+  display: flex;
+  min-width: 0;
+  max-width: none;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  overflow-x: auto;
+  margin: 0;
+  scrollbar-width: none;
+}
+
+.social-experience--hub .social-context-tools .social-badges::-webkit-scrollbar {
+  display: none;
+}
+
+.social-experience--hub .social-context-tools .social-badges > span {
+  flex: 0 0 auto;
+  padding: 0.27rem 0.42rem;
+  border-radius: 999px;
+}
+
+.social-experience--hub .social-commandbar .social-search-wrap {
+  width: min(100%, 22rem);
+  flex: 0 1 22rem;
+}
+
+.social-experience--hub .social-search-wrap > input {
+  height: 2.55rem;
+  border-color: var(--social-edge-strong);
+  color: var(--social-copy);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.social-experience--hub .social-search-wrap > input:focus {
+  border-color: var(--social-cyan);
+  box-shadow: 0 0 0 3px rgba(86, 224, 203, 0.09);
+}
+
+.social-experience--hub .social-search-results {
+  border-color: rgba(86, 224, 203, 0.3);
+  background: var(--social-surface-raised);
+}
+
+.social-experience--hub .social-feed-column {
+  min-height: 0;
+  flex: 1;
+  background:
+    radial-gradient(circle at 50% 0, rgba(86, 224, 203, 0.035), transparent 26rem),
+    var(--social-canvas);
+}
+
+.social-experience--hub .social-feed-scroll {
+  min-height: 0;
+  padding: 0.8rem;
+}
+
+.social-experience--hub .social-feed-column--foryou .social-feed-scroll {
+  display: grid;
+  overflow: hidden;
+  place-items: stretch center;
+}
+
+.social-experience--hub .social-foryou-stage {
+  width: min(100%, 76rem);
+  height: 100%;
+  min-height: 0;
+}
+
+.social-experience--hub .social-post-grid {
+  width: min(100%, 78rem);
+  margin-inline: auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.72rem;
+}
+
+.social-experience--hub .social-post-grid--profile {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.social-experience--hub .social-feed-tile {
+  border-color: var(--social-edge);
+  border-radius: 14px;
+  background: #05070b;
+  box-shadow: none;
+}
+
+.social-experience--hub .social-feed-tile:hover {
+  border-color: rgba(86, 224, 203, 0.38);
+}
+
+/* ---- Lecteur portrait borné ---------------------------------------- */
+.social-tiktok-viewer {
+  --viewer-edge: rgba(216, 230, 255, 0.12);
+  grid-template-columns: minmax(23rem, 1fr) minmax(20rem, 23rem);
+  border-color: var(--viewer-edge);
+  border-radius: 18px;
+  background: #070a0f;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.56);
+}
+
+.social-tiktok-viewer.is-floating {
+  width: min(calc(100vw - 1.5rem), 70rem);
+  height: min(calc(100dvh - 1.5rem), 54rem);
+}
+
+.social-tiktok-viewer.is-embedded {
+  width: min(100%, 70rem);
+  height: 100%;
+  margin-inline: auto;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.social-tiktok-viewer .social-viewer-stage {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  place-items: center;
+  overflow: hidden;
+  padding: 0.65rem 5.35rem 0.65rem 3.85rem;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(86, 224, 203, 0.08), transparent 42%),
+    #090d13;
+}
+
+.social-viewer-canvas {
+  position: relative;
+  width: auto;
+  height: min(100%, 48rem);
+  max-width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  background: #000;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.48);
+  user-select: none;
+}
+
+.social-viewer-canvas .social-viewer-media {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.social-viewer-canvas .social-viewer-dual-media,
+.social-viewer-canvas .social-viewer-single-media,
+.social-viewer-canvas .social-viewer-dual-media > div:first-child,
+.social-viewer-canvas .social-viewer-single-media > video {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: #000;
+}
+
+.social-viewer-canvas :is(.social-viewer-dual-media video, .social-viewer-single-media video) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.social-viewer-canvas .social-viewer-topbar {
+  border-radius: 16px 16px 0 0;
+}
+
+.social-tiktok-viewer .social-viewer-nav {
+  right: auto;
+  left: 0.65rem;
+}
+
+.social-tiktok-viewer .social-viewer-actions {
+  position: absolute;
+  z-index: 26;
+  right: 0.65rem;
+  bottom: 0.85rem;
+  display: flex;
+  width: 4.15rem;
+  flex-direction: column;
+  gap: 0.48rem;
+  padding: 0;
+  border: 0;
+}
+
+.social-tiktok-viewer .social-viewer-actions:has(> :nth-child(4)),
+.social-tiktok-viewer .social-viewer-actions.has-delete {
+  grid-template-columns: none;
+}
+
+.social-tiktok-viewer .social-viewer-actions > button {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 0.22rem;
+  padding: 0;
+  border: 0;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  text-align: center;
+}
+
+.social-viewer-action-icon {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(8, 12, 18, 0.86);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.28);
+}
+
+.social-tiktok-viewer .social-viewer-actions > button:hover .social-viewer-action-icon,
+.social-tiktok-viewer .social-viewer-actions > button.is-active .social-viewer-action-icon {
+  border-color: rgba(86, 224, 203, 0.5);
+  color: var(--social-cyan, #56e0cb);
+  background: rgba(86, 224, 203, 0.1);
+}
+
+.social-tiktok-viewer .social-viewer-actions > button.is-liked .social-viewer-action-icon {
+  border-color: rgba(255, 108, 168, 0.55);
+  color: #ff6ca8;
+  background: rgba(255, 108, 168, 0.12);
+}
+
+.social-tiktok-viewer .social-viewer-actions > button.is-danger .social-viewer-action-icon {
+  color: #ff8ca4;
+}
+
+.social-tiktok-viewer .social-viewer-actions > button > span:last-child {
+  min-width: 0;
+}
+
+.social-tiktok-viewer .social-viewer-actions strong,
+.social-tiktok-viewer .social-viewer-actions small {
+  display: block;
+  max-width: 4.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.social-tiktok-viewer .social-viewer-actions strong {
+  color: #fff;
+  font-size: 0.56rem;
+}
+
+.social-tiktok-viewer .social-viewer-actions small {
+  margin-top: 0.05rem;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 0.45rem;
+}
+
+.social-tiktok-viewer .social-viewer-panel {
+  border-left-color: var(--viewer-edge);
+  background: #111721;
+}
+
+.social-tiktok-viewer .social-viewer-author,
+.social-tiktok-viewer .social-viewer-audio,
+.social-tiktok-viewer .social-viewer-comments > header,
+.social-tiktok-viewer .social-viewer-comment-form {
+  border-color: var(--viewer-edge);
+}
+
+.social-tiktok-viewer .social-viewer-author-button > span:first-child,
+.social-tiktok-viewer .social-viewer-comment-form > button {
+  color: #071410;
+  background: #56e0cb;
+}
+
+.social-tiktok-viewer .social-viewer-comment-avatar {
+  color: #130c20;
+  background: #b9a6ff;
+}
+
+.social-tiktok-viewer .social-viewer-comments > header svg,
+.social-tiktok-viewer .social-viewer-author-button > i {
+  color: #56e0cb;
+}
+
+.social-tiktok-viewer .social-viewer-audio input {
+  accent-color: #56e0cb;
+}
+
+.social-tiktok-viewer .social-viewer-comment-form > input:focus {
+  border-color: #56e0cb;
+  box-shadow: 0 0 0 3px rgba(86, 224, 203, 0.09);
+}
+
+@media (max-width: 1180px) {
+  .social-commandbar-primary {
+    grid-template-columns: 11rem minmax(22rem, 1fr) auto;
+  }
+
+  .social-commandbar .social-nav-item small {
+    display: none;
+  }
+
+  .social-experience--hub .social-post-grid,
+  .social-experience--hub .social-post-grid--profile {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .social-commandbar-primary {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 2fr);
+  }
+
+  .social-commandbar-primary .social-quick-stats {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+
+  .social-commandbar-primary .social-quick-stats > span {
+    flex: 1;
+  }
+
+  .social-commandbar-secondary {
+    grid-template-columns: minmax(11rem, auto) minmax(13rem, 1fr);
+  }
+
+  .social-context-tools .social-badges small {
+    display: none;
+  }
+
+  .social-tiktok-viewer {
+    grid-template-columns: minmax(20rem, 1fr) minmax(18rem, 21rem);
+  }
+
+  .social-tiktok-viewer .social-viewer-stage {
+    padding-right: 4.6rem;
+    padding-left: 3.4rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-actions {
+    width: 3.55rem;
+  }
+}
+
+@media (max-width: 720px) {
+  body.inkbeta-mode .social-studio-dialog {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .social-commandbar-primary {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+    padding: 0.42rem 0.5rem;
+  }
+
+  .social-commandbar-primary .social-profile-card,
+  .social-commandbar-primary .social-quick-stats {
+    display: none;
+  }
+
+  .social-experience--hub .social-commandbar .social-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .social-experience--hub .social-commandbar .social-nav button {
+    min-height: 2.75rem;
+  }
+
+  .social-commandbar-secondary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.42rem;
+    min-height: auto;
+    padding: 0.42rem 0.5rem;
+  }
+
+  .social-context-heading {
+    display: none;
+  }
+
+  .social-context-tools {
+    justify-content: stretch;
+  }
+
+  .social-experience--hub .social-context-tools .social-badges {
+    max-width: 46%;
+  }
+
+  .social-experience--hub .social-commandbar .social-search-wrap {
+    width: 100%;
+    max-width: none;
+    flex: 1;
+  }
+
+  .social-experience--hub .social-feed-scroll {
+    padding: 0.45rem;
+  }
+
+  .social-experience--hub .social-post-grid,
+  .social-experience--hub .social-post-grid--profile {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .social-tiktok-viewer,
+  .social-tiktok-viewer.is-floating,
+  .social-tiktok-viewer.is-embedded {
+    width: 100%;
+    height: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 56fr) minmax(0, 44fr);
+    border: 0;
+    border-radius: 0;
+  }
+
+  .social-tiktok-viewer .social-viewer-stage {
+    padding: 0.35rem 3.8rem 0.35rem 2.9rem;
+  }
+
+  .social-viewer-canvas {
+    height: 100%;
+    max-width: 100%;
+    border-radius: 12px;
+  }
+
+  .social-viewer-canvas .social-viewer-topbar {
+    border-radius: 12px 12px 0 0;
+  }
+
+  .social-tiktok-viewer .social-viewer-nav {
+    left: 0.32rem;
+    gap: 0.3rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-nav > button {
+    width: 2.3rem;
+    height: 2.3rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-actions {
+    right: 0.25rem;
+    bottom: 0.4rem;
+    width: 3.25rem;
+    gap: 0.3rem;
+  }
+
+  .social-viewer-action-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-actions small {
+    display: none;
+  }
+
+  .social-tiktok-viewer .social-viewer-mobile-meta {
+    display: block;
+    right: 0;
+  }
+
+  .social-tiktok-viewer .social-viewer-panel {
+    border-top: 1px solid var(--viewer-edge);
+    border-left: 0;
+  }
+
+  .social-tiktok-viewer .social-viewer-author {
+    padding: 0.55rem 0.65rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-author > p,
+  .social-tiktok-viewer .social-viewer-metrics {
+    display: none;
+  }
+
+  .social-tiktok-viewer .social-viewer-audio {
+    padding: 0.4rem 0.6rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .social-experience--hub .social-commandbar .social-nav-item > span:first-child,
+  .social-experience--hub .social-context-tools .social-badges {
+    display: none;
+  }
+
+  .social-experience--hub .social-commandbar .social-nav button {
+    display: flex;
+    justify-content: center;
+    padding-inline: 0.2rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-stage {
+    padding-right: 3.2rem;
+    padding-left: 0.35rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-nav {
+    top: auto;
+    right: 3.45rem;
+    bottom: 0.45rem;
+    left: auto;
+    grid-auto-flow: column;
+    transform: none;
+  }
+
+  .social-viewer-gesture-hint {
+    display: none;
+  }
+}
+
+@media (max-height: 680px) and (min-width: 721px) {
+  .social-commandbar-primary {
+    min-height: 3.8rem;
+    padding-block: 0.35rem;
+  }
+
+  .social-commandbar-secondary {
+    min-height: 3.35rem;
+    padding-block: 0.3rem;
+  }
+
+  .social-experience--hub .social-commandbar .social-profile-card,
+  .social-experience--hub .social-commandbar .social-nav button {
+    min-height: 3rem;
+  }
+
+  .social-context-heading p,
+  .social-profile-copy > em {
+    display: none;
+  }
+}
+
+/* ============================================================
+   AUDIT FINAL — PORTÉE PARTAGÉE, SAFE AREAS ET PETITS ÉCRANS
+   ============================================================ */
+
+/* Les composants restent structurellement utilisables dans les drawers Ink
+   historiques ; seules la palette et la composition étendue restent au Hub Beta. */
+body:not(.inkbeta-mode) .ik-collection-overview {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem 0.55rem;
+}
+
+body:not(.inkbeta-mode) .ik-collection-overview > div:first-child > :is(span, strong, p),
+body:not(.inkbeta-mode) .ik-collection-progress-copy > :is(strong, span) {
+  display: block;
+}
+
+body:not(.inkbeta-mode) .ik-collection-overview p {
+  margin: 0.2rem 0 0;
+}
+
+body:not(.inkbeta-mode) .ik-collection-progress-copy {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+body:not(.inkbeta-mode) .ik-collection-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+body:not(.inkbeta-mode) .ik-collection-stats > div {
+  min-width: 0;
+  padding: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--collection-color) 22%, transparent);
+  border-radius: 0.6rem;
+  text-align: center;
+}
+
+body:not(.inkbeta-mode) .ik-collection-stats :is(strong, span) {
+  display: block;
+}
+
+body:not(.inkbeta-mode) .ik-title-hero {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--ink-line);
+}
+
+body:not(.inkbeta-mode) .ik-title-hero-copy h3,
+body:not(.inkbeta-mode) .ik-title-shelf > header h3 {
+  margin: 0.2rem 0 0;
+}
+
+body:not(.inkbeta-mode) .ik-title-hero-copy p {
+  margin: 0.25rem 0 0;
+  color: var(--ink-text-dim);
+}
+
+body:not(.inkbeta-mode) .ik-title-equipped {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--ink-line);
+  border-radius: 0.75rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-equipped.is-empty {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+body:not(.inkbeta-mode) .ik-title-equipped-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.6rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-equipped :is(small, strong) {
+  display: block;
+}
+
+body:not(.inkbeta-mode) .ik-title-equipped button,
+body:not(.inkbeta-mode) .ik-title-card-action > :is(button, span) {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--ink-line);
+  border-radius: 0.55rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-library {
+  display: grid;
+  gap: 1rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-shelf > header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.55rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-shelf > header > b {
+  display: grid;
+  min-width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border-radius: 999px;
+}
+
+body:not(.inkbeta-mode) .ik-title-roadmap {
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--ink-line);
+}
+
+body:not(.inkbeta-mode) .ik-title-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.55rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-card {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 2.8rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem;
+  border: 1px solid var(--ink-line);
+  border-radius: 0.8rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-card.is-locked {
+  opacity: 0.62;
+}
+
+body:not(.inkbeta-mode) .ik-title-card-icon {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border-radius: 0.65rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-card-copy {
+  min-width: 0;
+}
+
+body:not(.inkbeta-mode) .ik-title-card-copy > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-card-copy h3 {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body:not(.inkbeta-mode) .ik-title-card-copy p {
+  margin: 0.2rem 0 0;
+  color: var(--ink-text-dim);
+}
+
+body:not(.inkbeta-mode) .ik-title-card-copy small {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+body:not(.inkbeta-mode) .ik-title-card-action {
+  grid-column: 1 / -1;
+}
+
+body:not(.inkbeta-mode) .ik-title-card-action > :is(button, span) {
+  width: 100%;
+}
+
+body:not(.inkbeta-mode) .ink-device-tab-copy,
+body:not(.inkbeta-mode) .ink-device-tab-copy :is(strong, small) {
+  display: block;
+  min-width: 0;
+}
+
+body:not(.inkbeta-mode) .ink-device-tab-copy small {
+  overflow: hidden;
+  margin-top: 0.15rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.55rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Social partage sa structure entre les deux familles Ink, mais Ink stable
+   récupère explicitement ses surfaces violettes historiques. */
+body:not(.inkbeta-mode) .social-experience--hub {
+  --social-canvas: #100719;
+  --social-surface: #1e0e2e;
+  --social-surface-raised: #29133d;
+  --social-edge: rgba(255, 255, 255, 0.11);
+  --social-edge-strong: rgba(255, 255, 255, 0.19);
+  --social-copy: var(--ink-text, #f7f5ff);
+  --social-muted: var(--ink-text-dim, rgba(255, 255, 255, 0.56));
+  --social-cyan: var(--ink-accent, #b497ff);
+  --social-pink: #ff62b6;
+  background: var(--social-canvas);
+}
+
+body:not(.inkbeta-mode) .social-experience--hub .social-commandbar {
+  background: var(--social-surface);
+}
+
+body:not(.inkbeta-mode) .social-commandbar-secondary {
+  background: rgba(16, 7, 25, 0.78);
+}
+
+body:not(.inkbeta-mode) .social-tiktok-viewer {
+  --viewer-edge: rgba(255, 255, 255, 0.12);
+  background: #100719;
+}
+
+body:not(.inkbeta-mode) .social-tiktok-viewer .social-viewer-stage {
+  background: radial-gradient(circle at 50% 44%, rgba(180, 151, 255, 0.11), transparent 42%), #12081d;
+}
+
+body:not(.inkbeta-mode) .social-tiktok-viewer .social-viewer-panel {
+  background: #1e0e2e;
+}
+
+.social-tiktok-viewer.is-floating {
+  width: min(100%, 70rem);
+}
+
+/* Même spécificité que la composition desktop tardive : les breakpoints ne
+   peuvent plus être annulés à 900 px ou sur un téléphone de 320 px. */
+@media (max-width: 1180px) {
+  body.inkbeta-mode .ik-personal-hub .ik-hub-shell {
+    grid-template-columns: 12.5rem minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  body.inkbeta-mode .ik-personal-hub .ik-hub-shell {
+    grid-template-columns: 5.4rem minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  body.inkbeta-mode .ik-personal-hub .ik-hub-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-personal-hub .ik-hub-page {
+    padding-top: 0.85rem;
+    padding-right: max(0.7rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.7rem, env(safe-area-inset-left, 0px));
+  }
+
+  .social-studio-header {
+    min-height: calc(4rem + env(safe-area-inset-top, 0px));
+    padding-top: max(0.6rem, env(safe-area-inset-top, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  }
+
+  .social-commandbar-primary,
+  .social-commandbar-secondary {
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+    padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+  }
+
+  .social-experience--hub .social-feed-scroll {
+    padding-top: 0.45rem;
+    padding-right: max(0.45rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(0.45rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.45rem, env(safe-area-inset-left, 0px));
+  }
+}
+
+@media (max-width: 720px) and (max-height: 700px) {
+  body.inkbeta-mode .ik-personal-hub .ik-hub-page {
+    padding-top: 0.65rem;
+  }
+}
+
+/* Paysage téléphone / fenêtre très basse : commandes sur une seule ligne,
+   média et discussion côte à côte, sans sacrifier le bouton de fermeture. */
+@media (max-width: 720px) and (max-height: 520px) and (orientation: landscape) {
+  .social-studio-header {
+    min-height: calc(3rem + env(safe-area-inset-top, 0px));
+    padding-top: max(0.25rem, env(safe-area-inset-top, 0px));
+    padding-bottom: 0.25rem;
+  }
+
+  .social-studio-logo,
+  .social-studio-close {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .social-studio-kicker,
+  .social-studio-header .ibs-status {
+    display: none;
+  }
+
+  .social-studio-brand h2 {
+    margin-top: 0;
+    font-size: 1.05rem;
+  }
+
+  .social-experience--hub .social-commandbar {
+    display: grid;
+    grid-template-columns: minmax(18rem, 1fr) minmax(12rem, 0.72fr);
+    align-items: stretch;
+    border-bottom: 1px solid var(--social-edge);
+  }
+
+  .social-commandbar-primary,
+  .social-commandbar-secondary {
+    min-height: 0;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .social-commandbar-primary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .social-experience--hub .social-commandbar .social-nav button {
+    min-height: 2.35rem;
+  }
+
+  .social-commandbar-secondary {
+    display: flex;
+    align-items: center;
+    border-top: 0;
+    border-left: 1px solid var(--social-edge);
+  }
+
+  .social-context-heading,
+  .social-experience--hub .social-context-tools .social-badges {
+    display: none;
+  }
+
+  .social-context-tools,
+  .social-experience--hub .social-commandbar .social-search-wrap {
+    width: 100%;
+    max-width: none;
+  }
+
+  .social-experience--hub .social-search-wrap > input {
+    height: 2.25rem;
+  }
+
+  .social-experience--hub .social-feed-scroll {
+    padding-top: 0.25rem;
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .social-tiktok-viewer,
+  .social-tiktok-viewer.is-floating,
+  .social-tiktok-viewer.is-embedded {
+    grid-template-columns: minmax(14rem, 1fr) minmax(13rem, 18rem);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .social-tiktok-viewer .social-viewer-stage {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-panel {
+    border-top: 0;
+    border-left: 1px solid var(--viewer-edge);
+  }
+
+  .social-tiktok-viewer .social-viewer-author {
+    padding: 0.35rem 0.55rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-audio,
+  .social-tiktok-viewer .social-viewer-comments > header,
+  .social-tiktok-viewer .social-viewer-comment-form {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
+/* Contre-revue : un seul propriétaire des safe areas pour chaque overlay. */
+.social-studio-overlay {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+}
+
+body.inkbeta-mode .social-studio-dialog {
+  width: min(100%, 98rem);
+  height: min(100%, 66rem);
+  max-height: 100%;
+}
+
+@media (max-width: 760px) {
+  .social-studio-overlay {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+
+  body.inkbeta-mode .social-studio-dialog {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .social-studio-header {
+    min-height: 4rem;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .social-commandbar-primary {
+    padding: 0.42rem 0.5rem;
+  }
+
+  .social-commandbar-secondary {
+    padding: 0.42rem 0.5rem;
+  }
+
+  .social-experience--hub .social-feed-scroll {
+    padding: 0.45rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-comment-form {
+    padding: 0.45rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .social-tiktok-viewer,
+  .social-tiktok-viewer.is-floating,
+  .social-tiktok-viewer.is-embedded {
+    grid-template-rows: minmax(0, 48fr) minmax(0, 52fr);
+  }
+
+  .social-tiktok-viewer .social-viewer-actions {
+    top: 50%;
+    bottom: auto;
+    gap: 0.25rem;
+    transform: translateY(-50%);
+  }
+
+  .social-tiktok-viewer .social-viewer-actions > button {
+    min-height: 2.75rem;
+  }
+
+  .social-tiktok-viewer .social-viewer-actions > button > span:last-child {
+    display: none;
+  }
+}
+
+/* 667×375 et 844×390 partagent la même composition courte. */
+@media (max-width: 900px) and (max-height: 520px) and (orientation: landscape) {
+  .social-studio-header {
+    min-height: 3rem;
+    padding: 0.25rem 0.75rem;
+  }
+
+  .social-commandbar-primary .social-profile-card,
+  .social-commandbar-primary .social-quick-stats {
+    display: none;
+  }
+
+  .social-experience--hub .social-commandbar {
+    display: grid;
+    grid-template-columns: minmax(18rem, 1fr) minmax(12rem, 0.72fr);
+    align-items: stretch;
+  }
+
+  .social-commandbar-primary,
+  .social-commandbar-secondary {
+    min-height: 0;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .social-commandbar-primary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .social-commandbar-secondary {
+    display: flex;
+    align-items: center;
+    border-top: 0;
+    border-left: 1px solid var(--social-edge);
+  }
+
+  .social-context-heading,
+  .social-experience--hub .social-context-tools .social-badges {
+    display: none;
+  }
+
+  .social-context-tools,
+  .social-experience--hub .social-commandbar .social-search-wrap {
+    width: 100%;
+    max-width: none;
+  }
+
+  .social-tiktok-viewer,
+  .social-tiktok-viewer.is-floating,
+  .social-tiktok-viewer.is-embedded {
+    grid-template-columns: minmax(14rem, 1fr) minmax(13rem, 18rem);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .social-tiktok-viewer .social-viewer-panel {
+    border-top: 0;
+    border-left: 1px solid var(--viewer-edge);
   }
 }

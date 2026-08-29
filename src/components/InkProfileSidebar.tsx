@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useRef } from 'react';
+import { memo, useState, useEffect, useRef, type CSSProperties } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   User,
@@ -31,7 +31,7 @@ const GRAFFITI_TEXT_SHADOW_SM =
   'none';
 
 interface InkProfileSidebarProps {
-  variant?: 'default' | 'inkBeta';
+  variant?: 'default' | 'inkBeta' | 'hub';
 }
 
 const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarProps) => {
@@ -46,6 +46,12 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const finishEditing = () => {
+    setIsEditing(false);
+    window.requestAnimationFrame(() => editTriggerRef.current?.focus({ preventScroll: true }));
+  };
 
   useEffect(() => {
     if (profile?.display_name) {
@@ -59,7 +65,7 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
     playInkSound('inkSuccess', 0.4);
     try {
       await updateProfile({ display_name: editName.trim() });
-      setIsEditing(false);
+      finishEditing();
       toast.success('Pseudo mis à jour !');
     } catch {
       toast.error('Erreur lors de la mise à jour');
@@ -241,6 +247,174 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
   }
 
   /* =========================================================
+     CONNECTED — HUB DASHBOARD
+  ========================================================= */
+  if (variant === 'hub') {
+    const performanceStats = [
+      { icon: Gamepad2, label: 'Parties jouées', value: stats?.games_played || 0, color: '#66d9ff' },
+      { icon: Trophy, label: 'Victoires', value: stats?.games_won || 0, color: '#ffd45f' },
+      { icon: Flame, label: 'Série actuelle', value: stats?.current_streak || 0, color: '#ff7c9f' },
+      { icon: Target, label: 'Meilleure série', value: stats?.best_streak || 0, color: '#65e6bd' },
+    ];
+
+    return (
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="ink-profile-sidebar ink-profile-dashboard"
+        aria-label="Tableau de bord du profil"
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          onChange={handleAvatarUpload}
+          className="hidden"
+        />
+
+        <section className="ink-profile-dashboard-identity" aria-labelledby="ink-profile-display-name">
+          <div className="ink-profile-dashboard-avatar-wrap">
+            <Avatar className="ink-profile-dashboard-avatar">
+              <AvatarImage
+                src={avatarImageUrl}
+                alt={`Avatar de ${profile?.display_name || 'Joueur'}`}
+                className="object-cover"
+              />
+              <AvatarFallback>{profile?.display_name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+            </Avatar>
+            <button
+              type="button"
+              onClick={() => {
+                playInkSound('brushTap', 0.3);
+                fileInputRef.current?.click();
+              }}
+              disabled={isSavingAvatar || avatarLoading}
+              aria-label="Changer la photo de profil"
+              aria-busy={isSavingAvatar}
+              className="ink-profile-dashboard-camera menu-focus"
+            >
+              {isSavingAvatar ? (
+                <span className="ink-profile-dashboard-spinner" aria-hidden="true" />
+              ) : (
+                <Camera aria-hidden="true" />
+              )}
+            </button>
+          </div>
+
+          <div className="ink-profile-dashboard-copy">
+            <span className="ink-profile-dashboard-eyebrow">Mimic ID</span>
+            {isEditing ? (
+              <>
+                <h4 id="ink-profile-display-name" className="sr-only">Modifier le pseudo de {profile?.display_name || 'Joueur'}</h4>
+                <form
+                  className="ink-profile-dashboard-editor"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleSave();
+                  }}
+                >
+                <Input
+                  value={editName}
+                  onChange={(event) => setEditName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      finishEditing();
+                    }
+                  }}
+                  maxLength={32}
+                  className="ink-profile-dashboard-input"
+                  placeholder="Pseudo"
+                  aria-label="Nouveau pseudo"
+                  autoFocus
+                />
+                <button type="submit" disabled={isSaving || !editName.trim()} aria-label="Enregistrer le pseudo" aria-busy={isSaving} className="is-confirm menu-focus">
+                  <Check aria-hidden="true" />
+                </button>
+                <button type="button" onClick={finishEditing} aria-label="Annuler la modification du pseudo" className="menu-focus">
+                  <X aria-hidden="true" />
+                </button>
+                </form>
+              </>
+            ) : (
+              <div className="ink-profile-dashboard-name-row">
+                <h4 id="ink-profile-display-name">{profile?.display_name || 'Joueur'}</h4>
+                <button
+                  ref={editTriggerRef}
+                  type="button"
+                  onClick={() => {
+                    playInkSound('inkClick', 0.3);
+                    setIsEditing(true);
+                  }}
+                  className="menu-focus"
+                  aria-label="Modifier le pseudo"
+                >
+                  <Edit2 aria-hidden="true" />
+                </button>
+              </div>
+            )}
+            <div className="ink-profile-dashboard-title-row">
+              {equippedTitle ? (
+                <span style={{ '--profile-title-color': rarityStyle(equippedTitle.rarity).color } as CSSProperties}>
+                  <Trophy aria-hidden="true" /> {equippedTitle.name}
+                </span>
+              ) : (
+                <span className="is-empty"><Trophy aria-hidden="true" /> Aucun titre équipé</span>
+              )}
+              <small>Profil synchronisé</small>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              playInkSound('inkClick', 0.3);
+              signOut();
+            }}
+            className="ink-profile-dashboard-signout menu-focus"
+          >
+            <LogOut aria-hidden="true" />
+            <span>Déconnexion</span>
+          </button>
+        </section>
+
+        <div className="ink-profile-dashboard-performance">
+          <article className="ink-profile-score-card">
+            <div
+              className="ink-profile-score-ring"
+              style={{ background: `conic-gradient(#ff6fa8 ${winRate * 3.6}deg, rgba(255,255,255,0.07) 0deg)` }}
+              role="img"
+              aria-label={`Taux de victoire : ${winRate}%`}
+            >
+              <span><strong>{winRate}%</strong><small>victoires</small></span>
+            </div>
+            <div>
+              <span>Performance</span>
+              <h5>{winRate >= 60 ? 'En pleine forme' : winRate >= 35 ? 'Belle progression' : 'La série commence ici'}</h5>
+              <p>{stats?.games_played ? `${stats.games_won || 0} victoire${(stats.games_won || 0) > 1 ? 's' : ''} sur ${stats.games_played} partie${stats.games_played > 1 ? 's' : ''}.` : 'Joue ta première partie pour lancer tes statistiques.'}</p>
+            </div>
+          </article>
+
+          <section className="ink-profile-level-overview" aria-label="Progression de niveau">
+            <header><span>Progression</span><strong>Prochain palier</strong></header>
+            <LevelProgressBar />
+          </section>
+        </div>
+
+        <div className="ink-profile-metric-grid" aria-label="Statistiques de jeu">
+          {performanceStats.map(({ icon: Icon, label, value, color }) => (
+            <article key={label} className="ink-profile-metric" style={{ '--profile-metric-color': color } as CSSProperties}>
+              <span><Icon aria-hidden="true" /></span>
+              <div><strong>{value}</strong><small>{label}</small></div>
+            </article>
+          ))}
+        </div>
+      </motion.section>
+    );
+  }
+
+  /* =========================================================
      CONNECTED — CARTOON PROFILE
   ========================================================= */
   return (
@@ -336,9 +510,16 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
                 <Input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSave();
-                    if (e.key === 'Escape') setIsEditing(false);
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void handleSave();
+                    }
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      finishEditing();
+                    }
                   }}
                   className="h-10 text-center text-xl font-black bg-black/40 text-white rounded-xl"
                   style={{
@@ -347,6 +528,7 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
                     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
                   }}
                   placeholder="Pseudo"
+                  aria-label="Nouveau pseudo"
                   autoFocus
                 />
                 <motion.button
@@ -371,7 +553,7 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
                   type="button"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => setIsEditing(false)}
+                  onClick={finishEditing}
                   aria-label="Annuler la modification du pseudo"
                   className="menu-icon-control menu-focus w-9 h-9 rounded-xl flex items-center justify-center"
                   style={{
@@ -396,6 +578,7 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
                     {profile?.display_name || 'Joueur'}
                   </span>
                   <motion.button
+                    ref={editTriggerRef}
                     type="button"
                     whileHover={{ scale: 1.15, rotate: 8 }}
                     whileTap={{ scale: 0.9 }}
