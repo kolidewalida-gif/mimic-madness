@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Sparkles, Gamepad2 } from 'lucide-react';
+import { useDialogBehaviour } from '@/components/menu/InkOverlay';
 import { Button } from '@/components/ui/button';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { playSample } from '@/lib/sfx/samples';
@@ -22,17 +23,21 @@ interface GameInvitationNotificationProps {
   onAccept: (invitationId: string) => void;
   onDecline: (invitationId: string) => void;
   onClose: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 export const GameInvitationNotification = ({
   invitation,
   onAccept,
   onDecline,
-  onClose
+  onClose,
+  variant = 'default',
 }: GameInvitationNotificationProps) => {
   const { playSound } = useSoundEffects();
   const [isVisible, setIsVisible] = useState(true);
   const [countdown, setCountdown] = useState(15);
+  const titleId = useId();
+  const descriptionId = useId();
 
   // Son d'invitation dédié. Il empruntait celui des succès débloqués, doublé
   // d'un `powerUp` — un empilement qui ne voulait rien dire.
@@ -69,71 +74,187 @@ export const GameInvitationNotification = ({
     setTimeout(() => onDecline(invitation.id), 300);
   }, [invitation.id, onDecline, playSound]);
 
+  const dialogRef = useDialogBehaviour(
+    variant === 'inkBeta' && isVisible,
+    handleDecline,
+  );
+
+  if (variant === 'inkBeta') {
+    return (
+      <AnimatePresence>
+        {isVisible && (
+          <motion.div
+            className="ik-game-invite-layer"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="ik-game-invite-backdrop" aria-hidden="true" />
+            <motion.div
+              ref={dialogRef}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              aria-describedby={descriptionId}
+              className="ik-game-invite-modal"
+              initial={{ opacity: 0, scale: 0.9, y: 28 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+            >
+              <div className="ik-game-invite-stripe" aria-hidden="true" />
+              <button
+                type="button"
+                onClick={handleDecline}
+                aria-label="Fermer et refuser l'invitation"
+                className="ik-game-invite-close menu-focus"
+              >
+                <X aria-hidden="true" />
+              </button>
+
+              <header className="ik-game-invite-topline">
+                <span>
+                  <Sparkles aria-hidden="true" />
+                  Nouvelle invitation
+                </span>
+                <strong className={cn(countdown <= 5 && 'is-urgent')} aria-hidden="true">
+                  {countdown}s
+                </strong>
+                <span className="sr-only">Tu as quinze secondes pour répondre.</span>
+              </header>
+
+              <div className="ik-game-invite-content">
+                <div className="ik-game-invite-host">
+                  <div className="ik-game-invite-emblem" aria-hidden="true">
+                    <Gamepad2 />
+                    <span />
+                  </div>
+                  <p>Invitation de</p>
+                  <h2 id={titleId}>{invitation.sender_name || 'Un ami'}</h2>
+                  <p id={descriptionId} className="ik-game-invite-lead">
+                    Une place est réservée pour toi. Rejoins le salon avant que la
+                    troupe ne lance la partie.
+                  </p>
+                  <div className="ik-game-invite-promise">
+                    <Users aria-hidden="true" />
+                    <span>Invitation directe · une décision suffit</span>
+                  </div>
+                </div>
+
+                <div className="ik-game-invite-ticket">
+                  <div className="ik-game-invite-ticket-head">
+                    <span>Accès au salon</span>
+                    <i aria-hidden="true" />
+                  </div>
+
+                  <div className="ik-game-invite-code">
+                    <span>Code de la partie</span>
+                    <strong>{invitation.lobby_code}</strong>
+                    <small>Salon privé de {invitation.sender_name || 'ton ami'}</small>
+                  </div>
+
+                  <div className="ik-game-invite-actions">
+                    <button
+                      type="button"
+                      onClick={handleDecline}
+                      className="ik-game-invite-decline menu-focus"
+                    >
+                      <X aria-hidden="true" />
+                      <span>Pas maintenant</span>
+                    </button>
+                    <button
+                      type="button"
+                      data-autofocus
+                      onClick={handleAccept}
+                      className="ik-game-invite-accept menu-focus"
+                    >
+                      <Users aria-hidden="true" />
+                      <span>Rejoindre la troupe</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <footer className="ik-game-invite-footer">
+                <div className="ik-game-invite-progress" aria-hidden="true">
+                  <motion.span
+                    key={invitation.id}
+                    initial={{ width: '100%' }}
+                    animate={{ width: '0%' }}
+                    transition={{ duration: 15, ease: 'linear' }}
+                  />
+                </div>
+                <p>L'invitation se range automatiquement, sans être refusée.</p>
+              </footer>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
+
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
           initial={{ opacity: 0, y: -100, scale: 0.8 }}
-          animate={{ 
-            opacity: 1, 
-            y: 0, 
+          animate={{
+            opacity: 1,
+            y: 0,
             scale: 1,
-            x: [0, -8, 8, -6, 6, -4, 4, -2, 2, 0]
+            x: [0, -8, 8, -6, 6, -4, 4, -2, 2, 0],
           }}
           exit={{ opacity: 0, y: -50, scale: 0.9 }}
-          transition={{ 
-            type: 'spring', 
-            damping: 20, 
+          transition={{
+            type: 'spring',
+            damping: 20,
             stiffness: 300,
             x: {
               duration: 0.6,
-              ease: "easeInOut",
-              times: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1]
-            }
+              ease: 'easeInOut',
+              times: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1],
+            },
           }}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] pointer-events-auto"
         >
-          {/* Outer glow with pulse */}
-          <motion.div 
+          <motion.div
             className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary rounded-2xl blur-xl opacity-60"
-            animate={{ 
+            animate={{
               scale: [1, 1.05, 1],
-              opacity: [0.6, 0.8, 0.6]
+              opacity: [0.6, 0.8, 0.6],
             }}
-            transition={{ 
-              duration: 1.5, 
+            transition={{
+              duration: 1.5,
               repeat: Infinity,
-              ease: "easeInOut"
+              ease: 'easeInOut',
             }}
           />
-          
-          {/* Main card with shake animation */}
-          <motion.div 
+
+          <motion.div
             className="relative bg-card/95 backdrop-blur-xl border border-primary/40 rounded-2xl p-5 shadow-2xl shadow-primary/30 min-w-[380px] max-w-[440px]"
-            animate={{ 
+            animate={{
               rotate: [0, -1, 1, -1, 0],
             }}
-            transition={{ 
-              duration: 0.5, 
+            transition={{
+              duration: 0.5,
               repeat: 3,
               repeatDelay: 2,
-              ease: "easeInOut"
+              ease: 'easeInOut',
             }}
           >
-            {/* Animated border */}
             <div className="absolute inset-0 rounded-2xl overflow-hidden">
-              <div 
+              <div
                 className="absolute inset-0 rounded-2xl"
                 style={{
                   background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)))',
                   backgroundSize: '200% 100%',
                   animation: 'gradientSlide 2s linear infinite',
-                  opacity: 0.3
+                  opacity: 0.3,
                 }}
               />
             </div>
 
-            {/* Close button */}
             <button
               type="button"
               onClick={handleDecline}
@@ -143,9 +264,7 @@ export const GameInvitationNotification = ({
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
 
-            {/* Content */}
             <div className="relative space-y-4">
-              {/* Header with sparkles */}
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
@@ -161,13 +280,11 @@ export const GameInvitationNotification = ({
                 </div>
               </div>
 
-              {/* Lobby code display */}
               <div className="bg-background/60 rounded-xl p-3 text-center border border-primary/20">
                 <p className="text-xs text-foreground-muted uppercase tracking-wider mb-1">Code du Lobby</p>
                 <p className="text-2xl font-bold tracking-[0.2em] text-primary">{invitation.lobby_code}</p>
               </div>
 
-              {/* Action buttons */}
               <div className="flex gap-3">
                 <Button
                   type="button"
@@ -188,7 +305,6 @@ export const GameInvitationNotification = ({
                 </Button>
               </div>
 
-              {/* Countdown timer */}
               <div className="flex items-center justify-center gap-2 text-foreground-muted text-xs">
                 <div className="w-full bg-background/50 rounded-full h-1.5 overflow-hidden">
                   <motion.div
@@ -198,34 +314,35 @@ export const GameInvitationNotification = ({
                     className="h-full bg-gradient-to-r from-primary to-accent"
                   />
                 </div>
-                <span className={cn(
-                  "font-mono font-semibold min-w-[28px] text-right",
-                  countdown <= 5 && "text-warning animate-pulse"
-                )}>
+                <span
+                  className={cn(
+                    'font-mono font-semibold min-w-[28px] text-right',
+                    countdown <= 5 && 'text-warning animate-pulse',
+                  )}
+                >
                   {countdown}s
                 </span>
               </div>
             </div>
 
-            {/* Floating particles */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-              {[...Array(6)].map((_, i) => (
+              {[...Array(6)].map((_, index) => (
                 <motion.div
-                  key={i}
+                  key={index}
                   className="absolute w-1.5 h-1.5 bg-primary/60 rounded-full"
-                  initial={{ 
-                    x: Math.random() * 100 + '%', 
+                  initial={{
+                    x: Math.random() * 100 + '%',
                     y: '110%',
-                    opacity: 0 
+                    opacity: 0,
                   }}
-                  animate={{ 
+                  animate={{
                     y: '-10%',
-                    opacity: [0, 1, 0]
+                    opacity: [0, 1, 0],
                   }}
                   transition={{
                     duration: 2 + Math.random() * 2,
                     repeat: Infinity,
-                    delay: i * 0.3
+                    delay: index * 0.3,
                   }}
                 />
               ))}

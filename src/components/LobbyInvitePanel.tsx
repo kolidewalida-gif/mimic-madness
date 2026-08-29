@@ -36,6 +36,8 @@ interface LobbyInvitePanelProps {
    * on top.
    */
   inlineMode?: boolean;
+  /** Render the dedicated Ink Beta invitation browser. */
+  isInkBeta?: boolean;
 }
 
 /* ============================================================
@@ -51,6 +53,7 @@ const LobbyInvitePanelComponent = ({
   maxPlayers = 8,
   isHost,
   inlineMode = false,
+  isInkBeta = false,
 }: LobbyInvitePanelProps) => {
   const { isInkMode } = useInkMode();
   const { user, profile } = useAuth();
@@ -102,145 +105,108 @@ const LobbyInvitePanelComponent = ({
   /* =========================================================
      GRAFFITI / CARTOON RENDER (when in ink mode)
   ========================================================= */
-  if (isInkMode) {
+  if (isInkMode || isInkBeta) {
     /* When the panel is rendered inline (e.g. inside the InkLobbyScreen
        invite drawer), skip the slots grid + extra modal and just show the
        search bar + friends list. The drawer is already a modal — stacking a
        second modal on top was confusing and broke clicks. */
     if (inlineMode) {
-      return (
-        <div className="flex flex-col gap-3">
-          <p
-            className="text-sm text-[var(--ink-accent-text)]/80 font-bold"
-            style={{ fontFamily: "'Outfit', sans-serif" }}
-          >
-            {emptySlots} place{emptySlots > 1 ? 's' : ''} dispo
-            {emptySlots > 1 ? 's' : ''} dans le lobby !
-          </p>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-accent-text)] z-[1] pointer-events-none" />
-            <Input
-              placeholder="Cherche un ami…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-black/40 text-white placeholder:text-[var(--ink-accent-text)]/40 font-bold rounded-xl h-11"
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                border: '1px solid var(--ink-line)',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
-              }}
-            />
-          </div>
+      /* Ink stable keeps its historical inline list. The Beta uses the
+         dedicated, wider browser below. */
+      if (!isInkBeta) {
+        return (
+          <div className="flex flex-col gap-3">
+            <p
+              className="text-sm text-[var(--ink-accent-text)]/80 font-bold"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
+            >
+              {emptySlots} place{emptySlots > 1 ? 's' : ''} dispo
+              {emptySlots > 1 ? 's' : ''} dans le lobby !
+            </p>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-accent-text)] z-[1] pointer-events-none" />
+              <Input
+                placeholder="Cherche un ami…"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="pl-10 bg-black/40 text-white placeholder:text-[var(--ink-accent-text)]/40 font-bold rounded-xl h-11"
+                style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  border: '1px solid var(--ink-line)',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)',
+                }}
+              />
+            </div>
 
-          <div className="space-y-2">
-            {friendsLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-[var(--ink-accent-text)]" />
-              </div>
-            ) : availableFriends.length === 0 ? (
-              <div className="text-center py-10">
-                <motion.div
-                  animate={{ y: [0, -6, 0], rotate: [-3, 3, -3] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                  className="text-6xl mb-3 inline-block"
-                >
-                  🥺
-                </motion.div>
-                <p
-                  className="text-lg font-black text-white/80"
-                  style={{
-                    fontFamily: "'Outfit', sans-serif",
-                    textShadow: GRAFFITI_TEXT_SHADOW,
-                  }}
-                >
-                  {searchQuery ? 'Aucun résultat…' : 'Aucun ami dispo !'}
-                </p>
-                {!searchQuery && (
-                  <p
-                    className="text-sm text-white/50 mt-1"
-                    style={{ fontFamily: "'Outfit', sans-serif" }}
-                  >
-                    Ajoute-en depuis le panneau Amis 👋
-                  </p>
-                )}
-              </div>
-            ) : (
-              availableFriends.map((friend, idx) => {
-                const status = getUserStatus(friend.user_id);
-                const isOnline = status.online;
-                const isInvited = invitedFriends.has(friend.user_id);
-                const isInGame = !!status.lobbyCode;
-
-                return (
+            <div className="space-y-2">
+              {friendsLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-[var(--ink-accent-text)]" />
+                </div>
+              ) : availableFriends.length === 0 ? (
+                <div className="text-center py-10">
                   <motion.div
-                    key={friend.id}
-                    initial={{ opacity: 0, x: -20, rotate: -3 }}
-                    animate={{
-                      opacity: 1,
-                      x: 0,
-                      rotate: idx % 2 === 0 ? -0.6 : 0.6,
-                    }}
-                    transition={{ delay: idx * 0.04 }}
-                    className="flex items-center gap-3 p-3 rounded-2xl"
+                    animate={{ y: [0, -6, 0], rotate: [-3, 3, -3] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                    className="text-6xl mb-3 inline-block"
+                  >
+                    🥺
+                  </motion.div>
+                  <p
+                    className="text-lg font-black text-white/80"
                     style={{
-                      background:
-                        'linear-gradient(180deg, var(--ink-accent-soft), var(--ink-accent-soft))',
-                      border: '1px solid var(--ink-line)',
-                      boxShadow:
-                        'none',
+                      fontFamily: "'Outfit', sans-serif",
+                      textShadow: GRAFFITI_TEXT_SHADOW,
                     }}
                   >
-                    <div className="relative flex-shrink-0">
-                      <Avatar className="h-11 w-11 ring-2 ring-[var(--ink-line)]">
-                        <AvatarImage src={friend.avatar_url || undefined} />
-                        <AvatarFallback
-                          className="font-black text-white text-base"
-                          style={{
-                            background:
-                              'var(--ink-accent)',
-                          }}
-                        >
-                          {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div
-                        className={cn(
-                          'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-line)]',
-                          isInGame
-                            ? 'bg-amber-400'
-                            : isOnline
-                              ? 'bg-emerald-400'
-                              : 'bg-zinc-500',
-                        )}
-                        style={{
-                          boxShadow:
-                            isOnline && !isInGame
-                              ? '0 0 8px rgba(52,211,153,0.7)'
-                              : 'none',
-                        }}
-                      />
-                    </div>
+                    {searchQuery ? 'Aucun résultat…' : 'Aucun ami dispo !'}
+                  </p>
+                  {!searchQuery && (
+                    <p
+                      className="text-sm text-white/50 mt-1"
+                      style={{ fontFamily: "'Outfit', sans-serif" }}
+                    >
+                      Ajoute-en depuis le panneau Amis 👋
+                    </p>
+                  )}
+                </div>
+              ) : (
+                availableFriends.map((friend, index) => {
+                  const status = getUserStatus(friend.user_id);
+                  const isOnline = status.online;
+                  const isInvited = invitedFriends.has(friend.user_id);
+                  const isInGame = !!status.lobbyCode;
 
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className="font-black text-lg text-white truncate leading-none"
-                        style={{ fontFamily: "'Outfit', sans-serif" }}
-                      >
-                        {friend.display_name || 'Joueur'}
-                      </div>
-                      <div
-                        className={cn(
-                          'text-xs font-bold mt-0.5 flex items-center gap-1',
-                          isInGame
-                            ? 'text-amber-300'
-                            : isOnline
-                              ? 'text-emerald-300'
-                              : 'text-white/40',
-                        )}
-                      >
-                        <span
+                  return (
+                    <motion.div
+                      key={friend.id}
+                      initial={{ opacity: 0, x: -20, rotate: -3 }}
+                      animate={{
+                        opacity: 1,
+                        x: 0,
+                        rotate: index % 2 === 0 ? -0.6 : 0.6,
+                      }}
+                      transition={{ delay: index * 0.04 }}
+                      className="flex items-center gap-3 p-3 rounded-2xl"
+                      style={{
+                        background: 'var(--ink-accent-soft)',
+                        border: '1px solid var(--ink-line)',
+                        boxShadow: 'none',
+                      }}
+                    >
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="h-11 w-11 ring-2 ring-[var(--ink-line)]">
+                          <AvatarImage src={friend.avatar_url || undefined} />
+                          <AvatarFallback
+                            className="font-black text-white text-base"
+                            style={{ background: 'var(--ink-accent)' }}
+                          >
+                            {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div
                           className={cn(
-                            'w-1.5 h-1.5 rounded-full',
+                            'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--ink-line)]',
                             isInGame
                               ? 'bg-amber-400'
                               : isOnline
@@ -248,56 +214,279 @@ const LobbyInvitePanelComponent = ({
                                 : 'bg-zinc-500',
                           )}
                         />
-                        {isInGame
-                          ? 'EN PARTIE'
-                          : isOnline
-                            ? 'EN LIGNE'
-                            : 'HORS LIGNE'}
                       </div>
-                    </div>
 
-                    <motion.button
-                      whileHover={!isInvited ? { scale: 1.05, rotate: -2 } : undefined}
-                      whileTap={!isInvited ? { scale: 0.95 } : undefined}
-                      disabled={isInvited || invitationLoading}
-                      onClick={() =>
-                        handleInvite(friend.user_id, friend.display_name || 'Joueur')
-                      }
-                      className={cn(
-                        'h-10 min-w-[90px] px-3 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 transition-opacity',
-                        isInvited && 'opacity-60',
-                      )}
-                      style={{
-                        background: isInvited
-                          ? 'linear-gradient(180deg, #34d399, #059669)'
-                          : 'linear-gradient(180deg, #fbbf24, #d97706)',
-                        border: '1px solid var(--ink-line)',
-                        boxShadow: 'none',
-                        color: 'white',
-                        fontFamily: "'Outfit', sans-serif",
-                        textShadow:
-                          'none',
-                      }}
-                    >
-                      {isInvited ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4" strokeWidth={3} />
-                          <span className="text-base">Envoyé</span>
-                        </>
-                      ) : invitationLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4" strokeWidth={2.5} />
-                          <span className="text-base">Inviter</span>
-                        </>
-                      )}
-                    </motion.button>
-                  </motion.div>
-                );
-              })
-            )}
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className="font-black text-lg text-white truncate leading-none"
+                          style={{ fontFamily: "'Outfit', sans-serif" }}
+                        >
+                          {friend.display_name || 'Joueur'}
+                        </div>
+                        <div
+                          className={cn(
+                            'text-xs font-bold mt-0.5 flex items-center gap-1',
+                            isInGame
+                              ? 'text-amber-300'
+                              : isOnline
+                                ? 'text-emerald-300'
+                                : 'text-white/40',
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'w-1.5 h-1.5 rounded-full',
+                              isInGame
+                                ? 'bg-amber-400'
+                                : isOnline
+                                  ? 'bg-emerald-400'
+                                  : 'bg-zinc-500',
+                            )}
+                          />
+                          {isInGame
+                            ? 'EN PARTIE'
+                            : isOnline
+                              ? 'EN LIGNE'
+                              : 'HORS LIGNE'}
+                        </div>
+                      </div>
+
+                      <motion.button
+                        whileHover={!isInvited ? { scale: 1.05, rotate: -2 } : undefined}
+                        whileTap={!isInvited ? { scale: 0.95 } : undefined}
+                        disabled={isInvited || invitationLoading}
+                        onClick={() =>
+                          handleInvite(friend.user_id, friend.display_name || 'Joueur')
+                        }
+                        className={cn(
+                          'h-10 min-w-[90px] px-3 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 transition-opacity',
+                          isInvited && 'opacity-60',
+                        )}
+                        style={{
+                          background: isInvited
+                            ? 'linear-gradient(180deg, #34d399, #059669)'
+                            : 'linear-gradient(180deg, #fbbf24, #d97706)',
+                          border: '1px solid var(--ink-line)',
+                          boxShadow: 'none',
+                          color: 'white',
+                          fontFamily: "'Outfit', sans-serif",
+                          textShadow: 'none',
+                        }}
+                      >
+                        {isInvited ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" strokeWidth={3} />
+                            <span className="text-base">Envoyé</span>
+                          </>
+                        ) : invitationLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4" strokeWidth={2.5} />
+                            <span className="text-base">Inviter</span>
+                          </>
+                        )}
+                      </motion.button>
+                    </motion.div>
+                  );
+                })
+              )}
+            </div>
           </div>
+        );
+      }
+
+      return (
+        <div className="ik-invite-browser">
+          <aside className="ik-invite-brief">
+            <div>
+              <span className="ik-invite-kicker">Ton salon</span>
+              <h3>La prochaine partie commence ici.</h3>
+              <p>
+                Choisis les amis qui rejoignent la troupe. Leur invitation reste
+                disponible pendant deux minutes.
+              </p>
+            </div>
+
+            <div className="ik-invite-code" aria-label={`Code du salon ${lobbyCode}`}>
+              <span>Code du salon</span>
+              <strong>{lobbyCode}</strong>
+            </div>
+
+            <div className="ik-invite-capacity">
+              <div>
+                <span>Déjà là</span>
+                <strong>{players.length}</strong>
+              </div>
+              <div>
+                <span>Places libres</span>
+                <strong>{emptySlots}</strong>
+              </div>
+            </div>
+
+            <div className="ik-invite-capacity-track" aria-hidden="true">
+              <span
+                style={{
+                  width: `${Math.min(100, (players.length / maxPlayers) * 100)}%`,
+                }}
+              />
+            </div>
+
+            <div className="ik-invite-crew">
+              <div className="ik-invite-crew-stack" aria-hidden="true">
+                {players.slice(0, 4).map((player, index) => (
+                  <span
+                    key={player.id}
+                    className={cn('ik-invite-crew-avatar', player.isHost && 'is-host')}
+                    style={{ zIndex: 5 - index }}
+                  >
+                    {player.name.charAt(0).toUpperCase()}
+                  </span>
+                ))}
+                {players.length > 4 && (
+                  <span className="ik-invite-crew-avatar is-more">
+                    +{players.length - 4}
+                  </span>
+                )}
+              </div>
+              <p>
+                {players.length === 1
+                  ? 'Tu attends encore ta troupe.'
+                  : `${players.length} joueurs sont prêts.`}
+              </p>
+            </div>
+          </aside>
+
+          <section className="ik-invite-directory" aria-label="Liste des amis à inviter">
+            <header className="ik-invite-directory-head">
+              <div>
+                <span className="ik-invite-kicker">Carnet d'amis</span>
+                <h3>Qui rejoint la troupe&nbsp;?</h3>
+                <p>En ligne, en partie ou hors ligne : tu peux prévenir tout le monde.</p>
+              </div>
+              <span className="ik-invite-count" aria-label={`${availableFriends.length} amis disponibles`}>
+                {availableFriends.length}
+              </span>
+            </header>
+
+            <label className="ik-invite-search">
+              <Search aria-hidden="true" />
+              <span className="sr-only">Rechercher un ami</span>
+              <Input
+                aria-label="Rechercher un ami"
+                placeholder="Rechercher par pseudo…"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+            </label>
+
+            <div
+              className="ik-invite-friends game-scroll custom-scrollbar"
+              role="list"
+              aria-live="polite"
+            >
+              {friendsLoading ? (
+                <div className="ik-invite-state" role="status">
+                  <span className="ik-invite-state-icon">
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                  </span>
+                  <strong>On ouvre ton carnet…</strong>
+                  <p>Un instant, tes amis arrivent.</p>
+                </div>
+              ) : availableFriends.length === 0 ? (
+                <div className="ik-invite-state">
+                  <span className="ik-invite-state-icon">
+                    {searchQuery ? <Search aria-hidden="true" /> : <Users aria-hidden="true" />}
+                  </span>
+                  <strong>{searchQuery ? 'Personne sous ce pseudo.' : 'Ta liste est encore vide.'}</strong>
+                  <p>
+                    {searchQuery
+                      ? 'Essaie un autre nom ou efface ta recherche.'
+                      : 'Ajoute des joueurs depuis Social, puis retrouve-les ici.'}
+                  </p>
+                </div>
+              ) : (
+                availableFriends.map((friend, index) => {
+                  const status = getUserStatus(friend.user_id);
+                  const isOnline = status.online;
+                  const isInvited = invitedFriends.has(friend.user_id);
+                  const isInGame = !!status.lobbyCode;
+                  const statusLabel = isInGame
+                    ? 'En partie'
+                    : isOnline
+                      ? 'En ligne'
+                      : 'Hors ligne';
+
+                  return (
+                    <motion.article
+                      key={friend.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(index * 0.035, 0.2) }}
+                      className={cn(
+                        'ik-invite-friend',
+                        isInGame ? 'is-playing' : isOnline ? 'is-online' : 'is-offline',
+                      )}
+                      role="listitem"
+                    >
+                      <div className="ik-invite-friend-avatar">
+                        <Avatar className="ik-invite-avatar">
+                          <AvatarImage src={friend.avatar_url || undefined} />
+                          <AvatarFallback className="ik-invite-avatar-fallback">
+                            {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="ik-invite-presence-dot" aria-hidden="true" />
+                      </div>
+
+                      <div className="ik-invite-friend-copy">
+                        <strong title={friend.display_name || 'Joueur'}>
+                          {friend.display_name || 'Joueur'}
+                        </strong>
+                        <span>
+                          <i aria-hidden="true" />
+                          {statusLabel}
+                        </span>
+                      </div>
+
+                      <motion.button
+                        type="button"
+                        whileHover={!isInvited ? { y: -2 } : undefined}
+                        whileTap={!isInvited ? { y: 2 } : undefined}
+                        disabled={isInvited || invitationLoading}
+                        onClick={() =>
+                          handleInvite(friend.user_id, friend.display_name || 'Joueur')
+                        }
+                        className={cn('ik-invite-send menu-focus', isInvited && 'is-sent')}
+                        aria-label={
+                          isInvited
+                            ? `Invitation envoyée à ${friend.display_name || 'Joueur'}`
+                            : `Inviter ${friend.display_name || 'Joueur'}`
+                        }
+                      >
+                        {isInvited ? (
+                          <>
+                            <CheckCircle2 aria-hidden="true" />
+                            <span>Envoyé</span>
+                          </>
+                        ) : invitationLoading ? (
+                          <>
+                            <Loader2 className="animate-spin" aria-hidden="true" />
+                            <span>Envoi…</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send aria-hidden="true" />
+                            <span>Inviter</span>
+                          </>
+                        )}
+                      </motion.button>
+                    </motion.article>
+                  );
+                })
+              )}
+            </div>
+          </section>
         </div>
       );
     }

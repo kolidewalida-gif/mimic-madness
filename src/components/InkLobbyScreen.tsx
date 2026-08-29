@@ -369,11 +369,11 @@ export const InkLobbyScreen = ({
     <>
       {/* ============== INVITE PANEL ============== */}
       <InkModal
-        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay' : undefined}
+        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay ik-invite-overlay' : undefined}
         isOpen={showInvitePanel}
         onClose={() => setShowInvitePanel(false)}
         title="Inviter des amis"
-        subtitle={`${players.length}/${MAX_PLAYERS} joueurs`}
+        subtitle={`${players.length}/${MAX_PLAYERS} joueurs · ${Math.max(0, MAX_PLAYERS - players.length)} places libres`}
         icon={<Link2 className="h-5 w-5" />}
       >
         <LobbyInvitePanel
@@ -383,6 +383,7 @@ export const InkLobbyScreen = ({
           maxPlayers={MAX_PLAYERS}
           isHost={isHost}
           inlineMode
+          isInkBeta={isInkBeta}
         />
       </InkModal>
 

@@ -973,6 +973,7 @@ const Index = () => {
           onAccept={handleAcceptInvitation}
           onDecline={handleDeclineInvitation}
           onClose={handleCloseInvitation}
+          variant={theme === 'inkbeta' ? 'inkBeta' : 'default'}
         />
       )}
     </div>
