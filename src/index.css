@@ -23109,3 +23109,561 @@ body.inkbeta-mode .ibt-podium[data-count='2'] .ibt-podium-player {
     transition-duration: .01ms !important;
   }
 }
+
+/* ============================================================
+   INK BETA — BLINDTEST GAME STAGE
+   ------------------------------------------------------------
+   La manche forme désormais une scène unique : classement, contenu et
+   volume partagent le même axe. Le lecteur d'ambiance étant masqué dans ce
+   mode, aucune réserve artificielle n'est conservée en bas de l'écran.
+   ============================================================ */
+body.inkbeta-mode .ibt-root {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+body.inkbeta-mode .ibt-header {
+  flex: 0 0 auto;
+  min-height: 4.75rem;
+  background:
+    linear-gradient(90deg, rgba(255, 98, 182, 0.08), transparent 30%, transparent 70%, rgba(45, 242, 208, 0.06)),
+    rgba(11, 7, 20, 0.94);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+body.inkbeta-mode .ibt-main {
+  gap: 0.65rem;
+  justify-content: center;
+  padding-top: clamp(0.7rem, 1.6vh, 1.25rem);
+  padding-bottom: max(clamp(0.75rem, 1.6vh, 1.25rem), env(safe-area-inset-bottom)) !important;
+}
+
+body.inkbeta-mode .ibt-stage {
+  width: min(100%, 98rem);
+  margin: auto;
+}
+
+/* The two game cards fill the centre column instead of retaining their old
+   narrow max-width. */
+body.inkbeta-mode .ibt-stage > :is(.ibt-listen, .ibt-reveal) {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0;
+  margin: 0;
+  border-color: rgba(255, 98, 182, 0.42);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 12% 0, rgba(255, 98, 182, 0.1), transparent 35%),
+    radial-gradient(circle at 100% 100%, rgba(45, 242, 208, 0.07), transparent 38%),
+    rgba(15, 9, 25, 0.96);
+  box-shadow:
+    0 8px 0 rgba(45, 10, 55, 0.74),
+    0 26px 70px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Listening console: one deliberate media column and one answer column. */
+body.inkbeta-mode .ibt-listen {
+  min-height: min(34rem, calc(100dvh - 7.5rem));
+  grid-template-columns: minmax(17rem, 0.78fr) minmax(0, 1.22fr) !important;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: center;
+  align-items: center;
+  gap: 0.9rem 1.5rem !important;
+  padding: clamp(1rem, 2vw, 1.55rem) !important;
+}
+
+body.inkbeta-mode .ibt-listen-status,
+body.inkbeta-mode .ibt-double {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+body.inkbeta-mode .ibt-listen-player {
+  grid-column: 1;
+  align-self: center;
+  gap: 0.75rem;
+}
+
+body.inkbeta-mode .ibt-listen-answer-zone {
+  grid-column: 2;
+  align-self: stretch;
+  justify-content: center;
+  gap: 1rem;
+}
+
+body.inkbeta-mode .ibt-listen .ibt-turntable {
+  width: clamp(14rem, 19vw, 18rem) !important;
+  height: clamp(14rem, 19vw, 18rem) !important;
+  grid-column: auto;
+  grid-row: auto;
+}
+
+body.inkbeta-mode .ibt-listen .ibt-options {
+  width: 100%;
+  grid-column: auto;
+  grid-row: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0.75rem;
+}
+
+body.inkbeta-mode .ibt-listen .ibt-options button {
+  min-height: clamp(5.5rem, 10vh, 7.25rem);
+  padding: 1rem 1.15rem;
+  border-color: rgba(255, 255, 255, 0.17) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  font-size: clamp(0.95rem, 1.25vw, 1.15rem);
+}
+
+body.inkbeta-mode .ibt-listen .ibt-options button:hover:not(:disabled) {
+  border-color: rgba(45, 242, 208, 0.7) !important;
+  background: rgba(45, 242, 208, 0.08) !important;
+}
+
+body.inkbeta-mode :is(.ibt-sound-status, .ibt-streak, .ibt-hint, .ibt-answer-feedback) {
+  max-width: 100%;
+  margin: 0;
+  text-align: center;
+}
+
+/* Reveal: artwork on the left; title, choices and personal result on the
+   right. This removes the empty lower half visible in the former layout. */
+body.inkbeta-mode .ibt-reveal {
+  display: grid !important;
+  min-height: min(34rem, calc(100dvh - 7.5rem));
+  grid-template-columns: minmax(18rem, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: clamp(1.25rem, 2.3vw, 2.25rem) !important;
+  padding: clamp(1.1rem, 2vw, 1.6rem) !important;
+}
+
+body.inkbeta-mode .ibt-stage .ibt-reveal > .ibt-reveal-media {
+  display: flex !important;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+body.inkbeta-mode .ibt-stage .ibt-reveal > .ibt-reveal-media > div:first-child {
+  width: clamp(17rem, 24vw, 23rem) !important;
+  height: clamp(17rem, 24vw, 23rem) !important;
+  max-width: 100%;
+  border-width: 2px !important;
+  border-radius: 22px;
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+body.inkbeta-mode .ibt-reveal-content {
+  min-width: 0;
+  align-items: stretch;
+  justify-content: center;
+  gap: 1rem;
+}
+
+body.inkbeta-mode .ibt-reveal-content > div:first-child {
+  padding: 0;
+  text-align: left;
+}
+
+body.inkbeta-mode .ibt-reveal-content h2 {
+  max-width: 18ch;
+  margin: 0;
+  font-family: var(--ik-display);
+  font-size: clamp(2.3rem, 3.5vw, 4.5rem);
+  font-weight: 400;
+  letter-spacing: 0.025em;
+  line-height: 0.94;
+  text-wrap: balance;
+  text-transform: none;
+}
+
+body.inkbeta-mode .ibt-reveal-content > div:first-child p {
+  margin-top: 0.7rem;
+  color: rgba(255, 255, 255, 0.56) !important;
+  font-size: clamp(0.75rem, 1vw, 0.9rem);
+}
+
+body.inkbeta-mode .ibt-reveal-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0.65rem;
+}
+
+body.inkbeta-mode .ibt-reveal-options > div {
+  display: flex;
+  min-height: 4.9rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem 1.1rem;
+  border-width: 2px !important;
+  border-radius: 13px !important;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+body.inkbeta-mode .ibt-reveal-feedback {
+  align-items: flex-start;
+}
+
+body.inkbeta-mode .ibt-reveal-feedback > div:first-child {
+  min-height: 2.9rem;
+  padding-inline: 1.15rem;
+  border-radius: 12px;
+}
+
+/* Desktop HUD: it is part of the stage grid, not attached to the viewport. */
+@media (min-width: 1181px) {
+  body.inkbeta-mode .ibt-stage {
+    display: grid !important;
+    grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr) 4rem;
+    align-items: center;
+    gap: clamp(0.8rem, 1.4vw, 1.4rem);
+  }
+
+  body.inkbeta-mode .ibt-stage > :is(.ibt-listen, .ibt-reveal) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  body.inkbeta-mode .ibt-live-board {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    display: flex !important;
+    width: 100% !important;
+    max-height: min(72dvh, 38rem) !important;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    transform: none !important;
+  }
+
+  body.inkbeta-mode .ibt-volume {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    display: flex !important;
+    width: 4rem;
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    justify-self: stretch;
+    padding: 0.9rem 0.65rem;
+    transform: none !important;
+  }
+
+  body.inkbeta-mode .ibt-score-strip {
+    display: none !important;
+  }
+}
+
+/* Medium widths keep the game card large and move scores to one compact row. */
+@media (max-width: 1180px) {
+  body.inkbeta-mode .ibt-main {
+    gap: 0.35rem;
+  }
+
+  body.inkbeta-mode .ibt-stage {
+    display: flex !important;
+    width: min(100%, 72rem);
+  }
+
+  body.inkbeta-mode .ibt-live-board,
+  body.inkbeta-mode .ibt-volume {
+    display: none !important;
+  }
+
+  body.inkbeta-mode .ibt-score-strip {
+    display: block !important;
+    order: -1;
+    width: min(100%, 72rem);
+    max-width: none;
+    padding: 0 0 0.65rem !important;
+  }
+
+  body.inkbeta-mode .ibt-score-strip > div {
+    justify-content: center;
+    padding-bottom: 0.2rem;
+  }
+}
+
+/* Phones and narrow tablets: one readable column, no floating controls. */
+@media (max-width: 760px) {
+  body.inkbeta-mode .ibt-header {
+    min-height: 3.8rem;
+  }
+
+  body.inkbeta-mode .ibt-main {
+    justify-content: flex-start;
+    padding: 0.55rem max(0.5rem, env(safe-area-inset-right)) max(0.65rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left)) !important;
+  }
+
+  body.inkbeta-mode .ibt-stage {
+    align-items: flex-start;
+  }
+
+  body.inkbeta-mode .ibt-stage > :is(.ibt-listen, .ibt-reveal) {
+    min-height: 0;
+    border-radius: 16px;
+    box-shadow: 0 5px 0 rgba(45, 10, 55, 0.74), 0 18px 42px rgba(0, 0, 0, 0.32);
+  }
+
+  body.inkbeta-mode .ibt-listen {
+    display: flex !important;
+    gap: 0.8rem !important;
+    padding: 0.75rem !important;
+  }
+
+  body.inkbeta-mode .ibt-listen-status {
+    order: 0;
+  }
+
+  body.inkbeta-mode .ibt-double {
+    order: 1;
+  }
+
+  body.inkbeta-mode .ibt-listen-player {
+    order: 2;
+    gap: 0.55rem;
+  }
+
+  body.inkbeta-mode .ibt-listen .ibt-turntable {
+    width: clamp(10rem, 43vw, 13rem) !important;
+    height: clamp(10rem, 43vw, 13rem) !important;
+    order: initial;
+  }
+
+  body.inkbeta-mode .ibt-listen-answer-zone {
+    order: 3;
+    gap: 0.65rem;
+  }
+
+  body.inkbeta-mode .ibt-listen .ibt-options {
+    order: initial;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.5rem;
+  }
+
+  body.inkbeta-mode .ibt-listen .ibt-options button {
+    min-height: 4.2rem;
+    padding: 0.7rem 0.55rem;
+    font-size: 0.88rem;
+  }
+
+  body.inkbeta-mode .ibt-reveal {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.9rem !important;
+    padding: 0.75rem !important;
+  }
+
+  body.inkbeta-mode .ibt-stage .ibt-reveal > .ibt-reveal-media {
+    flex: 0 0 auto;
+  }
+
+  body.inkbeta-mode .ibt-stage .ibt-reveal > .ibt-reveal-media > div:first-child {
+    width: min(56vw, 16rem) !important;
+    height: min(56vw, 16rem) !important;
+    border-radius: 16px;
+  }
+
+  body.inkbeta-mode .ibt-reveal-content {
+    gap: 0.7rem;
+  }
+
+  body.inkbeta-mode .ibt-reveal-content > div:first-child {
+    text-align: center;
+  }
+
+  body.inkbeta-mode .ibt-reveal-content h2 {
+    max-width: none;
+    font-size: clamp(1.75rem, 8vw, 2.55rem);
+    line-height: 1;
+  }
+
+  body.inkbeta-mode .ibt-reveal-content > div:first-child p {
+    margin-top: 0.35rem;
+  }
+
+  body.inkbeta-mode .ibt-reveal-options {
+    gap: 0.45rem;
+  }
+
+  body.inkbeta-mode .ibt-reveal-options > div {
+    min-height: 3.9rem;
+    padding: 0.65rem 0.55rem;
+    font-size: 0.85rem;
+  }
+
+  body.inkbeta-mode .ibt-reveal-feedback {
+    align-items: center;
+  }
+
+  body.inkbeta-mode .ibt-score-strip {
+    padding-bottom: 0.45rem !important;
+  }
+
+  body.inkbeta-mode .ibt-score-strip > div {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  body.inkbeta-mode .ibt-listen .ibt-options {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.inkbeta-mode .ibt-reveal-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  body.inkbeta-mode .ibt-stage .ibt-reveal > .ibt-reveal-media > div:first-child {
+    width: min(58vw, 12.75rem) !important;
+    height: min(58vw, 12.75rem) !important;
+  }
+}
+
+@media (max-width: 350px) {
+  body.inkbeta-mode .ibt-reveal-options {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* The medium-width score rail keeps audio control available after the
+   desktop volume column disappears. */
+body.inkbeta-mode .ibt-score-volume {
+  display: flex;
+  min-height: 2.25rem;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.inkbeta-mode .ibt-score-volume svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+body.inkbeta-mode .ibt-score-volume input {
+  width: clamp(5.5rem, 13vw, 8rem);
+  height: 1rem;
+  cursor: pointer;
+  accent-color: var(--ink-accent, #ff62b6);
+}
+
+body.inkbeta-mode .ibt-score-volume-value {
+  min-width: 1.6rem;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  body.inkbeta-mode .ibt-score-volume {
+    gap: 0.35rem;
+    padding-inline: 0.55rem;
+  }
+
+  body.inkbeta-mode .ibt-score-volume input {
+    width: 4.75rem;
+  }
+
+  body.inkbeta-mode .ibt-score-volume-value {
+    display: none;
+  }
+}
+
+/* Short landscape screens retain two columns but drop nonessential height. */
+@media (orientation: landscape) and (max-height: 600px) and (min-width: 620px) {
+  body.inkbeta-mode .ibt-main {
+    justify-content: flex-start;
+    padding-top: 0.35rem !important;
+    padding-bottom: max(0.35rem, env(safe-area-inset-bottom)) !important;
+  }
+
+  body.inkbeta-mode .ibt-stage > :is(.ibt-listen, .ibt-reveal) {
+    min-height: 0;
+  }
+
+  body.inkbeta-mode .ibt-listen,
+  body.inkbeta-mode .ibt-reveal {
+    display: grid !important;
+    padding: 0.55rem !important;
+  }
+
+  body.inkbeta-mode .ibt-listen {
+    grid-template-columns: 10.5rem minmax(0, 1fr) !important;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 0.35rem 0.75rem !important;
+  }
+
+  body.inkbeta-mode .ibt-listen-status {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  body.inkbeta-mode .ibt-double {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  body.inkbeta-mode .ibt-listen-player {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  body.inkbeta-mode .ibt-listen-answer-zone {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  body.inkbeta-mode .ibt-listen .ibt-turntable {
+    width: 10.5rem !important;
+    height: 10.5rem !important;
+  }
+
+  body.inkbeta-mode .ibt-listen .ibt-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  body.inkbeta-mode .ibt-listen .ibt-options button {
+    min-height: 3.25rem;
+    padding-block: 0.55rem;
+  }
+
+  body.inkbeta-mode .ibt-reveal {
+    grid-template-columns: 13rem minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ibt-stage .ibt-reveal > .ibt-reveal-media {
+    display: flex !important;
+  }
+
+  body.inkbeta-mode .ibt-stage .ibt-reveal > .ibt-reveal-media > div:first-child {
+    width: 12.5rem !important;
+    height: 12.5rem !important;
+  }
+
+  body.inkbeta-mode .ibt-reveal-content h2 {
+    font-size: clamp(1.7rem, 4vw, 2.6rem);
+  }
+
+  body.inkbeta-mode .ibt-reveal-options > div {
+    min-height: 3.35rem;
+    padding-block: 0.45rem;
+  }
+}

@@ -969,18 +969,20 @@ const Index = () => {
         </div>
       )}
       
-      {/* Only show music bar in non-ink mode */}
-      {!useInkMode && <MusicPlayerBar />}
+      {/* The Blindtest owns the audio focus: its iTunes preview must not
+          compete visually or acoustically with the global ambience player. */}
+      {!useInkMode && gameState !== "memorise" && <MusicPlayerBar />}
 
       {/*
-        Beta : le lecteur est monté ici, une seule fois, pour tous les écrans.
+        Beta : le lecteur est monté ici, une seule fois, pour tous les écrans
+        sauf le Blindtest, qui possède son propre extrait et son volume.
 
         Il vivait dans le pied de l'accueil, donc il disparaissait dès le salon
         et pendant toute la partie — impossible de couper ou changer la musique
-        sans revenir au menu. Monté au niveau de la page, il survit aux
+        sans revenir au menu. Monté au niveau de la page, il survit aux autres
         changements d'écran, et le socle fixe le garde visible partout.
       */}
-      {useBetaHome && (
+      {useBetaHome && gameState !== "memorise" && (
         <div className="ik-music-dock ik-music-dock--floating">
           <MusicPlayerBar placement="inline" variant="inkBeta" />
         </div>

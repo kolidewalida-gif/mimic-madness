@@ -193,9 +193,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
   const roundAudioStartedRef = useRef(false);
   const listenMsRef = useRef<number>(BLINDTEST_LISTEN_MS);
   const configRef = useRef<BlindtestConfig>({ rounds: BLINDTEST_ROUNDS, listenMs: BLINDTEST_LISTEN_MS, teams: false, hints: true, doublePoints: false });
-  const backgroundIsPlayingRef = useRef(isBackgroundPlaying);
-  const backgroundShouldResumeRef = useRef(false);
-  const backgroundAutoModeRef = useRef(autoMode);
+  const backgroundWasPlayingOnEntryRef = useRef(isBackgroundPlaying);
 
   useEffect(() => { playersRef.current = players; }, [players]);
   // Reset the artwork-failed flag whenever the round's track changes.
@@ -265,38 +263,27 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
     try { localStorage.setItem('mimic.blindtest.volume', String(volume)); } catch { /* noop */ }
   }, [volume, muted]);
 
-  useEffect(() => { backgroundIsPlayingRef.current = isBackgroundPlaying; }, [isBackgroundPlaying]);
   useEffect(() => {
-    backgroundAutoModeRef.current = autoMode;
-    if (!autoMode) {
-      backgroundShouldResumeRef.current = false;
-      clearSituationOverride('blindtest-game');
-    }
-  }, [autoMode, clearSituationOverride]);
+    if (isBackgroundPlaying) pauseBackground();
+  }, [isBackgroundPlaying, pauseBackground]);
 
-  // The iTunes extract must stay intelligible: pause only during listening,
-  // then restore the soundtrack if this screen was the code that paused it.
+  // The global player is intentionally absent on the Blindtest screen. Keep
+  // its ambience paused for the entire screen lifetime, while still updating
+  // the adaptive situation that will be used after returning to the shell.
   useEffect(() => {
-    if (!autoMode) return;
-    if (phase === 'listen') {
-      if (backgroundIsPlayingRef.current) backgroundShouldResumeRef.current = true;
-      pauseBackground();
+    if (!autoMode) {
+      clearSituationOverride('blindtest-game');
       return;
     }
-
     setSituation(phase === 'final' ? 'victory' : 'blindtest', {
       priority: 5,
       source: 'blindtest-game',
     });
-    if (backgroundShouldResumeRef.current) {
-      backgroundShouldResumeRef.current = false;
-      playBackground();
-    }
-  }, [phase, autoMode, pauseBackground, playBackground, setSituation]);
+  }, [phase, autoMode, clearSituationOverride, setSituation]);
 
   useEffect(() => () => {
     clearSituationOverride('blindtest-game');
-    if (backgroundAutoModeRef.current && backgroundShouldResumeRef.current) playBackground();
+    if (backgroundWasPlayingOnEntryRef.current) playBackground();
   }, [clearSituationOverride, playBackground]);
 
   /* ---------- countdown + urgency tick ---------- */
@@ -746,6 +733,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
     ? Math.max(0, Math.min(1, (deadline - Date.now()) / listenMs)) : 0;
   const urgent = phase === 'listen' && secondsLeft <= 5 && secondsLeft > 0 && myChoice == null;
   const connectedCount = players.filter((p) => !p.isDisconnected).length || players.length;
+  const isRoundActive = phase === 'listen' || phase === 'reveal';
 
   // Team aggregates (team mode).
   const teamScores = useMemo(() => {
@@ -773,7 +761,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
   return (
     <div
       className={cn(
-        'menu-surface menu-screen-safe h-screen w-full flex flex-col items-center text-white relative overflow-hidden',
+        'menu-surface menu-screen-safe game-viewport h-screen w-full flex flex-col items-center text-white relative overflow-hidden',
         isInkBeta && 'ibt-root',
       )}
       data-phase={phase}
@@ -839,7 +827,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
       {/* body */}
       <div className={cn('relative z-10 flex-1 w-full flex flex-col items-center justify-center px-4 min-h-0 overflow-y-auto custom-scrollbar py-4', isInkBeta && 'ibt-main')}>
-        <AnimatePresence mode="wait">
+        <div className={cn('w-full min-h-0 flex items-center justify-center', isInkBeta && isRoundActive && 'ibt-stage')}>
+          <AnimatePresence mode="wait">
           {/* INTRO — host category chooser */}
           {phase === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full flex justify-center">
@@ -883,7 +872,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                 </motion.div>
               )}
 
-              <div className="ibt-turntable relative w-52 h-52 flex items-center justify-center">
+              <div className="ibt-listen-player flex w-full flex-col items-center gap-4">
+                <div className="ibt-turntable relative w-52 h-52 flex items-center justify-center">
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
                   <defs>
                     <linearGradient id="btRing" x1="0" y1="0" x2="1" y2="1">
@@ -922,11 +912,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                   <Volume2 className="w-5 h-5" /> Activer le son 🔊
                 </motion.button>
               ) : (
-                <p className="text-sm -mt-1 font-medium" style={{ color: BT.sub }}>Écoute bien… c'est quoi ce son ? 🎧</p>
+                <p className="ibt-sound-status text-sm -mt-1 font-medium" style={{ color: BT.sub }}>Écoute bien… c'est quoi ce son ? 🎧</p>
               )}
 
               {myStreak >= 2 && (
-                <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-white text-sm font-black" style={{ background: `linear-gradient(90deg, ${BT.gold}, #ff9a3d)`, boxShadow: glow(BT.gold, 0.4) }}>
+                <div className="ibt-streak flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-white text-sm font-black" style={{ background: `linear-gradient(90deg, ${BT.gold}, #ff9a3d)`, boxShadow: glow(BT.gold, 0.4) }}>
                   <Flame className="w-4 h-4" /> Série x{myStreak}
                 </div>
               )}
@@ -935,7 +925,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                 <motion.div
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-2xl"
+                  className="ibt-hint flex items-center gap-2 px-4 py-2 rounded-2xl"
                   style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${BT.hair}` }}
                 >
                   <Lightbulb className="w-4 h-4 flex-shrink-0" style={{ color: BT.gold }} />
@@ -943,7 +933,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                 </motion.div>
               )}
 
-              <div className="ibt-options grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+              </div>
+
+              <div className="ibt-listen-answer-zone flex w-full flex-col items-center gap-4">
+                <div className="ibt-options grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                 {options.map((opt, i) => {
                   const selected = myChoice === i;
                   // Team mode: show teammates (my team, excluding me) who already
@@ -993,7 +986,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                 })}
               </div>
               {myChoice != null && (
-                <div className="flex flex-col items-center gap-1.5">
+                <div className="ibt-answer-feedback flex flex-col items-center gap-1.5">
                   {speedTier && myElapsed != null && (
                     <motion.div
                       initial={{ scale: 0.6, opacity: 0 }}
@@ -1007,6 +1000,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                   <p className="text-sm font-medium" style={{ color: BT.sub }}>Réponse envoyée ! En attente des autres…</p>
                 </div>
               )}
+              </div>
             </motion.div>
           )}
 
@@ -1017,7 +1011,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                 initial={{ scale: 0.5, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 transition={{ type: 'spring', damping: 13, stiffness: 200 }}
-                className="flex flex-col items-center gap-4"
+                className="ibt-reveal-media flex flex-col items-center gap-4"
               >
                 <div
                   className="relative rounded-[1.8rem] overflow-hidden flex items-center justify-center"
@@ -1060,6 +1054,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                     </span>
                   )}
                 </div>
+              </motion.div>
+
+              <div className="ibt-reveal-content flex w-full flex-col items-center gap-5">
                 <div className="text-center px-3">
                   <motion.h2
                     initial={{ y: 10, opacity: 0 }}
@@ -1072,9 +1069,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                   </motion.h2>
                   {track.subtitle && <p className="text-sm md:text-base mt-1.5 font-medium" style={{ color: BT.sub }}>{track.subtitle}</p>}
                 </div>
-              </motion.div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                <div className="ibt-reveal-options grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                 {options.map((opt, i) => {
                   const correct = i === answerIndex;
                   const mine = i === myChoice;
@@ -1130,7 +1126,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                     ? 'Mauvaise réponse'
                     : 'Pas de réponse';
                 return (
-                  <div className="flex flex-col items-center gap-2">
+                  <div className="ibt-reveal-feedback flex flex-col items-center gap-2">
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
@@ -1156,6 +1152,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                   </div>
                 );
               })()}
+              </div>
             </motion.div>
           )}
 
@@ -1290,12 +1287,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
             </motion.div>
             )
           )}
-        </AnimatePresence>
-      </div>
+          </AnimatePresence>
 
-      {/* left live scoreboard (real-time) */}
+          {/* live scoreboard (real-time) */}
       {(phase === 'listen' || phase === 'reveal') && standings.length > 0 && (
-        <div className={cn('hidden lg:flex fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col gap-1.5 w-56 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl', isInkBeta && 'ibt-live-board')} style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
+        <div className={cn(
+          'hidden lg:flex z-30 flex-col gap-1.5 max-h-[82vh] overflow-y-auto custom-scrollbar p-3 rounded-2xl',
+          isInkBeta ? 'ibt-live-board' : 'fixed left-3 top-1/2 -translate-y-1/2 w-56',
+        )} style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
           <div className="flex items-center gap-2 px-1 pb-2 mb-0.5" style={{ borderBottom: `1px solid ${BT.hair}` }}>
             <Trophy className="w-4 h-4" style={{ color: BT.gold }} />
             <span className="text-sm font-black text-white uppercase tracking-[0.15em]">Scores</span>
@@ -1343,7 +1342,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
       {/* vertical volume bar (persisted) */}
       {(phase === 'listen' || phase === 'reveal') && (
-        <div className={cn('fixed right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl', isInkBeta && 'ibt-volume')} style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
+        <div className={cn(
+          'z-30 flex flex-col items-center gap-3 px-3 py-4 rounded-2xl',
+          isInkBeta ? 'ibt-volume' : 'fixed right-3 top-1/2 -translate-y-1/2',
+        )} style={{ background: BT.panel, border: `1px solid ${BT.hair}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', backdropFilter: 'blur(14px)' }}>
           <button onClick={toggleMute} className="text-white/70 hover:text-white transition-colors" aria-label="Son">
             {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
@@ -1351,21 +1353,35 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
           <span className="text-xs font-black tabular-nums" style={{ color: BT.sub }}>{volume}</span>
         </div>
       )}
-
-      {/* live scoreboard strip (phones + portrait tablets — desktop/landscape uses the left panel) */}
-      {(phase === 'listen' || phase === 'reveal') && ranked.length > 0 && (
-        <div className="relative z-10 w-full max-w-2xl px-4 pb-4 lg:hidden">
-          <div className="flex gap-2 overflow-x-auto custom-scrollbar">
-            {ranked.slice(0, 6).map((p, i) => (
-              <div key={p.id} className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-white" style={{ background: i === 0 ? `${BT.gold}22` : 'rgba(255,255,255,0.05)', border: `1px solid ${i === 0 ? BT.gold : BT.hair}` }}>
-                {i === 0 && <Crown className="w-3.5 h-3.5" style={{ color: BT.gold }} fill="currentColor" />}
-                <span className="text-sm font-bold truncate max-w-[90px]">{p.name}</span>
-                <span className="text-sm font-black" style={{ color: i === 0 ? BT.gold : BT.cyan }}>{p.pts}</span>
-              </div>
-            ))}
-          </div>
         </div>
-      )}
+
+        {/* compact score strip for phones and medium-width screens */}
+        {isRoundActive && standings.length > 0 && (
+          <div className={cn('relative z-10 w-full max-w-5xl px-4 pb-4 lg:hidden', isInkBeta && 'ibt-score-strip')}>
+            <div className="flex gap-2 overflow-x-auto custom-scrollbar">
+              <label className="ibt-score-volume" title="Volume de l’extrait musical">
+                {muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={volume}
+                  onChange={(event) => setVolume(Number(event.target.value))}
+                  aria-label="Volume de l’extrait musical"
+                />
+                <span className="ibt-score-volume-value tabular-nums">{volume}</span>
+              </label>
+              {standings.slice(0, 8).map((p, i) => (
+                <div key={p.id} className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-white" style={{ background: i === 0 ? `${BT.gold}22` : 'rgba(255,255,255,0.05)', border: `1px solid ${i === 0 ? BT.gold : BT.hair}` }}>
+                  {i === 0 && <Crown className="w-3.5 h-3.5" style={{ color: BT.gold }} fill="currentColor" />}
+                  <span className="text-sm font-bold truncate max-w-[90px]">{p.name}</span>
+                  <span className="text-sm font-black" style={{ color: i === 0 ? BT.gold : BT.cyan }}>{p.pts}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -1390,9 +1406,21 @@ const VerticalVolume = ({ value, onChange }: { value: number; onChange: (v: numb
       onPointerMove={(e) => { if (dragging.current) setFromY(e.clientY); }}
       onPointerUp={() => { dragging.current = false; }}
       onPointerCancel={() => { dragging.current = false; }}
-      className="relative w-3 rounded-full cursor-pointer touch-none"
+      onKeyDown={(event) => {
+        let next = value;
+        if (event.key === 'ArrowUp' || event.key === 'ArrowRight') next = Math.min(100, value + 5);
+        else if (event.key === 'ArrowDown' || event.key === 'ArrowLeft') next = Math.max(0, value - 5);
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = 100;
+        else return;
+        event.preventDefault();
+        onChange(next);
+      }}
+      className="menu-focus relative w-3 rounded-full cursor-pointer touch-none"
       style={{ height: 150, background: 'rgba(255,255,255,0.08)', border: `1px solid ${BT.hair}` }}
       role="slider"
+      tabIndex={0}
+      aria-orientation="vertical"
       aria-valuenow={value}
       aria-valuemin={0}
       aria-valuemax={100}
