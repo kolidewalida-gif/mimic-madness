@@ -842,7 +842,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
           {/* LISTEN */}
           {phase === 'listen' && track && (
-            <motion.div key={`listen-${roundIndex}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={cn('w-full max-w-lg flex flex-col items-center gap-5', isInkBeta && 'ibt-listen')}>
+            <motion.div key={`listen-${roundIndex}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={cn('w-full flex flex-col items-center gap-5', isInkBeta && 'ibt-listen')}>
               <div className="ibt-listen-status flex items-center gap-2 flex-wrap justify-center">
                 <div className="flex items-center gap-1.5 font-black text-lg px-3.5 py-1.5 rounded-full text-white tabular-nums" style={{ background: urgent ? BT.rose : 'rgba(255,255,255,0.06)', border: `1px solid ${urgent ? BT.rose : BT.hair}`, boxShadow: urgent ? glow(BT.rose, 0.5) : 'none' }}>
                   <Clock className="w-4 h-4" /> {secondsLeft}s
@@ -873,6 +873,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
               )}
 
               <div className="ibt-listen-player flex w-full flex-col items-center gap-4">
+                <div className="ibt-listen-prompt">
+                  <span>À toi de jouer</span>
+                  <strong>Quel est ce titre&nbsp;?</strong>
+                </div>
                 <div className="ibt-turntable relative w-52 h-52 flex items-center justify-center">
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
                   <defs>
@@ -951,6 +955,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                       whileTap={myChoice == null ? { scale: 0.97 } : undefined}
                       onClick={() => answer(i)}
                       disabled={myChoice != null}
+                      data-selected={selected || undefined}
+                      data-teammates={mates.length > 0 || undefined}
                       className="relative py-4 px-4 rounded-2xl text-base sm:text-lg font-bold text-center leading-tight text-white overflow-hidden transition-colors"
                       style={{
                         border: `1px solid ${selected ? 'transparent' : mates.length ? TEAM_META[myTeam].color : BT.hair}`,
@@ -959,9 +965,11 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                         opacity: myChoice != null && !selected ? 0.45 : 1,
                       }}
                     >
-                      {opt}
+                      <span className="ibt-answer-index" aria-hidden="true">{String.fromCharCode(65 + i)}</span>
+                      <span className="ibt-answer-label">{opt}</span>
+                      <span className="ibt-answer-arrow" aria-hidden="true">↗</span>
                       {mates.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                        <div className="ibt-answer-mates mt-2 flex flex-wrap gap-1 justify-center">
                           {mates.map((p) => {
                             const av = getAvatar(p.id);
                             const img = av?.type === 'image' && av.imageUrl ? av.imageUrl : null;
@@ -1006,7 +1014,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
           {/* REVEAL */}
           {phase === 'reveal' && track && (
-            <motion.div key={`r-${roundIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={cn('w-full max-w-2xl flex flex-col items-center gap-5', isInkBeta && 'ibt-reveal')}>
+            <motion.div key={`r-${roundIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={cn('w-full flex flex-col items-center gap-5', isInkBeta && 'ibt-reveal')}>
               <motion.div
                 initial={{ scale: 0.5, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1078,6 +1086,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                   return (
                     <div
                       key={i}
+                      data-correct={correct || undefined}
+                      data-mine={mine || undefined}
                       className="relative py-3 px-4 rounded-2xl leading-tight text-white"
                       style={{
                         border: `1px solid ${correct ? BT.emerald : mine ? BT.rose : BT.hair}`,
