@@ -129,6 +129,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
   const [answerIndex, setAnswerIndex] = useState<number | null>(null);
   const [myChoice, setMyChoice] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [timerProgress, setTimerProgress] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [volume, setVolume] = useState<number>(() => {
@@ -288,18 +289,30 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
   /* ---------- countdown + urgency tick ---------- */
   useEffect(() => {
-    if (phase !== 'listen') { setSecondsLeft(0); return; }
-    // During the short sync buffer (deadline not set yet) show the full time.
-    if (!deadline) { setSecondsLeft(Math.ceil(listenMs / 1000)); return; }
+    if (phase !== 'listen') {
+      setSecondsLeft(0);
+      setTimerProgress(0);
+      return;
+    }
+    // During the short sync buffer (deadline not set yet) show a full timer.
+    if (!deadline) {
+      setSecondsLeft(Math.ceil(listenMs / 1000));
+      setTimerProgress(1);
+      return;
+    }
     const tick = () => {
-      const s = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      const remainingMs = Math.max(0, deadline - Date.now());
+      const s = Math.ceil(remainingMs / 1000);
       setSecondsLeft(s);
+      // Visual-only 10 fps progression. The authoritative deadline and scoring
+      // remain untouched; this only lets the liquid ring drain smoothly.
+      setTimerProgress(Math.max(0, Math.min(1, remainingMs / listenMs)));
       if (s <= 5 && s > 0 && s !== tickRef.current && myChoice == null) {
         tickRef.current = s; playSoundEffect('countdown', 0.25);
       }
     };
     tick();
-    const iv = setInterval(tick, 200);
+    const iv = setInterval(tick, 100);
     return () => clearInterval(iv);
   }, [phase, deadline, myChoice, listenMs]);
 
@@ -729,8 +742,10 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
     [players, scoreboard, currentPlayer.id],
   );
 
-  const progress = phase === 'listen' && deadline
-    ? Math.max(0, Math.min(1, (deadline - Date.now()) / listenMs)) : 0;
+  const progress = timerProgress;
+  const timerAngle = -Math.PI / 2 + progress * Math.PI * 2;
+  const timerHeadX = 50 + 44 * Math.cos(timerAngle);
+  const timerHeadY = 50 + 44 * Math.sin(timerAngle);
   const urgent = phase === 'listen' && secondsLeft <= 5 && secondsLeft > 0 && myChoice == null;
   const connectedCount = players.filter((p) => !p.isDisconnected).length || players.length;
   const isRoundActive = phase === 'listen' || phase === 'reveal';
@@ -856,8 +871,50 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                   </div>
 
                   <div className="bt4-player">
-                    <div className="bt4-record" data-urgent={urgent || undefined}>
-                      <div className="bt4-record-core"><Disc3 aria-hidden="true" /></div>
+                    <div
+                      className="bt4-record"
+                      data-playing={!mediaError && !needsSoundUnlock || undefined}
+                      data-urgent={urgent || undefined}
+                    >
+                      <svg className="bt4-record-ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+                        <circle className="bt4-record-ring-track" cx="50" cy="50" r="44" />
+                        <circle
+                          className="bt4-record-ring-glow"
+                          cx="50"
+                          cy="50"
+                          r="44"
+                          pathLength="1"
+                          strokeDasharray={`${progress} ${Math.max(0, 1 - progress)}`}
+                          transform="rotate(-90 50 50)"
+                        />
+                        <circle
+                          className="bt4-record-ring-liquid"
+                          cx="50"
+                          cy="50"
+                          r="44"
+                          pathLength="1"
+                          strokeDasharray={`${progress} ${Math.max(0, 1 - progress)}`}
+                          transform="rotate(-90 50 50)"
+                        />
+                        {progress > 0.005 && (
+                          <g className="bt4-record-ring-head">
+                            <circle cx={timerHeadX} cy={timerHeadY} r="3.5" />
+                            <circle cx={timerHeadX} cy={timerHeadY} r="1.25" />
+                          </g>
+                        )}
+                      </svg>
+                      <div className="bt4-vinyl" aria-hidden="true"><span /></div>
+                      <div
+                        className="bt4-record-time"
+                        role="timer"
+                        aria-live="off"
+                        aria-atomic="true"
+                        aria-label={`Temps restant : ${secondsLeft} seconde${secondsLeft > 1 ? 's' : ''}`}
+                      >
+                        <span>temps</span>
+                        <strong>{String(secondsLeft).padStart(2, '0')}</strong>
+                        <small>sec</small>
+                      </div>
                       <div className="bt4-wave" aria-hidden="true">{Array.from({ length: 17 }, (_, index) => <i key={index} />)}</div>
                     </div>
                     {mediaError ? (
@@ -869,13 +926,6 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                     )}
                     {hintText && myChoice == null && <div className="bt4-hint"><Lightbulb aria-hidden="true" /><strong>{hintText}</strong></div>}
                     {myStreak >= 2 && <div className="bt4-streak"><Flame aria-hidden="true" /> Série ×{myStreak}</div>}
-                  </div>
-
-                  <div className="bt4-clock" data-urgent={urgent || undefined}>
-                    <span>Temps restant</span>
-                    <strong>{String(secondsLeft).padStart(2, '0')}</strong>
-                    <small>secondes</small>
-                    <div className="bt4-clock-track"><i style={{ width: `${progress * 100}%` }} /></div>
                   </div>
                 </div>
 
