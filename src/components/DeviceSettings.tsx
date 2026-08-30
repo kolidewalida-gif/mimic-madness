@@ -11,10 +11,6 @@ import {
   X,
   Sparkles,
   Sliders,
-  Palette,
-  Check,
-  Moon,
-  Sun,
 } from "lucide-react";
 import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
@@ -22,10 +18,7 @@ import { NoiseReductionToggle } from "@/components/NoiseReductionToggle";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSoundEffectsVolume } from "@/hooks/useSoundEffectsVolume";
 import { motion, AnimatePresence } from "framer-motion";
-import { useInkMode } from "@/hooks/useInkMode";
 import { AvatarSettings } from "@/components/AvatarSettings";
-import { useTheme, themeConfig, ThemeType, visibleThemes } from "@/hooks/useTheme";
-import { useAdmin } from "@/hooks/useAdmin";
 import { cn } from "@/lib/utils";
 import { useRef, useState } from "react";
 
@@ -45,7 +38,7 @@ const GRAFFITI_TEXT_SHADOW =
 const GRAFFITI_TEXT_SHADOW_SM =
   "none";
 
-type Tab = "audio" | "volume" | "avatar" | "theme";
+type Tab = "audio" | "volume" | "avatar";
 
 export const DeviceSettings = ({
   onClose,
@@ -53,11 +46,6 @@ export const DeviceSettings = ({
   playerId,
   playerName,
 }: DeviceSettingsProps) => {
-  const { isInkMode } = useInkMode();
-  const { theme } = useTheme();
-  // The rich tabbed UI (with the Theme picker) is used for Ink AND the
-  // "Never Like That" 3D theme, so users can always switch themes from here.
-  const useRichUI = isInkMode || theme === 'inkbeta' || theme === 'neverlikethat';
   const {
     audioInputs,
     selectedAudioId,
@@ -85,76 +73,11 @@ export const DeviceSettings = ({
   const tabs: { id: Tab; label: string; description: string; icon: any; color: string }[] = [
     { id: "audio", label: "Audio", description: "Micro et test", icon: Mic, color: "var(--ink-accent)" },
     { id: "volume", label: "Volume", description: "Musique et effets", icon: Sliders, color: "#fbbf24" },
-    { id: "theme", label: "Thème", description: "Ambiance visuelle", icon: Palette, color: "#38bdf8" },
     ...(showAvatarTab
       ? [{ id: "avatar" as Tab, label: "Avatar", description: "Identité en jeu", icon: User, color: "var(--ink-text-dim)" }]
       : []),
   ];
 
-  /* =========================================================
-     LEGACY (NON-INK) RENDER — minimal kept for fallback
-  ========================================================= */
-  if (!useRichUI) {
-    return (
-      <div
-        className={cn(
-          "relative flex min-h-0 flex-col rounded-2xl border border-border bg-card/95 shadow-2xl backdrop-blur-xl",
-          !embedded && "h-full max-h-full overflow-hidden",
-        )}
-      >
-        {!embedded && (
-          <div className="flex items-center justify-between gap-3 border-b border-border/60 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
-              <SettingsIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold leading-tight">Paramètres</h3>
-              <p className="text-xs text-muted-foreground">Audio · Volume</p>
-            </div>
-          </div>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Fermer les paramètres"
-              className="menu-icon-control menu-focus w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-          )}
-          </div>
-        )}
-        <div
-          className={cn(
-            "space-y-4 p-5",
-            !embedded && "min-h-0 flex-1 overflow-y-auto",
-          )}
-        >
-          <AudioSection
-            audioInputs={audioInputs}
-            selectedAudioId={selectedAudioId}
-            isLoading={isLoading}
-            error={error}
-            onGetMediaStream={getMediaStream}
-            onStopStream={stopStream}
-            onChangeAudioInput={changeAudioInput}
-            isMicTesting={isMicTesting}
-            audioLevel={audioLevel}
-            noiseSuppressionEnabled={noiseSuppressionEnabled}
-            onStartMicTest={startMicTest}
-            onStopMicTest={stopMicTest}
-            onToggleNoiseSuppression={toggleNoiseSuppression}
-          />
-          <VolumeSection />
-        </div>
-      </div>
-    );
-  }
-
-  /* =========================================================
-     INK CARTOON RENDER — la bonne DA
-  ========================================================= */
   return (
     <div
       className={cn(
@@ -200,7 +123,7 @@ export const DeviceSettings = ({
               className="text-sm text-[var(--ink-accent-text)]/80 font-bold mt-0.5"
               style={{ fontFamily: "'Outfit', sans-serif" }}
             >
-              Audio · Volume · Thème{showAvatarTab ? " · Avatar" : ""}
+              Audio · Volume{showAvatarTab ? " · Avatar" : ""}
             </p>
           </div>
         </div>
@@ -370,19 +293,6 @@ export const DeviceSettings = ({
               <VolumeSection />
             </motion.div>
           )}
-          {activeTab === "theme" && (
-            <motion.div
-              key="theme"
-              id="ink-device-panel-theme"
-              role="tabpanel"
-              aria-labelledby="ink-device-tab-theme"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-            >
-              <ThemeSection />
-            </motion.div>
-          )}
           {activeTab === "avatar" && showAvatarTab && (
             <motion.div
               key="avatar"
@@ -495,7 +405,7 @@ const AudioSection = ({
     )}
 
     {/* MICROPHONE SECTION */}
-    <CartoonSection
+    <InkBetaSection
       icon={Mic}
       title="Microphone"
       accent="var(--ink-accent)"
@@ -557,7 +467,7 @@ const AudioSection = ({
         </Select>
       </div>
 
-      {/* Noise suppression — cartoon toggle */}
+      {/* Noise suppression — Ink Beta toggle */}
       <button
         type="button"
         onClick={onToggleNoiseSuppression}
@@ -582,7 +492,7 @@ const AudioSection = ({
             <small>Réduction légère fournie par ton appareil</small>
           </span>
         </div>
-        <CartoonSwitch enabled={noiseSuppressionEnabled} />
+        <InkBetaSwitch enabled={noiseSuppressionEnabled} />
       </button>
 
       {/* Mic test */}
@@ -681,7 +591,7 @@ const AudioSection = ({
         </div>
         <NoiseReductionToggle showLabel={false} compact />
       </div>
-    </CartoonSection>
+    </InkBetaSection>
 
     {/* DEVICE INFO */}
     <div
@@ -701,158 +611,6 @@ const AudioSection = ({
 );
 
 /* ============================================================
-   THEME SECTION — cartoon theme picker (les choix des thèmes)
-============================================================ */
-const ThemeSection = () => {
-  const {
-    theme, setTheme, inkModeEnabled, setInkModeEnabled, inkbetaDark, setInkbetaDark,
-  } = useTheme();
-  const { isAdmin, isLoading: isAdminLoading } = useAdmin();
-  /* Les thèmes réservés aux administrateurs n'apparaissent pas pour les autres. */
-  const themes = visibleThemes(isAdmin, isAdminLoading);
-
-  const handlePick = (t: ThemeType) => {
-    if (t === theme) return;
-    setTheme(t);
-    // Selecting Ink should also (re)enable Ink mode + replay intro on reload
-    if (t === 'ink') {
-      setInkModeEnabled(true);
-      sessionStorage.removeItem('ink-animation-seen');
-    }
-  };
-
-  return (
-    <CartoonSection
-      icon={Palette}
-      title="Thème"
-      accent="#38bdf8"
-      glow="rgba(56,189,248,0.5)"
-    >
-      <p
-        className="text-base font-bold text-white/65"
-        style={{ fontFamily: "'Outfit', sans-serif" }}
-      >
-        Choisis l'ambiance visuelle du jeu
-      </p>
-
-      <div className="grid grid-cols-2 gap-2.5">
-        {themes.map((t) => {
-          const config = themeConfig[t];
-          const isSelected = theme === t;
-          return (
-            <motion.button
-              key={t}
-              type="button"
-              onClick={() => handlePick(t)}
-              whileHover={{ scale: 1.03, y: -2, rotate: -0.5 }}
-              whileTap={{ scale: 0.96 }}
-              aria-pressed={isSelected}
-              className="ink-device-theme-card menu-focus relative rounded-2xl p-3 flex items-center gap-2.5 overflow-hidden text-left"
-              style={{
-                background: isSelected
-                  ? `linear-gradient(135deg, hsl(${config.colors.primary}), hsl(${config.colors.secondary}))`
-                  : "rgba(255,255,255,0.04)",
-                border: '1px solid var(--ink-line)',
-                boxShadow: isSelected
-                  ? `0 0 0 rgba(0,0,0,0), 0 0 18px hsl(${config.colors.primary} / 0.6)`
-                  : "0 0 0 rgba(0,0,0,0)",
-              }}
-            >
-              <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                style={{
-                  background: `linear-gradient(135deg, hsl(${config.colors.primary}), hsl(${config.colors.secondary}))`,
-                  border: '1px solid var(--ink-line)',
-                  boxShadow: 'none',
-                }}
-              >
-                {config.emoji}
-              </span>
-              <span
-                className={cn(
-                  "text-lg font-black leading-none truncate",
-                  isSelected ? "text-white" : "text-white/80",
-                )}
-                style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                }}
-              >
-                {config.name}
-              </span>
-              {isSelected && (
-                <span
-                  className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white flex items-center justify-center"
-                  style={{ boxShadow: 'none' }}
-                >
-                  <Check className="w-3.5 h-3.5 text-[var(--ink-line)]" strokeWidth={3} aria-hidden="true" />
-                </span>
-              )}
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/*
-        Bascule sombre, réservée à la beta : c'est le seul thème dont le CSS
-        porte une variante `inkbeta-dark`.
-      */}
-      {theme === 'inkbeta' && (
-        <button
-          type="button"
-          onClick={() => setInkbetaDark(!inkbetaDark)}
-          aria-pressed={inkbetaDark}
-          className="ink-device-toggle menu-focus w-full flex items-center justify-between p-3 rounded-2xl"
-          style={{
-            background: inkbetaDark
-              ? "linear-gradient(180deg, rgba(45,242,208,0.18), rgba(18,188,174,0.05))"
-              : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-            border: '1px solid var(--ink-line)',
-            boxShadow: 'none',
-          }}
-        >
-          <div className="flex items-center gap-2">
-            {inkbetaDark ? (
-              <Moon className="h-4 w-4 text-teal-200" aria-hidden="true" />
-            ) : (
-              <Sun className="h-4 w-4 text-white/60" aria-hidden="true" />
-            )}
-            <span className="flex flex-col items-start">
-              <span
-                className="text-base font-black text-white"
-                style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  textShadow: GRAFFITI_TEXT_SHADOW_SM,
-                }}
-              >
-                Mode sombre
-              </span>
-              <span
-                className="text-sm font-bold text-white/55"
-                style={{ fontFamily: "'Outfit', sans-serif" }}
-              >
-                {inkbetaDark ? 'Prune profond' : 'Violet vif'}
-              </span>
-            </span>
-          </div>
-          <CartoonSwitch enabled={inkbetaDark} />
-        </button>
-      )}
-
-      {inkModeEnabled && theme !== 'ink' && (
-        <p
-          className="text-sm font-bold text-amber-300/80 flex items-center gap-1.5"
-          style={{ fontFamily: "'Outfit', sans-serif" }}
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Mode Ink toujours actif — choisis « Ink » pour y revenir
-        </p>
-      )}
-    </CartoonSection>
-  );
-};
-
-/* ============================================================
    VOLUME SECTION
 ============================================================ */
 const VolumeSection = () => {
@@ -861,7 +619,7 @@ const VolumeSection = () => {
   const { volume: sfxVolume, setVolume: setSfxVolume } = useSoundEffectsVolume();
 
   return (
-    <CartoonSection
+    <InkBetaSection
       icon={Sliders}
       title="Volumes"
       accent="#fbbf24"
@@ -921,7 +679,7 @@ const VolumeSection = () => {
 
       {/* Quick presets */}
       <div className="flex gap-2">
-        <CartoonPresetButton
+        <InkBetaPresetButton
           label="Mute"
           color="#6b7280"
           onClick={() => {
@@ -929,7 +687,7 @@ const VolumeSection = () => {
             setSfxVolume(0);
           }}
         />
-        <CartoonPresetButton
+        <InkBetaPresetButton
           label="Bas"
           color="var(--ink-accent)"
           onClick={() => {
@@ -937,7 +695,7 @@ const VolumeSection = () => {
             setSfxVolume(0.25);
           }}
         />
-        <CartoonPresetButton
+        <InkBetaPresetButton
           label="Moyen"
           color="var(--ink-text-dim)"
           onClick={() => {
@@ -945,7 +703,7 @@ const VolumeSection = () => {
             setSfxVolume(0.5);
           }}
         />
-        <CartoonPresetButton
+        <InkBetaPresetButton
           label="Fort"
           color="#ef4444"
           onClick={() => {
@@ -954,11 +712,11 @@ const VolumeSection = () => {
           }}
         />
       </div>
-    </CartoonSection>
+    </InkBetaSection>
   );
 };
 
-const CartoonPresetButton = ({
+const InkBetaPresetButton = ({
   label,
   color,
   onClick,
@@ -986,9 +744,9 @@ const CartoonPresetButton = ({
 );
 
 /* ============================================================
-   Cartoon section wrapper
+   InkBeta section wrapper
 ============================================================ */
-const CartoonSection = ({
+const InkBetaSection = ({
   icon: Icon,
   title,
   accent,
@@ -1054,9 +812,9 @@ const CartoonSection = ({
 );
 
 /* ============================================================
-   Cartoon switch (visual only — controlled by parent button)
+   InkBeta switch (visual only — controlled by parent button)
 ============================================================ */
-const CartoonSwitch = ({ enabled }: { enabled: boolean }) => (
+const InkBetaSwitch = ({ enabled }: { enabled: boolean }) => (
   <span
     className="ink-device-switch relative inline-flex items-center w-12 h-7 rounded-full transition-colors"
     style={{

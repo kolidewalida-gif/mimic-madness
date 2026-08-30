@@ -1,9 +1,7 @@
 import { useState, useEffect, memo, useCallback, useMemo } from "react";
-import { DynamicBackground } from "@/components/DynamicBackground";
 import { ScreenTransition } from "@/components/ScreenTransition";
 import { MusicPlayerBar } from "@/components/MusicPlayerBar";
 import { GameInvitationNotification } from "@/components/GameInvitationNotification";
-import { SocialHub } from "@/components/SocialHub";
 import { SocialStudioDialog } from "@/components/SocialStudioDialog";
 import { useToast } from "@/hooks/use-toast";
 import { VideoClip } from "@/lib/videoStorageSupabase";
@@ -18,7 +16,6 @@ import { playSoundEffect } from "@/hooks/useSoundEffects";
 import { juice } from "@/lib/juice";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
-import { useTheme, isInkFamily, useRestrictedThemeGuard } from "@/hooks/useTheme";
 import { getGamePlayerId } from "@/hooks/usePersistentPlayerId";
 import { LobbyGameMode, soloBotCount } from "@/lib/gameModes";
 import { playSample } from "@/lib/sfx/samples";
@@ -41,14 +38,9 @@ import { useBackgroundMusic, type MusicSituation } from "@/hooks/useBackgroundMu
 import { Loader2 } from "lucide-react";
 import React from "react";
 
-// Lazy load heavy components
-const HomeScreen = React.lazy(() => import("@/components/HomeScreen").then(m => ({ default: m.HomeScreen })));
-const InkHomeScreen = React.lazy(() => import("@/components/InkHomeScreen").then(m => ({ default: m.InkHomeScreen })));
-/* Accueil Ink Beta public, chargé à la demande. */
+// Ink Beta is the only visual shell; heavy game screens remain lazy-loaded.
 const InkBetaHomeScreen = React.lazy(() => import("@/components/InkBetaHomeScreen").then(m => ({ default: m.InkBetaHomeScreen })));
 const InkPersonalHub = React.lazy(() => import("@/components/InkPersonalHub").then(m => ({ default: m.InkPersonalHub })));
-const NeonHomeScreen = React.lazy(() => import("@/components/neon/NeonHomeScreen").then(m => ({ default: m.NeonHomeScreen })));
-const LobbyScreen = React.lazy(() => import("@/components/LobbyScreen").then(m => ({ default: m.LobbyScreen })));
 const InkLobbyScreen = React.lazy(() => import("@/components/InkLobbyScreen").then(m => ({ default: m.InkLobbyScreen })));
 const VideoSubmissionScreen = React.lazy(() => import("@/components/VideoSubmissionScreen").then(m => ({ default: m.VideoSubmissionScreen })));
 const GamePlayScreen = React.lazy(loadGamePlayScreen);
@@ -59,9 +51,6 @@ const MonopolyGameScreen = React.lazy(loadMonopolyGameScreen);
 const UndercoverGameScreen = React.lazy(loadUndercoverGameScreen);
 const MemoriseGameScreen = React.lazy(loadMemoriseGameScreen);
 const MimicGameScreen = React.lazy(loadMimicGameScreen);
-const NeverLikeThatBackground = React.lazy(() => import("@/components/NeverLikeThatBackground").then(m => ({ default: m.NeverLikeThatBackground })));
-const NeverLikeThatLobbyScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatLobbyScreen").then(m => ({ default: m.NeverLikeThatLobbyScreen })));
-const NeverLikeThatHomeScreen = React.lazy(() => import("@/components/neverlikethat/NeverLikeThatHomeScreen").then(m => ({ default: m.NeverLikeThatHomeScreen })));
 
 interface Player {
   id: string;
@@ -121,11 +110,7 @@ const Index = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streakJustBumped]);
-  const { theme, inkModeEnabled } = useTheme();
-  const { isAdmin, isLoading: isAdminLoading } = useAdmin();
-
-  /* Garde générique pour d’éventuels futurs thèmes internes. */
-  useRestrictedThemeGuard(isAdmin, isAdminLoading);
+  const { isAdmin } = useAdmin();
   const [gameState, setGameState] = useState<GameState>("home");
   const [showInkSocial, setShowInkSocial] = useState(false);
   const [personalHub, setPersonalHub] = useState<PersonalHubState>({ isOpen: false, tab: 'profile' });
@@ -187,32 +172,14 @@ const Index = () => {
     setActiveSfxMode(inGame ? (gameMode as SfxMode) : null);
   }, [gameState, gameMode]);
   
-  // Determine if we should show Ink UI. There is no intro splash any more:
-  // the menu is the first thing the player sees.
-  /*
-   * La beta appartient à la famille ink, donc elle hérite de toute la
-   * plomberie : pas de fond animé, pas de barre musicale, Social Studio, lobby
-   * Ink. Choisir le thème suffit — on n'exige pas en plus `inkModeEnabled`,
-   * qui est le réglage historique du seul thème `ink`.
-   */
-  const useInkMode = theme === 'inkbeta' || (inkModeEnabled && isInkFamily(theme));
-  /* Ink Beta est public : choisir le thème suffit pour charger son accueil. */
-  const useBetaHome = theme === 'inkbeta';
-  // Neon Hub désactivé — on reste sur l'Ink polish
-  const useNeonHub = false;
-
-  // Les notifications ouvrent la destination correspondante de la coquille
-  // active : hub intégré en Beta, dialogue historique pour Ink stable.
+  // Ink Beta owns the single menu shell and its integrated destinations.
   useEffect(() => {
-    if (!useInkMode) return;
-
     const canOpenMenuSurface = () => gameState === 'home' || gameState === 'lobby';
     const openSocial = () => {
-      if (!canOpenMenuSurface()) return;
-      openInkSocial();
+      if (canOpenMenuSurface()) openInkSocial();
     };
     const openFriends = () => {
-      if (useBetaHome && canOpenMenuSurface()) openPersonalHub('friends');
+      if (canOpenMenuSurface()) openPersonalHub('friends');
     };
 
     window.addEventListener('mimic:open-social', openSocial);
@@ -221,13 +188,15 @@ const Index = () => {
       window.removeEventListener('mimic:open-social', openSocial);
       window.removeEventListener('mimic:open-friends', openFriends);
     };
-  }, [gameState, openInkSocial, openPersonalHub, useBetaHome, useInkMode]);
+  }, [gameState, openInkSocial, openPersonalHub]);
 
   useEffect(() => {
     const isMenuScreen = gameState === 'home' || gameState === 'lobby';
-    if (!useInkMode || !isMenuScreen) closeInkSocial();
-    if (!useBetaHome || !isMenuScreen) closePersonalHub();
-  }, [closeInkSocial, closePersonalHub, gameState, useBetaHome, useInkMode]);
+    if (!isMenuScreen) {
+      closeInkSocial();
+      closePersonalHub();
+    }
+  }, [closeInkSocial, closePersonalHub, gameState]);
   const { 
     lobby, 
     players, 
@@ -457,7 +426,7 @@ const Index = () => {
     
     setCurrentPlayer(hostPlayer);
     
-    // If a gameMode is provided (from InkHomeScreen), set it
+    // If a gameMode is provided by the Ink Beta home screen, set it
     if (gameMode) {
       setGameMode(gameMode as GameMode);
     }
@@ -700,107 +669,40 @@ const Index = () => {
     return (
       <React.Suspense fallback={<LoadingFallback />}>
         {gameState === "home" && (
-          theme === 'neverlikethat' ? (
-            <NeverLikeThatHomeScreen
-              onCreateGame={handleCreateGame}
-              onJoinGame={handleJoinGame}
-            />
-          ) : useBetaHome ? (
-            <InkBetaHomeScreen
-              onCreateGame={handleCreateGame}
-              onJoinGame={handleJoinGame}
-              onOpenPersonalHub={openPersonalHub}
-              onOpenSocial={openInkSocial}
-              isPersonalHubOpen={personalHub.isOpen}
-              isSocialOpen={showInkSocial}
-              notificationCount={personalHubUnreadCount}
-            />
-          ) : useNeonHub ? (
-            <NeonHomeScreen
-              onCreateGame={handleCreateGame}
-              onJoinGame={handleJoinGame}
-            />
-          ) : useInkMode ? (
-            <InkHomeScreen 
-              onCreateGame={handleCreateGame}
-              onJoinGame={handleJoinGame}
-              onOpenSocial={openInkSocial}
-              isSocialOpen={showInkSocial}
-            />
-          ) : (
-            <HomeScreen 
-              onCreateGame={handleCreateGame}
-              onJoinGame={handleJoinGame}
-            />
-          )
+          <InkBetaHomeScreen
+            onCreateGame={handleCreateGame}
+            onJoinGame={handleJoinGame}
+            onOpenPersonalHub={openPersonalHub}
+            onOpenSocial={openInkSocial}
+            isPersonalHubOpen={personalHub.isOpen}
+            isSocialOpen={showInkSocial}
+            notificationCount={personalHubUnreadCount}
+          />
         )}
 
         {gameState === "lobby" && currentPlayer && lobby && (
-          theme === 'neverlikethat' ? (
-            <NeverLikeThatLobbyScreen
-              players={players}
-              lobbyCode={lobby.code}
-              lobbyId={lobby.id}
-              isHost={currentPlayer.isHost}
-              currentPlayer={currentPlayer}
-              onStartGame={handleStartGame}
-              onLeaveGame={handleLeaveGame}
-              onKickPlayer={handleKickPlayer}
-              onTransferHost={handleTransferHost}
-            />
-          ) : (useInkMode || useNeonHub) ? (
-            useBetaHome ? (
-              <InkLobbyScreen
-                variant="inkBeta"
-                players={players}
-                lobbyCode={lobby.code}
-                lobbyId={lobby.id}
-                isHost={currentPlayer.isHost}
-                currentPlayer={currentPlayer}
-                onStartGame={handleStartGame}
-                onLeaveGame={handleLeaveGame}
-                onKickPlayer={handleKickPlayer}
-                onTransferHost={handleTransferHost}
-                onOpenPersonalHub={openPersonalHub}
-                onOpenSocial={openInkSocial}
-                isPersonalHubOpen={personalHub.isOpen}
-                isSocialOpen={showInkSocial}
-                notificationCount={personalHubUnreadCount}
-              />
-            ) : (
-              <InkLobbyScreen
-                variant="default"
-                players={players}
-                lobbyCode={lobby.code}
-                lobbyId={lobby.id}
-                isHost={currentPlayer.isHost}
-                currentPlayer={currentPlayer}
-                onStartGame={handleStartGame}
-                onLeaveGame={handleLeaveGame}
-                onKickPlayer={handleKickPlayer}
-                onTransferHost={handleTransferHost}
-                onOpenSocial={openInkSocial}
-                isSocialOpen={showInkSocial}
-              />
-            )
-          ) : (
-            <LobbyScreen
-              players={players}
-              lobbyCode={lobby.code}
-              lobbyId={lobby.id}
-              isHost={currentPlayer.isHost}
-              currentPlayer={currentPlayer}
-              onStartGame={handleStartGame}
-              onLeaveGame={handleLeaveGame}
-              onKickPlayer={handleKickPlayer}
-              onTransferHost={handleTransferHost}
-            />
-          )
+          <InkLobbyScreen
+            variant="inkBeta"
+            players={players}
+            lobbyCode={lobby.code}
+            lobbyId={lobby.id}
+            isHost={currentPlayer.isHost}
+            currentPlayer={currentPlayer}
+            onStartGame={handleStartGame}
+            onLeaveGame={handleLeaveGame}
+            onKickPlayer={handleKickPlayer}
+            onTransferHost={handleTransferHost}
+            onOpenPersonalHub={openPersonalHub}
+            onOpenSocial={openInkSocial}
+            isPersonalHubOpen={personalHub.isOpen}
+            isSocialOpen={showInkSocial}
+            notificationCount={personalHubUnreadCount}
+          />
         )}
 
         {gameState === "preparation" && currentPlayer && lobby && (
           <VideoSubmissionScreen
-            variant={useBetaHome ? 'inkBeta' : 'default'}
+            variant={'inkBeta'}
             currentPlayer={currentPlayer}
             lobbyId={lobby.id}
             players={players}
@@ -813,7 +715,7 @@ const Index = () => {
 
         {gameState === "playing" && currentPlayer && lobby && (
           <GamePlayScreen
-            variant={useBetaHome ? 'inkBeta' : 'default'}
+            variant={'inkBeta'}
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}
@@ -824,7 +726,7 @@ const Index = () => {
 
         {gameState === "quiz" && currentPlayer && lobby && (
           <QuizGameScreen
-            variant={useBetaHome ? 'inkBeta' : 'default'}
+            variant={'inkBeta'}
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}
@@ -834,7 +736,7 @@ const Index = () => {
 
         {gameState === "audiophone" && currentPlayer && lobby && (
           <AudioPhoneGameScreen
-            variant={useBetaHome ? 'inkBeta' : 'default'}
+            variant={'inkBeta'}
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}
@@ -871,7 +773,7 @@ const Index = () => {
 
         {gameState === "memorise" && currentPlayer && lobby && (
           <MemoriseGameScreen
-            variant={useBetaHome ? 'inkBeta' : 'default'}
+            variant={'inkBeta'}
             currentPlayer={currentPlayer}
             players={players}
             lobbyId={lobby.id}
@@ -890,19 +792,10 @@ const Index = () => {
 
       </React.Suspense>
     );
-  }, [gameState, currentPlayer, lobby, players, gameMode, useInkMode, useBetaHome, useNeonHub, theme, showInkSocial, personalHub.isOpen, personalHubUnreadCount, openInkSocial, openPersonalHub, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
+  }, [gameState, currentPlayer, lobby, players, gameMode, showInkSocial, personalHub.isOpen, personalHubUnreadCount, openInkSocial, openPersonalHub, handleCreateGame, handleJoinGame, handleStartGame, handleLeaveGame, handleKickPlayer, handleTransferHost, handleBackToLobby, handleSubmitChallenges, handleStartActualGame, handleEndGame]);
 
   return (
     <div className="game-viewport relative h-screen min-h-0 w-full overflow-hidden">
-      {/* Only show dynamic background in non-ink mode (and not when the 3D theme is active) */}
-      {!useInkMode && theme !== 'neverlikethat' && <DynamicBackground />}
-
-      {/* "Never Like That" theme — interactive 3D Spline background */}
-      {theme === 'neverlikethat' && (
-        <React.Suspense fallback={null}>
-          <NeverLikeThatBackground />
-        </React.Suspense>
-      )}
       
       {/* GamePlayScreen owns a strict durable-phase guard. Do not place it
           inside ScreenTransition: that component intentionally retains its
@@ -969,10 +862,6 @@ const Index = () => {
         </div>
       )}
       
-      {/* The Blindtest owns the audio focus: its iTunes preview must not
-          compete visually or acoustically with the global ambience player. */}
-      {!useInkMode && gameState !== "memorise" && <MusicPlayerBar />}
-
       {/*
         Beta : le lecteur est monté ici, une seule fois, pour tous les écrans
         sauf le Blindtest, qui possède son propre extrait et son volume.
@@ -982,13 +871,13 @@ const Index = () => {
         sans revenir au menu. Monté au niveau de la page, il survit aux autres
         changements d'écran, et le socle fixe le garde visible partout.
       */}
-      {useBetaHome && gameState !== "memorise" && (
+      {gameState !== "memorise" && (
         <div className="ik-music-dock ik-music-dock--floating">
           <MusicPlayerBar placement="inline" variant="inkBeta" />
         </div>
       )}
       
-      {useBetaHome && (gameState === 'home' || gameState === 'lobby') && (
+      {(gameState === 'home' || gameState === 'lobby') && (
         <React.Suspense fallback={null}>
           <InkPersonalHub
             isOpen={personalHub.isOpen}
@@ -1007,28 +896,8 @@ const Index = () => {
         </React.Suspense>
       )}
 
-      {useInkMode && (gameState === 'home' || gameState === 'lobby') && (
+      {(gameState === 'home' || gameState === 'lobby') && (
         <SocialStudioDialog isOpen={showInkSocial} onClose={closeInkSocial} />
-      )}
-
-      {/*
-        Hub social — réservé aux thèmes non-Ink.
-
-        En mode Ink il faisait doublon avec `InkFriendsSidebar`, atteignable par
-        le bouton « Mes amis » de l'en-tête : deux listes d'amis, deux façons
-        d'accepter une demande, deux boutons pour rejoindre un ami. Son bouton
-        flottant se posait par-dessus l'interface Ink, et ses couches `z-[55]`
-        / `z-[56]` passaient derrière les tiroirs Ink (`--ink-z-drawer`, 9210) :
-        ouvert depuis un tiroir, le panneau était invisible.
-      */}
-      {!useInkMode && (
-        <SocialHub
-          currentLobbyCode={lobby?.code}
-          onJoinFriend={(lobbyCode) => {
-            const storedName = localStorage.getItem('playerName') || profile?.display_name || `Joueur${Math.floor(Math.random() * 1000)}`;
-            handleJoinGame(storedName, lobbyCode);
-          }}
-        />
       )}
       
       {/* Premium Game Invitation Notification */}
@@ -1038,7 +907,7 @@ const Index = () => {
           onAccept={handleAcceptInvitation}
           onDecline={handleDeclineInvitation}
           onClose={handleCloseInvitation}
-          variant={theme === 'inkbeta' ? 'inkBeta' : 'default'}
+          variant="inkBeta"
         />
       )}
     </div>

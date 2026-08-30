@@ -1,61 +1,49 @@
-/**
- * Accès public au thème Ink Beta, désormais expérience par défaut.
- */
-import { describe, it, expect } from 'vitest';
-import {
-  themes,
-  visibleThemes,
-  isAdminOnlyTheme,
-  isInkFamily,
-  ADMIN_ONLY_THEMES,
-  DEFAULT_THEME,
-  type ThemeType,
-} from '../useTheme';
+import { createElement } from 'react';
+import { cleanup, render } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { DEFAULT_THEME, INK_BETA_THEME, ThemeProvider } from '../useTheme';
 
-describe('thème Ink Beta public', () => {
-  it('est le thème par défaut des nouveaux visiteurs', () => {
+beforeEach(() => {
+  localStorage.clear();
+  document.body.className = 'theme-neon cartoon-mode beta-paper inkbeta-dark';
+});
+
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+  document.body.className = '';
+});
+
+describe('thème Ink Beta unique', () => {
+  it('est la seule identité visuelle déclarée', () => {
     expect(DEFAULT_THEME).toBe('inkbeta');
+    expect(INK_BETA_THEME.name).toBe('Ink Beta');
   });
 
-  it('n’est plus réservé aux administrateurs', () => {
-    expect(isAdminOnlyTheme('inkbeta')).toBe(false);
-    expect(ADMIN_ONLY_THEMES).not.toContain('inkbeta');
+  it('remplace toutes les classes de thèmes historiques', () => {
+    render(createElement(ThemeProvider, { children: createElement('div') }));
+
+    expect(document.body.classList.contains('theme-inkbeta')).toBe(true);
+    expect(document.body.classList.contains('ink-mode')).toBe(true);
+    expect(document.body.classList.contains('inkbeta-mode')).toBe(true);
+    expect(document.body.classList.contains('beta-ink')).toBe(true);
+    expect(document.body.classList.contains('theme-neon')).toBe(false);
+    expect(document.body.classList.contains('cartoon-mode')).toBe(false);
+    expect(document.body.classList.contains('beta-paper')).toBe(false);
+    expect(document.body.classList.contains('inkbeta-dark')).toBe(false);
   });
 
-  it('reste visible pour tous les visiteurs', () => {
-    expect(visibleThemes(true, false)).toContain('inkbeta');
-    expect(visibleThemes(false, false)).toContain('inkbeta');
-  });
+  it('ignore et supprime les anciennes préférences sauvegardées', () => {
+    localStorage.setItem('game-theme', 'neverlikethat');
+    localStorage.setItem('ink-mode-enabled', 'false');
+    localStorage.setItem('ink-beta-surface', 'paper');
+    localStorage.setItem('inkbeta-dark', 'true');
 
-  it('ne filtre aucun thème public', () => {
-    expect(visibleThemes(false, false)).toEqual(themes);
-  });
+    render(createElement(ThemeProvider, { children: createElement('div') }));
 
-  it('garde la même liste pendant la résolution du rôle', () => {
-    expect(visibleThemes(false, true)).toEqual(themes);
-  });
-});
-
-describe('famille ink', () => {
-  it('regroupe ink et inkbeta', () => {
-    expect(isInkFamily('ink')).toBe(true);
-    expect(isInkFamily('inkbeta')).toBe(true);
-  });
-
-  it('exclut les autres thèmes', () => {
-    for (const theme of ['neon', 'cosmic', 'fire', 'ice', 'cartoon', 'neverlikethat'] as ThemeType[]) {
-      expect(isInkFamily(theme)).toBe(false);
-    }
-  });
-});
-
-describe('nom du thème beta', () => {
-  it("ne contient pas de tiret, sinon le nettoyage des classes body laisse un résidu", () => {
-    // ThemeProvider fait `className.replace(/theme-\w+/g, '')`, et `\w` ne
-    // matche pas le tiret : `theme-ink-beta` ne serait rogné qu'en `-beta`.
-    for (const theme of themes) {
-      expect(theme).not.toContain('-');
-      expect(`theme-${theme}`.replace(/theme-\w+/g, '').trim()).toBe('');
-    }
+    expect(localStorage.getItem('game-theme')).toBeNull();
+    expect(localStorage.getItem('ink-mode-enabled')).toBeNull();
+    expect(localStorage.getItem('ink-beta-surface')).toBeNull();
+    expect(localStorage.getItem('inkbeta-dark')).toBeNull();
   });
 });

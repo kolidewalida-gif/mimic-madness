@@ -274,7 +274,7 @@ export const QuizWaitingScreen = memo(
                 : 'w-full max-w-2xl space-y-3 mb-4 sm:space-y-4 sm:mb-6'}
             >
               {/* Category */}
-              <CartoonSection
+              <InkBetaSection
                 icon={Sparkles}
                 title="Catégorie"
                 accent={ACCENT}
@@ -285,10 +285,10 @@ export const QuizWaitingScreen = memo(
                   onCategoryChange={onCategoryChange}
                   disabled={isLoading}
                 />
-              </CartoonSection>
+              </InkBetaSection>
 
               {/* Settings */}
-              <CartoonSection
+              <InkBetaSection
                 icon={SettingsIcon}
                 title="Options"
                 accent="var(--ink-accent)"
@@ -299,7 +299,7 @@ export const QuizWaitingScreen = memo(
                   onChange={onSettingsChange}
                   disabled={isLoading}
                 />
-              </CartoonSection>
+              </InkBetaSection>
             </motion.div>
           )}
 
@@ -426,9 +426,9 @@ export const QuizWaitingScreen = memo(
 QuizWaitingScreen.displayName = 'QuizWaitingScreen';
 
 /* ============================================================
-   Reusable cartoon section
+   Reusable Ink Beta section
 ============================================================ */
-const CartoonSection = ({
+const InkBetaSection = ({
   icon: Icon,
   title,
   accent,
