@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Clock, Trophy, Check, X, Crown, LogOut, Volume2, VolumeX, Disc3, Flame, AlertTriangle, Users, Zap, Lightbulb, RotateCcw } from 'lucide-react';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
+import { Music, Clock, Trophy, Check, X, Crown, LogOut, Volume2, VolumeX, Disc3, Flame, AlertTriangle, Users, Zap, Lightbulb, RotateCcw, Headphones } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
@@ -758,6 +758,262 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
   /* ============================================================ */
   const accent = catMeta?.color ?? BT.violet;
+
+  if (isInkBeta) {
+    return (
+      <MotionConfig reducedMotion="user">
+        <div className="bt3-root menu-surface menu-screen-safe" data-phase={phase}>
+        <audio
+          ref={mediaRef}
+          className="hidden"
+          preload="auto"
+          loop
+          onPlaying={() => {
+            hostPlayingRef.current = true; setNeedsSoundUnlock(false); setMediaError(false);
+            if (!roundAudioStartedRef.current) { roundAudioStartedRef.current = true; listenStartRef.current = Date.now(); }
+          }}
+          onTimeUpdate={() => { hostPlayingRef.current = true; }}
+          onError={() => { setMediaError(true); if (isHost) errorFlagRef.current = true; }}
+        />
+
+        <div className="bt3-backdrop" aria-hidden="true">
+          <i className="bt3-orbit bt3-orbit-one" />
+          <i className="bt3-orbit bt3-orbit-two" />
+          <span className="bt3-noise" />
+        </div>
+
+        <header className="bt3-header">
+          <div className="bt3-brand">
+            <span className="bt3-brand-mark" aria-hidden="true"><Music /></span>
+            <span><strong>Blindtest</strong><small>Le son avant les mots</small></span>
+          </div>
+          <div className="bt3-header-actions">
+            {isRoundActive && (
+              <span className="bt3-round-pill"><small>Manche</small><strong>{String(roundIndex + 1).padStart(2, '0')}</strong><i />{String(totalRounds).padStart(2, '0')}</span>
+            )}
+            <button type="button" onClick={toggleMute} className="bt3-icon-button menu-focus" aria-label={muted ? 'Activer le son' : 'Couper le son'} aria-pressed={muted}>
+              {muted ? <VolumeX /> : <Volume2 />}
+            </button>
+            <button type="button" data-back onClick={onEndGame} className="bt3-back menu-focus" aria-label="Retour au lobby">
+              <LogOut /><span>Quitter</span>
+            </button>
+          </div>
+        </header>
+
+        <main className="bt3-main">
+          {isRoundActive && standings.length > 0 && (
+            <section className="bt3-scorebar" aria-label="Classement en direct">
+              <div className="bt3-scorebar-title"><Trophy aria-hidden="true" /><span>En direct</span><small>{answeredCount}/{connectedCount} réponses</small></div>
+              <div className="bt3-scorebar-track">
+                {standings.map((player, index) => {
+                  const avatar = getAvatar(player.id);
+                  const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
+                  return (
+                    <motion.div
+                      layout
+                      key={player.id}
+                      className="bt3-score-chip"
+                      data-self={player.isMe || undefined}
+                      data-leader={index === 0 || undefined}
+                      data-answered={(phase === 'listen' && answeredIds.has(player.id)) || undefined}
+                    >
+                      <span className="bt3-score-rank">{index === 0 ? <Crown aria-hidden="true" /> : index + 1}</span>
+                      <span className="bt3-score-avatar">{image ? <img src={image} alt="" /> : (player.name[0] || '?').toUpperCase()}</span>
+                      <span className="bt3-score-name">{player.name}{player.isMe ? ' · toi' : ''}</span>
+                      <strong>{player.pts}</strong>
+                      {phase === 'listen' && answeredIds.has(player.id) && <Check aria-hidden="true" />}
+                    </motion.div>
+                  );
+                })}
+              </div>
+              <label className="bt3-volume-inline">
+                {muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
+                <input type="range" min={0} max={100} value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume de l’extrait musical" />
+                <output>{volume}</output>
+              </label>
+            </section>
+          )}
+
+          <AnimatePresence mode="wait">
+            {phase === 'intro' && (
+              <motion.div key="bt3-intro" className="bt3-intro" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <InkBetaBlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} error={startError} onStart={startGame} />
+              </motion.div>
+            )}
+
+            {phase === 'listen' && track && (
+              <motion.section key={`bt3-listen-${roundIndex}`} className="bt3-listen" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <div className="bt3-listen-band">
+                  <div className="bt3-round-copy">
+                    <div className="bt3-round-tags">
+                      {catMeta && <span style={{ color: catMeta.color }}>{catMeta.emoji} {catMeta.label}</span>}
+                      {roundDouble && <span className="bt3-double"><Zap aria-hidden="true" /> Points ×2</span>}
+                      {teamsEnabled && <span><Users aria-hidden="true" /> Équipe {TEAM_META[myTeam].short}</span>}
+                    </div>
+                    <span className="bt3-eyebrow">À toi de jouer</span>
+                    <h1>Ouvre grand<br /><em>les oreilles.</em></h1>
+                    <p>{answeredCount === connectedCount ? 'Tout le monde a répondu.' : `${connectedCount - answeredCount} joueur${connectedCount - answeredCount > 1 ? 's' : ''} réfléchit encore.`}</p>
+                  </div>
+
+                  <div className="bt3-player">
+                    <div className="bt3-record" data-urgent={urgent || undefined}>
+                      <div className="bt3-record-core"><Disc3 aria-hidden="true" /></div>
+                      <div className="bt3-wave" aria-hidden="true">{Array.from({ length: 17 }, (_, index) => <i key={index} />)}</div>
+                    </div>
+                    {mediaError ? (
+                      <p className="bt3-audio-state bt3-audio-error"><AlertTriangle aria-hidden="true" /> Extrait indisponible, changement de piste…</p>
+                    ) : needsSoundUnlock ? (
+                      <button type="button" onClick={resumeSound} className="bt3-unlock menu-focus"><Volume2 aria-hidden="true" /> Activer le son</button>
+                    ) : (
+                      <p className="bt3-audio-state"><Headphones aria-hidden="true" /> L’extrait tourne</p>
+                    )}
+                    {hintText && myChoice == null && <div className="bt3-hint"><Lightbulb aria-hidden="true" /><strong>{hintText}</strong></div>}
+                    {myStreak >= 2 && <div className="bt3-streak"><Flame aria-hidden="true" /> Série ×{myStreak}</div>}
+                  </div>
+
+                  <div className="bt3-clock" data-urgent={urgent || undefined}>
+                    <span>Temps restant</span>
+                    <strong>{String(secondsLeft).padStart(2, '0')}</strong>
+                    <small>secondes</small>
+                    <div className="bt3-clock-track"><i style={{ width: `${progress * 100}%` }} /></div>
+                  </div>
+                </div>
+
+                <div className="bt3-answer-deck">
+                  <header className="bt3-answer-head">
+                    <div><span className="bt3-step">Choisis maintenant</span><h2>Quel est ce titre ?</h2></div>
+                    {myChoice == null ? (
+                      <p>Une réponse, pas de retour en arrière.</p>
+                    ) : (
+                      <div className="bt3-sent" role="status" aria-live="polite">
+                        {speedTier && myElapsed != null && <strong style={{ color: speedTier.color }}>{speedTier.label} · {(myElapsed / 1000).toFixed(1)}s</strong>}
+                        <span>Réponse verrouillée</span>
+                      </div>
+                    )}
+                  </header>
+                  <div className="bt3-choices" data-count={options.length}>
+                    {options.map((option, index) => {
+                      const selected = myChoice === index;
+                      const mates = teamsEnabled
+                        ? players.filter((player) => player.id !== currentPlayer.id && (teamOf[player.id] ?? 0) === myTeam && liveVotes[player.id] === index)
+                        : [];
+                      return (
+                        <motion.button
+                          key={index}
+                          type="button"
+                          className="bt3-choice menu-focus"
+                          data-choice={index}
+                          data-selected={selected || undefined}
+                          data-muted={myChoice != null && !selected || undefined}
+                          data-teammates={mates.length > 0 || undefined}
+                          onClick={() => answer(index)}
+                          disabled={myChoice != null}
+                          aria-pressed={selected}
+                          aria-label={`${option}${selected ? ' — réponse sélectionnée' : ''}`}
+                          whileTap={myChoice == null ? { scale: 0.98 } : undefined}
+                        >
+                          <span className="bt3-choice-letter">{String.fromCharCode(65 + index)}</span>
+                          <strong>{option}</strong>
+                          <span className="bt3-choice-arrow" aria-hidden="true">↗</span>
+                          {mates.length > 0 && (
+                            <span className="bt3-choice-mates" aria-label={`Coéquipiers ayant choisi cette réponse : ${mates.map((mate) => mate.name).join(', ')}`}>
+                              {mates.map((mate) => {
+                                const avatar = getAvatar(mate.id);
+                                const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
+                                return <i key={mate.id} title={`${mate.name} a choisi cette réponse`} aria-hidden="true">{image ? <img src={image} alt="" /> : (mate.name[0] || '?').toUpperCase()}</i>;
+                              })}
+                            </span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.section>
+            )}
+
+            {phase === 'reveal' && track && (
+              <motion.section key={`bt3-reveal-${roundIndex}`} className="bt3-reveal" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <div className="bt3-reveal-band">
+                  <div className="bt3-cover" style={{ borderColor: accent }}>
+                    {(!track.artwork || artFailed) ? (
+                      <div className="bt3-cover-fallback"><span>{catMeta?.emoji ?? '🎵'}</span><strong>{track.title}</strong></div>
+                    ) : (
+                      <motion.img src={track.artwork} alt={track.title} initial={{ scale: 1.08 }} animate={{ scale: 1 }} onError={() => setArtFailed(true)} />
+                    )}
+                  </div>
+                  <div className="bt3-reveal-copy">
+                    <span className="bt3-eyebrow">La bonne réponse</span>
+                    <h1>{track.title}</h1>
+                    {track.subtitle && <p>{track.subtitle}</p>}
+                    {catMeta && <span className="bt3-reveal-category" style={{ color: catMeta.color }}>{catMeta.emoji} {catMeta.label}</span>}
+                  </div>
+                  {(() => {
+                    const myPoints = roundPoints[currentPlayer.id];
+                    const gotPoints = (myPoints ?? 0) > 0;
+                    return (
+                      <div className="bt3-round-result" data-success={gotPoints || undefined}>
+                        <span>{gotPoints ? 'Bien joué' : myChoice == null ? 'Pas de réponse' : 'Raté cette fois'}</span>
+                        <strong>{gotPoints ? `+${myPoints}` : '0'}<small>points</small></strong>
+                        {gotPoints && speedTier && <p>{speedTier.label}</p>}
+                        {gotPoints && roundDouble && <b><Zap aria-hidden="true" /> Score doublé</b>}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="bt3-reveal-deck">
+                  <header><span className="bt3-step">Les réponses</span><h2>Qui avait vu juste ?</h2></header>
+                  <div className="bt3-reveal-choices" data-count={options.length}>
+                    {options.map((option, index) => {
+                      const correct = index === answerIndex;
+                      const mine = index === myChoice;
+                      const voters = players.filter((player) => revealVotes[player.id] === index);
+                      return (
+                        <div key={index} className="bt3-reveal-choice" data-choice={index} data-correct={correct || undefined} data-mine={mine || undefined}>
+                          <span className="bt3-choice-letter">{String.fromCharCode(65 + index)}</span>
+                          <strong>{option}</strong>
+                          <span className="bt3-verdict">{correct ? <><Check aria-hidden="true" /> Bonne réponse</> : mine ? <><X aria-hidden="true" /> Ton choix</> : '—'}</span>
+                          {voters.length > 0 && (
+                            <span className="bt3-voters" aria-label={`Votes : ${voters.map((voter) => voter.name).join(', ')}`}>
+                              {voters.map((player) => {
+                                const avatar = getAvatar(player.id);
+                                const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
+                                return <i key={player.id} title={player.name} aria-hidden="true">{image ? <img src={image} alt="" /> : (player.name[0] || '?').toUpperCase()}</i>;
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.section>
+            )}
+
+            {phase === 'final' && (
+              <InkBetaBlindtestResults
+                ranked={betaRanked}
+                currentPlayerId={currentPlayer.id}
+                isHost={isHost}
+                teamsEnabled={teamsEnabled}
+                teamScores={teamScores}
+                teamOf={teamOf}
+                avgReaction={avgReaction}
+                getAvatar={getAvatar}
+                roundIndex={roundIndex}
+                totalRounds={totalRounds}
+                onReplay={replay}
+                onEndGame={onEndGame}
+              />
+            )}
+          </AnimatePresence>
+        </main>
+        </div>
+      </MotionConfig>
+    );
+  }
+
   return (
     <div
       className={cn(

@@ -25,27 +25,25 @@ interface InkBetaBlindtestResultsProps {
 }
 
 const TEAM_META = [
-  { name: 'Cyan', color: '#2df2d0' },
-  { name: 'Rose', color: '#ff62b6' },
+  { name: 'Cyan', color: '#32d6c5' },
+  { name: 'Rose', color: '#ff5d7a' },
 ] as const;
 
 const PlayerAvatar = ({
   player,
-  place,
   getAvatar,
 }: {
   player: RankedPlayer;
-  place: number;
   getAvatar: InkBetaBlindtestResultsProps['getAvatar'];
 }) => {
   const avatar = getAvatar(player.id);
   const image = avatar?.type === 'image' ? avatar.imageUrl : null;
   return (
-    <div className="ibt-result-avatar" data-place={place}>
+    <span className="bt3-avatar">
       {image
         ? <img src={image} alt={player.name} />
         : <span>{(player.name[0] || '?').toUpperCase()}</span>}
-    </div>
+    </span>
   );
 };
 
@@ -63,111 +61,114 @@ export const InkBetaBlindtestResults = ({
   onReplay,
   onEndGame,
 }: InkBetaBlindtestResultsProps) => {
-  const topThree = ranked.slice(0, 3);
-  const podiumOrder = [topThree[1], topThree[0], topThree[2]].filter(Boolean) as RankedPlayer[];
+  const winner = ranked[0];
   const teamWinner = teamScores[0] === teamScores[1] ? null : teamScores[0] > teamScores[1] ? 0 : 1;
+  const myIndex = ranked.findIndex((player) => player.id === currentPlayerId);
+  const me = myIndex >= 0 ? ranked[myIndex] : null;
 
   return (
     <motion.section
-      className="ibt-results"
-      initial={{ opacity: 0, y: 16 }}
+      className="bt3-results"
+      initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      aria-labelledby="ibt-results-title"
+      aria-labelledby="bt3-results-title"
     >
-      <header className="ibt-results-head">
-        <div className="ibt-trophy"><Trophy aria-hidden="true" /></div>
+      <header className="bt3-results-head">
         <div>
-          <span className="ibt-kicker">Session terminée · {totalRounds} manches</span>
-          <h2 id="ibt-results-title">Classement final</h2>
-          <p>{ranked.length > 0 ? 'Le studio applaudit les meilleurs mélomanes.' : 'Aucun joueur dans cette session.'}</p>
+          <span className="bt3-eyebrow">Fin du set · {totalRounds} manches</span>
+          <h2 id="bt3-results-title">Le classement est tombé.</h2>
         </div>
+        <Trophy aria-hidden="true" />
       </header>
 
-      {teamsEnabled && (
-        <section className="ibt-team-result" aria-label="Résultat des équipes">
-          <p>{teamWinner == null ? 'Égalité parfaite' : `L’équipe ${TEAM_META[teamWinner].name} remporte le mix`}</p>
-          <div>
-            {TEAM_META.map((team, index) => (
-              <article key={team.name} data-winner={teamWinner === index || undefined} style={{ '--ibt-team': team.color } as React.CSSProperties}>
-                <Users aria-hidden="true" /><span>{team.name}</span><strong>{teamScores[index as 0 | 1]}</strong>
-              </article>
-            ))}
-          </div>
+      <div className="bt3-results-layout">
+        <section className="bt3-winner-card" aria-label="Vainqueur de la partie">
+          {winner ? (
+            <>
+              <span className="bt3-winner-label"><Crown aria-hidden="true" /> Numéro 1</span>
+              <PlayerAvatar player={winner} getAvatar={getAvatar} />
+              <div>
+                <h3>{winner.name}</h3>
+                <p>{winner.id === currentPlayerId ? 'C’est toi, champion.' : 'Le meilleur flair musical du set.'}</p>
+              </div>
+              <strong>{winner.pts.toLocaleString('fr-FR')}<small>points</small></strong>
+            </>
+          ) : (
+            <div className="bt3-results-empty">Aucun score enregistré.</div>
+          )}
         </section>
-      )}
 
-      {podiumOrder.length > 0 && (
-        <div className="ibt-podium" data-count={podiumOrder.length}>
-          {podiumOrder.map((player) => {
-            const place = ranked.findIndex((entry) => entry.id === player.id) + 1;
-            const avg = avgReaction[player.id];
-            return (
-              <motion.article
-                key={player.id}
-                className="ibt-podium-player"
-                data-place={place}
-                initial={{ opacity: 0, y: 22 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: place * 0.08 }}
-              >
-                {place === 1 && <Crown className="ibt-podium-crown" aria-hidden="true" />}
-                <PlayerAvatar player={player} place={place} getAvatar={getAvatar} />
-                <span className="ibt-place">{place === 1 ? '1er' : `${place}e`}</span>
-                <h3>{player.name}{player.id === currentPlayerId ? ' · toi' : ''}</h3>
-                <strong>{player.pts.toLocaleString('fr-FR')} pts</strong>
-                <small><Clock3 aria-hidden="true" /> {avg != null ? `${(avg / 1_000).toFixed(1)}s moy.` : 'aucune réponse'}</small>
-              </motion.article>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="ibt-results-lower">
-        <section className="ibt-ranking" aria-labelledby="ibt-ranking-title">
-          <div className="ibt-panel-head"><div><span>Tableau complet</span><h3 id="ibt-ranking-title">Toute la troupe</h3></div></div>
+        <section className="bt3-ranking" aria-labelledby="bt3-ranking-title">
+          <div className="bt3-ranking-head">
+            <span className="bt3-step">Scoreboard</span>
+            <h3 id="bt3-ranking-title">Tout le monde</h3>
+          </div>
           <ol>
             {ranked.map((player, index) => {
               const avg = avgReaction[player.id];
               const team = teamOf[player.id] ?? 0;
               return (
-                <li key={player.id} data-self={player.id === currentPlayerId || undefined}>
-                  <span className="ibt-rank-number">{String(index + 1).padStart(2, '0')}</span>
-                  <PlayerAvatar player={player} place={index + 1} getAvatar={getAvatar} />
-                  <span className="ibt-rank-name">
-                    <strong>{player.name}{player.id === currentPlayerId ? ' (toi)' : ''}</strong>
+                <motion.li
+                  key={player.id}
+                  data-self={player.id === currentPlayerId || undefined}
+                  initial={{ opacity: 0, x: 16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <span className="bt3-rank">{String(index + 1).padStart(2, '0')}</span>
+                  <PlayerAvatar player={player} getAvatar={getAvatar} />
+                  <span className="bt3-rank-copy">
+                    <strong>{player.name}{player.id === currentPlayerId ? ' · toi' : ''}</strong>
                     <small>{teamsEnabled ? `Équipe ${TEAM_META[team].name}` : player.isDisconnected ? 'Déconnecté' : 'Joueur'}</small>
+                    {avg != null && <small className="bt3-rank-speed"><Clock3 aria-hidden="true" /> {(avg / 1_000).toFixed(1)}s de moyenne</small>}
                   </span>
-                  <span className="ibt-rank-speed">{avg != null ? `${(avg / 1_000).toFixed(1)}s` : '—'}</span>
-                  <strong className="ibt-rank-score">{player.pts.toLocaleString('fr-FR')}</strong>
-                </li>
+                  <strong className="bt3-rank-score">{player.pts.toLocaleString('fr-FR')}</strong>
+                </motion.li>
               );
             })}
           </ol>
         </section>
 
-        <aside className="ibt-results-actions">
-          <div className="ibt-results-summary">
-            <span>Ta position</span>
-            <strong>{ranked.some((player) => player.id === currentPlayerId) ? `#${ranked.findIndex((player) => player.id === currentPlayerId) + 1}` : '—'}</strong>
-            <small>{ranked.some((player) => player.id === currentPlayerId) ? `${ranked.find((player) => player.id === currentPlayerId)?.pts ?? 0} points` : 'Aucun classement'}</small>
-          </div>
-          {isHost ? (
-            <button type="button" className="ibt-replay menu-focus" onClick={onReplay}>
-              <RotateCcw aria-hidden="true" /><span>Rejouer</span><small>Mêmes réglages</small>
-            </button>
-          ) : (
-            <p className="ibt-host-wait"><Radio className="animate-pulse" aria-hidden="true" /> En attente de l’hôte…</p>
+        <aside className="bt3-results-side">
+          {teamsEnabled && (
+            <section className="bt3-team-result" aria-label="Résultat des équipes">
+              <span>{teamWinner == null ? 'Égalité des équipes' : `Équipe ${TEAM_META[teamWinner].name} en tête`}</span>
+              <div>
+                {TEAM_META.map((team, index) => (
+                  <article key={team.name} data-winner={teamWinner === index || undefined} style={{ '--bt3-team': team.color } as React.CSSProperties}>
+                    <Users aria-hidden="true" /><span>{team.name}</span><strong>{teamScores[index as 0 | 1]}</strong>
+                  </article>
+                ))}
+              </div>
+            </section>
           )}
-          <button type="button" className="ibt-exit menu-focus" onClick={onEndGame}>
-            <LogOut aria-hidden="true" /> Retour au lobby
-          </button>
+
+          <section className="bt3-my-result">
+            <span>Ta performance</span>
+            <strong>{myIndex >= 0 ? `#${myIndex + 1}` : '—'}</strong>
+            <p>{me ? `${me.pts.toLocaleString('fr-FR')} points` : 'Pas de classement'}</p>
+            {me && avgReaction[me.id] != null && <small><Clock3 aria-hidden="true" /> {(avgReaction[me.id] / 1_000).toFixed(1)}s par réponse</small>}
+          </section>
+
+          <div className="bt3-result-actions">
+            {isHost ? (
+              <button type="button" className="bt3-replay menu-focus" onClick={onReplay}>
+                <RotateCcw aria-hidden="true" /><span><strong>Rejouer</strong><small>Mêmes réglages</small></span>
+              </button>
+            ) : (
+              <p className="bt3-host-wait"><Radio className="animate-pulse" aria-hidden="true" /> En attente de l’hôte…</p>
+            )}
+            <button type="button" className="bt3-exit menu-focus" onClick={onEndGame}>
+              <LogOut aria-hidden="true" /> Retour au lobby
+            </button>
+          </div>
         </aside>
       </div>
 
       <PodiumAd
         gameMode="memorise"
         instanceKey={`memorise:${roundIndex}:${totalRounds}`}
-        className="ibt-podium-ad"
+        className="bt3-podium-ad"
       />
     </motion.section>
   );
