@@ -777,7 +777,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
   if (isInkBeta) {
     return (
       <MotionConfig reducedMotion="user">
-        <div className="bt5-root menu-surface menu-screen-safe" data-phase={phase}>
+        <div className="bt4-root menu-surface menu-screen-safe" data-phase={phase}>
         <audio
           ref={mediaRef}
           className="hidden"
@@ -791,184 +791,220 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
           onError={() => { setMediaError(true); if (isHost) errorFlagRef.current = true; }}
         />
 
-        <div className="bt5-backdrop" aria-hidden="true">
-          <i className="bt5-glow bt5-glow--a" />
-          <i className="bt5-glow bt5-glow--b" />
-          <span className="bt5-noise" />
+        <div className="bt4-backdrop" aria-hidden="true">
+          <i className="bt4-orbit bt4-orbit-one" />
+          <i className="bt4-orbit bt4-orbit-two" />
+          <span className="bt4-noise" />
         </div>
 
-        <header className="bt5-header">
-          <div className="bt5-brand">
-            <span className="bt5-brand-mark" aria-hidden="true"><Music /></span>
-            <span className="bt5-brand-copy"><strong>Blindtest</strong><small>Le son avant les mots</small></span>
+        <header className="bt4-header">
+          <div className="bt4-brand">
+            <span className="bt4-brand-mark" aria-hidden="true"><Music /></span>
+            <span><strong>Blindtest</strong><small>Le son avant les mots</small></span>
           </div>
-          <div className="bt5-header-actions">
+          <div className="bt4-header-actions">
             {isRoundActive && (
-              <span className="bt5-round-pill"><small>Manche</small><strong>{String(roundIndex + 1).padStart(2, '0')}</strong><i>/</i>{String(totalRounds).padStart(2, '0')}</span>
+              <span className="bt4-round-pill"><small>Manche</small><strong>{String(roundIndex + 1).padStart(2, '0')}</strong><i />{String(totalRounds).padStart(2, '0')}</span>
             )}
-            <label className="bt5-volume">
-              <button type="button" onClick={toggleMute} className="bt5-icon-button menu-focus" aria-label={muted ? 'Activer le son' : 'Couper le son'} aria-pressed={muted}>
-                {muted ? <VolumeX /> : <Volume2 />}
-              </button>
-              <input type="range" min={0} max={100} value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume de l’extrait musical" />
-            </label>
-            <button type="button" data-back onClick={onEndGame} className="bt5-quit menu-focus" aria-label="Retour au lobby">
+            <button type="button" onClick={toggleMute} className="bt4-icon-button menu-focus" aria-label={muted ? 'Activer le son' : 'Couper le son'} aria-pressed={muted}>
+              {muted ? <VolumeX /> : <Volume2 />}
+            </button>
+            <button type="button" data-back onClick={onEndGame} className="bt4-back menu-focus" aria-label="Retour au lobby">
               <LogOut /><span>Quitter</span>
             </button>
           </div>
         </header>
 
-        {isRoundActive && standings.length > 0 && (
-          <div className="bt5-scorebar" aria-label="Classement en direct">
-            <span className="bt5-scorebar-label"><Trophy aria-hidden="true" /> {answeredCount}/{connectedCount}</span>
-            <div className="bt5-scorebar-track">
-              {standings.map((player, index) => {
-                const avatar = getAvatar(player.id);
-                const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
-                return (
-                  <motion.div
-                    layout
-                    key={player.id}
-                    className="bt5-chip"
-                    data-self={player.isMe || undefined}
-                    data-leader={index === 0 || undefined}
-                    data-answered={(phase === 'listen' && answeredIds.has(player.id)) || undefined}
-                  >
-                    <span className="bt5-chip-rank">{index === 0 ? <Crown aria-hidden="true" /> : index + 1}</span>
-                    <span className="bt5-chip-avatar">{image ? <img src={image} alt="" /> : (player.name[0] || '?').toUpperCase()}</span>
-                    <span className="bt5-chip-name">{player.name}{player.isMe ? ' · toi' : ''}</span>
-                    <strong>{player.pts}</strong>
-                    {phase === 'listen' && answeredIds.has(player.id) && <Check aria-hidden="true" />}
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <main className="bt4-main">
+          {isRoundActive && standings.length > 0 && (
+            <section className="bt4-scorebar" aria-label="Classement en direct">
+              <div className="bt4-scorebar-title"><Trophy aria-hidden="true" /><span>En direct</span><small>{answeredCount}/{connectedCount} réponses</small></div>
+              <div className="bt4-scorebar-track">
+                {standings.map((player, index) => {
+                  const avatar = getAvatar(player.id);
+                  const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
+                  return (
+                    <motion.div
+                      layout
+                      key={player.id}
+                      className="bt4-score-chip"
+                      data-self={player.isMe || undefined}
+                      data-leader={index === 0 || undefined}
+                      data-answered={(phase === 'listen' && answeredIds.has(player.id)) || undefined}
+                    >
+                      <span className="bt4-score-rank">{index === 0 ? <Crown aria-hidden="true" /> : index + 1}</span>
+                      <span className="bt4-score-avatar">{image ? <img src={image} alt="" /> : (player.name[0] || '?').toUpperCase()}</span>
+                      <span className="bt4-score-name">{player.name}{player.isMe ? ' · toi' : ''}</span>
+                      <strong>{player.pts}</strong>
+                      {phase === 'listen' && answeredIds.has(player.id) && <Check aria-hidden="true" />}
+                    </motion.div>
+                  );
+                })}
+              </div>
+              <label className="bt4-volume-inline">
+                {muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
+                <input type="range" min={0} max={100} value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume de l’extrait musical" />
+                <output>{volume}</output>
+              </label>
+            </section>
+          )}
 
-        <main className="bt5-main">
           <AnimatePresence mode="wait">
             {phase === 'intro' && (
-              <motion.div key="bt5-intro" className="bt5-phase" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <motion.div key="bt4-intro" className="bt4-intro" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                 <InkBetaBlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} error={startError} onStart={startGame} />
               </motion.div>
             )}
 
             {phase === 'listen' && track && (
-              <motion.section key={`bt5-listen-${roundIndex}`} className="bt5-listen" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <div className="bt5-tags">
-                  {catMeta && <span className="bt5-tag" style={{ '--bt5-tag': catMeta.color } as React.CSSProperties}>{catMeta.emoji} {catMeta.label}</span>}
-                  {roundDouble && <span className="bt5-tag bt5-tag--double"><Zap aria-hidden="true" /> Points ×2</span>}
-                  {teamsEnabled && <span className="bt5-tag" style={{ '--bt5-tag': TEAM_META[myTeam].color } as React.CSSProperties}><Users aria-hidden="true" /> Équipe {TEAM_META[myTeam].short}</span>}
-                  <span className="bt5-tag bt5-tag--ghost">{answeredCount === connectedCount ? 'Tout le monde a répondu' : `${connectedCount - answeredCount} en réflexion`}</span>
-                </div>
-
-                <div className="bt5-disc" data-urgent={urgent || undefined}>
-                  <svg className="bt5-disc-ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-                    <circle className="bt5-disc-ring-track" cx="50" cy="50" r="46" />
-                    <circle
-                      className="bt5-disc-ring-fill"
-                      cx="50"
-                      cy="50"
-                      r="46"
-                      pathLength="1"
-                      strokeDasharray={`${progress} ${Math.max(0, 1 - progress)}`}
-                      transform="rotate(-90 50 50)"
-                    />
-                  </svg>
-                  <div className="bt5-disc-vinyl" aria-hidden="true"><span><Disc3 /></span></div>
-                  <div
-                    className="bt5-disc-time"
-                    role="timer"
-                    aria-live="off"
-                    aria-atomic="true"
-                    aria-label={`Temps restant : ${secondsLeft} seconde${secondsLeft > 1 ? 's' : ''}`}
-                  >
-                    <strong>{String(secondsLeft).padStart(2, '0')}</strong>
-                    <small>sec</small>
+              <motion.section key={`bt4-listen-${roundIndex}`} className="bt4-listen" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <div className="bt4-listen-band">
+                  <div className="bt4-round-copy">
+                    <div className="bt4-round-tags">
+                      {catMeta && <span style={{ color: catMeta.color }}>{catMeta.emoji} {catMeta.label}</span>}
+                      {roundDouble && <span className="bt4-double"><Zap aria-hidden="true" /> Points ×2</span>}
+                      {teamsEnabled && <span><Users aria-hidden="true" /> Équipe {TEAM_META[myTeam].short}</span>}
+                    </div>
+                    <span className="bt4-eyebrow">À toi de jouer</span>
+                    <h1>Ouvre grand<br /><em>les oreilles.</em></h1>
+                    <p>{answeredCount === connectedCount ? 'Tout le monde a répondu.' : `${connectedCount - answeredCount} joueur${connectedCount - answeredCount > 1 ? 's' : ''} réfléchit encore.`}</p>
                   </div>
-                  <div className="bt5-eq" aria-hidden="true">{Array.from({ length: 12 }, (_, index) => <i key={index} />)}</div>
-                </div>
 
-                <div className="bt5-listen-status">
-                  {mediaError ? (
-                    <p className="bt5-sound bt5-sound--error"><AlertTriangle aria-hidden="true" /> Extrait indisponible, changement de piste…</p>
-                  ) : needsSoundUnlock ? (
-                    <button type="button" onClick={resumeSound} className="bt5-unlock menu-focus"><Volume2 aria-hidden="true" /> Activer le son</button>
-                  ) : (
-                    <p className="bt5-sound"><Headphones aria-hidden="true" /> L’extrait tourne — quel est ce titre ?</p>
-                  )}
-                  {hintText && myChoice == null && <div className="bt5-hint"><Lightbulb aria-hidden="true" /><strong>{hintText}</strong></div>}
-                  {myStreak >= 2 && <div className="bt5-streak"><Flame aria-hidden="true" /> Série ×{myStreak}</div>}
-                </div>
-
-                <div className="bt5-choices" data-count={options.length}>
-                  {options.map((option, index) => {
-                    const selected = myChoice === index;
-                    const mates = teamsEnabled
-                      ? players.filter((player) => player.id !== currentPlayer.id && (teamOf[player.id] ?? 0) === myTeam && liveVotes[player.id] === index)
-                      : [];
-                    return (
-                      <motion.button
-                        key={index}
-                        type="button"
-                        className="bt5-choice menu-focus"
-                        data-selected={selected || undefined}
-                        data-muted={myChoice != null && !selected || undefined}
-                        onClick={() => answer(index)}
-                        disabled={myChoice != null}
-                        aria-pressed={selected}
-                        aria-label={`${option}${selected ? ' — réponse sélectionnée' : ''}`}
-                        whileTap={myChoice == null ? { scale: 0.98 } : undefined}
-                      >
-                        <span className="bt5-choice-letter" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
-                        <strong>{option}</strong>
-                        {mates.length > 0 && (
-                          <span className="bt5-choice-mates" aria-label={`Coéquipiers ayant choisi cette réponse : ${mates.map((mate) => mate.name).join(', ')}`}>
-                            {mates.map((mate) => {
-                              const avatar = getAvatar(mate.id);
-                              const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
-                              return <i key={mate.id} title={`${mate.name} a choisi cette réponse`} aria-hidden="true">{image ? <img src={image} alt="" /> : (mate.name[0] || '?').toUpperCase()}</i>;
-                            })}
-                          </span>
+                  <div className="bt4-player">
+                    <div
+                      className="bt4-record"
+                      data-playing={!mediaError && !needsSoundUnlock || undefined}
+                      data-urgent={urgent || undefined}
+                    >
+                      <svg className="bt4-record-ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+                        <circle className="bt4-record-ring-track" cx="50" cy="50" r="44" />
+                        <circle
+                          className="bt4-record-ring-glow"
+                          cx="50"
+                          cy="50"
+                          r="44"
+                          pathLength="1"
+                          strokeDasharray={`${progress} ${Math.max(0, 1 - progress)}`}
+                          transform="rotate(-90 50 50)"
+                        />
+                        <circle
+                          className="bt4-record-ring-liquid"
+                          cx="50"
+                          cy="50"
+                          r="44"
+                          pathLength="1"
+                          strokeDasharray={`${progress} ${Math.max(0, 1 - progress)}`}
+                          transform="rotate(-90 50 50)"
+                        />
+                        {progress > 0.005 && (
+                          <g className="bt4-record-ring-head">
+                            <circle cx={timerHeadX} cy={timerHeadY} r="3.5" />
+                            <circle cx={timerHeadX} cy={timerHeadY} r="1.25" />
+                          </g>
                         )}
-                      </motion.button>
-                    );
-                  })}
+                      </svg>
+                      <div className="bt4-vinyl" aria-hidden="true"><span /></div>
+                      <div
+                        className="bt4-record-time"
+                        role="timer"
+                        aria-live="off"
+                        aria-atomic="true"
+                        aria-label={`Temps restant : ${secondsLeft} seconde${secondsLeft > 1 ? 's' : ''}`}
+                      >
+                        <span>temps</span>
+                        <strong>{String(secondsLeft).padStart(2, '0')}</strong>
+                        <small>sec</small>
+                      </div>
+                      <div className="bt4-wave" aria-hidden="true">{Array.from({ length: 17 }, (_, index) => <i key={index} />)}</div>
+                    </div>
+                    {mediaError ? (
+                      <p className="bt4-audio-state bt4-audio-error"><AlertTriangle aria-hidden="true" /> Extrait indisponible, changement de piste…</p>
+                    ) : needsSoundUnlock ? (
+                      <button type="button" onClick={resumeSound} className="bt4-unlock menu-focus"><Volume2 aria-hidden="true" /> Activer le son</button>
+                    ) : (
+                      <p className="bt4-audio-state"><Headphones aria-hidden="true" /> L’extrait tourne</p>
+                    )}
+                    {hintText && myChoice == null && <div className="bt4-hint"><Lightbulb aria-hidden="true" /><strong>{hintText}</strong></div>}
+                    {myStreak >= 2 && <div className="bt4-streak"><Flame aria-hidden="true" /> Série ×{myStreak}</div>}
+                  </div>
                 </div>
 
-                {myChoice != null && (
-                  <div className="bt5-sent" role="status" aria-live="polite">
-                    {speedTier && myElapsed != null && <strong style={{ color: speedTier.color }}>{speedTier.label} · {(myElapsed / 1000).toFixed(1)}s</strong>}
-                    <span>Réponse verrouillée — en attente des autres…</span>
+                <div className="bt4-answer-deck">
+                  <header className="bt4-answer-head">
+                    <div><span className="bt4-step">Choisis maintenant</span><h2>Quel est ce titre ?</h2></div>
+                    {myChoice == null ? (
+                      <p>Une réponse, pas de retour en arrière.</p>
+                    ) : (
+                      <div className="bt4-sent" role="status" aria-live="polite">
+                        {speedTier && myElapsed != null && <strong style={{ color: speedTier.color }}>{speedTier.label} · {(myElapsed / 1000).toFixed(1)}s</strong>}
+                        <span>Réponse verrouillée</span>
+                      </div>
+                    )}
+                  </header>
+                  <div className="bt4-choices" data-count={options.length}>
+                    {options.map((option, index) => {
+                      const selected = myChoice === index;
+                      const mates = teamsEnabled
+                        ? players.filter((player) => player.id !== currentPlayer.id && (teamOf[player.id] ?? 0) === myTeam && liveVotes[player.id] === index)
+                        : [];
+                      return (
+                        <motion.button
+                          key={index}
+                          type="button"
+                          className="bt4-choice menu-focus"
+                          data-choice={index}
+                          data-selected={selected || undefined}
+                          data-muted={myChoice != null && !selected || undefined}
+                          data-teammates={mates.length > 0 || undefined}
+                          onClick={() => answer(index)}
+                          disabled={myChoice != null}
+                          aria-pressed={selected}
+                          aria-label={`${option}${selected ? ' — réponse sélectionnée' : ''}`}
+                          whileTap={myChoice == null ? { scale: 0.98 } : undefined}
+                        >
+                          <span className="bt4-choice-letter">{String.fromCharCode(65 + index)}</span>
+                          <strong>{option}</strong>
+                          <span className="bt4-choice-arrow" aria-hidden="true">↗</span>
+                          {mates.length > 0 && (
+                            <span className="bt4-choice-mates" aria-label={`Coéquipiers ayant choisi cette réponse : ${mates.map((mate) => mate.name).join(', ')}`}>
+                              {mates.map((mate) => {
+                                const avatar = getAvatar(mate.id);
+                                const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
+                                return <i key={mate.id} title={`${mate.name} a choisi cette réponse`} aria-hidden="true">{image ? <img src={image} alt="" /> : (mate.name[0] || '?').toUpperCase()}</i>;
+                              })}
+                            </span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
               </motion.section>
             )}
 
             {phase === 'reveal' && track && (
-              <motion.section key={`bt5-reveal-${roundIndex}`} className="bt5-reveal" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <div className="bt5-reveal-top">
-                  <div className="bt5-cover" style={{ '--bt5-accent': accent } as React.CSSProperties}>
+              <motion.section key={`bt4-reveal-${roundIndex}`} className="bt4-reveal" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <div className="bt4-reveal-band">
+                  <div className="bt4-cover" style={{ borderColor: accent }}>
                     {(!track.artwork || artFailed) ? (
-                      <div className="bt5-cover-fallback"><span>{catMeta?.emoji ?? '🎵'}</span><strong>{track.title}</strong></div>
+                      <div className="bt4-cover-fallback"><span>{catMeta?.emoji ?? '🎵'}</span><strong>{track.title}</strong></div>
                     ) : (
                       <motion.img src={track.artwork} alt={track.title} initial={{ scale: 1.08 }} animate={{ scale: 1 }} onError={() => setArtFailed(true)} />
                     )}
                   </div>
-                  <div className="bt5-reveal-copy">
-                    <span className="bt5-eyebrow">La bonne réponse</span>
+                  <div className="bt4-reveal-copy">
+                    <span className="bt4-eyebrow">La bonne réponse</span>
                     <h1>{track.title}</h1>
                     {track.subtitle && <p>{track.subtitle}</p>}
-                    {catMeta && <span className="bt5-tag" style={{ '--bt5-tag': catMeta.color } as React.CSSProperties}>{catMeta.emoji} {catMeta.label}</span>}
+                    {catMeta && <span className="bt4-reveal-category" style={{ color: catMeta.color }}>{catMeta.emoji} {catMeta.label}</span>}
                   </div>
                   {(() => {
                     const myPoints = roundPoints[currentPlayer.id];
                     const gotPoints = (myPoints ?? 0) > 0;
                     return (
-                      <div className="bt5-result" data-success={gotPoints || undefined}>
+                      <div className="bt4-round-result" data-success={gotPoints || undefined}>
                         <span>{gotPoints ? 'Bien joué' : myChoice == null ? 'Pas de réponse' : 'Raté cette fois'}</span>
-                        <strong>{gotPoints ? `+${myPoints}` : '0'}<small>pts</small></strong>
+                        <strong>{gotPoints ? `+${myPoints}` : '0'}<small>points</small></strong>
                         {gotPoints && speedTier && <p>{speedTier.label}</p>}
                         {gotPoints && roundDouble && <b><Zap aria-hidden="true" /> Score doublé</b>}
                       </div>
@@ -976,49 +1012,50 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
                   })()}
                 </div>
 
-                <div className="bt5-review" data-count={options.length}>
-                  {options.map((option, index) => {
-                    const correct = index === answerIndex;
-                    const mine = index === myChoice;
-                    const voters = players.filter((player) => revealVotes[player.id] === index);
-                    return (
-                      <div key={index} className="bt5-review-choice" data-correct={correct || undefined} data-mine={mine || undefined}>
-                        <span className="bt5-choice-letter" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
-                        <strong>{option}</strong>
-                        <span className="bt5-verdict">{correct ? <><Check aria-hidden="true" /> Bonne réponse</> : mine ? <><X aria-hidden="true" /> Ton choix</> : null}</span>
-                        {voters.length > 0 && (
-                          <span className="bt5-choice-mates" aria-label={`Votes : ${voters.map((voter) => voter.name).join(', ')}`}>
-                            {voters.map((player) => {
-                              const avatar = getAvatar(player.id);
-                              const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
-                              return <i key={player.id} title={player.name} aria-hidden="true">{image ? <img src={image} alt="" /> : (player.name[0] || '?').toUpperCase()}</i>;
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="bt4-reveal-deck">
+                  <header><span className="bt4-step">Les réponses</span><h2>Qui avait vu juste ?</h2></header>
+                  <div className="bt4-reveal-choices" data-count={options.length}>
+                    {options.map((option, index) => {
+                      const correct = index === answerIndex;
+                      const mine = index === myChoice;
+                      const voters = players.filter((player) => revealVotes[player.id] === index);
+                      return (
+                        <div key={index} className="bt4-reveal-choice" data-choice={index} data-correct={correct || undefined} data-mine={mine || undefined}>
+                          <span className="bt4-choice-letter">{String.fromCharCode(65 + index)}</span>
+                          <strong>{option}</strong>
+                          <span className="bt4-verdict">{correct ? <><Check aria-hidden="true" /> Bonne réponse</> : mine ? <><X aria-hidden="true" /> Ton choix</> : '—'}</span>
+                          {voters.length > 0 && (
+                            <span className="bt4-voters" aria-label={`Votes : ${voters.map((voter) => voter.name).join(', ')}`}>
+                              {voters.map((player) => {
+                                const avatar = getAvatar(player.id);
+                                const image = avatar?.type === 'image' && avatar.imageUrl ? avatar.imageUrl : null;
+                                return <i key={player.id} title={player.name} aria-hidden="true">{image ? <img src={image} alt="" /> : (player.name[0] || '?').toUpperCase()}</i>;
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </motion.section>
             )}
 
             {phase === 'final' && (
-              <motion.div key="bt5-final" className="bt5-phase" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <InkBetaBlindtestResults
-                  ranked={betaRanked}
-                  currentPlayerId={currentPlayer.id}
-                  isHost={isHost}
-                  teamsEnabled={teamsEnabled}
-                  teamScores={teamScores}
-                  teamOf={teamOf}
-                  avgReaction={avgReaction}
-                  getAvatar={getAvatar}
-                  roundIndex={roundIndex}
-                  totalRounds={totalRounds}
-                  onReplay={replay}
-                  onEndGame={onEndGame}
-                />
-              </motion.div>
+              <InkBetaBlindtestResults
+                ranked={betaRanked}
+                currentPlayerId={currentPlayer.id}
+                isHost={isHost}
+                teamsEnabled={teamsEnabled}
+                teamScores={teamScores}
+                teamOf={teamOf}
+                avgReaction={avgReaction}
+                getAvatar={getAvatar}
+                roundIndex={roundIndex}
+                totalRounds={totalRounds}
+                onReplay={replay}
+                onEndGame={onEndGame}
+              />
             )}
           </AnimatePresence>
         </main>
