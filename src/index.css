@@ -27335,3 +27335,991 @@ html.low-power body.inkbeta-mode .bt4-backdrop::before { display: none; }
     font-size: clamp(2.6rem, 4vw, 5rem);
   }
 }
+
+/* ============================================================
+   INK BETA — BLINDTEST / RÉGIE DE SETLIST
+   ------------------------------------------------------------
+   Écran de préparation autonome, hors de la cascade bt4-setup.
+   Namespace `bts-*` : une seule couche, aucune surcharge à
+   défaire. Les couleurs viennent des tokens --bt4-* / --ik-*,
+   donc la variante vive et la variante sombre suivent seules.
+   ============================================================ */
+body.inkbeta-mode .bt4-root[data-phase='intro'] .bt4-main {
+  align-items: stretch;
+}
+
+body.inkbeta-mode :is(.bts, .bts-wait) {
+  --bts-gap: clamp(0.7rem, 0.95vw, 1.15rem);
+  --bts-pad: clamp(0.85rem, 1.15vw, 1.35rem);
+  --bts-radius: clamp(0.85rem, 1vw, 1.15rem);
+  --bts-lift: 0 4px 0 color-mix(in srgb, var(--ik-edge, #05060a) 74%, transparent);
+  min-width: 0;
+  color: var(--bt4-text);
+}
+
+/* La régie remplit le cadre ; l'attente garde sa largeur de carte. */
+body.inkbeta-mode .bts { flex: 1 1 auto; }
+body.inkbeta-mode .bts-wait { flex: 0 1 auto; }
+
+/* ---------- Structure ---------- */
+body.inkbeta-mode .bts {
+  display: grid;
+  width: 100%;
+  max-width: 116rem;
+  margin-inline: auto;
+  align-content: start;
+  gap: var(--bts-gap);
+}
+
+body.inkbeta-mode .bts-crate,
+body.inkbeta-mode .bts-block,
+body.inkbeta-mode .bts-launch-zone {
+  min-width: 0;
+  padding: var(--bts-pad);
+  border: 2px solid var(--bt4-border);
+  border-radius: var(--bts-radius);
+  background: color-mix(in srgb, var(--bt4-panel) 92%, transparent);
+  box-shadow: var(--bts-lift);
+}
+
+/* ---------- Bandeau d'en-tête ---------- */
+body.inkbeta-mode .bts-hero {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: clamp(1rem, 2vw, 2rem);
+  flex-wrap: wrap;
+  padding-inline: 0.15rem;
+}
+
+body.inkbeta-mode .bts-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--bt4-cyan);
+  font-size: clamp(0.6rem, 0.68vw, 0.78rem);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+body.inkbeta-mode .bts-kicker svg { width: 0.95em; height: 0.95em; }
+
+body.inkbeta-mode .bts-hero h1 {
+  margin: 0.3rem 0 0;
+  color: var(--bt4-text);
+  font-family: var(--ik-display, 'Arial Black', sans-serif);
+  font-size: clamp(2.1rem, 3.4vw, 4.4rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  text-shadow: 0 4px 0 var(--ik-edge, #05060a);
+}
+
+body.inkbeta-mode .bts-hero-copy > p {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.7rem 0 0;
+  color: var(--bt4-muted);
+  font-size: clamp(0.72rem, 0.8vw, 0.95rem);
+  font-weight: 650;
+}
+body.inkbeta-mode .bts-hero-copy > p svg { width: 1em; height: 1em; color: var(--bt4-cyan); }
+
+/* Chiffres clés : ils changent en direct avec les réglages. */
+body.inkbeta-mode .bts-stats {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0;
+}
+body.inkbeta-mode .bts-stats > div {
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border: 2px solid var(--bt4-border);
+  border-radius: calc(var(--bts-radius) * 0.7);
+  background: color-mix(in srgb, var(--bt4-panel-2) 88%, transparent);
+  box-shadow: var(--bts-lift);
+  text-align: left;
+}
+body.inkbeta-mode .bts-stats dt {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  color: var(--bt4-faint);
+  font-size: clamp(0.5rem, 0.56vw, 0.62rem);
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+body.inkbeta-mode .bts-stats dt svg { width: 0.9em; height: 0.9em; }
+body.inkbeta-mode .bts-stats dd {
+  margin: 0.2rem 0 0;
+  color: var(--bt4-text);
+  font-family: var(--ik-display, 'Arial Black', sans-serif);
+  font-size: clamp(1.15rem, 1.5vw, 1.85rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+body.inkbeta-mode .bts-stats dd em {
+  margin-left: 0.15rem;
+  color: var(--bt4-faint);
+  font-size: 0.5em;
+  font-style: normal;
+  font-weight: 800;
+}
+
+/* ---------- En-tête de section numérotée ---------- */
+body.inkbeta-mode .bts-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.7rem;
+  border-bottom: 2px solid var(--bt4-border);
+}
+body.inkbeta-mode .bts-step {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 2px solid var(--ik-edge, #05060a);
+  border-radius: calc(var(--bts-radius) * 0.55);
+  color: var(--ik-edge, #05060a);
+  background: var(--bt4-cyan);
+  font-family: var(--ik-display, 'Arial Black', sans-serif);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1;
+}
+body.inkbeta-mode .bts-head-copy { min-width: 0; flex: 1; }
+body.inkbeta-mode .bts-head-copy h2 {
+  margin: 0;
+  color: var(--bt4-text);
+  font-family: var(--ik-display, 'Arial Black', sans-serif);
+  font-size: clamp(1rem, 1.2vw, 1.35rem);
+  font-weight: 400;
+  letter-spacing: 0.015em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+body.inkbeta-mode .bts-head-copy p {
+  margin: 0.25rem 0 0;
+  color: var(--bt4-faint);
+  font-size: clamp(0.62rem, 0.68vw, 0.78rem);
+  font-weight: 650;
+  line-height: 1.35;
+}
+body.inkbeta-mode .bts-head-actions { display: flex; gap: 0.35rem; flex: 0 0 auto; }
+
+body.inkbeta-mode .bts-chip {
+  display: inline-flex;
+  min-height: 2.1rem;
+  align-items: center;
+  gap: 0.3rem;
+  padding-inline: 0.65rem;
+  border: 2px solid var(--bt4-border);
+  border-radius: 999px;
+  color: var(--bt4-muted);
+  background: color-mix(in srgb, var(--bt4-panel-3) 80%, transparent);
+  font-size: clamp(0.6rem, 0.66vw, 0.74rem);
+  font-weight: 850;
+  white-space: nowrap;
+  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+}
+body.inkbeta-mode .bts-chip svg { width: 0.9em; height: 0.9em; }
+body.inkbeta-mode .bts-chip:hover:not(:disabled) {
+  border-color: var(--bt4-cyan);
+  color: var(--bt4-text);
+}
+body.inkbeta-mode .bts-chip:disabled { cursor: default; opacity: 0.42; }
+
+/* ---------- Étape 01 · univers ---------- */
+body.inkbeta-mode .bts-crate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bts-gap);
+}
+body.inkbeta-mode .bts-grid {
+  display: grid;
+  min-height: 0;
+  /* Base automatique : sans elle le bac s'effondre quand la ligne
+     de grille parente n'est pas étirée (mobile, une seule colonne). */
+  flex: 1 1 auto;
+  grid-template-columns: repeat(auto-fit, minmax(clamp(8rem, 11vw, 12rem), 1fr));
+  grid-auto-rows: minmax(clamp(4.4rem, 6.5vh, 5.6rem), auto);
+  gap: clamp(0.4rem, 0.6vw, 0.7rem);
+  align-content: start;
+}
+
+body.inkbeta-mode .bts-card {
+  --bts-cat: var(--bt4-accent);
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border: 2px solid var(--bt4-border);
+  border-left: 5px solid color-mix(in srgb, var(--bts-cat) 55%, transparent);
+  border-radius: calc(var(--bts-radius) * 0.68);
+  color: var(--bt4-muted);
+  background: color-mix(in srgb, var(--bt4-panel-2) 86%, transparent);
+  box-shadow: var(--bts-lift);
+  text-align: left;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+body.inkbeta-mode .bts-card:hover:not([data-locked]) {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--bts-cat) 60%, transparent);
+  color: var(--bt4-text);
+}
+body.inkbeta-mode .bts-card[data-active] {
+  border-color: color-mix(in srgb, var(--bts-cat) 62%, transparent);
+  border-left-color: var(--bts-cat);
+  color: var(--bt4-text);
+  background: color-mix(in srgb, var(--bts-cat) 14%, var(--bt4-panel-2));
+}
+body.inkbeta-mode .bts-card[data-locked] { cursor: not-allowed; }
+
+body.inkbeta-mode .bts-card-art {
+  display: grid;
+  width: clamp(2.1rem, 2.6vw, 2.75rem);
+  height: clamp(2.1rem, 2.6vw, 2.75rem);
+  flex: 0 0 auto;
+  place-items: center;
+  border: 2px solid color-mix(in srgb, var(--bts-cat) 45%, transparent);
+  border-radius: calc(var(--bts-radius) * 0.5);
+  background:
+    radial-gradient(circle at 30% 22%, color-mix(in srgb, var(--bts-cat) 62%, transparent), transparent 62%),
+    linear-gradient(150deg, color-mix(in srgb, var(--bts-cat) 42%, transparent), transparent 58%),
+    color-mix(in srgb, var(--bts-cat) 20%, var(--bt4-panel-3));
+  font-size: clamp(1rem, 1.25vw, 1.3rem);
+  line-height: 1;
+}
+body.inkbeta-mode .bts-card-copy { min-width: 0; }
+body.inkbeta-mode .bts-card-copy strong,
+body.inkbeta-mode .bts-card-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.inkbeta-mode .bts-card-copy strong {
+  color: inherit;
+  font-size: clamp(0.72rem, 0.82vw, 0.92rem);
+  font-weight: 850;
+}
+body.inkbeta-mode .bts-card-copy small {
+  margin-top: 0.12rem;
+  color: var(--bt4-faint);
+  font-size: clamp(0.56rem, 0.62vw, 0.7rem);
+  font-weight: 700;
+}
+body.inkbeta-mode .bts-card-state {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 2px solid var(--bt4-border-strong);
+  border-radius: 50%;
+  color: var(--bt4-faint);
+  font-size: 0.85rem;
+  font-weight: 900;
+  line-height: 1;
+}
+body.inkbeta-mode .bts-card-state svg { width: 0.8rem; height: 0.8rem; stroke-width: 3.5; }
+body.inkbeta-mode .bts-card[data-active] .bts-card-state {
+  border-color: var(--bts-cat);
+  color: var(--ik-edge, #05060a);
+  background: var(--bts-cat);
+}
+
+/* ---------- Colonne de réglages ---------- */
+body.inkbeta-mode .bts-rail {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--bts-gap);
+}
+body.inkbeta-mode .bts-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+body.inkbeta-mode .bts-field { display: flex; min-width: 0; flex-direction: column; gap: 0.4rem; }
+body.inkbeta-mode .bts-field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--bt4-muted);
+  font-size: clamp(0.62rem, 0.68vw, 0.76rem);
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+body.inkbeta-mode .bts-field-label svg { width: 0.95em; height: 0.95em; color: var(--bt4-cyan); }
+body.inkbeta-mode .bts-field-label strong {
+  margin-left: auto;
+  color: var(--bt4-cyan);
+  font-family: var(--ik-display, 'Arial Black', sans-serif);
+  font-size: clamp(0.85rem, 1vw, 1.05rem);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+body.inkbeta-mode .bts-segmented {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.22rem;
+  border: 2px solid var(--bt4-border);
+  border-radius: calc(var(--bts-radius) * 0.6);
+  background: color-mix(in srgb, var(--ik-edge, #05060a) 34%, transparent);
+  grid-template-columns: repeat(var(--bts-cols, 4), minmax(0, 1fr));
+}
+body.inkbeta-mode .bts-segmented[data-count='6'] { --bts-cols: 6; }
+body.inkbeta-mode .bts-segmented[data-count='4'] { --bts-cols: 4; }
+body.inkbeta-mode .bts-segmented button {
+  min-width: 0;
+  min-height: 2.3rem;
+  border: 0;
+  border-radius: calc(var(--bts-radius) * 0.42);
+  color: var(--bt4-faint);
+  background: transparent;
+  font-size: clamp(0.62rem, 0.7vw, 0.78rem);
+  font-weight: 850;
+  transition: color 0.14s ease, background 0.14s ease;
+}
+body.inkbeta-mode .bts-segmented button:hover { color: var(--bt4-text); }
+body.inkbeta-mode .bts-segmented button[aria-pressed='true'] {
+  color: var(--ik-edge, #05060a);
+  background: var(--bt4-cyan);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--ik-edge, #05060a) 70%, transparent);
+}
+
+/* ---------- Rappel des règles : équilibre la colonne et explique le score ---------- */
+body.inkbeta-mode .bts-rules {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.4rem, 0.6vw, 0.7rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+body.inkbeta-mode .bts-rules li {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border: 2px solid var(--bt4-border);
+  border-radius: calc(var(--bts-radius) * 0.68);
+  background: color-mix(in srgb, var(--bt4-panel) 88%, transparent);
+  box-shadow: var(--bts-lift);
+}
+body.inkbeta-mode .bts-rules-num {
+  display: grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ik-edge, #05060a);
+  background: var(--bt4-yellow);
+  font-family: var(--ik-display, 'Arial Black', sans-serif);
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1;
+}
+body.inkbeta-mode .bts-rules li > svg {
+  width: clamp(1rem, 1.1vw, 1.25rem);
+  height: clamp(1rem, 1.1vw, 1.25rem);
+  color: var(--bt4-cyan);
+}
+body.inkbeta-mode .bts-rules div { min-width: 0; }
+body.inkbeta-mode .bts-rules strong,
+body.inkbeta-mode .bts-rules small { display: block; }
+body.inkbeta-mode .bts-rules strong {
+  color: var(--bt4-text);
+  font-size: clamp(0.68rem, 0.76vw, 0.85rem);
+  font-weight: 850;
+}
+body.inkbeta-mode .bts-rules small {
+  margin-top: 0.1rem;
+  overflow: hidden;
+  color: var(--bt4-faint);
+  font-size: clamp(0.56rem, 0.62vw, 0.7rem);
+  font-weight: 650;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Étape 03 · bonus ---------- */
+body.inkbeta-mode .bts-bonuses { display: grid; gap: 0.4rem; }
+body.inkbeta-mode .bts-bonus {
+  display: grid;
+  min-width: 0;
+  min-height: 3.15rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.6rem;
+  border: 2px solid var(--bt4-border);
+  border-radius: calc(var(--bts-radius) * 0.6);
+  color: var(--bt4-muted);
+  background: color-mix(in srgb, var(--bt4-panel-2) 84%, transparent);
+  box-shadow: var(--bts-lift);
+  text-align: left;
+  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+body.inkbeta-mode .bts-bonus:hover { border-color: var(--bt4-border-strong); color: var(--bt4-text); }
+body.inkbeta-mode .bts-bonus[data-on] {
+  border-color: color-mix(in srgb, var(--bt4-cyan) 55%, transparent);
+  color: var(--bt4-text);
+  background: color-mix(in srgb, var(--bt4-cyan) 12%, var(--bt4-panel-2));
+}
+body.inkbeta-mode .bts-bonus-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 2px solid var(--bt4-border);
+  border-radius: calc(var(--bts-radius) * 0.45);
+  color: var(--bt4-faint);
+  background: color-mix(in srgb, var(--bt4-panel-3) 82%, transparent);
+}
+body.inkbeta-mode .bts-bonus-icon svg { width: 0.95rem; height: 0.95rem; }
+body.inkbeta-mode .bts-bonus[data-on] .bts-bonus-icon {
+  border-color: var(--bt4-cyan);
+  color: var(--ik-edge, #05060a);
+  background: var(--bt4-cyan);
+}
+body.inkbeta-mode .bts-bonus-copy { min-width: 0; }
+body.inkbeta-mode .bts-bonus-copy strong,
+body.inkbeta-mode .bts-bonus-copy small { display: block; }
+body.inkbeta-mode .bts-bonus-copy strong {
+  font-size: clamp(0.7rem, 0.78vw, 0.86rem);
+  font-weight: 850;
+}
+body.inkbeta-mode .bts-bonus-copy small {
+  margin-top: 0.1rem;
+  overflow: hidden;
+  color: var(--bt4-faint);
+  font-size: clamp(0.56rem, 0.62vw, 0.7rem);
+  font-weight: 650;
+  text-overflow: ellipsis;
+}
+body.inkbeta-mode .bts-switch {
+  width: 2.1rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  padding: 0.15rem;
+  border: 2px solid var(--bt4-border-strong);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ik-edge, #05060a) 40%, transparent);
+}
+body.inkbeta-mode .bts-switch i {
+  display: block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--bt4-faint);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+body.inkbeta-mode .bts-bonus[data-on] .bts-switch { border-color: var(--bt4-cyan); }
+body.inkbeta-mode .bts-bonus[data-on] .bts-switch i {
+  background: var(--bt4-cyan);
+  transform: translateX(0.9rem);
+}
+
+/* ---------- Lancement ---------- */
+body.inkbeta-mode .bts-launch-zone {
+  display: flex;
+  margin-top: auto;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+body.inkbeta-mode .bts-ticket {
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border: 2px dashed color-mix(in srgb, var(--bt4-cyan) 40%, var(--bt4-border));
+  border-radius: calc(var(--bts-radius) * 0.6);
+  background: color-mix(in srgb, var(--bt4-panel-3) 62%, transparent);
+}
+body.inkbeta-mode .bts-ticket-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--bt4-yellow);
+  font-size: clamp(0.52rem, 0.58vw, 0.64rem);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+body.inkbeta-mode .bts-ticket-label svg { width: 0.95em; height: 0.95em; }
+body.inkbeta-mode .bts-ticket strong {
+  display: block;
+  margin-top: 0.28rem;
+  color: var(--bt4-text);
+  font-size: clamp(0.75rem, 0.85vw, 0.95rem);
+  font-weight: 850;
+  line-height: 1.25;
+}
+body.inkbeta-mode .bts-ticket small {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--bt4-faint);
+  font-size: clamp(0.58rem, 0.64vw, 0.72rem);
+  font-weight: 650;
+}
+
+body.inkbeta-mode .bts-launch {
+  display: grid;
+  min-width: 0;
+  min-height: 3.85rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid var(--ik-edge, #05060a);
+  border-radius: calc(var(--bts-radius) * 0.65);
+  color: var(--ik-edge, #05060a);
+  background: var(--bt4-cyan);
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--ik-edge, #05060a) 88%, transparent);
+  text-align: left;
+  transition: transform 0.16s ease, filter 0.16s ease, box-shadow 0.16s ease;
+}
+body.inkbeta-mode .bts-launch:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 7px 0 color-mix(in srgb, var(--ik-edge, #05060a) 88%, transparent);
+}
+body.inkbeta-mode .bts-launch:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--ik-edge, #05060a) 88%, transparent);
+}
+body.inkbeta-mode .bts-launch:disabled { cursor: wait; filter: grayscale(0.55); opacity: 0.55; }
+body.inkbeta-mode .bts-launch-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 2px solid var(--ik-edge, #05060a);
+  border-radius: calc(var(--bts-radius) * 0.45);
+  background: var(--bt4-text);
+}
+body.inkbeta-mode .bts-launch-icon svg { width: 1.1rem; height: 1.1rem; fill: currentColor; }
+body.inkbeta-mode .bts-launch-copy { min-width: 0; }
+body.inkbeta-mode .bts-launch-copy strong,
+body.inkbeta-mode .bts-launch-copy small { display: block; }
+body.inkbeta-mode .bts-launch-copy strong {
+  font-family: var(--ik-display, 'Arial Black', sans-serif);
+  font-size: clamp(0.82rem, 0.95vw, 1.05rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+body.inkbeta-mode .bts-launch-copy small {
+  margin-top: 0.14rem;
+  font-size: clamp(0.58rem, 0.64vw, 0.72rem);
+  font-weight: 800;
+  opacity: 0.75;
+}
+body.inkbeta-mode .bts-launch > b { font-size: 1.15rem; font-weight: 900; }
+
+body.inkbeta-mode .bts-messages { display: grid; gap: 0.3rem; }
+body.inkbeta-mode .bts-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--bt4-muted);
+  font-size: clamp(0.58rem, 0.64vw, 0.72rem);
+  font-weight: 750;
+  line-height: 1.35;
+}
+body.inkbeta-mode .bts-message svg { width: 0.95em; height: 0.95em; flex: 0 0 auto; margin-top: 0.15em; }
+body.inkbeta-mode .bts-message[data-tone='warn'] { color: var(--bt4-yellow); }
+body.inkbeta-mode .bts-message[data-tone='error'] { color: var(--bt4-pink); }
+
+/* ---------- Salle d'attente invité ---------- */
+body.inkbeta-mode .bts-wait {
+  display: flex;
+  width: min(100%, 42rem);
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.85rem, 1.5vw, 1.35rem);
+  margin: auto;
+  padding: clamp(1.35rem, 2.4vw, 2.4rem);
+  border: 2px solid var(--bt4-border-strong);
+  border-radius: clamp(1rem, 1.4vw, 1.5rem);
+  background: color-mix(in srgb, var(--bt4-panel) 94%, transparent);
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--ik-edge, #05060a) 78%, transparent);
+  flex-direction: column;
+  text-align: center;
+}
+body.inkbeta-mode .bts-wait-art {
+  position: relative;
+  display: grid;
+  width: clamp(7rem, 12vw, 9rem);
+  height: clamp(7rem, 12vw, 9rem);
+  place-items: center;
+}
+body.inkbeta-mode .bts-wait-disc {
+  display: grid;
+  width: 78%;
+  height: 78%;
+  place-items: center;
+  border: 2px solid var(--bt4-border-strong);
+  border-radius: 50%;
+  color: var(--ik-edge, #05060a);
+  background: repeating-radial-gradient(circle, #0a0b10 0 3px, #262a36 4px 6px);
+  animation: bt4-spin 8s linear infinite;
+}
+body.inkbeta-mode .bts-wait-disc::before {
+  content: '';
+  position: absolute;
+  width: 30%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--bt4-cyan);
+}
+body.inkbeta-mode .bts-wait-disc svg { position: relative; z-index: 1; width: 1.1rem; height: 1.1rem; }
+body.inkbeta-mode .bts-wait-wave {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  height: 1.6rem;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.15rem;
+}
+body.inkbeta-mode .bts-wait-wave i {
+  width: 0.16rem;
+  height: 20%;
+  border-radius: 999px;
+  background: var(--bt4-cyan);
+  animation: bt4-wave 0.85s ease-in-out infinite alternate;
+}
+body.inkbeta-mode .bts-wait-wave i:nth-child(3n) { animation-delay: -0.3s; }
+body.inkbeta-mode .bts-wait-wave i:nth-child(4n) { animation-delay: -0.52s; }
+
+body.inkbeta-mode .bts-wait-copy h2 {
+  margin: 0.35rem 0 0;
+  color: var(--bt4-text);
+  font-family: var(--ik-display, 'Arial Black', sans-serif);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  text-shadow: 0 4px 0 var(--ik-edge, #05060a);
+}
+body.inkbeta-mode .bts-wait-copy h2 em { color: var(--bt4-cyan); font-style: normal; }
+body.inkbeta-mode .bts-wait-copy > p {
+  max-width: 30rem;
+  margin: 0.75rem auto 0;
+  color: var(--bt4-muted);
+  font-size: clamp(0.72rem, 0.82vw, 0.92rem);
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+body.inkbeta-mode .bts-wait-tips {
+  display: grid;
+  width: 100%;
+  max-width: 30rem;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+body.inkbeta-mode .bts-wait-tips li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.65rem;
+  border: 2px solid var(--bt4-border);
+  border-radius: calc(var(--bts-radius) * 0.6);
+  color: var(--bt4-muted);
+  background: color-mix(in srgb, var(--bt4-panel-2) 82%, transparent);
+  font-size: clamp(0.62rem, 0.7vw, 0.78rem);
+  font-weight: 750;
+  text-align: left;
+}
+body.inkbeta-mode .bts-wait-tips svg { width: 0.95em; height: 0.95em; flex: 0 0 auto; color: var(--bt4-cyan); }
+
+body.inkbeta-mode .bts-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  border: 2px solid var(--bt4-border);
+  border-radius: 999px;
+  color: var(--bt4-yellow);
+  background: color-mix(in srgb, var(--ik-edge, #05060a) 34%, transparent);
+  font-size: clamp(0.6rem, 0.66vw, 0.74rem);
+  font-weight: 850;
+}
+body.inkbeta-mode .bts-connection[data-ready] { color: var(--bt4-cyan); }
+body.inkbeta-mode .bts-connection svg { width: 0.95em; height: 0.95em; }
+
+/* ---------- Deux colonnes dès qu'il y a la place ---------- */
+@media (min-width: 1024px) {
+  body.inkbeta-mode .bts {
+    grid-template-columns: minmax(0, 1fr) clamp(19rem, 25vw, 27rem);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'hero  rail'
+      'crate rail'
+      'rules rail';
+  }
+  body.inkbeta-mode .bts-hero { grid-area: hero; }
+  body.inkbeta-mode .bts-crate { grid-area: crate; }
+  body.inkbeta-mode .bts-rules { grid-area: rules; }
+  body.inkbeta-mode .bts-rail { grid-area: rail; }
+
+  /* Les réglages se répartissent la colonne au lieu de laisser un trou. */
+  body.inkbeta-mode .bts-block {
+    flex: 1 1 auto;
+    justify-content: space-between;
+  }
+
+  /* Ici seulement la ligne est étirée : le bac peut donc se contraindre.
+     En pile mobile ce min-height annulerait le dimensionnement du contenu. */
+  body.inkbeta-mode .bts-crate { min-height: 0; }
+
+  /* Pochettes verticales : elles absorbent la hauteur disponible. */
+  body.inkbeta-mode .bts-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(6.5rem, 1fr));
+    grid-auto-rows: minmax(6.5rem, 1fr);
+  }
+  body.inkbeta-mode .bts-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: 0.55rem;
+    padding: 0.7rem;
+  }
+  body.inkbeta-mode .bts-card-art {
+    width: 100%;
+    height: auto;
+    min-height: 2.5rem;
+    font-size: clamp(2.6rem, 4.6vw, 5.5rem);
+    text-shadow: 0 0.15em 0.35em rgba(0, 0, 0, 0.35);
+  }
+  body.inkbeta-mode .bts-card-copy strong { white-space: normal; line-height: 1.15; }
+  body.inkbeta-mode .bts-card-state {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.55rem;
+  }
+
+  /* Les bonus se répartissent sous leur titre, sans trou unique. */
+  body.inkbeta-mode .bts-bonuses {
+    flex: 1 1 auto;
+    align-content: space-between;
+  }
+}
+
+/* Grands écrans : la régie occupe la hauteur au lieu de flotter. */
+@media (min-width: 1024px) and (min-height: 700px) {
+  body.inkbeta-mode .bts { min-height: 100%; }
+}
+
+/* Portables 1366 × 768 : tout doit tenir, bouton de lancement compris. */
+@media (min-width: 1024px) and (max-height: 860px) {
+  body.inkbeta-mode .bts { --bts-pad: 0.7rem; --bts-gap: 0.55rem; }
+  body.inkbeta-mode .bts-hero h1 { font-size: clamp(1.9rem, 2.6vw, 2.7rem); }
+  body.inkbeta-mode .bts-hero-copy > p { display: none; }
+  body.inkbeta-mode .bts-head { padding-bottom: 0.5rem; }
+  body.inkbeta-mode .bts-head-copy p { display: none; }
+  body.inkbeta-mode .bts-step { width: 1.8rem; height: 1.8rem; font-size: 0.72rem; }
+  body.inkbeta-mode .bts-grid { grid-template-rows: repeat(2, minmax(5rem, 1fr)); }
+  body.inkbeta-mode .bts-segmented button { min-height: 2rem; }
+  body.inkbeta-mode .bts-bonus { min-height: 2.85rem; }
+  body.inkbeta-mode .bts-rules li { padding: 0.45rem 0.6rem; }
+  body.inkbeta-mode .bts-launch { min-height: 3.4rem; }
+  body.inkbeta-mode .bts-launch-icon { width: 2.2rem; height: 2.2rem; }
+}
+
+/* ---------- Compact ---------- */
+@media (max-width: 1023px) {
+  body.inkbeta-mode .bts-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* La page défile : le lancement reste accroché en bas de l'écran. */
+  body.inkbeta-mode .bts-launch-zone {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    background: color-mix(in srgb, var(--bt4-bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+  }
+}
+
+@media (max-width: 560px) {
+  body.inkbeta-mode .bts-hero { align-items: flex-start; gap: 0.75rem; }
+  body.inkbeta-mode .bts-stats { width: 100%; gap: 0.3rem; }
+  body.inkbeta-mode .bts-stats > div { padding: 0.4rem 0.5rem; }
+  body.inkbeta-mode .bts-head-actions { width: 100%; }
+  body.inkbeta-mode .bts-chip { flex: 1; justify-content: center; }
+  body.inkbeta-mode .bts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.inkbeta-mode .bts-card { grid-template-columns: auto minmax(0, 1fr); padding: 0.5rem; }
+  body.inkbeta-mode .bts-card-state { position: absolute; top: 0.35rem; right: 0.35rem; width: 1.25rem; height: 1.25rem; }
+  body.inkbeta-mode .bts-segmented[data-count='6'] { --bts-cols: 3; }
+  body.inkbeta-mode .bts-rules { grid-template-columns: minmax(0, 1fr); }
+  body.inkbeta-mode .bts-wait-copy > p { font-size: 0.78rem; }
+}
+
+/* Paysage bas de plafond : on garde tout visible sans rogner le texte. */
+@media (orientation: landscape) and (max-height: 650px) and (min-width: 700px) {
+  body.inkbeta-mode .bts { --bts-pad: 0.7rem; --bts-gap: 0.55rem; }
+  body.inkbeta-mode .bts-hero h1 { font-size: clamp(1.6rem, 2.6vw, 2.2rem); }
+  body.inkbeta-mode .bts-hero-copy > p { display: none; }
+  body.inkbeta-mode .bts-grid,
+  body.inkbeta-mode .bts-grid > * { grid-auto-rows: minmax(3.6rem, auto); }
+  body.inkbeta-mode .bts-rules { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode :is(.bts-card, .bts-launch, .bts-chip, .bts-bonus, .bts-switch i) {
+    transition: none;
+  }
+  body.inkbeta-mode .bts-wait-disc { animation: none; }
+}
+
+html.low-power body.inkbeta-mode .bts-wait-wave { display: none; }
+html.low-power body.inkbeta-mode .bts-wait-disc { animation: none; }
+
+/* ============================================================
+   INK BETA — BLINDTEST / ÉCHELLE GRANDS ÉCRANS
+   ------------------------------------------------------------
+   La calibration Penpot 1440 × 900 reste la référence. Au-delà,
+   les plafonds compacts héritès de V4.2 ne doivent plus laisser
+   la scène flotter au milieu du vide sur un écran 1920–2560.
+   ============================================================ */
+@media (min-width: 1600px) and (min-height: 800px) {
+  body.inkbeta-mode .bt4-root {
+    /* Réserve la place des deux rails avant d'élargir la scène. */
+    --bt4-stage-width: min(74vw, calc(100vw - 24rem), 110rem);
+    --bt4-score-width: clamp(11rem, 10vw, 14rem);
+    --bt4-rail-gap: clamp(1rem, 1.25vw, 1.5rem);
+  }
+
+  body.inkbeta-mode .bt4-header { min-height: 4.5rem; padding-block: 0.65rem; }
+  body.inkbeta-mode .bt4-brand-mark { width: 2.6rem; height: 2.6rem; }
+  body.inkbeta-mode .bt4-brand-mark svg { width: 1.1rem; }
+  body.inkbeta-mode .bt4-brand strong { font-size: 1.25rem; }
+  body.inkbeta-mode .bt4-brand small { font-size: 0.66rem; }
+  body.inkbeta-mode :is(.bt4-round-pill, .bt4-icon-button, .bt4-back) { min-height: 2.6rem; }
+  body.inkbeta-mode :is(.bt4-icon-button, .bt4-back) { min-width: 2.6rem; }
+  body.inkbeta-mode .bt4-round-pill { font-size: 0.76rem; }
+  body.inkbeta-mode .bt4-round-pill strong { font-size: 0.95rem; }
+  body.inkbeta-mode .bt4-round-pill small { font-size: 0.64rem; }
+  body.inkbeta-mode .bt4-back { font-size: 0.76rem; }
+  body.inkbeta-mode :is(.bt4-icon-button, .bt4-back) svg { width: 1.1rem; }
+
+  /* Écoute et reveal : occuper la hauteur disponible. */
+  body.inkbeta-mode :is(.bt4-listen, .bt4-reveal) {
+    min-height: clamp(34rem, 68vh, 46rem);
+    gap: clamp(1rem, 1.5vw, 1.5rem) clamp(1.5rem, 2.4vw, 2.5rem);
+    padding: clamp(1.35rem, 1.8vw, 2rem);
+  }
+  body.inkbeta-mode .bt4-listen,
+  body.inkbeta-mode .bt4-reveal {
+    grid-template-columns: minmax(16rem, 0.92fr) minmax(0, 1.55fr);
+  }
+  body.inkbeta-mode .bt4-player {
+    gap: clamp(0.7rem, 1vh, 1rem);
+    padding-right: clamp(1.5rem, 2vw, 2.25rem);
+  }
+  body.inkbeta-mode .bt4-record {
+    width: clamp(11rem, 15vw, 17rem);
+    height: clamp(11rem, 15vw, 17rem);
+  }
+  body.inkbeta-mode .bt4-record-time > strong { font-size: clamp(2rem, 2.6vw, 3.2rem); }
+  body.inkbeta-mode .bt4-record-time > span,
+  body.inkbeta-mode .bt4-record-time > small { font-size: clamp(0.48rem, 0.5vw, 0.62rem); }
+  body.inkbeta-mode .bt4-audio-state,
+  body.inkbeta-mode .bt4-unlock { font-size: clamp(0.72rem, 0.62vw, 0.86rem); }
+  body.inkbeta-mode .bt4-hint strong { font-size: clamp(0.72rem, 0.68vw, 0.88rem); }
+
+  body.inkbeta-mode .bt4-round-tags > span { font-size: clamp(0.62rem, 0.56vw, 0.76rem); }
+  body.inkbeta-mode .bt4-round-copy h1 { font-size: clamp(2.6rem, 3.6vw, 4.6rem); }
+  body.inkbeta-mode .bt4-round-copy > p { font-size: clamp(0.76rem, 0.72vw, 0.95rem); }
+  body.inkbeta-mode .bt4-answer-head h2 { font-size: clamp(1.1rem, 1vw, 1.4rem); }
+  body.inkbeta-mode .bt4-answer-head .bt4-step { font-size: clamp(0.62rem, 0.58vw, 0.74rem); }
+
+  body.inkbeta-mode :is(.bt4-choices, .bt4-reveal-choices) {
+    grid-auto-rows: clamp(4.5rem, 9vh, 6rem);
+    gap: clamp(0.7rem, 1vw, 1.1rem);
+  }
+  body.inkbeta-mode :is(.bt4-choice, .bt4-reveal-choice) {
+    min-height: clamp(4.5rem, 9vh, 6rem);
+    padding: clamp(0.8rem, 1vw, 1.15rem);
+  }
+  body.inkbeta-mode .bt4-choice-letter {
+    width: clamp(2.1rem, 2.4vw, 2.6rem);
+    height: clamp(2.1rem, 2.4vw, 2.6rem);
+    font-size: clamp(0.85rem, 0.85vw, 1.05rem);
+  }
+  body.inkbeta-mode .bt4-choice > strong,
+  body.inkbeta-mode .bt4-reveal-choice > strong { font-size: clamp(0.98rem, 0.92vw, 1.22rem); }
+
+  body.inkbeta-mode .bt4-cover { width: clamp(13rem, 16vw, 18rem); }
+  body.inkbeta-mode .bt4-reveal-copy h1 { font-size: clamp(2.8rem, 4vw, 5.4rem); }
+  body.inkbeta-mode .bt4-reveal-copy > p { font-size: clamp(0.72rem, 0.66vw, 0.9rem); }
+  body.inkbeta-mode .bt4-round-result > strong { font-size: clamp(1.2rem, 1.4vw, 1.7rem); }
+
+  /* Rails : lisibles à la même distance que la scène. */
+  body.inkbeta-mode .bt4-scorebar-title span { font-size: clamp(0.8rem, 0.72vw, 1rem); }
+  body.inkbeta-mode .bt4-scorebar-title small { font-size: clamp(0.62rem, 0.52vw, 0.74rem); }
+  body.inkbeta-mode .bt4-score-chip { min-height: clamp(3rem, 5.5vh, 3.75rem); }
+  body.inkbeta-mode .bt4-score-avatar {
+    width: clamp(1.8rem, 2vw, 2.2rem);
+    height: clamp(1.8rem, 2vw, 2.2rem);
+  }
+  body.inkbeta-mode .bt4-score-name { font-size: clamp(0.78rem, 0.66vw, 0.95rem); }
+  body.inkbeta-mode .bt4-score-chip > strong { font-size: clamp(0.85rem, 0.72vw, 1.05rem); }
+  body.inkbeta-mode .bt4-volume-inline { min-height: clamp(14rem, 30vh, 19rem); }
+  body.inkbeta-mode .bt4-volume-inline input { height: clamp(10rem, 21vh, 14rem); }
+  body.inkbeta-mode .bt4-volume-inline output { font-size: 0.72rem; }
+
+  /* Classement final : même composition, surface exploitable. */
+  body.inkbeta-mode .bt4-results {
+    width: min(84vw, 108rem);
+    gap: 1rem;
+    padding: clamp(1.25rem, 1.6vw, 1.85rem);
+  }
+  body.inkbeta-mode .bt4-results-head h2 { font-size: clamp(2.6rem, 3.4vw, 4.2rem); }
+  body.inkbeta-mode .bt4-results-head > svg { width: 2.75rem; }
+  body.inkbeta-mode .bt4-results-layout { gap: 0.9rem; }
+  body.inkbeta-mode .bt4-winner-card { min-height: 17rem; padding: 1.25rem; }
+  body.inkbeta-mode .bt4-winner-card > .bt4-avatar { width: 4.5rem; height: 4.5rem; }
+  body.inkbeta-mode .bt4-winner-card h3 { font-size: clamp(2rem, 2vw, 2.8rem); }
+  body.inkbeta-mode .bt4-winner-card p { font-size: 0.82rem; }
+  body.inkbeta-mode .bt4-winner-card > strong { font-size: clamp(3rem, 3vw, 4rem); }
+  body.inkbeta-mode .bt4-ranking { padding: 1rem; }
+  body.inkbeta-mode .bt4-ranking-head h3 { font-size: 1.2rem; }
+  body.inkbeta-mode .bt4-ranking li { min-height: 3.9rem; }
+  body.inkbeta-mode .bt4-avatar { width: 2.6rem; height: 2.6rem; }
+  body.inkbeta-mode .bt4-rank { font-size: 0.75rem; }
+  body.inkbeta-mode .bt4-rank-copy strong { font-size: 0.88rem; }
+  body.inkbeta-mode .bt4-rank-copy small { font-size: 0.7rem; }
+  body.inkbeta-mode .bt4-rank-score { font-size: 0.98rem; }
+  body.inkbeta-mode :is(.bt4-team-result, .bt4-my-result) { padding: 1rem; }
+  body.inkbeta-mode .bt4-my-result > strong { font-size: clamp(2.6rem, 2.8vw, 3.4rem); }
+  body.inkbeta-mode :is(.bt4-replay, .bt4-exit) { min-height: 3.5rem; font-size: 0.8rem; }
+}
