@@ -26917,3 +26917,421 @@ body.inkbeta-mode .bt4-wave {
 
 html.low-power body.inkbeta-mode .bt4-vinyl { animation: none; }
 html.low-power body.inkbeta-mode .bt4-record-ring-glow { filter: none; }
+
+/* ============================================================
+   INK BETA — VARIANTE SOMBRE & BLINDTEST PARTAGÉ
+   ------------------------------------------------------------
+   Ink Beta reste l'unique direction artistique. La variante
+   sombre ne change que ses valeurs de fond et de panneau ; le
+   Blindtest consomme les mêmes tokens sans toucher à sa grille.
+   ============================================================ */
+body.inkbeta-mode.inkbeta-dark {
+  --ik-bg: #1a0b2a;
+  --ik-bg-hot: #2a0f38;
+  --ik-bg-deep: #0c0413;
+  --ik-panel: #1f0e30;
+  --ik-panel-deep: #150920;
+  --ik-panel-soft: #2a1440;
+  --ik-panel-bright: #371b52;
+  --ik-edge: #090311;
+  --ik-edge-soft: #33164a;
+  --ik-cyan: #2ae8c9;
+  --ik-cyan-deep: #0f9e93;
+  --ik-pink: #ff5cae;
+  --ik-yellow: #ffcf45;
+  --ik-white: #f5eeff;
+  --ik-white-soft: #d3c3e4;
+  --ik-white-faint: #9d8bb4;
+  --ik-shadow: #050109;
+  --ink-bg-deep: #0a0311;
+  --ink-line: rgba(255, 255, 255, 0.16);
+  --ink-line-strong: rgba(255, 255, 255, 0.42);
+}
+
+body.inkbeta-mode.inkbeta-dark .ik-party-bg {
+  background:
+    radial-gradient(circle at 12% 94%, rgba(120, 22, 74, 0.62) 0, rgba(74, 14, 58, 0.42) 26%, transparent 52%),
+    radial-gradient(circle at 87% 8%, rgba(48, 18, 96, 0.75) 0, rgba(38, 12, 78, 0.3) 44%, transparent 70%),
+    linear-gradient(123deg, #240c2c 0%, #1b0a29 48%, #140828 100%);
+}
+body.inkbeta-mode.inkbeta-dark .ik-party-rays { opacity: 0.12; }
+body.inkbeta-mode.inkbeta-dark .ik-party-dots {
+  opacity: 0.4;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.55) 1.4px, transparent 1.8px);
+}
+body.inkbeta-mode.inkbeta-dark .ik-root::before {
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.04), 0 2px 0 rgba(255, 255, 255, 0.04);
+}
+body.inkbeta-mode.inkbeta-dark .ik-canvas {
+  border-color: rgba(8, 3, 16, 0.8);
+  background: rgba(34, 16, 52, 0.5);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.05), 0 8px 0 rgba(6, 2, 12, 0.5);
+}
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-home-card,
+body.inkbeta-mode.inkbeta-dark :is(.ik-lobby-invite, .ik-lobby-seats-panel, .ik-lobby-chat-panel, .ik-launch) {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.05), 0 6px 0 rgba(6, 2, 12, 0.66);
+}
+body.inkbeta-mode.inkbeta-dark .ik-home-v2 .ik-home-promises > span,
+body.inkbeta-mode.inkbeta-dark :is(.ik-panel-tabs, .ink-device-tabs) {
+  background: rgba(14, 6, 24, 0.72);
+}
+body.inkbeta-mode.inkbeta-dark .ik-tool {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(43, 20, 62, 0.76);
+  box-shadow: 0 4px 0 rgba(6, 2, 12, 0.8);
+}
+body.inkbeta-mode.inkbeta-dark .ik-layout-v2 .ik-tool--profile {
+  border-color: rgba(42, 232, 201, 0.6);
+  background: linear-gradient(180deg, rgba(58, 28, 84, 0.96), rgba(35, 16, 54, 0.96));
+  box-shadow: 0 4px 0 rgba(6, 2, 12, 0.85), -0.75rem 0 0 -0.65rem rgba(255, 255, 255, 0.14);
+}
+body.inkbeta-mode.inkbeta-dark .ik-input {
+  border-color: #4b2a66;
+  color: var(--ik-white);
+  background: #2b1640;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.06), 0 4px 0 var(--ik-edge);
+}
+body.inkbeta-mode.inkbeta-dark .ik-input:focus {
+  border-color: var(--ik-cyan);
+  background: #321a49;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), 0 4px 0 var(--ik-edge), 0 0 0 3px rgba(42, 232, 201, 0.2);
+}
+body.inkbeta-mode.inkbeta-dark .ik-input::placeholder { color: rgba(211, 195, 228, 0.5); }
+body.inkbeta-mode.inkbeta-dark .ik-field > svg { color: #a68bbe; }
+body.inkbeta-mode.inkbeta-dark .ik-music-dock--floating {
+  background: linear-gradient(180deg, rgba(20, 9, 33, 0.94), rgba(9, 3, 17, 0.99));
+  box-shadow: 0 -8px 22px rgba(4, 1, 8, 0.5);
+}
+
+/* ---- Blindtest : la composition reste identique, la palette est partagée. */
+body.inkbeta-mode .bt4-root {
+  --bt4-bg: var(--ik-bg-deep);
+  --bt4-panel: var(--ik-panel-deep);
+  --bt4-panel-2: var(--ik-panel);
+  --bt4-panel-3: var(--ik-panel-soft);
+  --bt4-border: color-mix(in srgb, var(--ik-white) 16%, transparent);
+  --bt4-border-strong: color-mix(in srgb, var(--ik-cyan) 42%, var(--ik-edge-soft));
+  --bt4-text: var(--ik-white);
+  --bt4-muted: var(--ik-white-soft);
+  --bt4-faint: var(--ik-white-faint);
+  --bt4-accent: var(--ik-pink);
+  --bt4-cyan: var(--ik-cyan);
+  --bt4-pink: var(--ik-pink);
+  --bt4-yellow: var(--ik-yellow);
+  --bt4-violet: color-mix(in srgb, var(--ik-pink) 58%, var(--ik-cyan));
+  color: var(--bt4-text);
+  background: var(--bt4-bg);
+}
+
+body.inkbeta-mode .bt4-backdrop {
+  background:
+    radial-gradient(circle at 12% 92%, color-mix(in srgb, var(--ik-pink) 42%, transparent), transparent 34rem),
+    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--ik-cyan) 24%, transparent), transparent 36rem),
+    linear-gradient(123deg, var(--ik-bg-hot) 0%, var(--ik-bg) 48%, var(--ik-bg-deep) 100%);
+}
+body.inkbeta-mode .bt4-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  background:
+    radial-gradient(color-mix(in srgb, var(--ik-edge) 60%, transparent) 1.2px, transparent 1.6px) 0 0 / 8px 8px,
+    repeating-conic-gradient(from 218deg at 16% 100%, rgba(255, 255, 255, 0.13) 0deg 7deg, transparent 7deg 22deg);
+  mix-blend-mode: soft-light;
+  -webkit-mask-image: linear-gradient(115deg, #000 0 19%, transparent 42% 63%, #000 88%);
+  mask-image: linear-gradient(115deg, #000 0 19%, transparent 42% 63%, #000 88%);
+}
+body.inkbeta-mode .bt4-backdrop::after {
+  opacity: 0.24;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 0.52rem,
+    color-mix(in srgb, var(--ik-cyan) 74%, transparent) 0.52rem 0.62rem,
+    transparent 0.62rem 0.93rem
+  );
+}
+body.inkbeta-mode.inkbeta-dark .bt4-backdrop::before { opacity: 0.1; }
+body.inkbeta-mode.inkbeta-dark .bt4-backdrop::after { opacity: 0.16; }
+
+body.inkbeta-mode .bt4-header {
+  border-bottom-color: color-mix(in srgb, var(--ik-white) 12%, transparent);
+  background: color-mix(in srgb, var(--ik-bg-deep) 90%, transparent);
+}
+body.inkbeta-mode .bt4-brand-mark {
+  border: 2px solid var(--ik-edge);
+  color: var(--ik-edge);
+  background: var(--ik-cyan);
+  box-shadow: 0 3px 0 var(--ik-edge);
+}
+body.inkbeta-mode .bt4-brand strong,
+body.inkbeta-mode :is(.bt4-round-copy h1, .bt4-reveal-copy h1, .bt4-results-head h2, .bt4-setup-title h1) {
+  font-family: var(--ik-display);
+  font-weight: 400;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  text-shadow: 0 4px 0 var(--ik-edge);
+}
+
+@media (min-width: 861px) and (min-height: 651px) {
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar,
+  body.inkbeta-mode .bt4-volume-inline,
+  body.inkbeta-mode :is(.bt4-listen, .bt4-reveal) {
+    border: 2px solid var(--bt4-border-strong);
+    border-radius: var(--ink-radius-sm);
+    background:
+      linear-gradient(118deg, color-mix(in srgb, var(--ik-panel-bright) 22%, transparent), transparent 46%),
+      color-mix(in srgb, var(--ik-panel-deep) 94%, transparent);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--ik-white) 6%, transparent),
+      0 5px 0 color-mix(in srgb, var(--ik-edge) 76%, transparent),
+      0 1.2rem 3rem rgba(0, 0, 0, 0.28);
+  }
+  body.inkbeta-mode .bt4-player { border-right-color: color-mix(in srgb, var(--ik-white) 12%, transparent); }
+}
+
+body.inkbeta-mode :is(.bt4-crate, .bt4-mixer, .bt4-waiting, .bt4-winner-card, .bt4-ranking, .bt4-team-result, .bt4-my-result) {
+  border-color: var(--bt4-border-strong);
+  background: color-mix(in srgb, var(--ik-panel-deep) 92%, transparent);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--ik-edge) 72%, transparent);
+}
+body.inkbeta-mode :is(.bt4-setup, .bt4-results) {
+  border-color: var(--bt4-border-strong);
+  background: color-mix(in srgb, var(--ik-panel-deep) 94%, transparent);
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--ik-edge) 74%, transparent), 0 1.2rem 3.4rem rgba(0, 0, 0, 0.28);
+}
+body.inkbeta-mode :is(.bt4-sleeve, .bt4-toggle, .bt4-segments, .bt4-hint) {
+  border-color: var(--bt4-border);
+  background: color-mix(in srgb, var(--ik-panel-soft) 86%, transparent);
+}
+
+body.inkbeta-mode :is(.bt4-choice, .bt4-reveal-choice)[data-choice='0'] { --bt4-choice: var(--ik-pink); }
+body.inkbeta-mode :is(.bt4-choice, .bt4-reveal-choice)[data-choice='1'] { --bt4-choice: var(--ik-cyan); }
+body.inkbeta-mode :is(.bt4-choice, .bt4-reveal-choice)[data-choice='2'] { --bt4-choice: var(--ik-yellow); }
+body.inkbeta-mode :is(.bt4-choice, .bt4-reveal-choice)[data-choice='3'] { --bt4-choice: var(--bt4-violet); }
+body.inkbeta-mode :is(.bt4-choice, .bt4-reveal-choice) {
+  border-color: var(--bt4-border);
+  border-left-color: var(--bt4-choice);
+  background: color-mix(in srgb, var(--ik-panel) 88%, transparent);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--ik-edge) 72%, transparent);
+}
+body.inkbeta-mode .bt4-choice:hover:not(:disabled),
+body.inkbeta-mode .bt4-choice[data-selected] {
+  border-color: var(--bt4-choice);
+  background: color-mix(in srgb, var(--bt4-choice) 15%, var(--ik-panel));
+}
+body.inkbeta-mode .bt4-reveal-choice[data-correct] {
+  background: color-mix(in srgb, var(--ik-cyan) 14%, var(--ik-panel));
+}
+body.inkbeta-mode .bt4-reveal-choice[data-mine]:not([data-correct]) {
+  background: color-mix(in srgb, var(--ik-pink) 13%, var(--ik-panel));
+}
+body.inkbeta-mode .bt4-score-chip {
+  background: color-mix(in srgb, var(--ik-panel-soft) 74%, transparent);
+}
+body.inkbeta-mode .bt4-record {
+  --bt4-timer-glow: color-mix(in srgb, var(--ik-cyan) 45%, transparent);
+}
+body.inkbeta-mode .bt4-record[data-urgent] {
+  --bt4-timer-glow: color-mix(in srgb, var(--ik-pink) 56%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode .bt4-backdrop::before { mix-blend-mode: normal; }
+}
+html.low-power body.inkbeta-mode .bt4-backdrop::before { display: none; }
+
+/* ============================================================
+   INK BETA — BLINDTEST / CALIBRATION PENPOT
+   ------------------------------------------------------------
+   Mesures reprises des frames Penpot 1440 × 900 : scène centrée,
+   rails alignés, hiérarchie plus lisible et réponses contenues.
+   La composition et le DOM V4 restent inchangés.
+   ============================================================ */
+@media (min-width: 861px) and (min-height: 651px) {
+  body.inkbeta-mode .bt4-root {
+    --bt4-stage-width: clamp(34rem, 66vw, 96rem);
+    --bt4-score-width: clamp(8rem, 12vw, 11rem);
+    --bt4-rail-gap: clamp(0.75rem, 1.5vw, 1.5rem);
+    --bt4-stage-shift: 0rem;
+    --bt4-stage-margin: 0rem;
+  }
+
+  body.inkbeta-mode .bt4-header {
+    min-height: 4rem;
+    padding-block: 0.55rem;
+  }
+  body.inkbeta-mode .bt4-brand { gap: 0.65rem; }
+  body.inkbeta-mode .bt4-brand-mark {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 50%;
+  }
+  body.inkbeta-mode .bt4-brand-mark svg { width: 1rem; }
+  body.inkbeta-mode .bt4-brand strong { font-size: 1.08rem; }
+  body.inkbeta-mode .bt4-brand small {
+    margin-top: 0.14rem;
+    font-size: 0.54rem;
+  }
+  body.inkbeta-mode .bt4-header-actions { gap: 0.45rem; }
+  body.inkbeta-mode .bt4-round-pill,
+  body.inkbeta-mode :is(.bt4-icon-button, .bt4-back) {
+    min-height: 2.35rem;
+    border-radius: 10px;
+  }
+  body.inkbeta-mode .bt4-round-pill {
+    padding: 0.28rem 0.7rem;
+    font-size: 0.66rem;
+  }
+  body.inkbeta-mode :is(.bt4-icon-button, .bt4-back) { min-width: 2.35rem; }
+  body.inkbeta-mode .bt4-back {
+    padding-inline: 0.75rem;
+    font-size: 0.66rem;
+  }
+
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-main {
+    justify-content: center;
+    padding-top: 0;
+    padding-bottom: max(4rem, env(safe-area-inset-bottom));
+  }
+
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar {
+    top: calc(50% - 2rem);
+    left: calc(
+      50% - (var(--bt4-stage-width) / 2)
+      - var(--bt4-rail-gap) - var(--bt4-score-width)
+    );
+    width: var(--bt4-score-width);
+    max-height: min(18rem, 42vh);
+    gap: 0.55rem;
+    padding: clamp(0.5rem, 0.7vw, 0.7rem);
+    border-radius: 0.95rem;
+  }
+  body.inkbeta-mode .bt4-scorebar-title {
+    gap: 0.35rem;
+    padding: 0.1rem 0.1rem 0.55rem;
+  }
+  body.inkbeta-mode .bt4-scorebar-title svg { width: 0.9rem; }
+  body.inkbeta-mode .bt4-scorebar-title span {
+    font-family: var(--ik-display);
+    font-size: clamp(0.72rem, 0.9vw, 0.95rem);
+    font-weight: 400;
+    letter-spacing: 0.06em;
+  }
+  body.inkbeta-mode .bt4-scorebar-title small {
+    font-size: clamp(0.48rem, 0.55vw, 0.6rem);
+  }
+  body.inkbeta-mode .bt4-scorebar-track {
+    max-height: min(14rem, 34vh);
+    gap: 0.4rem;
+  }
+  body.inkbeta-mode .bt4-score-chip {
+    min-height: clamp(2.5rem, 5vh, 3.2rem);
+    gap: 0.4rem;
+    padding: 0.4rem 0.45rem;
+    border-radius: 10px;
+  }
+  body.inkbeta-mode .bt4-score-avatar {
+    width: clamp(1.55rem, 2vw, 1.9rem);
+    height: clamp(1.55rem, 2vw, 1.9rem);
+  }
+  body.inkbeta-mode .bt4-score-name {
+    font-size: clamp(0.62rem, 0.7vw, 0.76rem);
+  }
+  body.inkbeta-mode .bt4-score-chip > strong {
+    font-size: clamp(0.68rem, 0.78vw, 0.86rem);
+  }
+  body.inkbeta-mode .bt4-score-rank {
+    width: 1rem;
+    font-size: 0.58rem;
+  }
+
+  body.inkbeta-mode .bt4-volume-inline {
+    left: calc(
+      var(--bt4-stage-width) + var(--bt4-score-width)
+      + var(--bt4-rail-gap) + var(--bt4-rail-gap)
+    );
+    width: clamp(3.25rem, 4.6vw, 4.15rem);
+    min-height: clamp(12rem, 28vh, 16rem);
+    border-radius: 0.95rem;
+  }
+  body.inkbeta-mode .bt4-volume-inline input {
+    height: clamp(8rem, 19vh, 11.5rem);
+  }
+
+  body.inkbeta-mode :is(.bt4-listen, .bt4-reveal) {
+    min-height: clamp(21rem, 52vh, 34rem);
+    gap: clamp(0.8rem, 1.5vw, 1.35rem) clamp(1.25rem, 2.4vw, 2.2rem);
+    margin: 0;
+    padding: clamp(1rem, 1.7vw, 1.65rem);
+    border-radius: 1.25rem;
+  }
+  body.inkbeta-mode .bt4-listen {
+    grid-template-columns: minmax(13rem, 0.9fr) minmax(0, 1.55fr);
+  }
+  body.inkbeta-mode .bt4-player {
+    gap: clamp(0.55rem, 1vh, 0.8rem);
+    padding-right: clamp(1.1rem, 2vw, 2rem);
+  }
+  body.inkbeta-mode .bt4-record {
+    width: clamp(8rem, 15vw, 14rem);
+    height: clamp(8rem, 15vw, 14rem);
+  }
+  body.inkbeta-mode .bt4-round-tags {
+    gap: 0.4rem;
+    margin-bottom: clamp(0.4rem, 0.8vh, 0.65rem);
+  }
+  body.inkbeta-mode .bt4-round-tags > span {
+    min-height: clamp(1.45rem, 2.8vh, 1.8rem);
+    padding-inline: 0.5rem;
+    font-size: clamp(0.52rem, 0.62vw, 0.68rem);
+  }
+  body.inkbeta-mode .bt4-round-copy h1 {
+    font-size: clamp(2.15rem, 3.6vw, 4rem);
+    line-height: 0.88;
+  }
+  body.inkbeta-mode .bt4-round-copy > p {
+    margin-top: 0.55rem;
+    font-size: clamp(0.62rem, 0.74vw, 0.82rem);
+  }
+  body.inkbeta-mode .bt4-answer-deck,
+  body.inkbeta-mode .bt4-reveal-deck {
+    justify-content: flex-end;
+  }
+  body.inkbeta-mode .bt4-answer-head h2 { font-size: clamp(1rem, 1.25vw, 1.25rem); }
+  body.inkbeta-mode .bt4-answer-head .bt4-step { font-size: clamp(0.54rem, 0.64vw, 0.7rem); }
+  body.inkbeta-mode .bt4-choices,
+  body.inkbeta-mode .bt4-reveal-choices {
+    min-height: 0;
+    flex: 0 0 auto;
+    grid-auto-rows: clamp(3.5rem, 7.4vh, 4.5rem);
+    gap: clamp(0.55rem, 1vw, 0.9rem);
+  }
+  body.inkbeta-mode .bt4-choice,
+  body.inkbeta-mode .bt4-reveal-choice {
+    min-height: clamp(3.5rem, 7.4vh, 4.5rem);
+    padding: clamp(0.6rem, 0.95vw, 0.9rem);
+    border-left-width: 4px;
+    border-radius: 11px;
+  }
+  body.inkbeta-mode .bt4-choice-letter {
+    width: clamp(1.9rem, 2.35vw, 2.25rem);
+    height: clamp(1.9rem, 2.35vw, 2.25rem);
+    border-radius: 9px;
+  }
+  body.inkbeta-mode .bt4-choice > strong,
+  body.inkbeta-mode .bt4-reveal-choice > strong {
+    font-size: clamp(0.82rem, 1vw, 1.05rem);
+  }
+
+  body.inkbeta-mode .bt4-reveal {
+    grid-template-columns: minmax(13rem, 0.9fr) minmax(0, 1.55fr);
+  }
+  body.inkbeta-mode .bt4-cover {
+    width: clamp(11rem, 16vw, 16rem);
+    border-radius: 1.1rem;
+  }
+  body.inkbeta-mode .bt4-reveal-copy h1 {
+    font-size: clamp(2.6rem, 4vw, 5rem);
+  }
+}

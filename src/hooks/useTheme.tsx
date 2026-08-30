@@ -1,4 +1,12 @@
-import { useEffect, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
 /** L’unique thème visuel de l’application. */
 export const DEFAULT_THEME = 'inkbeta' as const;
@@ -22,21 +30,45 @@ export const INK_BETA_THEME = {
   },
 } as const;
 
+const INK_BETA_DARK_STORAGE_KEY = 'inkbeta-dark';
 const LEGACY_THEME_STORAGE_KEYS = [
   'game-theme',
   'ink-mode-enabled',
   'ink-beta-surface',
-  'inkbeta-dark',
 ] as const;
 
+interface ThemeContextValue {
+  inkbetaDark: boolean;
+  setInkbetaDark: (enabled: boolean) => void;
+}
+
+const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+const readInkBetaDarkPreference = (): boolean => {
+  try {
+    return localStorage.getItem(INK_BETA_DARK_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
 /**
- * Applique Ink Beta de façon déterministe à toute l’application.
- *
- * Le fournisseur reste monté au même endroit afin que les tokens soient prêts
- * pour toutes les routes, mais il n’expose plus de contexte ni de sélecteur :
- * Ink Beta est désormais l’unique identité visuelle.
+ * Applique Ink Beta à toute l’application et expose uniquement sa variante
+ * sombre. Ink Beta reste l’unique identité : le réglage change les valeurs de
+ * fond et de panneau, pas la structure ni la famille graphique.
  */
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+  const [inkbetaDark, setInkbetaDarkState] = useState(readInkBetaDarkPreference);
+
+  const setInkbetaDark = useCallback((enabled: boolean) => {
+    setInkbetaDarkState(enabled);
+    try {
+      localStorage.setItem(INK_BETA_DARK_STORAGE_KEY, enabled ? 'true' : 'false');
+    } catch {
+      // Le stockage peut être indisponible en navigation privée stricte.
+    }
+  }, []);
+
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
@@ -51,20 +83,27 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     for (const className of [...body.classList]) {
       if (className.startsWith('theme-')) body.classList.remove(className);
     }
-    body.classList.remove(
-      'cartoon-mode',
-      'neverlikethat-mode',
-      'beta-paper',
-      'inkbeta-dark',
-    );
+    body.classList.remove('cartoon-mode', 'neverlikethat-mode', 'beta-paper');
     body.classList.add('theme-inkbeta', 'ink-mode', 'inkbeta-mode', 'beta-ink');
+    body.classList.toggle('inkbeta-dark', inkbetaDark);
 
     try {
       LEGACY_THEME_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
     } catch {
       // Le stockage peut être indisponible en navigation privée stricte.
     }
-  }, []);
+  }, [inkbetaDark]);
 
-  return children;
+  const value = useMemo(
+    () => ({ inkbetaDark, setInkbetaDark }),
+    [inkbetaDark, setInkbetaDark],
+  );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+};
+
+export const useTheme = (): ThemeContextValue => {
+  const context = useContext(ThemeContext);
+  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
+  return context;
 };

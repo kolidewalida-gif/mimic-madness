@@ -11,12 +11,16 @@ import {
   X,
   Sparkles,
   Sliders,
+  Palette,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { useMicrophoneTest } from "@/hooks/useMicrophoneTest";
 import { NoiseReductionToggle } from "@/components/NoiseReductionToggle";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSoundEffectsVolume } from "@/hooks/useSoundEffectsVolume";
+import { useTheme } from "@/hooks/useTheme";
 import { motion, AnimatePresence } from "framer-motion";
 import { AvatarSettings } from "@/components/AvatarSettings";
 import { cn } from "@/lib/utils";
@@ -38,7 +42,7 @@ const GRAFFITI_TEXT_SHADOW =
 const GRAFFITI_TEXT_SHADOW_SM =
   "none";
 
-type Tab = "audio" | "volume" | "avatar";
+type Tab = "audio" | "volume" | "theme" | "avatar";
 
 export const DeviceSettings = ({
   onClose,
@@ -65,6 +69,7 @@ export const DeviceSettings = ({
     stopTest: stopMicTest,
     toggleNoiseSuppression,
   } = useMicrophoneTest({ selectedAudioId });
+  const { inkbetaDark, setInkbetaDark } = useTheme();
 
   const showAvatarTab = !!(playerId && playerName);
   const [activeTab, setActiveTab] = useState<Tab>("audio");
@@ -73,6 +78,7 @@ export const DeviceSettings = ({
   const tabs: { id: Tab; label: string; description: string; icon: any; color: string }[] = [
     { id: "audio", label: "Audio", description: "Micro et test", icon: Mic, color: "var(--ink-accent)" },
     { id: "volume", label: "Volume", description: "Musique et effets", icon: Sliders, color: "#fbbf24" },
+    { id: "theme", label: "Thème", description: "Vif ou sombre", icon: Palette, color: "var(--ik-pink)" },
     ...(showAvatarTab
       ? [{ id: "avatar" as Tab, label: "Avatar", description: "Identité en jeu", icon: User, color: "var(--ink-text-dim)" }]
       : []),
@@ -291,6 +297,60 @@ export const DeviceSettings = ({
               exit={{ opacity: 0, y: -8 }}
             >
               <VolumeSection />
+            </motion.div>
+          )}
+          {activeTab === "theme" && (
+            <motion.div
+              key="theme"
+              id="ink-device-panel-theme"
+              role="tabpanel"
+              aria-labelledby="ink-device-tab-theme"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <InkBetaSection
+                icon={Palette}
+                title="Apparence"
+                accent="var(--ik-pink)"
+                glow="rgba(255, 98, 182, 0.18)"
+              >
+                <button
+                  type="button"
+                  onClick={() => setInkbetaDark(!inkbetaDark)}
+                  aria-pressed={inkbetaDark}
+                  className="ink-device-toggle menu-focus flex w-full items-center justify-between gap-3 rounded-xl p-3 text-left"
+                  style={{
+                    background: inkbetaDark
+                      ? "linear-gradient(180deg, rgba(45,242,208,0.18), rgba(18,188,174,0.05))"
+                      : "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
+                    border: "2px solid var(--ink-line)",
+                  }}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span
+                      className="grid h-9 w-9 flex-none place-items-center rounded-lg"
+                      style={{
+                        color: inkbetaDark ? "var(--ik-cyan)" : "var(--ik-yellow)",
+                        background: "var(--ik-panel-deep)",
+                        border: "2px solid var(--ink-line)",
+                      }}
+                    >
+                      {inkbetaDark ? <Moon className="h-4 w-4" aria-hidden="true" /> : <Sun className="h-4 w-4" aria-hidden="true" />}
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="block text-base font-black text-white">Mode sombre</strong>
+                      <small className="mt-0.5 block text-sm font-bold text-white/60">
+                        {inkbetaDark ? "Prune profond" : "Violet vif"}
+                      </small>
+                    </span>
+                  </span>
+                  <InkBetaSwitch enabled={inkbetaDark} />
+                </button>
+                <p className="text-xs font-bold leading-relaxed text-white/60">
+                  Même direction artistique Ink Beta, avec des fonds et panneaux plus profonds.
+                </p>
+              </InkBetaSection>
             </motion.div>
           )}
           {activeTab === "avatar" && showAvatarTab && (

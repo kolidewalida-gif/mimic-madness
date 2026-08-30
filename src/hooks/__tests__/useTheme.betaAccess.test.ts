@@ -20,7 +20,7 @@ describe('thème Ink Beta unique', () => {
     expect(INK_BETA_THEME.name).toBe('Ink Beta');
   });
 
-  it('remplace toutes les classes de thèmes historiques', () => {
+  it('remplace les anciens thèmes et utilise la variante vive par défaut', () => {
     render(createElement(ThemeProvider, { children: createElement('div') }));
 
     expect(document.body.classList.contains('theme-inkbeta')).toBe(true);
@@ -33,7 +33,7 @@ describe('thème Ink Beta unique', () => {
     expect(document.body.classList.contains('inkbeta-dark')).toBe(false);
   });
 
-  it('ignore et supprime les anciennes préférences sauvegardées', () => {
+  it('supprime les anciennes préférences mais restaure le choix sombre', () => {
     localStorage.setItem('game-theme', 'neverlikethat');
     localStorage.setItem('ink-mode-enabled', 'false');
     localStorage.setItem('ink-beta-surface', 'paper');
@@ -44,6 +44,7 @@ describe('thème Ink Beta unique', () => {
     expect(localStorage.getItem('game-theme')).toBeNull();
     expect(localStorage.getItem('ink-mode-enabled')).toBeNull();
     expect(localStorage.getItem('ink-beta-surface')).toBeNull();
-    expect(localStorage.getItem('inkbeta-dark')).toBeNull();
+    expect(localStorage.getItem('inkbeta-dark')).toBe('true');
+    expect(document.body.classList.contains('inkbeta-dark')).toBe(true);
   });
 });
