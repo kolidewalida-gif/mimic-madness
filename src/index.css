@@ -28481,3 +28481,109 @@ body.inkbeta-mode .bt4-replay {
   background: linear-gradient(120deg, #ff2f45, #a5061a);
   box-shadow: 0 12px 30px rgba(255, 47, 69, 0.28);
 }
+
+/* ============================================================
+   INK BETA — BLINDTEST "RED ROOM" v2 : mise en page recentrée
+   Supprime les satellites flottants (classement / volume) et
+   ramène toute la manche dans une seule scène large et dense.
+   ============================================================ */
+@media (min-width: 861px) and (min-height: 651px) {
+  body.inkbeta-mode .bt4-root { --bt4-stage-width: min(72rem, 92vw); }
+
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    padding-top: 1.1rem;
+    padding-bottom: 1.6rem;
+  }
+
+  /* Classement : bandeau horizontal au-dessus de la scène */
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar {
+    position: static;
+    display: grid;
+    width: var(--bt4-stage-width);
+    max-height: none;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--bt4-border);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(30, 16, 20, 0.92), rgba(11, 7, 9, 0.95));
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    transform: none;
+  }
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar-title {
+    width: auto;
+    border: 0;
+    padding: 0 0.6rem 0 0.15rem;
+    border-right: 1px solid var(--bt4-border);
+  }
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar-track {
+    max-height: none;
+    flex-direction: row;
+    gap: 0.4rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-score-chip {
+    width: auto;
+    min-height: 2.15rem;
+    padding: 0.28rem 0.55rem 0.28rem 0.35rem;
+    border-radius: 999px;
+  }
+
+  /* Volume : réintégré à droite du bandeau, horizontal */
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-volume-inline {
+    position: static;
+    width: auto;
+    min-height: 2.15rem;
+    flex-direction: row;
+    gap: 0.4rem;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--bt4-border);
+    border-radius: 999px;
+    background: rgba(255, 47, 69, 0.07);
+    transform: none;
+  }
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-volume-inline input {
+    width: 5rem;
+    height: auto;
+    accent-color: var(--bt4-accent);
+    direction: ltr;
+    writing-mode: horizontal-tb;
+  }
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-volume-inline output {
+    min-width: 1.4rem;
+    font-size: 0.52rem;
+    text-align: right;
+  }
+
+  /* Scène : plus large, plus dense, sans trou vertical */
+  body.inkbeta-mode :is(.bt4-listen, .bt4-reveal) {
+    min-height: 0;
+    gap: 0.85rem 1.35rem;
+    padding: 1.15rem 1.35rem;
+    border-color: var(--bt4-border-strong);
+    border-radius: 16px;
+    background:
+      radial-gradient(circle at 8% 0%, rgba(255, 47, 69, 0.10), transparent 60%),
+      linear-gradient(180deg, rgba(28, 16, 20, 0.96), rgba(9, 6, 8, 0.97));
+    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  body.inkbeta-mode .bt4-listen { grid-template-rows: auto auto; }
+  body.inkbeta-mode .bt4-answer-deck { align-content: start; gap: 0.6rem; }
+  body.inkbeta-mode .bt4-round-copy { padding-right: 5rem; }
+  body.inkbeta-mode .bt4-round-copy h1 { font-size: clamp(1.7rem, 2.2vw, 2.35rem); }
+  body.inkbeta-mode .bt4-choice,
+  body.inkbeta-mode .bt4-reveal-choice { min-height: 3.15rem; border-radius: 10px; }
+  body.inkbeta-mode .bt4-player { padding-right: 1.3rem; }
+  body.inkbeta-mode .bt4-record {
+    border-color: rgba(255, 47, 69, 0.4);
+    box-shadow: 0 0 0 0.3rem rgba(255, 47, 69, 0.05), 0 0 2.4rem rgba(255, 47, 69, 0.16);
+  }
+}
