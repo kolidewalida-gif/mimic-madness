@@ -7209,12 +7209,11 @@ body.inkbeta-mode {
   --ik-body: 'Outfit', 'Arial Rounded MT Bold', system-ui, sans-serif;
 
   /*
-   * Largeur de la colonne de chat, donc de la gouttière réservée de chaque côté
-   * de la scène de jeu. Une seule source, sinon la réserve et la colonne
-   * finissent par diverger. Plus étroite que les 20 rem d'origine : réservée
-   * des deux côtés, chaque rem se paie deux fois sur la largeur utile.
+   * Largeur réelle du rail de discussion sur grand écran. La scène ne réserve
+   * cette valeur qu’à gauche : le chat n’est plus payé une seconde fois dans
+   * une fausse gouttière miroir à droite.
    */
-  --ik-chat-gutter: clamp(13.5rem, 15vw, 16.5rem);
+  --ik-chat-gutter: clamp(19rem, 20vw, 23rem);
 
   --ink-bg: var(--ik-bg-deep);
   --ink-bg-deep: #35054c;
@@ -12674,14 +12673,12 @@ body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--split {
   grid-template-columns: minmax(0, 1.62fr) minmax(19rem, 0.8fr);
 }
 
-/*
- * Phase d'imitation : la vidéo à imiter est ce qu'on regarde en continu, le
- * panneau d'enregistrement ne sert qu'à quelques gestes. La scène lui laisse
- * donc les deux tiers de la largeur.
- */
+/* Phase d'imitation : la référence utilise tout l'espace restant, tandis que
+ * la console conserve une largeur stable et réellement manipulable. */
 body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--stage {
-  width: min(100%, 104rem);
-  grid-template-columns: minmax(0, 2.2fr) minmax(15.5rem, 0.72fr);
+  width: min(100%, 110rem);
+  grid-template-columns: minmax(0, 1fr) clamp(22rem, 26vw, 27rem);
+  grid-template-rows: auto auto;
 }
 
 body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--center {
@@ -13191,7 +13188,13 @@ body.inkbeta-mode .ik-dots > span.is-current {
 
 /* ---- Tablette -------------------------------------------------------- */
 @media (max-width: 1100px) {
-  body.inkbeta-mode .ik-game-canvas--split,
+  body.inkbeta-mode .ik-game-canvas--split {
+    width: min(100%, 52rem);
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 980px) {
   body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--stage {
     width: min(100%, 52rem);
     grid-template-columns: minmax(0, 1fr);
@@ -13426,30 +13429,22 @@ body.inkbeta-mode :is(
 }
 
 /* ============================================================
-   INK BETA — CHAT ANCRÉ
+   INK BETA — CHAT JOUEURS
    ------------------------------------------------------------
-   La vignette de coin devient une colonne à gauche, du bas de la
-   barre de marque au bas de l'écran. Même panneau que le reste
-   de la scène : bordure épaisse, fond prune, relief.
+   Grand écran : un vrai rail latéral entre la topbar et le lecteur.
+   Laptop : un panneau superposé, replié au montage.
+   Mobile : une sheet large avec zones sûres et fond d’isolation.
    ============================================================ */
 
-/*
- * Ancré par le bas, jamais par le haut.
- *
- * Avec `top` et `bottom` ensemble, la colonne se calait sur son bloc conteneur.
- * Or un écran traversé par une transition porte `will-change: transform`, ce qui
- * en fait le référent des éléments fixes : le bouton replié se retrouvait alors
- * sous le bord bas de la fenêtre, donc invisible.
- */
 body.inkbeta-mode .ik-chat-slot {
   position: fixed;
-  /* Au-dessus du socle musical, qui occupe le bas de la fenêtre. */
-  z-index: 46;
-  bottom: 0.9rem;
-  left: clamp(0.6rem, 1.6vw, 1.35rem);
+  z-index: 60;
+  top: calc(clamp(5rem, 8.5vh, 6rem) + 0.7rem);
+  bottom: 5.35rem;
+  left: clamp(0.65rem, 1.4vw, 1.2rem);
   display: flex;
   width: var(--ik-chat-gutter);
-  height: min(calc(100dvh - 7.6rem), 42rem);
+  min-height: 0;
   flex-direction: column;
   justify-content: flex-end;
   pointer-events: none;
@@ -13459,8 +13454,16 @@ body.inkbeta-mode .ik-chat-slot > * {
   pointer-events: auto;
 }
 
+body.inkbeta-mode .ik-chat-backdrop {
+  display: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 body.inkbeta-mode .ik-chat-dock {
   position: relative;
+  isolation: isolate;
   display: flex;
   width: 100%;
   height: 100%;
@@ -13468,59 +13471,548 @@ body.inkbeta-mode .ik-chat-dock {
   flex-direction: column;
   overflow: hidden;
   border: 3px solid var(--ik-edge-soft);
-  border-radius: 17px;
+  border-radius: 19px;
+  color: var(--ik-white);
   background:
-    radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.14), transparent 44%),
-    var(--ik-panel);
-  box-shadow: inset 0 0 0 2px rgba(255, 166, 223, 0.17), 0 5px 0 rgba(54, 7, 76, 0.52);
+    radial-gradient(circle at 100% 0, rgba(255, 98, 182, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(114, 18, 115, 0.98), rgba(77, 8, 89, 0.99));
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 166, 223, 0.14),
+    0 6px 0 rgba(54, 7, 76, 0.62),
+    0 18px 50px rgba(32, 4, 47, 0.28);
+}
+
+body.inkbeta-mode .ik-chat-dock::before {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 1.1rem;
+  left: 1.1rem;
+  height: 3px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, transparent, var(--ik-cyan), var(--ik-pink), transparent);
+  content: '';
+  pointer-events: none;
+}
+
+body.inkbeta-mode .ik-chat-sparkle {
+  position: absolute;
+  z-index: 4;
+  top: 0.8rem;
+  right: 3.85rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  color: var(--ik-yellow);
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 body.inkbeta-mode .ik-chat-head {
-  gap: 0.5rem;
-  padding: 0.6rem 0.7rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.16);
-  background: rgba(72, 6, 88, 0.44);
+  position: relative;
+  z-index: 2;
+  min-height: 4.35rem;
+  gap: 0.65rem;
+  padding: 0.72rem 0.75rem 0.68rem 0.85rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(90deg, rgba(48, 5, 65, 0.54), rgba(105, 13, 104, 0.28));
 }
 
-body.inkbeta-mode .ik-chat-head > div:first-child > span:nth-child(2) {
-  color: var(--ik-cyan);
+body.inkbeta-mode .ik-chat-head-copy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+body.inkbeta-mode .ik-chat-live-dot {
+  width: 0.62rem;
+  height: 0.62rem;
+  flex: 0 0 auto;
+  border: 2px solid var(--ik-edge);
+  border-radius: 50%;
+  background: var(--ik-cyan);
+  box-shadow: 0 0 0 3px rgba(45, 242, 208, 0.13), 0 0 12px rgba(45, 242, 208, 0.52);
+}
+
+body.inkbeta-mode .ik-chat-heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1;
+}
+
+body.inkbeta-mode .ik-chat-title {
+  overflow: hidden;
+  color: var(--ik-white);
   font-family: var(--ik-display);
-  font-size: 1rem;
+  font-size: clamp(1.05rem, 1.45vw, 1.3rem);
   font-weight: 400;
-  letter-spacing: 0.05em;
-  text-shadow: 0 2px 0 var(--ik-edge);
+  letter-spacing: 0.055em;
+  text-overflow: ellipsis;
+  text-shadow: 0 3px 0 var(--ik-edge);
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-body.inkbeta-mode .ik-chat-dock input {
+body.inkbeta-mode .ik-chat-heading small {
+  overflow: hidden;
+  margin-top: 0.25rem;
+  color: var(--ik-white-faint);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-chat-count {
+  display: grid;
+  min-width: 1.75rem;
+  height: 1.45rem;
+  flex: 0 0 auto;
+  place-items: center;
+  padding-inline: 0.32rem;
+  border: 1px solid rgba(45, 242, 208, 0.46);
+  border-radius: 999px;
+  color: var(--ik-cyan);
+  background: rgba(45, 242, 208, 0.1);
+  font-size: 0.64rem;
+  font-weight: 950;
+}
+
+body.inkbeta-mode .ik-chat-close {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 2px solid rgba(255, 98, 182, 0.48);
+  border-radius: 10px;
+  color: var(--ik-white);
+  background: rgba(255, 98, 182, 0.13);
+  box-shadow: 0 3px 0 rgba(54, 7, 76, 0.62);
+}
+
+body.inkbeta-mode .ik-chat-close:hover {
+  border-color: var(--ik-pink);
+  background: rgba(255, 98, 182, 0.24);
+}
+
+body.inkbeta-mode .ik-chat-messages {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.65rem 0.55rem 0.8rem;
+  background:
+    linear-gradient(180deg, rgba(28, 4, 40, 0.2), transparent 16%),
+    rgba(25, 3, 37, 0.22);
+  scrollbar-color: rgba(45, 242, 208, 0.42) transparent;
+  scrollbar-width: thin;
+}
+
+body.inkbeta-mode .ik-chat-message-list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+body.inkbeta-mode .ik-chat-message {
+  min-width: 0;
+  padding: 0.52rem 0.6rem 0.56rem;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+  overflow-wrap: anywhere;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+body.inkbeta-mode .ik-chat-message:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+body.inkbeta-mode .ik-chat-message.is-own {
+  border-color: rgba(45, 242, 208, 0.18);
+  background: linear-gradient(90deg, rgba(45, 242, 208, 0.09), rgba(45, 242, 208, 0.025));
+}
+
+body.inkbeta-mode .ik-chat-message-line {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.34rem;
+  row-gap: 0.16rem;
+}
+
+body.inkbeta-mode .ik-chat-message-time {
+  flex: 0 0 auto;
+  color: rgba(255, 248, 255, 0.38);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.02em;
+}
+
+body.inkbeta-mode .ik-chat-message-author {
+  max-width: 72%;
+  overflow: hidden;
+  flex: 0 1 auto;
+  font-size: 0.82rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-chat-message-separator {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.7rem;
+}
+
+body.inkbeta-mode .ik-chat-message-copy,
+body.inkbeta-mode .ik-chat-message-voice {
+  min-width: 0;
+  color: rgba(255, 248, 255, 0.92);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+body.inkbeta-mode .ik-chat-message-voice {
+  color: var(--ik-white-faint);
+  font-style: italic;
+}
+
+body.inkbeta-mode .ik-chat-message-media {
+  margin: 0.5rem 0 0 1.55rem;
+}
+
+body.inkbeta-mode .ik-chat-message-media img {
+  display: block;
+  width: auto;
+  max-width: min(100%, 18rem);
+  max-height: 13rem;
+  border: 2px solid rgba(255, 255, 255, 0.17);
+  border-radius: 12px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+body.inkbeta-mode .ik-chat-sound {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.55rem;
+  border-radius: 9px;
+  color: var(--ik-white);
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+body.inkbeta-mode .ik-chat-loading,
+body.inkbeta-mode .ik-chat-empty {
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+body.inkbeta-mode .ik-chat-loading > div {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+}
+
+body.inkbeta-mode .ik-chat-empty {
+  flex-direction: column;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+body.inkbeta-mode .ik-chat-empty > div {
+  display: grid;
+  width: 4.2rem;
+  height: 4.2rem;
+  place-items: center;
+  border: 2px solid rgba(45, 242, 208, 0.28);
+  border-radius: 18px;
+  color: var(--ik-cyan);
+  background: rgba(45, 242, 208, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(45, 242, 208, 0.08);
+}
+
+body.inkbeta-mode .ik-chat-empty svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+body.inkbeta-mode .ik-chat-empty p {
+  margin: 0.85rem 0 0;
+  color: var(--ik-white);
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+body.inkbeta-mode .ik-chat-empty small {
+  max-width: 14rem;
+  margin-top: 0.28rem;
+  color: var(--ik-white-faint);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+body.inkbeta-mode .ik-chat-jump {
+  display: flex;
+  min-height: 2.25rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: -0.15rem 0.65rem 0.45rem;
+  border: 2px solid rgba(45, 242, 208, 0.5);
+  border-radius: 10px;
+  color: var(--ik-cyan);
+  background: rgba(45, 242, 208, 0.12);
+  font-size: 0.65rem;
+  font-weight: 950;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-chat-picker {
+  position: absolute;
+  z-index: 20;
+  top: 4.85rem;
+  right: 0.55rem;
+  bottom: 4.8rem;
+  left: 0.55rem;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid rgba(45, 242, 208, 0.35);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(66, 8, 79, 0.99), rgba(29, 3, 43, 0.99));
+  box-shadow: 0 10px 35px rgba(17, 2, 29, 0.45);
+}
+
+body.inkbeta-mode .ik-chat-picker--soundboard {
+  top: auto;
+  max-height: min(31rem, calc(100% - 5.4rem));
+}
+
+body.inkbeta-mode .ik-chat-picker-head {
+  display: flex;
+  min-height: 3.55rem;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(30, 3, 42, 0.38);
+}
+
+body.inkbeta-mode .ik-chat-picker-head > span:nth-of-type(1) {
+  color: var(--ik-white);
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+body.inkbeta-mode .ik-chat-picker-head > div {
+  min-width: 0;
+}
+
+body.inkbeta-mode .ik-chat-picker-head > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+body.inkbeta-mode .ik-chat-picker-head button {
+  flex: 0 0 auto;
+}
+
+body.inkbeta-mode .ik-chat-picker-head .relative {
+  flex: 1;
+}
+
+body.inkbeta-mode .ik-chat-picker-head input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 9px;
+  background: rgba(14, 2, 24, 0.58) !important;
+}
+
+body.inkbeta-mode .ik-chat-gif-categories {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.45rem 0.5rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.inkbeta-mode .ik-chat-gif-categories button {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+body.inkbeta-mode .ik-chat-gif-results {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.55rem;
+}
+
+body.inkbeta-mode .ik-chat-gif-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+body.inkbeta-mode .ik-chat-gif-grid button {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 10px !important;
+  aspect-ratio: 1;
+}
+
+body.inkbeta-mode .ik-chat-gif-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+body.inkbeta-mode .ik-chat-sound-grid {
+  display: grid;
+  max-height: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  overflow-y: auto;
+  padding: 0.65rem;
+}
+
+body.inkbeta-mode .ik-chat-sound-grid button {
+  min-width: 0;
+  min-height: 4.6rem;
+  border-radius: 11px !important;
+}
+
+body.inkbeta-mode .ik-chat-composer {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  padding: 0.65rem;
+  border-top: 2px solid rgba(255, 255, 255, 0.14);
+  background: rgba(44, 5, 61, 0.72);
+}
+
+body.inkbeta-mode .ik-chat-composer-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+body.inkbeta-mode .ik-chat-tool,
+body.inkbeta-mode .ik-chat-send {
+  display: inline-flex;
+  height: 2.65rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ik-edge) !important;
+  border-radius: 10px;
+  box-shadow: 0 3px 0 var(--ik-edge) !important;
+}
+
+body.inkbeta-mode .ik-chat-tool {
+  gap: 0.25rem;
+  padding-inline: 0.58rem;
+}
+
+body.inkbeta-mode .ik-chat-tool--sound {
+  width: 2.65rem;
+  padding: 0;
+}
+
+body.inkbeta-mode .ik-chat-input {
+  width: 100%;
+  min-width: 0;
+  height: 2.65rem;
+  flex: 1;
+  padding: 0 0.72rem;
+  border: 2px solid rgba(255, 255, 255, 0.17);
+  border-radius: 10px;
+  outline: none;
+  color: var(--ik-white);
+  background: rgba(23, 2, 35, 0.58);
   font-family: var(--ik-body);
+  font-size: 0.78rem;
+  font-weight: 750;
+  transition: border-color 120ms ease, background-color 120ms ease;
 }
 
-/* Bouton replié : même pastille que les outils de la barre. */
+body.inkbeta-mode .ik-chat-input::placeholder {
+  color: rgba(255, 248, 255, 0.38);
+}
+
+body.inkbeta-mode .ik-chat-input:focus {
+  border-color: var(--ik-cyan);
+  background: rgba(23, 2, 35, 0.78);
+}
+
+body.inkbeta-mode .ik-chat-send {
+  width: 2.65rem;
+  color: var(--ik-edge);
+  background: var(--ik-cyan);
+}
+
+body.inkbeta-mode .ik-chat-send svg {
+  color: inherit;
+}
+
+body.inkbeta-mode .ik-chat-send.is-disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.65);
+  opacity: 0.42;
+}
+
+/* Bouton replié : suffisamment visible sans redevenir une fenêtre flottante. */
 body.inkbeta-mode .ik-chat-open {
   position: relative;
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: 3rem;
   align-self: flex-start;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0 0.95rem;
-  border: 2px solid rgba(45, 242, 208, 0.58);
+  gap: 0.55rem;
+  padding: 0 1rem;
+  border: 2px solid rgba(45, 242, 208, 0.66);
   border-radius: 12px;
   color: var(--ik-white);
-  background: linear-gradient(180deg, rgba(111, 22, 126, 0.96), rgba(76, 8, 96, 0.96));
-  box-shadow: 0 4px 0 rgba(53, 7, 75, 0.78);
+  background: linear-gradient(180deg, rgba(111, 22, 126, 0.98), rgba(64, 7, 83, 0.98));
+  box-shadow: 0 4px 0 rgba(53, 7, 75, 0.82), 0 12px 28px rgba(32, 4, 47, 0.25);
   cursor: pointer;
-  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
   transform: translateZ(0);
+  transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
 }
 
-body.inkbeta-mode .ik-chat-open span {
+body.inkbeta-mode .ik-chat-open > span:nth-child(2) {
   color: var(--ik-cyan);
   font-family: var(--ik-display);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 400;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-shadow: 0 2px 0 var(--ik-edge);
+  text-transform: uppercase;
 }
 
 body.inkbeta-mode .ik-chat-open svg {
@@ -13529,44 +14021,120 @@ body.inkbeta-mode .ik-chat-open svg {
 
 body.inkbeta-mode .ik-chat-open:hover {
   background: var(--ik-panel-bright);
+  box-shadow: 0 6px 0 rgba(53, 7, 75, 0.78), 0 14px 30px rgba(32, 4, 47, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 rgba(53, 7, 75, 0.78);
 }
 
 body.inkbeta-mode .ik-chat-open:active {
-  transform: translateY(3px);
   box-shadow: 0 1px 0 rgba(53, 7, 75, 0.78);
+  transform: translateY(3px);
 }
 
-/* La pastille de non-lus garde sa couleur d'alerte, sans dégradé étranger. */
-body.inkbeta-mode .ik-chat-open > span:last-child {
-  color: var(--ik-edge);
+body.inkbeta-mode .ik-chat-open > span:last-child:not(:nth-child(2)) {
+  color: var(--ik-white);
+  background: var(--ik-pink) !important;
   font-family: var(--ik-body);
   font-size: 0.62rem;
   font-weight: 950;
   text-shadow: none;
 }
 
-/* Sous 1100 px la colonne mangerait la scène : le chat redevient un panneau
-   escamotable, mais aux volumes beta. */
-/*
- * Le seuil de la colonne dédiée descend à 901 px : entre 901 et 1100 px il y a
- * la place pour une colonne étroite, et c'est toujours mieux qu'un panneau posé
- * par-dessus les défis.
- */
-@media (max-width: 900px) {
+/* Laptop : le chat est un overlay contrôlé, sans réserver la scène. */
+@media (max-width: 1179px) {
   body.inkbeta-mode .ik-chat-slot {
     top: auto;
-    /* La barre musicale est centrée sur toute la largeur ici : le chat se pose
-       au-dessus d'elle au lieu de passer dessous. */
-    bottom: 4.8rem;
-    height: min(22rem, 52dvh);
-    width: min(16rem, calc(100vw - 1.5rem));
+    bottom: 5.1rem;
+    left: clamp(0.65rem, 1.8vw, 1rem);
+    width: min(25rem, calc(100vw - 1.3rem));
+    height: min(38rem, calc(100dvh - 10.4rem));
+  }
+}
+
+/* Mobile : sheet large au-dessus du lecteur, avec fond isolant au montage. */
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-chat-slot {
+    right: 0;
+    bottom: calc(4.45rem + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    box-sizing: border-box;
+    width: 100%;
+    height: min(72dvh, 40rem);
+    padding-inline: max(0.5rem, env(safe-area-inset-left, 0px)) max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  body.inkbeta-mode .ik-chat-backdrop {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    display: block;
+    background: rgba(22, 2, 34, 0.54);
+    backdrop-filter: blur(3px);
+    cursor: default;
+  }
+
+  body.inkbeta-mode .ik-chat-dock {
+    border-radius: 18px 18px 14px 14px;
+    box-shadow: 0 5px 0 rgba(54, 7, 76, 0.72), 0 -18px 48px rgba(20, 2, 32, 0.32);
+  }
+
+  body.inkbeta-mode .ik-chat-open {
+    margin-left: max(0rem, env(safe-area-inset-left, 0px));
+  }
+
+  body.inkbeta-mode .ik-chat-gif-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .ik-chat-sound-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 430px) {
+  body.inkbeta-mode .ik-chat-slot {
+    height: min(78dvh, 42rem);
+  }
+
+  body.inkbeta-mode .ik-chat-heading small,
+  body.inkbeta-mode .ik-chat-sparkle {
+    display: none;
+  }
+
+  body.inkbeta-mode .ik-chat-title {
+    font-size: 1rem;
+  }
+
+  body.inkbeta-mode .ik-chat-count {
+    min-width: 1.5rem;
+  }
+
+  body.inkbeta-mode .ik-chat-gif-grid,
+  body.inkbeta-mode .ik-chat-sound-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .ik-chat-tool {
+    padding-inline: 0.48rem;
+  }
+}
+
+/* Petit paysage : panneau latéral compact, sans tunnel vertical. */
+@media (min-width: 620px) and (max-width: 900px) and (max-height: 600px) and (orientation: landscape) {
+  body.inkbeta-mode .ik-chat-slot {
+    top: 0.55rem;
+    right: auto;
+    bottom: 4.45rem;
+    left: 0.55rem;
+    width: min(24rem, 46vw);
+    height: auto;
+    padding: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.inkbeta-mode .ik-chat-open {
+  body.inkbeta-mode .ik-chat-open,
+  body.inkbeta-mode .ik-chat-message,
+  body.inkbeta-mode .ik-chat-input {
     transition: none;
   }
 }
@@ -13597,18 +14165,12 @@ body.inkbeta-mode .ik-music-dock--floating .mp-shell--inline {
   pointer-events: auto;
 }
 
-/*
- * Gouttière du chat réservée des DEUX côtés.
- *
- * Elle ne l'était qu'à gauche : la barre se retrouvait centrée dans une boîte
- * amputée, donc décalée d'environ 160 px vers la droite par rapport à la
- * fenêtre, alors que la pastille de manche en haut restait centrée sur la
- * fenêtre. Plus rien ne tombait sur le même axe. Réserver la même largeur à
- * droite coûte de la place mais rétablit un axe unique pour tout l'écran.
- */
-@media (min-width: 901px) {
+/* Le lecteur partage le même espace utile que la scène : une seule réserve à
+ * gauche, exactement là où se trouve le rail de chat. */
+@media (min-width: 1180px) {
   body.inkbeta-mode .ik-music-dock--floating {
-    padding-inline: calc(var(--ik-chat-gutter) + 1.5rem);
+    padding-left: calc(var(--ik-chat-gutter) + clamp(1.35rem, 2vw, 2rem));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
   }
 }
 
@@ -13623,16 +14185,12 @@ body.inkbeta-mode .ik-lobby-v2 .ik-main {
   padding-bottom: 5.2rem;
 }
 
-/*
- * Et la place du chat, dès qu'il y a la largeur pour une colonne. Sans cette
- * réserve, la scène restait centrée sur toute la fenêtre et le panneau de
- * discussion se posait par-dessus les défis. Réservée symétriquement, pour que
- * la scène reste centrée sur la fenêtre : c'est ce qui aligne le cadre, la
- * pastille de manche et la barre du lecteur sur le même axe.
- */
-@media (min-width: 901px) {
+/* Sur grand écran seulement, la scène se décale derrière le rail persistant.
+ * À droite elle conserve son padding normal : aucune colonne fantôme. */
+@media (min-width: 1180px) {
   body.inkbeta-mode .ik-game-v2 .ik-main {
-    padding-inline: calc(var(--ik-chat-gutter) + 1.5rem);
+    padding-left: calc(var(--ik-chat-gutter) + clamp(1.35rem, 2vw, 2rem));
+    padding-right: clamp(0.8rem, 1.7vw, 1.6rem);
   }
 }
 
@@ -21558,21 +22116,107 @@ body.inkbeta-mode .social-studio-dialog {
    ============================================================ */
 
 body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--stage {
-  column-gap: clamp(0.8rem, 1.25vw, 1.2rem);
-  row-gap: clamp(0.55rem, 1vw, 0.9rem);
+  column-gap: clamp(0.8rem, 1.25vw, 1.25rem);
+  row-gap: clamp(0.65rem, 1vw, 0.95rem);
+}
+
+body.inkbeta-mode .ik-imitation-brief {
+  grid-column: 1 / -1;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(18rem, 0.82fr) minmax(30rem, 1.18fr);
+  align-items: center;
+  gap: clamp(0.75rem, 1.3vw, 1.25rem);
+  padding: 0.62rem 0.72rem;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 15px;
+  background:
+    linear-gradient(90deg, rgba(255, 98, 182, 0.1), transparent 38%, rgba(45, 242, 208, 0.06)),
+    rgba(44, 5, 61, 0.76);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055), 0 4px 0 rgba(54, 7, 76, 0.36);
+}
+
+body.inkbeta-mode .ik-imitation-brief-copy {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.68rem;
+}
+
+body.inkbeta-mode .ik-imitation-brief-icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 2px solid var(--ik-edge);
+  border-radius: 11px;
+  color: var(--ik-edge);
+  background: var(--ik-pink);
+  box-shadow: 0 4px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-imitation-brief-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke-width: 3;
+}
+
+body.inkbeta-mode .ik-imitation-kicker {
+  display: block;
+  margin-bottom: 0.12rem;
+  color: var(--ik-pink);
+  font-size: 0.58rem;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.inkbeta-mode .ik-imitation-brief h1 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--ik-white);
+  font-family: var(--ik-display);
+  font-size: clamp(1.3rem, 1.9vw, 1.75rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-shadow: 0 3px 0 var(--ik-edge);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-imitation-brief h1 strong {
+  color: var(--ik-cyan);
+  font: inherit;
+}
+
+body.inkbeta-mode .ik-imitation-brief p {
+  overflow: hidden;
+  margin: 0.27rem 0 0;
+  color: var(--ik-white-faint);
+  font-size: 0.66rem;
+  font-weight: 720;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-imitation-brief p strong {
+  color: var(--ik-cyan);
 }
 
 body.inkbeta-mode .ik-imitation-steps {
-  grid-column: 1 / -1;
   display: grid;
+  min-width: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.4rem;
+  gap: 0.32rem;
   margin: 0;
-  padding: 0.42rem;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 14px;
-  background: rgba(44, 5, 61, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  padding: 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 12px;
+  background: rgba(27, 3, 40, 0.38);
   list-style: none;
 }
 
@@ -21691,6 +22335,52 @@ body.inkbeta-mode .ik-imitation-console {
     var(--ik-panel);
 }
 
+body.inkbeta-mode .ik-imitation-console-meta {
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+body.inkbeta-mode .ik-gpanel-head .ik-imitation-state {
+  display: inline-flex;
+  max-width: 11rem;
+  min-height: 1.85rem;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: hidden;
+  padding: 0 0.55rem;
+  border: 1px solid rgba(45, 242, 208, 0.34);
+  border-radius: 999px;
+  color: var(--ik-cyan);
+  background: rgba(45, 242, 208, 0.07);
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.inkbeta-mode .ik-imitation-state > i {
+  display: block;
+  width: 0.42rem;
+  height: 0.42rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px rgba(45, 242, 208, 0.1);
+}
+
+body.inkbeta-mode .ik-imitation-state.is-live {
+  border-color: rgba(255, 98, 182, 0.54);
+  color: var(--ik-pink);
+  background: rgba(255, 98, 182, 0.1);
+}
+
+body.inkbeta-mode .ik-imitation-state.is-done {
+  color: var(--ik-edge);
+  background: var(--ik-cyan);
+}
+
 body.inkbeta-mode .ik-imitation-console-body {
   justify-content: space-between;
 }
@@ -21699,6 +22389,10 @@ body.inkbeta-mode .ik-imitation-console-body > .ik-game-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   margin-top: 0.15rem;
+}
+
+body.inkbeta-mode .ik-imitation-console-body > .ik-game-actions:not(.has-secondary) {
+  display: none;
 }
 
 body.inkbeta-mode .ik-imitation-console-body > .ik-game-actions.has-secondary {
@@ -21720,9 +22414,9 @@ body.inkbeta-mode .ik-recorder-console {
 
 body.inkbeta-mode .ik-recorder-stack {
   display: flex;
-  min-height: clamp(20rem, 42vh, 29rem);
+  min-height: clamp(18rem, 34vh, 24rem);
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.62rem;
 }
 
 body.inkbeta-mode .ik-recorder-stack > :not([hidden]) ~ :not([hidden]) {
@@ -21779,6 +22473,20 @@ body.inkbeta-mode .ik-recorder-heading p {
   line-height: 1.3;
 }
 
+/* Sur les écrans desktop peu hauts, la consigne détaillée existe déjà dans le
+   bandeau de mission : la masquer ici garde le micro au-dessus du lecteur. */
+@media (min-width: 981px) and (max-height: 850px) {
+  body.inkbeta-mode .ik-recorder-heading {
+    align-items: center;
+    padding-block: 0.5rem;
+  }
+
+  body.inkbeta-mode .ik-recorder-heading p,
+  body.inkbeta-mode .ik-recorder-state--live .ik-recorder-live-layout > p:last-child {
+    display: none;
+  }
+}
+
 body.inkbeta-mode .ik-recorder-state {
   display: flex;
   min-width: 0;
@@ -21805,16 +22513,28 @@ body.inkbeta-mode .ik-recorder-filter-bank > div {
 }
 
 body.inkbeta-mode .ik-recorder-filter-bank > div > .grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: grid;
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: 4.5rem;
   gap: 0.38rem;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 0.12rem 0 0.4rem;
+  scroll-snap-type: inline proximity;
+  scrollbar-color: rgba(45, 242, 208, 0.45) transparent;
+  scrollbar-width: thin;
 }
 
 body.inkbeta-mode .ik-recorder-filter-bank button {
   min-width: 0;
+  min-height: 4.15rem;
+  padding: 0.3rem !important;
   border-width: 2px !important;
   border-color: rgba(255, 255, 255, 0.16) !important;
   border-radius: 10px !important;
   box-shadow: none !important;
+  scroll-snap-align: start;
 }
 
 body.inkbeta-mode .ik-recorder-filter-bank button[aria-pressed='true'] {
@@ -22061,7 +22781,11 @@ body.inkbeta-mode .ik-imitation-settings-dialog {
   box-shadow: 0 8px 0 var(--ik-edge), 0 28px 80px rgba(0, 0, 0, 0.55);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 980px) {
+  body.inkbeta-mode .ik-imitation-brief {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   body.inkbeta-mode .ik-imitation-reference {
     position: relative;
     top: auto;
@@ -22071,9 +22795,6 @@ body.inkbeta-mode .ik-imitation-settings-dialog {
     min-height: 0;
   }
 
-  body.inkbeta-mode .ik-recorder-filter-bank > div > .grid {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-  }
 
   body.inkbeta-mode .ik-recorder-trigger-wrap::before,
   body.inkbeta-mode .ik-recorder-trigger-wrap::after {
@@ -22082,6 +22803,48 @@ body.inkbeta-mode .ik-imitation-settings-dialog {
 }
 
 @media (max-width: 680px) {
+  body.inkbeta-mode .ik-imitation-console .ik-gpanel-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  body.inkbeta-mode .ik-imitation-console-meta {
+    width: 100%;
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  body.inkbeta-mode .ik-imitation-console-meta .ik-imitation-state {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 9rem;
+  }
+
+  body.inkbeta-mode .ik-imitation-brief {
+    gap: 0.55rem;
+    padding: 0.55rem;
+    border-width: 1px;
+    border-radius: 12px;
+  }
+
+  body.inkbeta-mode .ik-imitation-brief-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 9px;
+    box-shadow: 0 3px 0 var(--ik-edge);
+  }
+
+  body.inkbeta-mode .ik-imitation-brief h1 {
+    font-size: 1.2rem;
+  }
+
+  body.inkbeta-mode .ik-imitation-brief p {
+    overflow: visible;
+    font-size: 0.61rem;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
   body.inkbeta-mode .ik-imitation-steps {
     gap: 0.25rem;
     padding: 0.3rem;
@@ -22121,9 +22884,6 @@ body.inkbeta-mode .ik-imitation-settings-dialog {
     font-size: 0.64rem;
   }
 
-  body.inkbeta-mode .ik-recorder-filter-bank > div > .grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 
   body.inkbeta-mode .ik-imitation-console-body > .ik-game-actions.has-secondary {
     grid-template-columns: minmax(0, 1fr);
@@ -22168,7 +22928,23 @@ body.inkbeta-mode .ik-imitation-settings-dialog {
 @media (min-width: 620px) and (max-width: 900px) and (max-height: 600px) and (orientation: landscape) {
   body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--stage {
     width: min(100%, 68rem);
-    grid-template-columns: minmax(0, 1.45fr) minmax(14.5rem, 0.9fr);
+    grid-template-columns: minmax(0, 1fr) minmax(19rem, 0.72fr);
+  }
+
+  body.inkbeta-mode .ik-imitation-brief {
+    grid-template-columns: minmax(15rem, 0.72fr) minmax(0, 1.28fr);
+    gap: 0.55rem;
+    padding: 0.35rem 0.5rem;
+  }
+
+  body.inkbeta-mode .ik-imitation-brief-icon {
+    width: 2.1rem;
+    height: 2.1rem;
+    box-shadow: 0 2px 0 var(--ik-edge);
+  }
+
+  body.inkbeta-mode .ik-imitation-brief p {
+    display: none;
   }
 
   body.inkbeta-mode .ik-imitation-reference {
@@ -22194,9 +22970,6 @@ body.inkbeta-mode .ik-imitation-settings-dialog {
     min-height: 0;
   }
 
-  body.inkbeta-mode .ik-recorder-filter-bank > div > .grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

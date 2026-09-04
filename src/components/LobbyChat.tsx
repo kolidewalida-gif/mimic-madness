@@ -9,7 +9,7 @@
  * - Voice messages
  * - Collapsed/expanded toggle
  */
-import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, memo, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useLobbyChat, type ChatMessage } from '@/hooks/useLobbyChat';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -94,48 +94,63 @@ export const playSoundboardSound = (soundId: string) => {
 /* ============================================================
    Single chat line
 ============================================================ */
-const ChatLine = memo(({ msg, isOwn }: { msg: ChatMessage; isOwn: boolean }) => {
+const ChatLine = memo(({
+  msg,
+  isOwn,
+  isInkBeta,
+}: {
+  msg: ChatMessage;
+  isOwn: boolean;
+  isInkBeta: boolean;
+}) => {
   const color = colorFor(msg.playerId || msg.playerName);
   const isMedia = msg.messageType === 'gif' || msg.messageType === 'image';
   const isSoundboard = msg.messageType === 'soundboard';
   const soundItem = isSoundboard ? SOUNDBOARD_ITEMS.find((s) => s.id === msg.content) : null;
 
-  // Auto-play soundboard messages when received
-  useEffect(() => {
-    if (isSoundboard && !isOwn) {
-      playSoundboardSound(msg.content);
-    }
-  }, [msg.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-      className={cn('px-2 py-1 rounded-lg break-words hover:bg-white/[0.04] transition-colors', isOwn && 'bg-white/[0.02]')}
+      className={cn(
+        isInkBeta
+          ? 'ik-chat-message'
+          : 'px-2 py-1 rounded-lg break-words hover:bg-white/[0.04] transition-colors',
+        isOwn && (isInkBeta ? 'is-own' : 'bg-white/[0.02]'),
+      )}
     >
-      <div className="flex items-baseline gap-1.5 flex-wrap">
-        <span className="text-[10px] text-white/30 font-mono flex-shrink-0">{formatTime(msg.createdAt)}</span>
-        <span className="font-black text-base flex-shrink-0" style={{ color, fontFamily: FONT, textShadow: SHADOW_SM }}>
+      <div className={isInkBeta ? 'ik-chat-message-line' : 'flex items-baseline gap-1.5 flex-wrap'}>
+        <time className={isInkBeta ? 'ik-chat-message-time' : 'text-[10px] text-white/30 font-mono flex-shrink-0'}>
+          {formatTime(msg.createdAt)}
+        </time>
+        <strong
+          className={isInkBeta ? 'ik-chat-message-author' : 'font-black text-base flex-shrink-0'}
+          style={{ color, fontFamily: FONT, textShadow: SHADOW_SM }}
+        >
           {msg.playerName}
-        </span>
-        <span className="text-white/40 text-sm">:</span>
+        </strong>
+        <span className={isInkBeta ? 'ik-chat-message-separator' : 'text-white/40 text-sm'} aria-hidden="true">:</span>
         {!isMedia && !isSoundboard && msg.messageType !== 'voice' && (
-          <span className="text-base text-white/95 font-bold break-words" style={{ fontFamily: FONT }}>{msg.content}</span>
+          <span className={isInkBeta ? 'ik-chat-message-copy' : 'text-base text-white/95 font-bold break-words'} style={{ fontFamily: FONT }}>
+            {msg.content}
+          </span>
         )}
         {msg.messageType === 'voice' && (
-          <span className="italic text-white/60 text-sm" style={{ fontFamily: FONT }}>🎤 message vocal</span>
+          <span className={isInkBeta ? 'ik-chat-message-voice' : 'italic text-white/60 text-sm'} style={{ fontFamily: FONT }}>
+            🎤 message vocal
+          </span>
         )}
         {isSoundboard && soundItem && (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => playSoundboardSound(msg.content)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-sm font-black text-white"
+            className={isInkBeta ? 'ik-chat-sound' : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-sm font-black text-white'}
             style={{
               background: `${soundItem.color}22`,
               border: `2px solid ${soundItem.color}55`,
-              boxShadow: `0 0 0 rgba(0,0,0,0)`,
+              boxShadow: 'none',
               fontFamily: FONT,
               textShadow: SHADOW_SM,
             }}
@@ -148,12 +163,21 @@ const ChatLine = memo(({ msg, isOwn }: { msg: ChatMessage; isOwn: boolean }) => 
         )}
       </div>
       {isMedia && (
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }} className="mt-1.5 ml-3">
-          <img src={msg.content} alt="gif" className="rounded-xl max-h-32 max-w-[200px]"
-            style={{ border: '1px solid var(--ink-line)', boxShadow: 'none' }} />
-        </motion.div>
+        <motion.figure
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className={isInkBeta ? 'ik-chat-message-media' : 'mt-1.5 ml-3'}
+        >
+          <img
+            src={msg.content}
+            alt={msg.messageType === 'gif' ? 'GIF envoyé dans le chat' : 'Image envoyée dans le chat'}
+            className={isInkBeta ? undefined : 'rounded-xl max-h-32 max-w-[200px]'}
+            style={isInkBeta ? undefined : { border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+          />
+        </motion.figure>
       )}
-    </motion.div>
+    </motion.article>
   );
 });
 ChatLine.displayName = 'ChatLine';
@@ -177,15 +201,22 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
    * supprime cette classe entière de disparitions.
    */
   const mountInBody = isInkBeta && typeof document !== 'undefined';
-  const { messages, isLoading, sendMessage, isSending } = useLobbyChat(lobbyId, playerId, playerName);
+  const { messages, allMessages, isLoading, sendMessage, isSending } = useLobbyChat(lobbyId, playerId, playerName);
   /*
-   * Ouvert d'emblée en beta.
-   *
-   * La discussion y est une colonne à part entière de l'écran, pas une bulle à
-   * aller chercher : replié, le chat se réduisait à une pastille de 84 px dans
-   * un coin, que personne ne trouvait.
+   * La colonne reste ouverte sur grand écran. Sur laptop et mobile elle démarre
+   * repliée : l’utilisateur choisit quand superposer la conversation à la
+   * scène, au lieu de perdre en permanence un quart de son écran.
    */
-  const [isExpanded, setIsExpanded] = useState(variant === 'inkBeta');
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (!isInkBeta) return false;
+    if (typeof window === 'undefined') return true;
+    return window.matchMedia('(min-width: 1180px)').matches;
+  });
+  const [isMobileSheet, setIsMobileSheet] = useState(() => (
+    isInkBeta
+    && typeof window !== 'undefined'
+    && window.matchMedia('(max-width: 680px)').matches
+  ));
   const [input, setInput] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
   const [panel, setPanel] = useState<'none' | 'gif' | 'soundboard'>('none');
@@ -193,7 +224,18 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
   const [gifSearch, setGifSearch] = useState('');
   const [gifCategory, setGifCategory] = useState<GifCategory | 'all'>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const lastCountRef = useRef(0);
+  const chatDockRef = useRef<HTMLDivElement>(null);
+  const gifPickerRef = useRef<HTMLDivElement>(null);
+  const soundboardPickerRef = useRef<HTMLDivElement>(null);
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const panelTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const focusTargetRef = useRef<'panel' | 'trigger' | null>(null);
+  const messageTrackerRef = useRef({
+    lobbyId,
+    initialized: false,
+    knownIds: new Set<string>(),
+  });
 
   const visibleGifs = useMemo(() => {
     if (gifSearch.trim()) return searchGifs(gifSearch);
@@ -201,15 +243,81 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
     return CHAT_GIFS.filter((g) => g.category === gifCategory);
   }, [gifSearch, gifCategory]);
 
-  // Track unread
   useEffect(() => {
-    if (!isExpanded && messages.length > lastCountRef.current) {
-      setUnreadCount((n) => n + (messages.length - lastCountRef.current));
+    if (!isInkBeta || typeof window === 'undefined') {
+      setIsMobileSheet(false);
+      return;
     }
-    lastCountRef.current = messages.length;
-  }, [messages.length, isExpanded]);
 
-  useEffect(() => { if (isExpanded) setUnreadCount(0); }, [isExpanded]);
+    const mobileSheetQuery = window.matchMedia('(max-width: 680px)');
+    const syncMobileSheet = () => setIsMobileSheet(mobileSheetQuery.matches);
+    syncMobileSheet();
+    mobileSheetQuery.addEventListener('change', syncMobileSheet);
+    return () => mobileSheetQuery.removeEventListener('change', syncMobileSheet);
+  }, [isInkBeta]);
+
+  /*
+   * L'historique chargé sert de baseline : il ne doit ni remplir le badge de
+   * non-lus, ni rejouer tous les sons du salon. Les ajouts Realtime sont
+   * ensuite suivis par ID indépendamment du montage visuel de la colonne.
+   */
+  useEffect(() => {
+    const tracker = messageTrackerRef.current;
+    if (tracker.lobbyId !== lobbyId) {
+      tracker.lobbyId = lobbyId;
+      tracker.initialized = false;
+      tracker.knownIds.clear();
+      setUnreadCount(0);
+      return;
+    }
+    if (isLoading) return;
+
+    if (!tracker.initialized) {
+      allMessages.forEach((message) => tracker.knownIds.add(message.id));
+      tracker.initialized = true;
+      return;
+    }
+
+    const newMessages = allMessages.filter((message) => !tracker.knownIds.has(message.id));
+    newMessages.forEach((message) => tracker.knownIds.add(message.id));
+    if (newMessages.length === 0) return;
+
+    const visibleIds = new Set(messages.map((message) => message.id));
+    const visibleNewMessages = newMessages.filter((message) => visibleIds.has(message.id));
+    if (!isExpanded && visibleNewMessages.length > 0) {
+      setUnreadCount((count) => count + visibleNewMessages.length);
+    }
+    visibleNewMessages.forEach((message) => {
+      if (message.messageType === 'soundboard' && message.playerId !== playerId) {
+        playSoundboardSound(message.content);
+      }
+    });
+  }, [allMessages, isExpanded, isLoading, lobbyId, messages, playerId]);
+
+  useEffect(() => {
+    if (isExpanded) setUnreadCount(0);
+  }, [isExpanded]);
+
+  useEffect(() => {
+    const target = focusTargetRef.current;
+    if (target === 'panel' && isExpanded) {
+      closeButtonRef.current?.focus();
+      focusTargetRef.current = null;
+    } else if (target === 'trigger' && !isExpanded) {
+      openButtonRef.current?.focus();
+      focusTargetRef.current = null;
+    }
+  }, [isExpanded]);
+
+  useEffect(() => {
+    if (panel === 'none') {
+      panelTriggerRef.current?.focus();
+      panelTriggerRef.current = null;
+      return;
+    }
+    const activePicker = panel === 'gif' ? gifPickerRef.current : soundboardPickerRef.current;
+    activePicker?.querySelector<HTMLElement>('input, button')?.focus();
+  }, [panel]);
 
   // Auto-scroll
   useEffect(() => {
@@ -222,6 +330,60 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
     if (!el) return;
     setAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 30);
   }, []);
+
+  const handleOpenChat = useCallback(() => {
+    focusTargetRef.current = 'panel';
+    setIsExpanded(true);
+    playSoundEffect('pop', 0.3);
+  }, []);
+
+  const handleCloseChat = useCallback(() => {
+    focusTargetRef.current = 'trigger';
+    setPanel('none');
+    setIsExpanded(false);
+  }, []);
+
+  const handleTogglePanel = useCallback((nextPanel: 'gif' | 'soundboard', trigger: HTMLButtonElement) => {
+    panelTriggerRef.current = trigger;
+    setPanel((currentPanel) => currentPanel === nextPanel ? 'none' : nextPanel);
+  }, []);
+
+  const handleClosePanel = useCallback(() => {
+    setPanel('none');
+  }, []);
+
+  const handleChatKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      if (panel !== 'none') {
+        handleClosePanel();
+      } else {
+        handleCloseChat();
+      }
+      return;
+    }
+    if (!isMobileSheet || event.key !== 'Tab') return;
+
+    const focusScope = panel === 'gif'
+      ? gifPickerRef.current
+      : panel === 'soundboard'
+        ? soundboardPickerRef.current
+        : chatDockRef.current;
+    if (!focusScope) return;
+    const focusable = Array.from(focusScope.querySelectorAll<HTMLElement>(
+      'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), a[href], select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )).filter((element) => element.getAttribute('aria-hidden') !== 'true');
+    if (focusable.length === 0) return;
+
+    const activeIndex = focusable.indexOf(document.activeElement as HTMLElement);
+    const shouldWrapBackward = event.shiftKey && activeIndex <= 0;
+    const shouldWrapForward = !event.shiftKey && activeIndex === focusable.length - 1;
+    if (!shouldWrapBackward && !shouldWrapForward && activeIndex !== -1) return;
+
+    event.preventDefault();
+    focusable[event.shiftKey ? focusable.length - 1 : 0]?.focus();
+  }, [handleCloseChat, handleClosePanel, isMobileSheet, panel]);
 
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
@@ -250,12 +412,30 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
 
   const tree = (
     <div className={isInkBeta ? 'ik-chat-slot' : 'fixed bottom-28 left-4 z-40'}>
+      {isExpanded && isInkBeta && (
+        <button
+          type="button"
+          className="ik-chat-backdrop"
+          onClick={handleCloseChat}
+          tabIndex={-1}
+          aria-label="Fermer le chat"
+        />
+      )}
+
       {/* Collapsed button */}
       {!isExpanded && (
-        <motion.button onClick={() => { setIsExpanded(true); playSoundEffect('pop', 0.3); }}
-          whileHover={{ scale: 1.06, rotate: -2 }} whileTap={{ scale: 0.94 }}
+        <motion.button
+          ref={openButtonRef}
+          type="button"
+          onClick={handleOpenChat}
+          whileHover={{ scale: 1.06, rotate: -2 }}
+          whileTap={{ scale: 0.94 }}
           className={isInkBeta ? 'ik-chat-open menu-focus' : 'relative flex items-center gap-2 px-4 py-2.5 rounded-2xl'}
-          style={isInkBeta ? undefined : { background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+          style={isInkBeta ? undefined : { background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+          aria-label={unreadCount > 0 ? `Ouvrir le chat, ${unreadCount} message${unreadCount > 1 ? 's' : ''} non lu${unreadCount > 1 ? 's' : ''}` : 'Ouvrir le chat'}
+          aria-expanded="false"
+          aria-controls="lobby-live-chat"
+        >
           <MessageCircle className="w-4 h-4 text-[var(--ink-accent-text)]" />
           <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Chat</span>
           {unreadCount > 0 && (
@@ -270,54 +450,103 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
 
       {/* Expanded chat */}
       {isExpanded && (
-        <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+        <motion.div
+          ref={chatDockRef}
+          id="lobby-live-chat"
+          role={isMobileSheet ? 'dialog' : 'region'}
+          aria-modal={isMobileSheet || undefined}
+          aria-label="Chat de la partie"
+          onKeyDown={handleChatKeyDown}
+          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+          transition={{ type: 'spring', damping: 22, stiffness: 280 }}
           className={isInkBeta ? 'ik-chat-dock' : 'relative flex flex-col rounded-2xl overflow-hidden'}
-          style={isInkBeta ? undefined : { width: '320px', height: '420px', background: 'linear-gradient(180deg, rgba(20,15,30,0.97), rgba(10,8,16,0.97))', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-          <Sparkles className="absolute top-2 right-8 w-3 h-3 text-amber-400/60 pointer-events-none" />
+          style={isInkBeta ? undefined : { width: '320px', height: '420px', background: 'linear-gradient(180deg, rgba(20,15,30,0.97), rgba(10,8,16,0.97))', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+        >
+          <Sparkles className={isInkBeta ? 'ik-chat-sparkle' : 'absolute top-2 right-8 w-3 h-3 text-amber-400/60 pointer-events-none'} />
 
           {/* Header */}
-          <div
+          <header
             className={cn('flex items-center justify-between flex-shrink-0', isInkBeta ? 'ik-chat-head' : 'px-3 py-2.5')}
             style={isInkBeta ? undefined : { borderBottom: '2.5px solid rgba(255,255,255,0.1)' }}
           >
-            <div className="flex items-center gap-2">
-              <motion.span className="w-2 h-2 rounded-full bg-emerald-400"
-                animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 1.5, repeat: Infinity }}
-                style={{ boxShadow: '0 0 6px #34d39988' }} />
-              <span className="text-base font-black text-white uppercase" style={{ fontFamily: FONT, textShadow: SHADOW_SM, letterSpacing: '0.05em' }}>💬 Chat Live</span>
-              <span className="text-xs font-black px-1.5 py-0.5 rounded-md text-white"
-                style={{ background: 'var(--ink-accent-soft)', border: '1px solid var(--ink-line)', fontFamily: FONT }}>{messages.length}</span>
+            <div className={isInkBeta ? 'ik-chat-head-copy' : 'flex items-center gap-2'}>
+              <motion.span
+                className={isInkBeta ? 'ik-chat-live-dot' : 'w-2 h-2 rounded-full bg-emerald-400'}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                style={isInkBeta ? undefined : { boxShadow: '0 0 6px #34d39988' }}
+                aria-hidden="true"
+              />
+              <div className={isInkBeta ? 'ik-chat-heading' : undefined}>
+                <span className={isInkBeta ? 'ik-chat-title' : 'text-base font-black text-white uppercase'} style={isInkBeta ? undefined : { fontFamily: FONT, textShadow: SHADOW_SM, letterSpacing: '0.05em' }}>
+                  Chat joueurs
+                </span>
+                {isInkBeta && <small>En direct avec les joueurs</small>}
+              </div>
+              <span className={isInkBeta ? 'ik-chat-count' : 'text-xs font-black px-1.5 py-0.5 rounded-md text-white'}
+                style={isInkBeta ? undefined : { background: 'var(--ink-accent-soft)', border: '1px solid var(--ink-line)', fontFamily: FONT }}>
+                {messages.length}
+              </span>
             </div>
-            <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
-              onClick={() => { setIsExpanded(false); setPanel('none'); }}
-              className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+            <motion.button
+              ref={closeButtonRef}
+              type="button"
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleCloseChat}
+              className={isInkBeta ? 'ik-chat-close menu-focus' : 'w-7 h-7 rounded-lg flex items-center justify-center'}
+              style={isInkBeta ? undefined : { background: 'rgba(239,68,68,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+              aria-label="Replier le chat"
+              aria-expanded="true"
+              aria-controls="lobby-live-chat"
+            >
               <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
             </motion.button>
-          </div>
+          </header>
 
           {/* Messages */}
-          <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto py-1.5 px-1 min-h-0"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--ink-accent-soft) transparent' }}>
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className={isInkBeta ? 'ik-chat-messages custom-scrollbar' : 'flex-1 overflow-y-auto py-1.5 px-1 min-h-0'}
+            style={isInkBeta ? undefined : { scrollbarWidth: 'thin', scrollbarColor: 'var(--ink-accent-soft) transparent' }}
+            role="log"
+            aria-label="Messages du chat"
+            aria-live="polite"
+            aria-relevant="additions"
+            aria-busy={isLoading}
+          >
             {isLoading ? (
-              <div className="flex items-center justify-center py-8">
+              <div className={isInkBeta ? 'ik-chat-loading' : 'flex items-center justify-center py-8'}>
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-6 h-6 rounded-full" style={{ border: '3px solid var(--ink-accent)', borderTopColor: 'transparent' }} />
+                  className={isInkBeta ? undefined : 'w-6 h-6 rounded-full'} style={{ border: '3px solid var(--ink-accent)', borderTopColor: 'transparent' }} />
+                <span className="sr-only">Chargement des messages</span>
               </div>
             ) : messages.length === 0 ? (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                <motion.div animate={{ y: [0, -4, 0], rotate: [-3, 3, -3] }} transition={{ duration: 2, repeat: Infinity }}>
-                  <span className="text-5xl">💬</span>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={isInkBeta ? 'ik-chat-empty' : 'flex flex-col items-center justify-center py-10 px-4 text-center'}
+              >
+                <motion.div animate={{ y: [0, -4, 0], rotate: [-3, 3, -3] }} transition={{ duration: 2, repeat: Infinity }} aria-hidden="true">
+                  <MessageCircle />
                 </motion.div>
-                <p className="text-base font-black text-white/70 mt-3" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Aucun message !</p>
-                <p className="text-sm text-white/40 italic font-bold mt-1" style={{ fontFamily: FONT }}>Sois le premier ✨</p>
+                <p style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>La discussion est ouverte</p>
+                <small style={{ fontFamily: FONT }}>Lance le premier message à la troupe.</small>
               </motion.div>
             ) : (
-              <div className="flex flex-col gap-0.5">
+              <div className={isInkBeta ? 'ik-chat-message-list' : 'flex flex-col gap-0.5'}>
                 <AnimatePresence initial={false}>
-                  {messages.map((msg) => <ChatLine key={msg.id} msg={msg} isOwn={msg.playerId === playerId} />)}
+                  {messages.map((msg) => (
+                    <ChatLine
+                      key={msg.id}
+                      msg={msg}
+                      isOwn={msg.playerId === playerId}
+                      isInkBeta={isInkBeta}
+                    />
+                  ))}
                 </AnimatePresence>
               </div>
             )}
@@ -327,22 +556,22 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
           {!autoScroll && (
             <motion.button initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
               onClick={() => { setAutoScroll(true); scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }}
-              className="mx-2 mb-1 py-1.5 rounded-lg text-xs font-black text-white"
-              style={{ background: 'var(--ink-accent)', border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}
+              className={isInkBeta ? 'ik-chat-jump' : 'mx-2 mb-1 py-1.5 rounded-lg text-xs font-black text-white'}
+              style={isInkBeta ? undefined : { background: 'var(--ink-accent)', border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              ↓ Nouveaux messages
+              <span aria-hidden="true">↓</span> Nouveaux messages
             </motion.button>
           )}
 
           {/* GIF Panel — inside chat */}
           <AnimatePresence>
             {panel === 'gif' && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+              <motion.div ref={gifPickerRef} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
                 transition={{ type: 'spring', damping: 22, stiffness: 320 }}
-                className="absolute inset-x-0 bottom-[56px] top-[44px] z-20 flex flex-col rounded-xl overflow-hidden"
-                style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                className={isInkBeta ? 'ik-chat-picker ik-chat-picker--gif' : 'absolute inset-x-0 bottom-[56px] top-[44px] z-20 flex flex-col rounded-xl overflow-hidden'}
+                style={isInkBeta ? undefined : { background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                 {/* GIF Header */}
-                <div className="flex items-center gap-2 px-3 py-2 flex-shrink-0" style={{ borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
+                <div className={isInkBeta ? 'ik-chat-picker-head' : 'flex items-center gap-2 px-3 py-2 flex-shrink-0'} style={isInkBeta ? undefined : { borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>GIFs</span>
                   <span className="text-xs text-white/40 font-mono">({CHAT_GIFS.length})</span>
@@ -352,7 +581,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
                       className="w-full pl-7 pr-2 py-1.5 rounded-lg text-sm font-bold text-white placeholder:text-white/30 outline-none"
                       style={{ background: 'rgba(0,0,0,0.4)', border: '2px solid rgba(255,255,255,0.1)', fontFamily: FONT }} />
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setPanel('none')}
+                  <motion.button type="button" aria-label="Fermer le sélecteur" whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={handleClosePanel}
                     className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
@@ -360,7 +589,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
                 </div>
                 {/* Categories */}
                 {!gifSearch.trim() && (
-                  <div className="flex gap-1.5 px-2 py-1.5 overflow-x-auto flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className={isInkBeta ? 'ik-chat-gif-categories custom-scrollbar' : 'flex gap-1.5 px-2 py-1.5 overflow-x-auto flex-shrink-0'} style={isInkBeta ? undefined : { borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     {[['all', { emoji: '✨', label: 'Tout', color: 'var(--ink-accent)' }] as const, ...Object.entries(CATEGORY_LABELS) as [GifCategory, typeof CATEGORY_LABELS[GifCategory]][]]
                       .map(([key, info]) => (
                         <button key={key} onClick={() => setGifCategory(key as GifCategory | 'all')}
@@ -372,8 +601,8 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
                   </div>
                 )}
                 {/* Grid */}
-                <div className="flex-1 overflow-y-auto p-2">
-                  <div className="grid grid-cols-3 gap-2">
+                <div className={isInkBeta ? 'ik-chat-gif-results custom-scrollbar' : 'flex-1 overflow-y-auto p-2'}>
+                  <div className={isInkBeta ? 'ik-chat-gif-grid' : 'grid grid-cols-3 gap-2'}>
                     {visibleGifs.map((gif, i) => (
                       <motion.button key={`${gif.url}-${i}`} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: Math.min(i * 0.01, 0.15) }} whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.95 }}
@@ -384,7 +613,7 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
                       </motion.button>
                     ))}
                     {visibleGifs.length === 0 && (
-                      <div className="col-span-3 py-8 text-center">
+                      <div className="col-span-full py-8 text-center">
                         <span className="text-4xl">🤷</span>
                         <p className="text-sm text-white/50 mt-2 font-bold" style={{ fontFamily: FONT }}>Aucun GIF</p>
                       </div>
@@ -398,23 +627,23 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
           {/* Soundboard Panel — inside chat */}
           <AnimatePresence>
             {panel === 'soundboard' && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+              <motion.div ref={soundboardPickerRef} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
                 transition={{ type: 'spring', damping: 22, stiffness: 320 }}
-                className="absolute inset-x-0 bottom-[56px] z-20 rounded-xl overflow-hidden"
-                style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-                <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
+                className={isInkBeta ? 'ik-chat-picker ik-chat-picker--soundboard' : 'absolute inset-x-0 bottom-[56px] z-20 rounded-xl overflow-hidden'}
+                style={isInkBeta ? undefined : { background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                <div className={isInkBeta ? 'ik-chat-picker-head' : 'flex items-center justify-between px-3 py-2'} style={isInkBeta ? undefined : { borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
                   <div className="flex items-center gap-2">
                     <Volume2 className="w-3.5 h-3.5 text-[var(--ink-text-dim)]" />
                     <span className="text-base font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>Soundboard</span>
                     <span className="text-xs text-white/40" style={{ fontFamily: FONT }}>— tout le monde entend !</span>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setPanel('none')}
+                  <motion.button type="button" aria-label="Fermer le sélecteur" whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={handleClosePanel}
                     className="w-7 h-7 rounded-lg flex items-center justify-center"
                     style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                     <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                   </motion.button>
                 </div>
-                <div className="grid grid-cols-4 gap-2 p-3">
+                <div className={isInkBeta ? 'ik-chat-sound-grid custom-scrollbar' : 'grid grid-cols-4 gap-2 p-3'}>
                   {SOUNDBOARD_ITEMS.map((item) => (
                     <motion.button key={item.id} whileHover={{ scale: 1.08, y: -2 }} whileTap={{ scale: 0.92 }}
                       onClick={() => handleSendSoundboard(item.id)}
@@ -430,23 +659,25 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
           </AnimatePresence>
 
           {/* Input bar */}
-          <div className="p-2 flex-shrink-0" style={{ borderTop: '2.5px solid rgba(255,255,255,0.1)' }}>
-            <div className="flex gap-1.5 items-center">
+          <div className={isInkBeta ? 'ik-chat-composer' : 'p-2 flex-shrink-0'} style={isInkBeta ? undefined : { borderTop: '2.5px solid rgba(255,255,255,0.1)' }}>
+            <div className={isInkBeta ? 'ik-chat-composer-row' : 'flex gap-1.5 items-center'}>
               {/* GIF button */}
-              <motion.button type="button" onClick={() => setPanel(panel === 'gif' ? 'none' : 'gif')}
+              <motion.button type="button" onClick={(event) => handleTogglePanel('gif', event.currentTarget)}
                 whileHover={{ scale: 1.1, rotate: -5 }} whileTap={{ scale: 0.9 }}
-                className="flex-shrink-0 px-2 py-2 rounded-xl flex items-center gap-1"
+                className={isInkBeta ? 'ik-chat-tool ik-chat-tool--gif' : 'flex-shrink-0 px-2 py-2 rounded-xl flex items-center gap-1'}
                 style={{ background: panel === 'gif' ? 'linear-gradient(180deg, #fbbf24, #d97706)' : 'rgba(251,191,36,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+                aria-pressed={panel === 'gif'}
                 title="GIFs">
                 <ImageIcon className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
                 <span className="text-xs font-black text-white leading-none" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>GIF</span>
               </motion.button>
 
               {/* Soundboard button */}
-              <motion.button type="button" onClick={() => setPanel(panel === 'soundboard' ? 'none' : 'soundboard')}
+              <motion.button type="button" onClick={(event) => handleTogglePanel('soundboard', event.currentTarget)}
                 whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.9 }}
-                className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                className={isInkBeta ? 'ik-chat-tool ik-chat-tool--sound' : 'flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center'}
                 style={{ background: panel === 'soundboard' ? 'linear-gradient(180deg, var(--ink-text-dim), var(--ink-text-dim))' : 'rgba(6,182,212,0.2)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+                aria-pressed={panel === 'soundboard'}
                 title="Soundboard — tout le monde entend !">
                 <Volume2 className="w-4 h-4 text-white" strokeWidth={2.5} />
               </motion.button>
@@ -454,16 +685,20 @@ export const LobbyChat = memo(function LobbyChat({ lobbyId, playerId, playerName
               {/* Text input */}
               <input value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Ton message…" maxLength={300}
-                className="flex-1 min-w-0 px-3 py-2 rounded-xl text-sm font-bold text-white placeholder:text-white/30 outline-none"
-                style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)', fontFamily: FONT }} />
+                placeholder="Ton message…" aria-label="Message à envoyer" maxLength={300}
+                className={isInkBeta ? 'ik-chat-input' : 'flex-1 min-w-0 px-3 py-2 rounded-xl text-sm font-bold text-white placeholder:text-white/30 outline-none'}
+                style={isInkBeta ? undefined : { background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)', fontFamily: FONT }} />
 
               {/* Send button */}
               <motion.button type="button" onClick={handleSend} disabled={!input.trim() || isSending}
                 whileHover={input.trim() && !isSending ? { scale: 1.1, rotate: -5 } : undefined}
                 whileTap={input.trim() && !isSending ? { scale: 0.9 } : undefined}
-                className={cn('flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center', (!input.trim() || isSending) && 'opacity-40 cursor-not-allowed')}
-                style={{ background: 'var(--ink-accent)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+                className={cn(
+                  isInkBeta ? 'ik-chat-send' : 'flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center',
+                  (!input.trim() || isSending) && (isInkBeta ? 'is-disabled' : 'opacity-40 cursor-not-allowed'),
+                )}
+                style={isInkBeta ? undefined : { background: 'var(--ink-accent)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}
+                aria-label={isSending ? 'Envoi en cours' : 'Envoyer le message'}>
                 <Send className="w-4 h-4 text-white" strokeWidth={2.5} />
               </motion.button>
             </div>

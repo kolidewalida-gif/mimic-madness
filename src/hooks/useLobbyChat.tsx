@@ -16,6 +16,7 @@ export interface ChatMessage {
 
 interface UseLobbyChat {
   messages: ChatMessage[];
+  allMessages: ChatMessage[];
   isLoading: boolean;
   sendMessage: (content: string, messageType?: 'text' | 'image' | 'gif' | 'voice' | 'soundboard') => Promise<void>;
   isSending: boolean;
@@ -200,6 +201,7 @@ export const useLobbyChat = (
 
   return {
     messages: visibleMessages,
+    allMessages: messages,
     isLoading,
     sendMessage,
     isSending,

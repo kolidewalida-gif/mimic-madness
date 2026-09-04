@@ -624,6 +624,17 @@ export const ImitationPhase = ({
 
   const teammateReady = teammate ? readyPlayers.includes(teammate.id) : false;
   const hasReachedReview = hasRecorded || recorderState === 'preview';
+  const imitationStatus = hasSubmitted
+    ? 'Tour terminé'
+    : hasReachedReview
+      ? 'Prête à écouter'
+      : recorderState === 'live'
+        ? 'Enregistrement en cours'
+        : recorderState === 'paused'
+          ? 'Enregistrement en pause'
+          : recorderState === 'processing'
+            ? 'Préparation de l’écoute'
+            : 'Prêt à enregistrer';
 
   return (
     <div
@@ -685,24 +696,43 @@ export const ImitationPhase = ({
           transition={{ duration: 0.4 }}
           className={isInkBeta ? 'contents' : 'max-w-[1600px] mx-auto grid lg:grid-cols-[1.55fr_1fr] gap-4 items-start pt-4'}>
           {isInkBeta && (
-            <ol className="ik-imitation-steps" aria-label="Progression de ton imitation">
-              <li className="is-complete">
-                <span aria-hidden="true">01</span>
-                <strong>Observer</strong>
-              </li>
-              <li className={hasReachedReview ? 'is-complete' : 'is-current'} aria-current={!hasReachedReview ? 'step' : undefined}>
-                <span aria-hidden="true">02</span>
-                <strong>Enregistrer</strong>
-              </li>
-              <li className={hasSubmitted ? 'is-complete' : hasReachedReview ? 'is-current' : undefined} aria-current={hasReachedReview && !hasSubmitted ? 'step' : undefined}>
-                <span aria-hidden="true">03</span>
-                <strong>Écouter</strong>
-              </li>
-              <li className={hasSubmitted ? 'is-complete is-current' : undefined} aria-current={hasSubmitted ? 'step' : undefined}>
-                <span aria-hidden="true">04</span>
-                <strong>Soumettre</strong>
-              </li>
-            </ol>
+            <section className="ik-imitation-brief" aria-labelledby="ik-imitation-mission-title">
+              <div className="ik-imitation-brief-copy">
+                <span className="ik-imitation-brief-icon" aria-hidden="true">
+                  <Mic />
+                </span>
+                <div>
+                  <span className="ik-imitation-kicker">Mission · Manche {roundNumber}</span>
+                  <h1 id="ik-imitation-mission-title">
+                    Imite <strong>{currentChallenge.playerName}</strong>
+                  </h1>
+                  <p>
+                    {gameMode === '2v2' && teammate
+                      ? <>Synchronise-toi avec <strong>{teammate.name}</strong>, puis envoyez votre meilleure prise.</>
+                      : 'Observe la référence, cale ton rythme puis enregistre ta meilleure prise.'}
+                  </p>
+                </div>
+              </div>
+
+              <ol className="ik-imitation-steps" aria-label="Progression de ton imitation">
+                <li className="is-complete">
+                  <span aria-hidden="true">01</span>
+                  <strong>Observer</strong>
+                </li>
+                <li className={hasReachedReview ? 'is-complete' : 'is-current'} aria-current={!hasReachedReview ? 'step' : undefined}>
+                  <span aria-hidden="true">02</span>
+                  <strong>Capturer</strong>
+                </li>
+                <li className={hasSubmitted ? 'is-complete' : hasReachedReview ? 'is-current' : undefined} aria-current={hasReachedReview && !hasSubmitted ? 'step' : undefined}>
+                  <span aria-hidden="true">03</span>
+                  <strong>Écouter</strong>
+                </li>
+                <li className={hasSubmitted ? 'is-complete is-current' : undefined} aria-current={hasSubmitted ? 'step' : undefined}>
+                  <span aria-hidden="true">04</span>
+                  <strong>Envoyer</strong>
+                </li>
+              </ol>
+            </section>
           )}
 
           {/* LEFT — Video to imitate (big) */}
@@ -842,8 +872,16 @@ export const ImitationPhase = ({
                   <span>Ton tour</span>
                   <h2>Ton imitation</h2>
                 </div>
-                <div className="ik-gpanel-aside">
-                  <p className="ik-lobby-count">
+                <div className="ik-gpanel-aside ik-imitation-console-meta">
+                  <span className={cn(
+                    'ik-imitation-state',
+                    recorderState === 'live' && 'is-live',
+                    hasSubmitted && 'is-done',
+                  )} role="status">
+                    <i aria-hidden="true" />
+                    {imitationStatus}
+                  </span>
+                  <p className="ik-lobby-count" aria-label={`${readyPlayers.length} joueurs sur ${players.length} sont prêts ou ignorés`}>
                     <strong>{String(readyPlayers.length).padStart(2, '0')}</strong>
                     <span>/ {String(players.length).padStart(2, '0')}</span>
                   </p>
@@ -918,7 +956,7 @@ export const ImitationPhase = ({
                     }}>
                     <Check className="w-5 h-5 text-white" strokeWidth={3} />
                     <span className="text-xl font-black text-white" style={{ fontFamily: FONT, textShadow: SHADOW }}>
-                      {hasSubmitted ? "Soumis !" : isSubmitting ? "Envoi…" : "Soumettre"}
+                      {hasSubmitted ? "Envoyé !" : isSubmitting ? "Envoi…" : "Envoyer"}
                     </span>
                   </motion.button>
                   {hasSubmitted && (
