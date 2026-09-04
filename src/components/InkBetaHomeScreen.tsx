@@ -1,43 +1,32 @@
 /**
  * Accueil du thème Ink Beta.
  *
- * Cette variante reprend le langage des party-games web : une scène violette
- * très lisible, une mascotte expressive, des volumes épais et un appel à
- * l'action immédiat. Toute la logique de création, de jonction et de
- * persistance reste partagée avec les autres accueils.
+ * La logique de création, de jonction, de persistance et d'avatar reste ici.
+ * La composition visuelle vit dans une vue isolée afin que les anciennes
+ * générations de styles `.ik-*` ne puissent plus piloter l'accueil.
  */
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  AudioLines,
-  Bell,
-  Camera,
-  ChevronLeft,
-  ChevronRight,
-  Hash,
-  LogIn,
-  Play,
-  Settings,
-  Share2,
-  SlidersHorizontal,
-  Trash2,
-  User,
-  UsersRound,
-} from 'lucide-react';
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from 'react';
+import { AudioLines, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { InkBetaMascot } from '@/components/InkBetaBrand';
+import { InkHome2026View } from '@/components/home/InkHome2026View';
+import { type PersonalHubTab } from '@/components/personal-hub/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
-import { useRecentLobbies } from '@/hooks/useRecentLobbies';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useRecentLobbies } from '@/hooks/useRecentLobbies';
+import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { GAME_AVATARS, findGameAvatarIndex } from '@/lib/gameAvatars';
 import { type LobbyGameMode } from '@/lib/gameModes';
-import { type PersonalHubTab } from '@/components/personal-hub/types';
-import { InkBetaLogo, InkBetaMascot } from '@/components/InkBetaBrand';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { InkModal } from '@/components/menu/InkOverlay';
 
 interface InkBetaHomeScreenProps {
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void | Promise<void>;
@@ -48,18 +37,6 @@ interface InkBetaHomeScreenProps {
   isSocialOpen: boolean;
   notificationCount?: number;
 }
-
-/*
- * La table d'icônes de mode et la liste `MODES` ont disparu avec le sélecteur de
- * l'accueil : seul le salon choisit le mode, et ses tuiles portent leurs propres
- * vignettes, chargées depuis `GAME_MODE_META`.
- */
-
-/*
- * La marque et Mimo vivent dans `InkBetaBrand` : le lobby beta affiche
- * exactement les mêmes dessins, et les recopier ici aurait fait diverger les
- * deux écrans à la première retouche.
- */
 
 interface InkBetaAvatarPortraitProps {
   imageUrl: string;
@@ -159,7 +136,7 @@ const InkBetaAvatarPicker = memo(() => {
     selectGameAvatar(nextIndex);
   };
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -301,7 +278,6 @@ const InkBetaHomeScreenComponent = ({
     try { return localStorage.getItem('playerName') ?? ''; } catch { return ''; }
   });
   const [lobbyCode, setLobbyCode] = useState('');
-
   const [showJoin, setShowJoin] = useState(false);
 
   const nameReady = playerName.trim().length > 0;
@@ -330,10 +306,7 @@ const InkBetaHomeScreenComponent = ({
     if (!nameReady) return;
     play();
     playInkSound('inkSuccess', 0.5);
-    /*
-     * Aucun mode transmis : `createLobby` ne l'écrit pas, et le salon a son
-     * propre sélecteur, qui est la seule source de vérité.
-     */
+    /* Le salon reste l'unique source de vérité pour le choix du mode. */
     onCreateGame(playerName.trim());
   }, [nameReady, play, onCreateGame, playerName]);
 
@@ -347,7 +320,6 @@ const InkBetaHomeScreenComponent = ({
   }, [lobbyCode, nameReady, play, pushRecentLobby, onJoinGame, playerName]);
 
   useKeyboardShortcuts([
-    /* Les flèches gauche et droite parcouraient les modes : plus rien à parcourir. */
     {
       key: 'Enter',
       enabled: !anyOverlayOpen && nameReady,
@@ -369,314 +341,29 @@ const InkBetaHomeScreenComponent = ({
   ]);
 
   return (
-    <div
-      /*
-        `ik-home-v2` porte la composition propre à l'accueil. Elle vivait sur
-        `ik-layout-v2`, que le salon et les écrans de jeu portent aussi : ses
-        règles fuyaient sur eux et masquaient notamment leur pastille de manche.
-
-        La variable `--accent`, qui suivait le mode choisi, a disparu avec le
-        sélecteur : plus aucune règle beta ne la lit.
-      */
-      className="ik-root ik-layout-v2 ik-home-v2 menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
-    >
-      <div className="ik-party-bg" aria-hidden="true" />
-      <div className="ik-party-rays" aria-hidden="true" />
-      <div className="ik-party-dots" aria-hidden="true" />
-
-      <header className="ik-topbar relative z-[8] flex-shrink-0">
-        {/* La pastille « Accès beta » a été retirée : le logo porte déjà le badge. */}
-
-        <InkBetaLogo />
-
-        <div className="ik-topbar-side ik-topbar-side--end">
-          <div className="ik-tools">
-            <button
-              type="button"
-              onClick={() => { playInkSound('inkClick', 0.3); onOpenPersonalHub('notifications'); }}
-              className="ik-tool menu-focus"
-              aria-label={`Notifications${notificationCount > 0 ? `, ${notificationCount} non lue${notificationCount > 1 ? 's' : ''}` : ''}`}
-              aria-haspopup="dialog"
-            >
-              <Bell aria-hidden="true" />
-              <span>Alertes</span>
-              {notificationCount > 0 && <b className="ik-tool-badge" aria-hidden="true">{notificationCount > 9 ? '9+' : notificationCount}</b>}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { playInkSound('brushTap', 0.3); onOpenSocial(); }}
-              className="ik-tool menu-focus"
-              aria-label="Ouvrir Social"
-              aria-haspopup="dialog"
-              aria-expanded={isSocialOpen}
-            >
-              <Share2 aria-hidden="true" />
-              <span>Social</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { playInkSound('brushTap', 0.3); onOpenPersonalHub('friends'); }}
-              className="ik-tool menu-focus"
-              aria-label="Ouvrir les amis"
-              aria-haspopup="dialog"
-            >
-              <UsersRound aria-hidden="true" />
-              <span>Amis</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { playInkSound('inkClick', 0.3); onOpenPersonalHub('settings'); }}
-              className="ik-tool menu-focus"
-              aria-label="Ouvrir les réglages"
-              aria-haspopup="dialog"
-            >
-              <Settings aria-hidden="true" />
-              <span>Options</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { playInkSound('inkClick', 0.3); onOpenPersonalHub('profile'); }}
-              className="ik-tool ik-tool--profile menu-focus"
-              aria-label={`Ouvrir le profil de ${displayName}`}
-              aria-haspopup="dialog"
-              aria-expanded={isPersonalHubOpen}
-            >
-              {profileAvatarUrl ? (
-                <Avatar className="ik-profile-thumb" aria-hidden="true">
-                  <AvatarImage src={profileAvatarUrl} className="object-cover" />
-                  <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-              ) : (
-                <User aria-hidden="true" />
-              )}
-              <span className="max-w-[105px] truncate">{displayName}</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main
-        className="ik-main custom-scrollbar relative z-[2] min-h-0 flex-1 overflow-y-auto"
-        aria-labelledby="ik-home-tagline"
-      >
-        <div className="ik-canvas ik-home-scene">
-          <section className="ik-home-hero" aria-labelledby="ik-home-tagline">
-            <div className="ik-home-hero-copy">
-              <span className="ik-home-kicker">
-                <AudioLines aria-hidden="true" />
-                Le party game qui donne de la voix
-              </span>
-              <h2 id="ik-home-tagline">
-                Fais du bruit.
-                <em>Marque les esprits.</em>
-              </h2>
-              <p>Choisis ton pseudo, ouvre le salon et laisse ta troupe décider du chaos.</p>
-            </div>
-
-            <div className="ik-home-promises" aria-label="Les points forts de la partie">
-              <span><Play fill="currentColor" aria-hidden="true" /> Salon prêt en un instant</span>
-              <span><UsersRound aria-hidden="true" /> Mode choisi en équipe</span>
-            </div>
-          </section>
-
-          <div className="ik-home-stage">
-            <section className="ik-home-card ik-home-identity" aria-labelledby="ik-home-name-title">
-              <span className="ik-home-card-index" aria-hidden="true">01</span>
-
-              <div className="ik-home-identity-layout">
-                <div className="ik-mascot-zone">
-                  <span className="ik-home-avatar-label">Ton avatar</span>
-                  <InkBetaAvatarPicker />
-                </div>
-
-                <div className="ik-home-name-card">
-                  <div className="ik-step">
-                    <span>Étape 01</span>
-                    <h3 id="ik-home-name-title">Entre dans le jeu</h3>
-                    <p>Un pseudo, et la troupe saura qui applaudir — ou accuser.</p>
-                  </div>
-
-                  <div className="ik-field">
-                    <label htmlFor="ik-name" className="sr-only">Ton pseudo</label>
-                    <User aria-hidden="true" />
-                    <input
-                      id="ik-name"
-                      className="ik-input"
-                      placeholder="Ton pseudo cool"
-                      value={playerName}
-                      onChange={(event) => setPlayerName(event.target.value)}
-                      maxLength={20}
-                      autoComplete="nickname"
-                    />
-                  </div>
-
-                  <p className={`ik-home-name-state${nameReady ? ' is-ready' : ''}`} role="status">
-                    <span aria-hidden="true" />
-                    {nameReady
-                      ? 'Pseudo prêt — la scène t’attend.'
-                      : 'Écris ton pseudo pour déverrouiller le salon.'}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section className="ik-home-card ik-home-launch" aria-labelledby="ik-home-launch-title">
-              <span className="ik-home-card-index" aria-hidden="true">02</span>
-
-              <div className="ik-step">
-                <span>Étape 02</span>
-                <h3 id="ik-home-launch-title">Rassemble la troupe</h3>
-                <p>Crée une partie ou rejoins un salon en quelques secondes.</p>
-              </div>
-
-              <div className="ik-home-mode-note">
-                <UsersRound aria-hidden="true" />
-                <span>Le mode se choisit ensemble, une fois dans le salon.</span>
-              </div>
-
-              <div className="ik-launch-action">
-                <div className="ik-launch-buttons">
-                  <button
-                    type="button"
-                    disabled={!nameReady}
-                    onClick={handleCreate}
-                    className="ik-primary-action menu-focus"
-                  >
-                    <span className="ik-primary-action-icon">
-                      <Play fill="currentColor" aria-hidden="true" />
-                    </span>
-                    <span className="ik-home-action-copy">
-                      <strong>Créer mon salon</strong>
-                      <small>Je deviens l'hôte</small>
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!nameReady}
-                    onClick={() => { playInkSound('brushTap', 0.3); setShowJoin(true); }}
-                    className="ik-secondary-action menu-focus"
-                  >
-                    <Hash aria-hidden="true" />
-                    <span className="ik-home-action-copy">
-                      <strong>J'ai un code</strong>
-                      <small>Je rejoins la troupe</small>
-                    </span>
-                  </button>
-                </div>
-
-                {!nameReady ? (
-                  <p className="ik-start-hint" role="status">Entre ton pseudo pour lancer la partie.</p>
-                ) : (
-                  <p className="ik-start-hint">Entrée : créer · J : rejoindre</p>
-                )}
-              </div>
-            </section>
-          </div>
-        </div>
-      </main>
-
-
-      <footer className="ik-footer relative z-[7] flex-shrink-0">
-        <span className="ik-footer-brand">Mimic Master <b>Ink Beta</b></span>
-        <nav aria-label="Informations légales">
-          <Link className="menu-focus" to="/confidentialite">Confidentialité</Link>
-          <Link className="menu-focus" to="/conditions">Conditions</Link>
-          <Link className="menu-focus" to="/mentions-legales">Mentions légales</Link>
-        </nav>
-        <button
-          type="button"
-          className="ik-footer-settings menu-focus"
-          onClick={() => onOpenPersonalHub('settings')}
-        >
-          <SlidersHorizontal aria-hidden="true" /> Réglages rapides
-        </button>
-      </footer>
-
-      <InkModal
-        isOpen={showJoin}
-        onClose={() => setShowJoin(false)}
-        title="Rejoindre un salon"
-        subtitle="Entre le code à 4 caractères"
-        icon={<Hash className="h-5 w-5" />}
-        className="ik-party-overlay ik-join-modal"
-      >
-        <form
-          className="ik-join-form"
-          onSubmit={(event) => { event.preventDefault(); handleJoin(); }}
-        >
-          <div className="ik-field ik-code-field">
-            <label htmlFor="ik-code" className="sr-only">Code du salon</label>
-            <Hash aria-hidden="true" />
-            <input
-              id="ik-code"
-              data-autofocus
-              className="ik-input"
-              placeholder="XXXX"
-              value={lobbyCode}
-              onChange={(event) =>
-                setLobbyCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4))
-              }
-              inputMode="text"
-              autoComplete="off"
-              spellCheck={false}
-            />
-          </div>
-
-          {recentLobbies.length > 0 && (
-            <div className="ik-recent-lobbies">
-              <h3>Salons récents</h3>
-              <ul>
-                {recentLobbies.map((entry) => (
-                  <li key={entry.code}>
-                    <button
-                      type="button"
-                      onClick={() => { setLobbyCode(entry.code); playInkSound('brushTap', 0.3); }}
-                      className="ik-recent-code menu-focus"
-                    >
-                      {entry.code}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeRecentLobby(entry.code)}
-                      className="ik-recent-remove menu-focus"
-                      aria-label={`Supprimer le lobby récent ${entry.code}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="ik-join-actions">
-            <button
-              type="button"
-              className="ik-secondary-action menu-focus"
-              onClick={() => setShowJoin(false)}
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              className="ik-primary-action menu-focus"
-              disabled={!joinReady}
-            >
-              <LogIn aria-hidden="true" /> Rejoindre
-            </button>
-          </div>
-
-          {!joinReady && lobbyCode.length > 0 && (
-            <p className="ik-form-message">Le code doit contenir 4 caractères et ton pseudo doit être renseigné.</p>
-          )}
-        </form>
-      </InkModal>
-    </div>
+    <InkHome2026View
+      avatarPicker={<InkBetaAvatarPicker />}
+      playerName={playerName}
+      lobbyCode={lobbyCode}
+      nameReady={nameReady}
+      joinReady={joinReady}
+      displayName={displayName}
+      profileAvatarUrl={profileAvatarUrl}
+      notificationCount={notificationCount}
+      isPersonalHubOpen={isPersonalHubOpen}
+      isSocialOpen={isSocialOpen}
+      showJoin={showJoin}
+      recentLobbies={recentLobbies}
+      onPlayerNameChange={setPlayerName}
+      onLobbyCodeChange={setLobbyCode}
+      onCreate={handleCreate}
+      onJoin={handleJoin}
+      onOpenJoin={() => setShowJoin(true)}
+      onCloseJoin={() => setShowJoin(false)}
+      onRemoveRecentLobby={removeRecentLobby}
+      onOpenPersonalHub={onOpenPersonalHub}
+      onOpenSocial={onOpenSocial}
+    />
   );
 };
 

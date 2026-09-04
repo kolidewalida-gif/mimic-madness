@@ -872,7 +872,9 @@ const Index = () => {
         changements d'écran, et le socle fixe le garde visible partout.
       */}
       {gameState !== "memorise" && (
-        <div className="ik-music-dock ik-music-dock--floating">
+        <div
+          className={`ik-music-dock ik-music-dock--floating${gameState === "home" ? " ik-music-dock--home" : ""}`}
+        >
           <MusicPlayerBar placement="inline" variant="inkBeta" />
         </div>
       )}
