@@ -32,6 +32,8 @@ export const AudioPhoneWaitingRevealPhase = ({
   if (variant === 'inkBeta') {
     return (
       <InkBetaPanel
+        className="ik-ap-panel ik-ap-waiting-panel"
+        bodyClassName="ik-ap-waiting-body"
         step="Tout est enregistré"
         title="Place à la révélation"
         titleId="ik-ap-reveal-title"

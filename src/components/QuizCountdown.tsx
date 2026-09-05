@@ -68,7 +68,7 @@ export const QuizCountdown = ({
   const body = (
     <div
       className={isInkBeta
-        ? 'ik-gpanel is-featured items-center justify-center gap-4 py-8'
+        ? 'ik-gpanel is-featured ik-quiz-countdown items-center justify-center gap-4 py-8'
         : 'min-h-screen flex flex-col items-center justify-center p-4 gap-6'}
     >
         {/* Round counter */}

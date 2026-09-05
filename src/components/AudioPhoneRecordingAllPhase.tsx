@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Check, Users, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAudioPhoneRecorder } from '@/hooks/useAudioPhoneRecorder';
 import {
   PulpStage,
   PulpPanel,
@@ -16,7 +17,6 @@ import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useStagedTask } from '@/hooks/useStagedTask';
 import { ProcessingOverlay } from '@/components/ProcessingOverlay';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
-import { processStreamWithNoiseReduction } from '@/hooks/useNoiseReduction';
 import {
   InkBetaPanel,
   InkBetaCount,
@@ -71,111 +71,27 @@ export const AudioPhoneRecordingAllPhase = ({
   onStartImitation,
 }: AudioPhoneRecordingAllPhaseProps) => {
   const isInkBeta = variant === 'inkBeta';
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const staged = useStagedTask();
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [audioLevel, setAudioLevel] = useState(0);
+  const {
+    isRecording,
+    isStarting,
+    isStopping,
+    recordedBlob,
+    previewUrl,
+    recordingTime,
+    audioLevel,
+    startRecording: startRecorder,
+    stopRecording,
+    clearRecording,
+  } = useAudioPhoneRecorder({
+    maxSeconds,
+    onError: (error) => console.error('Error starting Audio Phone recording:', error),
+  });
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const timerRafRef = useRef<number | null>(null);
-  const startedAtRef = useRef<number>(0);
-  const animationRef = useRef<number | null>(null);
-  const noiseReductionCleanupRef = useRef<(() => void) | null>(null);
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    if (timerRafRef.current) {
-      cancelAnimationFrame(timerRafRef.current);
-      timerRafRef.current = null;
-    }
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-    setIsRecording(false);
-    setAudioLevel(0);
-  }, []);
-
-  const startRecording = async () => {
-    try {
-      playInkSound('cartoonPop', 0.3);
-      const rawStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      const { stream, cleanup } = await processStreamWithNoiseReduction(rawStream);
-      noiseReductionCleanupRef.current = cleanup;
-
-      audioContextRef.current = new AudioContext();
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 256;
-      source.connect(analyserRef.current);
-
-      const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
-      let selectedMimeType = '';
-      for (const mimeType of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(mimeType)) {
-          selectedMimeType = mimeType;
-          break;
-        }
-      }
-
-      mediaRecorderRef.current = new MediaRecorder(stream, {
-        mimeType: selectedMimeType || undefined,
-      });
-      chunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: selectedMimeType || 'audio/webm' });
-        setRecordedBlob(blob);
-        rawStream.getTracks().forEach((track) => track.stop());
-        stream.getTracks().forEach((track) => track.stop());
-        if (noiseReductionCleanupRef.current) {
-          noiseReductionCleanupRef.current();
-          noiseReductionCleanupRef.current = null;
-        }
-      };
-
-      mediaRecorderRef.current.start(100);
-      setIsRecording(true);
-      setRecordingTime(0);
-
-      startedAtRef.current = performance.now();
-      const tick = () => {
-        const elapsed = (performance.now() - startedAtRef.current) / 1000;
-        const clamped = Math.min(elapsed, maxSeconds);
-        setRecordingTime(clamped);
-        if (elapsed >= maxSeconds) {
-          stopRecording();
-          return;
-        }
-        timerRafRef.current = requestAnimationFrame(tick);
-      };
-      timerRafRef.current = requestAnimationFrame(tick);
-
-      const updateLevel = () => {
-        if (analyserRef.current) {
-          const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-          analyserRef.current.getByteFrequencyData(dataArray);
-          const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-          setAudioLevel(average / 255);
-        }
-        animationRef.current = requestAnimationFrame(updateLevel);
-      };
-      updateLevel();
-    } catch (error) {
-      console.error('Error starting recording:', error);
-    }
-  };
+  const startRecording = useCallback(() => {
+    playInkSound('cartoonPop', 0.3);
+    void startRecorder();
+  }, [startRecorder]);
 
   const handleSubmit = async () => {
     if (!recordedBlob) return;
@@ -198,16 +114,8 @@ export const AudioPhoneRecordingAllPhase = ({
       sound: 'processRewind',
       endSound: 'processDone',
     });
-    if (success) setRecordedBlob(null);
+    if (success) clearRecording();
   };
-
-  useEffect(() => {
-    return () => {
-      if (timerRafRef.current) cancelAnimationFrame(timerRafRef.current);
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      if (audioContextRef.current) audioContextRef.current.close();
-    };
-  }, []);
 
   const memoizedIds = useMemo(() => playerIds ?? [], [playerIds]);
   const renderRoster = () => (
@@ -235,6 +143,8 @@ export const AudioPhoneRecordingAllPhase = ({
 
         <InkBetaPanel
           featured
+          className="ik-ap-panel ik-ap-work-panel"
+          bodyClassName="ik-ap-work-body"
           step={hasSubmitted ? 'Phrase envoyée' : 'À toi le micro'}
           title={hasSubmitted ? 'C\'est dans la boîte' : 'Enregistre ta phrase'}
           titleId="ik-ap-mic-title"
@@ -269,7 +179,7 @@ export const AudioPhoneRecordingAllPhase = ({
                 <button
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isStarting || isStopping}
                   className={cn('ik-ap-mic menu-focus', isRecording && 'is-recording')}
                   style={{ ['--ap-level' as string]: audioLevel.toFixed(3) }}
                   aria-label={isRecording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement'}
@@ -284,7 +194,7 @@ export const AudioPhoneRecordingAllPhase = ({
 
               {recordedBlob && !isRecording && (
                 <div className="ik-ap-review">
-                  <audio src={URL.createObjectURL(recordedBlob)} controls className="ik-ap-audio" />
+                  <audio src={previewUrl ?? undefined} controls className="ik-ap-audio" />
                   <div className="ik-game-actions--split">
                     <button
                       type="button"
@@ -296,7 +206,7 @@ export const AudioPhoneRecordingAllPhase = ({
                     <button
                       type="button"
                       onClick={handleSubmit}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isStarting || isStopping}
                       className="ik-primary-action menu-focus"
                     >
                       <span className="ik-primary-action-icon">
@@ -316,6 +226,8 @@ export const AudioPhoneRecordingAllPhase = ({
         </InkBetaPanel>
 
         <InkBetaPanel
+          className="ik-ap-panel ik-ap-progress-panel"
+          bodyClassName="ik-ap-progress-body"
           step="Qui a parlé"
           title="La troupe"
           titleId="ik-ap-roster-title"
@@ -497,7 +409,7 @@ export const AudioPhoneRecordingAllPhase = ({
                 <motion.button
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isStarting || isStopping}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.94 }}
                   animate={isRecording ? { scale: [1, 1.04, 1] } : { y: [0, -3, 0] }}
@@ -553,12 +465,12 @@ export const AudioPhoneRecordingAllPhase = ({
 
               {recordedBlob && !isRecording && (
                 <div className="space-y-3">
-                  <audio src={URL.createObjectURL(recordedBlob)} controls className="w-full" />
+                  <audio src={previewUrl ?? undefined} controls className="w-full" />
                   <div className="flex gap-3">
                     <PulpButton onClick={startRecording} color={PULP.paperDim} variant="ghost" size="sm" className="flex-1">
                       Recommencer
                     </PulpButton>
-                    <PulpButton onClick={handleSubmit} disabled={isSubmitting} color={READY} size="sm" className="flex-1">
+                    <PulpButton onClick={handleSubmit} disabled={isSubmitting || isStarting || isStopping} color={READY} size="sm" className="flex-1">
                       {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" strokeWidth={3} />}
                       Valider
                     </PulpButton>

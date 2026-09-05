@@ -43,25 +43,43 @@ export const AudioPhoneGameScreenV2 = memo(({
    */
   const [isRevealLoading, setIsRevealLoading] = useState(false);
 
-  // Fetch reveal data when entering reveal phase
+  // Resolve every phrase for the exact round currently displayed. A new round
+  // clears the previous tape immediately; stale async results are ignored.
   useEffect(() => {
-    if (game.currentRound?.phase === 'reveal' || game.currentRound?.phase === 'waiting_reveal') {
-      let cancelled = false;
-      const fetchAllRevealData = async () => {
-        setIsRevealLoading(true);
-        const data = [];
-        for (let i = 0; i < game.originalRecordings.length; i++) {
-          const phraseData = await game.getRevealDataForPhrase(i);
-          if (phraseData) data.push(phraseData);
-        }
-        if (cancelled) return;
-        setRevealData(data);
-        setIsRevealLoading(false);
-      };
-      fetchAllRevealData();
-      return () => { cancelled = true; };
+    const round = game.currentRound;
+    const shouldPrepare = round?.phase === 'reveal' || round?.phase === 'waiting_reveal';
+    if (!round || !shouldPrepare) {
+      setRevealData([]);
+      setIsRevealLoading(false);
+      return undefined;
     }
-  }, [game.currentRound?.phase, game.originalRecordings.length, game.getRevealDataForPhrase]);
+
+    let cancelled = false;
+    const roundId = round.id;
+    setRevealData([]);
+    setIsRevealLoading(true);
+
+    void Promise.allSettled(
+      game.originalRecordings.map((_, index) => game.getRevealDataForPhrase(index)),
+    ).then((results) => {
+      if (cancelled || game.currentRound?.id !== roundId) return;
+      const data = results.flatMap((result) => (
+        result.status === 'fulfilled' && result.value ? [result.value] : []
+      ));
+      setRevealData(data);
+    }).finally(() => {
+      if (!cancelled && game.currentRound?.id === roundId) setIsRevealLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    game.currentRound?.id,
+    game.currentRound?.phase,
+    game.originalRecordings,
+    game.getRevealDataForPhrase,
+  ]);
 
   /* Effectif réel de la manche : sans les partis, sans les arrivés en retard. */
   const roster = game.roster;
@@ -120,7 +138,17 @@ export const AudioPhoneGameScreenV2 = memo(({
         tools={(
           <button
             type="button"
-            onClick={onEndGame}
+            onClick={() => {
+              void (async () => {
+                // Only the host owns the shared lifecycle. A guest merely leaves
+                // their local game screen and never finishes the round for peers.
+                if (currentPlayer.isHost) {
+                  const finished = await game.abandonRound();
+                  if (!finished) return;
+                }
+                onEndGame();
+              })();
+            }}
             data-back
             className="ik-tool ik-tool--leave menu-focus"
             aria-label="Quitter la partie"
@@ -142,8 +170,12 @@ export const AudioPhoneGameScreenV2 = memo(({
     if (isInkBeta) {
       return withStage(
         'Audio Phone',
-        'ik-game-canvas--center ik-ap-canvas',
-        <InkBetaPanel step="Chargement" title="On branche les micros">
+        'ik-ap-canvas ik-ap-canvas--single',
+        <InkBetaPanel
+          className="ik-ap-panel ik-ap-status-panel"
+          step="Chargement"
+          title="On branche les micros"
+        >
           <p className="ik-game-note">
             <Loader2 className="animate-spin" aria-hidden="true" /> Un instant…
           </p>
@@ -175,7 +207,7 @@ export const AudioPhoneGameScreenV2 = memo(({
     };
     return withStage(
       'Règles',
-      'ik-game-canvas--center ik-ap-canvas',
+      'ik-ap-canvas ik-ap-canvas--single',
       <AudioPhoneInstructionsPhase
         variant={variant}
         isHost={currentPlayer.isHost}
@@ -190,7 +222,7 @@ export const AudioPhoneGameScreenV2 = memo(({
   if (game.currentRound.phase === 'recording_all') {
     return withStage(
       'Micro',
-      'ik-game-canvas--stage ik-ap-canvas',
+      'ik-ap-canvas ik-ap-canvas--work',
       <AudioPhoneRecordingAllPhase
         variant={variant}
         maxSeconds={game.currentRound.max_recording_seconds}
@@ -237,8 +269,9 @@ export const AudioPhoneGameScreenV2 = memo(({
 
     return withStage(
       'Imitation',
-      'ik-game-canvas--stage ik-ap-canvas',
+      'ik-ap-canvas ik-ap-canvas--work',
       <AudioPhoneImitationPhase
+        key={currentPhrase?.id ?? `phrase-${phraseIndex}`}
         variant={variant}
         currentPhraseIndex={phraseIndex}
         totalPhrases={totalPhrases}
@@ -271,7 +304,7 @@ export const AudioPhoneGameScreenV2 = memo(({
   if (game.currentRound.phase === 'waiting_reveal') {
     return withStage(
       'Prêt',
-      'ik-game-canvas--center ik-ap-canvas',
+      'ik-ap-canvas ik-ap-canvas--single',
       <AudioPhoneWaitingRevealPhase
         variant={variant}
         isHost={currentPlayer.isHost}
@@ -298,16 +331,28 @@ export const AudioPhoneGameScreenV2 = memo(({
     if (revealData.length === 0) {
       return withStage(
         'Révélation',
-        'ik-game-canvas--center ik-ap-canvas',
+        'ik-ap-canvas ik-ap-canvas--single',
         isInkBeta ? (
-          <InkBetaPanel step="Révélation" title="On prépare la bande">
+          <InkBetaPanel
+            className="ik-ap-panel ik-ap-status-panel"
+            step="Révélation"
+            title={isRevealLoading ? 'On prépare la bande' : 'Aucun enregistrement'}
+          >
             <p className="ik-game-note">
-              <Loader2 className="animate-spin" aria-hidden="true" /> Récupération des enregistrements…
+              {isRevealLoading ? (
+                <><Loader2 className="animate-spin" aria-hidden="true" /> Récupération des enregistrements…</>
+              ) : (
+                'La bande de cette manche est vide.'
+              )}
             </p>
           </InkBetaPanel>
         ) : (
           <div className="min-h-screen flex items-center justify-center">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            {isRevealLoading ? (
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            ) : (
+              <p>Aucun enregistrement à révéler.</p>
+            )}
           </div>
         ),
         `${totalPhrases} phrases`,
@@ -316,7 +361,7 @@ export const AudioPhoneGameScreenV2 = memo(({
 
     return withStage(
       'Révélation',
-      'ik-game-canvas--center ik-ap-canvas',
+      'ik-ap-canvas ik-ap-canvas--single',
       <AudioPhoneRevealPhaseV2
         variant={variant}
         revealData={revealData}
@@ -325,13 +370,17 @@ export const AudioPhoneGameScreenV2 = memo(({
         instanceKey={game.currentRound.id}
         syncState={syncState}
         onSyncStateChange={(isPlaying, phraseIndex, step) => {
-          game.setRevealPlaybackState(isPlaying, phraseIndex, step);
+          void game.setRevealPlaybackState(isPlaying, phraseIndex, step);
         }}
-        onPlayAgain={async () => {
-          await game.endRound();
-          await game.startGame();
+        onPlayAgain={() => {
+          void game.restartRound();
         }}
-        onEndGame={onEndGame}
+        onEndGame={() => {
+          void (async () => {
+            const finished = await game.endRound();
+            if (finished) onEndGame();
+          })();
+        }}
       />,
       `Phrase ${Math.min((syncState.phraseIndex ?? 0) + 1, Math.max(revealData.length, 1))}/${revealData.length}`,
     );
@@ -340,7 +389,7 @@ export const AudioPhoneGameScreenV2 = memo(({
   // Scores or finished - go back to instructions
   return withStage(
     'Règles',
-    'ik-game-canvas--center ik-ap-canvas',
+    'ik-ap-canvas ik-ap-canvas--single',
     <AudioPhoneInstructionsPhase
       variant={variant}
       isHost={currentPlayer.isHost}

@@ -64,7 +64,13 @@ export const AudioPhoneInstructionsPhase = memo(
        * halo qui se déplace toutes les deux secondes ferait croire le contraire.
        */
       return (
-        <InkBetaPanel step="Comment ça marche" title="Audio Phone" titleId="ik-ap-rules-title">
+        <InkBetaPanel
+          className="ik-ap-panel ik-ap-rules-panel"
+          bodyClassName="ik-ap-rules-body"
+          step="Comment ça marche"
+          title="Audio Phone"
+          titleId="ik-ap-rules-title"
+        >
           <p className="ik-game-lead">
             Un téléphone arabe où le son est <strong>joué à l'envers</strong>. Chacun enregistre une
             phrase, tout le monde tente de la reproduire à l'oreille, et on écoute les dégâts

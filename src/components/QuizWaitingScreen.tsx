@@ -90,7 +90,7 @@ export const QuizWaitingScreen = memo(
 
         <div
           className={isInkBeta
-            ? 'ik-gpanel is-featured'
+            ? 'ik-gpanel is-featured ik-quiz-lobby-panel'
             : 'relative z-10 h-full min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain flex flex-col items-center justify-start px-4 py-5 pb-24 sm:px-5 sm:py-8 sm:pb-24'}
         >
           {/* HEADER */}

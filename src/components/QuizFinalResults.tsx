@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Crown, Home, Flame, Zap, PartyPopper, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -49,7 +49,10 @@ export const QuizFinalResults = ({
   const { addXp } = usePlayerLevel();
   const xpAwardedRef = useRef(false);
 
-  const sortedScores = [...scores].sort((a, b) => b.total_points - a.total_points);
+  const sortedScores = useMemo(
+    () => [...scores].sort((a, b) => b.total_points - a.total_points),
+    [scores],
+  );
   const winner = sortedScores[0];
   const isWinner = winner?.player_id === currentPlayerId;
 
@@ -104,7 +107,7 @@ export const QuizFinalResults = ({
   const podiumHeights = ['h-20', 'h-28', 'h-16'];
 
   const body = (
-      <div className={isInkBeta ? 'ik-gpanel is-featured' : 'relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5'}>
+      <div className={isInkBeta ? 'ik-gpanel is-featured ik-quiz-final-panel' : 'relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5'}>
         {/* Confettis et particules seulement hors beta : l'écran de scores doit
             rester lisible tout de suite. */}
         {!isInkBeta && <DoodleConfetti show={showConfetti} count={48} />}

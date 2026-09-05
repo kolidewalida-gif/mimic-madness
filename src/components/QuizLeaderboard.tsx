@@ -113,7 +113,7 @@ export const QuizLeaderboard = ({
   const unansweredCount = Math.max(0, sortedScores.length - roundAnswers.length);
 
   const body = (
-      <div className={isInkBeta ? 'ik-gpanel is-featured' : 'relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5'}>
+      <div className={isInkBeta ? 'ik-gpanel is-featured ik-quiz-leaderboard-panel' : 'relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5'}>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}

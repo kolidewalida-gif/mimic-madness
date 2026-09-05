@@ -68,8 +68,17 @@ export const AudioPhoneRevealPhaseV2 = ({
 }: AudioPhoneRevealPhaseV2Props) => {
   const [expandedPhrase, setExpandedPhrase] = useState<number | null>(null);
   const [localIsPlaying, setLocalIsPlaying] = useState(false);
+  const [requiresInteraction, setRequiresInteraction] = useState(false);
+  const [playbackMessage, setPlaybackMessage] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lastStepRef = useRef<string>('');
+  const mountedRef = useRef(false);
+  const playbackGenerationRef = useRef(0);
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeMediaKeyRef = useRef<string | null>(null);
+  const syncStateRef = useRef(syncState);
+  const onSyncStateChangeRef = useRef(onSyncStateChange);
+  syncStateRef.current = syncState;
+  onSyncStateChangeRef.current = onSyncStateChange;
 
   const currentPhrase = revealData[syncState.phraseIndex] || null;
 
@@ -78,7 +87,7 @@ export const AudioPhoneRevealPhaseV2 = ({
     if (!phrase) return null;
 
     if (step === 'original') {
-      return phrase.original.originalUrl;
+      return phrase.original.originalUrl || null;
     } else if (step === 'reversed') {
       return phrase.original.reversedUrl;
     } else if (step.startsWith('imitation_')) {
@@ -104,7 +113,7 @@ export const AudioPhoneRevealPhaseV2 = ({
       return null;
     } else if (currentStep.startsWith('imitation_')) {
       const idx = parseInt(currentStep.split('_')[1], 10);
-      if (idx + 1 < phrase.imitations.length) {
+      if (Number.isFinite(idx) && idx + 1 < phrase.imitations.length) {
         return `imitation_${idx + 1}`;
       }
       return null;
@@ -112,75 +121,230 @@ export const AudioPhoneRevealPhaseV2 = ({
     return null;
   }, [revealData, syncState.phraseIndex]);
 
-  const playStep = useCallback((step: string) => {
+  const getNextPlayableStep = useCallback((completedStep: string): string | null => {
+    let candidate = getNextStep(completedStep);
+    let guard = 0;
+    while (candidate && !getAudioUrlForStep(candidate) && guard < 100) {
+      candidate = getNextStep(candidate);
+      guard += 1;
+    }
+    return candidate;
+  }, [getAudioUrlForStep, getNextStep]);
+
+  const clearAdvanceTimeout = useCallback(() => {
+    if (advanceTimeoutRef.current === null) return;
+    clearTimeout(advanceTimeoutRef.current);
+    advanceTimeoutRef.current = null;
+  }, []);
+
+  const resetAudioElement = useCallback((clearSource: boolean) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    try {
+      audio.pause();
+    } catch {
+      // A detached media element may already be inert.
+    }
+    if (clearSource) {
+      audio.removeAttribute('src');
+      try {
+        audio.load();
+      } catch {
+        // JSDOM and a few embedded browsers do not implement `load`.
+      }
+    }
+  }, []);
+
+  const scheduleAdvance = useCallback((completedStep: string, delayMs = 600) => {
+    clearAdvanceTimeout();
+    const state = syncStateRef.current;
+    const phraseIndex = state.phraseIndex;
+    const generation = playbackGenerationRef.current;
+    const nextStep = getNextPlayableStep(completedStep);
+
+    advanceTimeoutRef.current = setTimeout(() => {
+      advanceTimeoutRef.current = null;
+      const latest = syncStateRef.current;
+      if (
+        !mountedRef.current
+        || playbackGenerationRef.current !== generation
+        || latest.phraseIndex !== phraseIndex
+        || latest.step !== completedStep
+      ) {
+        return;
+      }
+
+      if (nextStep) {
+        onSyncStateChangeRef.current(true, phraseIndex, nextStep);
+      } else {
+        onSyncStateChangeRef.current(false, phraseIndex, 'complete');
+      }
+    }, delayMs);
+  }, [clearAdvanceTimeout, getNextPlayableStep]);
+
+  const playStep = useCallback(async (step: string) => {
+    clearAdvanceTimeout();
+    const audio = audioRef.current;
     const url = getAudioUrlForStep(step);
-    if (url && audioRef.current) {
-      audioRef.current.src = url;
-      audioRef.current.play().catch(console.error);
-      setLocalIsPlaying(true);
-    }
-  }, [getAudioUrlForStep]);
+    const state = syncStateRef.current;
+    const mediaKey = `${state.phraseIndex}:${step}`;
+    const generation = playbackGenerationRef.current + 1;
+    playbackGenerationRef.current = generation;
+    activeMediaKeyRef.current = mediaKey;
 
-  const handleAudioEnded = useCallback(() => {
-    setLocalIsPlaying(false);
-
-    if (!isHost) return;
-
-    const nextStep = getNextStep(syncState.step);
-    if (nextStep) {
-      setTimeout(() => {
-        onSyncStateChange(true, syncState.phraseIndex, nextStep);
-      }, 600);
-    } else {
-      onSyncStateChange(false, syncState.phraseIndex, 'complete');
-    }
-  }, [isHost, syncState.step, syncState.phraseIndex, getNextStep, onSyncStateChange]);
-
-  useEffect(() => {
-    const stepKey = `${syncState.phraseIndex}_${syncState.step}_${syncState.isPlaying}`;
-
-    if (stepKey === lastStepRef.current) return;
-    lastStepRef.current = stepKey;
-
-    if (syncState.isPlaying && syncState.step && syncState.step !== 'idle' && syncState.step !== 'complete') {
-      playStep(syncState.step);
-    } else if (!syncState.isPlaying && audioRef.current) {
-      audioRef.current.pause();
+    if (mountedRef.current) {
+      setRequiresInteraction(false);
+      setPlaybackMessage(null);
       setLocalIsPlaying(false);
     }
-  }, [syncState.isPlaying, syncState.step, syncState.phraseIndex, playStep]);
+
+    if (!url || !audio) {
+      activeMediaKeyRef.current = null;
+      if (mountedRef.current) {
+        setPlaybackMessage('Cet extrait est indisponible.');
+      }
+      if (isHost) scheduleAdvance(step, 0);
+      return;
+    }
+
+    resetAudioElement(false);
+    audio.src = url;
+
+    try {
+      // `play()` is called synchronously from the retry button as well, so the
+      // browser can associate that attempt with the user's gesture.
+      await audio.play();
+      if (
+        !mountedRef.current
+        || playbackGenerationRef.current !== generation
+        || activeMediaKeyRef.current !== mediaKey
+      ) {
+        return;
+      }
+      setLocalIsPlaying(true);
+    } catch (error) {
+      if (
+        !mountedRef.current
+        || playbackGenerationRef.current !== generation
+        || activeMediaKeyRef.current !== mediaKey
+      ) {
+        return;
+      }
+      setLocalIsPlaying(false);
+      setRequiresInteraction(true);
+      setPlaybackMessage(
+        error instanceof DOMException && error.name === 'NotAllowedError'
+          ? 'Le navigateur a bloqué la lecture automatique.'
+          : 'La lecture n’a pas démarré.',
+      );
+    }
+  }, [clearAdvanceTimeout, getAudioUrlForStep, isHost, resetAudioElement, scheduleAdvance]);
+
+  const handleAudioEnded = useCallback(() => {
+    if (!mountedRef.current) return;
+    setLocalIsPlaying(false);
+    activeMediaKeyRef.current = null;
+    if (isHost) scheduleAdvance(syncStateRef.current.step);
+  }, [isHost, scheduleAdvance]);
+
+  const handleAudioError = useCallback(() => {
+    if (!mountedRef.current) return;
+    const state = syncStateRef.current;
+    const mediaKey = `${state.phraseIndex}:${state.step}`;
+    if (activeMediaKeyRef.current !== mediaKey) return;
+
+    activeMediaKeyRef.current = null;
+    setLocalIsPlaying(false);
+    setRequiresInteraction(false);
+    setPlaybackMessage('Cet extrait audio est illisible et a été ignoré.');
+    if (isHost) scheduleAdvance(state.step, 0);
+  }, [isHost, scheduleAdvance]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      playbackGenerationRef.current += 1;
+      activeMediaKeyRef.current = null;
+      clearAdvanceTimeout();
+      resetAudioElement(true);
+    };
+  }, [clearAdvanceTimeout, resetAudioElement]);
+
+  useEffect(() => {
+    clearAdvanceTimeout();
+    const step = syncState.step;
+    if (syncState.isPlaying && step && step !== 'idle' && step !== 'complete') {
+      void playStep(step);
+      return;
+    }
+
+    playbackGenerationRef.current += 1;
+    activeMediaKeyRef.current = null;
+    resetAudioElement(false);
+    setLocalIsPlaying(false);
+    setRequiresInteraction(false);
+    setPlaybackMessage(null);
+  }, [
+    clearAdvanceTimeout,
+    playStep,
+    resetAudioElement,
+    syncState.isPlaying,
+    syncState.phraseIndex,
+    syncState.step,
+  ]);
+
+  const retryCurrentStep = () => {
+    const step = syncStateRef.current.step;
+    if (!step || step === 'idle' || step === 'complete') return;
+    void playStep(step);
+  };
 
   const startPhrasePlayback = () => {
     if (!isHost) return;
-    onSyncStateChange(true, syncState.phraseIndex, 'original');
+    const currentStep = syncStateRef.current.step;
+    const targetStep = currentStep === 'idle' || currentStep === 'complete'
+      ? 'original'
+      : currentStep;
+    onSyncStateChangeRef.current(true, syncStateRef.current.phraseIndex, targetStep);
   };
 
   const pausePlayback = () => {
     if (!isHost) return;
-    onSyncStateChange(false, syncState.phraseIndex, syncState.step);
+    clearAdvanceTimeout();
+    playbackGenerationRef.current += 1;
+    activeMediaKeyRef.current = null;
+    resetAudioElement(false);
+    onSyncStateChangeRef.current(
+      false,
+      syncStateRef.current.phraseIndex,
+      syncStateRef.current.step,
+    );
   };
 
   const goToNextPhrase = () => {
     if (!isHost) return;
-    if (syncState.phraseIndex < revealData.length - 1) {
-      onSyncStateChange(false, syncState.phraseIndex + 1, 'idle');
+    const state = syncStateRef.current;
+    if (state.phraseIndex < revealData.length - 1) {
+      clearAdvanceTimeout();
+      playbackGenerationRef.current += 1;
+      activeMediaKeyRef.current = null;
+      resetAudioElement(false);
+      onSyncStateChangeRef.current(false, state.phraseIndex + 1, 'idle');
     }
   };
 
   const goToPreviousPhrase = () => {
     if (!isHost) return;
-    if (syncState.phraseIndex > 0) {
-      onSyncStateChange(false, syncState.phraseIndex - 1, 'idle');
+    const state = syncStateRef.current;
+    if (state.phraseIndex > 0) {
+      clearAdvanceTimeout();
+      playbackGenerationRef.current += 1;
+      activeMediaKeyRef.current = null;
+      resetAudioElement(false);
+      onSyncStateChangeRef.current(false, state.phraseIndex - 1, 'idle');
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-    };
-  }, []);
 
   if (!revealData.length) {
     return (
@@ -230,10 +394,18 @@ export const AudioPhoneRevealPhaseV2 = ({
 
     return (
       <>
-        <audio ref={audioRef} onEnded={handleAudioEnded} />
+        <audio
+          ref={audioRef}
+          onPlay={() => { if (mountedRef.current) setLocalIsPlaying(true); }}
+          onPause={() => { if (mountedRef.current) setLocalIsPlaying(false); }}
+          onEnded={handleAudioEnded}
+          onError={handleAudioError}
+        />
 
         <InkBetaPanel
           featured
+          className="ik-ap-panel ik-ap-reveal-panel"
+          bodyClassName="ik-ap-reveal-body"
           step={`Phrase ${syncState.phraseIndex + 1} sur ${revealData.length}`}
           title={`Phrase de ${currentPhrase?.original.player_name ?? '—'}`}
           titleId="ik-ap-reveal-current"
@@ -249,6 +421,7 @@ export const AudioPhoneRevealPhaseV2 = ({
                   'ik-ap-chain-step',
                   currentChainIndex > idx && 'is-past',
                   entry.key === currentStep && 'is-current',
+                  !getAudioUrlForStep(entry.key) && 'is-missing',
                 )}
               >
                 <Volume2 aria-hidden="true" />
@@ -257,28 +430,59 @@ export const AudioPhoneRevealPhaseV2 = ({
             ))}
           </ol>
 
+          {requiresInteraction && (
+            <div className="ik-ap-playback-retry">
+              <p className="ik-game-note ik-game-note--warn">
+                <Volume2 aria-hidden="true" /> {playbackMessage} Relance ce son pour continuer.
+              </p>
+              {!isHost && (
+                <button
+                  type="button"
+                  onClick={retryCurrentStep}
+                  className="ik-secondary-action menu-focus"
+                >
+                  <RotateCcw aria-hidden="true" /> Relancer ce son
+                </button>
+              )}
+            </div>
+          )}
+
+          {playbackMessage && !requiresInteraction && (
+            <p className="ik-game-note ik-game-note--warn">
+              <Volume2 aria-hidden="true" /> {playbackMessage}
+            </p>
+          )}
+
           {isHost ? (
             <div className="ik-game-actions--split">
               <button
                 type="button"
-                onClick={localIsPlaying ? pausePlayback : startPhrasePlayback}
+                onClick={requiresInteraction
+                  ? retryCurrentStep
+                  : localIsPlaying
+                    ? pausePlayback
+                    : startPhrasePlayback}
                 className="ik-primary-action menu-focus"
               >
                 <span className="ik-primary-action-icon">
-                  {localIsPlaying ? (
+                  {requiresInteraction ? (
+                    <RotateCcw aria-hidden="true" />
+                  ) : localIsPlaying ? (
                     <Pause aria-hidden="true" />
                   ) : (
                     <Play fill="currentColor" aria-hidden="true" />
                   )}
                 </span>
                 <span>
-                  {localIsPlaying
-                    ? 'Pause'
-                    : currentStep === 'idle'
-                      ? 'Démarrer'
-                      : currentStep === 'complete'
-                        ? 'Rejouer'
-                        : 'Reprendre'}
+                  {requiresInteraction
+                    ? 'Relancer ce son'
+                    : localIsPlaying
+                      ? 'Pause'
+                      : currentStep === 'idle'
+                        ? 'Démarrer'
+                        : currentStep === 'complete'
+                          ? 'Rejouer'
+                          : 'Reprendre'}
                 </span>
               </button>
               <button
@@ -324,7 +528,12 @@ export const AudioPhoneRevealPhaseV2 = ({
         )}
 
         {isHost && (
-          <InkBetaPanel step="Et après" title="La suite" titleId="ik-ap-reveal-next">
+          <InkBetaPanel
+            className="ik-ap-panel ik-ap-reveal-actions"
+            step="Et après"
+            title="La suite"
+            titleId="ik-ap-reveal-next"
+          >
             <div className="ik-game-actions--split">
               <button
                 type="button"
@@ -356,7 +565,13 @@ export const AudioPhoneRevealPhaseV2 = ({
     <PulpStage accent={PULP.red} accent2={PULP.blue}>
       <div className="menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
         <div className="relative flex min-h-full items-start justify-center p-3 pb-24 sm:items-center sm:p-5 sm:pb-24 landscape:py-3 landscape:pb-24">
-        <audio ref={audioRef} onEnded={handleAudioEnded} />
+        <audio
+          ref={audioRef}
+          onPlay={() => { if (mountedRef.current) setLocalIsPlaying(true); }}
+          onPause={() => { if (mountedRef.current) setLocalIsPlaying(false); }}
+          onEnded={handleAudioEnded}
+          onError={handleAudioError}
+        />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.96, filter: 'blur(6px)' }}
@@ -420,15 +635,49 @@ export const AudioPhoneRevealPhaseV2 = ({
                   )}
                 </div>
 
+                {requiresInteraction && (
+                  <div className="space-y-2 text-center">
+                    <p
+                      className="text-sm uppercase"
+                      style={{ color: PULP.yellow, fontFamily: PULP_FONT, letterSpacing: '0.05em' }}
+                    >
+                      {playbackMessage} Relance ce son pour continuer.
+                    </p>
+                    {!isHost && (
+                      <PulpButton onClick={retryCurrentStep} color={PULP.yellow} size="sm">
+                        <RotateCcw className="h-4 w-4" /> Relancer ce son
+                      </PulpButton>
+                    )}
+                  </div>
+                )}
+
+                {playbackMessage && !requiresInteraction && (
+                  <p
+                    className="text-center text-sm uppercase"
+                    style={{ color: PULP.yellow, fontFamily: PULP_FONT, letterSpacing: '0.05em' }}
+                  >
+                    {playbackMessage}
+                  </p>
+                )}
+
                 {/* Host controls */}
                 {isHost && (
                   <div className="flex justify-center">
                     <PulpButton
-                      onClick={localIsPlaying ? pausePlayback : startPhrasePlayback}
+                      onClick={requiresInteraction
+                        ? retryCurrentStep
+                        : localIsPlaying
+                          ? pausePlayback
+                          : startPhrasePlayback}
                       color={PULP.red}
                       size="md"
                     >
-                      {localIsPlaying ? (
+                      {requiresInteraction ? (
+                        <>
+                          <RotateCcw className="w-5 h-5" strokeWidth={3} />
+                          Relancer ce son
+                        </>
+                      ) : localIsPlaying ? (
                         <>
                           <Pause className="w-5 h-5" strokeWidth={3} />
                           Pause

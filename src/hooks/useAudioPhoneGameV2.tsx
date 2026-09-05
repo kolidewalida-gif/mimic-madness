@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { reverseAudioBufferWithInfo } from '@/lib/audioReverser';
 import {
@@ -47,42 +48,23 @@ type GamePhase =
   | 'scores'            // Voting/scores
   | 'finished';
 
-interface AudioPhoneRoundV2 {
-  id: string;
-  lobby_id: string;
-  round_number: number;
+type AudioPhoneRoundRow = Database['public']['Tables']['audio_phone_rounds']['Row'];
+type AudioPhoneRecordingRow = Database['public']['Tables']['audio_phone_recordings']['Row'];
+type AudioPhoneImitationRow = Database['public']['Tables']['audio_phone_imitations']['Row'];
+
+type AudioPhoneRoundV2 = Omit<
+  AudioPhoneRoundRow,
+  'phase' | 'current_phrase_index' | 'reveal_is_playing' | 'reveal_phrase_index' | 'reveal_step'
+> & {
   phase: GamePhase;
-  current_player_index: number;
-  current_phrase_index: number; // Which phrase is being imitated
-  player_order: string[];
-  max_recording_seconds: number;
-  // Reveal sync fields
+  current_phrase_index: number;
   reveal_is_playing: boolean;
   reveal_phrase_index: number;
-  reveal_step: string; // 'idle' | 'original' | 'reversed' | 'imitation_0' | 'imitation_1' etc.
-}
+  reveal_step: string;
+};
 
-interface OriginalRecording {
-  id: string;
-  round_id: string;
-  player_id: string;
-  player_name: string;
-  player_order_index: number;
-  storage_path: string;
-  reversed_storage_path: string | null;
-  duration_seconds: number;
-}
-
-interface Imitation {
-  id: string;
-  round_id: string;
-  original_recording_id: string;
-  imitator_player_id: string;
-  imitator_player_name: string;
-  storage_path: string;
-  reversed_storage_path: string | null;
-  duration_seconds: number;
-}
+type OriginalRecording = AudioPhoneRecordingRow;
+type Imitation = AudioPhoneImitationRow;
 
 interface UseAudioPhoneGameV2Props {
   lobbyId: string;
@@ -96,6 +78,38 @@ interface UploadError {
   details?: string;
 }
 
+const normalizeRound = (round: AudioPhoneRoundRow): AudioPhoneRoundV2 => ({
+  ...round,
+  phase: round.phase as GamePhase,
+  current_phrase_index: round.current_phrase_index ?? 0,
+  reveal_is_playing: round.reveal_is_playing ?? false,
+  reveal_phrase_index: round.reveal_phrase_index ?? 0,
+  reveal_step: round.reveal_step ?? 'idle',
+});
+
+/** Strict total order used as a client-side high-water mark for round adoption. */
+const compareRoundIdentity = (left: AudioPhoneRoundV2, right: AudioPhoneRoundV2) => {
+  if (left.round_number !== right.round_number) {
+    return left.round_number - right.round_number;
+  }
+  const createdAtOrder = left.created_at.localeCompare(right.created_at);
+  if (createdAtOrder !== 0) return createdAtOrder;
+  return left.id.localeCompare(right.id);
+};
+
+const mergeRowsById = <Row extends { id: string }>(snapshot: Row[], streamed: Row[]) => {
+  const rows = new Map<string, Row>();
+  for (const row of snapshot) rows.set(row.id, row);
+  // Realtime rows may have arrived after the SQL snapshot was taken.
+  for (const row of streamed) rows.set(row.id, row);
+  return [...rows.values()];
+};
+
+const sortImitations = (rows: Imitation[]) => [...rows].sort((left, right) => {
+  const createdAtOrder = left.created_at.localeCompare(right.created_at);
+  return createdAtOrder || left.id.localeCompare(right.id);
+});
+
 export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudioPhoneGameV2Props) => {
   const [currentRound, setCurrentRound] = useState<AudioPhoneRoundV2 | null>(null);
   const [originalRecordings, setOriginalRecordings] = useState<OriginalRecording[]>([]);
@@ -105,77 +119,158 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
   const [uploadErrors, setUploadErrors] = useState<UploadError[]>([]);
   const { toast } = useToast();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const mountedRef = useRef(false);
+  const currentRoundRef = useRef<AudioPhoneRoundV2 | null>(null);
   const currentRoundIdRef = useRef<string | null>(null);
+  const roundHighWaterRef = useRef<AudioPhoneRoundV2 | null>(null);
+  const hydrationGenerationRef = useRef(0);
+  const fetchSequenceRef = useRef(0);
   
   // XP system
   const { addXp } = usePlayerLevel();
 
-  // Fetch current round and all recordings
+  useEffect(() => {
+    mountedRef.current = true;
+    currentRoundRef.current = null;
+    currentRoundIdRef.current = null;
+    roundHighWaterRef.current = null;
+    hydrationGenerationRef.current += 1;
+    setCurrentRound(null);
+    setOriginalRecordings([]);
+    setImitations([]);
+    setIsLoading(true);
+
+    return () => {
+      mountedRef.current = false;
+      fetchSequenceRef.current += 1;
+      hydrationGenerationRef.current += 1;
+      currentRoundRef.current = null;
+      currentRoundIdRef.current = null;
+    };
+  }, [lobbyId]);
+
+  /**
+   * Recharge les enfants d'une manche sans écraser les INSERT realtime reçus
+   * pendant le snapshot. La génération rend tout résultat d'une ancienne
+   * manche inerte.
+   */
+  const hydrateRound = useCallback(async (roundId: string, generation: number) => {
+    const [recordingsResult, imitationsResult] = await Promise.all([
+      supabase
+        .from('audio_phone_recordings')
+        .select('*')
+        .eq('round_id', roundId)
+        .order('player_order_index', { ascending: true }),
+      supabase
+        .from('audio_phone_imitations')
+        .select('*')
+        .eq('round_id', roundId)
+        .order('created_at', { ascending: true }),
+    ]);
+
+    if (recordingsResult.error) throw recordingsResult.error;
+    if (imitationsResult.error) throw imitationsResult.error;
+    if (
+      !mountedRef.current
+      || currentRoundIdRef.current !== roundId
+      || hydrationGenerationRef.current !== generation
+    ) {
+      return;
+    }
+
+    const snapshotRecordings = recordingsResult.data ?? [];
+    const snapshotImitations = imitationsResult.data ?? [];
+    setOriginalRecordings((streamed) => sortRecordingsByOrder(
+      mergeRowsById(snapshotRecordings, streamed.filter((row) => row.round_id === roundId)),
+    ));
+    setImitations((streamed) => sortImitations(
+      mergeRowsById(snapshotImitations, streamed.filter((row) => row.round_id === roundId)),
+    ));
+  }, []);
+
+  /**
+   * Adopte immédiatement une manche plus récente, avant tout rendu/effect.
+   * Les UPDATE d'une ancienne id sont rejetés par le high-water mark et ne
+   * peuvent donc jamais ressusciter un replay terminé.
+   */
+  const adoptRound = useCallback((row: AudioPhoneRoundRow) => {
+    if (!mountedRef.current) return null;
+    const nextRound = normalizeRound(row);
+    const current = currentRoundRef.current;
+
+    if (current?.id === nextRound.id) {
+      currentRoundRef.current = nextRound;
+      currentRoundIdRef.current = nextRound.id;
+      roundHighWaterRef.current = nextRound;
+      setCurrentRound(nextRound);
+      return { round: nextRound, generation: hydrationGenerationRef.current, changed: false };
+    }
+
+    const highWater = roundHighWaterRef.current;
+    if (highWater && compareRoundIdentity(nextRound, highWater) <= 0) return null;
+
+    roundHighWaterRef.current = nextRound;
+    currentRoundRef.current = nextRound;
+    currentRoundIdRef.current = nextRound.id;
+    const generation = hydrationGenerationRef.current + 1;
+    hydrationGenerationRef.current = generation;
+
+    // Never expose children from the previous round under the new round id.
+    setOriginalRecordings([]);
+    setImitations([]);
+    setCurrentRound(nextRound);
+    return { round: nextRound, generation, changed: true };
+  }, []);
+
+  const clearCurrentRound = useCallback((expectedRoundId?: string) => {
+    if (expectedRoundId && currentRoundIdRef.current !== expectedRoundId) return;
+    hydrationGenerationRef.current += 1;
+    currentRoundRef.current = null;
+    currentRoundIdRef.current = null;
+    if (!mountedRef.current) return;
+    setOriginalRecordings([]);
+    setImitations([]);
+    setCurrentRound(null);
+  }, []);
+
+  // Fetch the newest known round. A concurrent, newer realtime adoption wins.
   const fetchGameState = useCallback(async () => {
+    const requestSequence = fetchSequenceRef.current + 1;
+    fetchSequenceRef.current = requestSequence;
     try {
       const { data: round, error: roundError } = await supabase
         .from('audio_phone_rounds')
         .select('*')
         .eq('lobby_id', lobbyId)
+        .order('round_number', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (roundError) throw roundError;
+      if (!mountedRef.current || fetchSequenceRef.current !== requestSequence) return;
 
       if (round) {
-        const roundData: AudioPhoneRoundV2 = {
-          ...round,
-          phase: round.phase as GamePhase,
-          current_phrase_index: (round as any).current_phrase_index ?? 0,
-          reveal_is_playing: (round as any).reveal_is_playing ?? false,
-          reveal_phrase_index: (round as any).reveal_phrase_index ?? 0,
-          reveal_step: (round as any).reveal_step ?? 'idle',
-        };
-        setCurrentRound(roundData);
-
-        // Fetch original recordings
-        const { data: recordingsData, error: recordingsError } = await supabase
-          .from('audio_phone_recordings')
-          .select('*')
-          .eq('round_id', round.id)
-          .order('player_order_index', { ascending: true });
-
-        if (recordingsError) throw recordingsError;
-        setOriginalRecordings((recordingsData || []) as unknown as OriginalRecording[]);
-
-        // Fetch imitations
-        const { data: imitationsData, error: imitationsError } = await supabase
-          .from('audio_phone_imitations')
-          .select('*')
-          .eq('round_id', round.id)
-          .order('created_at', { ascending: true });
-
-        if (imitationsError) throw imitationsError;
-        setImitations((imitationsData || []) as unknown as Imitation[]);
-      } else {
-        setCurrentRound(null);
-        setOriginalRecordings([]);
-        setImitations([]);
+        const adoption = adoptRound(round);
+        if (adoption?.changed) {
+          await hydrateRound(adoption.round.id, adoption.generation);
+        }
+      } else if (!currentRoundRef.current) {
+        clearCurrentRound();
       }
     } catch (error) {
       console.error('Error fetching game state:', error);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current && fetchSequenceRef.current === requestSequence) {
+        setIsLoading(false);
+      }
     }
-  }, [lobbyId]);
+  }, [adoptRound, clearCurrentRound, hydrateRound, lobbyId]);
 
   // Initial fetch only — realtime subscriptions below keep state in sync.
-  // (Removed 3s polling loop to prevent redundant network traffic and
-  //  state races between poll vs realtime payloads.)
   useEffect(() => {
-    fetchGameState();
+    void fetchGameState();
   }, [fetchGameState]);
-
-  // Keep round id ref updated
-  useEffect(() => {
-    currentRoundIdRef.current = currentRound?.id ?? null;
-  }, [currentRound?.id]);
 
   /*
    * L'effectif de la manche, et non celui du salon.
@@ -260,15 +355,12 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         { event: '*', schema: 'public', table: 'audio_phone_rounds', filter: `lobby_id=eq.${lobbyId}` },
         (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const newRound = payload.new as any;
-            setCurrentRound({
-              ...newRound,
-              phase: newRound.phase as GamePhase,
-              current_phrase_index: newRound.current_phrase_index ?? 0,
-              reveal_is_playing: newRound.reveal_is_playing ?? false,
-              reveal_phrase_index: newRound.reveal_phrase_index ?? 0,
-              reveal_step: newRound.reveal_step ?? 'idle',
-            });
+            const adoption = adoptRound(payload.new as unknown as AudioPhoneRoundRow);
+            if (adoption?.changed) {
+              void hydrateRound(adoption.round.id, adoption.generation).catch((error) => {
+                console.error('[AudioPhoneV2] Round hydration failed:', error);
+              });
+            }
           }
         }
       )
@@ -277,12 +369,10 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         { event: 'INSERT', schema: 'public', table: 'audio_phone_recordings' },
         (payload) => {
           const newRec = payload.new as unknown as OriginalRecording;
-          // Bug fix #7: client-side filter by current round (Supabase realtime
-          // filters don't support changing values via foreign key)
           if (currentRoundIdRef.current && newRec.round_id === currentRoundIdRef.current) {
-            setOriginalRecordings(prev => {
-              if (prev.some(r => r.id === newRec.id)) return prev;
-              return sortRecordingsByOrder([...prev, newRec]);
+            setOriginalRecordings((previous) => {
+              if (previous.some((recording) => recording.id === newRec.id)) return previous;
+              return sortRecordingsByOrder([...previous, newRec]);
             });
           }
         }
@@ -291,12 +381,14 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'audio_phone_imitations' },
         (payload) => {
-          const newIm = payload.new as unknown as Imitation;
-          // Bug fix #8: client-side filter by current round
-          if (currentRoundIdRef.current && newIm.round_id === currentRoundIdRef.current) {
-            setImitations(prev => {
-              if (prev.some(i => i.id === newIm.id)) return prev;
-              return [...prev, newIm];
+          const newImitation = payload.new as unknown as Imitation;
+          if (
+            currentRoundIdRef.current
+            && newImitation.round_id === currentRoundIdRef.current
+          ) {
+            setImitations((previous) => {
+              if (previous.some((imitation) => imitation.id === newImitation.id)) return previous;
+              return sortImitations([...previous, newImitation]);
             });
           }
         }
@@ -306,36 +398,39 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     channelRef.current = channel;
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current === channel) channelRef.current = null;
+      void supabase.removeChannel(channel);
     };
-  }, [lobbyId]);
+  }, [adoptRound, hydrateRound, lobbyId]);
 
   // Lock to prevent double startGame calls
   const startGameLockRef = useRef(false);
   const moveToNextPhraseLockRef = useRef(false);
 
-  // Start a new game.
-  // When `skipInstructions` is true (default for V2 launch), the round is
-  // created directly in 'recording_all' phase so the host doesn't have to
-  // click "C'est parti" twice.
-  const startGame = useCallback(async (skipInstructions = true) => {
-    // Bug fix #10: idempotency lock
-    if (startGameLockRef.current) return;
+  /** Creates and immediately adopts a newer round. */
+  const createRound = useCallback(async (
+    skipInstructions = true,
+    previousRoundNumber?: number,
+  ): Promise<boolean> => {
+    if (startGameLockRef.current) return false;
     startGameLockRef.current = true;
 
     try {
-      setIsLoading(true);
+      if (mountedRef.current) setIsLoading(true);
 
       const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-      const playerOrder = shuffledPlayers.map(p => p.id);
-
+      const playerOrder = shuffledPlayers.map((player) => player.id);
       const initialPhase: GamePhase = skipInstructions ? 'recording_all' : 'instructions';
+      const knownRoundNumber = previousRoundNumber
+        ?? currentRoundRef.current?.round_number
+        ?? roundHighWaterRef.current?.round_number
+        ?? 0;
 
       const { data, error } = await supabase
         .from('audio_phone_rounds')
         .insert({
           lobby_id: lobbyId,
-          round_number: (currentRound?.round_number || 0) + 1,
+          round_number: knownRoundNumber + 1,
           phase: initialPhase,
           current_player_index: 0,
           player_order: playerOrder,
@@ -344,33 +439,39 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
         .single();
 
       if (error) throw error;
+      const adoption = adoptRound(data);
+      if (adoption?.changed) {
+        // A fresh round is empty, but this snapshot also covers a concurrent
+        // server-side insertion and keeps every client on the same data path.
+        await hydrateRound(adoption.round.id, adoption.generation);
+      }
 
-      setCurrentRound({
-        ...data,
-        phase: data.phase as GamePhase,
-        current_phrase_index: 0,
-      });
-      setOriginalRecordings([]);
-      setImitations([]);
       playSoundEffect('start', 0.5);
-      
       toast({
-        title: "Nouvelle partie !",
-        description: "Audio Phone V2 commence !",
+        title: 'Nouvelle partie !',
+        description: 'Audio Phone V2 commence !',
       });
+      return true;
     } catch (error) {
       console.error('Error starting game:', error);
       toast({
-        title: "Erreur",
-        description: "Impossible de démarrer",
-        variant: "destructive",
+        title: 'Erreur',
+        description: 'Impossible de démarrer',
+        variant: 'destructive',
       });
+      return false;
     } finally {
-      setIsLoading(false);
-      // Release lock after a delay so duplicate clicks within 2s don't fire twice
+      if (mountedRef.current) setIsLoading(false);
+      // Release lock after a delay so duplicate clicks within 2s don't fire twice.
       setTimeout(() => { startGameLockRef.current = false; }, 2000);
     }
-  }, [lobbyId, players, currentRound?.round_number, toast]);
+  }, [adoptRound, hydrateRound, lobbyId, players, toast]);
+
+  // Start a new game. The V2 launch skips the duplicate instructions phase.
+  const startGame = useCallback(
+    async (skipInstructions = true) => createRound(skipInstructions),
+    [createRound],
+  );
 
   // Start recording phase (all players record)
   const startRecordingPhase = useCallback(async () => {
@@ -858,28 +959,82 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     return players.find(p => p.id === playerId);
   }, [players]);
 
-  // End round
-  const endRound = useCallback(async () => {
-    if (!currentRound) return;
+  const awardCompletionXp = useCallback(() => {
+    void (async () => {
+      try {
+        const result = await addXp('audioPhoneComplete');
+        emitXpGain(XP_REWARDS.audioPhoneComplete, 'audioPhoneComplete');
+        if (result?.leveledUp) emitLevelUpNotification(result.newLevel);
+      } catch (error) {
+        // The round is already finished. Rewards must never roll back or block
+        // navigation/replay when the profile service is unavailable.
+        console.warn('[AudioPhoneV2] Completion XP not awarded:', error);
+      }
+    })();
+  }, [addXp]);
 
-    // Award XP for completing Audio Phone game
-    const result = await addXp('audioPhoneComplete');
-    emitXpGain(XP_REWARDS.audioPhoneComplete, 'audioPhoneComplete');
-    if (result?.leveledUp) {
-      emitLevelUpNotification(result.newLevel);
-    }
-
+  const markRoundFinished = useCallback(async (
+    round: AudioPhoneRoundV2,
+    clearAfterWrite: boolean,
+  ): Promise<boolean> => {
     const { error } = await supabase
       .from('audio_phone_rounds')
       .update({ phase: 'finished' })
-      .eq('id', currentRound.id);
+      .eq('id', round.id);
 
-    if (error) console.error('Error ending round:', error);
+    if (error) {
+      console.error('Error ending Audio Phone round:', error);
+      return false;
+    }
 
-    setOriginalRecordings([]);
-    setImitations([]);
-    setCurrentRound(null);
-  }, [currentRound, addXp]);
+    // A newer round may have arrived while the UPDATE was in flight. Never
+    // clear or overwrite it when finishing the captured predecessor.
+    if (currentRoundIdRef.current === round.id) {
+      const finishedRound: AudioPhoneRoundV2 = { ...round, phase: 'finished' };
+      if (roundHighWaterRef.current?.id === round.id) {
+        roundHighWaterRef.current = finishedRound;
+      }
+      if (clearAfterWrite) {
+        clearCurrentRound(round.id);
+      } else {
+        currentRoundRef.current = finishedRound;
+        currentRoundIdRef.current = finishedRound.id;
+        if (mountedRef.current) setCurrentRound(finishedRound);
+      }
+    }
+    return true;
+  }, [clearCurrentRound]);
+
+  /** Normal completion: persist first, then award XP out of band. */
+  const endRound = useCallback(async (): Promise<boolean> => {
+    if (!currentPlayer.isHost) return false;
+    const round = currentRoundRef.current;
+    if (!round) return true;
+
+    const finished = await markRoundFinished(round, true);
+    if (finished) awardCompletionXp();
+    return finished;
+  }, [awardCompletionXp, currentPlayer.isHost, markRoundFinished]);
+
+  /** Host toolbar exit: finish for everyone, deliberately without completion XP. */
+  const abandonRound = useCallback(async (): Promise<boolean> => {
+    if (!currentPlayer.isHost) return false;
+    const round = currentRoundRef.current;
+    if (!round) return true;
+    return markRoundFinished(round, true);
+  }, [currentPlayer.isHost, markRoundFinished]);
+
+  /** Finish then create the successor as one client action; guests adopt its INSERT. */
+  const restartRound = useCallback(async (): Promise<boolean> => {
+    if (!currentPlayer.isHost) return false;
+    const round = currentRoundRef.current;
+    if (!round) return createRound(true);
+
+    const finished = await markRoundFinished(round, false);
+    if (!finished) return false;
+    awardCompletionXp();
+    return createRound(true, round.round_number);
+  }, [awardCompletionXp, createRound, currentPlayer.isHost, markRoundFinished]);
 
   // Get reversed audio URL for imitation
   const getReversedAudioUrl = useCallback((recording: OriginalRecording) => {
@@ -913,6 +1068,8 @@ export const useAudioPhoneGameV2 = ({ lobbyId, currentPlayer, players }: UseAudi
     startReveal,
     setRevealPlaybackState,
     endRound,
+    abandonRound,
+    restartRound,
     
     // Helpers
     hasSubmittedOriginalPhrase,

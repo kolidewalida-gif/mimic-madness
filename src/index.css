@@ -29985,3 +29985,1531 @@ body.inkbeta-mode .ik-results-reconnecting span {
     transition: none;
   }
 }
+
+/* ============================================================
+   INK BETA — AUDIO PHONE / COUCHE DE LAYOUT FINALE
+   ------------------------------------------------------------
+   Cette couche est volontairement en fin de feuille et strictement
+   scoppée au canvas Audio Phone. Elle neutralise les pistes/min-height
+   héritées de l'accueil sans modifier les autres jeux Ink Beta.
+   ============================================================ */
+
+/* Le scroll appartient à la scène. Aucun enfant Audio Phone ne doit créer un
+   second débordement horizontal ni être centré hors de la zone atteignable. */
+body.inkbeta-mode .ik-game-v2 .ik-main:has(> .ik-ap-canvas) {
+  align-items: flex-start;
+  overflow-x: hidden;
+}
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-ap-canvas {
+  box-sizing: border-box;
+  width: min(100%, 96rem);
+  min-width: 0;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-auto-rows: max-content;
+  align-content: start;
+  align-items: start;
+  gap: clamp(0.7rem, 1.2vw, 1.1rem);
+  margin-inline: auto;
+  padding: clamp(0.65rem, 1.1vw, 1rem);
+  overflow-x: clip;
+}
+
+/* Écrans courts : grande largeur de lecture et centrage sûr. Les marges auto
+   retombent à zéro dès que le contenu dépasse la hauteur disponible. */
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-ap-canvas--single {
+  width: min(100%, 76rem);
+  margin-block: auto;
+}
+
+/* Enregistrement et imitation : une vraie colonne de travail, une colonne de
+   progression. Une seule ligne implicite, donc aucune piste vide à étirer. */
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-ap-canvas--work {
+  width: min(100%, 96rem);
+  grid-template-columns: minmax(0, 1.65fr) minmax(19rem, 0.75fr);
+  margin-block: 0 auto;
+}
+
+body.inkbeta-mode .ik-ap-canvas > *,
+body.inkbeta-mode .ik-ap-canvas .ik-ap-panel,
+body.inkbeta-mode .ik-ap-canvas :is(
+  .ik-gpanel-head,
+  .ik-gpanel-body,
+  .ik-game-actions--split,
+  .ik-ap-review,
+  .ik-ap-flow,
+  .ik-ap-chain
+) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.inkbeta-mode .ik-ap-canvas .ik-ap-panel {
+  width: 100%;
+  align-self: start;
+}
+
+/* Le micro reste proche de sa consigne au lieu de remplir artificiellement une
+   hauteur de panneau héritée. */
+body.inkbeta-mode .ik-ap-canvas .ik-ap-mic-zone {
+  flex: 0 0 auto;
+  align-content: start;
+  padding-block: clamp(0.45rem, 1.5vh, 0.9rem);
+}
+
+body.inkbeta-mode .ik-ap-canvas :is(
+  .ik-game-lead,
+  .ik-game-note,
+  .ik-progress-label,
+  .ik-ap-flow-step,
+  .ik-ap-chain-step,
+  .ik-seat-name,
+  .ik-seat-meta
+) {
+  overflow-wrap: anywhere;
+}
+
+body.inkbeta-mode .ik-ap-canvas .ik-game-actions--split {
+  gap: 0.65rem;
+}
+
+body.inkbeta-mode .ik-ap-canvas .ik-ap-audio,
+body.inkbeta-mode .ik-ap-canvas audio[controls] {
+  width: 100%;
+  max-width: 100%;
+  min-height: 44px;
+}
+
+/* Toutes les actions du lot gardent une cible tactile d'au moins 44 × 44 px,
+   y compris la sortie de topbar qui était réduite sous 40 px sur mobile. */
+body.inkbeta-mode .ik-game-v2 .ik-ap-canvas button,
+body.inkbeta-mode .ik-game-v2:has(.ik-ap-canvas) .ik-tool--leave {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+}
+
+body.inkbeta-mode .ik-ap-rules-body,
+body.inkbeta-mode .ik-ap-waiting-body {
+  gap: clamp(0.75rem, 1.8vw, 1.2rem);
+}
+
+body.inkbeta-mode .ik-ap-rules-body > :is(.ik-primary-action, .ik-game-note),
+body.inkbeta-mode .ik-ap-waiting-body > :is(.ik-primary-action, .ik-game-note) {
+  width: min(100%, 32rem);
+  align-self: center;
+}
+
+body.inkbeta-mode .ik-ap-playback-retry {
+  display: grid;
+  min-width: 0;
+  gap: 0.55rem;
+}
+
+body.inkbeta-mode .ik-ap-chain-step.is-missing {
+  border-style: dashed;
+  border-color: rgba(255, 211, 78, 0.48);
+  color: var(--ik-yellow);
+  opacity: 0.72;
+}
+
+/* Tablette et mobile : l'ordre DOM (travail puis progression) devient l'unique
+   colonne, y compris en paysage court. */
+@media (max-width: 1100px) {
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-ap-canvas--work {
+    width: min(100%, 76rem);
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-ap-canvas {
+    width: 100%;
+    gap: 0.65rem;
+    padding: 0.5rem;
+    border-width: 2px;
+    border-radius: 16px;
+  }
+
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-ap-canvas--single,
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-ap-canvas--work {
+    margin-block: 0 auto;
+  }
+
+  body.inkbeta-mode .ik-ap-canvas .ik-gpanel-head {
+    flex-wrap: wrap;
+  }
+
+  body.inkbeta-mode .ik-ap-canvas .ik-gpanel-aside {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 430px) {
+  body.inkbeta-mode .ik-ap-canvas .ik-game-actions--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-ap-canvas .ik-ap-chain-step {
+    max-width: 100%;
+  }
+}
+
+/* ============================================================
+   INK BETA — QUIZ / COMPOSITION RESPONSIVE FINALE
+   ------------------------------------------------------------
+   Le canvas n'utilise plus la largeur générique de 62rem. Chaque phase garde
+   une composition explicite, sans piste vide ni hauteur viewport forcée.
+   ============================================================ */
+
+body.inkbeta-mode .ik-game-v2 .ik-main:has(> .ik-quiz-canvas) {
+  align-items: flex-start;
+  overflow-x: hidden;
+}
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas {
+  box-sizing: border-box;
+  width: min(100%, 104rem);
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: none;
+  grid-auto-rows: max-content;
+  align-content: start;
+  align-items: start;
+  gap: clamp(0.7rem, 1.2vw, 1.1rem);
+  margin-inline: auto;
+  padding: clamp(0.65rem, 1.1vw, 1rem);
+  overflow-x: clip;
+}
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas--lobby {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas--focus {
+  width: min(100%, 76rem);
+  grid-template-columns: minmax(0, 1fr);
+  margin-block: auto;
+}
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas--play {
+  grid-template-columns: minmax(18rem, 0.62fr) minmax(0, 1.8fr);
+}
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas--reveal,
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas--results {
+  width: min(100%, 100rem);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.inkbeta-mode .ik-quiz-canvas > *,
+body.inkbeta-mode .ik-quiz-canvas :is(
+  .ik-gpanel,
+  .ik-gpanel-head,
+  .ik-gpanel-body,
+  .ik-game-actions,
+  .ik-quiz-section,
+  .ik-quiz-options,
+  .ik-quiz-answer
+) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.inkbeta-mode .ik-game-v2 .ik-quiz-canvas button,
+body.inkbeta-mode .ik-game-v2:has(.ik-quiz-canvas) .ik-tool--leave {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+}
+
+body.inkbeta-mode .ik-quiz-canvas :is(
+  h1,
+  h2,
+  h3,
+  p,
+  span,
+  .ik-quiz-option-label,
+  .ik-seat-name,
+  .ik-seat-meta
+) {
+  overflow-wrap: anywhere;
+}
+
+/* ---- Salon : joueurs à gauche, réglages à droite -------------------- */
+body.inkbeta-mode .ik-quiz-lobby-panel {
+  display: grid;
+  grid-template-columns: minmax(17rem, 0.56fr) minmax(0, 1.8fr);
+  grid-template-areas:
+    "heading heading"
+    "players settings"
+    "actions settings";
+  align-items: start;
+  gap: clamp(0.7rem, 1.2vw, 1.1rem);
+  overflow: visible;
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel > .ik-gpanel-head {
+  grid-area: heading;
+  display: grid;
+  grid-template-columns: minmax(14rem, auto) minmax(0, 1fr);
+  align-items: end;
+  gap: 0.45rem 1.25rem;
+  margin: 0;
+  padding: 0.25rem 0.2rem 0.75rem;
+  border-bottom: 2px dashed rgba(45, 242, 208, 0.32);
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel > .ik-gpanel-head > h1 {
+  margin: 0;
+  color: var(--ik-cyan);
+  font-family: var(--ik-display);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 0.95;
+  text-transform: uppercase;
+  text-shadow: 0 4px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel > .ik-gpanel-head > .ik-game-lead {
+  max-width: 52rem;
+  justify-self: end;
+  text-align: right;
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel > .ik-gpanel-body:has(.ik-seats) {
+  grid-area: players;
+  padding: 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(54, 7, 76, 0.38);
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel > .ik-gpanel-body:has(.ik-quiz-section) {
+  grid-area: settings;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(20rem, 0.92fr);
+  align-items: start;
+  gap: 0.75rem;
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel > .ik-game-actions {
+  grid-area: actions;
+  width: 100%;
+  align-self: start;
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel .ik-seats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: visible;
+  padding: 0;
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel .ik-seat {
+  min-height: 6.5rem;
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel .ik-quiz-section {
+  height: 100%;
+  min-width: 0;
+  padding: 0.8rem;
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(54, 7, 76, 0.34);
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel .ik-quiz-section button {
+  min-height: 44px;
+}
+
+body.inkbeta-mode .ik-quiz-lobby-panel:not(:has(.ik-quiz-section)) {
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.42fr);
+  grid-template-areas:
+    "heading heading"
+    "players actions";
+}
+
+/* ---- Question : console lisible et réponses dominantes -------------- */
+body.inkbeta-mode .ik-quiz-canvas--play > .ik-quiz-side,
+body.inkbeta-mode .ik-quiz-canvas--play > .ik-quiz-main {
+  width: 100%;
+  align-self: start;
+}
+
+body.inkbeta-mode .ik-quiz-canvas--play .ik-quiz-question {
+  font-size: clamp(1.35rem, 2.25vw, 2.25rem);
+  line-height: 1.18;
+}
+
+body.inkbeta-mode .ik-quiz-canvas--play .ik-quiz-options {
+  gap: clamp(0.65rem, 1vw, 0.9rem);
+}
+
+body.inkbeta-mode .ik-quiz-canvas--play .ik-quiz-option {
+  min-height: clamp(4.75rem, 9vh, 6.5rem);
+  padding: 0.8rem;
+}
+
+body.inkbeta-mode .ik-quiz-canvas--play .ik-quiz-option-label {
+  min-width: 0;
+  font-size: clamp(0.9rem, 1.15vw, 1.1rem);
+  line-height: 1.25;
+}
+
+body.inkbeta-mode .ik-quiz-canvas--play .ik-quiz-answer .ik-primary-action {
+  flex: 0 0 auto;
+}
+
+/* ---- Révélation : question/réponse à gauche, joueurs à droite -------- */
+body.inkbeta-mode .ik-quiz-reveal-panel > .ik-gpanel-body {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.78fr) minmax(0, 1.22fr);
+  grid-template-areas:
+    "question players"
+    "answer players"
+    "advance advance";
+  align-items: start;
+  gap: 0.75rem;
+}
+
+body.inkbeta-mode .ik-quiz-reveal-panel > .ik-gpanel-body > :nth-child(1) {
+  grid-area: question;
+}
+
+body.inkbeta-mode .ik-quiz-reveal-panel > .ik-gpanel-body > :nth-child(2) {
+  grid-area: answer;
+}
+
+body.inkbeta-mode .ik-quiz-reveal-panel > .ik-gpanel-body > :nth-child(3) {
+  grid-area: players;
+}
+
+body.inkbeta-mode .ik-quiz-reveal-panel > .ik-gpanel-body > :nth-child(4) {
+  position: static;
+  grid-area: advance;
+  max-width: none;
+  padding: 0;
+  background: none;
+}
+
+body.inkbeta-mode .ik-quiz-reveal-panel > .ik-gpanel-body > * {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+/* ---- Classement : liste et analyse côte à côte ----------------------- */
+body.inkbeta-mode .ik-quiz-leaderboard-panel {
+  display: grid;
+  grid-template-columns: minmax(20rem, 0.92fr) minmax(0, 1.08fr);
+  grid-template-areas:
+    "heading heading"
+    "scores insight"
+    "advance advance";
+  align-items: start;
+  gap: 0.8rem;
+}
+
+body.inkbeta-mode .ik-quiz-leaderboard-panel > :nth-child(1) {
+  grid-area: heading;
+}
+
+body.inkbeta-mode .ik-quiz-leaderboard-panel > :nth-child(2) {
+  grid-area: scores;
+}
+
+body.inkbeta-mode .ik-quiz-leaderboard-panel > :nth-child(3) {
+  grid-area: insight;
+}
+
+body.inkbeta-mode .ik-quiz-leaderboard-panel > :nth-child(4) {
+  grid-area: advance;
+}
+
+body.inkbeta-mode .ik-quiz-leaderboard-panel > * {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+
+body.inkbeta-mode .ik-quiz-leaderboard-panel > :nth-child(2) {
+  padding: 0.35rem;
+}
+
+/* ---- Résultats finaux : podium et classement sur une seule scène ----- */
+body.inkbeta-mode .ik-quiz-final-panel {
+  display: grid;
+  grid-template-columns: minmax(20rem, 0.9fr) minmax(0, 1.1fr);
+  grid-template-areas:
+    "winner winner"
+    "podium ranking"
+    "advert advert"
+    "action action";
+  align-items: center;
+  gap: 0.8rem;
+}
+
+body.inkbeta-mode .ik-quiz-final-panel > :nth-child(1) { grid-area: winner; }
+body.inkbeta-mode .ik-quiz-final-panel > :nth-child(2) { grid-area: podium; }
+body.inkbeta-mode .ik-quiz-final-panel > :nth-child(3) { grid-area: ranking; }
+body.inkbeta-mode .ik-quiz-final-panel > :nth-child(4) { grid-area: advert; }
+body.inkbeta-mode .ik-quiz-final-panel > :nth-child(5) { grid-area: action; }
+
+body.inkbeta-mode .ik-quiz-final-panel > * {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+
+body.inkbeta-mode .ik-quiz-final-panel > :last-child {
+  display: flex;
+  justify-content: center;
+}
+
+body.inkbeta-mode .ik-quiz-countdown,
+body.inkbeta-mode .ik-quiz-status-panel {
+  width: 100%;
+  min-height: 0;
+  align-self: start;
+}
+
+@media (max-width: 1100px) {
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas--play,
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas--reveal,
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas--results {
+    width: min(100%, 76rem);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-quiz-canvas--play > .ik-quiz-main {
+    order: 1;
+  }
+
+  body.inkbeta-mode .ik-quiz-canvas--play > .ik-quiz-side {
+    order: 2;
+  }
+
+  body.inkbeta-mode .ik-quiz-lobby-panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "heading"
+      "players"
+      "settings"
+      "actions";
+  }
+
+  body.inkbeta-mode .ik-quiz-lobby-panel:not(:has(.ik-quiz-section)) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "heading"
+      "players"
+      "actions";
+  }
+
+  body.inkbeta-mode .ik-quiz-lobby-panel .ik-seats {
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  body.inkbeta-mode .ik-quiz-lobby-panel > .ik-gpanel-body:has(.ik-quiz-section),
+  body.inkbeta-mode .ik-quiz-reveal-panel > .ik-gpanel-body,
+  body.inkbeta-mode .ik-quiz-leaderboard-panel,
+  body.inkbeta-mode .ik-quiz-final-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-quiz-reveal-panel > .ik-gpanel-body {
+    grid-template-areas:
+      "question"
+      "answer"
+      "players"
+      "advance";
+  }
+
+  body.inkbeta-mode .ik-quiz-leaderboard-panel {
+    grid-template-areas:
+      "heading"
+      "scores"
+      "insight"
+      "advance";
+  }
+
+  body.inkbeta-mode .ik-quiz-final-panel {
+    grid-template-areas:
+      "winner"
+      "podium"
+      "ranking"
+      "advert"
+      "action";
+  }
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas {
+    width: 100%;
+    gap: 0.65rem;
+    padding: 0.5rem;
+    border-width: 2px;
+    border-radius: 16px;
+  }
+
+  body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-quiz-canvas--focus {
+    margin-block: 0 auto;
+  }
+
+  body.inkbeta-mode .ik-quiz-lobby-panel {
+    padding: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-quiz-lobby-panel > .ik-gpanel-head {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  body.inkbeta-mode .ik-quiz-lobby-panel > .ik-gpanel-head > .ik-game-lead {
+    justify-self: start;
+    text-align: left;
+  }
+
+  body.inkbeta-mode .ik-quiz-lobby-panel .ik-seats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .ik-quiz-canvas .ik-gpanel-head {
+    flex-wrap: wrap;
+  }
+
+  body.inkbeta-mode .ik-quiz-canvas .ik-gpanel-aside {
+    margin-left: auto;
+  }
+
+  body.inkbeta-mode .ik-quiz-canvas--play .ik-quiz-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-quiz-final-panel > :nth-child(2) {
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding: 0.25rem;
+  }
+}
+
+@media (max-width: 430px) {
+  body.inkbeta-mode .ik-quiz-lobby-panel .ik-seats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-quiz-canvas .ik-quiz-answer {
+    flex-direction: column;
+  }
+
+  body.inkbeta-mode .ik-quiz-canvas .ik-quiz-answer > * {
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   UNDERCOVER — canvas de jeu large et console contextuelle
+   ============================================================ */
+.undercover-game-stage,
+.undercover-game-layout,
+.undercover-player-board,
+.undercover-player-grid,
+.undercover-control-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.undercover-game-stage {
+  isolation: isolate;
+  overflow-x: hidden;
+}
+
+.undercover-control-panel button,
+.undercover-control-panel input {
+  min-height: 44px;
+}
+
+.undercover-player-grid > * {
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .undercover-game-layout {
+    grid-auto-rows: auto;
+    align-content: start;
+  }
+
+  .undercover-control-panel {
+    max-height: calc(100dvh - 6.75rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .undercover-game-layout--results {
+    grid-template-columns: minmax(0, 1fr) minmax(25rem, 34rem);
+  }
+}
+
+@media (max-width: 1099px) {
+  .undercover-game-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: auto;
+  }
+
+  .undercover-control-panel {
+    position: static;
+    width: 100%;
+  }
+}
+
+@media (max-width: 680px) {
+  .undercover-game-layout {
+    gap: 0.65rem;
+    padding-inline: 0.5rem;
+  }
+
+  .undercover-player-board,
+  .undercover-control-panel {
+    border-radius: 1.15rem;
+  }
+
+  .undercover-player-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .undercover-player-board {
+    padding-inline: 0.4rem;
+  }
+
+  .undercover-player-grid > * {
+    padding-inline: 0.4rem;
+  }
+}
+
+/* ============================================================
+   INK BETA — BLINDTEST / COMPOSITION RESPONSIVE FINALE
+   ------------------------------------------------------------
+   Couche scellée : configuration setlist + console, manche sans
+   satellites absolus et résultats sur un canvas large. Les règles
+   historiques bt4/bts restent la peau ; cette couche possède le layout.
+   ============================================================ */
+body.inkbeta-mode .bt4-root {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body.inkbeta-mode .bt4-header {
+  min-width: 0;
+  min-height: 4rem;
+}
+
+body.inkbeta-mode .bt4-header :is(button, .bt4-round-pill),
+body.inkbeta-mode .bt4-root :is(button, input, [role='slider']) {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+}
+
+body.inkbeta-mode .bt4-main {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(0.7rem, 1.1vw, 1rem);
+  padding: clamp(0.65rem, 1.15vw, 1.05rem) max(clamp(0.65rem, 1.4vw, 1.25rem), env(safe-area-inset-right)) max(clamp(0.7rem, 1.2vw, 1.1rem), env(safe-area-inset-bottom)) max(clamp(0.65rem, 1.4vw, 1.25rem), env(safe-area-inset-left));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+body.inkbeta-mode .bt4-root[data-phase='intro'] .bt4-main,
+body.inkbeta-mode .bt4-root[data-phase='final'] .bt4-main {
+  align-items: center;
+  justify-content: flex-start;
+  padding-bottom: max(clamp(0.7rem, 1.2vw, 1.1rem), env(safe-area-inset-bottom));
+}
+
+body.inkbeta-mode .bt4-intro {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
+/* ---- Régie : setlist principale et console latérale ---------------- */
+body.inkbeta-mode .bts,
+body.inkbeta-mode .bts-wait {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.inkbeta-mode .bts {
+  display: grid;
+  width: min(100%, 100rem);
+  min-height: 0;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(0, 1fr) minmax(21rem, 25rem);
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    'hero rail'
+    'crate rail'
+    'rules rail';
+  align-content: start;
+  align-items: start;
+  gap: clamp(0.8rem, 1.2vw, 1.15rem);
+  margin: 0 auto;
+}
+
+body.inkbeta-mode .bts-hero {
+  display: grid;
+  min-width: 0;
+  grid-area: hero;
+  grid-template-columns: minmax(14rem, 0.8fr) minmax(24rem, 1.2fr);
+  align-items: end;
+  gap: clamp(0.8rem, 1.4vw, 1.4rem);
+  padding: 0.15rem 0.2rem;
+}
+
+body.inkbeta-mode .bts-hero h1 {
+  font-size: clamp(2.15rem, 3.7vw, 4.25rem);
+}
+
+body.inkbeta-mode .bts-stats {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  padding: 0.45rem;
+  border: 2px solid var(--bt4-border);
+  border-radius: var(--bts-radius);
+  background: color-mix(in srgb, var(--bt4-panel) 92%, transparent);
+  box-shadow: var(--bts-lift);
+}
+
+body.inkbeta-mode .bts-stats > div {
+  min-width: 0;
+  padding: 0.35rem 0.65rem;
+  border: 0;
+  border-left: 1px solid var(--bt4-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body.inkbeta-mode .bts-stats > div:first-child { border-left: 0; }
+body.inkbeta-mode .bts-stats dd { font-size: clamp(1.1rem, 1.5vw, 1.65rem); }
+
+body.inkbeta-mode .bts-crate {
+  grid-area: crate;
+  min-height: 0;
+  align-self: start;
+  gap: clamp(0.7rem, 1vw, 0.95rem);
+}
+
+body.inkbeta-mode .bts-grid {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  flex: none;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+  align-content: start;
+  gap: clamp(0.45rem, 0.65vw, 0.65rem);
+}
+
+body.inkbeta-mode .bts-card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 4.65rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem;
+}
+
+body.inkbeta-mode .bts-card-art {
+  width: 2.75rem;
+  height: 2.75rem;
+  min-height: 0;
+  font-size: 1.2rem;
+  text-shadow: none;
+}
+
+body.inkbeta-mode .bts-card-copy strong {
+  white-space: normal;
+  line-height: 1.15;
+}
+
+body.inkbeta-mode .bts-card-state {
+  position: absolute;
+  top: 0.38rem;
+  right: 0.38rem;
+}
+
+body.inkbeta-mode .bts-rules {
+  grid-area: rules;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: start;
+}
+
+body.inkbeta-mode .bts-rules li {
+  min-height: 4.35rem;
+  padding: 0.65rem;
+}
+
+body.inkbeta-mode .bts-rail {
+  display: flex;
+  min-width: 0;
+  grid-area: rail;
+  align-self: start;
+  gap: clamp(0.75rem, 1vw, 0.95rem);
+}
+
+body.inkbeta-mode .bts-block {
+  min-height: 0;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
+
+body.inkbeta-mode .bts-bonuses {
+  flex: none;
+  align-content: start;
+}
+
+body.inkbeta-mode .bts-segmented button,
+body.inkbeta-mode .bts-bonus,
+body.inkbeta-mode .bts-chip {
+  min-height: 44px;
+}
+
+body.inkbeta-mode .bts-launch-zone {
+  position: static;
+  z-index: auto;
+  margin-top: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+body.inkbeta-mode .bts-launch { min-height: 4rem; }
+
+body.inkbeta-mode .bts-wait {
+  width: min(100%, 48rem);
+  min-height: 0;
+  margin: auto;
+}
+
+/* ---- Partie : classement intégré, plateau + console de réponse ------ */
+body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-main {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(0.7rem, 1vw, 0.95rem);
+  padding-top: clamp(0.65rem, 1vw, 0.9rem);
+  padding-bottom: max(clamp(0.7rem, 1.1vw, 1rem), env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar {
+  position: static;
+  top: auto;
+  left: auto;
+  display: grid;
+  width: min(100%, 100rem);
+  min-width: 0;
+  min-height: 4rem;
+  max-height: none;
+  flex: 0 0 auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 auto;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--bt4-border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(30, 16, 20, 0.96), rgba(11, 7, 9, 0.98));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
+  transform: none;
+}
+
+body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar-title {
+  width: auto;
+  padding: 0 0.7rem 0 0.2rem;
+  border: 0;
+  border-right: 1px solid var(--bt4-border);
+}
+
+body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar-track {
+  display: flex;
+  min-width: 0;
+  max-height: none;
+  flex-direction: row;
+  gap: 0.4rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-score-chip {
+  width: auto;
+  min-width: 8.5rem;
+  min-height: 2.75rem;
+  flex: 1 0 8.5rem;
+  padding: 0.35rem 0.55rem 0.35rem 0.4rem;
+  border-radius: 999px;
+}
+
+body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-volume-inline {
+  position: static;
+  top: auto;
+  left: auto;
+  width: auto;
+  min-width: 9rem;
+  min-height: 2.75rem;
+  flex-direction: row;
+  gap: 0.45rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--bt4-border);
+  border-radius: 999px;
+  background: rgba(255, 47, 69, 0.07);
+  transform: none;
+}
+
+body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-volume-inline input {
+  width: clamp(4.5rem, 7vw, 7rem);
+  height: 44px;
+  margin: 0;
+  direction: ltr;
+  writing-mode: horizontal-tb;
+}
+
+body.inkbeta-mode :is(.bt4-listen, .bt4-reveal) {
+  position: static;
+  display: grid;
+  width: min(100%, 100rem);
+  min-width: 0;
+  min-height: 0;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(19rem, 0.78fr) minmax(0, 1.42fr);
+  grid-template-rows: auto;
+  align-items: stretch;
+  gap: clamp(0.8rem, 1.2vw, 1.15rem);
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+body.inkbeta-mode .bt4-listen-band,
+body.inkbeta-mode .bt4-reveal-band,
+body.inkbeta-mode .bt4-answer-deck,
+body.inkbeta-mode .bt4-reveal-deck {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  align-self: stretch;
+  border: 1px solid var(--bt4-border-strong);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(255, 47, 69, 0.1), transparent 60%),
+    linear-gradient(180deg, rgba(28, 16, 20, 0.97), rgba(9, 6, 8, 0.98));
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.inkbeta-mode .bt4-listen-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: start;
+  align-items: start;
+  gap: clamp(0.8rem, 1.2vw, 1.15rem);
+  padding: clamp(1rem, 1.5vw, 1.35rem);
+}
+
+body.inkbeta-mode .bt4-round-copy {
+  min-width: 0;
+  padding-right: 0;
+}
+
+body.inkbeta-mode .bt4-round-copy h1 {
+  font-size: clamp(2.1rem, 3.4vw, 3.8rem);
+}
+
+body.inkbeta-mode .bt4-player {
+  display: flex;
+  min-width: 0;
+  grid-column: auto;
+  grid-row: auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  padding-right: 0;
+  flex-direction: column;
+}
+
+body.inkbeta-mode .bt4-player .bt4-record {
+  display: grid;
+  width: clamp(8.5rem, 12vw, 11rem);
+  height: clamp(8.5rem, 12vw, 11rem);
+}
+
+body.inkbeta-mode .bt4-answer-deck,
+body.inkbeta-mode .bt4-reveal-deck {
+  gap: clamp(0.75rem, 1vw, 1rem);
+  padding: clamp(1rem, 1.45vw, 1.35rem);
+}
+
+body.inkbeta-mode :is(.bt4-choices, .bt4-reveal-choices) {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  flex: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  align-content: start;
+  gap: clamp(0.65rem, 0.9vw, 0.9rem);
+}
+
+body.inkbeta-mode :is(.bt4-choice, .bt4-reveal-choice) {
+  min-width: 0;
+  min-height: clamp(5.25rem, 8vh, 6.4rem);
+  padding: clamp(0.75rem, 1vw, 1rem);
+}
+
+body.inkbeta-mode .bt4-reveal-band {
+  display: grid;
+  grid-template-columns: clamp(7rem, 9vw, 9.5rem) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: start;
+  align-items: center;
+  gap: clamp(0.8rem, 1.2vw, 1.15rem);
+  padding: clamp(1rem, 1.45vw, 1.35rem);
+}
+
+body.inkbeta-mode .bt4-cover {
+  display: block;
+  width: 100%;
+  max-width: 9.5rem;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+body.inkbeta-mode .bt4-reveal-copy {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+body.inkbeta-mode .bt4-reveal-copy h1 {
+  font-size: clamp(2rem, 3.4vw, 4rem);
+}
+
+body.inkbeta-mode .bt4-round-result {
+  display: flex;
+  min-width: 0;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-items: center;
+  padding: 0.8rem;
+  flex-direction: column;
+  text-align: center;
+}
+
+/* ---- Résultats : gagnant, classement, console ----------------------- */
+body.inkbeta-mode .bt4-results {
+  display: flex;
+  width: min(100%, 100rem);
+  min-width: 0;
+  min-height: 0;
+  align-self: auto;
+  flex: 0 0 auto;
+  gap: clamp(0.75rem, 1.1vw, 1rem);
+  margin: 0 auto;
+  padding: 0;
+}
+
+body.inkbeta-mode .bt4-results-layout {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  flex: none;
+  grid-template-columns: minmax(16rem, 0.78fr) minmax(22rem, 1.35fr) minmax(16rem, 0.72fr);
+  grid-auto-rows: auto;
+  align-items: stretch;
+  gap: clamp(0.7rem, 1vw, 0.95rem);
+}
+
+body.inkbeta-mode .bt4-winner-card {
+  min-width: 0;
+  min-height: 18rem;
+}
+
+body.inkbeta-mode .bt4-ranking {
+  min-width: 0;
+  overflow: visible;
+}
+
+body.inkbeta-mode .bt4-ranking ol {
+  max-height: none;
+  overflow: visible;
+}
+
+body.inkbeta-mode .bt4-results-side {
+  min-width: 0;
+}
+
+body.inkbeta-mode .bt4-result-actions :is(button, .bt4-host-wait) {
+  min-height: 44px;
+}
+
+body.inkbeta-mode .bt4-podium-ad {
+  width: 100%;
+  max-width: 100%;
+}
+
+body.inkbeta-mode .bt4-root :is(
+  .bts,
+  .bts-wait,
+  .bt4-scorebar,
+  .bt4-listen,
+  .bt4-reveal,
+  .bt4-results,
+  .bt4-results-layout,
+  .bt4-listen-band,
+  .bt4-reveal-band,
+  .bt4-answer-deck,
+  .bt4-reveal-deck
+) > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.inkbeta-mode .bt4-root :is(h1, h2, h3, p, strong, small, span) {
+  overflow-wrap: anywhere;
+}
+
+/* ---- Tablette : une colonne, la console suit le contenu ------------- */
+@media (max-width: 1099px) {
+  body.inkbeta-mode .bts {
+    width: min(100%, 76rem);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-rows: max-content;
+    grid-template-areas:
+      'hero'
+      'crate'
+      'rules'
+      'rail';
+  }
+
+  body.inkbeta-mode .bts-hero {
+    grid-template-columns: minmax(0, 0.8fr) minmax(24rem, 1.2fr);
+  }
+
+  body.inkbeta-mode .bts-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .bts-rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  body.inkbeta-mode .bts-launch-zone { grid-column: 1 / -1; }
+
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar,
+  body.inkbeta-mode :is(.bt4-listen, .bt4-reveal),
+  body.inkbeta-mode .bt4-results {
+    width: min(100%, 76rem);
+  }
+
+  body.inkbeta-mode :is(.bt4-listen, .bt4-reveal) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .bt4-listen-band {
+    grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.58fr);
+    grid-template-rows: auto;
+    align-items: center;
+  }
+
+  body.inkbeta-mode .bt4-player {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  body.inkbeta-mode .bt4-round-copy {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body.inkbeta-mode .bt4-player .bt4-record {
+    display: grid;
+    width: 8.5rem;
+    height: 8.5rem;
+  }
+
+  body.inkbeta-mode .bt4-results-layout {
+    grid-template-columns: minmax(16rem, 0.75fr) minmax(0, 1.25fr);
+  }
+
+  body.inkbeta-mode .bt4-results-side {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .bt4-result-actions { margin-top: 0; }
+}
+
+@media (max-width: 900px) {
+  body.inkbeta-mode .bts-hero {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  body.inkbeta-mode .bts-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  body.inkbeta-mode .bts-rules { grid-template-columns: minmax(0, 1fr); }
+
+  body.inkbeta-mode .bt4-results-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .bt4-results-side {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.inkbeta-mode .bt4-result-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- Mobile : aucune largeur implicite, grilles 2 → 1 --------------- */
+@media (max-width: 680px) {
+  body.inkbeta-mode .bt4-header {
+    min-height: 3.75rem;
+    gap: 0.45rem;
+    padding-inline: max(0.55rem, env(safe-area-inset-left)) max(0.55rem, env(safe-area-inset-right));
+  }
+
+  body.inkbeta-mode .bt4-brand small,
+  body.inkbeta-mode .bt4-back span { display: none; }
+
+  body.inkbeta-mode .bt4-back { width: 44px; padding: 0; }
+  body.inkbeta-mode .bt4-main { padding-inline: 0.5rem; }
+
+  body.inkbeta-mode .bts {
+    width: 100%;
+    gap: 0.65rem;
+  }
+
+  body.inkbeta-mode .bts-hero { padding-inline: 0; }
+  body.inkbeta-mode .bts-hero h1 { font-size: clamp(2rem, 11vw, 3rem); }
+  body.inkbeta-mode .bts-hero-copy > p { display: flex; }
+
+  body.inkbeta-mode .bts-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+  }
+
+  body.inkbeta-mode .bts-stats > div,
+  body.inkbeta-mode .bts-stats > div:first-child {
+    border: 0;
+    border-top: 1px solid var(--bt4-border);
+  }
+
+  body.inkbeta-mode .bts-stats > div:nth-child(-n + 2) { border-top: 0; }
+
+  body.inkbeta-mode .bts-crate,
+  body.inkbeta-mode .bts-block,
+  body.inkbeta-mode .bts-launch-zone {
+    padding: 0.7rem;
+    border-radius: 14px;
+  }
+
+  body.inkbeta-mode .bts-head { align-items: flex-start; }
+  body.inkbeta-mode .bts-head-actions { width: 100%; }
+  body.inkbeta-mode .bts-chip { flex: 1; justify-content: center; }
+  body.inkbeta-mode .bts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.inkbeta-mode .bts-card { min-height: 4.5rem; }
+
+  body.inkbeta-mode .bts-rail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .bts-launch-zone { grid-column: auto; }
+  body.inkbeta-mode .bts-segmented[data-count='6'] { --bts-cols: 3; }
+
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar {
+    width: 100%;
+    min-height: 3.5rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 0.35rem;
+  }
+
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-scorebar-title {
+    display: none;
+  }
+
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-score-chip {
+    min-width: 7.5rem;
+    min-height: 44px;
+    flex-basis: 7.5rem;
+  }
+
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-volume-inline {
+    min-width: 6.5rem;
+    min-height: 44px;
+    padding-inline: 0.4rem;
+  }
+
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-volume-inline input {
+    width: 4rem;
+  }
+
+  body.inkbeta-mode :is(.bt4-listen, .bt4-reveal) {
+    width: 100%;
+    gap: 0.65rem;
+  }
+
+  body.inkbeta-mode .bt4-listen-band {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    padding: 0.8rem;
+  }
+
+  body.inkbeta-mode .bt4-round-copy,
+  body.inkbeta-mode .bt4-player {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  body.inkbeta-mode .bt4-player {
+    align-items: flex-start;
+    flex-flow: row wrap;
+  }
+
+  body.inkbeta-mode .bt4-player .bt4-record {
+    display: grid;
+    width: 7rem;
+    height: 7rem;
+    flex: 0 0 7rem;
+  }
+
+  body.inkbeta-mode .bt4-answer-deck,
+  body.inkbeta-mode .bt4-reveal-deck { padding: 0.75rem; }
+
+  body.inkbeta-mode .bt4-answer-head { align-items: flex-start; }
+
+  body.inkbeta-mode :is(.bt4-choices, .bt4-reveal-choices) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  body.inkbeta-mode :is(.bt4-choice, .bt4-reveal-choice) {
+    min-height: 4.65rem;
+  }
+
+  body.inkbeta-mode .bt4-reveal-band {
+    grid-template-columns: 5.8rem minmax(0, 1fr);
+    padding: 0.75rem;
+  }
+
+  body.inkbeta-mode .bt4-cover { display: block; width: 5.8rem; }
+
+  body.inkbeta-mode .bt4-round-result {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    text-align: left;
+  }
+
+  body.inkbeta-mode .bt4-round-result > strong {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    text-align: right;
+  }
+
+  body.inkbeta-mode .bt4-results { width: 100%; }
+  body.inkbeta-mode .bt4-results-head h2 { font-size: clamp(1.9rem, 9vw, 2.7rem); }
+  body.inkbeta-mode .bt4-winner-card { min-height: 15rem; }
+
+  body.inkbeta-mode .bt4-results-side,
+  body.inkbeta-mode .bt4-result-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .bt4-result-actions { grid-column: auto; }
+}
+
+@media (max-width: 430px) {
+  body.inkbeta-mode .bt4-brand-mark { width: 2.25rem; height: 2.25rem; }
+  body.inkbeta-mode .bt4-round-pill { padding-inline: 0.45rem; }
+
+  body.inkbeta-mode .bts-grid { grid-template-columns: minmax(0, 1fr); }
+  body.inkbeta-mode .bts-card { min-height: 4.25rem; }
+  body.inkbeta-mode .bts-rules li { min-height: 0; }
+
+  body.inkbeta-mode .bt4-player .bt4-record {
+    width: 6.25rem;
+    height: 6.25rem;
+    flex-basis: 6.25rem;
+  }
+
+  body.inkbeta-mode .bt4-volume-inline output { display: none; }
+  body.inkbeta-mode .bt4-reveal-band { grid-template-columns: 5rem minmax(0, 1fr); }
+  body.inkbeta-mode .bt4-cover { width: 5rem; }
+  body.inkbeta-mode .bt4-ranking li { padding-inline: 0.35rem; }
+}
+
+@media (orientation: landscape) and (max-height: 650px) and (min-width: 700px) {
+  body.inkbeta-mode .bt4-root:is([data-phase='listen'], [data-phase='reveal']) .bt4-main {
+    justify-content: flex-start;
+    padding-block: 0.45rem;
+    overflow-y: auto;
+  }
+
+  body.inkbeta-mode :is(.bt4-listen, .bt4-reveal) {
+    min-height: 0;
+    grid-template-columns: minmax(17rem, 0.75fr) minmax(0, 1.25fr);
+    grid-template-rows: auto;
+  }
+
+  body.inkbeta-mode .bt4-listen-band,
+  body.inkbeta-mode .bt4-reveal-band,
+  body.inkbeta-mode .bt4-answer-deck,
+  body.inkbeta-mode .bt4-reveal-deck {
+    grid-column: auto;
+  }
+
+  body.inkbeta-mode .bt4-player .bt4-record,
+  body.inkbeta-mode .bt4-cover { display: grid; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode :is(.bts-card, .bts-bonus, .bts-launch, .bt4-choice) {
+    transition: none;
+  }
+}

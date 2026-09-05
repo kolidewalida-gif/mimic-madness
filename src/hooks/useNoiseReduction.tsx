@@ -54,6 +54,35 @@ interface ProcessStreamResult {
   cleanup: () => void;
 }
 
+const awaitWithAbort = <T,>(promise: Promise<T>, signal?: AbortSignal): Promise<T> => {
+  if (!signal) return promise;
+  if (signal.aborted) {
+    const error = new Error('Noise reduction setup aborted');
+    error.name = 'AbortError';
+    return Promise.reject(error);
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      const error = new Error('Noise reduction setup aborted');
+      error.name = 'AbortError';
+      reject(error);
+    };
+
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      },
+    );
+  });
+};
+
 interface UseNoiseReductionResult {
   isReady: boolean;
   isEnabled: boolean;
@@ -75,64 +104,106 @@ interface UseNoiseReductionResult {
  */
 export const processStreamWithNoiseReduction = async (
   stream: MediaStream,
-  options: { force?: boolean } = {}
+  options: { force?: boolean; signal?: AbortSignal } = {},
 ): Promise<ProcessStreamResult> => {
-  // Respect user preference unless forced
+  // Respect user preference unless forced.
   if (!options.force && !isNoiseReductionEnabled()) {
     return { stream, cleanup: () => {} };
   }
 
+  const signal = options.signal;
+  let denoiseState: DenoiseState | null = null;
+  let ctx: AudioContext | null = null;
+  let source: MediaStreamAudioSourceNode | null = null;
+  let workletNode: AudioWorkletNode | null = null;
+  let destination: MediaStreamAudioDestinationNode | null = null;
+  let released = false;
+
+  // Install teardown before the first await. AudioWorklet.addModule cannot be
+  // cancelled by browsers, but closing its context immediately prevents an
+  // abandoned Audio Phone session from retaining the RNNoise graph.
+  const cleanup = () => {
+    if (released) return;
+    released = true;
+    signal?.removeEventListener('abort', cleanup);
+
+    if (workletNode) workletNode.port.onmessage = null;
+    try { workletNode?.disconnect(); } catch {}
+    try { source?.disconnect(); } catch {}
+    try { destination?.disconnect(); } catch {}
+    try { denoiseState?.destroy(); } catch {}
+
+    workletNode = null;
+    source = null;
+    destination = null;
+    denoiseState = null;
+
+    const context = ctx;
+    ctx = null;
+    if (context && context.state !== 'closed') {
+      try { void context.close().catch(() => undefined); } catch {}
+    }
+  };
+
+  if (signal?.aborted) {
+    return { stream, cleanup: () => {} };
+  }
+  signal?.addEventListener('abort', cleanup, { once: true });
+
   try {
-    const rnnoise = await getRnnoise();
-    const denoiseState = rnnoise.createDenoiseState();
+    const rnnoise = await awaitWithAbort(getRnnoise(), signal);
+    if (released || signal?.aborted) return { stream, cleanup: () => {} };
 
-    // Force 48kHz for RNNoise compatibility
-    const ctx = new AudioContext({ sampleRate: 48000 });
-    await ctx.audioWorklet.addModule('/rnnoise-worklet.js');
+    const currentDenoiseState = rnnoise.createDenoiseState();
+    denoiseState = currentDenoiseState;
 
-    const source = ctx.createMediaStreamSource(stream);
-    const workletNode = new AudioWorkletNode(ctx, 'rnnoise-processor');
+    // Force 48kHz for RNNoise compatibility.
+    const context = new AudioContext({ sampleRate: 48000 });
+    ctx = context;
+    await awaitWithAbort(context.audioWorklet.addModule('/rnnoise-worklet.js'), signal);
+    if (released || signal?.aborted) return { stream, cleanup: () => {} };
 
-    workletNode.port.onmessage = (event) => {
+    const currentSource = context.createMediaStreamSource(stream);
+    source = currentSource;
+    const currentWorkletNode = new AudioWorkletNode(context, 'rnnoise-processor');
+    workletNode = currentWorkletNode;
+
+    currentWorkletNode.port.onmessage = (event) => {
       if (event.data.type !== 'frame') return;
       const frame: Float32Array = event.data.data;
 
-      // Convert Float32 [-1, 1] to 16-bit PCM range
+      // Convert Float32 [-1, 1] to 16-bit PCM range.
       const scaled = new Float32Array(frame.length);
       for (let i = 0; i < frame.length; i++) {
         scaled[i] = frame[i] * RNNOISE_SCALE;
       }
 
       try {
-        denoiseState.processFrame(scaled);
+        currentDenoiseState.processFrame(scaled);
       } catch (err) {
         console.warn('[NoiseReduction] processFrame failed:', err);
       }
 
-      // Convert back to Float32
+      // Convert back to Float32.
       const output = new Float32Array(frame.length);
       for (let i = 0; i < frame.length; i++) {
         output[i] = scaled[i] / RNNOISE_SCALE;
       }
 
-      workletNode.port.postMessage({ type: 'frame', data: output });
+      currentWorkletNode.port.postMessage({ type: 'frame', data: output });
     };
 
-    const destination = ctx.createMediaStreamDestination();
-    source.connect(workletNode);
-    workletNode.connect(destination);
+    const currentDestination = context.createMediaStreamDestination();
+    destination = currentDestination;
+    currentSource.connect(currentWorkletNode);
+    currentWorkletNode.connect(currentDestination);
 
-    const cleanup = () => {
-      try { workletNode.disconnect(); } catch {}
-      try { source.disconnect(); } catch {}
-      try { destination.disconnect(); } catch {}
-      try { denoiseState.destroy(); } catch {}
-      try { ctx.close().catch(() => {}); } catch {}
-    };
-
-    return { stream: destination.stream, cleanup };
+    return { stream: currentDestination.stream, cleanup };
   } catch (err) {
-    console.warn('[NoiseReduction] Setup failed, using original stream:', err);
+    cleanup();
+    if (!signal?.aborted && (err as { name?: string } | null)?.name !== 'AbortError') {
+      console.warn('[NoiseReduction] Setup failed, using original stream:', err);
+    }
     return { stream, cleanup: () => {} };
   }
 };

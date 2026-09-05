@@ -7,14 +7,14 @@ import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { UndercoverPreGameSettings } from './UndercoverPreGameSettings';
 import { computeRoundWinner } from '@/lib/undercoverLogic';
 import {
-  ArrowRight, CheckCircle2, Crown, Eye, EyeOff, Send, Skull,
+  ArrowRight, CheckCircle2, Crown, Eye, EyeOff, LogOut, RefreshCw, Send, Skull,
   Timer, UserX, Vote, X, Sparkles, Loader2, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { PodiumAd } from '@/components/PodiumAd';
 
-interface Player { id: string; name: string; isHost: boolean; }
+interface Player { id: string; name: string; isHost: boolean; isDisconnected?: boolean; }
 interface UndercoverGameScreenProps {
   currentPlayer: Player; players: Player[]; lobbyId: string; onEndGame: () => void;
 }
@@ -26,12 +26,16 @@ const FONT = "'Outfit', sans-serif";
 const PHASE_COLORS: Record<string, string> = {
   word_reveal: 'var(--ink-accent)', clue_giving: 'var(--ink-text-dim)', discussion: '#f59e0b',
   voting: '#ef4444', vote_result: '#fbbf24', game_over: '#fbbf24',
+  clue_transition: '#67e8f9', vote_setup: '#f59e0b', vote_resolution: '#ef4444', round_transition: '#a78bfa',
 };
 const PHASE_LABELS: Record<string, string> = {
   word_reveal: '👁️ Découverte du mot', clue_giving: '💬 Phase d\'indices',
   discussion: '🔥 Discussion', voting: '⚡ Vote',
   vote_result: '💀 Résultat', game_over: '🏆 Fin de partie',
+  clue_transition: '↻ Deuxième passage', vote_setup: '↻ Ouverture du vote',
+  vote_resolution: '⚖️ Décompte des voix', round_transition: '↻ Préparation de la suite',
 };
+const TRANSITION_PHASES = new Set(['clue_transition', 'vote_setup', 'vote_resolution', 'round_transition']);
 
 /* ═══════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -39,26 +43,23 @@ const PHASE_LABELS: Record<string, string> = {
 export const UndercoverGameScreen = memo(
   ({ currentPlayer, players, lobbyId, onEndGame }: UndercoverGameScreenProps) => {
     const {
-      game, gamePlayers, myPlayer, loading, alivePlayers,
+      game, gamePlayers, myPlayer, loading, error, participantCount, alivePlayers,
       currentTurnPlayerId, isMyTurn, hasSeenWord,
       submitClue, submitVote, startVoting, nextRound,
-      confirmWordSeen, startCluePhase, lockSettings,
+      confirmWordSeen, startCluePhase, lockSettings, retryInitialization,
     } = useUndercoverGame(lobbyId, currentPlayer, players);
 
     const [clueInput, setClueInput] = useState('');
     const [selectedVote, setSelectedVote] = useState<string | null>(null);
-    const [hasVoted, setHasVoted] = useState(false);
+    const [clueSubmitting, setClueSubmitting] = useState(false);
+    const [voteSubmitting, setVoteSubmitting] = useState(false);
     const [showWordModal, setShowWordModal] = useState(false);
-    // Elimination dramatic overlay — shown briefly when a player gets eliminated.
-    // Auto-dismisses after a short timeout so the recap (or next round) appears below.
     const [showEliminationFx, setShowEliminationFx] = useState(false);
 
-    // ── Adaptive music + SFX ────────────────────────────────────────────
     const { setSituation, clearSituationOverride } = useBackgroundMusic();
     const prevPhaseRef = useRef<string | null>(null);
     const myTurnSfxRef = useRef<string | null>(null);
 
-    // Drive music situation + a juicy SFX on every phase change
     useEffect(() => {
       if (!game) return;
       const phase = game.phase;
@@ -76,8 +77,7 @@ export const UndercoverGameScreen = memo(
         default: break;
       }
 
-      // Adaptive soundtrack: tense during the vote, win/lose sting at the end
-      if (phase === 'voting' || phase === 'vote_result') {
+      if (phase === 'voting' || phase === 'vote_result' || phase === 'vote_resolution') {
         setSituation('voting', { priority: 5, source: 'undercover' });
       } else if (phase === 'game_over') {
         setSituation(game.winner_role === 'civilian' ? 'victory' : 'defeat', { priority: 6, source: 'undercover' });
@@ -86,39 +86,47 @@ export const UndercoverGameScreen = memo(
       }
     }, [game?.phase, game?.winner_role, setSituation]);
 
-    // Restore base music when leaving the mode
     useEffect(() => () => clearSituationOverride('undercover'), [clearSituationOverride]);
 
-    // "It's your turn" chime during the clue phase (once per turn)
     useEffect(() => {
       if (game?.phase === 'clue_giving' && isMyTurn && myPlayer?.is_alive) {
-        const key = `${game.current_round}:${game.current_player_index}:${(game as any).clue_pass ?? 0}`;
+        const key = `${game.current_round}:${game.current_player_index}:${game.clue_pass ?? 0}`;
         if (myTurnSfxRef.current !== key) {
           myTurnSfxRef.current = key;
           playInkSound('cartoonDing', 0.5);
         }
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [game?.phase, isMyTurn, myPlayer?.is_alive, game?.current_round, game?.current_player_index]);
+    }, [game?.phase, isMyTurn, myPlayer?.is_alive, game?.current_round, game?.current_player_index, game?.clue_pass]);
 
     const accent = game ? PHASE_COLORS[game.phase] ?? 'var(--ink-accent)' : 'var(--ink-accent)';
+    const hasVoted = Boolean(myPlayer?.vote_target);
 
-    const handleSubmitClue = useCallback(() => {
+    const handleSubmitClue = useCallback(async () => {
       const trimmed = clueInput.trim();
-      if (!trimmed) return;
-      playInkSound('cartoonPop', 0.4);
-      submitClue(trimmed);
-      setClueInput('');
-    }, [clueInput, submitClue]);
+      if (!trimmed || clueSubmitting) return;
+      setClueSubmitting(true);
+      const submitted = await submitClue(trimmed);
+      if (submitted) {
+        playInkSound('cartoonPop', 0.4);
+        setClueInput('');
+      }
+      setClueSubmitting(false);
+    }, [clueInput, clueSubmitting, submitClue]);
 
-    const handleVote = useCallback(() => {
-      if (!selectedVote) return;
-      playInkSound('cartoonZap', 0.45);
-      submitVote(selectedVote);
-      setHasVoted(true);
-    }, [selectedVote, submitVote]);
+    const handleVote = useCallback(async () => {
+      if (!selectedVote || voteSubmitting) return;
+      setVoteSubmitting(true);
+      const submitted = await submitVote(selectedVote);
+      if (submitted) {
+        playInkSound('cartoonZap', 0.45);
+        setSelectedVote(null);
+      }
+      setVoteSubmitting(false);
+    }, [selectedVote, submitVote, voteSubmitting]);
 
-    useEffect(() => { if (game?.phase === 'voting') { setHasVoted(false); setSelectedVote(null); } }, [game?.phase]);
+    useEffect(() => {
+      if (game?.phase === 'voting') setSelectedVote(null);
+    }, [game?.phase]);
     useEffect(() => { if (game?.phase === 'word_reveal' && !hasSeenWord) setShowWordModal(true); }, [game?.phase, hasSeenWord]);
 
     // Trigger dramatic elimination FX when entering vote_result with a real
@@ -161,22 +169,60 @@ export const UndercoverGameScreen = memo(
     const playerIds = useMemo(() => orderedPlayers.map((p) => p.player_id), [orderedPlayers]);
     const { getAvatar } = useMultiplePlayerAvatars(playerIds);
 
-    // Loading
+    const sessionPlayers = players.filter((player) => !player.isDisconnected);
+
     if (loading || !game) {
       return (
-        <div className="menu-screen-safe flex h-[100dvh] min-h-0 items-center justify-center overflow-y-auto overflow-x-hidden bg-[#1a0530]">
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
-            <Loader2 className="w-10 h-10 text-[var(--ink-accent-text)]" />
-          </motion.div>
+        <div className="menu-screen-safe relative flex h-[100dvh] min-h-0 items-center justify-center overflow-y-auto overflow-x-hidden bg-[#0b0612] px-4 text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(236,72,153,.2),transparent_45%)]" />
+          <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-black/35 p-6 text-center backdrop-blur-xl">
+            {error ? (
+              <>
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/15 text-red-200">
+                  <RefreshCw className="h-7 w-7" />
+                </div>
+                <h1 className="mt-4 text-2xl font-black">Synchronisation interrompue</h1>
+                <p className="mt-2 text-sm font-semibold text-white/55">{error}</p>
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={onEndGame}
+                    className="min-h-12 rounded-2xl border border-white/10 bg-white/5 px-4 font-black text-white/75">
+                    Retour
+                  </button>
+                  <button type="button" onClick={retryInitialization}
+                    className="min-h-12 rounded-2xl bg-pink-500 px-4 font-black text-white">
+                    Réessayer
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <motion.div className="mx-auto w-fit" animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
+                  <Loader2 className="h-10 w-10 text-pink-300" />
+                </motion.div>
+                <h1 className="mt-4 text-2xl font-black">Mise en place de la mission</h1>
+                <p className="mt-2 text-sm font-semibold text-white/55">
+                  {currentPlayer.isHost && participantCount < 3
+                    ? `Synchronisation des agents… ${participantCount}/3`
+                    : 'Récupération de la partie en cours…'}
+                </p>
+              </>
+            )}
+          </div>
         </div>
       );
     }
 
-    // Settings
     if (game.phase === 'settings') {
-      return <UndercoverPreGameSettings totalPlayers={players.length} isHost={currentPlayer.isHost}
-        initialNumUndercover={game.num_undercover} initialTotalRounds={game.total_rounds} initialEnableMrWhite={game.enable_mr_white}
-        onConfirm={({ numUndercover, totalRounds, enableMrWhite }) => lockSettings({ numUndercover, totalRounds, enableMrWhite })} />;
+      return (
+        <UndercoverPreGameSettings
+          players={sessionPlayers}
+          isHost={currentPlayer.isHost}
+          initialNumUndercover={game.num_undercover}
+          initialTotalRounds={game.total_rounds}
+          initialEnableMrWhite={game.enable_mr_white}
+          onConfirm={lockSettings}
+        />
+      );
     }
 
     const isGameOver = game.phase === 'game_over';
@@ -184,51 +230,58 @@ export const UndercoverGameScreen = memo(
     const currentTurnName = gamePlayers.find((p) => p.player_id === currentTurnPlayerId)?.player_name ?? '…';
 
     return (
-      <div className="menu-screen-safe relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden text-white">
-        {/* ═══ BACKGROUND IMAGE — graffiti wall ═══ */}
+      <div className="undercover-game-stage menu-screen-safe relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden text-white">
         <div className="absolute inset-0">
           <BackgroundWithFallback />
-          {/* Dark overlay for readability — lighter so the new background shows */}
-          <div className="absolute inset-0 bg-[#1a0530]/40" />
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(11,5,20,.76),rgba(22,8,38,.58),rgba(7,4,13,.88))]" />
         </div>
 
-        {/* ═══ TOP BAR — Phase info + Round counter ═══ */}
-        <header className="relative z-10 flex flex-shrink-0 items-center justify-between gap-2 px-3 pt-3 pb-2 sm:px-5 sm:pt-4">
-          {/* Phase label */}
-          <motion.div key={game.phase} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-            className="min-w-0 px-3 py-2 rounded-2xl sm:px-5 sm:py-2.5"
-            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-            <span className="text-xl font-black" style={{ fontFamily: FONT, color: accent, textShadow: SHADOW_SM }}>
-              {PHASE_LABELS[game.phase] ?? game.phase}
-              {game.phase === 'clue_giving' && (
-                <span className="text-sm ml-2 text-white/60">
-                  ({((game as any).clue_pass ?? 0) + 1}/2)
-                </span>
-              )}
-            </span>
-          </motion.div>
+        <header className="relative z-10 flex-shrink-0 px-3 pb-2 pt-3 sm:px-5 sm:pt-4">
+          <div className="mx-auto flex w-full max-w-[100rem] min-w-0 items-center gap-2">
+            <motion.div key={game.phase} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+              className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/50 px-3 py-2 backdrop-blur-lg sm:px-5 sm:py-2.5">
+              <span className="block truncate text-base font-black sm:text-xl" style={{ fontFamily: FONT, color: accent, textShadow: SHADOW_SM }}>
+                {PHASE_LABELS[game.phase] ?? game.phase}
+                {game.phase === 'clue_giving' && (
+                  <span className="ml-2 text-xs text-white/55 sm:text-sm">
+                    passage {(game.clue_pass ?? 0) + 1}/2
+                  </span>
+                )}
+              </span>
+            </motion.div>
 
-          {/* Round counter */}
-          <div className="px-3 py-1.5 rounded-2xl sm:px-4 sm:py-2" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
-            <span className="text-lg font-black sm:text-2xl" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
-              {game.current_round}/{game.total_rounds > 90 ? '∞' : game.total_rounds}
-            </span>
+            <div className="hidden min-h-11 items-center gap-3 rounded-2xl border border-white/10 bg-black/50 px-4 text-sm font-black backdrop-blur-lg sm:flex">
+              <span className="text-emerald-300">C {game.civilian_wins ?? 0}</span>
+              <span className="h-4 w-px bg-white/15" />
+              <span className="text-rose-300">I {game.undercover_wins ?? 0}</span>
+            </div>
+
+            <div className="flex min-h-11 shrink-0 items-center rounded-2xl border border-white/10 bg-black/50 px-3 backdrop-blur-lg sm:px-4">
+              <span className="text-base font-black sm:text-xl" style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
+                {game.current_round}/{game.total_rounds > 90 ? '∞' : game.total_rounds}
+              </span>
+            </div>
+
+            <button type="button" onClick={onEndGame} aria-label="Quitter Undercover"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-black/50 text-white/70 backdrop-blur-lg transition-colors hover:bg-red-500/20 hover:text-red-100">
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
         </header>
 
-        {/* Timer in header area — visible during discussion */}
         {game.phase === 'discussion' && (
-          <div className="relative z-10 mx-auto max-w-xl px-5 pb-2">
+          <div className="relative z-10 mx-auto w-full max-w-[100rem] px-3 pb-2 sm:px-5">
             <TimerBar accent={accent} total={28} />
           </div>
         )}
 
-        {/* ═══ SCROLLABLE GAME BODY — players + actions ═══ */}
-        <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain scroll-pb-28">
-          {/* ═══ MAIN AREA — Players grid with clue history ═══ */}
-          <div className="flex min-h-0 flex-col items-center justify-start px-3 py-2 sm:justify-center sm:px-4">
-          {/* Players columns — each player is a column with avatar on top and clues below */}
-          <div className="grid w-full max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+        <div className={cn(
+          'undercover-game-layout relative z-10 mx-auto grid w-full max-w-[100rem] min-h-0 flex-1 grid-cols-1 items-start gap-3 overflow-y-auto overflow-x-hidden px-3 pb-24 pt-1 overscroll-contain sm:gap-4 sm:px-5',
+          'min-[1100px]:grid-cols-[minmax(0,1fr)_minmax(20rem,27rem)] min-[1100px]:pb-6',
+          isGameOver && 'undercover-game-layout--results',
+        )}>
+          <div className="undercover-player-board flex min-h-0 min-w-0 flex-col items-center rounded-[1.75rem] border border-white/10 bg-black/25 px-3 py-4 backdrop-blur-md sm:px-4 sm:py-5">
+          <div className="undercover-player-grid grid w-full min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4 2xl:grid-cols-5">
             {orderedPlayers.map((player) => {
               const isCurrent = currentTurnPlayerId === player.player_id && game.phase === 'clue_giving';
               const isMe = player.player_id === currentPlayer.id;
@@ -244,7 +297,11 @@ export const UndercoverGameScreen = memo(
               }
 
               return (
-                <div key={player.id} className="flex min-w-0 w-full max-w-[13rem] flex-col items-center justify-self-center gap-2 sm:gap-2.5">
+                <div key={player.id} className={cn(
+                  'flex min-w-0 w-full flex-col items-center justify-self-stretch gap-2 rounded-2xl border px-2.5 py-3 sm:gap-2.5 sm:px-3 sm:py-4',
+                  isCurrent ? 'border-white/30 bg-white/10' : 'border-white/[.08] bg-black/20',
+                  isSelected && 'border-red-300/55 bg-red-500/10',
+                )}>
                   {/* Avatar */}
                   <motion.button
                     type="button"
@@ -326,11 +383,34 @@ export const UndercoverGameScreen = memo(
           </div>
         </div>
 
-        {/* ═══ BOTTOM ZONE — Action area + Timer ═══ */}
-        <div className="px-3 pb-24 pt-2 space-y-3 sm:px-4 sm:pb-24">
-          {/* Action zone — contextual per phase */}
-          <div className="max-w-xl mx-auto">
+        <aside className="undercover-control-panel min-w-0 space-y-4 rounded-[1.75rem] border border-white/10 bg-[#12091f]/90 p-4 shadow-2xl backdrop-blur-xl sm:p-5 min-[1100px]:sticky min-[1100px]:top-0">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[.24em] text-white/40">Console de mission</p>
+              <h2 className="truncate text-xl font-black" style={{ color: accent }}>
+                {PHASE_LABELS[game.phase] ?? 'Partie en cours'}
+              </h2>
+            </div>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-black text-white/55">
+              {alivePlayers.length} en jeu
+            </span>
+          </div>
+
+          {error && (
+            <p role="alert" className="rounded-2xl border border-red-300/20 bg-red-500/10 px-3 py-2 text-sm font-bold text-red-100">
+              {error}
+            </p>
+          )}
+
+          <div className="min-w-0">
             <AnimatePresence mode="wait">
+              {TRANSITION_PHASES.has(game.phase) && (
+                <motion.div key="transition" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="flex min-h-32 flex-col items-center justify-center gap-3 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin" style={{ color: accent }} />
+                  <p className="font-black text-white/75">Synchronisation de la table…</p>
+                </motion.div>
+              )}
               {/* WORD REVEAL */}
               {game.phase === 'word_reveal' && (
                 <motion.div key="wr" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }}
@@ -365,7 +445,7 @@ export const UndercoverGameScreen = memo(
                         className="min-w-0 flex-1 h-11 bg-black/50 text-center text-lg font-black text-white placeholder:text-white/30 rounded-2xl"
                         style={{ fontFamily: FONT, border: '1px solid var(--ink-line)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.4)' }} />
                       <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleSubmitClue}
-                        disabled={!clueInput.trim()}
+                        disabled={!clueInput.trim() || clueSubmitting}
                         className="w-11 h-11 rounded-2xl flex items-center justify-center disabled:opacity-40"
                         style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                         <Send className="w-5 h-5 text-white" />
@@ -471,7 +551,7 @@ export const UndercoverGameScreen = memo(
                   )}
                   {currentPlayer.isHost && (
                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                      onClick={() => { nextRound(); setHasVoted(false); setSelectedVote(null); }}
+                      onClick={() => { void nextRound(); setSelectedVote(null); }}
                       className="px-5 py-2.5 rounded-2xl font-black text-white"
                       style={{ background: `linear-gradient(180deg, ${accent}, ${accent}cc)`, border: '1px solid var(--ink-line)', boxShadow: 'none', fontFamily: FONT, textShadow: SHADOW_SM }}>
                       Continuer ➡️
@@ -534,7 +614,7 @@ export const UndercoverGameScreen = memo(
               </motion.button>
             </div>
           )}
-        </div>
+        </aside>
         </div>
 
         {/* ═══ ELIMINATION FX OVERLAY ═══ */}
@@ -560,14 +640,19 @@ export const UndercoverGameScreen = memo(
                 className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-3xl p-6 text-center sm:p-8"
                 style={{ background: 'linear-gradient(180deg, #1a0d2e, #0f0820)', border: '1px solid var(--ink-line)', boxShadow: `0 0 0 rgba(0,0,0,0), 0 0 40px ${accent}33` }}>
                 <p className="text-xs uppercase tracking-widest text-white/40 font-black mb-4" style={{ fontFamily: FONT }}>🤫 Ton mot secret</p>
-                {myPlayer?.word ? (
+                {myPlayer?.role === 'mr_white' ? (
+                  <div className="mb-6 rounded-2xl border border-white/15 bg-white/5 px-4 py-5">
+                    <p className="text-3xl font-black text-white" style={{ fontFamily: FONT }}>MR WHITE</p>
+                    <p className="mt-2 text-sm font-bold text-white/55">Tu n’as aucun mot. Écoute les autres et improvise sans te faire repérer.</p>
+                  </div>
+                ) : myPlayer?.word ? (
                   <motion.p initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 10 }}
                     className="text-4xl md:text-5xl font-black text-white break-words mb-6"
                     style={{ fontFamily: FONT, textShadow: `${SHADOW}, 0 0 20px ${accent}55` }}>
                     {myPlayer.word.toUpperCase()}
                   </motion.p>
                 ) : (
-                  <p className="text-4xl font-black text-white/50 mb-6" style={{ fontFamily: FONT }}>??? 🎭</p>
+                  <p className="mb-6 text-base font-black text-white/50" style={{ fontFamily: FONT }}>Mot en cours de synchronisation…</p>
                 )}
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={() => { setShowWordModal(false); if (game.phase === 'word_reveal' && !hasSeenWord) confirmWordSeen(); }}

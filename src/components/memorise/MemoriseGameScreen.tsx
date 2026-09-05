@@ -58,7 +58,26 @@ interface RoundTrack {
   artwork?: string;
 }
 
+interface AnswerPayload {
+  sessionId: string;
+  roundId: string;
+  roundIndex: number;
+  playerId: string;
+  choice: number;
+  elapsed: number;
+}
+
+type RoundAnswers = Record<string, { choice: number; elapsed: number }>;
+
 interface PhasePayload {
+  /** Identifie une partie complète. Le timestamp permet d'adopter une nouvelle
+   * session sans qu'un ancien broadcast retardé puisse reprendre la main. */
+  sessionId: string;
+  sessionStartedAt: number;
+  /** Identifie une tentative de manche, y compris lorsqu'une piste est sautée. */
+  roundId: string;
+  /** Révision strictement croissante à l'intérieur d'une session. */
+  revision: number;
   phase: Phase;
   roundIndex: number;
   totalRounds?: number;
@@ -72,6 +91,8 @@ interface PhasePayload {
   answerIndex?: number;
   /** playerId -> chosen option index, for showing voters under each answer. */
   answers?: Record<string, number>;
+  /** Snapshot autoritaire utilisé lors d'une resynchronisation ciblée. */
+  answerSnapshot?: RoundAnswers;
   /** Configured listen window (ms) for this game. */
   listenMs?: number;
   /** Whether 2-team mode is on. */
@@ -91,6 +112,11 @@ interface PhasePayload {
    *  players already in the round). */
   targetId?: string;
 }
+
+type PhaseUpdate = Omit<
+  PhasePayload,
+  'sessionId' | 'sessionStartedAt' | 'roundId' | 'revision' | 'targetId' | 'answerSnapshot'
+>;
 
 /** Buffer used by the host to schedule a synchronized listen start on all clients. */
 const LISTEN_SYNC_BUFFER_MS = 500;
@@ -162,9 +188,17 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const lastPhaseRef = useRef<PhasePayload | null>(null);
-  const answersRef = useRef<Record<string, { choice: number; elapsed: number }>>({});
+  const answersRef = useRef<RoundAnswers>({});
   const scoreRef = useRef<Record<string, number>>({});
   const streakRef = useRef<Record<string, number>>({});
+  const phaseRef = useRef<Phase>('intro');
+  const sessionIdRef = useRef('');
+  const sessionStartedAtRef = useRef(0);
+  const activeRoundIdRef = useRef('');
+  const activeRoundIndexRef = useRef(0);
+  const activeDeadlineRef = useRef(0);
+  const revisionRef = useRef(0);
+  const adoptedPhaseRef = useRef<{ sessionId: string; sessionStartedAt: number; revision: number } | null>(null);
   /** playerId -> [sum of reaction times, count] across the whole game (host-tracked). */
   const reactionSumRef = useRef<Record<string, [number, number]>>({});
   const teamAssignRef = useRef<Record<string, 0 | 1>>({});
@@ -179,6 +213,8 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
   const errorFlagRef = useRef(false);
   const cleanups = useRef<Array<() => void>>([]);
   const mediaRef = useRef<HTMLAudioElement | null>(null);
+  const mediaGenerationRef = useRef(0);
+  const expectedMediaUrlRef = useRef<string | null>(null);
   const tickRef = useRef(0);
   const hostPlayingRef = useRef(false);
   const blockedRef = useRef(false);
@@ -225,33 +261,135 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
   /* ---------- audio playback ---------- */
   const stopMedia = useCallback(() => {
-    try { mediaRef.current?.pause(); } catch { /* noop */ }
+    mediaGenerationRef.current += 1;
+    expectedMediaUrlRef.current = null;
+    hostPlayingRef.current = false;
+    blockedRef.current = false;
+    const media = mediaRef.current;
+    if (!media) return;
+    try {
+      media.pause();
+      media.removeAttribute('src');
+      media.load();
+    } catch { /* noop */ }
   }, []);
 
-  const playTrack = useCallback((t: RoundTrack) => {
-    setMediaError(false);
+  const playTrack = useCallback((nextTrack: RoundTrack) => {
+    const media = mediaRef.current;
+    const previewUrl = nextTrack.previewUrl;
+    const generation = mediaGenerationRef.current + 1;
+    mediaGenerationRef.current = generation;
+    expectedMediaUrlRef.current = previewUrl ?? null;
+    hostPlayingRef.current = false;
     blockedRef.current = false;
-    const v = mediaRef.current;
-    if (!v || !t.previewUrl) { setNeedsSoundUnlock(false); return; }
+    setMediaError(false);
+
+    if (!media || !previewUrl) {
+      setNeedsSoundUnlock(false);
+      setMediaError(true);
+      if (isHost) errorFlagRef.current = true;
+      return;
+    }
+
     try {
-      v.src = t.previewUrl;
-      v.currentTime = 0;
-      v.muted = volumeRef.current === 0;
-      v.volume = volumeRef.current / 100;
-      const p = v.play();
-      if (p && typeof p.then === 'function') {
-        p.then(() => { hostPlayingRef.current = true; setNeedsSoundUnlock(false); })
-          .catch((err: any) => {
-            if (err && err.name === 'NotAllowedError') { blockedRef.current = true; setNeedsSoundUnlock(true); }
-            else { setMediaError(true); if (isHost) errorFlagRef.current = true; }
+      media.pause();
+      media.src = previewUrl;
+      media.currentTime = 0;
+      media.muted = volumeRef.current === 0;
+      media.volume = volumeRef.current / 100;
+      const attempt = media.play();
+      if (attempt && typeof attempt.then === 'function') {
+        void attempt
+          .then(() => {
+            if (generation !== mediaGenerationRef.current || phaseRef.current !== 'listen') return;
+            hostPlayingRef.current = true;
+            setNeedsSoundUnlock(false);
+          })
+          .catch((error: unknown) => {
+            if (generation !== mediaGenerationRef.current || phaseRef.current !== 'listen') return;
+            if (error instanceof DOMException && error.name === 'NotAllowedError') {
+              blockedRef.current = true;
+              setNeedsSoundUnlock(true);
+              return;
+            }
+            setMediaError(true);
+            if (isHost) errorFlagRef.current = true;
           });
       }
-    } catch { setNeedsSoundUnlock(true); }
+    } catch {
+      if (generation !== mediaGenerationRef.current) return;
+      blockedRef.current = true;
+      setNeedsSoundUnlock(true);
+    }
   }, [isHost]);
 
+  /** Reprend la source courante après un blocage autoplay, sans revenir à 0. */
   const resumeSound = useCallback(() => {
-    if (track) playTrack(track);
-  }, [track, playTrack]);
+    if (phaseRef.current !== 'listen' || !track?.previewUrl) return;
+    const media = mediaRef.current;
+    if (!media || (media.src !== track.previewUrl && media.currentSrc !== track.previewUrl)) {
+      playTrack(track);
+      return;
+    }
+
+    const generation = mediaGenerationRef.current + 1;
+    mediaGenerationRef.current = generation;
+    expectedMediaUrlRef.current = track.previewUrl;
+    blockedRef.current = false;
+    setMediaError(false);
+    try {
+      media.muted = volumeRef.current === 0;
+      media.volume = volumeRef.current / 100;
+      void media.play()
+        .then(() => {
+          if (generation !== mediaGenerationRef.current || phaseRef.current !== 'listen') return;
+          hostPlayingRef.current = true;
+          setNeedsSoundUnlock(false);
+        })
+        .catch((error: unknown) => {
+          if (generation !== mediaGenerationRef.current || phaseRef.current !== 'listen') return;
+          if (error instanceof DOMException && error.name === 'NotAllowedError') {
+            blockedRef.current = true;
+            setNeedsSoundUnlock(true);
+          } else {
+            setMediaError(true);
+            if (isHost) errorFlagRef.current = true;
+          }
+        });
+    } catch {
+      if (generation !== mediaGenerationRef.current) return;
+      blockedRef.current = true;
+      setNeedsSoundUnlock(true);
+    }
+  }, [isHost, playTrack, track]);
+
+  const handleMediaPlaying = useCallback(() => {
+    const media = mediaRef.current;
+    const expectedUrl = expectedMediaUrlRef.current;
+    if (!mountedRef.current || phaseRef.current !== 'listen' || !media || !expectedUrl) {
+      try { media?.pause(); } catch { /* noop */ }
+      return;
+    }
+    if (media.src !== expectedUrl && media.currentSrc !== expectedUrl) return;
+    hostPlayingRef.current = true;
+    blockedRef.current = false;
+    setNeedsSoundUnlock(false);
+    setMediaError(false);
+    if (!roundAudioStartedRef.current) {
+      roundAudioStartedRef.current = true;
+      listenStartRef.current = Date.now();
+    }
+  }, []);
+
+  const handleMediaActivity = useCallback(() => {
+    if (phaseRef.current === 'listen' && expectedMediaUrlRef.current) hostPlayingRef.current = true;
+  }, []);
+
+  const handleMediaError = useCallback(() => {
+    if (phaseRef.current !== 'listen' || !expectedMediaUrlRef.current) return;
+    setMediaError(true);
+    if (isHost) errorFlagRef.current = true;
+  }, [isHost]);
 
   const toggleMute = useCallback(() => {
     setVolume((v) => (v === 0 ? (lastVolRef.current || 70) : 0));
@@ -316,153 +454,305 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
     return () => clearInterval(iv);
   }, [phase, deadline, myChoice, listenMs]);
 
-  /* ---------- apply phase (everyone) ---------- */
-  const applyPhase = useCallback((p: PhasePayload) => {
-    // Targeted resync payload → ignore on everyone but the intended late joiner.
-    if (p.targetId && p.targetId !== currentPlayer.id) return;
-    setPhase(p.phase);
-    setRoundIndex(p.roundIndex);
-    if (p.totalRounds != null) setTotalRounds(p.totalRounds);
-    if (p.track) setTrack(p.track);
-    if (p.options) setOptions(p.options);
-    if (p.scoreboard) { setScoreboard(p.scoreboard); scoreRef.current = p.scoreboard; }
-    if (p.roundPoints) {
-      setRoundPoints(p.roundPoints);
-      const got = (p.roundPoints[currentPlayer.id] ?? 0) > 0;
-      setMyStreak((s) => (got ? s + 1 : 0));
+  const applyAnswerSnapshot = useCallback((snapshot: RoundAnswers, replace: boolean) => {
+    const next = replace ? { ...snapshot } : { ...answersRef.current, ...snapshot };
+    answersRef.current = next;
+    const ids = Object.keys(next);
+    setAnsweredCount(ids.length);
+    setAnsweredIds(new Set(ids));
+    setLiveVotes(Object.fromEntries(Object.entries(next).map(([playerId, answer]) => [playerId, answer.choice])));
+    const mine = next[currentPlayer.id];
+    if (mine) {
+      setMyChoice(mine.choice);
+      setMyElapsed(mine.elapsed);
     }
-    setAnswerIndex(p.answerIndex ?? null);
-    if (p.answers) setRevealVotes(p.answers);
-    // apply broadcast game options
-    if (p.listenMs != null) { setListenMs(p.listenMs); listenMsRef.current = p.listenMs; }
-    if (p.teamsEnabled != null) setTeamsEnabled(p.teamsEnabled);
-    if (p.hintsEnabled != null) setHintsEnabled(p.hintsEnabled);
-    if (p.teamAssign) { setTeamAssign(p.teamAssign); teamAssignRef.current = p.teamAssign; }
-    if (p.avgReaction) setAvgReaction(p.avgReaction);
-    if (p.phase === 'listen' || p.phase === 'reveal') setRoundDouble(!!p.doublePoints);
+  }, [currentPlayer.id]);
 
-    if (p.phase === 'listen') {
+  /* ---------- apply phase (everyone) ---------- */
+  const applyPhase = useCallback((payload: PhasePayload) => {
+    if (
+      !payload
+      || typeof payload.sessionId !== 'string'
+      || !Number.isFinite(payload.sessionStartedAt)
+      || typeof payload.roundId !== 'string'
+      || !Number.isInteger(payload.revision)
+      || payload.revision < 1
+    ) return;
+    // Targeted resync payload → ignore on everyone but the intended late joiner.
+    if (payload.targetId && payload.targetId !== currentPlayer.id) return;
+
+    const adopted = adoptedPhaseRef.current;
+    const isNewSession = !adopted || payload.sessionStartedAt > adopted.sessionStartedAt;
+    if (adopted && payload.sessionStartedAt < adopted.sessionStartedAt) return;
+    if (adopted && payload.sessionStartedAt === adopted.sessionStartedAt && payload.sessionId !== adopted.sessionId) return;
+    if (adopted && payload.sessionId === adopted.sessionId && payload.revision < adopted.revision) return;
+
+    const sameRevision = !!adopted
+      && payload.sessionId === adopted.sessionId
+      && payload.revision === adopted.revision;
+    if (sameRevision) {
+      // Une reconnexion peut redemander la révision courante. On fusionne
+      // uniquement le snapshot des réponses sans relancer l'audio ni la phase.
+      if (payload.targetId && payload.answerSnapshot) applyAnswerSnapshot(payload.answerSnapshot, false);
+      return;
+    }
+
+    adoptedPhaseRef.current = {
+      sessionId: payload.sessionId,
+      sessionStartedAt: payload.sessionStartedAt,
+      revision: payload.revision,
+    };
+    sessionIdRef.current = payload.sessionId;
+    sessionStartedAtRef.current = payload.sessionStartedAt;
+    revisionRef.current = Math.max(revisionRef.current, payload.revision);
+    activeRoundIdRef.current = payload.roundId;
+    activeRoundIndexRef.current = payload.roundIndex;
+    activeDeadlineRef.current = payload.deadline ?? 0;
+    phaseRef.current = payload.phase;
+
+    if (isNewSession) {
+      scoreRef.current = {};
+      streakRef.current = {};
+      answersRef.current = {};
+      setScoreboard({});
+      setRoundPoints({});
+      setMyStreak(0);
+      setAvgReaction({});
+      setTeamAssign({});
+      teamAssignRef.current = {};
+    }
+
+    setPhase(payload.phase);
+    setRoundIndex(payload.roundIndex);
+    if (payload.totalRounds != null) setTotalRounds(payload.totalRounds);
+    if (payload.track) setTrack(payload.track);
+    if (payload.options) setOptions(payload.options);
+    if (payload.scoreboard) {
+      setScoreboard(payload.scoreboard);
+      scoreRef.current = payload.scoreboard;
+    }
+    if (payload.roundPoints) {
+      setRoundPoints(payload.roundPoints);
+      const got = (payload.roundPoints[currentPlayer.id] ?? 0) > 0;
+      setMyStreak((streak) => (got ? streak + 1 : 0));
+    }
+    setAnswerIndex(payload.answerIndex ?? null);
+    if (payload.answers) setRevealVotes(payload.answers);
+    if (payload.listenMs != null) {
+      setListenMs(payload.listenMs);
+      listenMsRef.current = payload.listenMs;
+    }
+    if (payload.teamsEnabled != null) setTeamsEnabled(payload.teamsEnabled);
+    if (payload.hintsEnabled != null) setHintsEnabled(payload.hintsEnabled);
+    if (payload.teamAssign) {
+      setTeamAssign(payload.teamAssign);
+      teamAssignRef.current = payload.teamAssign;
+    }
+    if (payload.avgReaction) setAvgReaction(payload.avgReaction);
+    if (payload.phase === 'listen' || payload.phase === 'reveal') setRoundDouble(!!payload.doublePoints);
+
+    if (payload.phase === 'listen') {
+      stopMedia();
+      setStarting(false);
       // First round of a (re)started game → wipe last game's scores/stats on
       // every client so a replay doesn't show stale totals.
-      if (p.roundIndex === 0) { setScoreboard({}); scoreRef.current = {}; setMyStreak(0); setRoundPoints({}); setAvgReaction({}); }
-      setMyChoice(null); setMyElapsed(null); setAnsweredCount(0); setAnsweredIds(new Set()); answersRef.current = {}; tickRef.current = 0;
-      setRevealVotes({}); setLiveVotes({});
+      if (payload.roundIndex === 0) {
+        setScoreboard({});
+        scoreRef.current = {};
+        setMyStreak(0);
+        setRoundPoints({});
+        setAvgReaction({});
+      }
+      setMyChoice(null);
+      setMyElapsed(null);
+      setAnsweredCount(0);
+      setAnsweredIds(new Set());
+      answersRef.current = {};
+      tickRef.current = 0;
+      setRevealVotes({});
+      setLiveVotes({});
+      applyAnswerSnapshot(payload.answerSnapshot ?? {}, true);
       roundAudioStartedRef.current = false;
-      // Schedule the actual listen start using the host-provided `startAt` timestamp
-      // corrected by our estimated clock offset. This guarantees every player
-      // (including the host, which also waits the same buffer) starts the round
-      // at the exact same wall-clock moment.
-      if (listenTimerRef.current) { clearTimeout(listenTimerRef.current); listenTimerRef.current = null; }
-      pendingListenRef.current = p;
-      const lm = p.listenMs ?? listenMsRef.current;
-      const hostStartAt = p.startAt ?? (p.deadline ? p.deadline - lm : Date.now());
-      // Convert host clock -> local clock: localStartAt = hostStartAt - clockOffset.
+      listenStartRef.current = 0;
+
+      // Schedule the actual listen start using the host-provided `startAt`
+      // timestamp corrected by our estimated clock offset.
+      if (listenTimerRef.current) {
+        clearTimeout(listenTimerRef.current);
+        listenTimerRef.current = null;
+      }
+      pendingListenRef.current = payload;
+      const duration = payload.listenMs ?? listenMsRef.current;
+      const hostStartAt = payload.startAt ?? (payload.deadline ? payload.deadline - duration : Date.now());
       const localStartAt = hostStartAt - clockOffsetRef.current;
+      const localDeadline = (payload.deadline ?? hostStartAt + duration) - clockOffsetRef.current;
       const delay = Math.max(0, localStartAt - Date.now());
       const beginListen = () => {
         listenTimerRef.current = null;
-        if (!mountedRef.current) return;
-        listenStartRef.current = Date.now();
-        // Local deadline is derived from local start for a fair per-client countdown.
-        setDeadline(listenStartRef.current + lm);
-        if (p.track) { playSoundEffect('quizReveal', 0.3); playTrack(p.track); }
+        if (!mountedRef.current || phaseRef.current !== 'listen' || activeRoundIdRef.current !== payload.roundId) return;
+        setDeadline(localDeadline);
+        if (payload.track && localDeadline > Date.now()) {
+          playSoundEffect('quizReveal', 0.3);
+          playTrack(payload.track);
+        }
       };
       if (delay <= 0) beginListen();
       else listenTimerRef.current = setTimeout(beginListen, delay);
       return;
-    } else {
-      // Any non-listen phase cancels a pending scheduled listen start.
-      if (listenTimerRef.current) { clearTimeout(listenTimerRef.current); listenTimerRef.current = null; }
-      pendingListenRef.current = null;
-      setDeadline(p.deadline ?? null);
     }
-    if (p.phase === 'reveal') playSoundEffect('start', 0.35);
-    if (p.phase === 'final') stopMedia();
-  }, [playTrack, stopMedia, currentPlayer.id, isHost]);
+
+    // Any non-listen phase cancels a pending start and invalidates the source.
+    if (listenTimerRef.current) {
+      clearTimeout(listenTimerRef.current);
+      listenTimerRef.current = null;
+    }
+    pendingListenRef.current = null;
+    stopMedia();
+    setDeadline(payload.deadline ?? null);
+    if (payload.phase === 'reveal') playSoundEffect('start', 0.35);
+  }, [applyAnswerSnapshot, currentPlayer.id, playTrack, stopMedia]);
 
   /* ---------- channel ---------- */
   useEffect(() => {
+    mountedRef.current = true;
+    cleanups.current = [];
+    setChannelReady(false);
     const channel = supabase.channel(`memorise:${lobbyId}`, { config: { broadcast: { self: true } } });
     channelRef.current = channel;
+
+    const requestClockSync = () => channel.send({
+      type: 'broadcast',
+      event: 'sync-req',
+      payload: { clientId: currentPlayer.id, clientNow: Date.now() },
+    });
 
     channel
       .on('broadcast', { event: 'phase' }, ({ payload }) => applyPhase(payload as PhasePayload))
       .on('broadcast', { event: 'answer' }, ({ payload }) => {
-        const a = payload as { playerId: string; choice: number; elapsed: number };
-        if (!answersRef.current[a.playerId]) {
-          answersRef.current[a.playerId] = { choice: a.choice, elapsed: a.elapsed };
-          setAnsweredCount(Object.keys(answersRef.current).length);
-          setAnsweredIds(new Set(Object.keys(answersRef.current)));
-          setLiveVotes((prev) => ({ ...prev, [a.playerId]: a.choice }));
-        }
+        const answer = payload as Partial<AnswerPayload>;
+        const adopted = adoptedPhaseRef.current;
+        if (
+          phaseRef.current !== 'listen'
+          || !adopted
+          || answer.sessionId !== adopted.sessionId
+          || answer.roundId !== activeRoundIdRef.current
+          || answer.roundIndex !== activeRoundIndexRef.current
+          || typeof answer.playerId !== 'string'
+          || !playersRef.current.some((player) => player.id === answer.playerId)
+          || !Number.isInteger(answer.choice)
+          || (answer.choice ?? -1) < 0
+          || (answer.choice ?? 4) > 3
+          || !Number.isFinite(answer.elapsed)
+          || (answer.elapsed ?? -1) < 0
+          || (answer.elapsed ?? Number.POSITIVE_INFINITY) > listenMsRef.current + 2_000
+          || (isHost && activeDeadlineRef.current > 0 && Date.now() > activeDeadlineRef.current + 1_000)
+          || Object.prototype.hasOwnProperty.call(answersRef.current, answer.playerId)
+        ) return;
+
+        const playerId = answer.playerId;
+        const accepted = { choice: answer.choice as number, elapsed: answer.elapsed as number };
+        answersRef.current[playerId] = accepted;
+        const ids = Object.keys(answersRef.current);
+        setAnsweredCount(ids.length);
+        setAnsweredIds(new Set(ids));
+        setLiveVotes((current) => ({ ...current, [playerId]: accepted.choice }));
       })
       // ---- clock sync handshake (NTP-lite) ----
       .on('broadcast', { event: 'sync-req' }, ({ payload }) => {
         if (!isHost) return;
-        const q = payload as { clientId: string; clientNow: number };
+        const request = payload as { clientId?: string; clientNow?: number };
+        if (!request.clientId || !Number.isFinite(request.clientNow)) return;
         channelRef.current?.send({
           type: 'broadcast',
           event: 'sync-res',
-          payload: { clientId: q.clientId, clientNow: q.clientNow, hostNow: Date.now() },
+          payload: { clientId: request.clientId, clientNow: request.clientNow, hostNow: Date.now() },
         });
       })
       .on('broadcast', { event: 'sync-res' }, ({ payload }) => {
-        const r = payload as { clientId: string; clientNow: number; hostNow: number };
-        if (r.clientId !== currentPlayer.id) return;
+        const response = payload as { clientId?: string; clientNow?: number; hostNow?: number };
+        if (
+          response.clientId !== currentPlayer.id
+          || !Number.isFinite(response.clientNow)
+          || !Number.isFinite(response.hostNow)
+        ) return;
         const now = Date.now();
-        const rtt = now - r.clientNow;
-        if (rtt < 0 || rtt > 5000) return;
+        const rtt = now - (response.clientNow as number);
+        if (rtt < 0 || rtt > 5_000) return;
         if (rtt < bestRttRef.current) {
           bestRttRef.current = rtt;
-          // Best estimate of hostNow at *this* moment = hostNow + rtt/2.
-          clockOffsetRef.current = (r.hostNow + rtt / 2) - now;
+          clockOffsetRef.current = ((response.hostNow as number) + rtt / 2) - now;
         }
       })
-      // Late-join resync: a newcomer asks the host for the current phase; the
-      // host replies with the last payload TARGETED to that client so players
-      // already mid-round aren't disrupted.
+      // A late joiner receives the current authoritative phase plus all answers
+      // already accepted for that round. Existing clients ignore the target.
       .on('broadcast', { event: 'resync' }, ({ payload }) => {
         if (!isHost) return;
-        const q = payload as { clientId: string };
-        if (lastPhaseRef.current && q.clientId) {
-          channelRef.current?.send({ type: 'broadcast', event: 'phase', payload: { ...lastPhaseRef.current, targetId: q.clientId } });
+        const request = payload as { clientId?: string };
+        if (lastPhaseRef.current && request.clientId) {
+          channelRef.current?.send({
+            type: 'broadcast',
+            event: 'phase',
+            payload: {
+              ...lastPhaseRef.current,
+              targetId: request.clientId,
+              answerSnapshot: { ...answersRef.current },
+            },
+          });
         }
       })
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setChannelReady(true);
-          if (!isHost) channel.send({ type: 'broadcast', event: 'resync', payload: { clientId: currentPlayer.id } });
+        const subscribed = status === 'SUBSCRIBED';
+        setChannelReady(subscribed);
+        if (subscribed && !isHost) {
+          requestClockSync();
+          channel.send({ type: 'broadcast', event: 'resync', payload: { clientId: currentPlayer.id } });
         }
       });
 
-    // Non-host: periodically ping the host to keep the clock offset fresh.
-    let syncIv: ReturnType<typeof setInterval> | null = null;
+    // Non-host: converge quickly, then keep the host clock offset fresh.
     if (!isHost) {
-      const ping = () => {
-        channel.send({
-          type: 'broadcast',
-          event: 'sync-req',
-          payload: { clientId: currentPlayer.id, clientNow: Date.now() },
-        });
-      };
-      // Fire a few quick pings on start to converge fast, then a slow heartbeat.
-      const quick = [200, 500, 1000, 2000].map((t) => setTimeout(ping, t));
-      syncIv = setInterval(ping, 5000);
-      cleanups.current.push(() => { quick.forEach(clearTimeout); if (syncIv) clearInterval(syncIv); });
+      const quick = [250, 600, 1_200, 2_200].map((delay) => setTimeout(requestClockSync, delay));
+      const syncInterval = setInterval(requestClockSync, 5_000);
+      cleanups.current.push(() => {
+        quick.forEach(clearTimeout);
+        clearInterval(syncInterval);
+      });
     }
 
     return () => {
       mountedRef.current = false;
-      cleanups.current.forEach((fn) => fn());
+      cleanups.current.forEach((cleanup) => cleanup());
+      cleanups.current = [];
       if (listenTimerRef.current) clearTimeout(listenTimerRef.current);
+      listenTimerRef.current = null;
       stopMedia();
+      if (channelRef.current === channel) channelRef.current = null;
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lobbyId]);
+  }, [applyPhase, currentPlayer.id, isHost, lobbyId, stopMedia]);
 
-  const broadcastPhase = useCallback((payload: PhasePayload) => {
-    lastPhaseRef.current = payload; // remembered so late joiners can be resynced
+  const broadcastPhase = useCallback((update: PhaseUpdate) => {
+    const sessionId = sessionIdRef.current;
+    const sessionStartedAt = sessionStartedAtRef.current;
+    if (!sessionId || !sessionStartedAt) return;
+
+    const revision = revisionRef.current + 1;
+    revisionRef.current = revision;
+    const roundId = update.phase === 'listen'
+      ? `${sessionId}:${update.roundIndex}:${revision}`
+      : activeRoundIdRef.current || `${sessionId}:${update.roundIndex}:${revision}`;
+    if (update.phase === 'listen') activeRoundIdRef.current = roundId;
+    activeRoundIndexRef.current = update.roundIndex;
+    activeDeadlineRef.current = update.deadline ?? 0;
+
+    const payload: PhasePayload = {
+      ...update,
+      sessionId,
+      sessionStartedAt,
+      roundId,
+      revision,
+    };
+    lastPhaseRef.current = payload;
     channelRef.current?.send({ type: 'broadcast', event: 'phase', payload });
   }, []);
 
@@ -531,7 +821,21 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
     const next = pre ?? await fetchNextTrack();
     if (!mountedRef.current) return;
-    if (!next) { broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current }, avgReaction: buildAvgReaction() }); return; }
+    if (!next) {
+      const config = configRef.current;
+      broadcastPhase({
+        phase: 'final',
+        roundIndex: i,
+        totalRounds: total,
+        scoreboard: { ...scoreRef.current },
+        avgReaction: buildAvgReaction(),
+        listenMs: config.listenMs,
+        teamsEnabled: config.teams,
+        hintsEnabled: config.hints,
+        teamAssign: config.teams ? { ...teamAssignRef.current } : undefined,
+      });
+      return;
+    }
     // Remember this title so it's deprioritized in the next few games.
     pushRecent(entryKey(next.entry));
 
@@ -579,41 +883,78 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
     if (!mountedRef.current) return;
 
     if (reason === 'error') {
+      stopMedia();
       await wait(250);
       runRound(i, total);
       return;
     }
 
+    // Fige la collecte avant le calcul : un paquet arrivé après la fenêtre ne
+    // peut plus modifier le score ni la liste des votants de cette manche.
+    phaseRef.current = 'reveal';
+    activeDeadlineRef.current = 0;
+    stopMedia();
+    const acceptedAnswers: RoundAnswers = { ...answersRef.current };
     const mult = isDouble ? 2 : 1;
     const rp: Record<string, number> = {};
-    Object.entries(answersRef.current).forEach(([pid, a]) => {
-      const correct = a.choice === ansIdx;
+    Object.entries(acceptedAnswers).forEach(([pid, answer]) => {
+      const correct = answer.choice === ansIdx;
       // Track every answered round's reaction time (correct or not) for the
       // final "average reaction time" stat, shown per player at game end.
       const sum = reactionSumRef.current[pid] ?? [0, 0];
-      reactionSumRef.current[pid] = [sum[0] + a.elapsed, sum[1] + 1];
+      reactionSumRef.current[pid] = [sum[0] + answer.elapsed, sum[1] + 1];
       if (correct) {
         streakRef.current[pid] = (streakRef.current[pid] || 0) + 1;
         const bonus = streakRef.current[pid] >= 2 ? Math.min(streakRef.current[pid], 6) * 40 : 0;
-        rp[pid] = (scoreFor(true, a.elapsed, lm) + bonus) * mult;
+        rp[pid] = (scoreFor(true, answer.elapsed, lm) + bonus) * mult;
       } else {
-        streakRef.current[pid] = 0; rp[pid] = 0;
+        streakRef.current[pid] = 0;
+        rp[pid] = 0;
       }
       scoreRef.current[pid] = (scoreRef.current[pid] || 0) + rp[pid];
     });
 
     const votes: Record<string, number> = {};
-    Object.entries(answersRef.current).forEach(([pid, a]) => { votes[pid] = a.choice; });
-    broadcastPhase({ phase: 'reveal', roundIndex: i, totalRounds: total, track: next.track, options: opts, scoreboard: { ...scoreRef.current }, roundPoints: rp, answerIndex: ansIdx, answers: votes, listenMs: lm, teamsEnabled: cfg.teams, hintsEnabled: cfg.hints, doublePoints: isDouble });
+    Object.entries(acceptedAnswers).forEach(([pid, answer]) => { votes[pid] = answer.choice; });
+    broadcastPhase({
+      phase: 'reveal',
+      roundIndex: i,
+      totalRounds: total,
+      track: next.track,
+      options: opts,
+      scoreboard: { ...scoreRef.current },
+      roundPoints: rp,
+      answerIndex: ansIdx,
+      answers: votes,
+      listenMs: lm,
+      teamsEnabled: cfg.teams,
+      hintsEnabled: cfg.hints,
+      doublePoints: isDouble,
+      teamAssign: cfg.teams ? { ...teamAssignRef.current } : undefined,
+    });
     // prefetch the next track during the reveal (smooth + drops dead clips early)
     const prefetch = i + 1 < total ? fetchNextTrack() : Promise.resolve(null);
     await wait(BLINDTEST_REVEAL_MS);
     if (!mountedRef.current) return;
 
-    if (i + 1 < total) { const nt = await prefetch; runRound(i + 1, total, nt); }
-    else broadcastPhase({ phase: 'final', roundIndex: i, scoreboard: { ...scoreRef.current }, avgReaction: buildAvgReaction() });
+    if (i + 1 < total) {
+      const nextTrack = await prefetch;
+      runRound(i + 1, total, nextTrack);
+    } else {
+      broadcastPhase({
+        phase: 'final',
+        roundIndex: i,
+        totalRounds: total,
+        scoreboard: { ...scoreRef.current },
+        avgReaction: buildAvgReaction(),
+        listenMs: cfg.listenMs,
+        teamsEnabled: cfg.teams,
+        hintsEnabled: cfg.hints,
+        teamAssign: cfg.teams ? { ...teamAssignRef.current } : undefined,
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [broadcastPhase, fetchNextTrack, playTrack]);
+  }, [broadcastPhase, fetchNextTrack, stopMedia]);
 
   /* ---------- host starts (the click unlocks audio for the whole game) ---------- */
   const startGame = useCallback(async (cats: BlindtestCategory[], config: BlindtestConfig) => {
@@ -621,6 +962,20 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
     startedRef.current = true;
     setStarting(true);
     setStartError(null);
+
+    const sessionStartedAt = Math.max(Date.now(), sessionStartedAtRef.current + 1);
+    const sessionNonce = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+    const sessionId = `${lobbyId}:${sessionStartedAt}:${sessionNonce}`;
+    sessionIdRef.current = sessionId;
+    sessionStartedAtRef.current = sessionStartedAt;
+    revisionRef.current = 0;
+    activeRoundIdRef.current = '';
+    activeRoundIndexRef.current = 0;
+    activeDeadlineRef.current = 0;
+    lastPhaseRef.current = null;
+    adoptedPhaseRef.current = { sessionId, sessionStartedAt, revision: 0 };
 
     // lock in the chosen options for the whole game
     configRef.current = config;
@@ -692,7 +1047,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
       return;
     }
     runRound(0, total, first);
-  }, [runRound, fetchNextTrack, broadcastPhase]);
+  }, [fetchNextTrack, lobbyId, runRound]);
 
   /* ---------- host replays with the same settings ---------- */
   const replay = useCallback(() => {
@@ -705,14 +1060,31 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
   /* ---------- answering ---------- */
   const answer = (choice: number) => {
-    if (phase !== 'listen' || myChoice != null || !deadline) return;
-    // Round not actually started yet (still in the sync buffer) or already over.
-    if (!listenStartRef.current || Date.now() > deadline) return;
+    if (
+      phase !== 'listen'
+      || phaseRef.current !== 'listen'
+      || myChoice != null
+      || !deadline
+      || !roundAudioStartedRef.current
+      || !listenStartRef.current
+      || Date.now() > deadline
+      || !sessionIdRef.current
+      || !activeRoundIdRef.current
+      || !channelReady
+    ) return;
     playSoundEffect('click', 0.3);
     setMyChoice(choice);
     const elapsed = Math.max(0, Math.min(listenMsRef.current, Date.now() - listenStartRef.current));
     setMyElapsed(elapsed);
-    channelRef.current?.send({ type: 'broadcast', event: 'answer', payload: { playerId: currentPlayer.id, choice, elapsed } });
+    const payload: AnswerPayload = {
+      sessionId: sessionIdRef.current,
+      roundId: activeRoundIdRef.current,
+      roundIndex: activeRoundIndexRef.current,
+      playerId: currentPlayer.id,
+      choice,
+      elapsed,
+    };
+    channelRef.current?.send({ type: 'broadcast', event: 'answer', payload });
   };
 
   const ranked = useMemo(
@@ -783,12 +1155,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
           className="hidden"
           preload="auto"
           loop
-          onPlaying={() => {
-            hostPlayingRef.current = true; setNeedsSoundUnlock(false); setMediaError(false);
-            if (!roundAudioStartedRef.current) { roundAudioStartedRef.current = true; listenStartRef.current = Date.now(); }
-          }}
-          onTimeUpdate={() => { hostPlayingRef.current = true; }}
-          onError={() => { setMediaError(true); if (isHost) errorFlagRef.current = true; }}
+          onPlaying={handleMediaPlaying}
+          onTimeUpdate={handleMediaActivity}
+          onError={handleMediaError}
         />
 
         <div className="bt4-backdrop" aria-hidden="true">
@@ -1078,15 +1447,9 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
         className="hidden"
         preload="auto"
         loop
-        onPlaying={() => {
-          hostPlayingRef.current = true; setNeedsSoundUnlock(false); setMediaError(false);
-          // Fair scoring: reaction time is measured from the REAL audio onset
-          // for each player (neutralizes clip load / autoplay-unlock latency),
-          // so the host no longer systematically wins.
-          if (!roundAudioStartedRef.current) { roundAudioStartedRef.current = true; listenStartRef.current = Date.now(); }
-        }}
-        onTimeUpdate={() => { hostPlayingRef.current = true; }}
-        onError={() => { setMediaError(true); if (isHost) errorFlagRef.current = true; }}
+        onPlaying={handleMediaPlaying}
+        onTimeUpdate={handleMediaActivity}
+        onError={handleMediaError}
       />
 
       {/* Theme-owned backdrop: the stable renderer keeps Neon Vinyl untouched. */}

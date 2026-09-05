@@ -86,7 +86,7 @@ export const QuizReveal = ({
   const formatTime = (ms: number) => (ms / 1000).toFixed(2) + 's';
 
   const body = (
-      <div className={isInkBeta ? 'ik-gpanel is-featured' : 'menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain'}>
+      <div className={isInkBeta ? 'ik-gpanel is-featured ik-quiz-reveal-panel' : 'menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain'}>
         <div className={isInkBeta ? 'ik-gpanel-body' : 'flex min-h-full flex-col items-center justify-start gap-4 p-3 pb-24 sm:gap-5 sm:p-4 sm:pb-24 sm:justify-center'}>
         {/* Question reminder */}
         <motion.div

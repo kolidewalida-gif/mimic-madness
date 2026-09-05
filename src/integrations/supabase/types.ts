@@ -1294,6 +1294,7 @@ export type Database = {
           points_earned: number
           response_time_ms: number
           round_number: number
+          session_id: string
         }
         Insert: {
           answer: string
@@ -1307,6 +1308,7 @@ export type Database = {
           points_earned?: number
           response_time_ms?: number
           round_number?: number
+          session_id?: string
         }
         Update: {
           answer?: string
@@ -1320,6 +1322,7 @@ export type Database = {
           points_earned?: number
           response_time_ms?: number
           round_number?: number
+          session_id?: string
         }
         Relationships: [
           {
@@ -1335,11 +1338,15 @@ export type Database = {
         Row: {
           answer_duration_ms: number
           category: string
+          category_filter: string
           correct_answer: string
           created_at: string
           difficulty: string
           difficulty_filter: string | null
+          enable_jokers: boolean
+          enable_streak: boolean
           id: string
+          is_active: boolean
           lobby_id: string
           options: string[] | null
           phase: string
@@ -1347,17 +1354,22 @@ export type Database = {
           question_text: string
           question_type: string | null
           round_number: number
+          session_id: string
           started_at: string | null
           total_rounds: number
         }
         Insert: {
           answer_duration_ms?: number
           category?: string
+          category_filter?: string
           correct_answer: string
           created_at?: string
           difficulty?: string
           difficulty_filter?: string | null
+          enable_jokers?: boolean
+          enable_streak?: boolean
           id?: string
+          is_active?: boolean
           lobby_id: string
           options?: string[] | null
           phase?: string
@@ -1365,17 +1377,22 @@ export type Database = {
           question_text: string
           question_type?: string | null
           round_number?: number
+          session_id?: string
           started_at?: string | null
           total_rounds?: number
         }
         Update: {
           answer_duration_ms?: number
           category?: string
+          category_filter?: string
           correct_answer?: string
           created_at?: string
           difficulty?: string
           difficulty_filter?: string | null
+          enable_jokers?: boolean
+          enable_streak?: boolean
           id?: string
+          is_active?: boolean
           lobby_id?: string
           options?: string[] | null
           phase?: string
@@ -1383,6 +1400,7 @@ export type Database = {
           question_text?: string
           question_type?: string | null
           round_number?: number
+          session_id?: string
           started_at?: string | null
           total_rounds?: number
         }

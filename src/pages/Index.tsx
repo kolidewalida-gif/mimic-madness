@@ -480,6 +480,32 @@ const Index = () => {
     
     if (lobby && currentPlayer?.isHost) {
       try {
+        // Une ligne Undercover est unique par lobby. Le passage explicite par
+        // « Lancer » démarre donc une nouvelle session, même si la précédente
+        // a été quittée avant son écran final. Le hook reconstruira ensuite le
+        // roster complet (bots inclus) avant d'attribuer les rôles.
+        if (mode === 'undercover') {
+          const { error: resetUndercoverError } = await supabase
+            .from('undercover_games')
+            .update({
+              phase: 'settings',
+              settings_locked: false,
+              is_finished: false,
+              winner_role: null,
+              current_round: 1,
+              current_player_index: 0,
+              eliminated_player_id: null,
+              eliminated_role: null,
+              civilian_wins: 0,
+              undercover_wins: 0,
+              clue_pass: 0,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('lobby_id', lobby.id);
+
+          if (resetUndercoverError) throw resetUndercoverError;
+        }
+
         // Admin solo: add bots only where an autopilot actually plays them.
         // En mode Imitation le compte est zéro, et c'est délibéré : voir
         // `soloBotCount`.

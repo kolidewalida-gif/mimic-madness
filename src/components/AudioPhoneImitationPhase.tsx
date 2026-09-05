@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Check, Play, Pause, Volume2, Loader2, ChevronRight, Users } from 'lucide-react';
 import {
@@ -14,7 +14,7 @@ import {
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useStagedTask } from '@/hooks/useStagedTask';
 import { ProcessingOverlay } from '@/components/ProcessingOverlay';
-import { processStreamWithNoiseReduction } from '@/hooks/useNoiseReduction';
+import { useAudioPhoneRecorder } from '@/hooks/useAudioPhoneRecorder';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { cn } from '@/lib/utils';
 import {
@@ -122,127 +122,55 @@ export const AudioPhoneImitationPhase = ({
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasListened, setHasListened] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const staged = useStagedTask();
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [audioLevel, setAudioLevel] = useState(0);
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const timerRafRef = useRef<number | null>(null);
-  const startedAtRef = useRef<number>(0);
-  const animationRef = useRef<number | null>(null);
-  const noiseReductionCleanupRef = useRef<(() => void) | null>(null);
-  const rawStreamRef = useRef<MediaStream | null>(null);
+  const mountedRef = useRef(false);
+  const {
+    isRecording,
+    isStarting,
+    isStopping,
+    recordedBlob,
+    previewUrl,
+    recordingTime,
+    audioLevel,
+    startRecording,
+    stopRecording,
+    clearRecording,
+    resetRecording,
+  } = useAudioPhoneRecorder({
+    maxSeconds,
+    onError: (error) => console.error('Error starting Audio Phone imitation:', error),
+  });
 
-  const playReversedAudio = () => {
-    if (!audioRef.current) return;
-    audioRef.current.play();
-    setIsPlaying(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+      }
+    };
+  }, []);
+
+  const playReversedAudio = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    try {
+      await audio.play();
+    } catch (error) {
+      if (mountedRef.current) setIsPlaying(false);
+      console.warn('[AudioPhone] Unable to play reversed phrase:', error);
+    }
   };
 
   const pauseAudio = () => {
-    if (!audioRef.current) return;
-    audioRef.current.pause();
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
     setIsPlaying(false);
-  };
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    if (timerRafRef.current) {
-      cancelAnimationFrame(timerRafRef.current);
-      timerRafRef.current = null;
-    }
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-    setIsRecording(false);
-    setAudioLevel(0);
-  }, []);
-
-  const startRecording = async () => {
-    try {
-      setRecordedBlob(null);
-
-      const rawStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      rawStreamRef.current = rawStream;
-
-      const { stream, cleanup } = await processStreamWithNoiseReduction(rawStream);
-      noiseReductionCleanupRef.current = cleanup;
-
-      audioContextRef.current = new AudioContext();
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 256;
-      source.connect(analyserRef.current);
-
-      const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
-      let selectedMimeType = '';
-      for (const mimeType of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(mimeType)) {
-          selectedMimeType = mimeType;
-          break;
-        }
-      }
-
-      mediaRecorderRef.current = new MediaRecorder(stream, {
-        mimeType: selectedMimeType || undefined,
-      });
-      chunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: selectedMimeType || 'audio/webm' });
-        setRecordedBlob(blob);
-        rawStream.getTracks().forEach((track) => track.stop());
-        stream.getTracks().forEach((track) => track.stop());
-        if (noiseReductionCleanupRef.current) {
-          noiseReductionCleanupRef.current();
-          noiseReductionCleanupRef.current = null;
-        }
-        rawStreamRef.current = null;
-      };
-
-      mediaRecorderRef.current.start(100);
-      setIsRecording(true);
-      setRecordingTime(0);
-
-      startedAtRef.current = performance.now();
-      const tick = () => {
-        const elapsed = (performance.now() - startedAtRef.current) / 1000;
-        const clamped = Math.min(elapsed, maxSeconds);
-        setRecordingTime(clamped);
-        if (elapsed >= maxSeconds) {
-          stopRecording();
-          return;
-        }
-        timerRafRef.current = requestAnimationFrame(tick);
-      };
-      timerRafRef.current = requestAnimationFrame(tick);
-
-      const updateLevel = () => {
-        if (analyserRef.current) {
-          const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-          analyserRef.current.getByteFrequencyData(dataArray);
-          const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-          setAudioLevel(average / 255);
-        }
-        animationRef.current = requestAnimationFrame(updateLevel);
-      };
-      updateLevel();
-    } catch (error) {
-      console.error('Error starting recording:', error);
-    }
   };
 
   const handleSubmit = async () => {
@@ -256,25 +184,25 @@ export const AudioPhoneImitationPhase = ({
       endSound: 'processDone',
     });
     if (success) {
-      setRecordedBlob(null);
-      setHasListened(false);
+      clearRecording();
+      if (mountedRef.current) setHasListened(false);
     }
   };
 
   useEffect(() => {
-    return () => {
-      if (timerRafRef.current) cancelAnimationFrame(timerRafRef.current);
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      if (audioContextRef.current) audioContextRef.current.close();
-    };
-  }, []);
-
-  useEffect(() => {
+    resetRecording();
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      try {
+        audio.currentTime = 0;
+      } catch {
+        // A source may not have loaded enough metadata to seek yet.
+      }
+    }
     setHasListened(false);
-    setRecordedBlob(null);
-    setIsRecording(false);
     setIsPlaying(false);
-  }, [currentPhraseIndex]);
+  }, [currentPhraseIndex, resetRecording]);
 
   const nextPhraseButton = allImitationsDone && isHost && (
     <PulpButton
@@ -313,6 +241,8 @@ export const AudioPhoneImitationPhase = ({
     /* Colonne de droite : où l'on en est dans la manche. */
     const sidePanel = (
       <InkBetaPanel
+        className="ik-ap-panel ik-ap-progress-panel"
+        bodyClassName="ik-ap-progress-body"
         step={`Phrase ${Math.min(currentPhraseIndex + 1, Math.max(totalPhrases, 1))} sur ${totalPhrases}`}
         title="Avancement"
         titleId="ik-ap-progress-title"
@@ -373,7 +303,13 @@ export const AudioPhoneImitationPhase = ({
 
     if (isSpectator) {
       mainPanel = (
-        <InkBetaPanel step="Spectateur" title="Tu regardes cette manche" titleId="ik-ap-main-title">
+        <InkBetaPanel
+          className="ik-ap-panel ik-ap-work-panel"
+          bodyClassName="ik-ap-work-body"
+          step="Spectateur"
+          title="Tu regardes cette manche"
+          titleId="ik-ap-main-title"
+        >
           <p className="ik-game-note ik-game-note--warn">
             <Users aria-hidden="true" /> Tu es arrivé après le tirage : tu joueras à la prochaine.
           </p>
@@ -381,7 +317,14 @@ export const AudioPhoneImitationPhase = ({
       );
     } else if (isAuthor) {
       mainPanel = (
-        <InkBetaPanel featured step="C'est ta phrase" title="Écoute les dégâts" titleId="ik-ap-main-title">
+        <InkBetaPanel
+          featured
+          className="ik-ap-panel ik-ap-work-panel"
+          bodyClassName="ik-ap-work-body"
+          step="C'est ta phrase"
+          title="Écoute les dégâts"
+          titleId="ik-ap-main-title"
+        >
           <p className="ik-game-lead">
             Les autres essaient de reproduire ta phrase à l'envers. Tu la retrouveras à la
             révélation, avec <strong>toutes leurs versions</strong>.
@@ -390,7 +333,14 @@ export const AudioPhoneImitationPhase = ({
       );
     } else if (hasImitated) {
       mainPanel = (
-        <InkBetaPanel featured step="Imitation envoyée" title="Bien joué" titleId="ik-ap-main-title">
+        <InkBetaPanel
+          featured
+          className="ik-ap-panel ik-ap-work-panel"
+          bodyClassName="ik-ap-work-body"
+          step="Imitation envoyée"
+          title="Bien joué"
+          titleId="ik-ap-main-title"
+        >
           <p className="ik-game-note ik-game-note--done">
             <Check aria-hidden="true" /> Ta version de la phrase de {authorName} est enregistrée.
           </p>
@@ -403,6 +353,8 @@ export const AudioPhoneImitationPhase = ({
       mainPanel = (
         <InkBetaPanel
           featured
+          className="ik-ap-panel ik-ap-work-panel"
+          bodyClassName="ik-ap-work-body"
           step={`Phrase de ${authorName}`}
           title="Écoute, puis rejoue-la"
           titleId="ik-ap-main-title"
@@ -416,6 +368,8 @@ export const AudioPhoneImitationPhase = ({
             <audio
               ref={audioRef}
               src={reversedAudioUrl}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
               onEnded={() => {
                 setIsPlaying(false);
                 setHasListened(true);
@@ -438,7 +392,7 @@ export const AudioPhoneImitationPhase = ({
               type="button"
               onClick={() => {
                 playInkSound('cartoonPop', 0.3);
-                isPlaying ? pauseAudio() : playReversedAudio();
+                isPlaying ? pauseAudio() : void playReversedAudio();
               }}
               className="ik-secondary-action menu-focus"
             >
@@ -453,7 +407,7 @@ export const AudioPhoneImitationPhase = ({
                 <button
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isStarting || isStopping}
                   className={cn('ik-ap-mic menu-focus', isRecording && 'is-recording')}
                   style={{ ['--ap-level' as string]: audioLevel.toFixed(3) }}
                   aria-label={isRecording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement'}
@@ -468,7 +422,7 @@ export const AudioPhoneImitationPhase = ({
 
               {recordedBlob && !isRecording && (
                 <div className="ik-ap-review">
-                  <audio src={URL.createObjectURL(recordedBlob)} controls className="ik-ap-audio" />
+                  <audio src={previewUrl ?? undefined} controls className="ik-ap-audio" />
                   <div className="ik-game-actions--split">
                     <button
                       type="button"
@@ -480,7 +434,7 @@ export const AudioPhoneImitationPhase = ({
                     <button
                       type="button"
                       onClick={handleSubmit}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isStarting || isStopping}
                       className="ik-primary-action menu-focus"
                     >
                       <span className="ik-primary-action-icon">
@@ -631,6 +585,8 @@ export const AudioPhoneImitationPhase = ({
                 <audio
                   ref={audioRef}
                   src={reversedAudioUrl}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
                   onEnded={() => {
                     setIsPlaying(false);
                     setHasListened(true);
@@ -664,7 +620,7 @@ export const AudioPhoneImitationPhase = ({
                 <PulpButton
                   onClick={() => {
                     playInkSound('cartoonPop', 0.3);
-                    isPlaying ? pauseAudio() : playReversedAudio();
+                    isPlaying ? pauseAudio() : void playReversedAudio();
                   }}
                   disabled={!reversedAudioUrl}
                   color={BLUE}
@@ -697,7 +653,7 @@ export const AudioPhoneImitationPhase = ({
                     <motion.button
                       type="button"
                       onClick={isRecording ? stopRecording : startRecording}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isStarting || isStopping}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.94 }}
                       animate={isRecording ? { scale: [1, 1.04, 1] } : { y: [0, -3, 0] }}
@@ -736,12 +692,12 @@ export const AudioPhoneImitationPhase = ({
               {recordedBlob && (
                 <div className="space-y-3 pt-3">
                   <PulpRule />
-                  <audio src={URL.createObjectURL(recordedBlob)} controls className="w-full" />
+                  <audio src={previewUrl ?? undefined} controls className="w-full" />
                   <div className="flex gap-3">
                     <PulpButton onClick={startRecording} color={PULP.paperDim} variant="ghost" size="sm" className="flex-1">
                       Recommencer
                     </PulpButton>
-                    <PulpButton onClick={handleSubmit} disabled={isSubmitting} color={GREEN} size="sm" className="flex-1">
+                    <PulpButton onClick={handleSubmit} disabled={isSubmitting || isStarting || isStopping} color={GREEN} size="sm" className="flex-1">
                       {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" strokeWidth={3} />}
                       Envoyer
                     </PulpButton>
