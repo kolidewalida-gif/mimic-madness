@@ -912,7 +912,7 @@ export const VotingPhase = ({
         {/* Video card */}
         <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: "spring", damping: 22 }}
-          className={isInkBeta ? 'ik-gpanel is-featured' : 'relative rounded-3xl overflow-hidden'}
+          className={isInkBeta ? 'ik-gpanel is-featured ik-voting-panel' : 'relative rounded-3xl overflow-hidden'}
           style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #1a0d2e, #0f0820)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
           {isInkBeta && (
             <div className="ik-gpanel-head">
@@ -931,9 +931,9 @@ export const VotingPhase = ({
           {!isInkBeta && <div className="absolute inset-1.5 rounded-[1.2rem] pointer-events-none" style={{ border: "2px solid rgba(248,113,113,0.3)" }} />}
           {!isInkBeta && <Sparkles className="absolute top-3 left-4 w-4 h-4 text-amber-400 z-10" style={{ filter: "none" }} />}
 
-          <div className={isInkBeta ? 'ik-gpanel-body' : 'relative p-5 space-y-4'}>
+          <div className={isInkBeta ? 'ik-gpanel-body ik-voting-body' : 'relative p-5 space-y-4'}>
             {/* Player/team name */}
-            <div className="text-center">
+            <div className={isInkBeta ? 'ik-voting-identity text-center' : 'text-center'}>
               {gameMode === '2v2' && currentTeamImitation ? (
                 <div className="space-y-2">
                   <div className="flex justify-center items-center gap-3">
@@ -969,7 +969,7 @@ export const VotingPhase = ({
             </div>
 
             {/* Video */}
-            <div className={isInkBeta ? 'ik-gvideo' : 'rounded-2xl overflow-hidden'} style={isInkBeta ? undefined : { border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
+            <div className={isInkBeta ? 'ik-gvideo ik-voting-media' : 'rounded-2xl overflow-hidden'} style={isInkBeta ? undefined : { border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
               {gameMode === '2v2' && currentTeamImitation?.clipIds[0] ? (
                 <TeamVideoOverlay ref={teamVideoRef} videoClipId={challengeVideoClipId}
                   audioClipId1={currentTeamImitation.clipIds[0]} audioClipId2={currentTeamImitation.clipIds[1] || null}
@@ -997,7 +997,7 @@ export const VotingPhase = ({
 
             {/* Host play control */}
             {currentPlayer.isHost && (
-              <div className="flex justify-center">
+              <div className={isInkBeta ? 'ik-voting-playback' : 'flex justify-center'}>
                 {/* Sans clip, aucun lecteur n'est monté : lancer la lecture
                     laisserait la session en `is_playing` sans jamais se
                     terminer, puisque rien ne signale la fin du média. */}
@@ -1024,14 +1024,14 @@ export const VotingPhase = ({
 
             {/* Honest about the weaker guarantee until the migration is applied. */}
             {!isPlaybackAuthoritative && (
-              <p className="text-center text-[11px] font-bold text-amber-300/80"
+              <p className={isInkBeta ? 'ik-voting-authority' : 'text-center text-[11px] font-bold text-amber-300/80'}
                 style={{ fontFamily: "'Outfit', sans-serif" }}>
                 Synchronisation de lecture approximative : l'horodatage serveur n'est pas encore disponible.
               </p>
             )}
 
             {/* Vote buttons */}
-            <div className="flex flex-col gap-3 items-center">
+            <div className={isInkBeta ? 'ik-voting-votes' : 'flex flex-col gap-3 items-center'}>
               {/* Rien à juger : on le dit, au lieu d'afficher deux boutons
                   vivants dont le clic ne produit aucun effet. */}
               {voteAvailability.kind === 'no-audio' && (
@@ -1045,7 +1045,7 @@ export const VotingPhase = ({
               )}
 
               {voteAvailability.kind === 'votable' && !hasVotedCurrent && (
-                <div className="flex gap-4 w-full max-w-sm">
+                <div className={isInkBeta ? 'ik-voting-choice-grid' : 'flex gap-4 w-full max-w-sm'}>
                   <motion.button onClick={(e) => handleVote('dislike', e)}
                     disabled={!votingSessionId || !isSessionSynchronized || isVotePending}
                     whileHover={{ scale: 1.05, rotate: 2 }} whileTap={{ scale: 0.95 }}
@@ -1080,7 +1080,7 @@ export const VotingPhase = ({
                   disabled={!votingSessionId || !isSessionSynchronized || isSessionActionPending}
                   whileHover={!isSessionActionPending ? { scale: 1.05, rotate: -1 } : undefined}
                   whileTap={!isSessionActionPending ? { scale: 0.97 } : undefined}
-                  className={isInkBeta ? 'ik-primary-action menu-focus' : 'flex items-center gap-2 px-6 py-3 rounded-2xl disabled:opacity-50'}
+                  className={isInkBeta ? 'ik-primary-action ik-voting-next menu-focus' : 'flex items-center gap-2 px-6 py-3 rounded-2xl disabled:opacity-50'}
                   style={isInkBeta ? undefined : { background: "linear-gradient(180deg, #fbbf24, #d97706)", border: '1px solid var(--ink-line)', boxShadow: 'none' }}>
                   {isSessionActionPending && <Loader2 className="w-5 h-5 text-white animate-spin" />}
                   <span className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif", textShadow: 'none' }}>
@@ -1094,7 +1094,7 @@ export const VotingPhase = ({
         </motion.div>
 
         {/* Progress dots */}
-        <div className={isInkBeta ? 'ik-dots' : 'flex gap-2 justify-center'}>
+        <div className={isInkBeta ? 'ik-dots ik-voting-progress' : 'flex gap-2 justify-center'}>
           {Array.from({ length: displayLength }).map((_, i) => (isInkBeta ? (
             <span
               key={i}

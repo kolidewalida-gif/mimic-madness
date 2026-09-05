@@ -114,7 +114,16 @@ export const GamePlayScreen = ({
     [buildChallenge, durableRound],
   );
   const roundNumber = durableRound?.round_number ?? 1;
-  const renderablePhase = getRenderableGamePhase(durableRound, isRoundSynchronized);
+  const certifiedPhase = getRenderableGamePhase(durableRound, isRoundSynchronized);
+  // A certified results snapshot is safe to keep on screen while the round
+  // channel reconnects. Unmounting it here recreated every avatar and media
+  // element even though the authoritative phase had not changed.
+  const canKeepResultsMounted =
+    durableRound?.lobby_id === lobbyId && durableRound.phase === "results";
+  const renderablePhase = certifiedPhase ?? (canKeepResultsMounted ? "results" : null);
+  const isRoundReconnecting = canKeepResultsMounted && (
+    !isRoundSynchronized || isInitializingRound
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -714,10 +723,10 @@ export const GamePlayScreen = ({
     );
   };
 
-  // No phase subtree survives an uncertain authoritative connection or a
-  // possible forward phase change. Stale/unchanged hints reconcile in the
-  // background so local recording and voting state is preserved.
-  if (isInitializingRound || !currentChallenge || !renderablePhase) {
+  // Recording and voting still fail closed on an uncertain phase. Results are
+  // read-only, so a previously certified snapshot may remain mounted while a
+  // transient SQL/Realtime reconnection is in progress.
+  if ((isInitializingRound && !canKeepResultsMounted) || !currentChallenge || !renderablePhase) {
     return renderInitializationState();
   }
 
@@ -777,6 +786,7 @@ export const GamePlayScreen = ({
           key={`results-${roundNumber}`}
           lobbyId={lobbyId}
           roundNumber={roundNumber}
+          challengeVideoClipId={currentChallenge.id}
           players={players}
           currentPlayer={currentPlayer}
           gameMode={gameMode}
@@ -784,6 +794,7 @@ export const GamePlayScreen = ({
           onNextRound={handleNextRound}
           onEndGame={onEndGame}
           variant={variant}
+          isRoundReconnecting={isRoundReconnecting}
         />
       )}
     </>
@@ -797,11 +808,18 @@ export const GamePlayScreen = ({
         : renderablePhase === "voting"
           ? "Vote"
           : "Résultats";
+    const canvasClassName = renderablePhase === "imitation"
+      ? "ik-game-canvas--stage"
+      : renderablePhase === "voting"
+        ? "ik-game-canvas--vote"
+        : renderablePhase === "results"
+          ? "ik-game-canvas--results"
+          : "ik-game-canvas--center";
 
     return (
       <InkBetaGameStage
         titleId="ik-game-brand"
-        canvasClassName={renderablePhase === "imitation" ? "ik-game-canvas--stage" : "ik-game-canvas--center"}
+        canvasClassName={canvasClassName}
         badge={(
           <InkBetaGameBadge
             label={phaseLabel}

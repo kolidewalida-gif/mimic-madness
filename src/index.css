@@ -29360,3 +29360,628 @@ body.inkbeta-mode .bt4-replay {
     box-shadow: 0 0 0 0.3rem rgba(255, 47, 69, 0.05), 0 0 2.4rem rgba(255, 47, 69, 0.16);
   }
 }
+
+/* ============================================================
+   INK BETA — VOTE LARGE ET RÉSULTATS STABLES
+   ------------------------------------------------------------
+   Le vote occupe au moins 70 % du viewport dès que l'espace utile
+   le permet. Les cartes de résultat et leur surface média gardent
+   une géométrie fixe pendant les chargements et reconnexions.
+   ============================================================ */
+
+.video-audio-overlay {
+  width: 100%;
+}
+
+.video-audio-overlay-frame {
+  isolation: isolate;
+  background: #09040f;
+}
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--vote {
+  width: min(100%, max(94rem, 72vw));
+}
+
+body.inkbeta-mode .ik-game-v2 .ik-canvas.ik-game-canvas--results {
+  width: min(100%, max(94rem, 70vw));
+}
+
+body.inkbeta-mode .ik-voting-panel {
+  min-height: clamp(35rem, calc(100dvh - 13rem), 51rem);
+  padding: clamp(0.85rem, 1.2vw, 1.2rem);
+}
+
+body.inkbeta-mode .ik-voting-panel .ik-gpanel-head {
+  margin-bottom: clamp(0.8rem, 1.2vw, 1.15rem);
+  padding-inline: 0.2rem;
+}
+
+body.inkbeta-mode .ik-voting-body {
+  display: grid;
+  flex: none;
+  grid-template-columns: minmax(0, 1.72fr) minmax(19rem, 0.72fr);
+  grid-auto-rows: min-content;
+  column-gap: clamp(1rem, 1.6vw, 1.7rem);
+  row-gap: 0.85rem;
+  align-items: start;
+}
+
+body.inkbeta-mode .ik-voting-media {
+  display: grid;
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1 / span 5;
+  align-self: stretch;
+  place-items: stretch;
+}
+
+body.inkbeta-mode .ik-voting-media > * {
+  width: 100%;
+  height: 100%;
+}
+
+body.inkbeta-mode .ik-voting-media .video-audio-overlay-frame {
+  min-height: clamp(24rem, 37vw, 39rem);
+  border-radius: 11px;
+}
+
+body.inkbeta-mode .ik-voting-identity,
+body.inkbeta-mode .ik-voting-playback,
+body.inkbeta-mode .ik-voting-authority,
+body.inkbeta-mode .ik-voting-votes {
+  min-width: 0;
+  grid-column: 2;
+}
+
+body.inkbeta-mode .ik-voting-identity {
+  grid-row: 1;
+  padding: 1rem;
+  border: 2px solid rgba(255, 166, 223, 0.24);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(255, 98, 182, 0.12), rgba(45, 242, 208, 0.06));
+}
+
+body.inkbeta-mode .ik-voting-identity h3 {
+  margin: 0;
+  color: var(--ik-white);
+  font-size: clamp(1.45rem, 2vw, 2rem);
+  line-height: 1.05;
+}
+
+body.inkbeta-mode .ik-voting-playback {
+  display: flex;
+  grid-row: 2;
+}
+
+body.inkbeta-mode .ik-voting-playback > button,
+body.inkbeta-mode .ik-voting-next {
+  width: 100%;
+  min-height: 3.65rem;
+  justify-content: center;
+}
+
+body.inkbeta-mode .ik-voting-authority {
+  grid-row: 3;
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(251, 191, 36, 0.42);
+  border-radius: 11px;
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.09);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+}
+
+body.inkbeta-mode .ik-voting-votes {
+  display: flex;
+  grid-row: 4;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  padding-top: 0.15rem;
+}
+
+body.inkbeta-mode .ik-voting-votes > div:not(.ik-voting-choice-grid) {
+  width: 100%;
+  justify-content: center;
+}
+
+body.inkbeta-mode .ik-voting-choice-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+body.inkbeta-mode .ik-voting-choice-grid .ik-vote {
+  width: 100%;
+  min-width: 0;
+}
+
+body.inkbeta-mode .ik-voting-progress {
+  margin-top: 0.15rem;
+  padding: 0.45rem 0;
+}
+
+/* Résultats : styles structurels également valables hors beta afin que
+   l'extraction de la carte ne dégrade pas le thème historique. */
+.ik-results-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.85rem, 1.35vw, 1.3rem);
+}
+
+.ik-results-grid.is-solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ik-results-player-card {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  border-color: var(--ik-result-accent, rgba(255, 255, 255, 0.25));
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--ik-result-accent, #fbbf24) 18%, transparent), transparent 44%),
+    linear-gradient(155deg, rgba(43, 17, 55, 0.98), rgba(15, 8, 32, 0.98));
+  box-shadow: 0 6px 0 rgba(27, 5, 39, 0.72);
+}
+
+.ik-results-player-card.is-winner {
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--ik-result-accent, #fbbf24) 35%, transparent),
+    0 7px 0 rgba(27, 5, 39, 0.78);
+}
+
+.ik-results-player-media {
+  flex: 0 0 auto;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  contain: layout paint;
+}
+
+.ik-results-player-media .video-audio-overlay,
+.ik-results-player-media .video-audio-overlay-frame {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+.ik-results-media-state {
+  color: rgba(255, 255, 255, 0.86);
+  background:
+    radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--ik-result-accent, #fbbf24) 20%, transparent), transparent 38%),
+    rgba(6, 3, 14, 0.78);
+}
+
+.ik-results-media-state strong {
+  font-family: var(--ik-display, 'Outfit', sans-serif);
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  letter-spacing: 0.03em;
+}
+
+.ik-results-media-state small {
+  max-width: 24rem;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.ik-results-play-orb {
+  display: grid;
+  width: 3.9rem;
+  height: 3.9rem;
+  border: 3px solid var(--ik-result-accent, #fbbf24);
+  border-radius: 50%;
+  color: #fff;
+  background: color-mix(in srgb, var(--ik-result-accent, #fbbf24) 72%, #42104f);
+  place-items: center;
+}
+
+.ik-results-play-orb svg {
+  width: 1.55rem;
+  height: 1.55rem;
+  margin-left: 0.16rem;
+  fill: currentColor;
+}
+
+.ik-results-media-action,
+.ik-results-card-main,
+.ik-results-card-tool {
+  display: inline-flex;
+  min-height: 2.65rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 11px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.78rem;
+  font-weight: 900;
+  transition: transform 140ms ease, background-color 140ms ease;
+}
+
+.ik-results-media-action {
+  padding: 0.58rem 0.9rem;
+  border-color: color-mix(in srgb, var(--ik-result-accent, #fbbf24) 60%, transparent);
+  background: color-mix(in srgb, var(--ik-result-accent, #fbbf24) 20%, rgba(0, 0, 0, 0.45));
+}
+
+.ik-results-media-action svg,
+.ik-results-card-main svg,
+.ik-results-card-tool svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ik-results-player-info {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: clamp(0.85rem, 1.2vw, 1.15rem);
+}
+
+.ik-results-player-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.ik-results-avatar-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.ik-results-rank {
+  position: absolute;
+  right: -0.3rem;
+  bottom: -0.2rem;
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 2px solid rgba(15, 8, 32, 0.95);
+  border-radius: 50%;
+  color: #24102d;
+  background: var(--ik-result-accent, #fbbf24);
+  font-family: var(--ik-display, 'Outfit', sans-serif);
+  font-size: 0.9rem;
+  font-weight: 900;
+  place-items: center;
+}
+
+.ik-results-player-kicker {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--ik-result-accent, #fbbf24);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ik-results-player-identity h3 {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  font-weight: 900;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ik-results-scoreboard {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.ik-results-scoreboard span,
+.ik-results-scoreboard strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--ik-body, 'Outfit', sans-serif);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.ik-results-scoreboard span svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.ik-results-scoreboard .is-like {
+  color: #34d399;
+}
+
+.ik-results-scoreboard .is-dislike {
+  color: #fb7185;
+}
+
+.ik-results-scoreboard strong {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.ik-results-card-actions {
+  display: flex;
+  gap: 0.55rem;
+  margin-top: auto;
+}
+
+.ik-results-card-main {
+  flex: 1;
+  padding-inline: 0.8rem;
+}
+
+.ik-results-card-tool {
+  width: 2.75rem;
+  flex: 0 0 2.75rem;
+}
+
+.ik-results-card-tool.is-share {
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.36);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+body.inkbeta-mode .ik-results-shell {
+  gap: clamp(0.9rem, 1.25vw, 1.25rem);
+  padding: clamp(0.85rem, 1.25vw, 1.25rem);
+  overflow: visible;
+}
+
+body.inkbeta-mode .ik-results-hero {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 1rem 0.35rem;
+  text-align: center;
+}
+
+body.inkbeta-mode .ik-results-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.48rem 0.85rem;
+  border-radius: 999px;
+}
+
+body.inkbeta-mode .ik-results-winner {
+  margin: 0.2rem 0 0;
+  color: var(--ik-white);
+  font-size: clamp(2rem, 4vw, 4.25rem);
+  font-weight: 900;
+  line-height: 0.98;
+}
+
+body.inkbeta-mode .ik-results-subtitle {
+  margin: 0;
+  color: var(--ik-white-soft);
+  font-size: clamp(0.82rem, 1.1vw, 1rem);
+  font-weight: 800;
+}
+
+body.inkbeta-mode .ik-results-actions {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.55fr) minmax(15rem, 1fr);
+  gap: 0.8rem;
+  padding-top: 0.2rem;
+}
+
+body.inkbeta-mode .ik-results-end,
+body.inkbeta-mode .ik-results-next {
+  display: inline-flex;
+  min-height: 3.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 3px solid var(--ik-edge);
+  border-radius: 13px;
+}
+
+body.inkbeta-mode .ik-results-end {
+  color: var(--ik-white-soft);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body.inkbeta-mode .ik-results-next {
+  color: #2f123d;
+  background: linear-gradient(135deg, var(--ik-cyan), #8effec);
+  box-shadow: 0 5px 0 var(--ik-edge);
+}
+
+body.inkbeta-mode .ik-results-next:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+body.inkbeta-mode .ik-results-waiting,
+body.inkbeta-mode .ik-results-reconnecting {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  color: var(--ik-white-soft);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+body.inkbeta-mode .ik-results-waiting p {
+  margin: 0;
+}
+
+body.inkbeta-mode .ik-results-reconnecting span {
+  width: 0.65rem;
+  height: 0.65rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #fbbf24;
+  box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.5);
+  animation: ik-results-pulse 1.4s ease-out infinite;
+}
+
+@keyframes ik-results-pulse {
+  70%, 100% { box-shadow: 0 0 0 0.55rem rgba(251, 191, 36, 0); }
+}
+
+@media (max-width: 1180px) {
+  .ik-results-grid:not(.is-solo) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ik-results-grid:not(.is-solo) > .ik-results-player-card.is-winner {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 980px) {
+  body.inkbeta-mode .ik-game-v2 .ik-canvas:is(.ik-game-canvas--vote, .ik-game-canvas--results) {
+    width: min(100%, 52rem);
+  }
+
+  body.inkbeta-mode .ik-voting-panel {
+    min-height: 0;
+  }
+
+  body.inkbeta-mode .ik-voting-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  body.inkbeta-mode .ik-voting-media {
+    width: 100%;
+    order: 1;
+  }
+
+  body.inkbeta-mode .ik-voting-identity {
+    width: 100%;
+    order: 0;
+  }
+
+  body.inkbeta-mode .ik-voting-playback,
+  body.inkbeta-mode .ik-voting-authority,
+  body.inkbeta-mode .ik-voting-votes {
+    width: 100%;
+    order: 2;
+  }
+
+  body.inkbeta-mode .ik-voting-media .video-audio-overlay-frame {
+    min-height: 0;
+  }
+
+  .ik-results-player-card.is-solo {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(16rem, 0.7fr);
+  }
+
+  .ik-results-player-card.is-solo .ik-results-player-media {
+    border-right: 2px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 0;
+  }
+}
+
+@media (min-width: 981px) {
+  .ik-results-player-card.is-solo {
+    display: grid;
+    grid-template-columns: minmax(0, 1.75fr) minmax(19rem, 0.65fr);
+  }
+
+  .ik-results-player-card.is-solo .ik-results-player-media {
+    border-right: 2px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  body.inkbeta-mode .ik-voting-panel,
+  body.inkbeta-mode .ik-results-shell {
+    padding: 0.65rem;
+  }
+
+  body.inkbeta-mode .ik-voting-identity {
+    padding: 0.75rem;
+  }
+
+  body.inkbeta-mode .ik-voting-choice-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-voting-choice-grid .ik-vote {
+    min-height: 3.1rem;
+  }
+
+  .ik-results-grid,
+  .ik-results-grid:not(.is-solo) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ik-results-grid:not(.is-solo) > .ik-results-player-card.is-winner {
+    grid-column: auto;
+  }
+
+  .ik-results-player-card.is-solo {
+    display: flex;
+  }
+
+  .ik-results-player-card.is-solo .ik-results-player-media {
+    border-right: 0;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .ik-results-player-info {
+    padding: 0.8rem;
+  }
+
+  .ik-results-player-identity h3 {
+    font-size: 1.35rem;
+  }
+
+  body.inkbeta-mode .ik-results-hero {
+    padding-inline: 0.25rem;
+  }
+
+  body.inkbeta-mode .ik-results-winner {
+    font-size: clamp(1.75rem, 10vw, 2.7rem);
+  }
+
+  body.inkbeta-mode .ik-results-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.inkbeta-mode .ik-results-end,
+  body.inkbeta-mode .ik-results-next {
+    min-height: 3.35rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.inkbeta-mode .ik-results-reconnecting span {
+    animation: none;
+  }
+
+  .ik-results-media-action,
+  .ik-results-card-main,
+  .ik-results-card-tool {
+    transition: none;
+  }
+}
