@@ -29,6 +29,9 @@ import { GAME_AVATARS, findGameAvatarIndex } from '@/lib/gameAvatars';
 import { type LobbyGameMode } from '@/lib/gameModes';
 
 interface InkBetaHomeScreenProps {
+  /** Code d'invitation pré-rempli (lien ?code=XXXX partagé par l'hôte). */
+  initialLobbyCode?: string;
+
   onCreateGame: (playerName: string, gameMode?: LobbyGameMode) => void | Promise<void>;
   onJoinGame: (playerName: string, lobbyCode: string) => void | Promise<void>;
   onOpenPersonalHub: (tab: PersonalHubTab) => void;
@@ -257,6 +260,7 @@ const InkBetaAvatarPicker = memo(() => {
 InkBetaAvatarPicker.displayName = 'InkBetaAvatarPicker';
 
 const InkBetaHomeScreenComponent = ({
+  initialLobbyCode,
   onCreateGame,
   onJoinGame,
   onOpenPersonalHub,
@@ -277,8 +281,11 @@ const InkBetaHomeScreenComponent = ({
   const [playerName, setPlayerName] = useState(() => {
     try { return localStorage.getItem('playerName') ?? ''; } catch { return ''; }
   });
-  const [lobbyCode, setLobbyCode] = useState('');
-  const [showJoin, setShowJoin] = useState(false);
+  const [lobbyCode, setLobbyCode] = useState(() =>
+    (initialLobbyCode ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4),
+  );
+  // Un code d'invitation dans l'URL ouvre directement le panneau "Rejoindre".
+  const [showJoin, setShowJoin] = useState(() => Boolean(initialLobbyCode));
 
   const nameReady = playerName.trim().length > 0;
   const joinReady = nameReady && lobbyCode.trim().length === 4;
