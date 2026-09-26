@@ -691,11 +691,30 @@ const Index = () => {
     });
   }, [lobby, currentPlayer?.isHost, toast]);
 
+  // Code d'invitation partagé via lien (?code=XXXX) : lu une fois, puis
+  // retiré de l'URL pour ne pas polluer les partages suivants.
+  const [inviteCode] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get('code');
+      if (!raw) return undefined;
+      const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+      if (clean.length !== 4) return undefined;
+      params.delete('code');
+      const query = params.toString();
+      window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : ''));
+      return clean;
+    } catch {
+      return undefined;
+    }
+  });
+
   const renderContent = useMemo(() => {
     return (
       <React.Suspense fallback={<LoadingFallback />}>
         {gameState === "home" && (
           <InkBetaHomeScreen
+            initialLobbyCode={inviteCode}
             onCreateGame={handleCreateGame}
             onJoinGame={handleJoinGame}
             onOpenPersonalHub={openPersonalHub}
