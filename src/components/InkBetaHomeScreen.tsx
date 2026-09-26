@@ -281,8 +281,11 @@ const InkBetaHomeScreenComponent = ({
   const [playerName, setPlayerName] = useState(() => {
     try { return localStorage.getItem('playerName') ?? ''; } catch { return ''; }
   });
-  const [lobbyCode, setLobbyCode] = useState('');
-  const [showJoin, setShowJoin] = useState(false);
+  const [lobbyCode, setLobbyCode] = useState(() =>
+    (initialLobbyCode ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4),
+  );
+  // Un code d'invitation dans l'URL ouvre directement le panneau "Rejoindre".
+  const [showJoin, setShowJoin] = useState(() => Boolean(initialLobbyCode));
 
   const nameReady = playerName.trim().length > 0;
   const joinReady = nameReady && lobbyCode.trim().length === 4;
