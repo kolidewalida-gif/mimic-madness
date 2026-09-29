@@ -8,7 +8,7 @@ import type { BlindtestConfig } from './MemoriseGameScreen';
 import { InkBetaBlindtestSetup } from './InkBetaBlindtestSetup';
 import { InkBetaBlindtestResults } from './InkBetaBlindtestResults';
 import './inkBetaBlindtest.css';
-import './inkBetaBlindtestPulse.css';
+import './inkBetaBlindtestShowtime.css';
 
 type Player = { id: string; name: string; isDisconnected?: boolean };
 type Avatar = { type?: string; imageUrl?: string | null } | null | undefined;
@@ -93,10 +93,12 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
   }, [track?.artwork]);
 
   return (
-    <div className="ibx-root ibx-pulse" data-phase={phase} data-playing={phase === 'listen' && !muted && !mediaError && !needsSoundUnlock && secondsLeft > 0 || undefined}>
+    <div className="ibx-root ibx-showtime" data-phase={phase} data-playing={phase === 'listen' && !muted && !mediaError && !needsSoundUnlock && secondsLeft > 0 || undefined}>
       {children}
-      <div className="ibx-pulse-ambience" aria-hidden="true">
+      <div className="ibx-showtime-ambience" aria-hidden="true">
         {phase === 'reveal' && track?.artwork && track.artwork !== failedArtwork && <motion.img key={track.artwork} src={track.artwork} alt="" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: .24 }} transition={{ duration: 1.2 }} />}
+        <i className="ibx-beam ibx-beam-one" /><i className="ibx-beam ibx-beam-two" /><i className="ibx-beam ibx-beam-three" />
+        <span className="ibx-stage-ring ibx-stage-ring-one" /><span className="ibx-stage-ring ibx-stage-ring-two" />
       </div>
       <motion.header className="ibx-topbar" initial={reduceMotion ? false : { y: -70, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 210, damping: 24 }}>
         <div className="ibx-brand"><InkBetaLogo titleId="blindtest-brand" /><span className="ibx-mode-stamp"><Headphones />BLINDTEST<br />MUSICAL</span></div>
@@ -119,14 +121,14 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
         {phase === 'intro' && <InkBetaBlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} error={startError} onStart={startGame} />}
         {active && track && <motion.div className="ibx-arena" key={roundIndex} initial={reduceMotion ? false : { opacity: 0, scale: .975 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .38, ease: [0.22, 1, 0.36, 1] }}>
           <motion.aside className="ibx-live" aria-label="Classement en direct" initial={reduceMotion ? false : { y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: .5, delay: .15 }}>
-            <header><Trophy /><strong>Classement</strong><span>EN DIRECT</span></header>
+            <header><Trophy /><strong>Les joueurs</strong><span>EN DIRECT</span></header>
             {teamsEnabled && <div className="ibx-team-totals"><span>Cyan <strong>{teamScores[0]}</strong></span><span>Rose <strong>{teamScores[1]}</strong></span></div>}
             <ol>{betaRanked.map((player, index) => <motion.li layout key={player.id} data-self={player.id === currentPlayer.id || undefined} data-leader={index === 0 || undefined}><span className="ibx-live-rank">{String(index + 1).padStart(2, '0')}</span><AvatarChip player={player} getAvatar={getAvatar} /><span className="ibx-live-name">{player.name}{player.id === currentPlayer.id && <small>toi</small>}{player.isDisconnected && <small>hors ligne</small>}</span><strong>{player.pts.toLocaleString('fr-FR')}<small>pts</small></strong>{phase === 'listen' && answeredIds.has(player.id) && <Check aria-label="A répondu" />}</motion.li>)}</ol>
             <div className="ibx-party-mascot" aria-hidden="true"><InkBetaMascot /><span>{phase === 'listen' ? 'TENDS L’OREILLE !' : 'ALORS, TU L’AVAIS ?'}</span></div>
           </motion.aside>
           <motion.div className="ibx-stage" initial={reduceMotion ? false : { y: 32, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: .42, delay: .1, ease: [0.22, 1, 0.36, 1] }}>
           <div className="ibx-round-header">
-            <div><span className="ibx-kicker">BLINDTEST MUSICAL</span><h1>{phase === 'listen' ? 'Quel est ce titre ?' : 'La bonne réponse.'}</h1></div>
+            <div><span className="ibx-kicker"><Radio /> ÉMISSION EN DIRECT</span><h1>{phase === 'listen' ? 'À toi de buzzer !' : 'Le verdict !'}</h1></div>
             <div className="ibx-round-counter"><Disc3 /><span>MANCHE</span><strong>{String(roundIndex + 1).padStart(2, '0')}<small> / {String(totalRounds).padStart(2, '0')}</small></strong></div>
           </div>
           <div className="ibx-session-progress" role="progressbar" aria-label="Progression des manches" aria-valuemin={0} aria-valuemax={totalRounds} aria-valuenow={roundIndex + 1}><span style={{ width: `${((roundIndex + 1) / Math.max(1, totalRounds)) * 100}%` }} /></div>
@@ -162,7 +164,7 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
               </>}
             </motion.section>
             <section className="ibx-answer-panel" aria-labelledby="ibx-answer-title">
-              <header><h2 id="ibx-answer-title">{phase === 'listen' ? 'Choisis ta réponse' : correct ? 'Bien joué !' : 'Résultat de la manche'}</h2><p>{phase === 'listen' ? 'Plus tu réponds vite, plus tu marques de points.' : 'Découvre les réponses des joueurs.'}</p></header>
+              <header><span className="ibx-board-live"><i />{phase === 'listen' ? 'BUZZERS OUVERTS' : 'VOTES DU PUBLIC'}</span><h2 id="ibx-answer-title">{phase === 'listen' ? 'Quel titre joue ?' : correct ? 'Tu l’avais !' : 'Réponse révélée'}</h2><p>{phase === 'listen' ? 'Une réponse. Pas de retour en arrière.' : 'Regarde où les autres joueurs ont buzzé.'}</p></header>
               {phase === 'listen' && myChoice != null && <div className="ibx-answer-sent" role="status"><Check /><span><strong>Réponse verrouillée</strong>{myElapsed != null && <small>Envoyée en {(myElapsed / 1000).toFixed(1)} s. Place au verdict.</small>}</span></div>}
               {phase === 'reveal' && <div className="ibx-round-verdict" data-correct={correct || undefined} role="status"><span>{correct ? <Check /> : <X />}{correct ? 'C’est la bonne réponse !' : myChoice == null ? 'Tu n’as pas répondu à temps.' : 'Ce n’était pas ce titre.'}</span><strong>+{points.toLocaleString('fr-FR')} <small>pts</small></strong></div>}
               <div className="ibx-answers">
