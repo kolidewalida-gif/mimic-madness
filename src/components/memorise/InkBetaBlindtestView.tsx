@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowUpRight, AudioLines, Check, ChevronRight, Disc3, Flame, Headphones, Lightbulb, Loader2, Radio, Trophy, Users, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { CATEGORY_META, type BlindtestCategory } from '@/lib/blindtestTracks';
@@ -84,6 +84,13 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
   const correct = answerIndex != null && myChoice === answerIndex;
   const choicesLocked = myChoice != null || secondsLeft <= 0;
 
+  // Warm the image cache during listening so the reveal doesn't wait on a download.
+  useEffect(() => {
+    if (!track?.artwork) return;
+    const artwork = new Image();
+    artwork.src = track.artwork;
+  }, [track?.artwork]);
+
   return (
     <div className="ibx-root" data-phase={phase} data-playing={phase === 'listen' && !muted && !mediaError && !needsSoundUnlock && secondsLeft > 0 || undefined}>
       {children}
@@ -108,7 +115,7 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
       </motion.div>}</AnimatePresence>
       <main className="ibx-main">
         {phase === 'intro' && <InkBetaBlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} error={startError} onStart={startGame} />}
-        {active && track && <motion.div className="ibx-arena" key={`${phase}-${roundIndex}`} initial={reduceMotion ? false : { opacity: 0, scale: .975 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .38, ease: [0.22, 1, 0.36, 1] }}>
+        {active && track && <motion.div className="ibx-arena" key={roundIndex} initial={reduceMotion ? false : { opacity: 0, scale: .975 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .38, ease: [0.22, 1, 0.36, 1] }}>
           <motion.aside className="ibx-live" aria-label="Classement en direct" initial={reduceMotion ? false : { x: -80, rotate: -2, opacity: 0 }} animate={{ x: 0, rotate: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 170, damping: 19, delay: .08 }}>
             <header><Trophy /><strong>Les scores</strong><span>EN DIRECT</span></header>
             <p className="ibx-live-intro">Qui a la meilleure oreille ?</p>
@@ -144,9 +151,17 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
                 {hintText && myChoice == null && <div className="ibx-hint"><Lightbulb /><span><small>UN PETIT INDICE</small><strong>{hintText}</strong></span></div>}
                 {myStreak >= 2 && <span className="ibx-streak"><Flame />{myStreak} bonnes réponses d’affilée</span>}
               </> : <>
-                <div className="ibx-reveal-art">{track.artwork && track.artwork !== failedArtwork ? <img src={track.artwork} alt={`Pochette de ${track.title}`} onError={() => setFailedArtwork(track.artwork ?? null)} /> : <Disc3 aria-hidden="true" />}</div>
-                <span className="ibx-kicker">IL FALLAIT RECONNAÎTRE</span><h2 className="ibx-track-title">{track.title}</h2>{track.subtitle && <p className="ibx-track-subtitle">{track.subtitle}</p>}
-                <div className="ibx-next-track" role="status"><Loader2 />{roundIndex + 1 >= totalRounds ? 'Le podium arrive…' : 'La prochaine manche arrive…'}</div>
+                <div className="ibx-reveal-visual">
+                  <motion.span className="ibx-reveal-halo" aria-hidden="true" initial={reduceMotion ? false : { opacity: 0, scale: .65 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.1, ease: 'easeOut' }} />
+                  <motion.div className="ibx-reveal-art" initial={reduceMotion ? false : { opacity: 0, y: 42, scale: .8, rotateY: -24, rotateZ: -9 }} animate={{ opacity: 1, y: 0, scale: 1, rotateY: 0, rotateZ: -3 }} transition={{ duration: .85, ease: [0.16, 1, 0.3, 1] }}>
+                    {track.artwork && track.artwork !== failedArtwork ? <img src={track.artwork} alt={`Pochette de ${track.title}`} onError={() => setFailedArtwork(track.artwork ?? null)} /> : <Disc3 aria-hidden="true" />}
+                    <span className="ibx-reveal-sheen" aria-hidden="true" />
+                  </motion.div>
+                </div>
+                <motion.div className="ibx-reveal-copy" initial={reduceMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65, delay: .18, ease: [0.16, 1, 0.3, 1] }}>
+                  <span className="ibx-kicker">IL FALLAIT RECONNAÎTRE</span><h2 className="ibx-track-title">{track.title}</h2>{track.subtitle && <p className="ibx-track-subtitle">{track.subtitle}</p>}
+                  <div className="ibx-next-track" role="status"><Loader2 />{roundIndex + 1 >= totalRounds ? 'Le podium arrive…' : 'La prochaine manche arrive…'}</div>
+                </motion.div>
               </>}
             </section>
             <section className="ibx-answer-panel" aria-labelledby="ibx-answer-title">
