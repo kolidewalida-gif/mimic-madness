@@ -1,5 +1,4 @@
-import { motion } from 'framer-motion';
-import { Clock3, Crown, LogOut, Radio, RotateCcw, Trophy, Users } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Check, Clock3, Crown, Loader2, Radio, RotateCcw, Trophy, Users } from 'lucide-react';
 import { PodiumAd } from '@/components/PodiumAd';
 
 interface RankedPlayer {
@@ -8,7 +7,6 @@ interface RankedPlayer {
   pts: number;
   isDisconnected?: boolean;
 }
-
 interface InkBetaBlindtestResultsProps {
   ranked: RankedPlayer[];
   currentPlayerId: string;
@@ -22,154 +20,63 @@ interface InkBetaBlindtestResultsProps {
   totalRounds: number;
   onReplay: () => void;
   onEndGame: () => void;
+  starting?: boolean;
+  error?: string | null;
 }
 
-const TEAM_META = [
-  { name: 'Cyan', color: '#32d6c5' },
-  { name: 'Rose', color: '#ff5d7a' },
-] as const;
-
-const PlayerAvatar = ({
-  player,
-  getAvatar,
-}: {
-  player: RankedPlayer;
-  getAvatar: InkBetaBlindtestResultsProps['getAvatar'];
-}) => {
-  const avatar = getAvatar(player.id);
-  const image = avatar?.type === 'image' ? avatar.imageUrl : null;
-  return (
-    <span className="bt4-avatar">
-      {image
-        ? <img src={image} alt={player.name} />
-        : <span>{(player.name[0] || '?').toUpperCase()}</span>}
-    </span>
-  );
-};
-
 export const InkBetaBlindtestResults = ({
-  ranked,
-  currentPlayerId,
-  isHost,
-  teamsEnabled,
-  teamScores,
-  teamOf,
-  avgReaction,
-  getAvatar,
-  roundIndex,
-  totalRounds,
-  onReplay,
-  onEndGame,
+  ranked, currentPlayerId, isHost, teamsEnabled, teamScores, teamOf, avgReaction,
+  getAvatar, roundIndex, totalRounds, onReplay, onEndGame, starting = false, error,
 }: InkBetaBlindtestResultsProps) => {
   const winner = ranked[0];
-  const teamWinner = teamScores[0] === teamScores[1] ? null : teamScores[0] > teamScores[1] ? 0 : 1;
+  const topPlayers = winner ? ranked.filter((player) => player.pts === winner.pts) : [];
+  const tied = topPlayers.length > 1;
   const myIndex = ranked.findIndex((player) => player.id === currentPlayerId);
-  const me = myIndex >= 0 ? ranked[myIndex] : null;
-
+  const me = ranked[myIndex];
+  const myRank = me ? ranked.filter((player) => player.pts > me.pts).length + 1 : null;
+  const winnerAvatar = winner ? getAvatar(winner.id) : null;
+  const teamWinner = teamScores[0] === teamScores[1] ? null : teamScores[0] > teamScores[1] ? 0 : 1;
+  const avatar = (player: RankedPlayer) => {
+    const item = getAvatar(player.id);
+    return <span className="ibx-avatar">{item?.type === 'image' && item.imageUrl ? <img src={item.imageUrl} alt="" /> : player.name.slice(0, 1).toUpperCase()}</span>;
+  };
   return (
-    <motion.section
-      className="bt4-results"
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      aria-labelledby="bt4-results-title"
-    >
-      <header className="bt4-results-head">
-        <div>
-          <span className="bt4-eyebrow">Fin du set · {totalRounds} manches</span>
-          <h2 id="bt4-results-title">Le classement est tombé.</h2>
-        </div>
-        <Trophy aria-hidden="true" />
-      </header>
-
-      <div className="bt4-results-layout">
-        <section className="bt4-winner-card" aria-label="Vainqueur de la partie">
-          {winner ? (
-            <>
-              <span className="bt4-winner-label"><Crown aria-hidden="true" /> Numéro 1</span>
-              <PlayerAvatar player={winner} getAvatar={getAvatar} />
-              <div>
-                <h3>{winner.name}</h3>
-                <p>{winner.id === currentPlayerId ? 'C’est toi, champion.' : 'Le meilleur flair musical du set.'}</p>
-              </div>
-              <strong>{winner.pts.toLocaleString('fr-FR')}<small>points</small></strong>
-            </>
-          ) : (
-            <div className="bt4-results-empty">Aucun score enregistré.</div>
-          )}
+    <section className="ibx-results" aria-labelledby="ibx-results-title">
+      <header className="ibx-results-heading"><span className="ibx-kicker"><Check /> LE SET EST TERMINÉ / {totalRounds} MANCHES</span><h1 id="ibx-results-title">C’était du <em>grand son.</em></h1><p>Les dernières notes s’envolent. Les points, eux, restent.</p></header>
+      <div className="ibx-results-grid">
+        <section className="ibx-winner" aria-label="Vainqueur de la partie">
+          <span className="ibx-kicker"><Crown />{tied ? 'PREMIERS EX ÆQUO' : 'LA TÊTE D’AFFICHE'}</span>
+          <div className="ibx-winner-record" aria-hidden="true"><span>{!tied && winnerAvatar?.type === 'image' && winnerAvatar.imageUrl ? <img src={winnerAvatar.imageUrl} alt="" /> : <Trophy />}</span></div>
+          <span className="ibx-winner-position">{winner ? '#01' : '—'}</span>
+          <h2>{winner ? tied ? topPlayers.map((player) => player.name).join(' & ') : winner.name : 'Pas encore de score'}</h2>
+          <p>{winner ? tied ? 'Le même score. La même place au sommet.' : winner.id === currentPlayerId ? 'La meilleure oreille du groupe, c’est toi.' : 'Une oreille en or. Une victoire méritée.' : 'Le prochain set sera le bon.'}</p>
+          {winner && <strong className="ibx-winner-score">{winner.pts.toLocaleString('fr-FR')}<small>POINTS</small></strong>}
         </section>
-
-        <section className="bt4-ranking" aria-labelledby="bt4-ranking-title">
-          <div className="bt4-ranking-head">
-            <span className="bt4-step">Scoreboard</span>
-            <h3 id="bt4-ranking-title">Tout le monde</h3>
-          </div>
-          <ol>
-            {ranked.map((player, index) => {
-              const avg = avgReaction[player.id];
-              const team = teamOf[player.id] ?? 0;
-              return (
-                <motion.li
-                  key={player.id}
-                  data-self={player.id === currentPlayerId || undefined}
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <span className="bt4-rank">{String(index + 1).padStart(2, '0')}</span>
-                  <PlayerAvatar player={player} getAvatar={getAvatar} />
-                  <span className="bt4-rank-copy">
-                    <strong>{player.name}{player.id === currentPlayerId ? ' · toi' : ''}</strong>
-                    <small>{teamsEnabled ? `Équipe ${TEAM_META[team].name}` : player.isDisconnected ? 'Déconnecté' : 'Joueur'}</small>
-                    {avg != null && <small className="bt4-rank-speed"><Clock3 aria-hidden="true" /> {(avg / 1_000).toFixed(1)}s de moyenne</small>}
-                  </span>
-                  <strong className="bt4-rank-score">{player.pts.toLocaleString('fr-FR')}</strong>
-                </motion.li>
-              );
-            })}
-          </ol>
+        <section className="ibx-ranking" aria-labelledby="ibx-ranking-title">
+          <header className="ibx-section-head"><div><Trophy /><h2 id="ibx-ranking-title">Le classement</h2></div><span>{ranked.length} joueurs</span></header>
+          <ol>{ranked.map((player) => {
+            const rank = ranked.filter((other) => other.pts > player.pts).length + 1;
+            const avg = avgReaction[player.id];
+            return <li key={player.id} data-self={player.id === currentPlayerId || undefined}>
+              <span className="ibx-rank-number">{String(rank).padStart(2, '0')}</span>{avatar(player)}
+              <span className="ibx-ranking-name"><strong>{player.name}{player.id === currentPlayerId && <small>toi</small>}</strong><small>{player.isDisconnected ? 'Hors ligne' : teamsEnabled ? `Équipe ${teamOf[player.id] === 1 ? 'Rose' : 'Cyan'}` : rank === 1 ? 'En tête d’affiche' : 'Dans le mix'}{avg != null && <> · {(avg / 1000).toFixed(1)} s / réponse</>}</small></span>
+              <strong className="ibx-ranking-points">{player.pts.toLocaleString('fr-FR')}<small>pts</small></strong>
+            </li>;
+          })}</ol>
+          {ranked.length === 0 && <p className="ibx-empty">Aucun score enregistré pour cette session.</p>}
         </section>
-
-        <aside className="bt4-results-side">
-          {teamsEnabled && (
-            <section className="bt4-team-result" aria-label="Résultat des équipes">
-              <span>{teamWinner == null ? 'Égalité des équipes' : `Équipe ${TEAM_META[teamWinner].name} en tête`}</span>
-              <div>
-                {TEAM_META.map((team, index) => (
-                  <article key={team.name} data-winner={teamWinner === index || undefined} style={{ '--bt4-team': team.color } as React.CSSProperties}>
-                    <Users aria-hidden="true" /><span>{team.name}</span><strong>{teamScores[index as 0 | 1]}</strong>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className="bt4-my-result">
-            <span>Ta performance</span>
-            <strong>{myIndex >= 0 ? `#${myIndex + 1}` : '—'}</strong>
-            <p>{me ? `${me.pts.toLocaleString('fr-FR')} points` : 'Pas de classement'}</p>
-            {me && avgReaction[me.id] != null && <small><Clock3 aria-hidden="true" /> {(avgReaction[me.id] / 1_000).toFixed(1)}s par réponse</small>}
-          </section>
-
-          <div className="bt4-result-actions">
-            {isHost ? (
-              <button type="button" className="bt4-replay menu-focus" onClick={onReplay}>
-                <RotateCcw aria-hidden="true" /><span><strong>Rejouer</strong><small>Mêmes réglages</small></span>
-              </button>
-            ) : (
-              <p className="bt4-host-wait"><Radio className="animate-pulse" aria-hidden="true" /> En attente de l’hôte…</p>
-            )}
-            <button type="button" className="bt4-exit menu-focus" onClick={onEndGame}>
-              <LogOut aria-hidden="true" /> Retour au lobby
-            </button>
+        <aside className="ibx-results-side">
+          <section className="ibx-personal-result"><span className="ibx-kicker">TON RAPPEL À TOI</span><strong>{myRank != null ? `#${myRank}` : '—'}<small>sur {ranked.length}</small></strong><p>{me ? `${me.pts.toLocaleString('fr-FR')} points au compteur` : 'Pas de classement'}</p>{me && avgReaction[me.id] != null && <span><Clock3 />{(avgReaction[me.id] / 1000).toFixed(1)} s de réaction moyenne</span>}</section>
+          {teamsEnabled && <section className="ibx-results-teams"><span className="ibx-kicker"><Users />{teamWinner == null ? 'ÉQUIPES EX ÆQUO' : `VICTOIRE ${teamWinner === 0 ? 'CYAN' : 'ROSE'}`}</span><div className="ibx-team-totals"><span>Cyan <strong>{teamScores[0].toLocaleString('fr-FR')}</strong></span><span>Rose <strong>{teamScores[1].toLocaleString('fr-FR')}</strong></span></div></section>}
+          <div className="ibx-result-actions">
+            <h3>On remet ça ?</h3><p>Un nouveau mix, les mêmes réglages.</p>
+            {isHost ? <button type="button" className="ibx-launch" onClick={onReplay} disabled={starting} aria-busy={starting}>{starting ? <Loader2 className="ibx-spinning" /> : <RotateCcw />}<span>{starting ? 'Préparation…' : 'Encore une partie'}</span><ArrowUpRight /></button> : <p className="ibx-status" role="status"><Radio />L’hôte choisit la suite.</p>}
+            {error && <p className="ibx-message ibx-message-error" role="alert">{error}</p>}
+            <button type="button" className="ibx-secondary" onClick={onEndGame}><ArrowLeft />Retour au lobby</button>
           </div>
         </aside>
       </div>
-
-      <PodiumAd
-        gameMode="memorise"
-        instanceKey={`memorise:${roundIndex}:${totalRounds}`}
-        className="bt4-podium-ad"
-      />
-    </motion.section>
+      <PodiumAd gameMode="memorise" instanceKey={`memorise:${roundIndex}:${totalRounds}`} className="ibx-podium-ad" />
+    </section>
   );
 };

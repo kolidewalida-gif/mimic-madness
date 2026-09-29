@@ -1,36 +1,17 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { motion } from 'framer-motion';
 import {
-  AlertTriangle,
-  Check,
-  Clock3,
-  Disc3,
-  Gauge,
-  Headphones,
-  Layers,
-  Lightbulb,
-  ListMusic,
-  Loader2,
-  Play,
-  Radio,
-  Shuffle,
-  Sparkles,
-  Timer,
-  Trophy,
-  Users,
-  Zap,
+  AlertCircle, ArrowUpRight, AudioLines, CassetteTape, Castle, Check,
+  Clapperboard, Disc3, Gamepad2, Headphones, Lightbulb, Loader2,
+  Mic2, Music2, Play, Radio, Shuffle, Sparkles, Swords, Timer, Tv, Users, Zap,
+  type LucideIcon,
 } from 'lucide-react';
 import {
-  BLINDTEST_ENTRIES_UNIQUE,
-  BLINDTEST_LISTEN_MS,
-  BLINDTEST_LISTEN_OPTIONS,
-  BLINDTEST_REVEAL_MS,
-  BLINDTEST_ROUNDS,
-  BLINDTEST_ROUND_OPTIONS,
-  CATEGORY_META,
+  BLINDTEST_ENTRIES_UNIQUE, BLINDTEST_LISTEN_MS, BLINDTEST_LISTEN_OPTIONS,
+  BLINDTEST_REVEAL_MS, BLINDTEST_ROUNDS, BLINDTEST_ROUND_OPTIONS, CATEGORY_META,
   type BlindtestCategory,
 } from '@/lib/blindtestTracks';
 import type { BlindtestConfig } from './MemoriseGameScreen';
+import { InkBetaMascot } from '@/components/InkBetaBrand';
 
 interface InkBetaBlindtestSetupProps {
   isHost: boolean;
@@ -40,404 +21,171 @@ interface InkBetaBlindtestSetupProps {
   onStart: (categories: BlindtestCategory[], config: BlindtestConfig) => void;
 }
 
-const CATEGORIES: BlindtestCategory[] = [
-  'anime', 'cartoon', 'music', 'film', 'jeuxvideo',
-  'disney', 'kpop', 'retro', 'series', 'rapfr',
+const UNIVERSES: { id: BlindtestCategory; icon: LucideIcon; caption: string; color: string }[] = [
+  { id: 'music', icon: Music2, caption: 'Les hits, les vrais.', color: '#c2acff' },
+  { id: 'anime', icon: Swords, caption: 'Opening culte.', color: '#ffaca0' },
+  { id: 'film', icon: Clapperboard, caption: 'Le grand frisson.', color: '#f1d48e' },
+  { id: 'jeuxvideo', icon: Gamepad2, caption: 'Level : mélomane.', color: '#b5d99f' },
+  { id: 'rapfr', icon: Mic2, caption: 'Le flow dans la peau.', color: '#b2c5ff' },
+  { id: 'disney', icon: Castle, caption: 'Un peu de magie.', color: '#e9b4e8' },
+  { id: 'retro', icon: CassetteTape, caption: 'Retour sur la face B.', color: '#e7bb8b' },
+  { id: 'kpop', icon: Sparkles, caption: 'Le refrain en boucle.', color: '#efa9ce' },
+  { id: 'series', icon: Tv, caption: 'Encore un épisode.', color: '#9fcfdd' },
+  { id: 'cartoon', icon: Play, caption: 'Souvenirs du matin.', color: '#d5d88c' },
+];
+const CATEGORIES = UNIVERSES.map(({ id }) => id);
+const COUNTS = Object.fromEntries(CATEGORIES.map((id) => [id, BLINDTEST_ENTRIES_UNIQUE.filter((entry) => entry.category === id).length]));
+const PRESETS: { label: string; categories: BlindtestCategory[] }[] = [
+  { label: 'Le grand mix', categories: CATEGORIES },
+  { label: 'Pop culture', categories: ['anime', 'film', 'jeuxvideo', 'disney', 'series', 'cartoon'] },
+  { label: 'Hits & nostalgie', categories: ['music', 'rapfr', 'retro', 'kpop'] },
 ];
 
-/** Nombre de titres par univers, calculé une fois pour tout le module. */
-const COUNT_BY_CATEGORY = CATEGORIES.reduce<Record<string, number>>((acc, category) => {
-  acc[category] = BLINDTEST_ENTRIES_UNIQUE.filter((entry) => entry.category === category).length;
-  return acc;
-}, {});
-
-const plural = (value: number, word: string) => `${value} ${word}${value > 1 ? 's' : ''}`;
-
-/** Segment de réglage : une valeur discrète parmi une liste courte. */
-const Segmented = <T extends number>({
-  options,
-  value,
-  format,
-  onChange,
-  label,
-}: {
-  options: readonly T[];
-  value: T;
-  format: (option: T) => string;
-  onChange: (option: T) => void;
-  label: string;
+const Segmented = ({ options, value, onChange, label, seconds = false }: {
+  options: readonly number[]; value: number; onChange: (value: number) => void; label: string; seconds?: boolean;
 }) => (
-  <div className="bts-segmented" role="group" aria-label={label} data-count={options.length}>
+  <div className="ibx-segments" role="group" aria-label={label}>
     {options.map((option) => (
-      <button
-        key={option}
-        type="button"
-        className="menu-focus"
-        aria-pressed={value === option}
-        onClick={() => onChange(option)}
-      >
-        {format(option)}
+      <button key={option} type="button" aria-pressed={value === option} onClick={() => onChange(option)}>
+        {seconds ? `${option / 1000}s` : option}
       </button>
     ))}
   </div>
 );
 
-/** Bonus de partie : un interrupteur explicite avec sa conséquence en jeu. */
-const BonusToggle = ({
-  checked,
-  icon: Icon,
-  label,
-  description,
-  onChange,
-}: {
-  checked: boolean;
-  icon: typeof Users;
-  label: string;
-  description: string;
-  onChange: () => void;
+const Toggle = ({ checked, onChange, icon: Icon, label, description }: {
+  checked: boolean; onChange: () => void; icon: LucideIcon; label: string; description: string;
 }) => (
-  <button
-    type="button"
-    className="bts-bonus menu-focus"
-    data-on={checked || undefined}
-    aria-pressed={checked}
-    onClick={onChange}
-  >
-    <span className="bts-bonus-icon" aria-hidden="true"><Icon /></span>
-    <span className="bts-bonus-copy">
-      <strong>{label}</strong>
-      <small>{description}</small>
-    </span>
-    <span className="bts-switch" aria-hidden="true"><i /></span>
+  <button className="ibx-toggle-row" type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onChange}>
+    <Icon aria-hidden="true" />
+    <span><strong>{label}</strong><small>{description}</small></span>
+    <i className="ibx-switch" aria-hidden="true"><i /></i>
   </button>
 );
 
-export const InkBetaBlindtestSetup = ({
-  isHost,
-  canStart,
-  starting,
-  error,
-  onStart,
-}: InkBetaBlindtestSetupProps) => {
-  const [selected, setSelected] = useState<Set<BlindtestCategory>>(new Set(CATEGORIES));
+/** Setup owns only local form state. The host remains authoritative for starting a game. */
+export const InkBetaBlindtestSetup = ({ isHost, canStart, starting, error, onStart }: InkBetaBlindtestSetupProps) => {
+  const [selected, setSelected] = useState<Set<BlindtestCategory>>(() => new Set(CATEGORIES));
   const [rounds, setRounds] = useState<number>(BLINDTEST_ROUNDS);
   const [listenMs, setListenMs] = useState<number>(BLINDTEST_LISTEN_MS);
   const [teams, setTeams] = useState(false);
   const [hints, setHints] = useState(true);
   const [doublePoints, setDoublePoints] = useState(true);
+  const titleCount = useMemo(() => [...selected].reduce((total, id) => total + COUNTS[id], 0), [selected]);
+  const playableRounds = Math.min(rounds, titleCount);
+  const minutes = Math.max(1, Math.ceil(playableRounds * (listenMs + BLINDTEST_REVEAL_MS) / 60000));
+  const preset = PRESETS.find(({ categories }) => categories.length === selected.size && categories.every((id) => selected.has(id)));
 
-  /** Un univers doit toujours rester actif : sans titre, aucune manche. */
-  const isLastSelected = (category: BlindtestCategory) => selected.size === 1 && selected.has(category);
-
-  const toggleCategory = (category: BlindtestCategory) => {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(category)) {
-        if (next.size > 1) next.delete(category);
-      } else {
-        next.add(category);
-      }
-      return next;
-    });
-  };
-
-  const selectAll = () => setSelected(new Set(CATEGORIES));
-
-  /** Tirage surprise : trois univers au hasard pour relancer la variété. */
-  const selectRandom = () => {
-    const pool = [...CATEGORIES];
-    for (let i = pool.length - 1; i > 0; i -= 1) {
+  const toggleCategory = (id: BlindtestCategory) => setSelected((current) => {
+    const next = new Set(current);
+    if (next.has(id)) { if (next.size > 1) next.delete(id); } else next.add(id);
+    return next;
+  });
+  const surprise = () => {
+    const shuffled = [...CATEGORIES];
+    for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    setSelected(new Set(pool.slice(0, 3)));
+    setSelected(new Set(shuffled.slice(0, 3)));
   };
 
-  const titleCount = useMemo(
-    () => CATEGORIES.reduce((total, category) => (selected.has(category) ? total + COUNT_BY_CATEGORY[category] : total), 0),
-    [selected],
+  if (!isHost) return (
+    <section className="ibx-wait" aria-labelledby="ibx-wait-title">
+      <div className="ibx-wait-mascot"><InkBetaMascot /></div>
+      <span className="ibx-kicker">LES COULISSES / BLINDTEST MUSICAL</span>
+      <h1 id="ibx-wait-title">Ton prochain refrain<br /><em>arrive.</em></h1>
+      <p>L’hôte prépare le mix. Installe-toi, règle ton volume en haut de l’écran et prépare tes réflexes.</p>
+      <ol className="ibx-howto">
+        <li><b>01</b><span>Écoute l’extrait</span></li>
+        <li><b>02</b><span>Choisis une réponse</span></li>
+        <li><b>03</b><span>Marque des points</span></li>
+      </ol>
+      <div className="ibx-status" role="status"><Radio />{canStart ? 'Salon connecté · En attente de l’hôte' : 'Connexion au salon…'}</div>
+      <small>Plus tu réponds vite, plus tu marques. Une réponse validée est définitive.</small>
+    </section>
   );
 
-  const playableRounds = Math.max(1, Math.min(rounds, titleCount));
-  const isCapped = playableRounds < rounds;
-  const listenSeconds = Math.round(listenMs / 1_000);
-  const estimatedMinutes = Math.max(1, Math.ceil((playableRounds * (listenMs + BLINDTEST_REVEAL_MS)) / 60_000));
-  const config: BlindtestConfig = { rounds, listenMs, teams, hints, doublePoints };
-
-  const activeBonuses = [
-    teams ? 'deux équipes' : null,
-    hints ? 'indices progressifs' : null,
-    doublePoints ? 'manches ×2' : null,
-  ].filter(Boolean) as string[];
-
-  const recap = [
-    plural(playableRounds, 'manche'),
-    `${listenSeconds} s d’écoute`,
-    teams ? 'en équipes' : 'chacun pour soi',
-  ].join(' · ');
-
-  if (!isHost) {
-    return (
-      <motion.section
-        className="bts-wait"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        aria-live="polite"
-      >
-        <div className="bts-wait-art" aria-hidden="true">
-          <div className="bts-wait-disc"><Disc3 /></div>
-          <div className="bts-wait-wave">
-            {Array.from({ length: 24 }, (_, index) => <i key={index} />)}
-          </div>
-        </div>
-        <div className="bts-wait-copy">
-          <span className="bts-kicker"><Radio aria-hidden="true" /> Blindtest · Backstage</span>
-          <h2>Le mix<br /><em>arrive.</em></h2>
-          <p>L’hôte compose la setlist. Branche tes écouteurs, monte le son et garde un doigt sur les réponses.</p>
-        </div>
-        <ul className="bts-wait-tips">
-          <li><Timer aria-hidden="true" /> Répondre vite rapporte plus de points</li>
-          <li><Lightbulb aria-hidden="true" /> Des indices apparaissent en fin d’extrait</li>
-          <li><Check aria-hidden="true" /> Une seule réponse, pas de retour en arrière</li>
-        </ul>
-        <span className="bts-connection" data-ready={canStart || undefined}>
-          <Radio className={canStart ? undefined : 'animate-pulse'} aria-hidden="true" />
-          {canStart ? 'Salon connecté' : 'Connexion au salon…'}
-        </span>
-      </motion.section>
-    );
-  }
-
   return (
-    <motion.section
-      className="bts"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28 }}
-      aria-labelledby="bts-title"
-    >
-      <header className="bts-hero">
-        <div className="bts-hero-copy">
-          <span className="bts-kicker"><Disc3 aria-hidden="true" /> Ink Beta · Blindtest</span>
-          <h1 id="bts-title">Fais ta setlist.</h1>
-          <p><Headphones aria-hidden="true" /> Un extrait, quatre propositions, une seule bonne réponse.</p>
-        </div>
-
-        <dl className="bts-stats" aria-label="Résumé de la partie">
-          <div>
-            <dt><Layers aria-hidden="true" /> Univers</dt>
-            <dd>{selected.size}<em>/{CATEGORIES.length}</em></dd>
+    <fieldset className="ibx-setup" disabled={starting}>
+      <legend className="sr-only">Préparer le blindtest</legend>
+      <div className="ibx-catalog">
+        <section className="ibx-hero" aria-labelledby="ibx-setup-title">
+          <div className="ibx-hero-copy">
+            <span className="ibx-kicker"><span className="ibx-dot" /> LE BLINDTEST MUSICAL / INK BETA</span>
+            <h1 id="ibx-setup-title">Monte le son.<br /><em>Défie tes potes !</em></h1>
+            <p>Choisis tes univers, règle la partie.<br />Et montre-leur qui connaît tous les refrains.</p>
+            <span className="ibx-hero-tag"><Headphones /> Écoute. Trouve. Prends la tête.</span>
           </div>
-          <div>
-            <dt><ListMusic aria-hidden="true" /> Titres</dt>
-            <dd>{titleCount.toLocaleString('fr-FR')}</dd>
-          </div>
-          <div>
-            <dt><Disc3 aria-hidden="true" /> Manches</dt>
-            <dd>{playableRounds}</dd>
-          </div>
-          <div>
-            <dt><Clock3 aria-hidden="true" /> Durée</dt>
-            <dd>~{estimatedMinutes}<em>min</em></dd>
-          </div>
-        </dl>
-      </header>
-
-      <section className="bts-crate" aria-labelledby="bts-crate-title">
-        <div className="bts-head">
-          <span className="bts-step" aria-hidden="true">01</span>
-          <div className="bts-head-copy">
-            <h2 id="bts-crate-title">Pioche tes univers</h2>
-            <p>Garde au moins un univers actif. Plus la sélection est large, plus le mix surprend.</p>
-          </div>
-          <div className="bts-head-actions">
-            <button type="button" className="bts-chip menu-focus" onClick={selectAll} disabled={selected.size === CATEGORIES.length}>
-              <Sparkles aria-hidden="true" /> Tout
-            </button>
-            <button type="button" className="bts-chip menu-focus" onClick={selectRandom}>
-              <Shuffle aria-hidden="true" /> Au hasard
-            </button>
-          </div>
-        </div>
-
-        <div className="bts-grid" role="group" aria-label="Univers musicaux disponibles">
-          {CATEGORIES.map((category) => {
-            const meta = CATEGORY_META[category];
-            const active = selected.has(category);
-            const locked = isLastSelected(category);
-            return (
-              <motion.button
-                key={category}
-                type="button"
-                className="bts-card menu-focus"
-                data-active={active || undefined}
-                data-locked={locked || undefined}
-                aria-pressed={active}
-                title={locked ? 'Garde au moins un univers actif' : undefined}
-                onClick={() => toggleCategory(category)}
-                style={{ '--bts-cat': meta.color } as CSSProperties}
-                whileTap={locked ? undefined : { scale: 0.97 }}
-              >
-                <span className="bts-card-art" aria-hidden="true">{meta.emoji}</span>
-                <span className="bts-card-copy">
-                  <strong>{meta.label}</strong>
-                  <small>{plural(COUNT_BY_CATEGORY[category], 'titre')}</small>
-                </span>
-                <span className="bts-card-state" aria-hidden="true">
-                  {active ? <Check /> : '+'}
-                </span>
-              </motion.button>
-            );
-          })}
-        </div>
-      </section>
-
-      <ol className="bts-rules" aria-label="Déroulé d’une manche">
-        <li>
-          <span className="bts-rules-num" aria-hidden="true">1</span>
-          <Timer aria-hidden="true" />
-          <div>
-            <strong>Écoute l’extrait</strong>
-            <small>{listenSeconds} secondes, sans le titre à l’écran</small>
-          </div>
-        </li>
-        <li>
-          <span className="bts-rules-num" aria-hidden="true">2</span>
-          <Gauge aria-hidden="true" />
-          <div>
-            <strong>Réponds vite</strong>
-            <small>Le score fond seconde après seconde</small>
-          </div>
-        </li>
-        <li>
-          <span className="bts-rules-num" aria-hidden="true">3</span>
-          <Trophy aria-hidden="true" />
-          <div>
-            <strong>Grimpe au classement</strong>
-            <small>Le meilleur flair musical remporte le set</small>
-          </div>
-        </li>
-      </ol>
-
-      <aside className="bts-rail">
-        <section className="bts-block" aria-labelledby="bts-tempo-title">
-          <div className="bts-head">
-            <span className="bts-step" aria-hidden="true">02</span>
-            <div className="bts-head-copy">
-              <h2 id="bts-tempo-title">Règle le tempo</h2>
-              <p>Manches courtes pour enchaîner, extraits longs pour deviner.</p>
-            </div>
-          </div>
-
-          <div className="bts-field">
-            <span className="bts-field-label">
-              <Disc3 aria-hidden="true" /> Manches
-              <strong>{rounds}</strong>
-            </span>
-            <Segmented
-              label="Nombre de manches"
-              options={BLINDTEST_ROUND_OPTIONS}
-              value={rounds as (typeof BLINDTEST_ROUND_OPTIONS)[number]}
-              format={(option) => String(option)}
-              onChange={setRounds}
-            />
-          </div>
-
-          <div className="bts-field">
-            <span className="bts-field-label">
-              <Timer aria-hidden="true" /> Écoute
-              <strong>{listenSeconds} s</strong>
-            </span>
-            <Segmented
-              label="Durée d’écoute par manche"
-              options={BLINDTEST_LISTEN_OPTIONS}
-              value={listenMs as (typeof BLINDTEST_LISTEN_OPTIONS)[number]}
-              format={(option) => `${option / 1_000}s`}
-              onChange={setListenMs}
-            />
-          </div>
-
+          <div className="ibx-setup-mascot" aria-hidden="true"><InkBetaMascot /><span>FAIS PÉTER<br />LE SCORE !</span></div>
         </section>
 
-        <section className="bts-block" aria-labelledby="bts-bonus-title">
-          <div className="bts-head">
-            <span className="bts-step" aria-hidden="true">03</span>
-            <div className="bts-head-copy">
-              <h2 id="bts-bonus-title">Ajoute du piment</h2>
-              <p>Trois options qui changent la façon de marquer.</p>
-            </div>
+        <section className="ibx-library" aria-labelledby="ibx-library-title">
+          <header className="ibx-section-head">
+            <div><span className="ibx-section-no">01</span><h2 id="ibx-library-title">Compose ton mix</h2></div>
+            <span className="ibx-count" aria-live="polite">{selected.size} / {CATEGORIES.length} univers</span>
+          </header>
+          <div className="ibx-presets" role="group" aria-label="Sélections rapides">
+            {PRESETS.map((item) => <button type="button" key={item.label} aria-pressed={preset?.label === item.label} onClick={() => setSelected(new Set(item.categories))}>{item.label}</button>)}
+            <button type="button" className="ibx-surprise" onClick={surprise}><Shuffle /> Surprends-moi</button>
           </div>
-
-          <div className="bts-bonuses">
-            <BonusToggle
-              checked={teams}
-              icon={Users}
-              label="Équipes"
-              description="Deux camps, scores cumulés"
-              onChange={() => setTeams((value) => !value)}
-            />
-            <BonusToggle
-              checked={hints}
-              icon={Lightbulb}
-              label="Indices"
-              description="Lettres révélées en fin d’extrait"
-              onChange={() => setHints((value) => !value)}
-            />
-            <BonusToggle
-              checked={doublePoints}
-              icon={Zap}
-              label="Manches ×2"
-              description="Certaines manches valent double"
-              onChange={() => setDoublePoints((value) => !value)}
-            />
+          <div className="ibx-universes" role="group" aria-label="Univers musicaux disponibles">
+            {UNIVERSES.map(({ id, icon: Icon, caption, color }, index) => {
+              const active = selected.has(id);
+              const locked = selected.size === 1 && active;
+              return (
+                <button key={id} type="button" className="ibx-universe" style={{ '--sleeve': color } as CSSProperties}
+                  aria-label={CATEGORY_META[id].label} aria-pressed={active} aria-disabled={locked || undefined}
+                  title={locked ? 'Garde au moins un univers dans ton mix' : undefined} onClick={() => toggleCategory(id)}>
+                  <span className="ibx-sleeve" aria-hidden="true">
+                    <span className="ibx-sleeve-number">VOL. {String(index + 1).padStart(2, '0')}</span>
+                    <Icon className="ibx-sleeve-icon" strokeWidth={1.4} />
+                    <span className="ibx-check">{active ? <Check /> : '+'}</span>
+                    <span className="ibx-sleeve-lines" />
+                  </span>
+                  <span className="ibx-universe-name">{CATEGORY_META[id].label}</span>
+                  <span className="ibx-universe-note">{caption}</span>
+                  <span className="ibx-universe-count">{COUNTS[id]} titres</span>
+                </button>
+              );
+            })}
           </div>
+          <p className="ibx-library-note"><Disc3 /><span><strong>{titleCount.toLocaleString('fr-FR')} titres</strong> dans ton mix. Garde au moins un univers.</span></p>
         </section>
+        <ol className="ibx-howto" aria-label="Comment jouer">
+          <li><b>01</b><span><strong>Tends l’oreille</strong><small>Un extrait, aucun titre.</small></span></li>
+          <li><b>02</b><span><strong>Fais ton choix</strong><small>Une réponse définitive.</small></span></li>
+          <li><b>03</b><span><strong>Vise le sommet</strong><small>La vitesse fait le score.</small></span></li>
+        </ol>
+      </div>
 
-        <footer className="bts-launch-zone">
-          <div className="bts-ticket" aria-live="polite">
-            <span className="bts-ticket-label"><Trophy aria-hidden="true" /> Ta partie</span>
-            <strong>{recap}</strong>
-            <small>{activeBonuses.length > 0 ? `Avec ${activeBonuses.join(', ')}.` : 'Aucun bonus, scoring pur.'}</small>
-          </div>
-
-          <motion.button
-            type="button"
-            className="bts-launch menu-focus"
-            onClick={() => onStart(Array.from(selected), config)}
-            disabled={!canStart || starting}
-            aria-busy={starting}
-            whileTap={canStart && !starting ? { scale: 0.985 } : undefined}
-          >
-            <span className="bts-launch-icon" aria-hidden="true">
-              {starting ? <Loader2 className="animate-spin" /> : <Play />}
-            </span>
-            <span className="bts-launch-copy">
-              <strong>{starting ? 'Chargement du mix…' : 'Lancer le blindtest'}</strong>
-              <small>{plural(playableRounds, 'manche')} · ~{estimatedMinutes} min</small>
-            </span>
-            <b aria-hidden="true">↗</b>
-          </motion.button>
-
-          <div className="bts-messages" aria-live="polite">
-            {isCapped && (
-              <p className="bts-message" data-tone="warn">
-                <AlertTriangle aria-hidden="true" />
-                {plural(titleCount, 'titre')} dans ta sélection : la partie s’arrêtera à {playableRounds}.
-              </p>
-            )}
-            {!canStart && (
-              <p className="bts-message">
-                <Radio className="animate-pulse" aria-hidden="true" /> Connexion au salon…
-              </p>
-            )}
-            {error && (
-              <p className="bts-message" data-tone="error" role="alert">
-                <AlertTriangle aria-hidden="true" /> {error}
-              </p>
-            )}
-          </div>
-        </footer>
+      <aside className="ibx-settings" aria-label="Réglages de la partie">
+        <fieldset disabled={starting} className="ibx-settings-fields">
+          <legend className="sr-only">Configuration de la partie</legend>
+          <header className="ibx-section-head"><div><span className="ibx-section-no">02</span><h2>À ton rythme</h2></div><AudioLines aria-hidden="true" /></header>
+          <p className="ibx-settings-intro">Une petite session ou toute la soirée ?</p>
+          <div className="ibx-setting"><label><Disc3 /> Nombre de manches</label><Segmented label="Nombre de manches" options={BLINDTEST_ROUND_OPTIONS} value={rounds} onChange={setRounds} /></div>
+          <div className="ibx-setting"><label><Timer /> Temps pour trouver</label><Segmented label="Durée d’écoute par manche" options={BLINDTEST_LISTEN_OPTIONS} value={listenMs} onChange={setListenMs} seconds /></div>
+          <div className="ibx-settings-divider"><span>LES PETITS EXTRAS</span></div>
+          <Toggle checked={teams} onChange={() => setTeams(!teams)} icon={Users} label="En équipes" description="Deux camps, un score commun." />
+          <Toggle checked={hints} onChange={() => setHints(!hints)} icon={Lightbulb} label="Un coup de pouce" description="Des lettres se dévoilent peu à peu." />
+          <Toggle checked={doublePoints} onChange={() => setDoublePoints(!doublePoints)} icon={Zap} label="Manches à points doubles" description="Certaines manches comptent ×2." />
+        </fieldset>
+        <div className="ibx-ticket">
+          <span className="ibx-kicker">TON PASS POUR LA SESSION</span>
+          <div className="ibx-ticket-summary"><div><strong>{playableRounds}</strong><small>manches</small></div><div><strong>{listenMs / 1000}<em>s</em></strong><small>par extrait</small></div><div><strong>~{minutes}<em>min</em></strong><small>de jeu</small></div></div>
+          <p><Users />{teams ? 'Deux équipes · Scores cumulés' : 'Chacun pour soi · Que le meilleur gagne'}</p>
+        </div>
+        <button className="ibx-launch" type="button" disabled={!canStart || starting || titleCount === 0} aria-busy={starting}
+          onClick={() => onStart([...selected], { rounds: playableRounds, listenMs, teams, hints, doublePoints })}>
+          {starting ? <Loader2 className="ibx-spinning" /> : <Play fill="currentColor" />}<span>{starting ? 'Préparation du mix…' : 'C’est parti !'}</span><ArrowUpRight />
+        </button>
+        <p className="ibx-launch-note"><span className="ibx-dot" />{canStart ? 'Tout le monde joue avec ces réglages' : 'Connexion au salon en cours…'}</p>
+        <div aria-live="polite">
+          {playableRounds < rounds && <p className="ibx-message"><AlertCircle />Le mix contient {titleCount} titres : la partie est limitée à {playableRounds} manches.</p>}
+          {error && <p className="ibx-message ibx-message-error" role="alert"><AlertCircle />{error}</p>}
+        </div>
       </aside>
-    </motion.section>
+    </fieldset>
   );
 };
