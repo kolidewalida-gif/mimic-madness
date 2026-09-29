@@ -60,10 +60,10 @@ const musicTracks: MusicTrack[] = [
    * priverait certaines phases de musique sans le dire.
    */
   {
-    id: 403,
-    name: 'Mimic Master — Thème officiel',
-    src: '/music/Mimic_master_theme_official.mp3',
-    genre: 'Orchestral héroïque',
+    id: 404,
+    name: 'Poolside Chainsaw (Remix)',
+    src: '/music/poolside-chainsaw-remix.mp3',
+    genre: 'Remix',
     moods: ['epic', 'tense', 'energetic', 'mysterious'],
   },
 
