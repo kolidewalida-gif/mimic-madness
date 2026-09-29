@@ -8,7 +8,7 @@ import type { BlindtestConfig } from './MemoriseGameScreen';
 import { InkBetaBlindtestSetup } from './InkBetaBlindtestSetup';
 import { InkBetaBlindtestResults } from './InkBetaBlindtestResults';
 import './inkBetaBlindtest.css';
-import './inkBetaBlindtestParty.css';
+import './inkBetaBlindtestPulse.css';
 
 type Player = { id: string; name: string; isDisconnected?: boolean };
 type Avatar = { type?: string; imageUrl?: string | null } | null | undefined;
@@ -93,9 +93,9 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
   }, [track?.artwork]);
 
   return (
-    <div className="ibx-root ibx-party" data-phase={phase} data-playing={phase === 'listen' && !muted && !mediaError && !needsSoundUnlock && secondsLeft > 0 || undefined}>
+    <div className="ibx-root ibx-pulse" data-phase={phase} data-playing={phase === 'listen' && !muted && !mediaError && !needsSoundUnlock && secondsLeft > 0 || undefined}>
       {children}
-      <div className="ibx-party-ambience" aria-hidden="true">
+      <div className="ibx-pulse-ambience" aria-hidden="true">
         {phase === 'reveal' && track?.artwork && track.artwork !== failedArtwork && <motion.img key={track.artwork} src={track.artwork} alt="" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: .24 }} transition={{ duration: 1.2 }} />}
       </div>
       <motion.header className="ibx-topbar" initial={reduceMotion ? false : { y: -70, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 210, damping: 24 }}>
