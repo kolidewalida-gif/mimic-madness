@@ -178,6 +178,8 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
               </div>
               <footer className="ibx-answer-footer"><span><Users />{phase === 'listen' ? `${answered} / ${connected.length} réponses reçues` : 'Les scores ont été mis à jour'}</span>{teamsEnabled && <span>Ton équipe : {myTeam === 0 ? 'Cyan' : 'Rose'}</span>}</footer>
             </section>
+            <div className="ibx-show-rig" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /></div>
+            <div className="ibx-show-floor" aria-hidden="true"><i /><i /><i /><i /></div>
           </div>
           </motion.div>
         </motion.div>}
