@@ -43,7 +43,7 @@ export const InkBetaBlindtestResults = ({
   };
   return (
     <section className="ibx-results" aria-labelledby="ibx-results-title">
-      <header className="ibx-results-heading"><span className="ibx-kicker"><Check /> LE SET EST TERMINÉ / {totalRounds} MANCHES</span><h1 id="ibx-results-title">C’était du <em>grand son.</em></h1><p>Les dernières notes s’envolent. Les points, eux, restent.</p></header>
+      <header className="ibx-results-heading"><span className="ibx-kicker"><Check /> {totalRounds} MANCHES TERMINÉES</span><h1 id="ibx-results-title">Le classement final.</h1><p>Les scores et les temps de réponse de cette partie.</p></header>
       <div className="ibx-results-grid">
         <section className="ibx-winner" aria-label="Vainqueur de la partie">
           <span className="ibx-kicker"><Crown />{tied ? 'PREMIERS EX ÆQUO' : 'LA TÊTE D’AFFICHE'}</span>
@@ -67,7 +67,7 @@ export const InkBetaBlindtestResults = ({
           {ranked.length === 0 && <p className="ibx-empty">Aucun score enregistré pour cette session.</p>}
         </section>
         <aside className="ibx-results-side">
-          <section className="ibx-personal-result"><span className="ibx-kicker">TON RAPPEL À TOI</span><strong>{myRank != null ? `#${myRank}` : '—'}<small>sur {ranked.length}</small></strong><p>{me ? `${me.pts.toLocaleString('fr-FR')} points au compteur` : 'Pas de classement'}</p>{me && avgReaction[me.id] != null && <span><Clock3 />{(avgReaction[me.id] / 1000).toFixed(1)} s de réaction moyenne</span>}</section>
+          <section className="ibx-personal-result"><span className="ibx-kicker">TON RÉSULTAT</span><strong>{myRank != null ? `#${myRank}` : '—'}<small>sur {ranked.length}</small></strong><p>{me ? `${me.pts.toLocaleString('fr-FR')} points au compteur` : 'Pas de classement'}</p>{me && avgReaction[me.id] != null && <span><Clock3 />{(avgReaction[me.id] / 1000).toFixed(1)} s de réaction moyenne</span>}</section>
           {teamsEnabled && <section className="ibx-results-teams"><span className="ibx-kicker"><Users />{teamWinner == null ? 'ÉQUIPES EX ÆQUO' : `VICTOIRE ${teamWinner === 0 ? 'CYAN' : 'ROSE'}`}</span><div className="ibx-team-totals"><span>Cyan <strong>{teamScores[0].toLocaleString('fr-FR')}</strong></span><span>Rose <strong>{teamScores[1].toLocaleString('fr-FR')}</strong></span></div></section>}
           <div className="ibx-result-actions">
             <h3>On remet ça ?</h3><p>Un nouveau mix, les mêmes réglages.</p>

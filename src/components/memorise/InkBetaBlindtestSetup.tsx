@@ -94,9 +94,9 @@ export const InkBetaBlindtestSetup = ({ isHost, canStart, starting, error, onSta
   if (!isHost) return (
     <section className="ibx-wait" aria-labelledby="ibx-wait-title">
       <div className="ibx-wait-mascot"><InkBetaMascot /></div>
-      <span className="ibx-kicker">LES COULISSES / BLINDTEST MUSICAL</span>
-      <h1 id="ibx-wait-title">Ton prochain refrain<br /><em>arrive.</em></h1>
-      <p>L’hôte prépare le mix. Installe-toi, règle ton volume en haut de l’écran et prépare tes réflexes.</p>
+      <span className="ibx-kicker">BLINDTEST MUSICAL</span>
+      <h1 id="ibx-wait-title">La partie se prépare.</h1>
+      <p>L’hôte choisit les catégories et les réglages. Tu peux régler ton volume en haut de l’écran.</p>
       <ol className="ibx-howto">
         <li><b>01</b><span>Écoute l’extrait</span></li>
         <li><b>02</b><span>Choisis une réponse</span></li>
@@ -113,9 +113,9 @@ export const InkBetaBlindtestSetup = ({ isHost, canStart, starting, error, onSta
       <div className="ibx-catalog">
         <section className="ibx-hero" aria-labelledby="ibx-setup-title">
           <div className="ibx-hero-copy">
-            <span className="ibx-kicker"><span className="ibx-dot" /> LE BLINDTEST MUSICAL / INK BETA</span>
-            <h1 id="ibx-setup-title">Monte le son.<br /><em>Défie tes potes !</em></h1>
-            <p>Choisis tes univers, règle la partie.<br />Et montre-leur qui connaît tous les refrains.</p>
+            <span className="ibx-kicker">BLINDTEST MUSICAL</span>
+            <h1 id="ibx-setup-title">On connaît tous<br /><em>ce refrain.</em></h1>
+            <p>Choisis les catégories, lance un extrait et retrouve le titre.<br />Plus tu réponds vite, plus tu marques de points.</p>
             <span className="ibx-hero-tag"><Headphones /> Écoute. Trouve. Prends la tête.</span>
           </div>
           <div className="ibx-setup-mascot" aria-hidden="true"><InkBetaMascot /><span>FAIS PÉTER<br />LE SCORE !</span></div>
@@ -123,7 +123,7 @@ export const InkBetaBlindtestSetup = ({ isHost, canStart, starting, error, onSta
 
         <section className="ibx-library" aria-labelledby="ibx-library-title">
           <header className="ibx-section-head">
-            <div><span className="ibx-section-no">01</span><h2 id="ibx-library-title">Compose ton mix</h2></div>
+            <div><span className="ibx-section-no">01</span><h2 id="ibx-library-title">Les catégories</h2></div>
             <span className="ibx-count" aria-live="polite">{selected.size} / {CATEGORIES.length} univers</span>
           </header>
           <div className="ibx-presets" role="group" aria-label="Sélections rapides">
@@ -163,17 +163,17 @@ export const InkBetaBlindtestSetup = ({ isHost, canStart, starting, error, onSta
       <aside className="ibx-settings" aria-label="Réglages de la partie">
         <fieldset disabled={starting} className="ibx-settings-fields">
           <legend className="sr-only">Configuration de la partie</legend>
-          <header className="ibx-section-head"><div><span className="ibx-section-no">02</span><h2>À ton rythme</h2></div><AudioLines aria-hidden="true" /></header>
-          <p className="ibx-settings-intro">Une petite session ou toute la soirée ?</p>
+          <header className="ibx-section-head"><div><span className="ibx-section-no">02</span><h2>Ta partie</h2></div><AudioLines aria-hidden="true" /></header>
+          <p className="ibx-settings-intro">Ces réglages s’appliquent à tous les joueurs.</p>
           <div className="ibx-setting"><label><Disc3 /> Nombre de manches</label><Segmented label="Nombre de manches" options={BLINDTEST_ROUND_OPTIONS} value={rounds} onChange={setRounds} /></div>
           <div className="ibx-setting"><label><Timer /> Temps pour trouver</label><Segmented label="Durée d’écoute par manche" options={BLINDTEST_LISTEN_OPTIONS} value={listenMs} onChange={setListenMs} seconds /></div>
-          <div className="ibx-settings-divider"><span>LES PETITS EXTRAS</span></div>
+          <div className="ibx-settings-divider"><span>OPTIONS DE JEU</span></div>
           <Toggle checked={teams} onChange={() => setTeams(!teams)} icon={Users} label="En équipes" description="Deux camps, un score commun." />
           <Toggle checked={hints} onChange={() => setHints(!hints)} icon={Lightbulb} label="Un coup de pouce" description="Des lettres se dévoilent peu à peu." />
           <Toggle checked={doublePoints} onChange={() => setDoublePoints(!doublePoints)} icon={Zap} label="Manches à points doubles" description="Certaines manches comptent ×2." />
         </fieldset>
         <div className="ibx-ticket">
-          <span className="ibx-kicker">TON PASS POUR LA SESSION</span>
+          <span className="ibx-kicker">RÉCAPITULATIF</span>
           <div className="ibx-ticket-summary"><div><strong>{playableRounds}</strong><small>manches</small></div><div><strong>{listenMs / 1000}<em>s</em></strong><small>par extrait</small></div><div><strong>~{minutes}<em>min</em></strong><small>de jeu</small></div></div>
           <p><Users />{teams ? 'Deux équipes · Scores cumulés' : 'Chacun pour soi · Que le meilleur gagne'}</p>
         </div>

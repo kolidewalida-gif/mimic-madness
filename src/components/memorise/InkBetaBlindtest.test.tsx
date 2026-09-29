@@ -66,12 +66,11 @@ describe('Ink Beta blindtest setup', () => {
 });
 
 describe('Ink Beta stage composition', () => {
-  it('animates the sound system only while an audible excerpt can play', () => {
+  it('animates listening only while an audible excerpt can play', () => {
     const props = viewProps();
     const { container, rerender } = render(<InkBetaBlindtestView {...props} />);
     expect(container.querySelector('.ibx-root')).toHaveAttribute('data-playing', 'true');
-    expect(container.querySelectorAll('.ibx-speaker')).toHaveLength(2);
-    expect(container.querySelector('.ibx-tonearm')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByRole('timer')).toHaveAccessibleName('14 secondes restantes');
     for (const state of [{ muted: true }, { mediaError: true }, { needsSoundUnlock: true }, { secondsLeft: 0 }]) {
       rerender(<InkBetaBlindtestView {...props} {...state} />);
       expect(container.querySelector('.ibx-root')).not.toHaveAttribute('data-playing');
@@ -98,6 +97,16 @@ describe('Ink Beta stage composition', () => {
 });
 
 describe('Ink Beta gameplay and results', () => {
+  it('keeps artwork hidden until reveal and removes failed artwork from the backdrop', () => {
+    const props = viewProps({ track: { title: 'Naruto', category: 'anime', artwork: '/cover.jpg' } });
+    const { container, rerender } = render(<InkBetaBlindtestView {...props} />);
+    expect(screen.queryByRole('img', { name: 'Pochette de Naruto' })).not.toBeInTheDocument();
+    expect(container.querySelector('.ibx-glass-ambience img')).not.toBeInTheDocument();
+    rerender(<InkBetaBlindtestView {...props} phase="reveal" />);
+    fireEvent.error(screen.getByRole('img', { name: 'Pochette de Naruto' }));
+    expect(screen.queryByRole('img', { name: 'Pochette de Naruto' })).not.toBeInTheDocument();
+    expect(container.querySelector('.ibx-glass-ambience img')).not.toBeInTheDocument();
+  });
   it('dispatches answers by index and locks choices once sent', () => {
     const props = viewProps(); const { rerender } = render(<InkBetaBlindtestView {...props} />);
     fireEvent.click(screen.getByRole('button', { name: /B One Piece/ })); expect(props.answer).toHaveBeenCalledWith(1);
