@@ -2,13 +2,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, AudioLines, Check, ChevronRight, Disc3, Flame, Headphones, Lightbulb, Loader2, Radio, Trophy, Users, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { CATEGORY_META, type BlindtestCategory } from '@/lib/blindtestTracks';
-import { InkBetaLogo } from '@/components/InkBetaBrand';
+import { InkBetaLogo, InkBetaMascot } from '@/components/InkBetaBrand';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import type { BlindtestConfig } from './MemoriseGameScreen';
 import { InkBetaBlindtestSetup } from './InkBetaBlindtestSetup';
 import { InkBetaBlindtestResults } from './InkBetaBlindtestResults';
 import './inkBetaBlindtest.css';
-import './inkBetaBlindtestGlass.css';
+import './inkBetaBlindtestParty.css';
 
 type Player = { id: string; name: string; isDisconnected?: boolean };
 type Avatar = { type?: string; imageUrl?: string | null } | null | undefined;
@@ -93,15 +93,15 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
   }, [track?.artwork]);
 
   return (
-    <div className="ibx-root ibx-glass" data-phase={phase} data-playing={phase === 'listen' && !muted && !mediaError && !needsSoundUnlock && secondsLeft > 0 || undefined}>
+    <div className="ibx-root ibx-party" data-phase={phase} data-playing={phase === 'listen' && !muted && !mediaError && !needsSoundUnlock && secondsLeft > 0 || undefined}>
       {children}
-      <div className="ibx-glass-ambience" aria-hidden="true">
+      <div className="ibx-party-ambience" aria-hidden="true">
         {phase === 'reveal' && track?.artwork && track.artwork !== failedArtwork && <motion.img key={track.artwork} src={track.artwork} alt="" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: .24 }} transition={{ duration: 1.2 }} />}
       </div>
       <motion.header className="ibx-topbar" initial={reduceMotion ? false : { y: -70, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 210, damping: 24 }}>
         <div className="ibx-brand"><InkBetaLogo titleId="blindtest-brand" /><span className="ibx-mode-stamp"><Headphones />BLINDTEST<br />MUSICAL</span></div>
         <ol className="ibx-steps" aria-label="Progression de la partie">
-          {['Préparation', 'En jeu', 'Classement'].map((label, index) => <li key={label} aria-current={step === index ? 'step' : undefined} data-done={step > index || undefined}><b>{step > index ? <Check /> : `0${index + 1}`}</b><span>{label}</span>{index < 2 && <ChevronRight />}</li>)}
+          {['Le mix', 'Le blindtest', 'Le podium'].map((label, index) => <li key={label} aria-current={step === index ? 'step' : undefined} data-done={step > index || undefined}><b>{step > index ? <Check /> : `0${index + 1}`}</b><span>{label}</span>{index < 2 && <ChevronRight />}</li>)}
         </ol>
         <div className="ibx-top-actions">
           <span className="ibx-player-count"><Users />{connected.length}<span>en ligne</span></span>
@@ -122,6 +122,7 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
             <header><Trophy /><strong>Classement</strong><span>EN DIRECT</span></header>
             {teamsEnabled && <div className="ibx-team-totals"><span>Cyan <strong>{teamScores[0]}</strong></span><span>Rose <strong>{teamScores[1]}</strong></span></div>}
             <ol>{betaRanked.map((player, index) => <motion.li layout key={player.id} data-self={player.id === currentPlayer.id || undefined} data-leader={index === 0 || undefined}><span className="ibx-live-rank">{String(index + 1).padStart(2, '0')}</span><AvatarChip player={player} getAvatar={getAvatar} /><span className="ibx-live-name">{player.name}{player.id === currentPlayer.id && <small>toi</small>}{player.isDisconnected && <small>hors ligne</small>}</span><strong>{player.pts.toLocaleString('fr-FR')}<small>pts</small></strong>{phase === 'listen' && answeredIds.has(player.id) && <Check aria-label="A répondu" />}</motion.li>)}</ol>
+            <div className="ibx-party-mascot" aria-hidden="true"><InkBetaMascot /><span>{phase === 'listen' ? 'TENDS L’OREILLE !' : 'ALORS, TU L’AVAIS ?'}</span></div>
           </motion.aside>
           <motion.div className="ibx-stage" initial={reduceMotion ? false : { y: 32, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: .42, delay: .1, ease: [0.22, 1, 0.36, 1] }}>
           <div className="ibx-round-header">
