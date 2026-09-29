@@ -143,7 +143,7 @@ function pushRecent(key: string) {
 export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame, variant = 'default' }: MemoriseGameScreenProps) => {
   const isHost = currentPlayer.isHost;
   const isInkBeta = variant === 'inkBeta';
-  const { isPlaying: isBackgroundPlaying, pause: pauseBackground, play: playBackground, setSituation, clearSituationOverride, autoMode } = useBackgroundMusic();
+  const { isPlaying: isBackgroundPlaying, play: playBackground, setSituation, clearSituationOverride, autoMode, silence: silenceBackground, releaseSilence: releaseBackgroundSilence } = useBackgroundMusic();
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [roundIndex, setRoundIndex] = useState(0);
@@ -404,8 +404,13 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
   }, [volume, muted]);
 
   useEffect(() => {
-    if (isBackgroundPlaying) pauseBackground();
-  }, [isBackgroundPlaying, pauseBackground]);
+    const resumeAmbientOnExit = backgroundWasPlayingOnEntryRef.current;
+    silenceBackground('blindtest-game');
+    return () => {
+      releaseBackgroundSilence('blindtest-game');
+      if (resumeAmbientOnExit) playBackground();
+    };
+  }, [playBackground, releaseBackgroundSilence, silenceBackground]);
 
   // The global player is intentionally absent on the Blindtest screen. Keep
   // its ambience paused for the entire screen lifetime, while still updating
@@ -423,8 +428,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
 
   useEffect(() => () => {
     clearSituationOverride('blindtest-game');
-    if (backgroundWasPlayingOnEntryRef.current) playBackground();
-  }, [clearSituationOverride, playBackground]);
+  }, [clearSituationOverride]);
 
   /* ---------- countdown + urgency tick ---------- */
   useEffect(() => {
@@ -610,7 +614,14 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
     pendingListenRef.current = null;
     stopMedia();
     setDeadline(payload.deadline ?? null);
-    if (payload.phase === 'reveal') playSoundEffect('start', 0.35);
+    if (payload.phase === 'reveal') {
+      const mine = answersRef.current[currentPlayer.id];
+      const gotIt = mine != null && mine.choice === payload.answerIndex;
+      playSoundEffect(mine == null ? 'quizTimeUp' : gotIt ? 'quizCorrect' : 'quizWrong', gotIt ? 0.45 : 0.32);
+      if ((payload.roundPoints?.[currentPlayer.id] ?? 0) > 0) {
+        window.setTimeout(() => playSoundEffect('scoreUp', 0.28), 180);
+      }
+    }
   }, [applyAnswerSnapshot, currentPlayer.id, playTrack, stopMedia]);
 
   /* ---------- channel ---------- */
@@ -1072,7 +1083,7 @@ export const MemoriseGameScreen = ({ currentPlayer, players, lobbyId, onEndGame,
       || !activeRoundIdRef.current
       || !channelReady
     ) return;
-    playSoundEffect('click', 0.3);
+    playSoundEffect('selectItem', 0.28);
     setMyChoice(choice);
     const elapsed = Math.max(0, Math.min(listenMsRef.current, Date.now() - listenStartRef.current));
     setMyElapsed(elapsed);

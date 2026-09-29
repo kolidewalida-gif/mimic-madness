@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowUpRight, Check, Clock3, Crown, Loader2, Radio, RotateCcw, Trophy, Users } from 'lucide-react';
 import { PodiumAd } from '@/components/PodiumAd';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 interface RankedPlayer {
   id: string;
@@ -70,9 +71,9 @@ export const InkBetaBlindtestResults = ({
           {teamsEnabled && <section className="ibx-results-teams"><span className="ibx-kicker"><Users />{teamWinner == null ? 'ÉQUIPES EX ÆQUO' : `VICTOIRE ${teamWinner === 0 ? 'CYAN' : 'ROSE'}`}</span><div className="ibx-team-totals"><span>Cyan <strong>{teamScores[0].toLocaleString('fr-FR')}</strong></span><span>Rose <strong>{teamScores[1].toLocaleString('fr-FR')}</strong></span></div></section>}
           <div className="ibx-result-actions">
             <h3>On remet ça ?</h3><p>Un nouveau mix, les mêmes réglages.</p>
-            {isHost ? <button type="button" className="ibx-launch" onClick={onReplay} disabled={starting} aria-busy={starting}>{starting ? <Loader2 className="ibx-spinning" /> : <RotateCcw />}<span>{starting ? 'Préparation…' : 'Encore une partie'}</span><ArrowUpRight /></button> : <p className="ibx-status" role="status"><Radio />L’hôte choisit la suite.</p>}
+            {isHost ? <button type="button" className="ibx-launch" onClick={() => { playSoundEffect('powerUp', .32); onReplay(); }} disabled={starting} aria-busy={starting}>{starting ? <Loader2 className="ibx-spinning" /> : <RotateCcw />}<span>{starting ? 'Préparation…' : 'Encore une partie'}</span><ArrowUpRight /></button> : <p className="ibx-status" role="status"><Radio />L’hôte choisit la suite.</p>}
             {error && <p className="ibx-message ibx-message-error" role="alert">{error}</p>}
-            <button type="button" className="ibx-secondary" onClick={onEndGame}><ArrowLeft />Retour au lobby</button>
+            <button type="button" className="ibx-secondary" onClick={() => { playSoundEffect('whoosh', .2); onEndGame(); }}><ArrowLeft />Retour au lobby</button>
           </div>
         </aside>
       </div>

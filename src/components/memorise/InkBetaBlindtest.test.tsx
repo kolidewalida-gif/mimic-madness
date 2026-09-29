@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { InkBetaBlindtestSetup } from './InkBetaBlindtestSetup';
 import { InkBetaBlindtestView, type InkBetaBlindtestViewProps } from './InkBetaBlindtestView';
 import { CATEGORY_META } from '@/lib/blindtestTracks';
 
+const { playSoundEffectMock } = vi.hoisted(() => ({ playSoundEffectMock: vi.fn() }));
+vi.mock('@/hooks/useSoundEffects', () => ({ playSoundEffect: playSoundEffectMock }));
 vi.mock('@/components/PodiumAd', () => ({ PodiumAd: () => null }));
 afterEach(cleanup);
 const setupProps = () => ({ isHost: true, canStart: true, starting: false, error: null, onStart: vi.fn() });
@@ -113,10 +115,10 @@ describe('Ink Beta gameplay and results', () => {
     fireEvent.change(screen.getByRole('slider', { name: 'Volume de l’extrait musical' }), { target: { value: '40' } }); expect(props.setVolume).toHaveBeenCalledWith(40);
     fireEvent.click(screen.getByRole('button', { name: 'Couper le son' })); expect(props.toggleMute).toHaveBeenCalledOnce();
   });
-  it('requires confirmation before leaving an active round', () => {
+  it('requires confirmation before leaving an active round', async () => {
     const props = viewProps(); render(<InkBetaBlindtestView {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'Retour au lobby' })); expect(props.onEndGame).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Continuer à jouer' })); expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer à jouer' })); await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Retour au lobby' })); fireEvent.click(screen.getByRole('button', { name: 'Quitter la partie' })); expect(props.onEndGame).toHaveBeenCalledOnce();
   });
   it('shows correct answer, votes and awarded points without editable choices', () => {

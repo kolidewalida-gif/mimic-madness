@@ -1,7 +1,9 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowUpRight, AudioLines, Check, ChevronRight, Disc3, Flame, Headphones, Lightbulb, Loader2, Radio, Trophy, Users, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { CATEGORY_META, type BlindtestCategory } from '@/lib/blindtestTracks';
 import { InkBetaLogo, InkBetaMascot } from '@/components/InkBetaBrand';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 import type { BlindtestConfig } from './MemoriseGameScreen';
 import { InkBetaBlindtestSetup } from './InkBetaBlindtestSetup';
 import { InkBetaBlindtestResults } from './InkBetaBlindtestResults';
@@ -71,6 +73,7 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
   } = props;
   const [exitOpen, setExitOpen] = useState(false);
   const [failedArtwork, setFailedArtwork] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
   const active = phase === 'listen' || phase === 'reveal';
   const step = phase === 'intro' ? 0 : phase === 'final' ? 2 : 1;
   const category = track ? CATEGORY_META[track.category] : null;
@@ -85,34 +88,35 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
     <div className="ibx-root" data-phase={phase} data-playing={phase === 'listen' && !muted && !mediaError && !needsSoundUnlock && secondsLeft > 0 || undefined}>
       {children}
       <div className="ibx-scenery" aria-hidden="true"><i /><i /><i /><span className="ibx-scenery-word">BLINDTEST</span></div>
-      <header className="ibx-topbar">
+      <div className="ibx-motion-field" aria-hidden="true">{Array.from({ length: 18 }, (_, index) => <i key={index} style={{ '--bar': index } as CSSProperties} />)}</div>
+      <motion.header className="ibx-topbar" initial={reduceMotion ? false : { y: -70, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 210, damping: 24 }}>
         <div className="ibx-brand"><InkBetaLogo titleId="blindtest-brand" /><span className="ibx-mode-stamp"><Headphones />BLINDTEST<br />MUSICAL</span></div>
         <ol className="ibx-steps" aria-label="Progression de la partie">
           {['Le mix', 'La partie', 'Le podium'].map((label, index) => <li key={label} aria-current={step === index ? 'step' : undefined} data-done={step > index || undefined}><b>{step > index ? <Check /> : `0${index + 1}`}</b><span>{label}</span>{index < 2 && <ChevronRight />}</li>)}
         </ol>
         <div className="ibx-top-actions">
           <span className="ibx-player-count"><Users />{connected.length}<span>en ligne</span></span>
-          <button className="ibx-icon-button" type="button" onClick={toggleMute} aria-label={muted ? 'Activer le son' : 'Couper le son'} aria-pressed={muted}>{muted ? <VolumeX /> : <Volume2 />}</button>
+          <button className="ibx-icon-button" type="button" onClick={() => { playSoundEffect(muted ? 'toggleOn' : 'toggleOff', .16); toggleMute(); }} aria-label={muted ? 'Activer le son' : 'Couper le son'} aria-pressed={muted}>{muted ? <VolumeX /> : <Volume2 />}</button>
           <label className="ibx-header-volume"><span className="sr-only">Volume de l’extrait musical</span><input type="range" min={0} max={100} value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
-          <button className="ibx-back" type="button" onClick={() => active ? setExitOpen(true) : onEndGame()} aria-label="Retour au lobby"><ArrowLeft /><span>Lobby</span></button>
+          <button className="ibx-back" type="button" onClick={() => { playSoundEffect('whoosh', .18); if (active) setExitOpen(true); else onEndGame(); }} aria-label="Retour au lobby"><ArrowLeft /><span>Lobby</span></button>
         </div>
-      </header>
-      {exitOpen && <div className="ibx-exit-confirm" role="alert" onKeyDown={(event) => { if (event.key === 'Escape') setExitOpen(false); }}>
+      </motion.header>
+      <AnimatePresence>{exitOpen && <motion.div className="ibx-exit-confirm" role="alert" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -18, opacity: 0 }} onKeyDown={(event) => { if (event.key === 'Escape') setExitOpen(false); }}>
         <p><strong>Quitter la partie en cours ?</strong> Tu retourneras au lobby.</p>
-        <button type="button" autoFocus onClick={() => setExitOpen(false)}>Continuer à jouer</button>
+        <button type="button" autoFocus onClick={() => { playSoundEffect('selectItem', .16); setExitOpen(false); }}>Continuer à jouer</button>
         <button type="button" onClick={onEndGame}>Quitter la partie</button>
-      </div>}
+      </motion.div>}</AnimatePresence>
       <main className="ibx-main">
         {phase === 'intro' && <InkBetaBlindtestSetup isHost={isHost} canStart={channelReady} starting={starting} error={startError} onStart={startGame} />}
-        {active && track && <div className="ibx-arena">
-          <aside className="ibx-live" aria-label="Classement en direct">
+        {active && track && <motion.div className="ibx-arena" key={`${phase}-${roundIndex}`} initial={reduceMotion ? false : { opacity: 0, scale: .975 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .38, ease: [0.22, 1, 0.36, 1] }}>
+          <motion.aside className="ibx-live" aria-label="Classement en direct" initial={reduceMotion ? false : { x: -80, rotate: -2, opacity: 0 }} animate={{ x: 0, rotate: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 170, damping: 19, delay: .08 }}>
             <header><Trophy /><strong>Les scores</strong><span>EN DIRECT</span></header>
             <p className="ibx-live-intro">Qui a la meilleure oreille ?</p>
             {teamsEnabled && <div className="ibx-team-totals"><span>Cyan <strong>{teamScores[0]}</strong></span><span>Rose <strong>{teamScores[1]}</strong></span></div>}
-            <ol>{betaRanked.map((player, index) => <li key={player.id} data-self={player.id === currentPlayer.id || undefined} data-leader={index === 0 || undefined}><span className="ibx-live-rank">{String(index + 1).padStart(2, '0')}</span><AvatarChip player={player} getAvatar={getAvatar} /><span className="ibx-live-name">{player.name}{player.id === currentPlayer.id && <small>toi</small>}{player.isDisconnected && <small>hors ligne</small>}</span><strong>{player.pts.toLocaleString('fr-FR')}<small>pts</small></strong>{phase === 'listen' && answeredIds.has(player.id) && <Check aria-label="A répondu" />}</li>)}</ol>
+            <ol>{betaRanked.map((player, index) => <motion.li layout key={player.id} data-self={player.id === currentPlayer.id || undefined} data-leader={index === 0 || undefined}><span className="ibx-live-rank">{String(index + 1).padStart(2, '0')}</span><AvatarChip player={player} getAvatar={getAvatar} /><span className="ibx-live-name">{player.name}{player.id === currentPlayer.id && <small>toi</small>}{player.isDisconnected && <small>hors ligne</small>}</span><strong>{player.pts.toLocaleString('fr-FR')}<small>pts</small></strong>{phase === 'listen' && answeredIds.has(player.id) && <Check aria-label="A répondu" />}</motion.li>)}</ol>
             <div className="ibx-score-tip"><InkBetaMascot /><span>Le bon titre.<br />Au bon moment.<br /><strong>Un max de points !</strong></span></div>
-          </aside>
-          <div className="ibx-stage">
+          </motion.aside>
+          <motion.div className="ibx-stage" initial={reduceMotion ? false : { y: 32, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: .42, delay: .1, ease: [0.22, 1, 0.36, 1] }}>
           <div className="ibx-round-header">
             <div><span className="ibx-kicker">{phase === 'listen' ? 'TENDS L’OREILLE. SOIS LE PLUS RAPIDE.' : 'ALORS, TU L’AVAIS ?'}</span><h1>{phase === 'listen' ? 'C’est quoi ce son ?' : 'C’était ce titre !'}</h1></div>
             <div className="ibx-round-counter"><Disc3 /><span>MANCHE</span><strong>{String(roundIndex + 1).padStart(2, '0')}<small> / {String(totalRounds).padStart(2, '0')}</small></strong></div>
@@ -155,14 +159,14 @@ export const InkBetaBlindtestView = (props: InkBetaBlindtestViewProps) => {
                   const right = phase === 'reveal' && answerIndex === index;
                   const voters = phase === 'reveal' ? players.filter((player) => revealVotes[player.id] === index) : teamsEnabled ? players.filter((player) => player.id !== currentPlayer.id && (teamOf[player.id] ?? 0) === myTeam && liveVotes[player.id] === index) : [];
                   const content = <><span className="ibx-answer-letter">{String.fromCharCode(65 + index)}</span><strong>{option}</strong><span className="ibx-answer-mark" aria-hidden="true">{phase === 'reveal' && mine && !right ? <X /> : right || mine ? <Check /> : <ArrowUpRight />}</span>{phase === 'reveal' && <span className="ibx-answer-verdict">{right ? 'Bonne réponse' : mine ? 'Ton choix' : ''}</span>}{voters.length > 0 && <span className="ibx-voters" aria-label={`${phase === 'listen' ? 'Coéquipiers' : 'Votes'} : ${voters.map((player) => player.name).join(', ')}`}>{voters.map((player) => <AvatarChip key={player.id} player={player} getAvatar={getAvatar} />)}</span>}</>;
-                  return phase === 'listen' ? <button key={index} className="ibx-answer" type="button" data-choice={index} data-selected={mine || undefined} disabled={choicesLocked} aria-pressed={mine} onClick={() => answer(index)}>{content}</button> : <div key={index} className="ibx-answer" data-choice={index} data-correct={right || undefined} data-wrong={mine && !right || undefined}>{content}</div>;
+                  return phase === 'listen' ? <motion.button key={index} className="ibx-answer" type="button" data-choice={index} data-selected={mine || undefined} disabled={choicesLocked} aria-pressed={mine} onClick={() => answer(index)} initial={reduceMotion ? false : { y: 28, opacity: 0, rotateX: 12 }} animate={{ y: 0, opacity: 1, rotateX: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 22, delay: .17 + index * .055 }} whileHover={choicesLocked || reduceMotion ? undefined : { y: -4, rotate: index % 2 ? .35 : -.35 }} whileTap={choicesLocked || reduceMotion ? undefined : { y: 5, scale: .99 }}>{content}</motion.button> : <motion.div layout key={index} className="ibx-answer" data-choice={index} data-correct={right || undefined} data-wrong={mine && !right || undefined} initial={reduceMotion ? false : { scale: .94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 240, damping: 20, delay: index * .045 }}>{content}</motion.div>;
                 })}
               </div>
               <footer className="ibx-answer-footer"><span><Users />{phase === 'listen' ? `${answered} / ${connected.length} réponses reçues` : 'Les scores ont été mis à jour'}</span>{teamsEnabled && <span>Ton équipe : {myTeam === 0 ? 'Cyan' : 'Rose'}</span>}</footer>
             </section>
           </div>
-          </div>
-        </div>}
+          </motion.div>
+        </motion.div>}
         {active && !track && <div className="ibx-wait" role="status"><Loader2 /><h1>On prépare le prochain extrait.</h1></div>}
         {phase === 'final' && <InkBetaBlindtestResults ranked={betaRanked} currentPlayerId={currentPlayer.id} isHost={isHost} teamsEnabled={teamsEnabled} teamScores={teamScores} teamOf={teamOf} avgReaction={avgReaction} getAvatar={getAvatar} roundIndex={roundIndex} totalRounds={totalRounds} onReplay={replay} onEndGame={onEndGame} starting={starting} error={startError} />}
         {!active && <footer className="ibx-page-footer"><span>MIMIC MASTER · INK BETA</span><span>De bonnes oreilles. De mauvais perdants.</span><Headphones aria-hidden="true" /></footer>}

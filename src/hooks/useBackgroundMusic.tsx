@@ -106,6 +106,9 @@ interface BackgroundMusicContextType {
   situation: MusicSituation;
   setSituation: (s: MusicSituation, options?: SetSituationOptions) => void;
   clearSituationOverride: (source?: string) => void;
+  /** Prevents the global theme from starting while a mode owns the audio mix. */
+  silence: (source: string) => void;
+  releaseSilence: (source: string) => void;
 }
 
 const BackgroundMusicContext = createContext<BackgroundMusicContextType | undefined>(undefined);
@@ -134,6 +137,7 @@ export const BackgroundMusicProvider = ({ children }: { children: ReactNode }) =
   const hasInteracted = useRef(false);
   const fadeAbortRef = useRef<{ aborted: boolean } | null>(null);
   const progressTimerRef = useRef<number>(0);
+  const silenceSourcesRef = useRef<Set<string>>(new Set());
 
 /** Durée du fondu enchaîné entre deux pistes (ms). */
 const CROSSFADE_MS = 3000;
@@ -174,6 +178,18 @@ const CROSSFADE_MS = 3000;
     setSituationOverrides((current) => (
       source ? current.filter((item) => item.source !== source) : []
     ));
+  }, []);
+
+  const silence = useCallback((source: string) => {
+    silenceSourcesRef.current.add(source);
+    if (fadeAbortRef.current) fadeAbortRef.current.aborted = true;
+    crossfadingRef.current = false;
+    decksRef.current.forEach((deck) => deck.pause());
+    setIsPlaying(false);
+  }, []);
+
+  const releaseSilence = useCallback((source: string) => {
+    silenceSourcesRef.current.delete(source);
   }, []);
 
   const setSituation = useCallback((s: MusicSituation, options?: SetSituationOptions) => {
@@ -380,7 +396,7 @@ const CROSSFADE_MS = 3000;
 
     // Lance la musique dès que le navigateur l'autorise.
     const tryPlay = () => {
-      if (stopped || hasInteracted.current) return;
+      if (stopped || hasInteracted.current || silenceSourcesRef.current.size > 0) return;
       const el = audioRef.current;
       if (!el) return;
       if (!el.src) {
@@ -441,6 +457,7 @@ const CROSSFADE_MS = 3000;
   }, []);
 
   const play = useCallback(() => {
+    if (silenceSourcesRef.current.size > 0) return;
     hasInteracted.current = true;
     const el = audioRef.current;
     if (!el) return;
@@ -477,13 +494,13 @@ const CROSSFADE_MS = 3000;
     nextTrack, previousTrack, selectTrack,
     progress, duration, seek,
     autoMode, setAutoMode,
-    situation, setSituation, clearSituationOverride,
+    situation, setSituation, clearSituationOverride, silence, releaseSilence,
   }), [
     volume, setVolume, isPlaying, pause, play,
     currentTrack, nextTrack, previousTrack, selectTrack,
     progress, duration, seek,
     autoMode, setAutoMode,
-    situation, setSituation, clearSituationOverride,
+    situation, setSituation, clearSituationOverride, silence, releaseSilence,
   ]);
 
   return (

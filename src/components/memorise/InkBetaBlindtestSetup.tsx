@@ -12,6 +12,7 @@ import {
 } from '@/lib/blindtestTracks';
 import type { BlindtestConfig } from './MemoriseGameScreen';
 import { InkBetaMascot } from '@/components/InkBetaBrand';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 interface InkBetaBlindtestSetupProps {
   isHost: boolean;
@@ -46,7 +47,7 @@ const Segmented = ({ options, value, onChange, label, seconds = false }: {
 }) => (
   <div className="ibx-segments" role="group" aria-label={label}>
     {options.map((option) => (
-      <button key={option} type="button" aria-pressed={value === option} onClick={() => onChange(option)}>
+      <button key={option} type="button" aria-pressed={value === option} onClick={() => { playSoundEffect('selectItem', .16); onChange(option); }}>
         {seconds ? `${option / 1000}s` : option}
       </button>
     ))}
@@ -56,7 +57,7 @@ const Segmented = ({ options, value, onChange, label, seconds = false }: {
 const Toggle = ({ checked, onChange, icon: Icon, label, description }: {
   checked: boolean; onChange: () => void; icon: LucideIcon; label: string; description: string;
 }) => (
-  <button className="ibx-toggle-row" type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onChange}>
+  <button className="ibx-toggle-row" type="button" role="switch" aria-checked={checked} aria-label={label} onClick={() => { playSoundEffect(checked ? 'toggleOff' : 'toggleOn', .18); onChange(); }}>
     <Icon aria-hidden="true" />
     <span><strong>{label}</strong><small>{description}</small></span>
     <i className="ibx-switch" aria-hidden="true"><i /></i>
@@ -126,8 +127,8 @@ export const InkBetaBlindtestSetup = ({ isHost, canStart, starting, error, onSta
             <span className="ibx-count" aria-live="polite">{selected.size} / {CATEGORIES.length} univers</span>
           </header>
           <div className="ibx-presets" role="group" aria-label="Sélections rapides">
-            {PRESETS.map((item) => <button type="button" key={item.label} aria-pressed={preset?.label === item.label} onClick={() => setSelected(new Set(item.categories))}>{item.label}</button>)}
-            <button type="button" className="ibx-surprise" onClick={surprise}><Shuffle /> Surprends-moi</button>
+            {PRESETS.map((item) => <button type="button" key={item.label} aria-pressed={preset?.label === item.label} onClick={() => { playSoundEffect('tabSwitch', .18); setSelected(new Set(item.categories)); }}>{item.label}</button>)}
+            <button type="button" className="ibx-surprise" onClick={() => { playSoundEffect('pageFlip', .2); surprise(); }}><Shuffle /> Surprends-moi</button>
           </div>
           <div className="ibx-universes" role="group" aria-label="Univers musicaux disponibles">
             {UNIVERSES.map(({ id, icon: Icon, caption, color }, index) => {
@@ -136,7 +137,7 @@ export const InkBetaBlindtestSetup = ({ isHost, canStart, starting, error, onSta
               return (
                 <button key={id} type="button" className="ibx-universe" style={{ '--sleeve': color } as CSSProperties}
                   aria-label={CATEGORY_META[id].label} aria-pressed={active} aria-disabled={locked || undefined}
-                  title={locked ? 'Garde au moins un univers dans ton mix' : undefined} onClick={() => toggleCategory(id)}>
+                  title={locked ? 'Garde au moins un univers dans ton mix' : undefined} onClick={() => { playSoundEffect(active ? 'deselectItem' : 'selectItem', .18); toggleCategory(id); }}>
                   <span className="ibx-sleeve" aria-hidden="true">
                     <span className="ibx-sleeve-number">VOL. {String(index + 1).padStart(2, '0')}</span>
                     <Icon className="ibx-sleeve-icon" strokeWidth={1.4} />
@@ -177,7 +178,7 @@ export const InkBetaBlindtestSetup = ({ isHost, canStart, starting, error, onSta
           <p><Users />{teams ? 'Deux équipes · Scores cumulés' : 'Chacun pour soi · Que le meilleur gagne'}</p>
         </div>
         <button className="ibx-launch" type="button" disabled={!canStart || starting || titleCount === 0} aria-busy={starting}
-          onClick={() => onStart([...selected], { rounds: playableRounds, listenMs, teams, hints, doublePoints })}>
+          onClick={() => { playSoundEffect('powerUp', .34); onStart([...selected], { rounds: playableRounds, listenMs, teams, hints, doublePoints }); }}>
           {starting ? <Loader2 className="ibx-spinning" /> : <Play fill="currentColor" />}<span>{starting ? 'Préparation du mix…' : 'C’est parti !'}</span><ArrowUpRight />
         </button>
         <p className="ibx-launch-note"><span className="ibx-dot" />{canStart ? 'Tout le monde joue avec ces réglages' : 'Connexion au salon en cours…'}</p>
