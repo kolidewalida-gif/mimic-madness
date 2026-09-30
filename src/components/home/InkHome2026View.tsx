@@ -2,7 +2,6 @@ import type { FormEvent, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  AudioLines,
   Bell,
   Check,
   Hash,
@@ -14,7 +13,6 @@ import {
   Trash2,
   User,
   UsersRound,
-  Zap,
 } from 'lucide-react';
 
 import { InkBetaLogo } from '@/components/InkBetaBrand';
@@ -23,7 +21,7 @@ import { type PersonalHubTab } from '@/components/personal-hub/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 
-import styles from './InkHome2026View.module.css';
+import styles from './InkHomeBubble.module.css';
 
 interface RecentLobbyEntry {
   code: string;
@@ -52,8 +50,6 @@ interface InkHome2026ViewProps {
   onOpenPersonalHub: (tab: PersonalHubTab) => void;
   onOpenSocial: () => void;
 }
-
-const WAVE_BARS = Array.from({ length: 13 }, (_, index) => index);
 
 export const InkHome2026View = ({
   avatarPicker,
@@ -93,10 +89,8 @@ export const InkHome2026View = ({
       <div className="ik-party-bg" aria-hidden="true" />
       <div className="ik-party-rays" aria-hidden="true" />
       <div className="ik-party-dots" aria-hidden="true" />
-      <div className={styles.stageLights} aria-hidden="true">
-        <span />
-        <span />
-        <span />
+      <div className={styles.bubbles} aria-hidden="true">
+        {Array.from({ length: 9 }, (_, index) => <i key={index} />)}
       </div>
 
       <header className={styles.header}>
@@ -194,195 +188,50 @@ export const InkHome2026View = ({
       </header>
 
       <main className={`${styles.main} custom-scrollbar`} aria-labelledby="mm-home3-tagline">
-        <div className={styles.scene}>
-          <section className={styles.identityPanel} aria-labelledby="mm-home3-tagline">
-            <div className={styles.panelScribble} aria-hidden="true" />
+        <section className={styles.scene}>
+          <h2 id="mm-home3-tagline" className="sr-only">Prêt à jouer ?</h2>
+          <div className={styles.avatarBubble}>
+            <span className={styles.avatarSpark} aria-hidden="true">✦</span>
+            <div className={styles.avatarSlot}>{avatarPicker}</div>
+            <span className={styles.avatarTag}>C’est toi !</span>
+          </div>
 
-            <div className={styles.heroCopy}>
-              <span className={styles.kicker}>
-                <span className={styles.liveDot} aria-hidden="true" />
-                Le party game qui donne de la voix
-              </span>
-              <h2 id="mm-home3-tagline">
-                Fais du bruit.
-                <span>Marque la soirée.</span>
-              </h2>
-              <p>
-                Ton pseudo, ta bande, un salon. Ensuite, vous choisissez ensemble
-                comment mettre le feu à la partie.
-              </p>
+          <form className={styles.playBubble} onSubmit={(event) => {
+            event.preventDefault();
+            if (nameReady) onCreate();
+          }}>
+            <label htmlFor="mm-home3-name" className={styles.fieldLabel}>Ton pseudo</label>
+            <div className={`${styles.nameField}${nameReady ? ` ${styles.nameFieldReady}` : ''}`}>
+              <User aria-hidden="true" />
+              <input
+                id="mm-home3-name"
+                placeholder="Ton pseudo…"
+                value={playerName}
+                onChange={(event) => onPlayerNameChange(event.target.value)}
+                maxLength={20}
+                autoComplete="nickname"
+                aria-describedby="mm-home3-name-help"
+              />
+              {nameReady && <Check className={styles.readyCheck} aria-hidden="true" />}
             </div>
-
-            <div className={styles.identityWorkspace}>
-              <div className={styles.avatarBay}>
-                <div className={styles.sectionLabel}>
-                  <span>01</span>
-                  <div>
-                    <strong>Ton personnage</strong>
-                    <small>Choisis ton énergie</small>
-                  </div>
-                </div>
-                <div className={styles.avatarSlot}>{avatarPicker}</div>
-              </div>
-
-              <div className={styles.nameDeck}>
-                <div className={styles.stepHeading}>
-                  <span className={styles.stepIcon} aria-hidden="true">
-                    <User />
-                  </span>
-                  <div>
-                    <span>Ton nom de scène</span>
-                    <h3>Qui monte sur scène ?</h3>
-                  </div>
-                </div>
-
-                <label htmlFor="mm-home3-name" className={styles.fieldLabel}>
-                  Ton pseudo
-                  <span>20 caractères max.</span>
-                </label>
-                <div className={`${styles.nameField}${nameReady ? ` ${styles.nameFieldReady}` : ''}`}>
-                  <User aria-hidden="true" />
-                  <input
-                    id="mm-home3-name"
-                    placeholder="Ex. DJ Croissant"
-                    value={playerName}
-                    onChange={(event) => onPlayerNameChange(event.target.value)}
-                    maxLength={20}
-                    autoComplete="nickname"
-                  />
-                  {nameReady && <Check className={styles.readyCheck} aria-hidden="true" />}
-                </div>
-
-                <p
-                  className={`${styles.nameStatus}${nameReady ? ` ${styles.nameStatusReady}` : ''}`}
-                  role="status"
-                  aria-live="polite"
-                >
-                  <span aria-hidden="true" />
-                  {nameReady
-                    ? `${playerName.trim()}, la scène est à toi.`
-                    : 'Écris ton pseudo pour déverrouiller le salon.'}
-                </p>
-
-                <div className={styles.fastStart}>
-                  <Zap aria-hidden="true" />
-                  <p>
-                    <strong>Démarrage express</strong>
-                    <span>Pas de réglages à rallonge : la partie se construit dans le salon.</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <ol className={styles.route} aria-label="Parcours pour démarrer une partie">
-              <li className={nameReady ? styles.routeDone : styles.routeActive}>
-                <span>{nameReady ? <Check aria-hidden="true" /> : '1'}</span>
-                <div>
-                  <strong>Ton pseudo</strong>
-                  <small>Prends ta place</small>
-                </div>
-              </li>
-              <li className={nameReady ? styles.routeActive : undefined}>
-                <span>2</span>
-                <div>
-                  <strong>Ton salon</strong>
-                  <small>Invite la bande</small>
-                </div>
-              </li>
-              <li>
-                <span>3</span>
-                <div>
-                  <strong>Votre mode</strong>
-                  <small>Décidez ensemble</small>
-                </div>
-              </li>
-            </ol>
-          </section>
-
-          <aside className={styles.launchPanel} aria-labelledby="mm-home3-launch-title">
-            <div className={styles.launchTopline}>
-              <span>02 · Lancement</span>
-              <span className={`${styles.readiness}${nameReady ? ` ${styles.readinessReady}` : ''}`}>
-                <i aria-hidden="true" />
-                {nameReady ? 'Prêt à jouer' : 'Pseudo requis'}
-              </span>
-            </div>
-
-            <div className={styles.launchHeading}>
-              <span className={styles.launchIcon} aria-hidden="true">
-                <AudioLines />
-              </span>
-              <h3 id="mm-home3-launch-title">Monte ton salon</h3>
-              <p>Crée ta scène ou saisis le code envoyé par un ami.</p>
-            </div>
-
-            <div className={styles.soundCheck} aria-hidden="true">
-              <div className={styles.record}>
-                <span />
-                <i />
-              </div>
-              <div className={styles.soundCheckBody}>
-                <div className={styles.waveform}>
-                  {WAVE_BARS.map((bar) => <span key={bar} />)}
-                </div>
-                <small>Sound check</small>
-                <strong>La bande t’attend</strong>
-              </div>
-            </div>
-
-            <div className={styles.actionStack}>
-              <button
-                type="button"
-                disabled={!nameReady}
-                onClick={onCreate}
-                className={`${styles.createButton} menu-focus`}
-              >
-                <span className={styles.actionIcon}>
-                  <Play fill="currentColor" aria-hidden="true" />
-                </span>
-                <span className={styles.actionCopy}>
-                  <strong>Créer un salon</strong>
-                  <small>Je deviens l’hôte</small>
-                </span>
-                <ArrowRight className={styles.actionArrow} aria-hidden="true" />
-              </button>
-
-              <button
-                type="button"
-                disabled={!nameReady}
-                onClick={openJoin}
-                className={`${styles.joinButton} menu-focus`}
-              >
-                <span className={styles.actionIcon}>
-                  <Hash aria-hidden="true" />
-                </span>
-                <span className={styles.actionCopy}>
-                  <strong>J’ai un code</strong>
-                  <small>Je rejoins la troupe</small>
-                </span>
-                <ArrowRight className={styles.actionArrow} aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className={styles.modeNote}>
-              <UsersRound aria-hidden="true" />
-              <p>
-                <strong>Décidez ensemble</strong>
-                <span>Le mode de jeu se choisit une fois toute la bande dans le salon.</span>
-              </p>
-            </div>
-
-            <p className={styles.shortcuts}>
-              {nameReady ? (
-                <>
-                  <kbd>Entrée</kbd> créer <span aria-hidden="true">·</span> <kbd>J</kbd> rejoindre
-                </>
-              ) : (
-                'Entre ton pseudo pour lancer la soirée.'
-              )}
+            <p id="mm-home3-name-help" className={styles.nameStatus} role="status">
+              {nameReady ? 'Ta bande t’attend. À toi de jouer !' : 'Choisis ton pseudo pour jouer avec ta bande.'}
             </p>
-          </aside>
-        </div>
+            <div className={styles.actionStack}>
+              <button type="submit" disabled={!nameReady} className={`${styles.createButton} menu-focus`}>
+                <span className={styles.actionIcon}><Play fill="currentColor" aria-hidden="true" /></span>
+                <span>Créer une partie</span>
+                <ArrowRight className={styles.actionArrow} aria-hidden="true" />
+              </button>
+              <button type="button" disabled={!nameReady} onClick={openJoin} className={`${styles.joinButton} menu-focus`}>
+                <span className={styles.actionIcon}><UsersRound aria-hidden="true" /></span>
+                <span>Rejoindre</span>
+                <ArrowRight className={styles.actionArrow} aria-hidden="true" />
+              </button>
+            </div>
+            <p className={styles.shortcuts}>Un salon, des amis, beaucoup de bruit.</p>
+          </form>
+        </section>
       </main>
 
       <footer className={styles.footer}>
