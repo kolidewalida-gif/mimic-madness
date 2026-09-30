@@ -64,13 +64,18 @@
 :global(body.inkbeta-mode) .root.root :global(.ik-seat-actions) { top: 3px; right: 0; z-index: 5; }
 :global(body.inkbeta-mode) .root.root :global(.ik-seat-menu) { width: 32px; height: 32px; border-radius: 50%; background: #a778c420; color: var(--lb-muted); }
 :global(body.inkbeta-mode) .root.root :global(.ik-seat.is-away) { opacity: .6; }
-:global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) { grid-column: 2; grid-row: 2; padding: 0; overflow: hidden; min-height: 405px; --ink-text: var(--lb-text); --ink-text-mute: var(--lb-muted); --ink-line: #a778c433; }
+:global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) { position: relative; grid-column: 2; grid-row: 2; padding: 0; overflow: hidden; min-height: 405px; --ink-text: var(--lb-text); --ink-text-mute: var(--lb-muted); --ink-line: #a778c433; }
+/* Messages must not contribute to the grid's intrinsic row height. The player
+   panel sizes the row; this definite-height chat scrolls independently inside it. */
+:global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) > :global(.lobby-chat) { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; }
 :global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) :global(.if-label) { color: var(--lb-text); font-family: var(--ik-body); font-weight: 900; font-size: 16px; text-transform: none; text-shadow: none; }
 :global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) :global(.if-mute) { color: var(--lb-muted); }
 :global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) > div > div:first-child { padding: 22px; background: #ad84cf12; border-bottom: 1px solid #9b73bd33; }
 :global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) > div > div:last-child { background: transparent; border-top: 1px solid #9b73bd33; padding: 12px; }
 :global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) > div > div:last-child > div { border: 1px solid #9b73bd66; border-radius: 50px; background: #ffffff12 !important; }
 :global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) button { border-radius: 50%; }
+:global(body.inkbeta-mode) .root.root :global(.ik-lobby-chat-panel) :global(.lobby-chat-jump) { border-radius: 50px; }
+:global(body.inkbeta-mode) .root.root :global(.lobby-chat-messages):focus-visible { outline: 2px solid #76efd1; outline-offset: -3px; }
 :global(body.inkbeta-mode) .root.root :global(.ik-lobby-modes) { grid-column: 1; grid-row: 3; display: block; padding: 24px; overflow: visible; }
 :global(body.inkbeta-mode) .root.root :global(.ik-mode-panel-head) { margin: 0; }
 :global(body.inkbeta-mode) .root.root :global(.ik-mode-panel-head) h2 { margin-top: 5px; font-size: 23px; }

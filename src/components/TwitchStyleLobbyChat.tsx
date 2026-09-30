@@ -45,7 +45,7 @@ const ChatLine = memo(({ msg, isOwn, ownColor }: { msg: ChatMessage; isOwn: bool
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: 'easeOut' }}
-      className={cn('flex items-end gap-2', isOwn ? 'flex-row-reverse' : 'flex-row')}
+      className={cn('flex min-w-0 flex-shrink-0 items-end gap-2', isOwn ? 'flex-row-reverse' : 'flex-row')}
     >
       {/* Avatar keeps the player's chat colour — that is the identity cue. */}
       <div
@@ -74,7 +74,7 @@ const ChatLine = memo(({ msg, isOwn, ownColor }: { msg: ChatMessage; isOwn: bool
         ) : (
           <div
             className={cn(
-              'inline-block break-words rounded-2xl px-3 py-2 text-left text-sm leading-snug',
+              'inline-block max-w-full break-words rounded-2xl px-3 py-2 text-left text-sm leading-snug [overflow-wrap:anywhere]',
               isOwn ? 'rounded-br-md text-white' : 'rounded-bl-md text-[var(--ink-text)]',
             )}
             style={
@@ -259,7 +259,7 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
   );
 
   return (
-    <div className={cn('relative flex h-full min-h-0 flex-col overflow-hidden', className)}>
+    <div className={cn('lobby-chat relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden', className)}>
       {/* Header — one label, one count. The status dot used to pulse with
           `animate-ping`, another continuous repaint; it is static now. */}
       <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-[var(--ink-line)] px-4 py-3">
@@ -281,7 +281,10 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3"
+        role="region"
+        aria-label="Messages du salon"
+        tabIndex={0}
+        className="lobby-chat-messages custom-scrollbar flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-3"
       >
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -310,7 +313,7 @@ export const TwitchStyleLobbyChat = memo(function TwitchStyleLobbyChat({
         <button
           type="button"
           onClick={() => { setAutoScroll(true); scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }}
-          className="if-btn if-btn--primary if-btn--sm menu-focus mx-3 mb-2 flex-shrink-0"
+          className="lobby-chat-jump if-btn if-btn--primary if-btn--sm menu-focus mx-3 mb-2 flex-shrink-0"
         >
           <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
           Nouveaux messages
