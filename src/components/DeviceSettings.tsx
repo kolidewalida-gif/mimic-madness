@@ -76,7 +76,7 @@ const AudioSettings = () => {
           <Select value={devices.selectedAudioId || undefined} disabled={devices.isLoading || !devices.audioInputs.length}
             onValueChange={(value) => { test.stopTest(); void devices.changeAudioInput(value); }}>
             <SelectTrigger id={id} className={styles.deviceSelect}><SelectValue placeholder={devices.isLoading ? 'Recherche des micros…' : 'Aucun micro disponible'} /></SelectTrigger>
-            <SelectContent className={styles.devicePopover}>{devices.audioInputs.map(device => <SelectItem key={device.deviceId} value={device.deviceId}>{device.label || 'Microphone'}</SelectItem>)}</SelectContent>
+            <SelectContent className={styles.devicePopover}>{devices.audioInputs.filter(device => device.deviceId).map(device => <SelectItem key={device.deviceId} value={device.deviceId}>{device.label || 'Microphone'}</SelectItem>)}</SelectContent>
           </Select>
           <div className={styles.deviceActions}>
             <span className={styles.note}>{devices.audioInputs.length} micro{devices.audioInputs.length > 1 ? 's' : ''} détecté{devices.audioInputs.length > 1 ? 's' : ''}</span>
