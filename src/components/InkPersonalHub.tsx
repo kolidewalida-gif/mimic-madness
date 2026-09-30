@@ -22,7 +22,8 @@ import {
 
 import { AchievementsPanel } from '@/components/AchievementsPanel';
 import { DeviceSettings } from '@/components/DeviceSettings';
-import { InkFriendsSidebar } from '@/components/InkFriendsSidebar';
+import { FriendsMessenger } from '@/components/messaging/FriendsMessenger';
+import messengerStyles from '@/components/messaging/Messenger.module.css';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
 import { InkQuestsPanel } from '@/components/InkQuestsPanel';
 import { RewardsPanel } from '@/components/RewardsPanel';
@@ -402,9 +403,9 @@ const InkPersonalHubComponent = ({
         <main className="ik-hub-content custom-scrollbar">
           {activeTab === 'profile' && <HubProfile onNavigate={navigate} />}
           {activeTab === 'friends' && (
-            <div className="ik-hub-page ik-hub-friends-page">
-              <HubSectionHeading eyebrow="Communauté" title="Ta troupe" copy="Discute, accepte les demandes et rejoins une partie sans quitter ton espace." />
-              <InkFriendsSidebar mode="hub" currentLobbyCode={currentLobbyCode} onJoinFriend={onJoinLobby} onAcceptGameInvitation={onAcceptInvitation} onDeclineGameInvitation={onDeclineInvitation} />
+            <div className={`ik-hub-page ik-hub-friends-page ${messengerStyles.page}`}>
+              <HubSectionHeading eyebrow="Ta bande" title="Messages & amis" copy="Discute en privé, retrouve tes amis ou rassemble-les dans un groupe." />
+              <FriendsMessenger currentLobbyCode={currentLobbyCode} onJoinFriend={onJoinLobby} onAcceptGameInvitation={onAcceptInvitation} onDeclineGameInvitation={onDeclineInvitation} />
             </div>
           )}
           {activeTab === 'progress' && <HubProgress />}
