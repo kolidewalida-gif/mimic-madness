@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { forwardRef, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Play, Trash2, Volume2, VolumeX } from 'lucide-react';
 import type { SocialPost } from '@/hooks/useSocialFeed';
@@ -23,10 +23,7 @@ export const LikePill = ({ post, onLike }: { post: SocialPost; onLike: (id: stri
   </button>
 );
 
-export const FeedTile = memo(({
-  post, rank, onOpen, onLike, onDelete, onOpenProfile, isOwner, square,
-  soundActive = false, volume = 0.7, onToggleSound, onVolume,
-}: {
+interface FeedTileProps {
   post: SocialPost;
   rank?: number;
   onOpen: () => void;
@@ -39,8 +36,15 @@ export const FeedTile = memo(({
   volume?: number;
   onToggleSound?: () => void;
   onVolume?: (value: number) => void;
-}) => (
+}
+
+// popLayout needs the actual article node to animate grid reordering correctly.
+export const FeedTile = memo(forwardRef<HTMLElement, FeedTileProps>(({
+  post, rank, onOpen, onLike, onDelete, onOpenProfile, isOwner, square,
+  soundActive = false, volume = 0.7, onToggleSound, onVolume,
+}, ref) => (
   <motion.article
+    ref={ref}
     layout
     initial={{ opacity: 0, scale: 0.96 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -100,5 +104,5 @@ export const FeedTile = memo(({
       </div>
     </footer>
   </motion.article>
-));
+)));
 FeedTile.displayName = 'FeedTile';

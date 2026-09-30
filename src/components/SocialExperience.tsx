@@ -34,7 +34,7 @@ import { useSocialFeed, type SocialFeedTab, type SocialPost } from '@/hooks/useS
 import { supabase } from '@/integrations/supabase/client';
 import { weeklyPeriodKey } from '@/lib/questDefinitions';
 import { computeSocialBadges } from '@/lib/socialBadges';
-import bubble from '@/components/social/BubbleSocial.module.css';
+import bubble from '@/components/social/SocialFeed.module.css';
 
 type View = 'foryou' | 'trending' | 'profile';
 
@@ -199,7 +199,7 @@ const SocialExperienceComponent = () => {
     ? 'Dans tes créations…'
     : view === 'trending'
       ? 'Dans le classement…'
-      : 'Créateur ou légende…';
+      : 'Rechercher un créateur ou une vidéo';
   const emptyCopy = useMemo(() => {
     if (view === 'profile') return { emoji: '📭', title: 'Aucune création', sub: 'Partage tes meilleurs moments après une partie.' };
     if (view === 'trending') return { emoji: '🔥', title: 'Le classement arrive', sub: 'Les créations les plus aimées apparaîtront ici.' };
@@ -226,7 +226,39 @@ const SocialExperienceComponent = () => {
 
   return (
     <div className={`social-experience ${bubble.experience}`}>
-      <header className={bubble.navBar}>
+      <aside className={bubble.navBar} aria-label="Explorer Social">
+          <span className={bubble.navLabel}>Explorer</span>
+          <nav className={bubble.nav} aria-label="Navigation Social" role="tablist">
+            {NAV.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  id={`social-tab-${item.id}`}
+                  type="button"
+                  role="tab"
+                  tabIndex={view === item.id ? 0 : -1}
+                  aria-selected={view === item.id}
+                  aria-controls={`social-panel-${item.id}`}
+                  onClick={() => setView(item.id)}
+                  onKeyDown={(event) => {
+                    const current = NAV.findIndex((entry) => entry.id === item.id);
+                    const next = event.key === 'Home' ? 0 : event.key === 'End' ? NAV.length - 1
+                      : ['ArrowDown', 'ArrowRight'].includes(event.key) ? (current + 1) % NAV.length
+                        : ['ArrowUp', 'ArrowLeft'].includes(event.key) ? (current + NAV.length - 1) % NAV.length : null;
+                    if (next === null) return;
+                    event.preventDefault();
+                    setView(NAV[next].id);
+                    document.getElementById(`social-tab-${NAV[next].id}`)?.focus();
+                  }}
+                  style={{ '--social-accent': item.color } as CSSProperties}
+                >
+                  <Icon aria-hidden="true" />
+                  <strong>{item.label}</strong>
+                </button>
+              );
+            })}
+          </nav>
           <button
             type="button"
             onClick={() => user && openProfile(user.id, displayName)}
@@ -244,32 +276,10 @@ const SocialExperienceComponent = () => {
             </span>
           </button>
 
-          <nav className={bubble.nav} aria-label="Navigation Social" role="tablist">
-            {NAV.map((item) => {
-              const Icon = item.icon;
-              const active = view === item.id;
-              return (
-                <button
-                  key={item.id}
-                  id={`social-tab-${item.id}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  aria-controls={`social-panel-${item.id}`}
-                  onClick={() => {
-                    playInkSound('cartoonPop', 0.3);
-                    setView(item.id);
-                  }}
-                  className="menu-focus"
-                  style={{ '--social-accent': item.color } as CSSProperties}
-                >
-                  <span><Icon aria-hidden="true" /></span>
-                  <strong>{item.label}</strong>
-                </button>
-              );
-            })}
-          </nav>
-
+      </aside>
+      <main className={bubble.content}>
+        <header className={bubble.toolbar}>
+            <h3>{activeView.label}</h3>
             <div className={bubble.search}>
               <Search aria-hidden="true" />
               <input
@@ -296,7 +306,7 @@ const SocialExperienceComponent = () => {
                 </div>
               )}
             </div>
-      </header>
+        </header>
 
       {view === 'profile' && (
         <div className={bubble.stats} aria-label="Ton profil social">
@@ -367,6 +377,7 @@ const SocialExperienceComponent = () => {
           )}
         </div>
       </section>
+      </main>
 
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
@@ -380,7 +391,7 @@ const SocialExperienceComponent = () => {
               initial={false}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="social-viewer-overlay social-viewer-overlay--modern force-cursor"
+              className={`social-viewer-overlay social-viewer-overlay--modern force-cursor ${bubble.viewerOverlay}`}
               onClick={(event) => {
                 if (event.target === event.currentTarget) closeViewer();
               }}

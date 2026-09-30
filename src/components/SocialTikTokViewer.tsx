@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
 } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
@@ -34,7 +33,7 @@ import { useSocialComments } from '@/hooks/useSocialComments';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import type { SocialPost } from '@/hooks/useSocialFeed';
 import { cn } from '@/lib/utils';
-import bubble from '@/components/social/BubbleSocial.module.css';
+import bubble from '@/components/social/SocialFeed.module.css';
 
 interface Props {
   posts: SocialPost[];
@@ -116,9 +115,14 @@ const SocialTikTokViewerComponent = ({
   isKeyboardActive = ALWAYS_KEYBOARD_ACTIVE,
 }: Props) => {
   const { user } = useAuth();
-  const [index, setIndex] = useState(() => clampIndex(startIndex, posts.length));
+  const [selectedPostId, setSelectedPostId] = useState(() => posts[clampIndex(startIndex, posts.length)]?.id ?? null);
+  const selectedIndex = posts.findIndex((entry) => entry.id === selectedPostId);
+  const index = selectedIndex >= 0 ? selectedIndex : clampIndex(startIndex, posts.length);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(() => (
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1000px)').matches
+  ));
+  const [direction, setDirection] = useState<1 | -1>(1);
   const reduced = useReducedMotion();
   const [draft, setDraft] = useState('');
   const [volume, setVolume] = useState(() => Math.max(0, Math.min(1, audioVolume)));
@@ -126,10 +130,13 @@ const SocialTikTokViewerComponent = ({
   const [sharing, setSharing] = useState(false);
   const [heartPos, setHeartPos] = useState<{ x: number; y: number; id: number } | null>(null);
   const [dragY, setDragY] = useState(0);
+  const [playbackTime, setPlaybackTime] = useState({ current: 0, duration: 0 });
 
   const rootRef = useRef<HTMLDivElement>(null);
   const wheelLock = useRef(false);
   const wheelTimer = useRef<number | null>(null);
+  const wheelDistance = useRef(0);
+  const wheelLastAt = useRef(0);
   const simpleVideoRef = useRef<HTMLVideoElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const commentsToggleRef = useRef<HTMLButtonElement>(null);
@@ -141,11 +148,13 @@ const SocialTikTokViewerComponent = ({
   const heartIdRef = useRef(0);
 
   const post = posts[index];
+  const hasPost = Boolean(post);
   const { comments, loading: commentsLoading, posting, addComment, removeComment } = useSocialComments(post?.id ?? null);
 
   useEffect(() => {
-    setIndex((current) => clampIndex(current, posts.length));
-  }, [posts.length]);
+    // New publications and realtime counters must not replace the clip being watched.
+    if (selectedIndex < 0) setSelectedPostId(posts[index]?.id ?? null);
+  }, [index, posts, selectedIndex]);
 
   useEffect(() => {
     setVolume(Math.max(0, Math.min(1, audioVolume)));
@@ -163,6 +172,7 @@ const SocialTikTokViewerComponent = ({
     setIsPlaying(true);
     setDraft('');
     setDragY(0);
+    setPlaybackTime({ current: 0, duration: 0 });
   }, [post?.id]);
 
   useEffect(() => {
@@ -183,13 +193,11 @@ const SocialTikTokViewerComponent = ({
   }, []);
 
   const go = useCallback((direction: 1 | -1) => {
-    setIndex((current) => {
-      const next = current + direction;
-      if (next < 0 || next >= posts.length) return current;
-      playInkSound('cartoonPop', 0.25);
-      return next;
-    });
-  }, [posts.length]);
+    const next = index + direction;
+    if (next < 0 || next >= posts.length) return;
+    setDirection(direction);
+    setSelectedPostId(posts[next].id);
+  }, [index, posts]);
 
   const togglePlayback = useCallback(() => {
     setIsPlaying((current) => {
@@ -225,6 +233,7 @@ const SocialTikTokViewerComponent = ({
       if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
       if (event.key === ' ' && target?.closest('button, a[href], [role="button"]')) return;
 
+      if (target?.closest('[data-comments]')) return;
       if (event.key === 'ArrowDown') {
         event.preventDefault();
         go(1);
@@ -250,19 +259,30 @@ const SocialTikTokViewerComponent = ({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [embedded, go, isKeyboardActive, muted, onClose, togglePlayback, updateMuted]);
 
-  const handleWheel = (event: ReactWheelEvent) => {
-    if ((event.target as HTMLElement)?.closest('[data-comments]')) return;
-    if (wheelLock.current || Math.abs(event.deltaY) < 24) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    wheelLock.current = true;
-    go(event.deltaY > 0 ? 1 : -1);
-    if (wheelTimer.current) window.clearTimeout(wheelTimer.current);
-    wheelTimer.current = window.setTimeout(() => {
-      wheelLock.current = false;
-    }, 420);
-  };
+  useEffect(() => {
+    const stage = rootRef.current?.querySelector('.social-viewer-stage');
+    if (!stage) return;
+    // Non-passive listener: no page scrolling, and no interception of comments.
+    const onWheel = (event: WheelEvent) => {
+      if (!isKeyboardActive() || event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      if ((event.target as HTMLElement).closest('input, [data-no-wheel]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const now = Date.now();
+      if (now - wheelLastAt.current > 180) wheelDistance.current = 0;
+      wheelLastAt.current = now;
+      if (wheelLock.current) return;
+      wheelDistance.current += event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? stage.clientHeight : 1);
+      if (Math.abs(wheelDistance.current) < 60) return;
+      go(wheelDistance.current > 0 ? 1 : -1);
+      wheelDistance.current = 0;
+      wheelLock.current = true;
+      if (wheelTimer.current) window.clearTimeout(wheelTimer.current);
+      wheelTimer.current = window.setTimeout(() => { wheelLock.current = false; }, 550);
+    };
+    stage.addEventListener('wheel', onWheel, { passive: false });
+    return () => stage.removeEventListener('wheel', onWheel);
+  }, [go, isKeyboardActive, hasPost]);
 
   const showHeart = useCallback((x: number, y: number) => {
     if (!post || Date.now() - lastHeartAtRef.current < 350) return;
@@ -437,7 +457,12 @@ const SocialTikTokViewerComponent = ({
       tabIndex={embedded ? 0 : undefined}
       aria-label={embedded ? 'Lecteur Social intégré. Utilise les flèches pour changer de publication.' : undefined}
       className={cn('force-cursor', bubble.viewer, embedded ? 'is-embedded' : 'is-floating', commentsOpen && bubble.viewerOpen)}
-      onWheel={handleWheel}
+      onTimeUpdateCapture={(event) => {
+        const video = event.target as HTMLVideoElement;
+        if (video.tagName === 'VIDEO') setPlaybackTime({ current: video.currentTime, duration: Number.isFinite(video.duration) ? video.duration : 0 });
+      }}
+      onPlayCapture={() => { if (!post.challenge_clip_id) setIsPlaying(true); }}
+      onPauseCapture={() => { if (!post.challenge_clip_id) setIsPlaying(false); }}
       onPointerDownCapture={(event) => {
         if (embedded && !(event.target as HTMLElement).closest('button, a, input, textarea, select')) {
           rootRef.current?.focus({ preventScroll: true });
@@ -456,19 +481,19 @@ const SocialTikTokViewerComponent = ({
         }}
         style={{ touchAction: 'pan-x' }}
       >
+        <div className={bubble.watchSurface}>
+        <div className={bubble.mediaColumn}>
         <div
           className="social-viewer-canvas"
           onDoubleClick={handleDoubleClick}
           onClick={handleMediaClick}
         >
-          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={post.id}
               className="social-viewer-media"
-              initial={reduced ? false : { opacity: 0, y: 16 }}
+              initial={reduced ? false : { opacity: 1, y: direction * 38 }}
               animate={{ opacity: 1, y: reduced ? 0 : dragY }}
-              exit={{ opacity: 0, y: reduced ? 0 : -16 }}
-              transition={{ duration: reduced ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: reduced ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
             >
               {post.challenge_clip_id ? (
                 <VideoWithAudioOverlay
@@ -492,14 +517,13 @@ const SocialTikTokViewerComponent = ({
                   muted={muted}
                   volume={volume}
                   loop
+                  controls={false}
                 />
               )}
             </motion.div>
-          </AnimatePresence>
 
           <div className="social-viewer-topbar" data-no-swipe>
             <span className="social-viewer-counter" aria-live="polite">{index + 1}<i>/</i>{posts.length}</span>
-            <span className="social-viewer-gesture-hint">Glisse verticalement</span>
             <button type="button" onClick={() => updateMuted(!muted)} aria-label={muted ? 'Activer le son de la vidéo' : 'Couper le son de la vidéo'} aria-pressed={muted}>{muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}</button>
             {!embedded && (
               <button type="button" className="menu-focus" onClick={onClose} aria-label="Fermer le lecteur"><X aria-hidden="true" /></button>
@@ -538,6 +562,15 @@ const SocialTikTokViewerComponent = ({
           </div>
         </div>
 
+        <div className={bubble.playback} data-no-swipe>
+          <div className={bubble.progress} aria-hidden="true"><span style={{ width: `${playbackTime.duration > 0 ? Math.min(100, playbackTime.current / playbackTime.duration * 100) : 0}%` }} /></div>
+          <button type="button" onClick={togglePlayback} aria-label={isPlaying ? 'Mettre en pause' : 'Reprendre la lecture'}>{isPlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}</button>
+          <span className={bubble.time}>{formatPlaybackTime(playbackTime.current)} / {formatPlaybackTime(playbackTime.duration)}</span>
+          <label><span className="sr-only">Volume de la vidéo</span><input type="range" min={0} max={1} step={0.05} value={volume} onChange={(event) => updateVolume(Number(event.target.value))} aria-label="Volume de la vidéo" /></label>
+        </div>
+        </div>
+
+        <div className={bubble.rail}>
         <div className={cn('social-viewer-actions', isOwner && onDelete && 'has-delete')} aria-label="Actions de la publication" data-no-swipe>
           <button
             type="button"
@@ -562,7 +595,7 @@ const SocialTikTokViewerComponent = ({
           </button>
           <button type="button" className="menu-focus" onClick={() => void handleShare()} disabled={sharing} aria-label="Partager cette publication">
             <span className="social-viewer-action-icon">{sharing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Share2 aria-hidden="true" />}</span>
-            <span><strong>Partager</strong><small>Lien ou app</small></span>
+            <span><strong>Partager</strong></span>
           </button>
           {isOwner && onDelete && (
             <button type="button" className="menu-focus is-danger" onClick={() => void handleDeletePost()} aria-label="Supprimer définitivement cette publication">
@@ -576,9 +609,12 @@ const SocialTikTokViewerComponent = ({
           <NavButton label="Publication précédente" icon={ChevronUp} disabled={index === 0} onClick={() => go(-1)} />
           <NavButton label="Publication suivante" icon={ChevronDown} disabled={index === posts.length - 1} onClick={() => go(1)} />
         </div>
+        </div>
+        </div>
+        <span className={bubble.shortcuts}>Molette ou ↑ ↓ <span>·</span> Espace : pause</span>
       </section>
 
-      <aside className="social-viewer-panel" data-comments>
+      {commentsOpen && <aside className="social-viewer-panel" data-comments>
         <header className="social-viewer-author">
           <button
             type="button"
@@ -587,36 +623,19 @@ const SocialTikTokViewerComponent = ({
             disabled={!onOpenProfile}
           >
             <span><UserRound aria-hidden="true" /></span>
-            <span><small>Créé par</small><strong>@{post.owner_name}</strong></span>
+            <span><strong>@{post.owner_name}</strong><small>Créateur</small></span>
             {onOpenProfile && <i>Voir le profil</i>}
           </button>
           {post.caption && <p>{post.caption}</p>}
           <div className="social-viewer-metrics">
             <span><Eye aria-hidden="true" /> {compactNumber.format(post.views_count || 0)} vues</span>
-            <span><Heart aria-hidden="true" /> {compactNumber.format(post.likes_count || 0)} likes</span>
-            <span><MessageCircle aria-hidden="true" /> {comments.length} commentaires</span>
           </div>
         </header>
 
-        <div className="social-viewer-audio" data-no-swipe>
-          <button type="button" className="menu-focus" onClick={() => updateMuted(!muted)} aria-pressed={muted} aria-label={muted ? 'Activer le son' : 'Couper le son'}>
-            {muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
-          </button>
-          <label>
-            <span>{muted ? 'Son coupé' : `Volume ${Math.round(volume * 100)} %`}</span>
-            <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(event) => updateVolume(Number(event.target.value))} aria-label="Volume de la vidéo" />
-          </label>
-          <button type="button" className="social-viewer-play-label menu-focus" onClick={togglePlayback} aria-label={isPlaying ? 'Mettre la vidéo en pause' : 'Lire la vidéo'}>
-            {isPlaying ? <Pause aria-hidden="true" /> : <Play fill="currentColor" aria-hidden="true" />}
-            {isPlaying ? 'Pause' : 'Lecture'}
-          </button>
-        </div>
-
-        {!commentsOpen && <div className={bubble.tip}><span><Heart aria-hidden="true" /></span><strong>Un rire ? Offre un cœur.</strong><p>Double-tape la vidéo pour aimer. Glisse ou utilise les flèches pour voir la suite.</p><button type="button" onClick={() => setCommentsOpen(true)}>Ouvrir la discussion <MessageCircle aria-hidden="true" /></button></div>}
         {commentsOpen && <section className="social-viewer-comments is-open" aria-label="Commentaires persistants">
           <header>
-            <div><MessageCircle aria-hidden="true" /><span><strong>Commentaires</strong><small>Conservés avec la publication</small></span></div>
-            <button type="button" className="menu-focus" onClick={() => { setCommentsOpen(false); commentsToggleRef.current?.focus({ preventScroll: true }); }} aria-label="Masquer les commentaires"><ChevronDown aria-hidden="true" /></button>
+            <div><strong>Commentaires</strong><span>{comments.length}</span></div>
+            <button type="button" onClick={() => { setCommentsOpen(false); commentsToggleRef.current?.focus({ preventScroll: true }); }} aria-label="Fermer les commentaires"><X aria-hidden="true" /></button>
           </header>
 
           {commentsOpen && (
@@ -625,7 +644,7 @@ const SocialTikTokViewerComponent = ({
                 {commentsLoading && comments.length === 0 ? (
                   <div className="social-viewer-comments-loading"><Loader2 className="animate-spin" aria-hidden="true" /> Chargement…</div>
                 ) : comments.length === 0 ? (
-                  <div className="social-viewer-comments-empty"><MessageCircle aria-hidden="true" /><strong>Ouvre la discussion</strong><p>Sois le premier à commenter cette création.</p></div>
+                  <div className="social-viewer-comments-empty"><MessageCircle aria-hidden="true" /><strong>Pas encore de commentaires</strong><p>Le premier rire, c’est peut-être le tien.</p></div>
                 ) : comments.map((comment) => (
                   <article key={comment.id} className="social-viewer-comment">
                     <span className="social-viewer-comment-avatar" aria-hidden="true">{comment.user_name?.charAt(0).toUpperCase() || '?'}</span>
@@ -660,9 +679,14 @@ const SocialTikTokViewerComponent = ({
             </>
           )}
         </section>}
-      </aside>
+      </aside>}
     </div>
   );
+};
+
+const formatPlaybackTime = (seconds: number) => {
+  const safe = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;
 };
 
 const NavButton = ({

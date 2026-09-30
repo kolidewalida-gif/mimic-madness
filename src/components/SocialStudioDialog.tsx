@@ -7,7 +7,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useDialogBehaviour } from '@/components/menu/InkOverlay';
 import { menuPanelMotion, menuScrimMotion } from '@/components/menu/overlayMotion';
 import overlayStyles from '@/components/menu/InkOverlay.module.css';
-import bubble from '@/components/social/BubbleSocial.module.css';
+import bubble from '@/components/social/SocialFeed.module.css';
 
 interface SocialStudioDialogProps {
   isOpen: boolean;
@@ -61,8 +61,7 @@ const SocialStudioDialogComponent = ({
                   <Share2 aria-hidden="true" />
                 </span>
                 <div>
-                  <small>MIMIC COMMUNITY</small>
-                  <h2 id="social-studio-title">Le coin de la bande.</h2>
+                  <h2 id="social-studio-title">Social<span>par Mimic Master</span></h2>
                 </div>
               </div>
               <div className="flex items-center gap-2">

@@ -15,6 +15,8 @@ interface VideoPreviewProps {
   volume?: number;
   /** Loop the clip continuously (respects trim range). */
   loop?: boolean;
+  /** Override native controls when the parent provides a custom player. */
+  controls?: boolean;
 }
 
 export const VideoPreview = ({ 
@@ -27,6 +29,7 @@ export const VideoPreview = ({
   autoPlay = false,
   volume = 1,
   loop = false,
+  controls,
 }: VideoPreviewProps) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [clipData, setClipData] = useState<any>(null);
@@ -204,7 +207,7 @@ export const VideoPreview = ({
             setError("Erreur de lecture de la vidéo");
           }}
           className="w-full h-full object-cover rounded-lg"
-          controls={!autoPlay}
+          controls={controls ?? !autoPlay}
           autoPlay={autoPlay}
           loop={loop && noTrim}
           playsInline

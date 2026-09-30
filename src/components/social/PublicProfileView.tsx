@@ -13,7 +13,7 @@ import { useDialogBehaviour } from '@/components/menu/InkOverlay';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { cn } from '@/lib/utils';
-import bubble from './BubbleSocial.module.css';
+import bubble from './SocialFeed.module.css';
 import { menuPanelMotion } from '@/components/menu/overlayMotion';
 
 const FONT = "'Outfit', sans-serif";
@@ -242,10 +242,10 @@ export const PublicProfileView = ({
             role="dialog"
             aria-modal="true"
             aria-label={`Créations de ${displayName}`}
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="social-viewer-overlay social-viewer-overlay--modern force-cursor"
+            className={`social-viewer-overlay social-viewer-overlay--modern force-cursor ${bubble.viewerOverlay}`}
             onClick={(e) => { if (e.target === e.currentTarget) closeViewer(); }}
           >
             <SocialTikTokViewer
