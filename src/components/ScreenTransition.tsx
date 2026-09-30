@@ -285,7 +285,10 @@ const LegacyScreenTransitionComponent = ({ children, screenKey, className }: Scr
   }, []);
 
   const getTransitionClass = () => {
-    if (phase === 'idle') return 'opacity-100 translate-x-0 translate-y-0 scale-100 blur-0';
+    // An idle screen must not retain a transform/filter. Even neutral values
+    // create a containing/compositing layer for its full-screen decorations.
+    // Opening a portal should not cause that background to be re-rasterized.
+    if (phase === 'idle') return 'opacity-100';
     
     const exitClasses: Record<TransitionStyle, string> = {
       fade: 'opacity-0',
@@ -312,11 +315,11 @@ const LegacyScreenTransitionComponent = ({ children, screenKey, className }: Scr
     <div className={cn("relative", className)}>
       <div
         className={cn(
-          "transition-all duration-150 ease-out will-change-transform",
+          "transition-[opacity,transform,filter] duration-150 ease-out",
           getTransitionClass()
         )}
       >
-        {displayedChildren}
+        {screenKey === displayedKey ? children : displayedChildren}
       </div>
       
       {/* Ink animation canvas - only for ink mode */}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, Grid3x3, Heart, Loader2, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +13,8 @@ import { useDialogBehaviour } from '@/components/menu/InkOverlay';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { cn } from '@/lib/utils';
+import bubble from './BubbleSocial.module.css';
+import { menuPanelMotion } from '@/components/menu/overlayMotion';
 
 const FONT = "'Outfit', sans-serif";
 
@@ -39,6 +41,7 @@ export const PublicProfileView = ({
   onAudioMutedChange,
 }: PublicProfileViewProps) => {
   const { user } = useAuth();
+  const reduced = useReducedMotion();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null);
   const [level, setLevel] = useState(1);
@@ -80,7 +83,7 @@ export const PublicProfileView = ({
       ]);
       if (cancelled) return;
       setProfile(profRes.data ?? { display_name: fallbackName ?? null, avatar_url: null });
-      setLevel(levelFromXp(((statsRes.data as any)?.total_xp) || 0));
+      setLevel(levelFromXp(statsRes.data?.total_xp || 0));
       let p = (postsRes.data ?? []) as SocialPost[];
       // hydrate liked_by_me for current viewer
       if (user && p.length) {
@@ -93,7 +96,7 @@ export const PublicProfileView = ({
         p = p.map((x) => ({ ...x, liked_by_me: liked.has(x.id) }));
       }
       setPosts(p);
-      const topOwner = (topRes.data?.[0] as any)?.owner_id;
+      const topOwner = topRes.data?.[0]?.owner_id;
       setIsTopWeek(!!topOwner && topOwner === userId);
       setLoading(false);
     })();
@@ -121,11 +124,12 @@ export const PublicProfileView = ({
 
   return createPortal(
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: reduced ? 0 : 0.2 }}
       className="social-public-profile-overlay fixed inset-0 z-[10055] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)' }}
+      style={{ background: 'rgba(17,5,28,0.8)' }}
       onClick={(e) => { if (e.target === e.currentTarget) closeProfile(); }}
     >
       <motion.div
@@ -134,19 +138,15 @@ export const PublicProfileView = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        initial={{ scale: 0.94, y: 20, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.94, y: 20, opacity: 0 }}
-        transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-        className="relative w-full max-w-2xl flex flex-col rounded-3xl overflow-hidden"
-        style={{ height: 'min(88vh, 760px)', background: 'linear-gradient(180deg,#160a26,#0d0618)', border: '1px solid var(--ink-accent-soft)' }}
+        {...menuPanelMotion(reduced)}
+        className={`${bubble.dialog} ${bubble.profileDialog}`}
       >
         {/* header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 flex-shrink-0">
-          <button type="button" onClick={closeProfile} aria-label="Fermer le profil public" className="w-9 h-9 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10">
+        <div className={bubble.header}>
+          <h2 id={titleId} className="text-xl font-black">Dans la bulle de {displayName}</h2>
+          <button type="button" onClick={closeProfile} aria-label="Fermer le profil public" className={bubble.close}>
             <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           </button>
-          <h2 id={titleId} className="text-lg font-black text-white" style={{ fontFamily: FONT }}>Profil</h2>
         </div>
 
         {loading ? (
@@ -154,10 +154,9 @@ export const PublicProfileView = ({
         ) : (
           <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
             {/* identity */}
-            <div className="flex items-center gap-4">
+            <div className={bubble.profileIdentity}>
               <div
-                className="relative w-20 h-20 rounded-3xl overflow-hidden flex items-center justify-center flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg,var(--ink-accent),#6d28d9)', border: '2px solid rgba(255,255,255,0.15)' }}
+                className={bubble.profilePortrait}
               >
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
@@ -210,7 +209,7 @@ export const PublicProfileView = ({
               {posts.length === 0 ? (
                 <div className="text-center py-10 text-white/40 text-sm">Aucune imitation partagée pour l'instant.</div>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
+                <div className={bubble.postGrid}>
                   <AnimatePresence mode="popLayout">
                     {posts.map((post, idx) => (
                       <FeedTile

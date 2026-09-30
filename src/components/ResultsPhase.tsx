@@ -16,6 +16,7 @@ import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSocialFeed } from "@/hooks/useSocialFeed";
 import { useAuth } from "@/hooks/useAuth";
 import { equalJitterBackoff } from "@/lib/syncState";
+import { BubbleHeading, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
 
 interface Player {
   id: string;
@@ -495,6 +496,19 @@ export const ResultsPhase = ({
   const podium = results.slice(0, 3);
   const rest = results.slice(3);
   const podiumColor = ["#fbbf24", "#d1d5db", "#f97316"];
+
+  if (isInkBeta) return <>
+    <BubbleHeading label={`Les résultats · manche ${roundNumber}`} title={isResultsSynchronized && winnerLabel ? <>{winnerLabel}<em>, quelle prise !</em></> : 'On compte les votes…'} aside={<span className={bubble.stamp}><Trophy aria-hidden="true" /></span>}>{isResultsSynchronized ? 'Le verdict de la bande. Revois les prises ou partage ton meilleur moment.' : 'Synchronisation des votes…'}</BubbleHeading>
+    {gameMode === '2v2' && teamResults.length > 0 && <BubblePanel title="Le classement des équipes"><ol className={bubble.scoreList}>{teamResults.map((team, index) => <li key={team.teamNumber}><span>{index + 1}</span><Swords aria-hidden="true" /><span><strong>Équipe {team.teamNumber}</strong><br />{team.playerNames.join(' & ')}</span><span>{team.likes} 👍 · {team.dislikes} 👎</span><strong>{team.score > 0 ? '+' : ''}{team.score}</strong></li>)}</ol></BubblePanel>}
+    <div className={bubble.resultGrid}>{podium.map((result, index) => {
+      const clipState = playerClips[result.playerId] ?? IDLE_CLIP_STATE;
+      return <ResultsPlayerCard key={result.playerId} result={result} rank={index + 1} color={podiumColor[index]} isWinner={index === 0} isSolo={podium.length === 1} isCurrentPlayer={result.playerId === currentPlayer.id} challengeVideoClipId={challengeVideoClipId} clipState={clipState} isDownloading={downloadingPlayer === result.playerId} isSharing={sharingPlayer === result.playerId} canShare={result.playerId === currentPlayer.id && Boolean(authUser)} hasShared={clipState.status === 'ready' && sharedClipIds.has(clipState.clip.id)} onRequestClip={requestPlayerClip} onDownload={handleDownloadImitation} onShare={handleShareImitation} />;
+    })}</div>
+    {rest.length > 0 && <ol className={bubble.scoreList} aria-label="La suite du classement">{rest.map((result, i) => <li key={result.playerId}><span>{i + 4}</span><PlayerAvatar playerId={result.playerId} playerName={result.playerName} size="sm" showTitle={false} /><span>{result.playerName}{result.playerId === currentPlayer.id && ' · toi'}</span><span>{result.likes} 👍 · {result.dislikes} 👎</span><strong>{result.score > 0 ? '+' : ''}{result.score}</strong></li>)}</ol>}
+    <RoundBreakAd gameMode={gameMode} instanceKey={`${gameMode}:${roundNumber}`} />
+    {isRoundReconnecting && <p className={bubble.note} role="status">Reconnexion à la manche… Le classement reste affiché.</p>}
+    {currentPlayer.isHost ? <div className={bubble.resultActions}><button type="button" className={bubble.secondary} onClick={onEndGame}>Terminer</button><button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onNextRound} disabled={isRoundReconnecting}>Manche suivante <ArrowRight aria-hidden="true" /></button></div> : <p className={bubble.note}>L’hôte prépare la suite. Encore une ?</p>}
+  </>;
 
   return (
     <div

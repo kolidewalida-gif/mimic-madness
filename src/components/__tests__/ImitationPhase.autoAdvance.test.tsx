@@ -73,7 +73,7 @@ vi.mock('@/components/rhythmo/RhythmoBand', () => ({ RhythmoBand: () => null }))
 vi.mock('@/components/ui/label', () => ({ Label: () => null }));
 vi.mock('@/components/ui/switch', () => ({ Switch: () => null }));
 
-describe('ImitationPhase host auto-advance', () => {
+describe.each(['default', 'inkBeta'] as const)('ImitationPhase host auto-advance · %s', (variant) => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-18T12:00:00.000Z'));
@@ -125,6 +125,7 @@ describe('ImitationPhase host auto-advance', () => {
 
     render(
       <ImitationPhase
+        variant={variant}
         lobbyId="lobby-1"
         roundNumber={2}
         currentPlayer={{ id: 'host-1', name: 'Hôte', isHost: true }}

@@ -28,8 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
 import { LobbyChat } from "@/components/LobbyChat";
-import { InkBetaLogo } from "@/components/InkBetaBrand";
-import { InkBetaCount, InkBetaGameBadge } from "@/components/game-beta/InkBetaGameLayout";
+import { InkBetaCount } from "@/components/game-beta/InkBetaGameLayout";
+import { BubbleGameHeader, BubbleHeading, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
 import { cn } from "@/lib/utils";
 import { CircularGallery } from "@/components/ui/circular-gallery";
 import {
@@ -1035,7 +1035,7 @@ export const VideoSubmissionScreen = ({
       className={cn(
         'relative flex flex-col overflow-hidden text-white',
         isInkBeta
-          ? 'ik-root ik-layout-v2 ik-game-v2 menu-screen-safe h-[100dvh] w-full'
+          ? `ik-root ${bubble.root}`
           : 'h-[100dvh] bg-[#0a0510]',
       )}
     >
@@ -1068,32 +1068,18 @@ export const VideoSubmissionScreen = ({
 
       {/* Barre de marque beta : mêmes repères que le menu et le lobby. */}
       {isInkBeta && (
-        <header className="ik-topbar relative z-[8] flex-shrink-0">
-          <InkBetaLogo titleId="ik-prep-brand" />
-
-          <div className="ik-topbar-side ik-topbar-side--start">
-            <InkBetaGameBadge
-              label="Préparation"
-              step={`${selectedClips.length}/3`}
-              icon={<Clapperboard aria-hidden="true" />}
-            />
-          </div>
-
-          <div className="ik-topbar-side ik-topbar-side--end">
-            <div className="ik-tools">
+        <BubbleGameHeader phase="preparation" tools={
               <button
                 type="button"
                 onClick={onBackToLobby}
                 data-back
-                className="ik-tool menu-focus"
+                className={bubble.secondary}
                 aria-label="Revenir au lobby"
               >
                 <ArrowLeft aria-hidden="true" />
                 <span>Lobby</span>
               </button>
-            </div>
-          </div>
-        </header>
+        } />
       )}
 
       {/* SCROLLABLE CONTENT — internal scroll so zoom / small viewports never
@@ -1101,16 +1087,17 @@ export const VideoSubmissionScreen = ({
       <div
         className={cn(
           'relative z-10 min-h-0 flex-1 overflow-y-auto custom-scrollbar',
-          isInkBeta ? 'ik-main' : 'px-4 sm:px-5 py-4 pb-[140px]',
+          isInkBeta ? bubble.main : 'px-4 sm:px-5 py-4 pb-[140px]',
         )}
       >
         <div
           className={cn(
             isInkBeta
-              ? 'ik-canvas ik-game-canvas ik-game-canvas--split'
+              ? bubble.content
               : 'max-w-7xl mx-auto space-y-4',
           )}
         >
+          {isInkBeta && <BubbleHeading label="Préparation" title="Ramène tes meilleurs défis." aside={<span className={bubble.stamp}><Clapperboard aria-hidden="true" /></span>}>Choisis jusqu’à trois vidéos. La bande leur donnera une nouvelle voix.</BubbleHeading>}
           {!isInkBeta && (<>
           {/* HEADER */}
           <div className="flex items-center justify-between gap-4">
@@ -1709,6 +1696,7 @@ export const VideoSubmissionScreen = ({
                   </div>
                   )}
                   <SubmissionStatus
+                    variant={variant}
                     lobbyId={lobbyId}
                     players={players}
                     isHost={isHost}
@@ -1763,18 +1751,7 @@ const CartoonCard = ({
   title?: string;
   aside?: React.ReactNode;
 }) => (isInkBeta ? (
-  <section className={cn('ik-gpanel', highlighted && 'is-featured')}>
-    {(step || title || aside) && (
-      <div className="ik-gpanel-head">
-        <div>
-          {step && <span>{step}</span>}
-          {title && <h2>{title}</h2>}
-        </div>
-        {aside && <div className="ik-gpanel-aside">{aside}</div>}
-      </div>
-    )}
-    <div className="ik-gpanel-body">{children}</div>
-  </section>
+  <BubblePanel title={title} eyebrow={step} aside={aside}>{children}</BubblePanel>
 ) : (
   <div
     className="relative rounded-3xl overflow-hidden p-4"

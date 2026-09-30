@@ -12,7 +12,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Flame,
   Grid3x3,
-  Hash,
   Heart,
   Loader2,
   Search,
@@ -35,7 +34,7 @@ import { useSocialFeed, type SocialFeedTab, type SocialPost } from '@/hooks/useS
 import { supabase } from '@/integrations/supabase/client';
 import { weeklyPeriodKey } from '@/lib/questDefinitions';
 import { computeSocialBadges } from '@/lib/socialBadges';
-import { cn } from '@/lib/utils';
+import bubble from '@/components/social/BubbleSocial.module.css';
 
 type View = 'foryou' | 'trending' | 'profile';
 
@@ -85,8 +84,8 @@ const readStoredBoolean = (key: string, fallback: boolean) => {
 };
 
 const SocialExperienceComponent = () => {
-  const { user, profile, friendCode } = useAuth();
-  const { level, progressPercent } = usePlayerLevel();
+  const { user, profile } = useAuth();
+  const { level } = usePlayerLevel();
   const [view, setView] = useState<View>('foryou');
   const { posts, loading, error, toggleLike, remove } = useSocialFeed(VIEW_TO_TAB[view]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -196,7 +195,6 @@ const SocialExperienceComponent = () => {
     ));
   }, [posts, search]);
   const activeView = NAV.find((item) => item.id === view) ?? NAV[0];
-  const ActiveViewIcon = activeView.icon;
   const searchPlaceholder = view === 'profile'
     ? 'Dans tes créations…'
     : view === 'trending'
@@ -227,14 +225,13 @@ const SocialExperienceComponent = () => {
   }, [openProfile]);
 
   return (
-    <div className="social-experience social-experience--hub">
-      <header className="social-commandbar">
-        <div className="social-commandbar-primary">
+    <div className={`social-experience ${bubble.experience}`}>
+      <header className={bubble.navBar}>
           <button
             type="button"
             onClick={() => user && openProfile(user.id, displayName)}
             disabled={!user}
-            className="social-profile-card menu-focus"
+            className={bubble.profileButton}
             aria-label={user ? 'Ouvrir mon profil social public' : 'Connecte-toi pour ouvrir ton profil social'}
           >
             <span className="social-avatar">
@@ -244,14 +241,10 @@ const SocialExperienceComponent = () => {
             <span className="social-profile-copy">
               <small>Ton profil</small>
               <strong>{displayName}</strong>
-              {friendCode && <em><Hash aria-hidden="true" /> {friendCode}</em>}
-            </span>
-            <span className="social-profile-progress" aria-label={`Progression de niveau ${Math.round(progressPercent)} %`}>
-              <i style={{ width: `${progressPercent}%` }} />
             </span>
           </button>
 
-          <nav className="social-nav" aria-label="Navigation Social" role="tablist">
+          <nav className={bubble.nav} aria-label="Navigation Social" role="tablist">
             {NAV.map((item) => {
               const Icon = item.icon;
               const active = view === item.id;
@@ -267,48 +260,17 @@ const SocialExperienceComponent = () => {
                     playInkSound('cartoonPop', 0.3);
                     setView(item.id);
                   }}
-                  className={cn('social-nav-item menu-focus', active && 'is-active')}
+                  className="menu-focus"
                   style={{ '--social-accent': item.color } as CSSProperties}
                 >
                   <span><Icon aria-hidden="true" /></span>
-                  <span><strong>{item.label}</strong><small>{item.description}</small></span>
+                  <strong>{item.label}</strong>
                 </button>
               );
             })}
           </nav>
 
-          {view === 'profile' && (
-            <div className="social-quick-stats" aria-label="Statistiques de mon profil social">
-              <span><Grid3x3 aria-hidden="true" /><strong>{myStats.posts}</strong><small>posts</small></span>
-              <span><Heart aria-hidden="true" /><strong>{myStats.likes}</strong><small>likes</small></span>
-              {myStats.top && <span className="is-top"><Trophy aria-hidden="true" /><strong>Top</strong><small>semaine</small></span>}
-            </div>
-          )}
-        </div>
-
-        <div className="social-commandbar-secondary">
-          <div className="social-context-heading" style={{ '--social-accent': activeView.color } as CSSProperties}>
-            <span><ActiveViewIcon aria-hidden="true" /></span>
-            <div><small>{activeView.eyebrow}</small><strong>{activeView.label}</strong><p>{activeView.description}</p></div>
-          </div>
-
-          <div className="social-context-tools">
-            {view === 'profile' && (
-              <div className="social-badges" aria-label="Badges sociaux">
-                {myBadges.map((badge) => (
-                  <span
-                    key={badge.id}
-                    title={badge.description}
-                    className={cn(!badge.unlocked && 'is-locked')}
-                    style={{ '--badge-color': badge.color } as CSSProperties}
-                  >
-                    <i>{badge.emoji}</i><small>{badge.label}</small>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="social-search-wrap">
+            <div className={bubble.search}>
               <Search aria-hidden="true" />
               <input
                 value={search}
@@ -334,30 +296,37 @@ const SocialExperienceComponent = () => {
                 </div>
               )}
             </div>
-          </div>
-        </div>
       </header>
+
+      {view === 'profile' && (
+        <div className={bubble.stats} aria-label="Ton profil social">
+          <span><Grid3x3 aria-hidden="true" /> {myStats.posts} créations</span>
+          <span><Heart aria-hidden="true" /> {myStats.likes} j’aime</span>
+          {myStats.top && <span><Trophy aria-hidden="true" /> Top de la semaine</span>}
+          {myBadges.filter((badge) => badge.unlocked).map((badge) => <span key={badge.id} title={badge.description}>{badge.emoji} {badge.label}</span>)}
+        </div>
+      )}
 
       <section
         id={`social-panel-${view}`}
-        className={cn('social-feed-column', view === 'foryou' && 'social-feed-column--foryou')}
+        className={bubble.feed}
         role="tabpanel"
         aria-labelledby={`social-tab-${view}`}
       >
-        <div className={cn('social-feed-scroll custom-scrollbar', view === 'foryou' && 'social-feed-scroll--foryou')}>
+        <div className={`${bubble.scroll} custom-scrollbar`}>
           {loading ? (
-            <div className="social-loading"><Loader2 className="animate-spin" aria-hidden="true" /><span>Chargement des créations…</span></div>
+            <div className={bubble.empty} role="status"><Loader2 className="animate-spin" aria-hidden="true" /><span>Chargement des créations…</span></div>
           ) : error ? (
-            <div className="social-empty"><span aria-hidden="true">⚠️</span><h4>Le feed ne répond pas</h4><p>{error}</p></div>
+            <div className={bubble.empty}><span aria-hidden="true">⚠️</span><h4>Le feed ne répond pas</h4><p>{error}</p></div>
           ) : filteredPosts.length === 0 ? (
-            <div className="social-empty">
+            <div className={bubble.empty}>
               <span aria-hidden="true">{search.trim() ? '🔎' : emptyCopy.emoji}</span>
               <h4>{search.trim() ? 'Aucun résultat' : emptyCopy.title}</h4>
               <p>{search.trim() ? 'Essaie un autre joueur ou mot-clé.' : emptyCopy.sub}</p>
             </div>
           ) : view === 'foryou' ? (
             !profileUser && (
-              <div className="social-foryou-stage">
+              <div className={bubble.feedStage}>
                 <SocialTikTokViewer
                   embedded
                   posts={filteredPosts}
@@ -374,7 +343,7 @@ const SocialExperienceComponent = () => {
               </div>
             )
           ) : (
-            <div className={cn('social-post-grid', view === 'profile' && 'social-post-grid--profile')}>
+            <div className={bubble.postGrid}>
               <AnimatePresence mode="popLayout">
                 {filteredPosts.map((post, index) => (
                   <FeedTile
@@ -408,7 +377,7 @@ const SocialExperienceComponent = () => {
               role="dialog"
               aria-modal="true"
               aria-label="Lecteur Social"
-              initial={{ opacity: 0 }}
+              initial={false}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="social-viewer-overlay social-viewer-overlay--modern force-cursor"

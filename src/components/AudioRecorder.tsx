@@ -23,6 +23,8 @@ import {
 import { InkVoiceFilterPicker } from "@/components/InkVoiceFilterPicker";
 import { diagnose } from "@/lib/diagnostics";
 import { cn } from "@/lib/utils";
+import { bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import recorderBubble from '@/components/imitation/BubbleRecorder.module.css';
 
 /**
  * Trim leading silence from an audio blob. Decodes to PCM, finds the first
@@ -967,6 +969,34 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     setSegmentFilters([]);
     pauseIntentRef.current = false;
   };
+
+  if (isInkBeta) return <div className={recorderBubble.root} data-state={recorderState}>
+    {(recorderState === 'idle' || recorderState === 'paused') && showVoiceFilters && <div className={recorderBubble.filters}>
+      <div className={recorderBubble.filterLabel}><strong>Quelle voix aujourd’hui ?</strong><small>Jusqu’à 3 effets</small></div>
+      <InkVoiceFilterPicker value={voiceFilters} onChange={setVoiceFilters} compact bubble />
+    </div>}
+    {recorderState === 'idle' && <div className={recorderBubble.micStage}>
+      <button type="button" className={recorderBubble.mic} onClick={startRecording} aria-label="Commencer l’enregistrement de ton imitation"><Mic /></button>
+      <strong>Appuie, et entre en scène.</strong><p>La vidéo repart avec toi. Tu pourras mettre en pause ou refaire ta prise.</p>
+    </div>}
+    {recorderState === 'live' && <>
+      <div className={`${recorderBubble.micStage} ${recorderBubble.recording}`}><span className={recorderBubble.mic}><Mic /></span><strong>La scène est à toi !</strong>
+        <div className={recorderBubble.meter} role="meter" aria-label="Niveau du microphone" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(audioLevel)}>{AUDIO_METER_WEIGHTS.map((weight,index)=><i key={index} style={{height:Math.max(5,audioLevel*.35*weight)}} />)}</div>
+      </div>
+      <div className={recorderBubble.voice}><span>{activeVoice.emoji}</span><strong>{activeVoice.label}</strong><small>Segment {segmentFilters.length + 1}</small></div>
+      <div className={recorderBubble.actions}><button type="button" className={bubble.secondary} onClick={pauseRecording}><PauseCircle />Pause</button><button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={stopRecording}><StopCircle />Terminer</button></div>
+    </>}
+    {recorderState === 'paused' && <><div className={recorderBubble.state}><PauseCircle /><h3>Une petite pause.</h3><p>Change de voix si tu veux. Les morceaux déjà enregistrés restent intacts.</p></div>
+      <div className={recorderBubble.voice}><span>{pendingVoice.emoji}</span><strong>Prochaine voix : {pendingVoice.label}</strong></div>
+      <div className={recorderBubble.actions}><button type="button" className={bubble.secondary} disabled={isLoading} onClick={stopRecording}><StopCircle />Terminer</button><button type="button" className={bubble.primary} disabled={isLoading} onClick={resumeRecording}><PlayCircle />Reprendre</button></div>
+    </>}
+    {recorderState === 'processing' && <div className={recorderBubble.state} role="status"><Loader2 className="animate-spin" /><h3>On prépare ta prise.</h3><p>Les segments et les effets sont assemblés pour l’écoute.</p></div>}
+    {recordedBlob && previewUrl && <><div className={recorderBubble.state}><h3>On garde celle-là ?</h3><p>Écoute ta voix avant de valider.</p></div>
+      <div className={recorderBubble.preview}><strong>Ton imitation</strong><audio src={previewUrl} controls aria-label="Écouter ton imitation" /></div>
+      <div className={recorderBubble.actions}><button type="button" className={bubble.secondary} disabled={isLoading} onClick={handleClear}><RotateCcw />Recommencer</button><button type="button" className={bubble.primary} disabled={isLoading} onClick={handleSaveClip}>{isLoading ? <Loader2 className="animate-spin" /> : <Save />}{isLoading ? 'Envoi…' : 'Valider'}</button></div>
+    </>}
+    {segmentFilters.length > 0 && <div className={recorderBubble.segments}><SegmentList filters={segmentFilters} /></div>}
+  </div>;
 
   return (
     <Card

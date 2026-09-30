@@ -1,10 +1,13 @@
 import { memo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Share2, X } from 'lucide-react';
 import { SocialExperience } from '@/components/SocialExperience';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useDialogBehaviour } from '@/components/menu/InkOverlay';
+import { menuPanelMotion, menuScrimMotion } from '@/components/menu/overlayMotion';
+import overlayStyles from '@/components/menu/InkOverlay.module.css';
+import bubble from '@/components/social/BubbleSocial.module.css';
 
 interface SocialStudioDialogProps {
   isOpen: boolean;
@@ -26,6 +29,7 @@ const SocialStudioDialogComponent = ({
   }, []);
   const dialogRef = useDialogBehaviour(isOpen, onClose, isTopLayer);
   useBodyScrollLock(isOpen);
+  const reduced = useReducedMotion();
 
   if (typeof document === 'undefined') return null;
 
@@ -36,44 +40,37 @@ const SocialStudioDialogComponent = ({
           <motion.button
             type="button"
             data-cartoon-skip
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            tabIndex={-1}
+            {...menuScrimMotion(reduced)}
             onClick={onClose}
-            className="social-studio-backdrop"
+            className={`social-studio-backdrop ${overlayStyles.scrim}`}
             aria-label="Fermer Social"
           />
           <motion.div
             ref={dialogRef}
             tabIndex={-1}
-            initial={{ opacity: 0, scale: 0.96, y: 18 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 18 }}
-            transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-            className="social-studio-dialog"
+            {...menuPanelMotion(reduced)}
+            className={`${overlayStyles.surface} ${bubble.dialog}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="social-studio-title"
           >
-            <header className="social-studio-header">
-              <div className="social-studio-brand">
-                <span className="social-studio-logo">
+            <header className={bubble.header}>
+              <div className={bubble.brand}>
+                <span>
                   <Share2 aria-hidden="true" />
                 </span>
                 <div>
-                  <span className="social-studio-kicker">MIMIC COMMUNITY</span>
-                  <h2 id="social-studio-title">Social Studio</h2>
+                  <small>MIMIC COMMUNITY</small>
+                  <h2 id="social-studio-title">Le coin de la bande.</h2>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="ibs-status ibs-status--online">
-                  <span className="h-1.5 w-1.5 rounded-full bg-current" /> LIVE
-                </span>
                 <button
                   type="button"
                   data-back
                   onClick={onClose}
-                  className="social-studio-close menu-icon-control"
+                  className={bubble.close}
                   aria-label="Fermer Social"
                 >
                   <X aria-hidden="true" />

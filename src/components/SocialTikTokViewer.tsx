@@ -7,7 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ChevronDown,
   ChevronUp,
@@ -34,6 +34,7 @@ import { useSocialComments } from '@/hooks/useSocialComments';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import type { SocialPost } from '@/hooks/useSocialFeed';
 import { cn } from '@/lib/utils';
+import bubble from '@/components/social/BubbleSocial.module.css';
 
 interface Props {
   posts: SocialPost[];
@@ -117,7 +118,8 @@ const SocialTikTokViewerComponent = ({
   const { user } = useAuth();
   const [index, setIndex] = useState(() => clampIndex(startIndex, posts.length));
   const [isPlaying, setIsPlaying] = useState(true);
-  const [commentsOpen, setCommentsOpen] = useState(true);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const reduced = useReducedMotion();
   const [draft, setDraft] = useState('');
   const [volume, setVolume] = useState(() => Math.max(0, Math.min(1, audioVolume)));
   const [muted, setMuted] = useState(audioMuted);
@@ -130,6 +132,7 @@ const SocialTikTokViewerComponent = ({
   const wheelTimer = useRef<number | null>(null);
   const simpleVideoRef = useRef<HTMLVideoElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const commentsToggleRef = useRef<HTMLButtonElement>(null);
   const gestureRef = useRef<PointerGesture | null>(null);
   const suppressClickRef = useRef(false);
   const tapTimerRef = useRef<number | null>(null);
@@ -170,8 +173,9 @@ const SocialTikTokViewerComponent = ({
   }, [muted, post?.id, volume]);
 
   useEffect(() => {
-    if (commentsOpen) commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [comments.length, commentsOpen]);
+    const list = commentsEndRef.current?.parentElement;
+    if (commentsOpen && list) list.scrollTo({ top: list.scrollHeight, behavior: reduced ? 'instant' : 'smooth' });
+  }, [comments.length, commentsOpen, reduced]);
 
   useEffect(() => () => {
     if (wheelTimer.current) window.clearTimeout(wheelTimer.current);
@@ -432,7 +436,7 @@ const SocialTikTokViewerComponent = ({
       role={embedded ? 'region' : undefined}
       tabIndex={embedded ? 0 : undefined}
       aria-label={embedded ? 'Lecteur Social intégré. Utilise les flèches pour changer de publication.' : undefined}
-      className={cn('social-tiktok-viewer force-cursor', embedded ? 'is-embedded' : 'is-floating', commentsOpen && 'has-comments-open')}
+      className={cn('force-cursor', bubble.viewer, embedded ? 'is-embedded' : 'is-floating', commentsOpen && bubble.viewerOpen)}
       onWheel={handleWheel}
       onPointerDownCapture={(event) => {
         if (embedded && !(event.target as HTMLElement).closest('button, a, input, textarea, select')) {
@@ -461,10 +465,10 @@ const SocialTikTokViewerComponent = ({
             <motion.div
               key={post.id}
               className="social-viewer-media"
-              initial={{ opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: dragY, scale: dragY === 0 ? 1 : 0.985 }}
-              exit={{ opacity: 0, y: -28 }}
-              transition={{ duration: 0.18 }}
+              initial={reduced ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: reduced ? 0 : dragY }}
+              exit={{ opacity: 0, y: reduced ? 0 : -16 }}
+              transition={{ duration: reduced ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
               {post.challenge_clip_id ? (
                 <VideoWithAudioOverlay
@@ -496,6 +500,7 @@ const SocialTikTokViewerComponent = ({
           <div className="social-viewer-topbar" data-no-swipe>
             <span className="social-viewer-counter" aria-live="polite">{index + 1}<i>/</i>{posts.length}</span>
             <span className="social-viewer-gesture-hint">Glisse verticalement</span>
+            <button type="button" onClick={() => updateMuted(!muted)} aria-label={muted ? 'Activer le son de la vidéo' : 'Couper le son de la vidéo'} aria-pressed={muted}>{muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}</button>
             {!embedded && (
               <button type="button" className="menu-focus" onClick={onClose} aria-label="Fermer le lecteur"><X aria-hidden="true" /></button>
             )}
@@ -518,7 +523,7 @@ const SocialTikTokViewerComponent = ({
                 className="social-viewer-heart-burst"
                 style={{ left: heartPos.x, top: heartPos.y }}
                 initial={{ scale: 0, opacity: 1, rotate: -12 }}
-                animate={{ scale: [0, 1.7, 1.35], opacity: [1, 1, 0], y: -90, rotate: 8 }}
+                animate={reduced ? { opacity: 0, scale: 1 } : { scale: [0, 1.7, 1.35], opacity: [1, 1, 0], y: -90, rotate: 8 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
               >
@@ -546,6 +551,7 @@ const SocialTikTokViewerComponent = ({
           </button>
           <button
             type="button"
+            ref={commentsToggleRef}
             className={cn('menu-focus', commentsOpen && 'is-active')}
             onClick={() => setCommentsOpen((current) => !current)}
             aria-label={commentsOpen ? 'Masquer les commentaires' : 'Afficher les commentaires'}
@@ -606,10 +612,11 @@ const SocialTikTokViewerComponent = ({
           </button>
         </div>
 
-        <section className={cn('social-viewer-comments', commentsOpen && 'is-open')} aria-label="Commentaires persistants">
+        {!commentsOpen && <div className={bubble.tip}><span><Heart aria-hidden="true" /></span><strong>Un rire ? Offre un cœur.</strong><p>Double-tape la vidéo pour aimer. Glisse ou utilise les flèches pour voir la suite.</p><button type="button" onClick={() => setCommentsOpen(true)}>Ouvrir la discussion <MessageCircle aria-hidden="true" /></button></div>}
+        {commentsOpen && <section className="social-viewer-comments is-open" aria-label="Commentaires persistants">
           <header>
             <div><MessageCircle aria-hidden="true" /><span><strong>Commentaires</strong><small>Conservés avec la publication</small></span></div>
-            <button type="button" className="menu-focus" onClick={() => setCommentsOpen(false)} aria-label="Masquer les commentaires"><ChevronDown aria-hidden="true" /></button>
+            <button type="button" className="menu-focus" onClick={() => { setCommentsOpen(false); commentsToggleRef.current?.focus({ preventScroll: true }); }} aria-label="Masquer les commentaires"><ChevronDown aria-hidden="true" /></button>
           </header>
 
           {commentsOpen && (
@@ -652,7 +659,7 @@ const SocialTikTokViewerComponent = ({
               </form>
             </>
           )}
-        </section>
+        </section>}
       </aside>
     </div>
   );

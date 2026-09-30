@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 
 let activeLocks = 0;
 let previousOverflow = '';
@@ -29,7 +29,8 @@ const unlockBody = () => {
 
 /** Locks page scrolling while preserving nested modal behavior. */
 export const useBodyScrollLock = (enabled: boolean) => {
-  useEffect(() => {
+  // Apply scrollbar compensation before the first visible dialog frame.
+  useLayoutEffect(() => {
     if (!enabled || typeof document === 'undefined') return;
     lockBody();
     return unlockBody;

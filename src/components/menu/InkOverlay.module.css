@@ -1,0 +1,17 @@
+/* Motion owns the transform. Do not combine it with CSS entry animations
+   or transition-all on the same surface. The page below stays untouched. */
+.surface {
+  isolation: isolate;
+  backface-visibility: hidden;
+  animation: none !important;
+  transition: none !important;
+}
+
+.scrim {
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+  animation: none !important;
+  transition: none !important;
+  backdrop-filter: none;
+}

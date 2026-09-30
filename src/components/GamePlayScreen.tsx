@@ -6,7 +6,7 @@ import { ImitationPhase } from "@/components/ImitationPhase";
 import { VotingPhase } from "@/components/VotingPhase";
 import { ResultsPhase } from "@/components/ResultsPhase";
 import { LobbyChat } from "@/components/LobbyChat";
-import { InkBetaGameBadge, InkBetaGameStage } from "@/components/game-beta/InkBetaGameLayout";
+import { BubbleGameStage, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
 import { AlertTriangle, ArrowLeft, RefreshCcw, Swords, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -666,6 +666,7 @@ export const GamePlayScreen = ({
   };
 
   const renderInitializationState = () => {
+    if (isInkBeta) return <BubbleGameStage phase="preview" round={roundNumber} tools={<button type="button" className={bubble.secondary} onClick={onEndGame}><ArrowLeft />Quitter</button>}><BubblePanel><div className={bubble.waiting} role="status">{initializationError ? <AlertTriangle /> : <RefreshCcw className="animate-spin" />}<h2>{initializationError ? 'Manche indisponible' : 'La scène se prépare…'}</h2><p>{initializationError || 'Synchronisation de la manche…'}</p>{initializationError ? <button type="button" className={bubble.primary} onClick={() => { durableRoundRef.current = null; setDurableRound(null); setRoundSynchronization(false); setInitializationError(null); setIsInitializingRound(true); setRetryKey(value => value + 1); }}>Réessayer</button> : !currentPlayer.isHost && <p>L’hôte prépare le défi. Tu rejoindras la scène automatiquement.</p>}</div></BubblePanel></BubbleGameStage>;
     if (initializationError && !currentChallenge) {
       return (
         <div className="min-h-screen animated-bg flex items-center justify-center p-6">
@@ -801,32 +802,10 @@ export const GamePlayScreen = ({
   );
 
   if (isInkBeta) {
-    const phaseLabel = renderablePhase === "preview"
-      ? "Aperçu"
-      : renderablePhase === "imitation"
-        ? "Imitation"
-        : renderablePhase === "voting"
-          ? "Vote"
-          : "Résultats";
-    const canvasClassName = renderablePhase === "imitation"
-      ? "ik-game-canvas--stage"
-      : renderablePhase === "voting"
-        ? "ik-game-canvas--vote"
-        : renderablePhase === "results"
-          ? "ik-game-canvas--results"
-          : "ik-game-canvas--center";
-
     return (
-      <InkBetaGameStage
-        titleId="ik-game-brand"
-        canvasClassName={canvasClassName}
-        badge={(
-          <InkBetaGameBadge
-            label={phaseLabel}
-            step={`Manche ${roundNumber}`}
-            icon={<Zap aria-hidden="true" />}
-          />
-        )}
+      <BubbleGameStage
+        phase={renderablePhase}
+        round={roundNumber}
         tools={(
           <>
             {gameMode === "2v2" && (
@@ -856,7 +835,7 @@ export const GamePlayScreen = ({
           playerId={currentPlayer.id}
           playerName={currentPlayer.name}
         />
-      </InkBetaGameStage>
+      </BubbleGameStage>
     );
   }
 

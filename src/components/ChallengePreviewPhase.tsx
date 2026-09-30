@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VideoPreview } from "@/components/VideoPreview";
-import { Play, Check, Users, Eye, Loader2, Sparkles, Crown, Zap } from "lucide-react";
+import { Play, Check, Users, Eye, Mic, Loader2, Sparkles, Crown, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { markPreviewSeen } from "@/lib/imitationSyncClient";
 import { canLeavePreviewPhase, previewSeenPlayerIds } from "@/lib/imitationReadiness";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useMultiplePlayerAvatars } from "@/hooks/useGlobalPlayerAvatar";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useToast } from "@/hooks/use-toast";
+import { BubbleHeading, BubblePanel, BubblePlayers, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
 
 interface Player { id: string; name: string; isHost: boolean; }
 interface Challenge { id: string; playerId: string; playerName: string; }
@@ -151,6 +152,26 @@ export const ChallengePreviewPhase = ({
       setIsReadyPending(false);
     }
   };
+
+  if (isInkBeta) return <>
+    <BubbleHeading label={`Le défi · Manche ${roundNumber}`} title={<>Ça, c’est <em>ton défi.</em></>} aside={<span className={bubble.stamp}><Eye /></span>}>
+      Une voix, un rythme, une attitude. Regarde bien : dans un instant, c’est toi la vedette.
+    </BubbleHeading>
+    <div className={bubble.split}>
+      <BubblePanel title="Le modèle à imiter" eyebrow={`Proposé par ${currentChallenge.playerName}`}>
+        <div className={bubble.video}><VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" /></div>
+      </BubblePanel>
+      <BubblePanel title="Repère le petit truc." eyebrow="Avant d’entrer en scène">
+        {[['La voix','Le ton, l’accent, les petits tics… tout compte.'],['Le rythme','Écoute les pauses et le moment où ça repart.'],['Ta version','Pas besoin d’être parfait : surprends la bande !']].map(([title, copy], index) =>
+          <div className={bubble.instruction} key={title}><span>{index + 1}</span><div><strong>{title}</strong><p>{copy}</p></div></div>)}
+        <button type="button" className={`${bubble.primary} ${bubble.yellow}`} disabled={isReady || isReadyPending} onClick={handleReady}>
+          {isReadyPending ? <Loader2 className="animate-spin" /> : isReady ? <Check /> : <Mic />}{isReady ? 'Prêt pour ma prise !' : isReadyPending ? 'Validation…' : 'J’ai vu, je suis prêt !'}
+        </button>
+        <p className={bubble.note}>{isReady ? 'Ta validation est enregistrée. La partie reprend quand la bande est prête.' : 'Tu peux revoir la vidéo autant que tu veux.'}</p>
+      </BubblePanel>
+    </div>
+    <BubblePlayers players={players} ready={readyPlayers} self={currentPlayer.id} />
+  </>;
 
   return (
     <div

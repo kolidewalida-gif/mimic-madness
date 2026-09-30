@@ -117,7 +117,7 @@ const flushMicrotasks = async () => {
   });
 };
 
-describe('AudioRecorder lifecycle cleanup', () => {
+describe.each(['default', 'inkBeta'] as const)('AudioRecorder lifecycle cleanup · %s', (variant) => {
   let trackStop: ReturnType<typeof vi.fn>;
   let stream: MediaStream;
   let getUserMedia: ReturnType<typeof vi.fn>;
@@ -174,7 +174,7 @@ describe('AudioRecorder lifecycle cleanup', () => {
     }));
     const onAudioSaved = vi.fn();
     const view = render(
-      <AudioRecorder playerId="p1" playerName="Joueur" onAudioSaved={onAudioSaved} />,
+      <AudioRecorder variant={variant} playerId="p1" playerName="Joueur" onAudioSaved={onAudioSaved} />,
     );
 
     fireEvent.click(view.container.querySelector('button') as HTMLButtonElement);
@@ -196,6 +196,7 @@ describe('AudioRecorder lifecycle cleanup', () => {
     const onAudioSaved = vi.fn();
     const view = render(
       <AudioRecorder
+        variant={variant}
         playerId="p1"
         playerName="Joueur"
         onRecordingStart={onRecordingStart}
@@ -234,7 +235,7 @@ describe('AudioRecorder lifecycle cleanup', () => {
     const onRecordingStop = vi.fn();
     const onAudioSaved = vi.fn();
     const view = render(
-      <AudioRecorder playerId="p1" playerName="Joueur"
+      <AudioRecorder variant={variant} playerId="p1" playerName="Joueur"
         onRecordingStop={onRecordingStop} onAudioSaved={onAudioSaved} />,
     );
 
@@ -270,7 +271,7 @@ describe('AudioRecorder lifecycle cleanup', () => {
     const onRecordingResume = vi.fn();
     const onRecordingStart = vi.fn();
     const view = render(
-      <AudioRecorder playerId="p1" playerName="Joueur"
+      <AudioRecorder variant={variant} playerId="p1" playerName="Joueur"
         onRecordingStart={onRecordingStart}
         onRecordingPause={onRecordingPause} onRecordingResume={onRecordingResume} />,
     );
@@ -313,7 +314,7 @@ describe('AudioRecorder lifecycle cleanup', () => {
   });
 
   it('assemble les deux segments à l’arrêt final', async () => {
-    const view = render(<AudioRecorder playerId="p1" playerName="Joueur" />);
+    const view = render(<AudioRecorder variant={variant} playerId="p1" playerName="Joueur" />);
 
     fireEvent.click(view.container.querySelector('button') as HTMLButtonElement);
     await waitFor(() => expect(FakeMediaRecorder.instances).toHaveLength(1));

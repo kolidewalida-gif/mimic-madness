@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle, Clock, Rocket, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { videoStorage } from "@/lib/videoStorageSupabase";
+import { PlayerAvatar } from '@/components/PlayerAvatar';
+import { bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
 
 interface Player {
   id: string;
@@ -21,13 +23,15 @@ interface SubmissionStatusProps {
   players: Player[];
   isHost: boolean;
   onStartGame: () => void;
+  variant?: 'default' | 'inkBeta';
 }
 
 export const SubmissionStatus = ({
   lobbyId,
   players,
   isHost,
-  onStartGame
+  onStartGame,
+  variant = 'default',
 }: SubmissionStatusProps) => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [playersWithClips, setPlayersWithClips] = useState<string[]>([]);
@@ -107,6 +111,15 @@ export const SubmissionStatus = ({
   // Le clip est juste un avertissement : on ne bloque plus le lancement
   // si la soumission est validée (évite le faux blocage "Clip manquant").
   const canStartGame = allPlayersSubmitted;
+
+  if (variant === 'inkBeta') return <div>
+    {isLoading ? <div className={bubble.waiting} role="status"><Clock /><p>On vérifie les défis…</p></div> : <>
+      <ul className={bubble.submissions}>{players.map(player => { const ready = hasSubmission(player.id); const playable = hasPlayableClip(player.id); return <li key={player.id}><PlayerAvatar playerId={player.id} playerName={player.name} size="sm" showTitle={false} /><span><strong>{player.name}</strong><small>{ready ? `${getSubmissionCount(player.id)} défi(s) soumis` : 'Choisit ses vidéos…'}</small></span><span className={ready && playable ? bubble.submitted : undefined}>{ready && playable ? <><CheckCircle />Prêt !</> : ready ? <><AlertTriangle />À vérifier</> : <Clock />}</span></li>; })}</ul>
+      {!everyPlayerHasClip && <p className={bubble.note}>Les vidéos sont vérifiées au fil des envois. Une soumission validée suffit pour lancer la partie.</p>}
+      {canStartGame && isHost && <button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onStartGame}><Rocket />Lancer la partie</button>}
+      {!allPlayersSubmitted && <p className={bubble.note}>{players.filter(player => hasSubmission(player.id)).length}/{players.length} joueurs prêts</p>}
+    </>}
+  </div>;
 
   if (isLoading) {
     return (

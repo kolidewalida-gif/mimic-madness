@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { menuPanelMotion, menuScrimMotion } from './overlayMotion';
+import styles from './InkOverlay.module.css';
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -17,6 +19,11 @@ export const useDialogBehaviour = (
 ) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
+
+  // A fresh inline callback must not restore focus to the opening button
+  // and then focus the dialog again on every menu/content update.
+  const callbacks = useRef({ onClose, isTopLayer });
+  useLayoutEffect(() => { callbacks.current = { onClose, isTopLayer }; });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -34,10 +41,10 @@ export const useDialogBehaviour = (
     const raf = requestAnimationFrame(focusFirst);
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!isTopLayer()) return;
+      if (!callbacks.current.isTopLayer()) return;
       if (event.key === 'Escape') {
         event.stopPropagation();
-        onClose();
+        callbacks.current.onClose();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -68,7 +75,7 @@ export const useDialogBehaviour = (
       const trigger = restoreRef.current;
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
-  }, [isOpen, isTopLayer, onClose]);
+  }, [isOpen]);
 
   return panelRef;
 };
@@ -128,6 +135,7 @@ export const InkDrawer = ({
   const close = useCallback(() => onClose(), [onClose]);
   const panelRef = useDialogBehaviour(isOpen, close, isTopLayer);
   const offscreen = side === 'right' ? '100%' : '-100%';
+  const reduced = useReducedMotion();
   useBodyScrollLock(lockBody && isOpen);
 
   if (typeof document === 'undefined') return null;
@@ -136,18 +144,18 @@ export const InkDrawer = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.button type="button" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close} aria-label={closeLabel ?? `Fermer ${title}`} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }} className="ink-z-drawer-backdrop viewport-overlay viewport-overlay-scrim fixed inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.78)]" />
+          <motion.button type="button" tabIndex={-1} {...menuScrimMotion(reduced)} onClick={close} aria-label={closeLabel ?? `Fermer ${title}`} className={cn(styles.scrim, 'ink-z-drawer-backdrop viewport-overlay viewport-overlay-scrim fixed inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.78)]')} />
           <motion.div
             ref={panelRef}
             tabIndex={-1}
-            initial={{ x: offscreen }}
-            animate={{ x: 0 }}
-            exit={{ x: offscreen }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            initial={reduced ? false : { x: offscreen }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: reduced ? 0 : offscreen, opacity: reduced ? 0 : 1 }}
+            transition={{ duration: reduced ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className={cn('menu-dialog ink-z-drawer viewport-panel viewport-panel-insets fixed bottom-0 top-0 flex w-full max-w-md flex-col outline-none', side === 'right' ? 'right-0' : 'left-0', className)}
+            className={cn(styles.surface, 'menu-dialog ink-z-drawer viewport-panel viewport-panel-insets fixed bottom-0 top-0 flex w-full max-w-md flex-col outline-none', side === 'right' ? 'right-0' : 'left-0', className)}
             style={{ background: 'var(--ink-panel-gradient)', [side === 'right' ? 'borderLeft' : 'borderRight']: '4px solid var(--ink-outline)', boxShadow: `${side === 'right' ? '-8px' : '8px'} 0 24px rgba(0,0,0,0.5)` }}
           >
             <Header title={title} titleId={titleId} icon={icon} iconGradient={iconGradient} subtitle={subtitle} actions={actions} onClose={close} closeLabel={closeLabel} />
@@ -170,6 +178,7 @@ export const InkModal = ({
   const titleId = useId();
   const close = useCallback(() => onClose(), [onClose]);
   const panelRef = useDialogBehaviour(isOpen, close, isTopLayer);
+  const reduced = useReducedMotion();
   useBodyScrollLock(lockBody && isOpen);
 
   if (typeof document === 'undefined') return null;
@@ -178,19 +187,16 @@ export const InkModal = ({
     <AnimatePresence>
       {isOpen && (
         <div className={cn('ink-z-modal viewport-overlay fixed inset-0 flex items-center justify-center', size === 'hub' && 'viewport-overlay--hub')}>
-          <motion.button type="button" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close} aria-label={closeLabel ?? `Fermer ${title}`} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} className="absolute inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.82)]" />
+          <motion.button type="button" tabIndex={-1} {...menuScrimMotion(reduced)} onClick={close} aria-label={closeLabel ?? `Fermer ${title}`} className={cn(styles.scrim, 'absolute inset-0 h-full w-full cursor-default bg-[rgba(8,5,24,0.82)]')} />
           <motion.div
             ref={panelRef}
             tabIndex={-1}
-            initial={{ opacity: 0, scale: 0.96, y: 18 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 18 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            {...menuPanelMotion(reduced)}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
             className={cn(
-              'menu-dialog ink-panel-surface viewport-panel relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-3xl outline-none',
+              styles.surface, 'menu-dialog ink-panel-surface viewport-panel relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-3xl outline-none',
               size === 'default' && 'max-w-md',
               size === 'wide' && 'max-w-3xl',
               size === 'hub' && 'h-[min(94dvh,64rem)] max-w-[96rem]',

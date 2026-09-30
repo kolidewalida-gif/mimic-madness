@@ -39,6 +39,8 @@ import {
   type VotableImitation,
 } from "@/lib/imitationVoting";
 import { playSample } from "@/lib/sfx/samples";
+import { BubbleHeading, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 interface Player {
   id: string;
   name: string;
@@ -838,6 +840,7 @@ export const VotingPhase = ({
       !isSessionSynchronized ||
       (gameMode === 'normal' && (!currentImitation || imitations.length === 0)) ||
       (gameMode === '2v2' && teamImitations.length === 0))) {
+    if (isInkBeta) return <BubblePanel><div className={bubble.waiting} role="status"><Loader2 className="animate-spin" /><h2>On rassemble les prises…</h2><p>{isSessionSynchronized ? 'Chargement des imitations…' : 'Synchronisation de la session de vote…'}</p></div></BubblePanel>;
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -852,6 +855,7 @@ export const VotingPhase = ({
 
   // Completed state
   if (votingFinished) {
+    if (isInkBeta) return <BubblePanel><div className={bubble.waiting} role="status"><Trophy /><h2>Les votes sont dans la boîte !</h2><p>Calcul des résultats…</p></div></BubblePanel>;
     return (
       <div className="text-center py-12 space-y-4">
         <div className="relative inline-block">
@@ -868,6 +872,33 @@ export const VotingPhase = ({
 
   // Determine if it's own video/team — dérivé de la même vue que le vote.
   const isOwnVideo = voteAvailability.kind === 'own';
+
+  if (isInkBeta) return <>
+    <CountdownOverlay isActive={showCountdown} onComplete={handleCountdownComplete} duration={3} title="La vidéo commence dans…" completeAt={countdownCompleteAt ?? undefined} />
+    <BubbleHeading label={`Imitation ${currentIndex + 1} sur ${displayLength}`} title="Le jury, c’est vous.">Regarde la prise, écoute la voix, puis donne ton verdict.</BubbleHeading>
+    <div className={bubble.split}>
+      <BubblePanel title="La prise à juger" eyebrow="À l’écran" aside={<span className={bubble.stamp}><ThumbsUp /> Les votes</span>}>
+        <div className={bubble.video}>
+          {gameMode === '2v2' && currentTeamImitation?.clipIds[0] ? <TeamVideoOverlay ref={teamVideoRef} videoClipId={challengeVideoClipId} audioClipId1={currentTeamImitation.clipIds[0]} audioClipId2={currentTeamImitation.clipIds[1] || null} className="w-full" externalControl isPlayingExternal={isPlayingSynced} playbackPositionSeconds={playbackPositionSeconds} includeOriginalAudio={currentTeamImitation.includeOriginalAudio} originalAudioVolume={currentTeamImitation.originalAudioVolume} /> : currentImitation?.clipId ?
+          <VideoWithAudioOverlay ref={videoRef} videoClipId={challengeVideoClipId} audioClipId={currentImitation.clipId} className="w-full" externalControl isPlayingExternal={isPlayingSynced} playbackPositionSeconds={playbackPositionSeconds} includeOriginalAudio={currentImitation.includeOriginalAudio} originalAudioVolume={currentImitation.originalAudioVolume} onPlayStateChange={playing => { if (!playing && isPlayingSynced && currentPlayer.isHost) void mutateSession('pause'); }} /> : <div className={bubble.waiting}>Aucun audio disponible</div>}
+        </div>
+        {!isPlaybackAuthoritative && <p className={bubble.note}>Synchronisation de lecture approximative : l’horodatage serveur n’est pas encore disponible.</p>}
+      </BubblePanel>
+      <BubblePanel title={isOwnVideo ? 'C’est votre moment !' : 'Alors, convaincu ?'} eyebrow="Le verdict">
+        <div className={bubble.identity}>
+          {gameMode === '2v2' && currentTeamImitation ? <><div className={bubble.identityAvatars}>{currentTeamImitation.players.map(player => <PlayerAvatar key={player.id} playerId={player.id} playerName={player.name} size="lg" showTitle={false} />)}</div><strong>Équipe {currentTeamImitation.teamNumber}</strong><small>{currentTeamImitation.players.map(player => player.name).join(' + ')}</small></> : currentImitation && <><PlayerAvatar playerId={currentImitation.playerId} playerName={currentImitation.playerName} size="xl" showTitle={false} /><strong>{currentImitation.playerName}</strong></>}
+        </div>
+        {currentPlayer.isHost && <button type="button" className={bubble.mintButton} onClick={handleTogglePlay} disabled={!votingSessionId || !isSessionSynchronized || pendingPlay || showCountdown || !currentHasAudio || isSessionActionPending}>{isSessionActionPending ? <Loader2 className="animate-spin" /> : isPlayingSynced ? <Pause /> : <Play />}{isSessionActionPending ? 'Synchronisation…' : isPlayingSynced ? 'Pause' : 'Lancer pour tous'}</button>}
+        {voteAvailability.kind === 'votable' && !hasVotedCurrent && <div className={bubble.voteButtons}><button type="button" onClick={event => handleVote('dislike', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsDown /> Bof</button><button type="button" onClick={event => handleVote('like', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsUp /> Top !</button></div>}
+        {isVotePending && <p className={bubble.note} role="status">Enregistrement du vote…</p>}
+        {hasVotedCurrent && <p className={bubble.note} role="status">Vote enregistré ! {currentPlayer.isHost ? '' : 'En attente de l’hôte.'}</p>}
+        {isOwnVideo && <p className={bubble.note}>Vous ne pouvez pas voter pour vous-même.{!currentPlayer.isHost && ' En attente de l’hôte.'}</p>}
+        {voteAvailability.kind === 'no-audio' && <p className={bubble.note}>Aucun audio à juger — {currentPlayer.isHost ? 'passe à la suivante' : 'en attente de l’hôte'}.</p>}
+        {currentPlayer.isHost && <button type="button" className={bubble.yellowButton} onClick={handleNext} disabled={!votingSessionId || !isSessionSynchronized || isSessionActionPending}>{isSessionActionPending ? 'Passage…' : 'Suivant'}<ChevronRight /></button>}
+        <div className={bubble.dots} aria-label={`Imitation ${currentIndex + 1} sur ${displayLength}`}>{Array.from({ length: displayLength }, (_, i) => <i key={i} className={i === currentIndex ? bubble.activeDot : undefined} />)}</div>
+      </BubblePanel>
+    </div>
+  </>;
 
   return (
     <div

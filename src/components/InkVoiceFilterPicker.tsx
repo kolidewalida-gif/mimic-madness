@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles } from 'lucide-react';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/lib/voiceFilters';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
+import bubbleStyles from '@/components/imitation/BubbleVoiceFilters.module.css';
 
 const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
 const FONT = "'Outfit', sans-serif";
@@ -21,14 +22,17 @@ interface InkVoiceFilterPickerProps {
   onChange: (filters: VoiceFilterId[]) => void;
   disabled?: boolean;
   compact?: boolean;
+  bubble?: boolean;
 }
 
 const InkVoiceFilterPickerComponent = ({
-  value, onChange, disabled = false, compact = false,
+  value, onChange, disabled = false, compact = false, bubble = false,
 }: InkVoiceFilterPickerProps) => {
   // Autotune termine toujours la chaîne : le rang affiché reste ainsi fidèle
   // au pipeline réel (effets directs, puis correction du blob).
   const selected = normalizeVoiceFilterOrder(value);
+  const [expanded, setExpanded] = useState(false);
+  const visibleFilters = bubble && compact && !expanded ? VOICE_FILTERS.filter((filter, index) => index < 8 || selected.includes(filter.id)) : VOICE_FILTERS;
   const isFull = selected.length >= MAX_STACKED_FILTERS;
 
   const handlePick = (id: VoiceFilterId) => {
@@ -82,8 +86,8 @@ const InkVoiceFilterPickerComponent = ({
         </div>
       )}
 
-      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
-        {VOICE_FILTERS.map((filter) => {
+      <div className={bubble ? bubbleStyles.bank : 'grid grid-cols-4 sm:grid-cols-8 gap-1.5'}>
+        {visibleFilters.map((filter) => {
           const isNatural = filter.id === 'none';
           const active = isNatural
             ? selected.length === 0
@@ -109,11 +113,11 @@ const InkVoiceFilterPickerComponent = ({
               whileHover={!disabled && !blocked ? { scale: 1.08, rotate: -3 } : undefined}
               whileTap={!disabled && !blocked ? { scale: 0.92 } : undefined}
               className={cn(
-                'relative aspect-square rounded-2xl flex flex-col items-center justify-center gap-0.5 px-1',
+                bubble ? bubbleStyles.filter : 'relative aspect-square rounded-2xl flex flex-col items-center justify-center gap-0.5 px-1',
                 disabled && 'opacity-50 cursor-not-allowed',
                 blocked && 'opacity-35',
               )}
-              style={{
+              style={bubble ? undefined : {
                 background: active
                   ? `linear-gradient(180deg, ${filter.color}, ${filter.color}cc)`
                   : 'rgba(255,255,255,0.04)',
@@ -162,9 +166,11 @@ const InkVoiceFilterPickerComponent = ({
         })}
       </div>
 
+      {bubble && compact && <button type="button" className={bubbleStyles.expand} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Moins d’effets' : `Toutes les voix (${VOICE_FILTERS.length})`}</button>}
+
       {selected.length > 0 && (
         <div
-          className="px-3 py-2 rounded-xl space-y-1"
+          className={cn('px-3 py-2 rounded-xl space-y-1', bubble && bubbleStyles.description)}
           style={{
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid var(--ink-line)',

@@ -79,9 +79,10 @@ vi.mock('@/components/AudioRecorder', () => ({
   ),
 }));
 
-const renderPhase = () =>
+const renderPhase = (variant: 'default' | 'inkBeta') =>
   render(
     <ImitationPhase
+      variant={variant}
       lobbyId="lobby-1"
       roundNumber={1}
       currentPlayer={{ id: 'host-1', name: 'Hôte', isHost: true }}
@@ -91,7 +92,7 @@ const renderPhase = () =>
     />,
   );
 
-describe('reprise après changement de voix', () => {
+describe.each(['default', 'inkBeta'] as const)('reprise après changement de voix · %s', (variant) => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getVideoClip.mockResolvedValue(null);
@@ -118,7 +119,7 @@ describe('reprise après changement de voix', () => {
   afterEach(() => cleanup());
 
   it('ne rembobine pas la vidéo à imiter', async () => {
-    const view = renderPhase();
+    const view = renderPhase(variant);
     await act(async () => { await Promise.resolve(); });
 
     const video = view.getByTestId('video-defi') as HTMLVideoElement;
@@ -147,7 +148,7 @@ describe('reprise après changement de voix', () => {
      * du fichier. Sur un clip court, la vidéo est donc déjà revenue au début
      * avant le clic sur Pause, et la relancer rejouait tout depuis le départ.
      */
-    const view = renderPhase();
+    const view = renderPhase(variant);
     await act(async () => { await Promise.resolve(); });
 
     const video = view.getByTestId('video-defi') as HTMLVideoElement;
@@ -165,7 +166,7 @@ describe('reprise après changement de voix', () => {
 
   it('repart bien du début pour une nouvelle prise', async () => {
     // `onRecordingStart` doit, lui, rembobiner : c'est un nouvel essai complet.
-    const view = renderPhase();
+    const view = renderPhase(variant);
     await act(async () => { await Promise.resolve(); });
 
     const video = view.getByTestId('video-defi') as HTMLVideoElement;
