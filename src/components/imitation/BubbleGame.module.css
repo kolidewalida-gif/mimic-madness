@@ -1,3 +1,5 @@
+.workspace{position:relative;display:flex;flex:1;min-height:0;min-width:0}.workspace > main{min-width:0}.sidebar{width:330px;flex-shrink:0;padding:10px 22px 26px 0;min-height:0}.withChat .content{container-type:inline-size;container-name:imitation-stage}
+@container imitation-stage (max-width:760px){.split{grid-template-columns:1fr}.heading h1{font-size:32px}}
 .root {
   --bg-copy: #f8efff; --bg-muted: #d2bddd; --bg-edge: #2d173e;
   --bg-panel: radial-gradient(ellipse at 16% 0%,#74538b,transparent 80%),linear-gradient(155deg,#5b3c71,#3f2852);

@@ -7,6 +7,7 @@ import { VotingPhase } from "@/components/VotingPhase";
 import { ResultsPhase } from "@/components/ResultsPhase";
 import { LobbyChat } from "@/components/LobbyChat";
 import { BubbleGameStage, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import { ImitationChat } from '@/components/imitation/ImitationChat';
 import { AlertTriangle, ArrowLeft, RefreshCcw, Swords, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -803,39 +804,38 @@ export const GamePlayScreen = ({
 
   if (isInkBeta) {
     return (
-      <BubbleGameStage
-        phase={renderablePhase}
-        round={roundNumber}
-        tools={(
-          <>
-            {gameMode === "2v2" && (
-              <span className="ik-game-badge">
-                <Swords aria-hidden="true" />
-                <span>2v2</span>
-              </span>
+      <ImitationChat lobbyId={lobbyId} playerId={currentPlayer.id} playerName={currentPlayer.name} players={players} phase={renderablePhase}>
+        {({ button: chatButton, panel: chatPanel }) => (
+          <BubbleGameStage
+            phase={renderablePhase}
+            round={roundNumber}
+            sidebar={chatPanel}
+            tools={(
+              <>
+                {chatButton}
+                {gameMode === "2v2" && (
+                  <span className="ik-game-badge">
+                    <Swords aria-hidden="true" />
+                    <span>2v2</span>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={onEndGame}
+                  data-back
+                  className="ik-tool ik-tool--leave menu-focus"
+                  aria-label="Quitter la partie"
+                >
+                  <ArrowLeft aria-hidden="true" />
+                  <span>Quitter</span>
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              onClick={onEndGame}
-              data-back
-              className="ik-tool ik-tool--leave menu-focus"
-              aria-label="Quitter la partie"
-            >
-              <ArrowLeft aria-hidden="true" />
-              <span>Quitter</span>
-            </button>
-          </>
+          >
+            {phaseContent}
+          </BubbleGameStage>
         )}
-      >
-        {phaseContent}
-
-        <LobbyChat
-          variant="inkBeta"
-          lobbyId={lobbyId}
-          playerId={currentPlayer.id}
-          playerName={currentPlayer.name}
-        />
-      </BubbleGameStage>
+      </ImitationChat>
     );
   }
 

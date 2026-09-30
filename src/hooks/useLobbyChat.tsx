@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { chatMessageSchema, playerNameSchema, safeParse } from '@/lib/validation';
 import { mutedPlayerIds, onMutedPlayersChanged } from '@/lib/playerModeration';
 import { toast } from 'sonner';
@@ -18,7 +19,7 @@ interface UseLobbyChat {
   messages: ChatMessage[];
   allMessages: ChatMessage[];
   isLoading: boolean;
-  sendMessage: (content: string, messageType?: 'text' | 'image' | 'gif' | 'voice' | 'soundboard') => Promise<void>;
+  sendMessage: (content: string, messageType?: 'text' | 'image' | 'gif' | 'voice' | 'soundboard') => Promise<boolean>;
   isSending: boolean;
 }
 
@@ -110,7 +111,7 @@ export const useLobbyChat = (
           filter: `lobby_id=eq.${lobbyId}`,
         },
         (payload) => {
-          const newMsg = payload.new as any;
+          const newMsg = payload.new as Tables<'chat_messages'>;
           const formattedMsg: ChatMessage = {
             id: newMsg.id,
             lobbyId: newMsg.lobby_id,
@@ -144,18 +145,18 @@ export const useLobbyChat = (
 
   const sendMessage = useCallback(
     async (content: string, messageType: 'text' | 'image' | 'gif' | 'voice' | 'soundboard' = 'text') => {
-      if (!lobbyId) return;
+      if (!lobbyId) return false;
       // For text messages we apply strict sanitization + length limits.
       // For gif/image/voice the content is a URL or storage path and is
       // produced internally → only length-cap it.
       let cleaned = content;
       if (messageType === 'text') {
         const parsed = safeParse(chatMessageSchema, content);
-        if (!parsed) return;
+        if (!parsed) return false;
         cleaned = parsed;
       } else {
         cleaned = content.trim().slice(0, 2000);
-        if (!cleaned) return;
+        if (!cleaned) return false;
       }
 
       /*
@@ -182,11 +183,13 @@ export const useLobbyChat = (
           if (error.code === '54000') {
             toast.info('Doucement, laisse respirer le salon quelques secondes.');
           }
+          return false;
         }
-        
         // XP is now handled externally via useXpActions hook
+        return true;
       } catch (err) {
         console.error('Error in sendMessage:', err);
+        return false;
       } finally {
         setIsSending(false);
       }

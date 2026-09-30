@@ -26,12 +26,15 @@ export const BubbleGameHeader = ({ phase, round, tools }: { phase: BubblePhase; 
   </header>;
 };
 
-export const BubbleGameStage = ({ phase, round, tools, children }: { phase: BubblePhase; round?: number; tools?: ReactNode; children: ReactNode }) =>
+export const BubbleGameStage = ({ phase, round, tools, children, sidebar }: { phase: BubblePhase; round?: number; tools?: ReactNode; children: ReactNode; sidebar?: ReactNode }) =>
   <div className={`ik-root ${styles.root}`}>
     <div className="ik-party-bg" aria-hidden="true" /><div className="ik-party-dots" aria-hidden="true" />
     <div className={styles.decor} aria-hidden="true"><i /><i /><i /><i /></div>
     <BubbleGameHeader phase={phase} round={round} tools={tools} />
-    <main className={`${styles.main} custom-scrollbar`}><div className={styles.content}>{children}</div></main>
+    <div className={cn(styles.workspace, sidebar && styles.withChat)}>
+      <main className={`${styles.main} custom-scrollbar`}><div className={styles.content}>{children}</div></main>
+      {sidebar && <div className={styles.sidebar}>{sidebar}</div>}
+    </div>
   </div>;
 
 export const BubbleHeading = ({ label, title, children, aside }: { label: string; title: ReactNode; children?: ReactNode; aside?: ReactNode }) =>
