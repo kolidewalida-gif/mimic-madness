@@ -51,6 +51,18 @@
 .avatarBubble { position: relative; width: 240px; height: 214px; margin-bottom: -28px; z-index: 2; border: 3px solid #f3e7ff9c; border-radius: 48% 52% 45% 55% / 53% 44% 56% 47%; background: radial-gradient(ellipse at 30% 15%, #efe0ff, #b496ec 48%, #8756c5 88%); box-shadow: inset 0 7px 9px #ffffffa0, inset -8px -15px 18px #61379170, 0 9px 0 #573574, 0 20px 32px #3417514d; animation: bubble-enter .7s cubic-bezier(.16,1,.3,1) both, avatar-float 6s ease-in-out .7s infinite; }
 .avatarBubble::before { content: ''; position: absolute; inset: 8px 30% auto 14%; height: 20px; border-radius: 50%; background: #ffffff77; transform: rotate(-19deg); filter: blur(2px); }
 .avatarSlot { position: relative; display: flex; height: 100%; flex-direction: column; justify-content: center; align-items: center; }
+.avatarPicker, .avatarStage, .portrait { position: relative; width: 100%; height: 100%; }
+.portrait { overflow: hidden; border-radius: 50%; }
+.portraitImage { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.avatarArrow, .avatarEdit { position: absolute; z-index: 5; display: grid; place-items: center; width: 42px; height: 42px; border: 2px solid #ffffffa0; border-radius: 50%; color: #fff5ff; background: linear-gradient(#76508d, #352044); box-shadow: inset 0 2px 0 #ffffff33, 0 4px 0 #24122e; transition: transform .2s ease; }
+.avatarArrow { top: 50%; transform: translateY(-50%); }
+.avatarPrevious { left: -25px; }
+.avatarNext { right: -25px; }
+.avatarArrow svg, .avatarEdit svg { width: 20px; height: 20px; }
+.avatarArrow:hover:not(:disabled) { transform: translateY(-50%) scale(1.1); }
+.avatarEdit { right: 3px; bottom: 9px; width: 38px; height: 38px; color: #352044; background: linear-gradient(#aaffeb, #45ccb5); }
+.avatarEdit:hover:not(:disabled) { transform: scale(1.1); }
+.avatarArrow:disabled, .avatarEdit:disabled { opacity: .5; cursor: wait; }
 :global(body.inkbeta-mode) .avatarSlot :global(.ik-mascot) { position: relative; inset: auto; width: 185px; margin: 0; padding: 0; transform: none; animation: none; }
 :global(body.inkbeta-mode) .avatarSlot :global(.ik-mascot svg) { width: 100%; height: auto; filter: drop-shadow(0 6px 3px #42206355); }
 .avatarSlot :global(.ik-mascot-ring), .avatarSlot :global(.ik-mascot-pulse), .avatarSlot :global(.ik-mascot-caption), .avatarSlot :global(.ink-game-avatar-caption) { display: none; }
@@ -193,3 +205,40 @@
 @keyframes bubble-enter { from { opacity: 0; transform: translateY(28px) scale(.88, .95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes avatar-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
 @keyframes float-bubble { from { transform: translateY(0) rotate(-8deg); } to { transform: translateY(-30px) rotate(8deg); } }
+
+/* The portrait owns the entire sphere; its layer stays above the animated card. */
+.avatarBubble { width: 220px; height: 220px; border-radius: 50%; flex-shrink: 0; z-index: 4; isolation: isolate; }
+.avatarBubble::before { z-index: 3; pointer-events: none; }
+.playBubble { z-index: 1; }
+.avatarTag { z-index: 4; bottom: -9px; }
+:global(body.inkbeta-mode) .joinModal { width: min(100% - 28px, 460px); max-width: 460px; border: 3px solid #43275d; border-radius: 46px; color: #39234e; background: linear-gradient(150deg, #fcf4ff, #d5bdee); box-shadow: inset 0 5px 0 #ffffffa0, 0 9px 0 #654382, 0 13px 0 #322040, 0 25px 80px #00000055; }
+:global(body.inkbeta-mode) .joinModal :global(.ink-panel-header) { position: relative; padding: 27px 24px 15px; background: transparent; border: 0; justify-content: center; }
+:global(body.inkbeta-mode) .joinModal :global(.ink-panel-header) > div:first-child { flex-direction: column; text-align: center; gap: 14px; }
+:global(body.inkbeta-mode) .joinModal :global(.ink-panel-icon) { width: 64px; height: 64px; border-radius: 50%; color: #352044; background: linear-gradient(#baffec, #62d8c2) !important; border: 2px solid #43275d !important; box-shadow: inset 0 3px 0 #ffffff88, 0 5px 0 #398a7c !important; }
+:global(body.inkbeta-mode) .joinModal :global(.ink-panel-icon) svg { width: 29px; height: 29px; }
+:global(body.inkbeta-mode) .joinModal :global(.ink-panel-title) { color: #39234e; font-family: var(--ik-body); font-weight: 950; font-size: 25px; letter-spacing: -.6px; text-transform: none; white-space: normal; text-shadow: none; }
+:global(body.inkbeta-mode) .joinModal :global(.ink-panel-subtitle) { color: #735689; white-space: normal; margin-top: 8px; }
+:global(body.inkbeta-mode) .joinModal :global(.ink-panel-actions) { position: absolute; top: 17px; right: 17px; }
+:global(body.inkbeta-mode) .joinModal :global(.ink-close-button) { width: 36px; height: 36px; border-radius: 50%; color: #654382; background: #ffffff55; border: 1px solid #ae8bc56b; box-shadow: none; }
+.joinModalBody { padding: 10px 30px 30px; }
+.joinLead { display: none; }
+.joinForm .codeLabel, .joinForm .recentHeading { color: #654382; }
+.joinForm .codeLabel span, .joinForm .codeHelp, .joinForm .formMessage { color: #735689; }
+.joinForm .codeField input { height: 86px; color: #39234e; background: #fff8ff; border: 2px solid #b095c5; border-radius: 30px; font-family: ui-monospace, monospace; font-size: 34px; letter-spacing: .35em; text-indent: .35em; box-shadow: inset 0 4px 6px #54327018, 0 3px 0 #ffffffb0; }
+.joinForm .codeField svg { top: 32px; color: #80618f; }
+.joinForm .codeFieldReady input { border-color: #378c7b; }
+.joinForm .codeHelp { line-height: 1.6; font-size: 11px; text-align: center; margin: 12px 0 22px; }
+.joinForm .recentCode { color: #654382; background: #ffffff40; border: 1px solid #b596cd; border-radius: 50px; }
+.joinForm .recentRemove { color: #80618f; }
+.joinForm .joinActions { flex-direction: column-reverse; gap: 16px; }
+.joinForm .submitButton { min-height: 62px; color: #322044; border: 2px solid #43275d; background: linear-gradient(#b3f8e7, #66d4be); box-shadow: inset 0 3px 0 #ffffff99, 0 5px 0 #398a7c, 0 8px 0 #43275d; font-size: 16px; }
+.joinForm .cancelButton { align-self: center; min-height: 36px; border: 0; padding: 5px 20px; color: #735689; background: transparent; box-shadow: none; }
+:global(body.inkbeta-dark) .joinModal { color: #f6ecff; background: radial-gradient(ellipse at 30% 0%, #694689, transparent 70%), linear-gradient(155deg, #513168, #352044); border-color: #190c2a; box-shadow: inset 0 4px 0 #b58fd540, 0 9px 0 #23132f, 0 13px 0 #140a20, 0 25px 80px #00000066; }
+:global(body.inkbeta-dark) .joinModal :global(.ink-panel-title), :global(body.inkbeta-dark) .joinForm .codeLabel, :global(body.inkbeta-dark) .joinForm .recentHeading { color: #f6ecff; }
+:global(body.inkbeta-dark) .joinModal :global(.ink-panel-subtitle), :global(body.inkbeta-dark) .joinForm :is(.codeHelp, .cancelButton, .formMessage), :global(body.inkbeta-dark) .joinForm .codeLabel span { color: #c8b0da; }
+:global(body.inkbeta-dark) .joinForm .codeField input { color: #f4eaff; background: #281633; border-color: #8965a3; box-shadow: inset 0 4px 6px #09031244, 0 3px 0 #7b559052; }
+:global(body.inkbeta-dark) .joinForm .recentCode { color: #f6ecff; background: #cda5ef15; border-color: #8965a3; }
+@media (max-width: 600px) { .avatarBubble { width: 184px; height: 184px; } .joinModalBody { padding-inline: 22px; } }
+@media (min-width: 601px) and (max-height: 850px) { .avatarBubble { width: 176px; height: 176px; } }
+@media (min-width: 601px) and (max-height: 780px) { .avatarBubble { width: 150px; height: 150px; } }
+@media (prefers-reduced-motion: reduce) { .avatarArrow, .avatarEdit { transition: none; } }

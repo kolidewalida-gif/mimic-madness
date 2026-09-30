@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 
 import { InkBetaMascot } from '@/components/InkBetaBrand';
 import { InkHome2026View } from '@/components/home/InkHome2026View';
+import bubbleStyles from '@/components/home/InkHomeBubble.module.css';
 import { type PersonalHubTab } from '@/components/personal-hub/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
@@ -56,18 +57,14 @@ const InkBetaAvatarPortrait = memo(({ imageUrl, alt }: InkBetaAvatarPortraitProp
   if (hasImageError) return <InkBetaMascot />;
 
   return (
-    <div className="ik-mascot ik-mascot--avatar">
-      <div className="ik-mascot-avatar-frame">
-        <img
-          src={imageUrl}
-          alt={alt}
-          className="ik-mascot-avatar-image"
-          draggable={false}
-          onError={() => setHasImageError(true)}
-        />
-      </div>
-      <span className="ik-mascot-pulse ik-mascot-pulse--one" aria-hidden="true" />
-      <span className="ik-mascot-pulse ik-mascot-pulse--two" aria-hidden="true" />
+    <div className={bubbleStyles.portrait}>
+      <img
+        src={imageUrl}
+        alt={alt}
+        className={bubbleStyles.portraitImage}
+        draggable={false}
+        onError={() => setHasImageError(true)}
+      />
     </div>
   );
 });
@@ -195,18 +192,18 @@ const InkBetaAvatarPicker = memo(() => {
         className="hidden"
       />
 
-      <div className="ink-game-avatar-picker" aria-busy={avatarControlsDisabled}>
+      <div className={bubbleStyles.avatarPicker} aria-busy={avatarControlsDisabled}>
         <button
           type="button"
           onClick={() => stepGameAvatar(-1)}
           disabled={avatarControlsDisabled}
           aria-label="Avatar précédent"
-          className="ink-game-avatar-arrow ink-game-avatar-arrow--previous menu-focus"
+          className={`${bubbleStyles.avatarArrow} ${bubbleStyles.avatarPrevious} menu-focus`}
         >
           <ChevronLeft aria-hidden="true" />
         </button>
 
-        <div className="ink-game-avatar-stage">
+        <div className={bubbleStyles.avatarStage}>
           {avatarImageUrl ? (
             <InkBetaAvatarPortrait
               imageUrl={avatarImageUrl}
@@ -223,7 +220,7 @@ const InkBetaAvatarPicker = memo(() => {
             aria-label="Importer une photo de profil"
             aria-busy={isSavingAvatar}
             title="Importer une photo"
-            className="ink-game-avatar-edit menu-focus"
+            className={`${bubbleStyles.avatarEdit} menu-focus`}
           >
             {isSavingAvatar ? (
               <span className="ink-game-avatar-spinner" aria-hidden="true" />
@@ -238,13 +235,13 @@ const InkBetaAvatarPicker = memo(() => {
           onClick={() => stepGameAvatar(1)}
           disabled={avatarControlsDisabled}
           aria-label="Avatar suivant"
-          className="ink-game-avatar-arrow ink-game-avatar-arrow--next menu-focus"
+          className={`${bubbleStyles.avatarArrow} ${bubbleStyles.avatarNext} menu-focus`}
         >
           <ChevronRight aria-hidden="true" />
         </button>
       </div>
 
-      <div className="ink-game-avatar-caption" aria-live="polite" aria-atomic="true">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
         <strong>
           {selectedGameAvatar?.label || (avatarImageUrl ? 'Photo personnalisée' : 'Choisis ton Mimo')}
         </strong>

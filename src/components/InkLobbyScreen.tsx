@@ -39,6 +39,8 @@ import { LobbyInvitePanel } from '@/components/LobbyInvitePanel';
 import { InkShortcutsModal } from '@/components/InkShortcutsModal';
 import { PlayerModerationActions } from '@/components/PlayerModerationActions';
 import { InkBetaLogo } from '@/components/InkBetaBrand';
+import bubbleStyles from '@/components/home/InkHomeBubble.module.css';
+import lobbyStyles from '@/components/lobby/InkLobbyBubble.module.css';
 import { InkModal } from '@/components/menu/InkOverlay';
 import { type PersonalHubTab } from '@/components/personal-hub/types';
 import {
@@ -488,12 +490,15 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
   if (isInkBeta) {
     return (
       <div
-        className="ik-root ik-layout-v2 ik-lobby-v2 menu-screen-safe flex h-screen w-full flex-col overflow-hidden"
+        className={`ik-root ik-layout-v2 ik-lobby-v2 menu-screen-safe flex h-screen w-full flex-col overflow-hidden ${lobbyStyles.root}`}
         style={{ ['--accent' as string]: selectedCard.accent }}
       >
         <div className="ik-party-bg" aria-hidden="true" />
         <div className="ik-party-rays" aria-hidden="true" />
         <div className="ik-party-dots" aria-hidden="true" />
+        <div className={bubbleStyles.bubbles} aria-hidden="true">
+          {Array.from({ length: 9 }, (_, index) => <i key={index} />)}
+        </div>
 
         <header className="ik-topbar relative z-[8] flex-shrink-0">
           <InkBetaLogo titleId="ik-lobby-brand" />
@@ -617,9 +622,9 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
             */}
             <section className="ik-lobby-invite" aria-labelledby="ik-lobby-invite-title">
               <div className="ik-step">
-                <span>Étape 01</span>
-                <h2 id="ik-lobby-invite-title">Invite ta troupe</h2>
-                <p>Donne ce code, ou envoie le lien : on te rejoint direct.</p>
+                <span>Bienvenue dans la bulle</span>
+                <h2 id="ik-lobby-invite-title">Le salon de {players.find((player) => player.isHost)?.name || currentPlayer.name}</h2>
+                <p>Partage le code. Ramène ta bande. La fête commence ici.</p>
               </div>
 
               <button
@@ -672,7 +677,7 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
               <div className="ik-lobby-panel-head">
                 <div>
                   <span>{connectedCount > 1 ? 'Tout le monde est là ?' : 'En attente de joueurs'}</span>
-                  <h2 id="ik-lobby-seats-title">La troupe</h2>
+                  <h2 id="ik-lobby-seats-title">Ta bande</h2>
                 </div>
                 <p className="ik-lobby-count">
                   <strong>{String(players.length).padStart(2, '0')}</strong>
@@ -800,7 +805,7 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
                     <span className="ik-seat-avatar" aria-hidden="true">
                       <UserPlus />
                     </span>
-                    <span className="ik-seat-name">Libre</span>
+                    <span className="ik-seat-name">À qui le tour ?</span>
                   </div>
                 ))}
               </div>
@@ -814,8 +819,8 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
 
             <section className="ik-mode-panel ik-lobby-modes" aria-labelledby="ik-lobby-modes-title">
               <div className="ik-mode-panel-head">
-                <span>Étape 02</span>
-                <h2 id="ik-lobby-modes-title">{isHost ? 'Choisis un mode' : 'Mode du salon'}</h2>
+                <span>À quoi on joue ?</span>
+                <h2 id="ik-lobby-modes-title">{isHost ? 'Choisis ton terrain de jeu' : 'Le terrain de jeu'}</h2>
               </div>
 
               {/*
@@ -869,9 +874,9 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
             */}
             <section className="ik-launch" aria-labelledby="ik-lobby-launch-title">
               <div className="ik-step">
-                <span>Étape 03</span>
+                <span>Tout le monde est prêt ?</span>
                 <h2 id="ik-lobby-launch-title">
-                  {isHost ? 'Lance la partie' : 'Prépare-toi'}
+                  {isHost ? 'On y va !' : 'Ça va commencer !'}
                 </h2>
                 <p>
                   {selectedCard.label} · {connectedCount}/{MAX_PLAYERS} joueurs connectés
