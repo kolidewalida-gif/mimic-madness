@@ -918,7 +918,7 @@ const Index = () => {
       */}
       {gameState !== "memorise" && (
         <div
-          className={`ik-music-dock ik-music-dock--floating${gameState === "home" ? " ik-music-dock--home" : ""}`}
+          className={`ik-music-dock ik-music-dock--floating ik-bubble-music-dock${gameState === "home" ? " ik-music-dock--home" : ""}`}
         >
           <MusicPlayerBar placement="inline" variant="inkBeta" />
         </div>

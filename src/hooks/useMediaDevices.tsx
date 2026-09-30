@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface MediaDeviceInfo {
   deviceId: string;
@@ -6,7 +6,7 @@ export interface MediaDeviceInfo {
   kind: MediaDeviceKind;
 }
 
-export const useMediaDevices = () => {
+export const useMediaDevices = ({ requestPermissionOnMount = true }: { requestPermissionOnMount?: boolean } = {}) => {
   const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([]);
   const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([]);
   const [selectedAudioId, setSelectedAudioId] = useState<string>('');
@@ -14,9 +14,10 @@ export const useMediaDevices = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Get available devices — audio only (camera no longer used)
-  const loadDevices = async () => {
+  const loadDevices = useCallback(async (requestPermission = true) => {
     try {
       setIsLoading(true);
 
@@ -24,12 +25,14 @@ export const useMediaDevices = () => {
       // temporary stream exists solely to reveal device labels: stop it as
       // soon as enumeration completes so opening Settings never leaves the
       // browser microphone indicator active.
-      const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const permissionStream = requestPermission
+        ? await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        : null;
       let devices: globalThis.MediaDeviceInfo[];
       try {
         devices = await navigator.mediaDevices.enumerateDevices();
       } finally {
-        permissionStream.getTracks().forEach((track) => track.stop());
+        permissionStream?.getTracks().forEach((track) => track.stop());
       }
 
       const audioDevices: MediaDeviceInfo[] = [];
@@ -56,12 +59,8 @@ export const useMediaDevices = () => {
       setVideoInputs(videoDevices);
 
       // Set default audio device
-      if (audioDevices.length > 0 && !selectedAudioId) {
-        setSelectedAudioId(audioDevices[0].deviceId);
-      }
-      if (videoDevices.length > 0 && !selectedVideoId) {
-        setSelectedVideoId(videoDevices[0].deviceId);
-      }
+      setSelectedAudioId(current => audioDevices.some(device => device.deviceId === current) ? current : audioDevices[0]?.deviceId || '');
+      setSelectedVideoId(current => videoDevices.some(device => device.deviceId === current) ? current : videoDevices[0]?.deviceId || '');
 
       setError(null);
     } catch (err) {
@@ -70,7 +69,7 @@ export const useMediaDevices = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Get media stream with selected devices.
   // IMPORTANT: defaults to AUDIO ONLY (camera section removed). Pass video: true
@@ -81,9 +80,7 @@ export const useMediaDevices = () => {
   }): Promise<MediaStream | null> => {
     try {
       // Stop existing stream
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
+      streamRef.current?.getTracks().forEach(track => track.stop());
 
       const audioConstraints = constraints?.audio !== undefined
         ? constraints.audio
@@ -101,6 +98,7 @@ export const useMediaDevices = () => {
         video: videoConstraints,
       });
 
+      streamRef.current = newStream;
       setStream(newStream);
       return newStream;
     } catch (err) {
@@ -111,12 +109,13 @@ export const useMediaDevices = () => {
   };
 
   // Stop current stream
-  const stopStream = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+  const stopStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
       setStream(null);
     }
-  };
+  }, []);
 
   // Change audio input
   const changeAudioInput = async (deviceId: string) => {
@@ -149,20 +148,20 @@ export const useMediaDevices = () => {
 
   // Load devices on mount
   useEffect(() => {
-    loadDevices();
+    loadDevices(requestPermissionOnMount);
 
     // Listen for device changes
     const handleDeviceChange = () => {
-      loadDevices();
+      loadDevices(false);
     };
 
-    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+    navigator.mediaDevices?.addEventListener('devicechange', handleDeviceChange);
 
     return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+      navigator.mediaDevices?.removeEventListener('devicechange', handleDeviceChange);
       stopStream();
     };
-  }, []);
+  }, [loadDevices, requestPermissionOnMount, stopStream]);
 
   return {
     audioInputs,

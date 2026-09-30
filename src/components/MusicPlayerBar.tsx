@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { coverFor, titleOf, MOOD_LABEL } from "@/lib/musicCovers";
+import { BubbleMusicPlayer } from '@/components/music/BubbleMusicPlayer';
 
 /* ============================================================
    Helpers
@@ -420,4 +421,6 @@ const MusicPlayerBarComponent = ({
   );
 };
 
-export const MusicPlayerBar = memo(MusicPlayerBarComponent);
+export const MusicPlayerBar = memo((props: MusicPlayerBarProps) => props.variant === 'inkBeta'
+  ? <BubbleMusicPlayer placement={props.placement} />
+  : <MusicPlayerBarComponent {...props} />);

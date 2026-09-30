@@ -42,6 +42,7 @@ import { usePlayerLoadout } from '@/hooks/usePlayerLoadout';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 import type { PersonalHubTab } from '@/components/personal-hub/types';
+import bubbleHub from '@/components/settings/BubbleHub.module.css';
 
 interface InkPersonalHubProps {
   isOpen: boolean;
@@ -361,7 +362,7 @@ const InkPersonalHubComponent = ({
       subtitle={activeItem.description}
       icon={<ActiveIcon className="h-5 w-5" />}
       iconGradient={activeItem.accent}
-      className="ik-party-overlay ik-personal-hub"
+      className={cn('ik-party-overlay ik-personal-hub', bubbleHub.root)}
       bodyClassName="ik-personal-hub-body"
       closeLabel="Fermer mon espace"
       size="hub"
@@ -411,7 +412,6 @@ const InkPersonalHubComponent = ({
           {activeTab === 'notifications' && <HubNotifications {...notifications} onNavigate={navigate} onOpenSocial={openSocial} />}
           {activeTab === 'settings' && (
             <div className="ik-hub-page ik-hub-settings-page">
-              <HubSectionHeading eyebrow="Réglages" title="À ta façon" copy="Teste ton micro, règle les volumes et change l’ambiance sans multiplier les fenêtres." />
               <DeviceSettings embedded playerId={playerId} playerName={playerName} />
             </div>
           )}

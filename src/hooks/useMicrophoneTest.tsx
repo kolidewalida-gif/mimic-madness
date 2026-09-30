@@ -7,6 +7,8 @@ interface UseMicrophoneTestProps {
 export const useMicrophoneTest = ({ selectedAudioId }: UseMicrophoneTestProps) => {
   const [isTesting, setIsTesting] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [noiseSuppressionEnabled, setNoiseSuppressionEnabled] = useState(true);
   
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -16,9 +18,16 @@ export const useMicrophoneTest = ({ selectedAudioId }: UseMicrophoneTestProps) =
   const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const sessionRef = useRef(0);
+  const playbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clean up function
   const cleanup = useCallback(() => {
+    sessionRef.current += 1;
+    if (playbackTimerRef.current !== null) {
+      clearTimeout(playbackTimerRef.current);
+      playbackTimerRef.current = null;
+    }
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -47,22 +56,30 @@ export const useMicrophoneTest = ({ selectedAudioId }: UseMicrophoneTestProps) =
   }, []);
 
   // Start microphone test with audio loopback
-  const startTest = useCallback(async () => {
+  const startTest = useCallback(async (noiseOverride?: boolean) => {
+    cleanup();
+    const session = sessionRef.current;
+    setIsStarting(true);
+    setIsTesting(false);
+    setError(null);
     try {
-      cleanup();
       
       // Get microphone stream with noise suppression settings
       const constraints: MediaStreamConstraints = {
         audio: {
           deviceId: selectedAudioId ? { exact: selectedAudioId } : undefined,
           echoCancellation: true,
-          noiseSuppression: noiseSuppressionEnabled,
+          noiseSuppression: noiseOverride ?? noiseSuppressionEnabled,
           autoGainControl: true,
         },
         video: false,
       };
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (session !== sessionRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
       streamRef.current = stream;
       
       // Create audio context for analysis and playback
@@ -98,8 +115,8 @@ export const useMicrophoneTest = ({ selectedAudioId }: UseMicrophoneTestProps) =
       audioElement.volume = 0.8;
       
       // Add small delay to prevent echo
-      setTimeout(() => {
-        audioElement.play().catch(console.error);
+      playbackTimerRef.current = setTimeout(() => {
+        if (session === sessionRef.current) audioElement.play().catch(console.error);
       }, 100);
       
       audioElementRef.current = audioElement;
@@ -124,8 +141,15 @@ export const useMicrophoneTest = ({ selectedAudioId }: UseMicrophoneTestProps) =
       setIsTesting(true);
       
     } catch (error) {
+      if (session !== sessionRef.current) return;
       console.error('Error starting microphone test:', error);
+      setError(typeof error === 'object' && error !== null && 'name' in error && error.name === 'NotAllowedError'
+        ? 'Accès au micro refusé. Autorise-le dans ton navigateur, puis réessaie.'
+        : 'Le test n’a pas pu démarrer. Vérifie ton micro, puis réessaie.');
+      setIsStarting(false);
       cleanup();
+    } finally {
+      if (session === sessionRef.current) setIsStarting(false);
     }
   }, [selectedAudioId, noiseSuppressionEnabled, cleanup]);
 
@@ -133,6 +157,7 @@ export const useMicrophoneTest = ({ selectedAudioId }: UseMicrophoneTestProps) =
   const stopTest = useCallback(() => {
     cleanup();
     setIsTesting(false);
+    setIsStarting(false);
   }, [cleanup]);
 
   // Toggle noise suppression - restart test if currently testing
@@ -155,9 +180,7 @@ export const useMicrophoneTest = ({ selectedAudioId }: UseMicrophoneTestProps) =
           console.error('Error applying constraints, restarting test:', error);
           // If constraints can't be applied, restart the test
           stopTest();
-          setTimeout(() => {
-            startTest();
-          }, 100);
+          void startTest(newValue);
         }
       }
     }
@@ -172,6 +195,8 @@ export const useMicrophoneTest = ({ selectedAudioId }: UseMicrophoneTestProps) =
 
   return {
     isTesting,
+    isStarting,
+    error,
     audioLevel,
     noiseSuppressionEnabled,
     startTest,
