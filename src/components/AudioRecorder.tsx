@@ -971,13 +971,13 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   };
 
   if (isInkBeta) return <div className={recorderBubble.root} data-state={recorderState}>
-    {(recorderState === 'idle' || recorderState === 'paused') && showVoiceFilters && <div className={recorderBubble.filters}>
-      <div className={recorderBubble.filterLabel}><strong>Quelle voix aujourd’hui ?</strong><small>Jusqu’à 3 effets</small></div>
-      <InkVoiceFilterPicker value={voiceFilters} onChange={setVoiceFilters} compact bubble />
-    </div>}
     {recorderState === 'idle' && <div className={recorderBubble.micStage}>
       <button type="button" className={recorderBubble.mic} onClick={startRecording} aria-label="Commencer l’enregistrement de ton imitation"><Mic /></button>
       <strong>Appuie, et entre en scène.</strong><p>La vidéo repart avec toi. Tu pourras mettre en pause ou refaire ta prise.</p>
+    </div>}
+    {(recorderState === 'idle' || recorderState === 'paused') && showVoiceFilters && <div className={recorderBubble.filters}>
+      <div className={recorderBubble.filterLabel}><strong>Quelle voix aujourd’hui ?</strong><small>Jusqu’à 3 effets</small></div>
+      <InkVoiceFilterPicker value={voiceFilters} onChange={setVoiceFilters} compact bubble />
     </div>}
     {recorderState === 'live' && <>
       <div className={`${recorderBubble.micStage} ${recorderBubble.recording}`}><span className={recorderBubble.mic}><Mic /></span><strong>La scène est à toi !</strong>
