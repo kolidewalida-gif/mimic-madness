@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useAdmin } from '@/hooks/useAdmin';
+import { useAuth } from '@/hooks/useAuth';
 import { useGameTeams } from '@/hooks/useGameTeams';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -170,6 +171,7 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
   const [isStarting, setIsStarting] = useState(false);
   const [linkShared, setLinkShared] = useState(false);
   const { isAdmin } = useAdmin();
+  const { user } = useAuth();
   const [gameMode, setGameMode] = useState<LobbyGameMode>('normal');
   const [codeCopied, setCodeCopied] = useState(false);
   const { teams, assignRandomTeams } = useGameTeams(lobbyId);
@@ -403,22 +405,44 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
     <>
       {/* ============== INVITE PANEL ============== */}
       <InkModal
-        className={isInkBeta ? 'ik-party-overlay ik-lobby-overlay ik-invite-overlay' : undefined}
+        className={isInkBeta ? cn(
+          'ik-party-overlay ik-lobby-overlay ik-invite-overlay',
+          lobbyStyles.inviteDialog,
+          (!isHost || !user) && lobbyStyles.shareDialog,
+        ) : undefined}
         isOpen={showInvitePanel}
         onClose={() => setShowInvitePanel(false)}
         title="Inviter des amis"
         subtitle={`${players.length}/${MAX_PLAYERS} joueurs · ${Math.max(0, MAX_PLAYERS - players.length)} places libres`}
         icon={<Link2 className="h-5 w-5" />}
       >
-        <LobbyInvitePanel
-          lobbyCode={lobbyCode}
-          lobbyId={lobbyId}
-          players={players}
-          maxPlayers={MAX_PLAYERS}
-          isHost={isHost}
-          inlineMode
-          isInkBeta={isInkBeta}
-        />
+        {isInkBeta && (!isHost || !user) ? (
+          <div className={lobbyStyles.shareInvite}>
+            <span className={lobbyStyles.inviteSymbol} aria-hidden="true"><UserPlus /></span>
+            <h3>Une place pour ta bande.</h3>
+            <p>Envoie le lien à un ami, ou donne-lui ce code pour qu’il rejoigne le salon.</p>
+            <button type="button" onClick={handleCopyCode} className={`${lobbyStyles.inviteCode} menu-focus`} aria-label={`Copier le code du salon ${lobbyCode}`}>
+              <small>Code du salon</small>
+              <strong>{lobbyCode}</strong>
+              <span>{codeCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}{codeCopied ? 'Copié !' : 'Copier le code'}</span>
+            </button>
+            <button type="button" onClick={handleShareLink} className={`${lobbyStyles.inviteShare} menu-focus`}>
+              {linkShared ? <Check aria-hidden="true" /> : <Share2 aria-hidden="true" />}
+              {linkShared ? 'Lien copié !' : 'Partager le lien'}
+            </button>
+            {isHost && !user && <p className={lobbyStyles.inviteNote}>Connecte-toi pour envoyer aussi des invitations depuis ta liste d’amis.</p>}
+          </div>
+        ) : (
+          <LobbyInvitePanel
+            lobbyCode={lobbyCode}
+            lobbyId={lobbyId}
+            players={players}
+            maxPlayers={MAX_PLAYERS}
+            isHost={isHost}
+            inlineMode
+            isInkBeta={isInkBeta}
+          />
+        )}
       </InkModal>
 
       {/* ============== SETTINGS (présentation Ink stable uniquement) ============== */}
@@ -624,7 +648,7 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
               <div className="ik-step">
                 <span>Bienvenue dans la bulle</span>
                 <h2 id="ik-lobby-invite-title">Le salon de {players.find((player) => player.isHost)?.name || currentPlayer.name}</h2>
-                <p>Partage le code. Ramène ta bande. La fête commence ici.</p>
+                <p>{players.length < MAX_PLAYERS ? 'Clique sur une place libre pour inviter un ami.' : 'La bande est au complet. Choisissez votre prochain jeu !'}</p>
               </div>
 
               <button
@@ -651,20 +675,6 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
                   {linkShared ? <Check aria-hidden="true" /> : <Share2 aria-hidden="true" />}
                   {linkShared ? 'Lien copié' : 'Partager le lien'}
                 </button>
-
-                {isHost && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playInkSound('cartoonPop', 0.3);
-                      setShowInvitePanel(true);
-                    }}
-                    className="ik-secondary-action menu-focus"
-                  >
-                    <Link2 aria-hidden="true" />
-                    Inviter des amis
-                  </button>
-                )}
               </div>
             </section>
 
@@ -794,19 +804,30 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
                           ? 'Absent'
                           : p.id === currentPlayer.id
                             ? 'Toi'
-                            : 'Prêt'}
+                            : 'En ligne'}
                       </span>
                     </div>
                   );
                 })}
 
                 {Array.from({ length: Math.max(0, MAX_PLAYERS - players.length) }).map((_, i) => (
-                  <div key={`seat-free-${i}`} className="ik-seat is-free">
+                  <button
+                    key={`seat-free-${i}`}
+                    type="button"
+                    className="ik-seat is-free menu-focus"
+                    aria-label={`Inviter un ami · place ${players.length + i + 1} sur ${MAX_PLAYERS}`}
+                    aria-haspopup="dialog"
+                    onClick={() => {
+                      playInkSound('cartoonPop', 0.3);
+                      setShowInvitePanel(true);
+                    }}
+                  >
                     <span className="ik-seat-avatar" aria-hidden="true">
                       <UserPlus />
                     </span>
-                    <span className="ik-seat-name">À qui le tour ?</span>
-                  </div>
+                    <span className="ik-seat-name">Inviter un ami</span>
+                    <span className="ik-seat-meta">Place libre</span>
+                  </button>
                 ))}
               </div>
 
