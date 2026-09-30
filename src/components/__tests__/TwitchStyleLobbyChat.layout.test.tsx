@@ -12,7 +12,7 @@ vi.mock('@/hooks/useInkSoundEffects', () => ({ playInkSound: vi.fn() }));
 const messages: ChatMessage[] = Array.from({ length: 100 }, (_, i) => ({
   id: `message-${i}`, lobbyId: 'room', playerId: 'alex', playerName: 'Alex',
   content: i % 5 === 0 ? '/game-avatars/mimo-pop.svg' : `Message ${i} ${'long'.repeat(70)}`,
-  messageType: i % 5 === 0 ? 'gif' : 'text', createdAt: new Date(2026, 8, 30, 12, i),
+  messageType: i % 5 === 0 ? 'gif' : 'text', createdAt: new Date(2026, 8, 30, 12, i).toISOString(),
 }));
 const chat = () => <TwitchStyleLobbyChat lobbyId="room" playerId="alex" playerName="Alex" />;
 const setMessages = (list: ChatMessage[]) => mocks.useLobbyChat.mockReturnValue({
