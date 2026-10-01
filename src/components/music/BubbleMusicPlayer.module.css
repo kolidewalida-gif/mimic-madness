@@ -93,7 +93,15 @@
 .adaptive b { padding: 6px 11px; border-radius: 50px; background: #aa81c62a; font-size: 11px; }
 .adaptive[aria-checked=true] b { color: #39234e; background: #97e2c9; }
 .mixNote { color: var(--bm-muted); font-size: 11px; line-height: 1.6; margin: 0; }
-:global(body.inkbeta-mode .ik-music-dock--floating.ik-bubble-music-dock) { background: transparent; box-shadow: none; padding: 0 16px max(14px,env(safe-area-inset-bottom)); }
+/* The dock only positions the capsule: never paint a full-width footer.
+   Keep the dark selector explicit so the legacy dark dock cannot override it. */
+:global(body.inkbeta-mode .ik-music-dock--floating.ik-bubble-music-dock),
+:global(body.inkbeta-mode.inkbeta-dark .ik-music-dock--floating.ik-bubble-music-dock) {
+  background: transparent;
+  box-shadow: none;
+  padding: 0 16px max(14px,env(safe-area-inset-bottom));
+  pointer-events: none;
+}
 @media (max-width: 640px) {
   .player { gap: 8px; padding: 9px 11px 11px; border-radius: 35px; min-height: 76px; }
   .record { width: 45px; height: 45px; }
