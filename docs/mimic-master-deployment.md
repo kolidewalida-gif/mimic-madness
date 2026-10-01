@@ -1,5 +1,21 @@
 # Mimic Master · imitation et 2V2
 
+## État du déploiement · 1er octobre 2026
+
+Migration `20261001143000_imitation_mimic_master` appliquée au projet
+`gvslrjkliipibnvnxybw` (« mime master »), dans une transaction comprenant
+son inscription à l’historique des migrations avec la version du dépôt.
+
+Vérifications en ligne effectuées : table et contraintes présentes, RLS activée,
+écritures directes interdites aux rôles `anon` et `authenticated`, droits
+d’exécution des deux RPC présents. Depuis la configuration publique du jeu,
+`read_mimic_masters` et `cast_mimic_master` répondent HTTP 200 ; une lecture
+avec des identifiants fictifs est vide et une attribution invalide est rejetée.
+Aucun salon ni vote de joueur n’a été créé ou modifié pour ces contrôles.
+
+Les scénarios avec deux participants réels décrits plus bas restent à vérifier
+en partie ; les contrôles d’API ne remplacent pas ce test multijoueur.
+
 ## Activation en ligne
 
 Le code et les tests ne suffisent pas à activer la mécanique dans Supabase.
