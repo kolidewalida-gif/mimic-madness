@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Check, Users, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,12 +17,7 @@ import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { useStagedTask } from '@/hooks/useStagedTask';
 import { ProcessingOverlay } from '@/components/ProcessingOverlay';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
-import {
-  InkBetaPanel,
-  InkBetaCount,
-  InkBetaSeat,
-  InkBetaSeatGrid,
-} from '@/components/game-beta/InkBetaGameLayout';
+import { AudioPhoneStudio, AudioPhoneProgress, AudioPhoneRoster, AudioPhoneButton } from './audiophone/BubbleAudioPhone';
 
 interface AudioPhoneRecordingAllPhaseProps {
   variant?: 'default' | 'inkBeta';
@@ -72,6 +67,7 @@ export const AudioPhoneRecordingAllPhase = ({
 }: AudioPhoneRecordingAllPhaseProps) => {
   const isInkBeta = variant === 'inkBeta';
   const staged = useStagedTask();
+  const [recordError, setRecordError] = useState('');
   const {
     isRecording,
     isStarting,
@@ -85,36 +81,29 @@ export const AudioPhoneRecordingAllPhase = ({
     clearRecording,
   } = useAudioPhoneRecorder({
     maxSeconds,
-    onError: (error) => console.error('Error starting Audio Phone recording:', error),
+    onError: () => setRecordError('Micro indisponible. Vérifie l’autorisation du navigateur et le micro choisi dans les réglages, puis réessaie.'),
   });
 
   const startRecording = useCallback(() => {
+    setRecordError('');
     playInkSound('cartoonPop', 0.3);
     void startRecorder();
   }, [startRecorder]);
 
   const handleSubmit = async () => {
-    if (!recordedBlob) return;
+    if (!recordedBlob || isSubmitting || staged.state.isRunning) return;
+    setRecordError('');
     playInkSound('cartoonDing', 0.5);
-    /*
-     * L'inversion de l'audio est le cœur du mode : c'est elle qui rend la phrase
-     * méconnaissable. Elle était masquée derrière une roue de 16 pixels dans le
-     * bouton, alors qu'elle enchaîne un décodage, un retournement échantillon par
-     * échantillon, un ré-encodage WAV et deux envois. On la met en scène.
-     */
-    /*
-     * Le plancher passe de six secondes à une : il existe pour que l'étape ne
-     * clignote pas, pas pour faire attendre. L'inversion puis les deux envois
-     * prennent déjà plus que ça, et le rapporteur d'étape dit lequel des deux
-     * est en cours.
-     */
-    const success = await staged.run((report) => onSubmit(recordedBlob, report), {
-      label: 'Inversion de ta phrase…',
-      minDurationMs: 1_000,
-      sound: 'processRewind',
-      endSound: 'processDone',
-    });
-    if (success) clearRecording();
+    try {
+      const success = await staged.run((report) => onSubmit(recordedBlob, report), {
+        label: 'Inversion de ta phrase…', minDurationMs: 1_000,
+        sound: 'processRewind', endSound: 'processDone',
+      });
+      if (success) clearRecording();
+      else setRecordError('Ta prise n’a pas été envoyée. Elle est conservée : tu peux réessayer.');
+    } catch {
+      setRecordError('Envoi impossible. Ta prise est conservée : vérifie ta connexion puis réessaie.');
+    }
   };
 
   const memoizedIds = useMemo(() => playerIds ?? [], [playerIds]);
@@ -128,161 +117,26 @@ export const AudioPhoneRecordingAllPhase = ({
 
   /* ---------- INK BETA ---------- */
   if (isInkBeta) {
-    const ratio = playersCount > 0 ? Math.min(1, submittedCount / playersCount) : 0;
-    const remaining = Math.max(0, maxSeconds - recordingTime);
-    const timerClass = cn(
-      'ik-quiz-timer',
-      remaining <= 3 && remaining > 1.5 && 'is-urgent',
-      remaining <= 1.5 && 'is-critical',
-    );
-
-    return (
-      <>
-        {/* Voile d'inversion : la même étape mise en scène que dans la version pulp. */}
-        <ProcessingOverlay state={staged.state} icon="⏪" accent={ACCENT} />
-
-        <InkBetaPanel
-          featured
-          className="ik-ap-panel ik-ap-work-panel"
-          bodyClassName="ik-ap-work-body"
-          step={hasSubmitted ? 'Phrase envoyée' : 'À toi le micro'}
-          title={hasSubmitted ? 'C\'est dans la boîte' : 'Enregistre ta phrase'}
-          titleId="ik-ap-mic-title"
-          aside={isRecording ? (
-            <p className={timerClass}>
-              {recordingTime.toFixed(1)}<span>/ {maxSeconds}s</span>
-            </p>
-          ) : undefined}
-        >
-          {isSpectator ? (
-            <p className="ik-game-note ik-game-note--warn">
-              <Users aria-hidden="true" /> Tu es arrivé après le tirage : tu regardes cette manche.
-            </p>
-          ) : hasSubmitted ? (
-            <>
-              <p className="ik-game-note ik-game-note--done">
-                <Check aria-hidden="true" /> Ta phrase est enregistrée et inversée.
-              </p>
-              <p className="ik-game-lead">
-                On attend les derniers micros. Dès que tout le monde a parlé, les imitations
-                démarrent <strong>toutes seules</strong>.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="ik-game-lead">
-                Une phrase à toi, <strong>{maxSeconds}s maximum</strong>. Courte et rythmée : c'est
-                plus drôle à reconnaître une fois retournée.
-              </p>
-
-              <div className="ik-ap-mic-zone">
-                <button
-                  type="button"
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isSubmitting || isStarting || isStopping}
-                  className={cn('ik-ap-mic menu-focus', isRecording && 'is-recording')}
-                  style={{ ['--ap-level' as string]: audioLevel.toFixed(3) }}
-                  aria-label={isRecording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement'}
-                >
-                  <span className="ik-ap-mic-ring" aria-hidden="true" />
-                  {isRecording ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}
-                </button>
-                <p className="ik-progress-label">
-                  {isRecording ? 'Parle, puis appuie pour arrêter' : 'Appuie pour enregistrer'}
-                </p>
-              </div>
-
-              {recordedBlob && !isRecording && (
-                <div className="ik-ap-review">
-                  <audio src={previewUrl ?? undefined} controls className="ik-ap-audio" />
-                  <div className="ik-game-actions--split">
-                    <button
-                      type="button"
-                      onClick={startRecording}
-                      className="ik-secondary-action menu-focus"
-                    >
-                      <Mic aria-hidden="true" /> Recommencer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSubmit}
-                      disabled={isSubmitting || isStarting || isStopping}
-                      className="ik-primary-action menu-focus"
-                    >
-                      <span className="ik-primary-action-icon">
-                        {isSubmitting ? (
-                          <Loader2 className="animate-spin" aria-hidden="true" />
-                        ) : (
-                          <Check aria-hidden="true" />
-                        )}
-                      </span>
-                      <span>Valider</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </InkBetaPanel>
-
-        <InkBetaPanel
-          className="ik-ap-panel ik-ap-progress-panel"
-          bodyClassName="ik-ap-progress-body"
-          step="Qui a parlé"
-          title="La troupe"
-          titleId="ik-ap-roster-title"
-          aside={<InkBetaCount value={submittedCount} total={playersCount} />}
-        >
-          <div className="ik-progress" aria-hidden="true">
-            <span style={{ width: `${ratio * 100}%` }} />
-          </div>
-
-          <InkBetaSeatGrid>
-            {playerNames.map((name, index) => {
-              const id = playerIds[index];
-              const done = id ? submittedPlayerIds.includes(id) : !pendingPlayerNames.includes(name);
-              return (
-                <InkBetaSeat
-                  key={id ?? `${name}-${index}`}
-                  name={name}
-                  meta={done ? 'Prêt' : 'Au micro'}
-                  isDone={done}
-                  isDimmed={!done}
-                  badge={done ? (
-                    <span className="ik-seat-flag" aria-hidden="true"><Check /></span>
-                  ) : undefined}
-                />
-              );
-            })}
-          </InkBetaSeatGrid>
-
-          {/*
-            Sortie d'impasse. La phase n'avait aucune issue si un joueur ne
-            parlait jamais : le bouton n'apparaissait qu'une fois tout le monde
-            passé. L'hôte peut désormais continuer avec les phrases obtenues.
-          */}
-          {isHost && !allSubmitted && canStartImitation && (
-            <button
-              type="button"
-              onClick={() => {
-                playInkSound('cartoonSwoosh', 0.4);
-                onStartImitation();
-              }}
-              className="ik-secondary-action menu-focus"
-            >
-              <Users aria-hidden="true" /> Continuer sans {pendingPlayerNames.length} joueur
-              {pendingPlayerNames.length > 1 ? 's' : ''}
-            </button>
-          )}
-
-          {allSubmitted && (
-            <p className="ik-game-note ik-game-note--done">
-              <Check aria-hidden="true" /> Tout le monde a parlé — ça enchaîne.
-            </p>
-          )}
-        </InkBetaPanel>
-      </>
-    );
+    return <>
+      <ProcessingOverlay state={staged.state} icon="⏪" accent="#a6efd8" />
+      <AudioPhoneStudio
+        title={hasSubmitted ? 'Ta phrase est partie.' : 'Qu’est-ce qu’on enregistre ?'}
+        description={hasSubmitted ? 'On attend les derniers micros avant de passer aux imitations.' : 'Invente une petite phrase. Parle clairement : c’est encore plus drôle à l’envers.'}
+        tapeTitle={`La phrase de ${playerName}`} maxSeconds={maxSeconds}
+        recordingTime={recordingTime} audioLevel={audioLevel}
+        isRecording={isRecording} isStarting={isStarting} isStopping={isStopping}
+        isSubmitting={isSubmitting || staged.state.isRunning} previewUrl={previewUrl}
+        hasRecording={!!recordedBlob} startRecording={startRecording} stopRecording={stopRecording}
+        onSubmit={() => void handleSubmit()} error={recordError}
+        status={isSpectator ? 'spectator' : hasSubmitted ? 'sent' : undefined}
+        sidebar={<AudioPhoneProgress completed={submittedCount} total={playersCount}>
+          <AudioPhoneRoster names={playerNames} ids={playerIds} readyIds={submittedPlayerIds} pending={pendingPlayerNames} />
+          {isHost && !allSubmitted && canStartImitation && <AudioPhoneButton secondary onClick={() => { playInkSound('cartoonSwoosh', .4); onStartImitation(); }}>
+            <Users /> Continuer sans {pendingPlayerNames.length} joueur{pendingPlayerNames.length > 1 ? 's' : ''}
+          </AudioPhoneButton>}
+        </AudioPhoneProgress>}
+      />
+    </>;
   }
 
   /* ---------- SUBMITTED STATE ---------- */

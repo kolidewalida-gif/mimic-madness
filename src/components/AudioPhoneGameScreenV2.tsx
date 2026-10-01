@@ -1,5 +1,5 @@
 import { useState, useEffect, memo, type ReactNode } from "react";
-import { ArrowLeft, Headphones, Loader2 } from "lucide-react";
+import { ArrowLeft, Mic, Loader2 } from "lucide-react";
 import { useAudioPhoneGameV2 } from "@/hooks/useAudioPhoneGameV2";
 import { AudioPhoneInstructionsPhase } from "./AudioPhoneInstructionsPhase";
 import { AudioPhoneRecordingAllPhase } from "./AudioPhoneRecordingAllPhase";
@@ -7,7 +7,11 @@ import { AudioPhoneImitationPhase } from "./AudioPhoneImitationPhase";
 import { AudioPhoneWaitingRevealPhase } from "./AudioPhoneWaitingRevealPhase";
 import { AudioPhoneRevealPhaseV2 } from "./AudioPhoneRevealPhaseV2";
 import { AudioPhoneDebugPanel } from "./AudioPhoneDebugPanel";
-import { InkBetaGameStage, InkBetaGameBadge, InkBetaPanel } from "./game-beta/InkBetaGameLayout";
+import { AudioPhoneShell, AudioPhonePanel, type AudioPhonePhase } from './audiophone/BubbleAudioPhone';
+import { ImitationChat } from './imitation/ImitationChat';
+import { DeviceSettings } from './DeviceSettings';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
+import audioPhoneStyles from './audiophone/BubbleAudioPhone.module.css';
 import { LobbyChat } from "./LobbyChat";
 import { Card } from "./ui/card";
 
@@ -42,6 +46,7 @@ export const AudioPhoneGameScreenV2 = memo(({
    * données, sans rien dire.
    */
   const [isRevealLoading, setIsRevealLoading] = useState(false);
+  const [microSettingsOpen, setMicroSettingsOpen] = useState(false);
 
   // Resolve every phrase for the exact round currently displayed. A new round
   // clears the previous tape immediately; stale async results are ignored.
@@ -86,14 +91,7 @@ export const AudioPhoneGameScreenV2 = memo(({
   const rosterCount = roster.length;
   const totalPhrases = game.originalRecordings.length;
 
-  /*
-   * Coquille beta commune aux phases, sur le modèle du Quiz.
-   *
-   * Le mode portait sa propre direction artistique complète (`PulpStage`, grain,
-   * trame) et un plein écran par phase. En beta la scène est celle du menu et du
-   * lobby — barre de marque, cadre, pastille de phase — et seul le contenu
-   * change. Le chemin `default` rend exactement ce qu'il rendait avant.
-   */
+  // One persistent shell/chat across phases; only the round's content changes.
   const withStage = (
     label: string,
     /* `ik-ap-canvas` donne la hauteur de la fenêtre à la scène du mode. */
@@ -131,11 +129,13 @@ export const AudioPhoneGameScreenV2 = memo(({
     }
 
     return (
-      <InkBetaGameStage
-        titleId="ik-audiophone-brand"
-        canvasClassName={canvasClassName}
-        badge={<InkBetaGameBadge label={label} step={step} icon={<Headphones aria-hidden="true" />} />}
-        tools={(
+      <ImitationChat lobbyId={lobbyId} playerId={currentPlayer.id} playerName={currentPlayer.name}
+        players={roster} phase={game.currentRound?.phase === 'recording_all' || game.currentRound?.phase === 'imitation' || game.currentRound?.phase === 'reveal' ? 'imitation' : 'preparation'}
+        contextLabel="Un mot à la bande entre deux phrases">
+        {({ button, panel }) => <AudioPhoneShell
+          phase={(game.currentRound?.phase === 'waiting_reveal' || game.currentRound?.phase === 'reveal' || game.currentRound?.phase === 'imitation' || game.currentRound?.phase === 'recording_all' ? game.currentRound.phase : 'instructions') as AudioPhonePhase}
+          step={step} sidebar={panel}
+          tools={<><button type="button" onClick={() => setMicroSettingsOpen(true)} aria-label="Réglages du microphone"><Mic /><span>Mon micro</span></button>{button}
           <button
             type="button"
             onClick={() => {
@@ -150,18 +150,24 @@ export const AudioPhoneGameScreenV2 = memo(({
               })();
             }}
             data-back
-            className="ik-tool ik-tool--leave menu-focus"
             aria-label="Quitter la partie"
           >
             <ArrowLeft aria-hidden="true" />
             <span>Quitter</span>
           </button>
-        )}
-      >
+          </>}
+        >
         {content}
-        {chat}
         {debugPanel}
-      </InkBetaGameStage>
+        <Dialog open={microSettingsOpen} onOpenChange={setMicroSettingsOpen}>
+          <DialogContent className={audioPhoneStyles.settingsDialog}>
+            <DialogTitle>Ton micro, ton son</DialogTitle>
+            <DialogDescription>Teste et règle ton microphone. Les changements s’appliquent à ta prochaine prise.</DialogDescription>
+            {microSettingsOpen && <DeviceSettings embedded playerId={currentPlayer.id} playerName={currentPlayer.name} lobbyId={lobbyId} />}
+          </DialogContent>
+        </Dialog>
+        </AudioPhoneShell>}
+      </ImitationChat>
     );
   };
 
@@ -171,15 +177,14 @@ export const AudioPhoneGameScreenV2 = memo(({
       return withStage(
         'Audio Phone',
         'ik-ap-canvas ik-ap-canvas--single',
-        <InkBetaPanel
-          className="ik-ap-panel ik-ap-status-panel"
-          step="Chargement"
+        <AudioPhonePanel
+          label="Chargement"
           title="On branche les micros"
         >
           <p className="ik-game-note">
             <Loader2 className="animate-spin" aria-hidden="true" /> Un instant…
           </p>
-        </InkBetaPanel>,
+        </AudioPhonePanel>,
       );
     }
     return (
@@ -200,9 +205,9 @@ export const AudioPhoneGameScreenV2 = memo(({
     // If a round somehow already exists in 'instructions', call startRecordingPhase to advance it.
     const handleStart = async () => {
       if (game.currentRound) {
-        await game.startRecordingPhase();
+        return game.startRecordingPhase();
       } else {
-        await game.startGame();
+        return game.startGame();
       }
     };
     return withStage(
@@ -333,9 +338,8 @@ export const AudioPhoneGameScreenV2 = memo(({
         'Révélation',
         'ik-ap-canvas ik-ap-canvas--single',
         isInkBeta ? (
-          <InkBetaPanel
-            className="ik-ap-panel ik-ap-status-panel"
-            step="Révélation"
+          <AudioPhonePanel
+            label="Révélation"
             title={isRevealLoading ? 'On prépare la bande' : 'Aucun enregistrement'}
           >
             <p className="ik-game-note">
@@ -345,7 +349,7 @@ export const AudioPhoneGameScreenV2 = memo(({
                 'La bande de cette manche est vide.'
               )}
             </p>
-          </InkBetaPanel>
+          </AudioPhonePanel>
         ) : (
           <div className="min-h-screen flex items-center justify-center">
             {isRevealLoading ? (

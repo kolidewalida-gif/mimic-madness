@@ -21,12 +21,12 @@ import {
   PULP,
   PULP_FONT,
 } from "@/components/audiophone/PulpComic";
-import { InkBetaPanel } from "@/components/game-beta/InkBetaGameLayout";
+import { AudioPhoneRules } from './audiophone/BubbleAudioPhone';
 
 interface AudioPhoneInstructionsPhaseProps {
   isHost: boolean;
   playerCount: number;
-  onStart: () => void;
+  onStart: () => void | Promise<unknown>;
   variant?: 'default' | 'inkBeta';
 }
 
@@ -42,84 +42,33 @@ export const AudioPhoneInstructionsPhase = memo(
     const isInkBeta = variant === 'inkBeta';
     const [activeStep, setActiveStep] = useState(0);
     const [isStarting, setIsStarting] = useState(false);
+    const [startError, setStartError] = useState('');
 
     useEffect(() => {
+      if (isInkBeta) return;
       const interval = setInterval(() => {
         setActiveStep((prev) => (prev + 1) % STEPS.length);
       }, 2200);
       return () => clearInterval(interval);
-    }, []);
+    }, [isInkBeta]);
 
-    const handleStart = () => {
+    const handleStart = async () => {
       if (isStarting) return;
       setIsStarting(true);
+      setStartError('');
       playSoundEffect("start", 0.5);
-      onStart();
+      try {
+        const result = await onStart();
+        if (result === false) setStartError('La partie n’a pas démarré. Réessaie dans un instant.');
+      } catch {
+        setStartError('La partie n’a pas démarré. Réessaie dans un instant.');
+      } finally {
+        setIsStarting(false);
+      }
     };
 
     if (isInkBeta) {
-      /*
-       * Les quatre étapes sont montrées d'un bloc, sans surbrillance tournante :
-       * ici elles expliquent la règle, elles ne disent pas où l'on en est. Un
-       * halo qui se déplace toutes les deux secondes ferait croire le contraire.
-       */
-      return (
-        <InkBetaPanel
-          className="ik-ap-panel ik-ap-rules-panel"
-          bodyClassName="ik-ap-rules-body"
-          step="Comment ça marche"
-          title="Audio Phone"
-          titleId="ik-ap-rules-title"
-        >
-          <p className="ik-game-lead">
-            Un téléphone arabe où le son est <strong>joué à l'envers</strong>. Chacun enregistre une
-            phrase, tout le monde tente de la reproduire à l'oreille, et on écoute les dégâts
-            ensemble à la fin.
-          </p>
-
-          <ol className="ik-ap-flow">
-            {STEPS.map((step, idx) => {
-              const Icon = step.icon;
-              return (
-                <li key={step.title} className="ik-ap-flow-step">
-                  <span className="ik-ap-flow-num">{idx + 1}</span>
-                  <span className="ik-ap-flow-icon">
-                    <Icon aria-hidden="true" />
-                  </span>
-                  <strong>{step.title}</strong>
-                  <small>{step.desc}</small>
-                </li>
-              );
-            })}
-          </ol>
-
-          {isHost ? (
-            <button
-              type="button"
-              onClick={handleStart}
-              disabled={isStarting}
-              className="ik-primary-action menu-focus"
-            >
-              <span className="ik-primary-action-icon">
-                {isStarting ? (
-                  <Loader2 className="animate-spin" aria-hidden="true" />
-                ) : (
-                  <ArrowRight aria-hidden="true" />
-                )}
-              </span>
-              <span>{isStarting ? 'Démarrage…' : "C'est parti !"}</span>
-            </button>
-          ) : (
-            <p className="ik-game-note">
-              <Loader2 className="animate-spin" aria-hidden="true" /> En attente de l'hôte…
-            </p>
-          )}
-
-          <p className="ik-progress-label">
-            {playerCount} joueur{playerCount > 1 ? 's' : ''} · parle clairement, accepte le chaos
-          </p>
-        </InkBetaPanel>
-      );
+      return <AudioPhoneRules isHost={isHost} playerCount={playerCount} isStarting={isStarting} onStart={handleStart} error={startError} />;
     }
 
     return (

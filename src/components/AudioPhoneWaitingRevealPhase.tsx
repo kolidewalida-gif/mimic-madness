@@ -9,7 +9,7 @@ import {
   PULP,
   PULP_FONT,
 } from '@/components/audiophone/PulpComic';
-import { InkBetaPanel } from '@/components/game-beta/InkBetaGameLayout';
+import { AudioPhoneWaiting } from './audiophone/BubbleAudioPhone';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 
 interface AudioPhoneWaitingRevealPhaseProps {
@@ -30,46 +30,7 @@ export const AudioPhoneWaitingRevealPhase = ({
   isPreparing = false,
 }: AudioPhoneWaitingRevealPhaseProps) => {
   if (variant === 'inkBeta') {
-    return (
-      <InkBetaPanel
-        className="ik-ap-panel ik-ap-waiting-panel"
-        bodyClassName="ik-ap-waiting-body"
-        step="Tout est enregistré"
-        title="Place à la révélation"
-        titleId="ik-ap-reveal-title"
-      >
-        <p className="ik-game-lead">
-          On va rejouer chaque phrase dans l'ordre : l'originale, sa version à l'envers, puis toutes
-          les imitations. <strong>{phraseCount} phrase{phraseCount > 1 ? 's' : ''}</strong> au
-          programme.
-        </p>
-
-        {isHost ? (
-          <button
-            type="button"
-            onClick={() => {
-              playInkSound('cartoonFanfare', 0.5);
-              onStartReveal();
-            }}
-            disabled={isPreparing}
-            className="ik-primary-action menu-focus"
-          >
-            <span className="ik-primary-action-icon">
-              {isPreparing ? (
-                <Loader2 className="animate-spin" aria-hidden="true" />
-              ) : (
-                <Play fill="currentColor" aria-hidden="true" />
-              )}
-            </span>
-            <span>{isPreparing ? 'Préparation…' : 'Lancer la révélation'}</span>
-          </button>
-        ) : (
-          <p className="ik-game-note">
-            <Loader2 className="animate-spin" aria-hidden="true" /> L'hôte lance la révélation…
-          </p>
-        )}
-      </InkBetaPanel>
-    );
+    return <AudioPhoneWaiting isHost={isHost} phraseCount={phraseCount} isPreparing={isPreparing} onStart={() => { playInkSound('cartoonFanfare', .5); onStartReveal(); }} />;
   }
 
   return (

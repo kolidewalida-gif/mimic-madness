@@ -13,7 +13,7 @@ import {
   PULP,
   PULP_FONT,
 } from "@/components/audiophone/PulpComic";
-import { InkBetaPanel } from "@/components/game-beta/InkBetaGameLayout";
+import { AudioPhoneRevealView } from './audiophone/BubbleAudioPhone';
 
 interface RevealPhraseData {
   original: {
@@ -377,188 +377,27 @@ export const AudioPhoneRevealPhaseV2 = ({
 
   /* ---------- INK BETA ---------- */
   if (variant === 'inkBeta') {
-    /*
-     * La chaîne de lecture est le sujet de cette phase : l'originale, la même à
-     * l'envers, puis chaque imitation. On la montre comme une file d'étapes avec
-     * l'étape en cours marquée, plutôt qu'en pastilles dispersées.
-     */
-    const chain: Array<{ key: string; label: string }> = [
-      { key: 'original', label: 'Original' },
-      { key: 'reversed', label: 'À l\'envers' },
-      ...(currentPhrase?.imitations.map((im, idx) => ({
-        key: `imitation_${idx}`,
-        label: im.imitator_player_name,
-      })) ?? []),
-    ];
-    const currentChainIndex = chain.findIndex((entry) => entry.key === currentStep);
-
-    return (
-      <>
-        <audio
-          ref={audioRef}
-          onPlay={() => { if (mountedRef.current) setLocalIsPlaying(true); }}
-          onPause={() => { if (mountedRef.current) setLocalIsPlaying(false); }}
-          onEnded={handleAudioEnded}
-          onError={handleAudioError}
-        />
-
-        <InkBetaPanel
-          featured
-          className="ik-ap-panel ik-ap-reveal-panel"
-          bodyClassName="ik-ap-reveal-body"
-          step={`Phrase ${syncState.phraseIndex + 1} sur ${revealData.length}`}
-          title={`Phrase de ${currentPhrase?.original.player_name ?? '—'}`}
-          titleId="ik-ap-reveal-current"
-          aside={currentStep === 'complete' ? (
-            <span className="ik-seat-flag" aria-hidden="true"><Volume2 /></span>
-          ) : undefined}
-        >
-          <ol className="ik-ap-chain">
-            {chain.map((entry, idx) => (
-              <li
-                key={entry.key}
-                className={cn(
-                  'ik-ap-chain-step',
-                  currentChainIndex > idx && 'is-past',
-                  entry.key === currentStep && 'is-current',
-                  !getAudioUrlForStep(entry.key) && 'is-missing',
-                )}
-              >
-                <Volume2 aria-hidden="true" />
-                <span>{entry.label}</span>
-              </li>
-            ))}
-          </ol>
-
-          {requiresInteraction && (
-            <div className="ik-ap-playback-retry">
-              <p className="ik-game-note ik-game-note--warn">
-                <Volume2 aria-hidden="true" /> {playbackMessage} Relance ce son pour continuer.
-              </p>
-              {!isHost && (
-                <button
-                  type="button"
-                  onClick={retryCurrentStep}
-                  className="ik-secondary-action menu-focus"
-                >
-                  <RotateCcw aria-hidden="true" /> Relancer ce son
-                </button>
-              )}
-            </div>
-          )}
-
-          {playbackMessage && !requiresInteraction && (
-            <p className="ik-game-note ik-game-note--warn">
-              <Volume2 aria-hidden="true" /> {playbackMessage}
-            </p>
-          )}
-
-          {isHost ? (
-            <div className="ik-game-actions--split">
-              <button
-                type="button"
-                onClick={requiresInteraction
-                  ? retryCurrentStep
-                  : localIsPlaying
-                    ? pausePlayback
-                    : startPhrasePlayback}
-                className="ik-primary-action menu-focus"
-              >
-                <span className="ik-primary-action-icon">
-                  {requiresInteraction ? (
-                    <RotateCcw aria-hidden="true" />
-                  ) : localIsPlaying ? (
-                    <Pause aria-hidden="true" />
-                  ) : (
-                    <Play fill="currentColor" aria-hidden="true" />
-                  )}
-                </span>
-                <span>
-                  {requiresInteraction
-                    ? 'Relancer ce son'
-                    : localIsPlaying
-                      ? 'Pause'
-                      : currentStep === 'idle'
-                        ? 'Démarrer'
-                        : currentStep === 'complete'
-                          ? 'Rejouer'
-                          : 'Reprendre'}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={goToNextPhrase}
-                disabled={syncState.phraseIndex === revealData.length - 1 || localIsPlaying}
-                className="ik-secondary-action menu-focus"
-              >
-                Phrase suivante <SkipForward aria-hidden="true" />
-              </button>
-            </div>
-          ) : (
-            <p className="ik-game-note">
-              {localIsPlaying ? (
-                <>
-                  <Volume2 aria-hidden="true" /> Lecture en cours…
-                </>
-              ) : (
-                <>
-                  <Play aria-hidden="true" /> L'hôte pilote la lecture.
-                </>
-              )}
-            </p>
-          )}
-
-          {revealData.length > 1 && (
-            <div className="ik-dots" aria-hidden="true">
-              {revealData.map((phrase, idx) => (
-                <span
-                  key={phrase.original.id}
-                  className={cn(
-                    idx < syncState.phraseIndex && 'is-past',
-                    idx === syncState.phraseIndex && 'is-current',
-                  )}
-                />
-              ))}
-            </div>
-          )}
-        </InkBetaPanel>
-
-        {revealComplete && (
-          <PodiumAd gameMode="audiophone" instanceKey={`${instanceKey}:reveal-complete`} />
-        )}
-
-        {isHost && (
-          <InkBetaPanel
-            className="ik-ap-panel ik-ap-reveal-actions"
-            step="Et après"
-            title="La suite"
-            titleId="ik-ap-reveal-next"
-          >
-            <div className="ik-game-actions--split">
-              <button
-                type="button"
-                onClick={onPlayAgain}
-                disabled={localIsPlaying}
-                className="ik-secondary-action menu-focus"
-              >
-                <RotateCcw aria-hidden="true" /> Rejouer une manche
-              </button>
-              <button
-                type="button"
-                onClick={onEndGame}
-                disabled={localIsPlaying}
-                className="ik-primary-action menu-focus"
-              >
-                <span className="ik-primary-action-icon">
-                  <Home aria-hidden="true" />
-                </span>
-                <span>Terminer</span>
-              </button>
-            </div>
-          </InkBetaPanel>
-        )}
-      </>
-    );
+    const chain = [
+      { key: 'original', label: currentPhrase?.original.player_name ?? 'Original' },
+      { key: 'reversed', label: 'La même, à l’envers' },
+      ...(currentPhrase?.imitations.map((im, index) => ({ key: `imitation_${index}`, label: im.imitator_player_name })) ?? []),
+    ].map(item => ({ ...item, available: !!getAudioUrlForStep(item.key) }));
+    return <>
+      <audio ref={audioRef}
+        onPlay={() => { if (mountedRef.current) setLocalIsPlaying(true); }}
+        onPause={() => { if (mountedRef.current) setLocalIsPlaying(false); }}
+        onEnded={handleAudioEnded} onError={handleAudioError}
+      />
+      <AudioPhoneRevealView author={currentPhrase?.original.player_name ?? '—'}
+        phraseIndex={syncState.phraseIndex} phraseCount={revealData.length} chain={chain}
+        step={currentStep} isPlaying={syncState.isPlaying && !requiresInteraction} isHost={isHost}
+        requiresInteraction={requiresInteraction} message={playbackMessage}
+        onRetry={retryCurrentStep} onToggle={syncState.isPlaying ? pausePlayback : startPhrasePlayback}
+        onNext={goToNextPhrase} onPrevious={goToPreviousPhrase}
+        onPlayAgain={onPlayAgain} onEnd={onEndGame} complete={revealComplete}
+      />
+      {revealComplete && <PodiumAd gameMode="audiophone" instanceKey={`${instanceKey}:reveal-complete`} />}
+    </>;
   }
 
   return (
