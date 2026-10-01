@@ -78,12 +78,12 @@ describe('Ink Beta stage composition', () => {
     rerender(<InkBetaBlindtestView {...props} phase="reveal" />);
     expect(container.querySelector('.ibx-root')).not.toHaveAttribute('data-playing');
   });
-  it('uses the existing Mimic Master brand and places scores beside a record-above-answers stage', () => {
+  it('keeps one Bubble console followed by a compact scoreboard', () => {
     const { container } = render(<InkBetaBlindtestView {...viewProps()} />);
     expect(screen.getByRole('heading', { name: 'Mimic Master Ink Beta' })).toBeInTheDocument();
     const arena = container.querySelector('.ibx-arena');
-    expect(arena?.firstElementChild).toHaveClass('ibx-live');
-    const stage = container.querySelector('.ibx-stage');
+    expect(arena?.lastElementChild).toHaveClass('ibx-live');
+    const stage = container.querySelector('.ibx-game-layout');
     expect(stage?.querySelector('.ibx-turntable')).toBeInTheDocument();
     expect(stage?.querySelectorAll('.ibx-answer')).toHaveLength(4);
     expect(container.querySelector('.ibx-game-layout')?.firstElementChild).toHaveClass('ibx-listening-room');
@@ -97,13 +97,44 @@ describe('Ink Beta stage composition', () => {
 });
 
 describe('Ink Beta gameplay and results', () => {
-  it('keeps artwork hidden until reveal and removes failed artwork from the backdrop', () => {
+  it('returns focus to the lobby control after cancelling the exit dialog', async () => {
+    render(<InkBetaBlindtestView {...viewProps()} />);
+    const lobby = screen.getByRole('button', { name: 'Retour au lobby' });
+    fireEvent.click(lobby);
+    const dialog = screen.getByRole('alertdialog');
+    const cancel = within(dialog).getByRole('button', { name: 'Continuer à jouer' });
+    const leave = within(dialog).getByRole('button', { name: 'Quitter la partie' });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(cancel, { key: 'Tab', shiftKey: true });
+    expect(leave).toHaveFocus();
+    fireEvent.keyDown(leave, { key: 'Tab' });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(cancel, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+    expect(lobby).toHaveFocus();
+  });
+  it('uses equal ranks in the live scoreboard when points are tied', () => {
+    render(<InkBetaBlindtestView {...viewProps({ betaRanked: [{ id: 'a', name: 'Alex', pts: 1000 }, { id: 'b', name: 'Sam', pts: 1000 }] })} />);
+    const scoreboard = screen.getByRole('complementary', { name: 'Classement en direct' });
+    expect(within(scoreboard).getAllByText('1', { selector: 'b' })).toHaveLength(2);
+  });
+  it('shows an honest missed-round verdict when the player never answered', () => {
+    render(<InkBetaBlindtestView {...viewProps({ phase: 'reveal', myChoice: null, answerIndex: 2 })} />);
+    expect(screen.getByText('Tu n’as pas répondu à temps.')).toBeInTheDocument();
+    expect(screen.getByText('Bonne réponse')).toBeInTheDocument();
+  });
+  it('renders the real podium for one player without fabricated competitors', () => {
+    render(<InkBetaBlindtestView {...viewProps({ phase: 'final', betaRanked: [{ id: 'a', name: 'Alex', pts: 950 }] })} />);
+    expect(within(screen.getByRole('list', { name: 'Podium de la partie' })).getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getByText('Ta place : #1 sur 1')).toBeInTheDocument();
+  });
+  it('keeps artwork hidden until reveal and falls back gracefully on a failed image', async () => {
     const props = viewProps({ track: { title: 'Naruto', category: 'anime', artwork: '/cover.jpg' } });
     const { container, rerender } = render(<InkBetaBlindtestView {...props} />);
     expect(screen.queryByRole('img', { name: 'Pochette de Naruto' })).not.toBeInTheDocument();
     expect(container.querySelector('.ibx-glass-ambience img')).not.toBeInTheDocument();
     rerender(<InkBetaBlindtestView {...props} phase="reveal" />);
-    fireEvent.error(screen.getByRole('img', { name: 'Pochette de Naruto' }));
+    fireEvent.error(await screen.findByRole('img', { name: 'Pochette de Naruto' }));
     expect(screen.queryByRole('img', { name: 'Pochette de Naruto' })).not.toBeInTheDocument();
     expect(container.querySelector('.ibx-glass-ambience img')).not.toBeInTheDocument();
   });
@@ -127,7 +158,8 @@ describe('Ink Beta gameplay and results', () => {
   it('requires confirmation before leaving an active round', async () => {
     const props = viewProps(); render(<InkBetaBlindtestView {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'Retour au lobby' })); expect(props.onEndGame).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Continuer à jouer' })); await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(screen.getByRole('alertdialog')).toHaveAccessibleName('Tu quittes la scène ?');
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer à jouer' })); await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Retour au lobby' })); fireEvent.click(screen.getByRole('button', { name: 'Quitter la partie' })); expect(props.onEndGame).toHaveBeenCalledOnce();
   });
   it('shows correct answer, votes and awarded points without editable choices', () => {
