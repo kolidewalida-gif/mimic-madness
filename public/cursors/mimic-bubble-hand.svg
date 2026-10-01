@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="glove" x1="10" y1="3" x2="25" y2="27" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f9f0ff"/>
+      <stop offset=".5" stop-color="#dec6f0"/>
+      <stop offset="1" stop-color="#a987c8"/>
+    </linearGradient>
+    <linearGradient id="cuff" x1="17" y1="25" x2="17" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d3fff0"/>
+      <stop offset="1" stop-color="#72d2ba"/>
+    </linearGradient>
+  </defs>
+  <!-- Fingertip hotspot: (13,3). Rounded glove matches the menu's soft buttons. -->
+  <path d="M10.5 15.4V5.6Q10.5 2.4 13.2 2.4Q15.8 2.4 15.8 5.6V12.1Q16.8 10.8 18.3 11.2Q19.5 11.5 19.8 13Q20.8 11.8 22.2 12.4Q23.5 12.9 23.5 14.5Q25.1 13.6 26.3 14.7Q27.3 15.5 27 17.6L25.9 23.1Q25.3 26.2 22.5 27.1H13.2Q11.3 26.4 10 24.5L5.5 18.4Q4 16.5 5.8 15.3Q7.2 14.4 8.7 16.2L10.5 18Z" transform="translate(0 1)" fill="#79579a" stroke="#f7edff" stroke-width="2.6" stroke-linejoin="round"/>
+  <path d="M10.5 15.4V5.6Q10.5 2.4 13.2 2.4Q15.8 2.4 15.8 5.6V12.1Q16.8 10.8 18.3 11.2Q19.5 11.5 19.8 13Q20.8 11.8 22.2 12.4Q23.5 12.9 23.5 14.5Q25.1 13.6 26.3 14.7Q27.3 15.5 27 17.6L25.9 23.1Q25.3 26.2 22.5 27.1H13.2Q11.3 26.4 10 24.5L5.5 18.4Q4 16.5 5.8 15.3Q7.2 14.4 8.7 16.2L10.5 18Z" fill="url(#glove)" stroke="#3c2454" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M12.6 5.5V12M15.8 12.1V16M19.8 13V16.5M23.5 14.5V17.4" fill="none" stroke="#8b68a9" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M12.6 5.5V10.7M7 16.7L8.8 19" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".9"/>
+  <rect x="11.8" y="25.5" width="12.5" height="4.5" rx="2.1" fill="url(#cuff)" stroke="#3c2454" stroke-width="1.6"/>
+  <path d="M14.2 27.1H20" stroke="#fff" stroke-width="1" stroke-linecap="round"/>
+</svg>

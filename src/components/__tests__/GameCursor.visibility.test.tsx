@@ -8,7 +8,7 @@
  * dans toute l'application.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { act, cleanup, render } from '@testing-library/react';
 import { GameCursor } from '@/components/GameCursor';
 
 const mocks = vi.hoisted(() => ({
@@ -54,6 +54,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   document.body.className = '';
 });
@@ -98,6 +99,33 @@ describe('GameCursor — visibilité de la souris', () => {
     expect(nativeCursorHidden()).toBe(true);
     view.unmount();
     expect(nativeCursorHidden()).toBe(false);
+  });
+
+  it.each([false, true])('uses no animated overlay or tracking loop in Bubble, reduced motion: %s', (reduceMotion) => {
+    document.body.className = 'ink-mode inkbeta-mode';
+    stubPointer(true, reduceMotion);
+    const raf = vi.spyOn(window, 'requestAnimationFrame');
+    const listener = vi.spyOn(window, 'addEventListener');
+    const view = render(<GameCursor />);
+    expect(nativeCursorHidden()).toBe(false);
+    expect(view.container.querySelector('.game-cursor-nib, .game-cursor-drop, .game-cursor-splash')).toBeNull();
+    expect(raf).not.toHaveBeenCalled();
+    expect(listener.mock.calls.filter(([event]) => ['mousemove', 'mousedown', 'mouseup'].includes(event))).toHaveLength(0);
+  });
+
+  it('stops legacy mouse tracking when switching into Bubble', async () => {
+    stubPointer(true);
+    vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(99);
+    const cancel = vi.spyOn(window, 'cancelAnimationFrame');
+    const view = render(<GameCursor />);
+    expect(nativeCursorHidden()).toBe(true);
+    await act(async () => {
+      document.body.classList.add('ink-mode', 'inkbeta-mode');
+      await Promise.resolve();
+    });
+    expect(cancel).toHaveBeenCalledWith(99);
+    expect(nativeCursorHidden()).toBe(false);
+    expect(view.container.querySelector('.game-cursor-nib')).toBeNull();
   });
 
   it('ne laisse jamais le document sans curseur visible', () => {

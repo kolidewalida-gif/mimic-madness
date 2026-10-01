@@ -3,8 +3,11 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlayerLoadout } from "@/hooks/usePlayerLoadout";
 import { useInkMode } from "@/hooks/useInkMode";
+import './cursor/BubbleCursor.css';
 
 const TRAIL_LENGTH = 6;
+const hasInkFamilyBody = () => typeof document !== 'undefined' &&
+  (document.body.classList.contains('ink-mode') || document.body.classList.contains('inkbeta-mode'));
 
 export const GameCursor = () => {
   const { user } = useAuth();
@@ -12,7 +15,8 @@ export const GameCursor = () => {
   const { isInkMode } = useInkMode();
 
   /*
-   * Toute la famille Ink garde le curseur natif, pas seulement le thème `ink`.
+   * Toute la famille Ink utilise le curseur du navigateur, pas le stylo animé.
+   * Ink Beta le personnalise avec les SVG Bubble dans BubbleCursor.css.
    *
    * `useInkMode()` ne répond vrai que pour `ink` avec le réglage historique
    * activé : sous Ink Beta le stylo dessiné s'affichait donc, et sa gerbe
@@ -25,12 +29,18 @@ export const GameCursor = () => {
    * ce composant est monté seul dans ses tests.
    */
   const [isInkFamilyBody, setIsInkFamilyBody] = useState(
-    () => typeof document !== "undefined" && document.body.classList.contains("ink-mode"),
+    hasInkFamilyBody,
   );
+  const inkFamilyRef = useRef(isInkFamilyBody);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const sync = () => setIsInkFamilyBody(document.body.classList.contains("ink-mode"));
+    const sync = () => {
+      const next = hasInkFamilyBody();
+      if (next === inkFamilyRef.current) return;
+      inkFamilyRef.current = next;
+      setIsInkFamilyBody(next);
+    };
     sync();
     const observer = new MutationObserver(sync);
     observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
@@ -48,6 +58,9 @@ export const GameCursor = () => {
   );
 
   useEffect(() => {
+    // Bubble uses OS-rendered SVG cursors. No hidden cursor, click splashes,
+    // mouse listeners or idle animation loop should run over that theme.
+    if (isInkMode || isInkFamilyBody) return;
     const mediaQuery = window.matchMedia("(pointer: fine)");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -112,7 +125,7 @@ export const GameCursor = () => {
       mediaQuery.removeEventListener("change", syncEnabled);
       reduceMotion.removeEventListener("change", syncEnabled);
     };
-  }, []);
+  }, [isInkMode, isInkFamilyBody]);
 
   /**
    * Le curseur natif n'est masqué que si le curseur dessiné le remplace vraiment.

@@ -1,0 +1,58 @@
+/* A real browser cursor: precise hotspot, no tracking lag, no overlay or RAF.
+   The pale silhouette stays readable on both purple and light bubble panels. */
+@media (hover: hover) and (pointer: fine) {
+  body.inkbeta-mode {
+    --bubble-cursor-arrow: url('/cursors/mimic-bubble-arrow.svg') 4 3, default;
+    --bubble-cursor-hand: url('/cursors/mimic-bubble-hand.svg') 13 3, pointer;
+    cursor: var(--bubble-cursor-arrow) !important;
+  }
+
+  body.inkbeta-mode :where(*):not(canvas) {
+    cursor: var(--bubble-cursor-arrow) !important;
+  }
+
+  body.inkbeta-mode :is(button, a[href], select, summary, label[for],
+    input[type='button'], input[type='submit'], input[type='reset'],
+    input[type='checkbox'], input[type='radio'], input[type='range'], input[type='file'],
+    input[type='color'], [role='button'], [role='link'], [role='switch'],
+    [role='checkbox'], [role='radio'], [role='tab'], [role='menuitem'],
+    [role='slider'], .cursor-pointer, [data-cursor='hover']),
+  body.inkbeta-mode :is(button, a[href], select, summary, label[for],
+    [role='button'], [role='link'], [role='switch'], [role='checkbox'],
+    [role='radio'], [role='tab'], [role='menuitem'], [role='slider'],
+    .cursor-pointer, [data-cursor='hover']) * {
+    cursor: var(--bubble-cursor-hand) !important;
+  }
+
+  /* Preserve the meaning of native controls, not just the game's decoration. */
+  body.inkbeta-mode :is(textarea, input:not([type]),
+    input[type='text'], input[type='search'], input[type='email'],
+    input[type='password'], input[type='url'], input[type='tel'], input[type='number'],
+    [contenteditable='true'], [contenteditable=''], [contenteditable='plaintext-only'],
+    [role='textbox'], .cursor-text),
+  body.inkbeta-mode :is([contenteditable='true'], [contenteditable=''],
+    [contenteditable='plaintext-only'], [role='textbox'], .cursor-text) * {
+    cursor: text !important;
+  }
+
+  body.inkbeta-mode :is(button:disabled, input:disabled, textarea:disabled,
+    select:disabled, [aria-disabled='true'], .cursor-not-allowed),
+  body.inkbeta-mode :is(button:disabled, input:disabled, textarea:disabled,
+    select:disabled, [aria-disabled='true'], .cursor-not-allowed) * {
+    cursor: not-allowed !important;
+  }
+
+  body.inkbeta-mode :is(.cursor-wait[class], button[aria-busy='true']),
+  body.inkbeta-mode :is(.cursor-wait[class], button[aria-busy='true']) * { cursor: wait !important; }
+  body.inkbeta-mode .cursor-progress[class] { cursor: progress !important; }
+  body.inkbeta-mode .cursor-grab[class], body.inkbeta-mode .cursor-grab[class] * { cursor: grab !important; }
+  body.inkbeta-mode .cursor-grabbing[class], body.inkbeta-mode .cursor-grabbing[class] * { cursor: grabbing !important; }
+  body.inkbeta-mode .cursor-crosshair[class] { cursor: crosshair !important; }
+  body.inkbeta-mode .cursor-move[class] { cursor: move !important; }
+  body.inkbeta-mode .cursor-col-resize[class] { cursor: col-resize !important; }
+  body.inkbeta-mode .cursor-row-resize[class] { cursor: row-resize !important; }
+  body.inkbeta-mode .cursor-zoom-in[class] { cursor: zoom-in !important; }
+  body.inkbeta-mode .cursor-zoom-out[class] { cursor: zoom-out !important; }
+  body.inkbeta-mode .cursor-none[class] { cursor: none !important; }
+  body.inkbeta-mode .cursor-default[class] { cursor: var(--bubble-cursor-arrow) !important; }
+}
