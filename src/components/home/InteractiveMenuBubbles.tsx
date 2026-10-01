@@ -25,6 +25,7 @@ export function InteractiveMenuBubbles({ active = true }: { active?: boolean }) 
   const [popped, setPopped] = useState<Record<number, boolean>>({});
   const [generation, setGeneration] = useState<Record<number, number>>({});
   const [focusIndex, setFocusIndex] = useState(0);
+  const [pressedIndex, setPressedIndex] = useState<number | null>(null);
   const locks = useRef(new Set<number>());
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -32,11 +33,21 @@ export function InteractiveMenuBubbles({ active = true }: { active?: boolean }) 
   const running = active && !hidden;
 
   useEffect(() => {
-    const visibility = () => setHidden(document.visibilityState === 'hidden');
+    const visibility = () => {
+      setHidden(document.visibilityState === 'hidden');
+      setPressedIndex(null);
+    };
+    const pageHide = () => { setHidden(true); setPressedIndex(null); };
     document.addEventListener('visibilitychange', visibility);
+    // Safari can restore a frozen page without remounting React or dispatching
+    // visibilitychange. Re-enable the controls when the page is restored.
+    window.addEventListener('pageshow', visibility);
+    window.addEventListener('pagehide', pageHide);
     const pending = timers.current;
     return () => {
       document.removeEventListener('visibilitychange', visibility);
+      window.removeEventListener('pageshow', visibility);
+      window.removeEventListener('pagehide', pageHide);
       pending.forEach(timer => clearTimeout(timer)); pending.clear();
     };
   }, []);
@@ -68,12 +79,14 @@ export function InteractiveMenuBubbles({ active = true }: { active?: boolean }) 
   };
 
   return <div className={s.field} role="group" aria-label="Bulles à éclater" aria-hidden={!running || undefined} data-paused={!running}>
-    {BUBBLES.map((bubble, index) => <div className={s.slot} key={index} data-popped={Boolean(popped[index])}
+    {BUBBLES.map((bubble, index) => <div className={s.slot} key={index} data-popped={Boolean(popped[index])} data-pressed={pressedIndex === index}
       style={{ '--x': `${bubble.x}%`, '--y': `${bubble.y}%`, '--size': `${bubble.size}px`, '--duration': `${bubble.duration}s`, '--delay': `${-index * 1.7}s`, '--drift-x': `${bubble.dx}px`, '--drift-y': `${bubble.dy}px` } as CSSProperties}>
       <button type="button" className={s.bubble} ref={element => { buttons.current[index] = element; }}
         aria-label={`Éclater la bulle ${index + 1}`} aria-disabled={Boolean(popped[index]) || !running}
         aria-description="Entrée ou espace pour éclater. Flèches pour changer de bulle."
         title="Pop !" tabIndex={running && focusIndex === index ? 0 : -1} disabled={!running}
+        onPointerDown={event => { if (event.button === 0 && running) setPressedIndex(index); }}
+        onPointerUp={() => setPressedIndex(null)} onPointerCancel={() => setPressedIndex(null)} onPointerLeave={() => setPressedIndex(null)}
         onFocus={() => setFocusIndex(index)} onKeyDown={event => navigate(event, index)} onClick={() => pop(index)}>
         <span className={s.skin} key={generation[index] || 0} aria-hidden="true" />
       </button>

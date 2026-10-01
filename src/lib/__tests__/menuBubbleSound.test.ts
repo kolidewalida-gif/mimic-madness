@@ -8,7 +8,7 @@ vi.mock('@/hooks/useSoundEffectsVolume', () => ({ getSoundEffectsVolume: vi.fn()
 const param = () => ({ value: 0, setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() });
 const node = () => ({ connect: vi.fn(), disconnect: vi.fn() });
 const fakeContext = () => ({
-  currentTime: 1, destination: {},
+  currentTime: 1, destination: {}, state: 'running', resume: vi.fn(() => Promise.resolve()),
   createGain: vi.fn(() => ({ ...node(), gain: param() })),
   createBiquadFilter: vi.fn(() => ({ ...node(), type: '', frequency: param(), Q: param() })),
   createStereoPanner: vi.fn(() => ({ ...node(), pan: param() })),
@@ -61,5 +61,53 @@ describe('Rubbery menu pop', () => {
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     playMenuBubblePop(100, .5, 1);
     expect(getSharedAudioContext).not.toHaveBeenCalled();
+  });
+  it.each(['suspended', 'interrupted'])('resumes a %s context inside the gesture before scheduling audio', async state => {
+    ctx.state = state;
+    ctx.resume.mockImplementation(async () => { ctx.state = 'running'; });
+    playMenuBubblePop(100, .5, 1);
+    expect(ctx.resume).toHaveBeenCalledTimes(1);
+    expect(ctx.createOscillator).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(2);
+  });
+  it('does not replay an old pop after a slow browser unlock', async () => {
+    ctx.state = 'suspended';
+    const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+    ctx.resume.mockImplementation(async () => { ctx.state = 'running'; now.mockReturnValue(300); });
+    playMenuBubblePop(100, .5, 1);
+    await Promise.resolve();
+    expect(ctx.createOscillator).not.toHaveBeenCalled();
+  });
+  it.each(['hidden', 'muted'])('drops delayed playback when the page becomes %s', async mode => {
+    ctx.state = 'suspended';
+    ctx.resume.mockImplementation(async () => {
+      ctx.state = 'running';
+      if (mode === 'hidden') vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+      else vi.mocked(getSoundEffectsVolume).mockReturnValue(0);
+    });
+    playMenuBubblePop(100, .5, 1);
+    await Promise.resolve();
+    expect(ctx.createOscillator).not.toHaveBeenCalled();
+  });
+  it('keeps only the latest pop while a context is unlocking', async () => {
+    ctx.state = 'suspended';
+    playMenuBubblePop(100, .1, 1);
+    playMenuBubblePop(100, .9, 1);
+    ctx.state = 'running';
+    await Promise.resolve();
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(2);
+    expect(ctx.createStereoPanner.mock.results[0].value.pan.value).toBeGreaterThan(0);
+  });
+  it('handles refused autoplay and a closed context without throwing', async () => {
+    ctx.state = 'suspended';
+    ctx.resume.mockRejectedValue(new Error('NotAllowedError'));
+    expect(() => playMenuBubblePop(100, .5, 1)).not.toThrow();
+    await Promise.resolve(); await Promise.resolve();
+    expect(ctx.createOscillator).not.toHaveBeenCalled();
+    ctx.state = 'closed';
+    ctx.resume.mockClear();
+    playMenuBubblePop(100, .5, 1);
+    expect(ctx.resume).not.toHaveBeenCalled();
   });
 });

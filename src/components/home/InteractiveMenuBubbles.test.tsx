@@ -75,6 +75,38 @@ describe('Menu bubbles', () => {
     view.unmount();
     expect(vi.getTimerCount()).toBe(0);
   });
+  it('recovers after a back/forward-cache restore without remounting', () => {
+    render(<InteractiveMenuBubbles />);
+    const first = screen.getByRole('button', { name: 'Éclater la bulle 1' });
+    fireEvent(window, new Event('pagehide'));
+    expect(first).toBeDisabled();
+    fireEvent(window, new Event('pageshow'));
+    expect(first).not.toBeDisabled();
+    fireEvent.click(first);
+    expect(playMenuBubblePop).toHaveBeenCalledTimes(1);
+  });
+  it('holds still during a primary pointer press and cancels without popping', () => {
+    render(<InteractiveMenuBubbles />);
+    const first = screen.getByRole('button', { name: 'Éclater la bulle 1' });
+    fireEvent(first, Object.assign(new Event('pointerdown', { bubbles: true }), { button: 0 }));
+    expect(first.parentElement).toHaveAttribute('data-pressed', 'true');
+    expect(playMenuBubblePop).not.toHaveBeenCalled();
+    fireEvent.pointerCancel(first);
+    expect(first.parentElement).toHaveAttribute('data-pressed', 'false');
+    expect(first).toHaveAttribute('aria-disabled', 'false');
+  });
+  it('releases a press on pointerup, pointerleave and page changes', () => {
+    render(<InteractiveMenuBubbles />);
+    const first = screen.getByRole('button', { name: 'Éclater la bulle 1' });
+    for (const event of ['pointerup', 'pointerleave', 'pagehide']) {
+      fireEvent(first, Object.assign(new Event('pointerdown', { bubbles: true }), { button: 0 }));
+      if (event === 'pagehide') fireEvent(window, new Event(event));
+      else if (event === 'pointerleave') fireEvent.pointerOut(first);
+      else fireEvent.pointerUp(first);
+      expect(first.parentElement).toHaveAttribute('data-pressed', 'false');
+    }
+    expect(playMenuBubblePop).not.toHaveBeenCalled();
+  });
   it('still pops quickly in succession while limiting overlapping sounds', () => {
     render(<InteractiveMenuBubbles />);
     const buttons = screen.getAllByRole('button');

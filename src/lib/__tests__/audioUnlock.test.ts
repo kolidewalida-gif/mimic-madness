@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 let registerAudioContext: typeof import('@/lib/audioUnlock').registerAudioContext;
 let isAudioBlocked: typeof import('@/lib/audioUnlock').isAudioBlocked;
 let trackedAudioContextCount: typeof import('@/lib/audioUnlock').trackedAudioContextCount;
+let getSharedAudioContext: typeof import('@/lib/audioUnlock').getSharedAudioContext;
 
 /** Contexte minimal : `resume()` ne réussit que si un geste a eu lieu. */
 class FakeContext {
@@ -37,10 +38,12 @@ beforeEach(async () => {
   registerAudioContext = module.registerAudioContext;
   isAudioBlocked = module.isAudioBlocked;
   trackedAudioContextCount = module.trackedAudioContextCount;
+  getSharedAudioContext = module.getSharedAudioContext;
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('déblocage audio', () => {
@@ -109,5 +112,23 @@ describe('déblocage audio', () => {
     const context = new FakeContext();
     // Le retour doit être le contexte lui-même, utilisable immédiatement.
     expect(registerAudioContext(asContext(context))).toBe(asContext(context));
+  });
+  it('shares the standard context on Chromium and Firefox without creating one per pop', () => {
+    vi.stubGlobal('AudioContext', FakeContext);
+    const first = getSharedAudioContext();
+    expect(first).toBeInstanceOf(FakeContext);
+    expect(getSharedAudioContext()).toBe(first);
+    expect(trackedAudioContextCount()).toBe(1);
+  });
+  it('falls back to the prefixed WebKit constructor when required', () => {
+    vi.stubGlobal('AudioContext', undefined);
+    vi.stubGlobal('webkitAudioContext', FakeContext);
+    expect(getSharedAudioContext()).toBeInstanceOf(FakeContext);
+    expect(trackedAudioContextCount()).toBe(1);
+  });
+  it('keeps the visual interaction available when no Web Audio constructor exists', () => {
+    vi.stubGlobal('AudioContext', undefined);
+    vi.stubGlobal('webkitAudioContext', undefined);
+    expect(getSharedAudioContext()).toBeNull();
   });
 });

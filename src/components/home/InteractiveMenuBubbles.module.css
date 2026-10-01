@@ -1,12 +1,20 @@
-.field{position:absolute;inset:100px 0 calc(6.2rem + env(safe-area-inset-bottom,0px));z-index:1;overflow:hidden;pointer-events:none;contain:layout paint}
+.field{position:absolute;top:100px;right:0;bottom:6.2rem;left:0;bottom:calc(6.2rem + env(safe-area-inset-bottom,0px));z-index:1;overflow:hidden;pointer-events:none;contain:layout paint}
 .slot{position:absolute;left:clamp(10px,var(--x),calc(100% - var(--size) - 10px));top:clamp(12px,var(--y),calc(100% - var(--size) - 12px));width:var(--size);height:var(--size);animation:drift var(--duration) ease-in-out var(--delay) infinite alternate;transform-origin:center;backface-visibility:hidden}
-.bubble{position:relative;display:block;width:100%;height:100%;padding:0;background:none;border:0;border-radius:50%;cursor:pointer;pointer-events:auto;outline:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.skin{position:absolute;inset:0;border-radius:48% 52% 55% 45%;border:1px solid #ffffff65;background:radial-gradient(ellipse at 27% 17%,#ffffff77,#ffffff0c 41%,#a773ce18 65%,#ffffff30);box-shadow:inset 3px 5px 8px #ffffff20,inset -4px -6px 10px #21053422,0 12px 26px #27043914;animation:appear .55s cubic-bezier(.16,1,.3,1) both;transition:filter .2s,box-shadow .2s,scale .2s}
+.bubble{position:relative;display:block;width:100%;height:100%;padding:0;-webkit-appearance:none;appearance:none;background:none;border:0;border-radius:50%;cursor:pointer;pointer-events:auto;outline:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;transition:transform .2s}
+.skin{position:absolute;inset:0;border-radius:48% 52% 55% 45%;border:1px solid #ffffff65;background:radial-gradient(ellipse at 27% 17%,#ffffff77,#ffffff0c 41%,#a773ce18 65%,#ffffff30);box-shadow:inset 3px 5px 8px #ffffff20,inset -4px -6px 10px #21053422,0 12px 26px #27043914;animation:appear .55s cubic-bezier(.16,1,.3,1) both;transition:filter .2s,box-shadow .2s}
 .skin::before{content:'';position:absolute;top:15%;left:21%;width:30%;height:12%;border-radius:50%;background:#ffffff9b;transform:rotate(-30deg);filter:blur(1.5px)}
 .skin::after{content:'';position:absolute;right:12%;bottom:18%;width:13%;height:8%;border-radius:50%;background:#ffffff35;transform:rotate(-35deg)}
-.slot:has(.bubble:hover),.slot:focus-within,.slot[data-popped=true],.field[data-paused=true] .slot{animation-play-state:paused}
-.bubble:hover .skin,.bubble:focus-visible .skin{scale:1.065;filter:brightness(1.25);box-shadow:inset 3px 5px 8px #ffffff35,inset -4px -6px 10px #21053422,0 0 24px #ead2ff30}
-.slot:has(.bubble:focus-visible)::after{content:'';position:absolute;inset:-6px;border:3px solid #b3ffe9;border-radius:50%;pointer-events:none}
+/* No :has() or individual scale: unsupported selectors must not invalidate
+   the pause rules in older Firefox/WebKit. Hover is mouse/trackpad only. */
+.slot:focus-within,.slot[data-pressed=true],.slot[data-popped=true],.field[data-paused=true] .slot{animation-play-state:paused}
+@media(hover:hover) and (pointer:fine){
+  .slot:hover{animation-play-state:paused}
+  .bubble:hover{transform:scale(1.065)}
+  .bubble:hover .skin{filter:brightness(1.25);box-shadow:inset 3px 5px 8px #ffffff35,inset -4px -6px 10px #21053422,0 0 24px #ead2ff30}
+}
+/* Keep a keyboard focus fallback on older WebKit. */
+.bubble:focus::after{content:'';position:absolute;inset:-6px;border:3px solid #b3ffe9;border-radius:50%;pointer-events:none}
+@supports selector(:focus-visible){.bubble:focus:not(:focus-visible)::after{display:none}}
 .slot[data-popped=true] .bubble{pointer-events:none}.slot[data-popped=true] .skin{animation:pop .32s ease-out both}
 .burst{position:absolute;inset:0;pointer-events:none}.ring{position:absolute;inset:0;border:2px solid #eddaffb0;border-radius:50%;animation:ripple .36s ease-out both}
 .drop{position:absolute;left:50%;top:50%;width:7px;height:11px;margin:-5px -3px;border-radius:50%;background:linear-gradient(#fff6ff,#b9ffe480);box-shadow:inset 1px 1px 0 #fff9;animation:splash .42s cubic-bezier(.16,1,.3,1) both}
@@ -18,4 +26,5 @@
 @keyframes splash{from{opacity:.85;transform:translate(0,0)rotate(var(--angle))scale(.7)}to{opacity:0;transform:translate(var(--dx),var(--dy))rotate(var(--angle))scale(.15)}}
 @media(max-width:600px){.field{top:130px}.slot{width:clamp(44px,calc(var(--size) * .6),100px);height:clamp(44px,calc(var(--size) * .6),100px);left:clamp(6px,var(--x),calc(100% - clamp(44px,calc(var(--size) * .6),100px) - 6px));top:clamp(6px,var(--y),calc(100% - 100px))}}
 :global(html.low-power) .slot{animation:none}
-@media(prefers-reduced-motion:reduce){.slot{animation:none}.skin{animation:none;transition:none}.bubble:hover .skin,.bubble:focus-visible .skin{scale:1}.slot[data-popped=true] .skin{animation:fade .15s linear both}.ring,.drop{display:none}@keyframes fade{to{opacity:0}}}
+@media(prefers-reduced-motion:reduce){.slot{animation:none}.skin{animation:none;transition:none}.bubble,.bubble:hover{transform:none;transition:none}.slot[data-popped=true] .skin{animation:fade .15s linear both}.ring,.drop{display:none}}
+@keyframes fade{to{opacity:0}}
