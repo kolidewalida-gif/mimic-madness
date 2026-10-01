@@ -11,6 +11,8 @@ import { useMultiplePlayerAvatars } from "@/hooks/useGlobalPlayerAvatar";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useToast } from "@/hooks/use-toast";
 import { BubbleHeading, BubblePanel, BubblePlayers, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import { DuoLineup } from '@/components/imitation/BubbleDuos';
+import type { Team } from '@/lib/teamsLogic';
 
 interface Player { id: string; name: string; isHost: boolean; }
 interface Challenge { id: string; playerId: string; playerName: string; }
@@ -18,6 +20,8 @@ interface ChallengePreviewPhaseProps {
   lobbyId: string; roundNumber: number; currentPlayer: Player;
   players: Player[]; currentChallenge: Challenge; onAllReady: () => void;
   variant?: 'default' | 'inkBeta';
+  gameMode?: 'normal' | '2v2' | 'quiz';
+  teams?: Team[];
 }
 
 const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
@@ -27,7 +31,7 @@ const ACCENT = "var(--ink-text-dim)";
 
 export const ChallengePreviewPhase = ({
   lobbyId, roundNumber, currentPlayer, players, currentChallenge, onAllReady,
-  variant = 'default',
+  variant = 'default', gameMode = 'normal', teams = [],
 }: ChallengePreviewPhaseProps) => {
   const isInkBeta = variant === 'inkBeta';
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
@@ -154,14 +158,14 @@ export const ChallengePreviewPhase = ({
   };
 
   if (isInkBeta) return <>
-    <BubbleHeading label={`Le défi · Manche ${roundNumber}`} title={<>Ça, c’est <em>ton défi.</em></>} aside={<span className={bubble.stamp}><Eye /></span>}>
-      Une voix, un rythme, une attitude. Regarde bien : dans un instant, c’est toi la vedette.
+    <BubbleHeading label={`${gameMode === '2v2' ? 'Le défi des duos' : 'Le défi'} · Manche ${roundNumber}`} title={gameMode === '2v2' ? <>Un défi. <em>Deux voix.</em></> : <>Ça, c’est <em>ton défi.</em></>} aside={<span className={bubble.stamp}><Eye /></span>}>
+      {gameMode === '2v2' ? 'Même vidéo pour tous. Chacun prépare sa voix, puis vos deux prises seront réunies pour le vote.' : 'Une voix, un rythme, une attitude. Regarde bien : dans un instant, c’est toi la vedette.'}
     </BubbleHeading>
     <div className={bubble.split}>
       <BubblePanel title="Le modèle à imiter" eyebrow={`Proposé par ${currentChallenge.playerName}`}>
         <div className={bubble.video}><VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" /></div>
       </BubblePanel>
-      <BubblePanel title="Repère le petit truc." eyebrow="Avant d’entrer en scène">
+      <BubblePanel title={gameMode === '2v2' ? 'Accordez vos idées.' : 'Repère le petit truc.'} eyebrow="Avant d’entrer en scène">
         {[['La voix','Le ton, l’accent, les petits tics… tout compte.'],['Le rythme','Écoute les pauses et le moment où ça repart.'],['Ta version','Pas besoin d’être parfait : surprends la bande !']].map(([title, copy], index) =>
           <div className={bubble.instruction} key={title}><span>{index + 1}</span><div><strong>{title}</strong><p>{copy}</p></div></div>)}
         <button type="button" className={`${bubble.primary} ${bubble.yellow}`} disabled={isReady || isReadyPending} onClick={handleReady}>
@@ -170,7 +174,7 @@ export const ChallengePreviewPhase = ({
         <p className={bubble.note}>{isReady ? 'Ta validation est enregistrée. La partie reprend quand la bande est prête.' : 'Tu peux revoir la vidéo autant que tu veux.'}</p>
       </BubblePanel>
     </div>
-    <BubblePlayers players={players} ready={readyPlayers} self={currentPlayer.id} />
+    {gameMode === '2v2' ? <DuoLineup teams={teams} ready={readyPlayers} self={currentPlayer.id} /> : <BubblePlayers players={players} ready={readyPlayers} self={currentPlayer.id} />}
   </>;
 
   return (

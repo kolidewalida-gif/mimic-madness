@@ -39,6 +39,8 @@ import { diagnose } from "@/lib/diagnostics";
 import { BubbleHeading, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
 import studio from '@/components/imitation/ImitationStudio.module.css';
 import { InkModal } from '@/components/menu/InkOverlay';
+import { DuoLineup, duoStyles as duo } from '@/components/imitation/BubbleDuos';
+import type { Team } from '@/lib/teamsLogic';
 
 interface Player {
   id: string;
@@ -60,6 +62,7 @@ interface ImitationPhaseProps {
   currentChallenge: Challenge;
   gameMode?: 'normal' | '2v2' | 'quiz';
   getTeammate?: (playerId: string) => { id: string; name: string } | null;
+  teams?: Team[];
   onAllReady: () => void;
   variant?: 'default' | 'inkBeta';
 }
@@ -100,6 +103,7 @@ export const ImitationPhase = ({
   currentChallenge,
   gameMode = 'normal',
   getTeammate,
+  teams = [],
   onAllReady,
   variant = 'default',
 }: ImitationPhaseProps) => {
@@ -644,6 +648,7 @@ export const ImitationPhase = ({
       aside={<button type="button" className={bubble.secondary} onClick={() => setShowSettings(true)} aria-label="Ouvrir les réglages audio" aria-haspopup="dialog" aria-expanded={showSettings}><Settings />Mon micro</button>}>
       {hasSubmitted ? 'Ta prise est envoyée. On attend les autres joueurs.' : hasRecorded ? 'Réécoute ta voix avec la vidéo. Ajuste le son, puis envoie.' : teammate ? `Avec ${teammate.name}, faites votre version du défi.` : 'Regarde le défi. Choisis ta voix. Fais ta version.'}
     </BubbleHeading>
+    <div className={teammate ? duo.studioLayout : undefined}>
     <div className={studio.workbench}>
       <header className={studio.screenHeader}>
         <div><span>{hasRecorded ? 'Ton imitation' : 'Le défi à imiter'}</span><h2>{hasRecorded ? `La version de ${currentPlayer.name}` : `La référence de ${currentChallenge.playerName}`}</h2></div>
@@ -672,10 +677,12 @@ export const ImitationPhase = ({
         </div>}
       </section>
     </div>
-    {teammate && <TeammateStatusPanel currentPlayerId={currentPlayer.id} currentPlayerName={currentPlayer.name} teammate={teammate} lobbyId={lobbyId} roundNumber={roundNumber} isReady={hasSubmitted} teammateReady={teammateReady} />}
+    {teammate && <aside><TeammateStatusPanel variant="inkBeta" teamNumber={teams.find(team => team.players.some(player => player.id === currentPlayer.id))?.teamNumber} currentPlayerId={currentPlayer.id} currentPlayerName={currentPlayer.name} teammate={teammate} lobbyId={lobbyId} roundNumber={roundNumber} isReady={hasSubmitted} teammateReady={teammateReady} /></aside>}
+    </div>
+    {gameMode === '2v2' && <DuoLineup teams={teams} self={currentPlayer.id} ready={readyPlayers} step="imitation" />}
     <footer className={studio.session}>
-      <div><strong>La bande</strong><small>{readyPlayers.length}/{players.length} prises déposées</small></div>
-      <ul aria-label="Les prises de la bande">{players.map(player => <li key={player.id} className={readyPlayers.includes(player.id) ? studio.ready : undefined}><PlayerAvatar playerId={player.id} playerName={player.name} size="sm" showTitle={false} /><span>{player.id === currentPlayer.id ? 'Toi' : player.name}</span>{readyPlayers.includes(player.id) && <Check aria-label="Prise déposée" />}</li>)}</ul>
+      <div><strong>{gameMode === '2v2' ? 'Les prises des duos' : 'La bande'}</strong><small>{readyPlayers.length}/{players.length} prises déposées</small></div>
+      {gameMode !== '2v2' && <ul aria-label="Les prises de la bande">{players.map(player => <li key={player.id} className={readyPlayers.includes(player.id) ? studio.ready : undefined}><PlayerAvatar playerId={player.id} playerName={player.name} size="sm" showTitle={false} /><span>{player.id === currentPlayer.id ? 'Toi' : player.name}</span>{readyPlayers.includes(player.id) && <Check aria-label="Prise déposée" />}</li>)}</ul>}
       {currentPlayer.isHost && readyPlayers.length < players.length && <button type="button" className={bubble.secondary} onClick={handleForceAdvance} disabled={isForceAdvancing} title="Ignorer les joueurs bloqués et passer au vote">{isForceAdvancing ? 'Synchronisation…' : 'Passer au vote'}</button>}
     </footer>
     <p className={studio.tip}>Un casque, ta meilleure voix, et c’est parti. Tu peux mettre en pause ou refaire ta prise.</p>

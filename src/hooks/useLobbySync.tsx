@@ -750,7 +750,8 @@ export const useLobbySync = (): UseLobbyResult => {
               .from('lobby_players')
               .select('*')
               .eq('lobby_id', lobbyId)
-              .order('joined_at', { ascending: true }),
+              .order('joined_at', { ascending: true })
+              .order('player_id', { ascending: true }),
           ]),
         );
 

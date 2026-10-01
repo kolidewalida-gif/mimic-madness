@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Users, Send, Check, Clock, Mic, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { DuoPartnerView } from '@/components/imitation/BubbleDuos';
 
 interface TeammateStatusPanelProps {
   currentPlayerId: string;
@@ -16,6 +17,8 @@ interface TeammateStatusPanelProps {
   roundNumber: number;
   isReady: boolean;
   teammateReady: boolean;
+  variant?: 'default' | 'inkBeta';
+  teamNumber?: number;
 }
 
 interface TeamMessage {
@@ -40,6 +43,8 @@ export const TeammateStatusPanel = ({
   roundNumber,
   isReady,
   teammateReady,
+  variant = 'default',
+  teamNumber,
 }: TeammateStatusPanelProps) => {
   const [messages, setMessages] = useState<TeamMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -123,6 +128,13 @@ export const TeammateStatusPanel = ({
   if (!teammate) {
     return null;
   }
+
+  if (variant === 'inkBeta') return <DuoPartnerView
+    currentPlayer={{ id: currentPlayerId, name: currentPlayerName }} teammate={teammate} teamNumber={teamNumber}
+    isReady={isReady} teammateReady={teammateReady} recording={teammateStatus.isRecording} audioLevel={teammateStatus.audioLevel}
+    messages={messages} draft={newMessage} onDraft={setNewMessage} onSend={() => void sendMessage()}
+    scrollAnchor={<div ref={messagesEndRef} />}
+  />;
 
   return (
     <GameCard className="animate-fadeIn">

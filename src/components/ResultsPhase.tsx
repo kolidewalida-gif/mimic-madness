@@ -17,6 +17,10 @@ import { useSocialFeed } from "@/hooks/useSocialFeed";
 import { useAuth } from "@/hooks/useAuth";
 import { equalJitterBackoff } from "@/lib/syncState";
 import { BubbleHeading, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import { DuoReplays, DuoScoreboard } from '@/components/imitation/BubbleDuos';
+import { readMimicMasters } from '@/lib/mimicMasterClient';
+import { scoreMimicMasters, type MasterScore } from '@/lib/mimicMaster';
+import { MimicMasterRecap } from '@/components/imitation/MimicMaster';
 
 interface Player {
   id: string;
@@ -71,6 +75,7 @@ export const ResultsPhase = ({
   const isInkBeta = variant === 'inkBeta';
   const [results, setResults] = useState<PlayerResult[]>([]);
   const [teamResults, setTeamResults] = useState<TeamResult[]>([]);
+  const [masterScores, setMasterScores] = useState<MasterScore[]>([]);
   const [isResultsSynchronized, setIsResultsSynchronized] = useState(false);
   const [resultsRetryKey, setResultsRetryKey] = useState(0);
   const resultsRetryAttemptRef = useRef(0);
@@ -233,6 +238,7 @@ export const ResultsPhase = ({
           .eq('lobby_id', lobbyId)
           .eq('round_number', roundNumber);
         if (error) throw error;
+        const masters = await readMimicMasters(lobbyId, roundNumber, currentPlayer.id);
         if (!isMounted || requestId !== latestRequest || requestEpoch !== channelEpoch) return;
 
         const tally = new Map<string, { likes: number; dislikes: number }>();
@@ -253,6 +259,13 @@ export const ResultsPhase = ({
             score: entry.likes - entry.dislikes,
           };
         });
+        if (gameMode !== '2v2') {
+          const scores = scoreMimicMasters(playerResults.map(result => ({
+            key: result.playerId, baseScore: result.score,
+          })), masters.choices, false);
+          for (const result of playerResults) result.score = scores.get(result.playerId)!.score;
+          setMasterScores([...scores.values()]);
+        }
         // Deterministic tie-break so every client renders the same ranking.
         playerResults.sort((a, b) =>
           b.score - a.score ||
@@ -281,6 +294,11 @@ export const ResultsPhase = ({
               score: totalLikes - totalDislikes,
             };
           });
+          const scores = scoreMimicMasters(teamResultsData.map(result => ({
+            key: String(result.teamNumber), baseScore: result.score,
+          })), masters.choices, true);
+          for (const result of teamResultsData) result.score = scores.get(String(result.teamNumber))!.score;
+          setMasterScores([...scores.values()]);
           teamResultsData.sort((a, b) =>
             b.score - a.score || b.likes - a.likes || a.teamNumber - b.teamNumber);
           setTeamResults((previous) =>
@@ -391,13 +409,17 @@ export const ResultsPhase = ({
       document.removeEventListener('visibilitychange', handleVisibility);
       void supabase.removeChannel(channel);
     };
-  }, [gameMode, lobbyId, players, resultsRetryKey, roundNumber, teams]);
+  }, [currentPlayer.id, gameMode, lobbyId, players, resultsRetryKey, roundNumber, teams]);
 
   const winnerTeam = teamResults[0];
   const winner = results[0];
   const winnerLabel = gameMode === '2v2'
     ? winnerTeam?.playerNames.join(' & ')
     : winner?.playerName;
+  const masterRecap = isResultsSynchronized && <MimicMasterRecap scores={masterScores}
+    labels={Object.fromEntries(gameMode === '2v2'
+      ? teams.map(team => [String(team.teamNumber), team.players.map(player => player.name).join(' & ')])
+      : players.map(player => [player.id, player.name]))} />;
 
   // Son, confettis et overlay ne partent qu'une fois l'agrégat SQL certifié.
   // Le garde par numéro de manche évite une seconde explosion à chaque update
@@ -497,6 +519,22 @@ export const ResultsPhase = ({
   const rest = results.slice(3);
   const podiumColor = ["#fbbf24", "#d1d5db", "#f97316"];
 
+  if (isInkBeta && gameMode === '2v2') return <>
+    <BubbleHeading label={`Les résultats des duos · Manche ${roundNumber}`} title={isResultsSynchronized ? <>Vos duos ont fait <em>le show.</em></> : 'On compte les votes…'} aside={<span className={bubble.stamp}><Trophy aria-hidden="true" /></span>}>Deux prises, un résultat commun. Découvrez le classement de vos équipes.</BubbleHeading>
+    <DuoScoreboard teams={teams} scores={teamResults} self={currentPlayer.id} certified={isResultsSynchronized} />
+    {isResultsSynchronized && <DuoReplays teams={teams} scores={teamResults} renderPlayer={player => {
+      const index = results.findIndex(result => result.playerId === player.id);
+      const result = results[index];
+      if (!result) return <p className={bubble.note}>La prise de {player.name} n’est pas disponible.</p>;
+      const clipState = playerClips[result.playerId] ?? IDLE_CLIP_STATE;
+      return <ResultsPlayerCard presentation="teamReplay" key={result.playerId} result={result} rank={index + 1} color="#b5f1dc" isWinner={false} isSolo={false} isCurrentPlayer={result.playerId === currentPlayer.id} challengeVideoClipId={challengeVideoClipId} clipState={clipState} isDownloading={downloadingPlayer === result.playerId} isSharing={sharingPlayer === result.playerId} canShare={result.playerId === currentPlayer.id && Boolean(authUser)} hasShared={clipState.status === 'ready' && sharedClipIds.has(clipState.clip.id)} onRequestClip={requestPlayerClip} onDownload={handleDownloadImitation} onShare={handleShareImitation} />;
+    }} />}
+    {masterRecap}
+    <RoundBreakAd gameMode={gameMode} instanceKey={`${gameMode}:${roundNumber}`} />
+    {isRoundReconnecting && <p className={bubble.note} role="status">Reconnexion à la manche… Le classement reste affiché.</p>}
+    {currentPlayer.isHost ? <div className={bubble.resultActions}><button type="button" className={bubble.secondary} onClick={onEndGame}>Terminer</button><button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onNextRound} disabled={isRoundReconnecting}>Manche suivante <ArrowRight aria-hidden="true" /></button></div> : <p className={bubble.note}>L’hôte prépare la suite. Prêts pour le prochain défi ?</p>}
+  </>;
+
   if (isInkBeta) return <>
     <BubbleHeading label={`Les résultats · manche ${roundNumber}`} title={isResultsSynchronized && winnerLabel ? <>{winnerLabel}<em>, quelle prise !</em></> : 'On compte les votes…'} aside={<span className={bubble.stamp}><Trophy aria-hidden="true" /></span>}>{isResultsSynchronized ? 'Le verdict de la bande. Revois les prises ou partage ton meilleur moment.' : 'Synchronisation des votes…'}</BubbleHeading>
     {gameMode === '2v2' && teamResults.length > 0 && <BubblePanel title="Le classement des équipes"><ol className={bubble.scoreList}>{teamResults.map((team, index) => <li key={team.teamNumber}><span>{index + 1}</span><Swords aria-hidden="true" /><span><strong>Équipe {team.teamNumber}</strong><br />{team.playerNames.join(' & ')}</span><span>{team.likes} 👍 · {team.dislikes} 👎</span><strong>{team.score > 0 ? '+' : ''}{team.score}</strong></li>)}</ol></BubblePanel>}
@@ -505,6 +543,7 @@ export const ResultsPhase = ({
       return <ResultsPlayerCard key={result.playerId} result={result} rank={index + 1} color={podiumColor[index]} isWinner={index === 0} isSolo={podium.length === 1} isCurrentPlayer={result.playerId === currentPlayer.id} challengeVideoClipId={challengeVideoClipId} clipState={clipState} isDownloading={downloadingPlayer === result.playerId} isSharing={sharingPlayer === result.playerId} canShare={result.playerId === currentPlayer.id && Boolean(authUser)} hasShared={clipState.status === 'ready' && sharedClipIds.has(clipState.clip.id)} onRequestClip={requestPlayerClip} onDownload={handleDownloadImitation} onShare={handleShareImitation} />;
     })}</div>
     {rest.length > 0 && <ol className={bubble.scoreList} aria-label="La suite du classement">{rest.map((result, i) => <li key={result.playerId}><span>{i + 4}</span><PlayerAvatar playerId={result.playerId} playerName={result.playerName} size="sm" showTitle={false} /><span>{result.playerName}{result.playerId === currentPlayer.id && ' · toi'}</span><span>{result.likes} 👍 · {result.dislikes} 👎</span><strong>{result.score > 0 ? '+' : ''}{result.score}</strong></li>)}</ol>}
+    {masterRecap}
     <RoundBreakAd gameMode={gameMode} instanceKey={`${gameMode}:${roundNumber}`} />
     {isRoundReconnecting && <p className={bubble.note} role="status">Reconnexion à la manche… Le classement reste affiché.</p>}
     {currentPlayer.isHost ? <div className={bubble.resultActions}><button type="button" className={bubble.secondary} onClick={onEndGame}>Terminer</button><button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onNextRound} disabled={isRoundReconnecting}>Manche suivante <ArrowRight aria-hidden="true" /></button></div> : <p className={bubble.note}>L’hôte prépare la suite. Encore une ?</p>}
@@ -535,6 +574,7 @@ export const ResultsPhase = ({
         <div className={isInkBeta ? 'ik-gpanel is-featured ik-results-shell' : 'max-w-6xl mx-auto space-y-5'}>
 
           {/* Header */}
+          {masterRecap}
           <div className={isInkBeta ? 'ik-results-hero' : 'text-center space-y-2'}>
             <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: -2 }}
               transition={{ type: "spring", stiffness: 280, damping: 16 }}

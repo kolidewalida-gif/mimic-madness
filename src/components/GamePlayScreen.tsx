@@ -749,6 +749,8 @@ export const GamePlayScreen = ({
           currentChallenge={currentChallenge}
           onAllReady={handlePreviewReady}
           variant={variant}
+          gameMode={gameMode}
+          teams={teams}
         />
       )}
 
@@ -762,6 +764,7 @@ export const GamePlayScreen = ({
           currentChallenge={currentChallenge}
           gameMode={gameMode}
           getTeammate={getTeammate}
+          teams={teams}
           onAllReady={handleImitationReady}
           variant={variant}
         />
@@ -808,17 +811,12 @@ export const GamePlayScreen = ({
         {({ button: chatButton, panel: chatPanel }) => (
           <BubbleGameStage
             phase={renderablePhase}
+            teamMode={gameMode === '2v2'}
             round={roundNumber}
             sidebar={chatPanel}
             tools={(
               <>
                 {chatButton}
-                {gameMode === "2v2" && (
-                  <span className="ik-game-badge">
-                    <Swords aria-hidden="true" />
-                    <span>2v2</span>
-                  </span>
-                )}
                 <button
                   type="button"
                   onClick={onEndGame}

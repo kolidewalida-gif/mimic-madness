@@ -2004,6 +2004,26 @@ export type Database = {
         Args: { p_period_key: string; p_quest_id: string; p_xp_reward: number }
         Returns: number
       }
+      cast_mimic_master: {
+        Args: {
+          p_lobby_id: string
+          p_round_number: number
+          p_voter_player_id: string
+          p_target_player_ids: string[]
+          p_session_id: string
+          p_expected_index: number
+        }
+        Returns: boolean
+      }
+      read_mimic_masters: {
+        Args: { p_lobby_id: string; p_round_number: number; p_player_id: string }
+        Returns: {
+          voter_player_id: string
+          target_player_ids: string[]
+          target_team_number: number | null
+          voter_team_number: number | null
+        }[]
+      }
       cleanup_old_lobbies: { Args: never; Returns: undefined }
       delete_player_clips: {
         Args: { p_clip_ids?: string[]; p_player_id: string }

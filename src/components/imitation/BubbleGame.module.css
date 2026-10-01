@@ -41,3 +41,16 @@
 .root[data-game-phase=imitation] .sidebar{width:310px;padding:4px 24px 24px 0}
 @container imitation-stage (max-width:760px){.split{grid-template-columns:1fr}.heading h1{font-size:32px}}
 @media(max-width:800px){.root[data-game-phase=imitation] .main{padding:0 14px 22px}}
+.root[data-team-mode=true] .content{container:imitation-stage / inline-size;max-width:1420px}
+.root[data-game-phase=voting] .identity{margin-bottom:14px}
+.root[data-game-phase=voting] .identity>div:first-child{width:54px!important;height:54px!important;min-width:54px!important}
+.root[data-game-phase=voting] .identity>div:first-child>div{width:54px!important;height:54px!important;min-width:54px!important}
+.root[data-game-phase=voting] .voteButtons{gap:12px;margin:14px 0}
+.root[data-game-phase=voting] .voteButtons button{min-height:76px;flex-direction:row;gap:10px;padding:12px;font-size:18px}
+.root[data-game-phase=voting] .voteButtons svg{width:25px;height:25px}
+.root[data-game-phase=voting] .dots{margin:13px 0}
+.votePlayback{margin-top:18px}
+@media(min-width:801px) and (max-height:850px){.root[data-game-phase=voting] .panelHeader{padding:13px 20px}.root[data-game-phase=voting] .panelBody{padding:18px}.root[data-game-phase=voting] .video :global(.video-audio-overlay-frame){max-height:335px}.root[data-game-phase=voting] .heading{margin-bottom:18px}.root[data-game-phase=voting] .primary{min-height:48px;font-size:14px}}
+.root[data-team-mode=true][data-game-phase=imitation] .main{padding-bottom:90px}
+@media(max-width:1100px){.root[data-team-mode=true] .brand>span{display:flex;font-size:10px;padding-left:10px;gap:5px}.root[data-team-mode=true] .brand>span svg{width:14px}.root[data-team-mode=true] .brand{gap:10px}}
+@media(max-width:800px){.root[data-team-mode=true] .brand>span{font-size:9px;max-width:90px}.root[data-team-mode=true] .tools{gap:6px}.root[data-team-mode=true] .tools>button{padding-inline:11px;min-height:38px}}

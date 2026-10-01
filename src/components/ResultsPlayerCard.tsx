@@ -47,6 +47,7 @@ interface ResultsPlayerCardProps {
   onRequestClip: (playerId: string) => void;
   onDownload: (playerId: string, playerName: string) => void;
   onShare: (playerId: string, playerName: string) => void;
+  presentation?: 'ranked' | 'teamReplay';
 }
 
 const FONT = "'Outfit', sans-serif";
@@ -74,6 +75,7 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
   onRequestClip,
   onDownload,
   onShare,
+  presentation = 'ranked',
 }: ResultsPlayerCardProps) {
   const scoreColor = result.score > 0
     ? "#34d399"
@@ -93,7 +95,7 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
         isSolo && "is-solo",
       )}
       style={cardStyle}
-      aria-label={`${rank}${rank === 1 ? "er" : "e"} : ${result.playerName}, ${result.score} points`}
+      aria-label={presentation === 'teamReplay' ? `Prise de ${result.playerName}` : `${rank}${rank === 1 ? "er" : "e"} : ${result.playerName}, ${result.score} points`}
     >
       <div className="ik-results-player-media relative aspect-video overflow-hidden bg-black/50">
         {clipState.status === "ready" ? (
@@ -153,11 +155,11 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
               size={isWinner ? "xl" : "lg"}
               showTitle={false}
             />
-            <span className="ik-results-rank" aria-label={`Rang ${rank}`}>{rank}</span>
+            {presentation === 'ranked' && <span className="ik-results-rank" aria-label={`Rang ${rank}`}>{rank}</span>}
           </div>
           <div className="min-w-0">
             <span className="ik-results-player-kicker">
-              {isWinner ? "Gagnant de la manche" : `Place ${rank}`}
+              {presentation === 'teamReplay' ? 'Prise individuelle du duo' : isWinner ? "Gagnant de la manche" : `Place ${rank}`}
             </span>
             <h3 style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
               {isCurrentPlayer ? "Toi" : result.playerName}
@@ -165,13 +167,13 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
           </div>
         </div>
 
-        <div className="ik-results-scoreboard" aria-label={`${result.likes} avis positifs, ${result.dislikes} avis négatifs`}>
+        {presentation === 'ranked' && <div className="ik-results-scoreboard" aria-label={`${result.likes} avis positifs, ${result.dislikes} avis négatifs`}>
           <span className="is-like"><ThumbsUp aria-hidden="true" />{result.likes}</span>
           <span className="is-dislike"><ThumbsDown aria-hidden="true" />{result.dislikes}</span>
           <strong style={{ color: scoreColor }}>
             {result.score > 0 ? "+" : ""}{result.score} pts
           </strong>
-        </div>
+        </div>}
 
         <div className="ik-results-card-actions">
           {clipState.status !== "ready" && clipState.status !== "loading" && (
