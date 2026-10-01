@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 
 import styles from './InkHomeBubble.module.css';
+import { InteractiveMenuBubbles } from './InteractiveMenuBubbles';
 
 interface RecentLobbyEntry {
   code: string;
@@ -89,9 +90,6 @@ export const InkHome2026View = ({
       <div className="ik-party-bg" aria-hidden="true" />
       <div className="ik-party-rays" aria-hidden="true" />
       <div className="ik-party-dots" aria-hidden="true" />
-      <div className={styles.bubbles} aria-hidden="true">
-        {Array.from({ length: 9 }, (_, index) => <i key={index} />)}
-      </div>
 
       <header className={styles.header}>
         <div className={styles.headerInner}>
@@ -355,6 +353,7 @@ export const InkHome2026View = ({
           </div>
         </form>
       </InkModal>
+      <InteractiveMenuBubbles active={!showJoin && !isPersonalHubOpen && !isSocialOpen} />
     </div>
   );
 };
