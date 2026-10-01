@@ -13,6 +13,7 @@ interface Props {
   playerName: string;
   players: { id: string; name: string }[];
   phase: string;
+  contextLabel?: string;
   children: (chat: { button: ReactNode; panel: ReactNode }) => ReactNode;
 }
 
@@ -31,7 +32,7 @@ function Message({ message, own, grouped, quiet }: { message: ChatMessage; own: 
 }
 
 /** One subscription lives across phases and collapse/expand. Never port the game itself. */
-export function ImitationChat({ lobbyId, playerId, playerName, players, phase, children }: Props) {
+export function ImitationChat({ lobbyId, playerId, playerName, players, phase, contextLabel = 'Un mot à la bande entre deux prises', children }: Props) {
   const { messages, allMessages, isLoading, isSending, sendMessage } = useLobbyChat(lobbyId, playerId, playerName);
   const [open, setOpen] = useState(false);
   const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 1599px)').matches);
@@ -112,7 +113,7 @@ export function ImitationChat({ lobbyId, playerId, playerName, players, phase, c
       <span className={styles.icon}><MessageCircle /></span><div><h2 id="imitation-chat-title">La discussion</h2><small>{players.length} joueur{players.length > 1 ? 's' : ''} dans la partie</small></div>
       <button type="button" onClick={() => changeOpen(false)} aria-label="Fermer le chat"><X /></button>
     </header>
-    <div className={styles.context}><span className={styles.liveDot} />{quiet ? <><Mic />Sons coupés pendant l’imitation</> : 'Un mot à la bande entre deux prises'}</div>
+    <div className={styles.context}><span className={styles.liveDot} />{quiet ? <><Mic />Sons coupés pendant l’imitation</> : contextLabel}</div>
     <div className={styles.body}>
       <div ref={scroll} hidden={!!picker} className={styles.messages} role="log" aria-label="Messages de la partie" aria-live="polite" aria-relevant="additions" aria-busy={isLoading} tabIndex={0} onScroll={event => {
         const el = event.currentTarget;

@@ -175,6 +175,7 @@ export const useQuizGame = (
   const [scores, setScores] = useState<QuizScore[]>([]);
   const [roundAnswers, setRoundAnswers] = useState<QuizAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [startError, setStartError] = useState<string | null>(null);
   const [answeredPlayers, setAnsweredPlayers] = useState<string[]>([]);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
@@ -533,7 +534,7 @@ export const useQuizGame = (
       if (!mountedRef.current || fetchSequenceRef.current !== sequence) return;
 
       if (!data) {
-        if (!currentRoundRowRef.current) clearRoundState();
+        if (!currentRoundRowRef.current && !startQuizLockRef.current) clearRoundState();
         return;
       }
 
@@ -556,13 +557,15 @@ export const useQuizGame = (
     if (!currentPlayer.isHost) return;
     const row = currentRoundRowRef.current;
     if (!row) return;
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('quiz_rounds')
       .update({ phase: 'reveal' })
       .eq('id', row.id)
-      .eq('phase', 'answering');
+      .eq('phase', 'answering')
+      .select('*').maybeSingle();
     if (error) console.warn('[Quiz] advanceToReveal failed:', error);
-  }, [currentPlayer.isHost]);
+    else if (data) handleRoundRow(data, false);
+  }, [currentPlayer.isHost, handleRoundRow]);
   advanceToRevealRef.current = advanceToReveal;
 
   useEffect(() => {
@@ -654,6 +657,18 @@ export const useQuizGame = (
     };
   }, [clearRoundState, currentPlayer.id, currentPlayer.isHost, fetchLatestRound, handleRoundRow, lobbyId]);
 
+  // Realtime is the fast path, not the only path: guests also recover a missed
+  // start/phase event. Never overlap reads or interrupt an in-flight host start.
+  useEffect(() => {
+    let pending = false;
+    const interval = setInterval(() => {
+      if (pending || startQuizLockRef.current || phaseRef.current === 'final' || document.hidden) return;
+      pending = true;
+      void fetchLatestRound().finally(() => { pending = false; });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [fetchLatestRound]);
+
   // The host starts a countdown from the row's server timestamp. Direct local
   // adoption means this no longer depends on receiving our own realtime INSERT.
   useEffect(() => {
@@ -673,13 +688,16 @@ export const useQuizGame = (
         .update({ phase: 'answering', started_at: startedAt })
         .eq('id', row.id)
         .eq('phase', 'countdown')
-        .then(({ error }) => {
+        .select('*')
+        .maybeSingle()
+        .then(({ data, error }) => {
           if (error) console.warn('[Quiz] Countdown transition failed:', error);
+          else if (data) handleRoundRow(data, false);
         });
     }, delay);
 
     return () => clearTimeout(timeout);
-  }, [currentPlayer.isHost, currentRoundId, phase]);
+  }, [currentPlayer.isHost, currentRoundId, handleRoundRow, phase]);
 
   // A second, later attempt keeps a temporary network failure from freezing the game.
   useEffect(() => {
@@ -691,10 +709,16 @@ export const useQuizGame = (
         .from('quiz_rounds')
         .update({ phase: 'answering', started_at: new Date().toISOString() })
         .eq('id', currentRoundId)
-        .eq('phase', 'countdown');
+        .eq('phase', 'countdown')
+        .select('*')
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error) console.warn('[Quiz] Countdown retry failed:', error);
+          else if (data) handleRoundRow(data, false);
+        });
     }, COUNTDOWN_MAX_MS);
     return () => clearTimeout(timeout);
-  }, [currentPlayer.isHost, currentRoundId, phase]);
+  }, [currentPlayer.isHost, currentRoundId, handleRoundRow, phase]);
 
   // Repair a malformed answering row rather than leaving every timer inert.
   useEffect(() => {
@@ -784,6 +808,7 @@ export const useQuizGame = (
         : category;
 
       const { data, error } = await supabase.functions.invoke('generate-quiz-question', {
+        timeout: 12000,
         body: {
           category: categoryToUse,
           difficulty: settings.difficulty !== 'mixed' ? settings.difficulty : undefined,
@@ -920,6 +945,7 @@ export const useQuizGame = (
       return true;
     } catch (error) {
       console.error('[Quiz] Round start failed:', error);
+      if (mountedRef.current) setStartError('La question n’a pas pu être chargée. Réessaie ; si le problème persiste, vérifie la connexion du salon.');
       return false;
     } finally {
       startRoundLockRef.current = false;
@@ -1025,13 +1051,15 @@ export const useQuizGame = (
     if (!currentPlayer.isHost) return;
     const row = currentRoundRowRef.current;
     if (!row) return;
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('quiz_rounds')
       .update({ phase: 'scores' })
       .eq('id', row.id)
-      .eq('phase', 'reveal');
+      .eq('phase', 'reveal')
+      .select('*').maybeSingle();
     if (error) console.warn('[Quiz] advanceToScores failed:', error);
-  }, [currentPlayer.isHost]);
+    else if (data) handleRoundRow(data, false);
+  }, [currentPlayer.isHost, handleRoundRow]);
   advanceToScoresRef.current = advanceToScores;
 
   const nextRound = useCallback(async () => {
@@ -1040,24 +1068,29 @@ export const useQuizGame = (
     if (!row) return;
 
     if (row.round_number >= totalRounds) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('quiz_rounds')
         .update({ phase: 'final' })
         .eq('id', row.id)
-        .eq('phase', 'scores');
+        .eq('phase', 'scores')
+        .select('*').maybeSingle();
       if (error) console.warn('[Quiz] Final transition failed:', error);
+      else if (data) handleRoundRow(data, false);
       return;
     }
 
     setHasAnswered(false);
     await startRound(categoryFilterRef.current, row.round_number + 1);
-  }, [currentPlayer.isHost, startRound, totalRounds]);
+  }, [currentPlayer.isHost, handleRoundRow, startRound, totalRounds]);
   nextRoundRef.current = nextRound;
 
   const startQuiz = useCallback(async (category = 'mixed') => {
     if (!currentPlayer.isHost || startQuizLockRef.current) return;
     startQuizLockRef.current = true;
     setIsLoading(true);
+    setStartError(null);
+    // Ignore snapshots requested before the host began creating this session.
+    fetchSequenceRef.current += 1;
 
     try {
       const deleteAnswers = await supabase.from('quiz_answers').delete().eq('lobby_id', lobbyId);
@@ -1090,12 +1123,16 @@ export const useQuizGame = (
         average_time_ms: 0,
       })));
 
-      await startRound(category, 1);
+      const started = await startRound(category, 1);
+      if (!started && mountedRef.current) {
+        setStartError('Le quiz n’a pas démarré. Tu peux réessayer sans quitter le salon.');
+      }
     } catch (error) {
       console.error('[Quiz] Quiz start failed:', error);
-      if (mountedRef.current) setIsLoading(false);
+      if (mountedRef.current) setStartError('Impossible de lancer le quiz. Vérifie ta connexion et réessaie.');
     } finally {
       startQuizLockRef.current = false;
+      if (mountedRef.current) setIsLoading(false);
     }
   }, [clearRoundState, currentPlayer.isHost, hostSettings, lobbyId, startRound]);
 
@@ -1153,6 +1190,7 @@ export const useQuizGame = (
     answeredPlayers,
     playersRemaining: Math.max(0, players.length - answeredPlayers.length),
     isLoading,
+    startError,
     currentStreak,
     bestStreak,
     roundInsight,

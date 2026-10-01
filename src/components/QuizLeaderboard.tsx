@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BubbleQuizScores } from './quiz/BubbleQuiz';
 import { motion } from 'framer-motion';
 import { AutoAdvanceBar } from './AutoAdvanceBar';
 import { Trophy, Medal, Star, TrendingUp, Zap, Flame, Timer, Crown } from 'lucide-react';
@@ -111,6 +112,8 @@ export const QuizLeaderboard = ({
 
   const isLastRound = roundNumber >= totalRounds;
   const unansweredCount = Math.max(0, sortedScores.length - roundAnswers.length);
+
+  if (isInkBeta) return <BubbleQuizScores scores={scores} currentPlayerId={currentPlayerId} roundNumber={roundNumber} totalRounds={totalRounds} onContinue={onNextRound} isHost={isHost}/>;
 
   const body = (
       <div className={isInkBeta ? 'ik-gpanel is-featured ik-quiz-leaderboard-panel' : 'relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5'}>

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { BubbleQuizReveal } from './quiz/BubbleQuiz';
 import { motion } from 'framer-motion';
 import { AutoAdvanceBar } from './AutoAdvanceBar';
 import { Check, X, Clock, Zap, HelpCircle } from 'lucide-react';
@@ -49,17 +50,16 @@ export const QuizReveal = ({
   const [showAnswers, setShowAnswers] = useState(false);
   const [revealedAnswers, setRevealedAnswers] = useState<number>(0);
 
-  const sortedAnswers = [...roundAnswers].sort((a, b) => {
+  const sortedAnswers = useMemo(() => [...roundAnswers].sort((a, b) => {
     if (b.points_earned !== a.points_earned) {
       return b.points_earned - a.points_earned;
     }
     return a.response_time_ms - b.response_time_ms;
-  });
+  }), [roundAnswers]);
 
   useEffect(() => {
     playSoundEffect('reveal', 0.5);
-    juice.flash('info', 220);
-    juice.shake(180, 0.6);
+    if (!isInkBeta) { juice.flash('info', 220); juice.shake(180, 0.6); }
 
     const timer1 = setTimeout(() => setShowAnswers(true), 700);
     const timer2 = setTimeout(() => juice.confetti({ count: 70 }), 700);
@@ -68,7 +68,7 @@ export const QuizReveal = ({
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, []);
+  }, [isInkBeta]);
 
   useEffect(() => {
     if (showAnswers && revealedAnswers < roundAnswers.length) {
@@ -81,9 +81,11 @@ export const QuizReveal = ({
       }, 180);
       return () => clearTimeout(timer);
     }
-  }, [showAnswers, revealedAnswers, roundAnswers.length]);
+  }, [showAnswers, revealedAnswers, roundAnswers.length, sortedAnswers]);
 
   const formatTime = (ms: number) => (ms / 1000).toFixed(2) + 's';
+
+  if (isInkBeta) return <BubbleQuizReveal question={question} correctAnswer={correctAnswer} roundAnswers={roundAnswers} isHost={isHost} onContinue={onContinue}/>;
 
   const body = (
       <div className={isInkBeta ? 'ik-gpanel is-featured ik-quiz-reveal-panel' : 'menu-screen-safe h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain'}>

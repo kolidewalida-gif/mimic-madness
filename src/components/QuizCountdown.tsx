@@ -4,6 +4,7 @@ import { Brain, Zap, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { BubbleQuizCountdown } from './quiz/BubbleQuiz';
 import {
   InkGameStage,
   InkPhasePill,
@@ -60,6 +61,8 @@ export const QuizCountdown = ({
   }, [count]);
 
   const numberColor = NUMBER_COLORS[count] || ACCENT;
+
+  if (isInkBeta) return <BubbleQuizCountdown count={count} roundNumber={roundNumber} totalRounds={totalRounds} category={category}/>;
 
   /*
    * En beta, la scène et la barre de marque viennent du parent : ce composant

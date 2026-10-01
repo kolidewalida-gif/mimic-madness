@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, Brain, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { QuizQuestion } from './QuizQuestion';
 import { QuizReveal } from './QuizReveal';
 import { QuizLeaderboard } from './QuizLeaderboard';
@@ -12,7 +12,8 @@ import { LobbyChat } from './LobbyChat';
 import { useQuizGame } from '@/hooks/useQuizGame';
 import { useInkMode } from '@/hooks/useInkMode';
 import { cn } from '@/lib/utils';
-import { InkBetaGameBadge, InkBetaGameStage } from '@/components/game-beta/InkBetaGameLayout';
+import { BubbleQuizStage } from './quiz/BubbleQuiz';
+import { ImitationChat } from './imitation/ImitationChat';
 
 interface Player {
   id: string;
@@ -58,6 +59,7 @@ export const QuizGameScreen = ({
     answeredPlayers,
     playersRemaining,
     isLoading,
+    startError,
     currentStreak,
     bestStreak,
     roundInsight,
@@ -172,28 +174,9 @@ export const QuizGameScreen = ({
       );
     }
 
-    return (
-      <InkBetaGameStage
-        titleId="ik-quiz-brand"
-        canvasClassName={canvasClassName}
-        badge={<InkBetaGameBadge label={label} step={step} icon={<Brain aria-hidden="true" />} />}
-        tools={(
-          <button
-            type="button"
-            onClick={handleLeave}
-            data-back
-            className="ik-tool ik-tool--leave menu-focus"
-            aria-label="Quitter le quiz"
-          >
-            <ArrowLeft aria-hidden="true" />
-            <span>Quitter</span>
-          </button>
-        )}
-      >
-        {content}
-        {chat}
-      </InkBetaGameStage>
-    );
+    return <ImitationChat lobbyId={lobbyId} playerId={currentPlayer.id} playerName={currentPlayer.name} players={players} phase={phase} contextLabel="Un mot à la bande entre deux questions">
+      {({ button, panel }) => <BubbleQuizStage phase={phase} round={currentRound} total={totalRounds} onLeave={handleLeave} tools={button} chat={panel}>{content}</BubbleQuizStage>}
+    </ImitationChat>;
   };
 
   if (phase === 'waiting') {
@@ -204,6 +187,7 @@ export const QuizGameScreen = ({
         variant={variant}
         isHost={currentPlayer.isHost}
         isLoading={isLoading}
+        error={startError}
         totalRounds={totalRounds}
         players={players}
         currentPlayerId={currentPlayer.id}

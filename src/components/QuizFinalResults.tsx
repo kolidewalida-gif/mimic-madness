@@ -11,6 +11,7 @@ import { usePlayerLevel, XP_REWARDS } from '@/hooks/usePlayerLevel';
 import { DoodleConfetti, DoodleStage } from '@/components/doodle/Doodle';
 import { InkButton, GRAFFITI_TEXT_SHADOW, GRAFFITI_TEXT_SHADOW_SM } from '@/components/ink/InkPrimitives';
 import { PodiumAd } from '@/components/PodiumAd';
+import { BubbleQuizScores } from './quiz/BubbleQuiz';
 
 interface QuizScore {
   player_id: string;
@@ -59,8 +60,10 @@ export const QuizFinalResults = ({
   useEffect(() => {
     playSoundEffect('celebration', 0.6);
     juice.confetti({ count: 160 });
-    juice.flash('primary', 360);
-    juice.shake(280, 0.9);
+    if (!isInkBeta) {
+      juice.flash('primary', 360);
+      juice.shake(280, 0.9);
+    }
     const wave = setTimeout(() => juice.confetti({ count: 90 }), 800);
     const wave2 = setTimeout(() => juice.confetti({ count: 70 }), 1600);
 
@@ -100,11 +103,13 @@ export const QuizFinalResults = ({
       clearTimeout(wave);
       clearTimeout(wave2);
     };
-  }, [addXp, currentPlayerId, sortedScores]);
+  }, [addXp, currentPlayerId, sortedScores, isInkBeta]);
 
   // podium display order: 2nd, 1st, 3rd
   const podiumOrder = [1, 0, 2];
   const podiumHeights = ['h-20', 'h-28', 'h-16'];
+
+  if (isInkBeta) return <><BubbleQuizScores scores={scores} currentPlayerId={currentPlayerId} final onContinue={onEndGame}/><PodiumAd gameMode="quiz" instanceKey={instanceKey}/></>;
 
   const body = (
       <div className={isInkBeta ? 'ik-gpanel is-featured ik-quiz-final-panel' : 'relative z-10 min-h-screen flex flex-col items-center justify-center p-5 pb-[120px] gap-5'}>

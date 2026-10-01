@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Check, Send, Zap, Brain, Timer, AlertTriangle, Flame, Trophy } from 'lucide-react';
@@ -7,6 +7,7 @@ import { QuizLiveScoreboard } from './QuizLiveScoreboard';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { QuizJokers, type JokersState } from './QuizJokers';
 import { DoodleStage } from '@/components/doodle/Doodle';
+import { BubbleQuizQuestion, BubbleQuizJokers } from './quiz/BubbleQuiz';
 
 interface Player {
   id: string;
@@ -117,6 +118,13 @@ export const QuizQuestion = ({
   const isCritical = timeRemaining <= 3000;
   const seconds = Math.ceil(timeRemaining / 1000);
 
+  const handleSelectOption = useCallback((option: string) => {
+    if (hasAnswered || timeRemaining <= 0) return;
+    setSelectedOption(option);
+    playSoundEffect('click', 0.4);
+    onSubmitAnswer(option);
+  }, [hasAnswered, timeRemaining, onSubmitAnswer]);
+
   useEffect(() => {
     if (questionType === 'text' && inputRef.current && !hasAnswered) {
       inputRef.current.focus();
@@ -124,7 +132,7 @@ export const QuizQuestion = ({
   }, [questionType, hasAnswered]);
 
   useEffect(() => {
-    if (questionType !== 'qcm' || hasAnswered || options.length === 0) {
+    if (questionType !== 'qcm' || hasAnswered || timeRemaining <= 0 || options.length === 0) {
       return;
     }
 
@@ -161,7 +169,7 @@ export const QuizQuestion = ({
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [questionType, hasAnswered, options, hiddenOptions]);
+  }, [questionType, hasAnswered, options, hiddenOptions, timeRemaining, handleSelectOption]);
 
   // Play tick sound when urgent
   useEffect(() => {
@@ -170,21 +178,16 @@ export const QuizQuestion = ({
     }
   }, [seconds, isUrgent, hasAnswered]);
 
-  const handleSelectOption = (option: string) => {
-    if (hasAnswered) return;
-    setSelectedOption(option);
-    playSoundEffect('click', 0.4);
-    onSubmitAnswer(option);
-  };
-
   const handleTextSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (hasAnswered || !textAnswer.trim()) return;
+    if (hasAnswered || timeRemaining <= 0 || !textAnswer.trim()) return;
     playSoundEffect('click', 0.4);
     onSubmitAnswer(textAnswer.trim());
   };
 
   const diffConfig = difficultyConfig[difficulty] || difficultyConfig.medium;
+
+  if (isInkBeta) return <BubbleQuizQuestion question={question} options={options} questionType={questionType} category={category} difficulty={difficulty} roundNumber={roundNumber} totalRounds={totalRounds} timeRemaining={timeRemaining} totalTime={totalTime} hasAnswered={hasAnswered} answeredPlayers={answeredPlayers} players={players} scores={scores} currentPlayerId={currentPlayerId} hiddenOptions={hiddenOptions} currentStreak={currentStreak} selected={selectedOption} text={textAnswer} onText={setTextAnswer} onSelect={handleSelectOption} onSubmit={handleTextSubmit} inputRef={inputRef} jokers={jokers && <BubbleQuizJokers fifty={jokers.fiftyFifty} freeze={jokers.freeze} skip={jokers.skip} onFifty={()=>onFiftyFifty?.()} onFreeze={()=>onFreeze?.()} onSkip={()=>onSkip?.()} disabled={hasAnswered||timeRemaining<=0} allowFifty={questionType==='qcm'&&hiddenOptions.length===0}/>}/>;
 
   /*
    * Rendu beta : deux panneaux, le classement à gauche et la question à droite.

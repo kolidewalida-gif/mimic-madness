@@ -9,11 +9,13 @@ import {
   ArrowLeft,
   Crown,
   Settings as SettingsIcon,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuizCategorySelector } from './QuizCategorySelector';
 import { QuizSettingsPanel, type QuizSettings } from './QuizSettingsPanel';
 import { useMultiplePlayerAvatars } from '@/hooks/useGlobalPlayerAvatar';
+import { BubbleQuizWaiting } from './quiz/BubbleQuiz';
 
 interface Player {
   id: string;
@@ -34,6 +36,7 @@ interface QuizWaitingScreenProps {
   onStart: () => void;
   onLeave: () => void;
   variant?: 'default' | 'inkBeta';
+  error?: string | null;
 }
 
 const ACCENT = '#84cc16'; // green/lime — matches the QUIZ card color
@@ -56,10 +59,13 @@ export const QuizWaitingScreen = memo(
     onStart,
     onLeave,
     variant = 'default',
+    error,
   }: QuizWaitingScreenProps) => {
     const isInkBeta = variant === 'inkBeta';
     const playerIds = useMemo(() => players.map((p) => p.id), [players]);
     const { getAvatar } = useMultiplePlayerAvatars(playerIds);
+
+    if (isInkBeta) return <BubbleQuizWaiting isHost={isHost} isLoading={isLoading} players={players} currentPlayerId={currentPlayerId} selectedCategory={selectedCategory} onCategoryChange={onCategoryChange} hostSettings={hostSettings} onSettingsChange={onSettingsChange} onStart={onStart} error={error}/>;
 
     return (
       <div
@@ -435,7 +441,7 @@ const InkBetaSection = ({
   children,
   isInkBeta = false,
 }: {
-  icon: any;
+  icon: LucideIcon;
   title: string;
   accent: string;
   children: React.ReactNode;
