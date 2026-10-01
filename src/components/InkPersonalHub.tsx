@@ -1,11 +1,8 @@
-import { memo, useCallback, useEffect, useMemo, useState, type CSSProperties, type ElementType } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, type CSSProperties, type ElementType } from 'react';
 import {
-  Award,
   Bell,
   CheckCheck,
   ChevronRight,
-  Crown,
-  Gift,
   Mail,
   MessageCircle,
   Palette,
@@ -20,30 +17,23 @@ import {
   X,
 } from 'lucide-react';
 
-import { AchievementsPanel } from '@/components/AchievementsPanel';
 import { DeviceSettings } from '@/components/DeviceSettings';
 import { FriendsMessenger } from '@/components/messaging/FriendsMessenger';
 import messengerStyles from '@/components/messaging/Messenger.module.css';
 import { InkProfileSidebar } from '@/components/InkProfileSidebar';
-import { InkQuestsPanel } from '@/components/InkQuestsPanel';
-import { RewardsPanel } from '@/components/RewardsPanel';
-import { TitleSelector } from '@/components/TitleSelector';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { InkModal } from '@/components/menu/InkOverlay';
-import { useAuth } from '@/hooks/useAuth';
-import { useEquippedTitle } from '@/hooks/useEquippedTitle';
-import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
 import {
   useNotificationCenter,
   type CenterNotification,
   type NotifType,
 } from '@/hooks/useNotificationCenter';
-import { LEVEL_REWARDS, usePlayerLevel } from '@/hooks/usePlayerLevel';
-import { usePlayerLoadout } from '@/hooks/usePlayerLoadout';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 import type { PersonalHubTab } from '@/components/personal-hub/types';
 import bubbleHub from '@/components/settings/BubbleHub.module.css';
+import { BubbleProfilePage } from '@/components/personal-hub/BubblePlayerUI';
+import { BubbleProgress } from '@/components/personal-hub/BubbleProgress';
+import { BubbleAppearance } from '@/components/personal-hub/BubbleAppearance';
 
 interface InkPersonalHubProps {
   isOpen: boolean;
@@ -113,143 +103,9 @@ const HubSectionHeading = ({ eyebrow, title, copy }: { eyebrow: string; title: s
 
 const HubProfile = ({ onNavigate }: { onNavigate: (tab: PersonalHubTab) => void }) => (
   <div className="ik-hub-page ik-hub-profile-page">
-    <HubSectionHeading eyebrow="Identité" title="Ton espace joueur" copy="Ton profil, ton rythme et les raccourcis utiles réunis dans un tableau de bord sans détour." />
-    <div className="ik-hub-profile-layout">
-      <div className="ik-hub-profile-main">
-        <InkProfileSidebar variant="hub" />
-      </div>
-      <aside className="ik-hub-shortcuts" aria-label="Raccourcis de mon espace">
-        <div className="ik-hub-shortcuts-heading">
-          <span className="ik-hub-kicker">Actions rapides</span>
-          <p>Continue exactement là où tu en as besoin.</p>
-        </div>
-        {[
-          { tab: 'appearance' as const, icon: Crown, title: 'Composer mon style', copy: 'Titre, avatar et équipement', accent: '#b497ff' },
-          { tab: 'progress' as const, icon: Trophy, title: 'Continuer mon parcours', copy: 'Quêtes, succès et récompenses', accent: '#ffd34e' },
-          { tab: 'friends' as const, icon: UsersRound, title: 'Retrouver ma troupe', copy: 'Messages, demandes et parties', accent: '#65edb5' },
-        ].map(({ tab, icon: Icon, title, copy, accent }) => (
-          <button key={tab} type="button" className="ik-hub-shortcut menu-focus" onClick={() => onNavigate(tab)} style={{ '--hub-item-accent': accent } as CSSProperties}>
-            <span><Icon aria-hidden="true" /></span>
-            <span><strong>{title}</strong><small>{copy}</small></span>
-            <ChevronRight aria-hidden="true" />
-          </button>
-        ))}
-      </aside>
-    </div>
+    <BubbleProfilePage onNavigate={onNavigate}><InkProfileSidebar variant="hub" /></BubbleProfilePage>
   </div>
 );
-
-type ProgressView = 'quests' | 'achievements' | 'rewards';
-
-const HubProgress = () => {
-  const [view, setView] = useState<ProgressView>('quests');
-  const views: { id: ProgressView; label: string; copy: string; icon: ElementType }[] = [
-    { id: 'quests', label: 'Quêtes', copy: 'Objectifs actifs', icon: Sparkles },
-    { id: 'achievements', label: 'Succès', copy: 'Badges gagnés', icon: Award },
-    { id: 'rewards', label: 'Récompenses', copy: 'Gains de niveau', icon: Gift },
-  ];
-
-  return (
-    <div className="ik-hub-page ik-hub-progress-page">
-      <HubSectionHeading eyebrow="Progression" title="Continue sur ta lancée" copy="Un parcours clair : réalise tes quêtes, décroche des succès et vois ce que chaque niveau débloque." />
-      <div className="ik-hub-subnav" role="tablist" aria-label="Sections de progression">
-        {views.map(({ id, label, copy, icon: Icon }) => {
-          const active = view === id;
-          return (
-            <button
-              key={id}
-              id={`ik-progress-tab-${id}`}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              aria-controls={`ik-progress-panel-${id}`}
-              className={cn('ik-hub-subnav-item menu-focus', active && 'is-active')}
-              onClick={() => { playInkSound('cartoonPop', 0.25); setView(id); }}
-            >
-              <Icon aria-hidden="true" />
-              <span><strong>{label}</strong><small>{copy}</small></span>
-            </button>
-          );
-        })}
-      </div>
-      <section
-        id={`ik-progress-panel-${view}`}
-        className="ik-hub-embedded-panel"
-        role="tabpanel"
-        aria-labelledby={`ik-progress-tab-${view}`}
-      >
-        {view === 'quests' && <InkQuestsPanel />}
-        {view === 'achievements' && <AchievementsPanel embedded />}
-        {view === 'rewards' && <RewardsPanel embedded />}
-      </section>
-    </div>
-  );
-};
-
-const FRAME_LABELS = {
-  none: 'Cadre standard',
-  bronze: 'Cadre bronze',
-  silver: 'Cadre argent',
-  gold: 'Cadre or',
-} as const;
-
-const EFFECT_LABELS = {
-  none: 'Aucun effet',
-  sparkle: 'Étincelles',
-  glow: 'Halo lumineux',
-} as const;
-
-const HubAppearance = ({ playerId, playerName }: { playerId?: string; playerName?: string }) => {
-  const { user, profile } = useAuth();
-  const { level, isRewardUnlocked } = usePlayerLevel();
-  const { equippedTitle } = useEquippedTitle();
-  const { frameTier, effectTier, featuredBadge, prestigeScore } = usePlayerLoadout(user?.id || playerId);
-  const { avatarData } = useGlobalPlayerAvatar(user?.id || playerId || '');
-  const avatarUrl = avatarData.type === 'image' && avatarData.imageUrl
-    ? avatarData.imageUrl
-    : profile?.avatar_url || undefined;
-  const displayName = profile?.display_name || playerName || 'Joueur';
-  const unlockedCosmetics = useMemo(
-    () => LEVEL_REWARDS.filter((reward) => reward.type !== 'title' && isRewardUnlocked(reward.id)),
-    [isRewardUnlocked],
-  );
-
-  return (
-    <div className="ik-hub-page ik-hub-appearance-page">
-      <HubSectionHeading eyebrow="Apparence" title="Ton identité en jeu" copy="Le titre est ton choix. Les cadres, badges et effets apparaissent automatiquement avec ta progression." />
-      <div className="ik-hub-appearance-layout">
-        <aside className="ik-hub-look-preview">
-          <span className="ik-hub-kicker">Aperçu actuel</span>
-          <Avatar className="ik-hub-look-avatar">
-            <AvatarImage src={avatarUrl} alt={`Avatar de ${displayName}`} />
-            <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <h4>{displayName}</h4>
-          <span className="ik-hub-level-pill">Niveau {level}</span>
-          <div className="ik-hub-title-preview">
-            <Crown aria-hidden="true" />
-            <span><small>Titre équipé</small><strong>{equippedTitle?.name || 'Aucun titre'}</strong></span>
-          </div>
-          <div className="ik-hub-auto-loadout">
-            <div className="ik-hub-loadout-heading">
-              <span><Sparkles aria-hidden="true" /><strong>{unlockedCosmetics.length}</strong></span>
-              <p>éléments visuels débloqués · équipement automatique</p>
-            </div>
-            <dl className="ik-hub-loadout-grid">
-              <div><dt>Cadre actif</dt><dd>{FRAME_LABELS[frameTier]}</dd></div>
-              <div><dt>Effet actif</dt><dd>{EFFECT_LABELS[effectTier]}</dd></div>
-              <div><dt>Badge vedette</dt><dd>{featuredBadge?.name || 'À débloquer'}</dd></div>
-              <div><dt>Prestige</dt><dd>{prestigeScore} pts</dd></div>
-            </dl>
-          </div>
-        </aside>
-        <section className="ik-hub-embedded-panel ik-hub-title-panel">
-          <TitleSelector embedded />
-        </section>
-      </div>
-    </div>
-  );
-};
 
 const HubNotifications = ({
   items,
@@ -328,8 +184,15 @@ const InkPersonalHubComponent = ({
   playerName,
 }: InkPersonalHubProps) => {
   const notifications = useNotificationCenter();
+  const contentRef = useRef<HTMLElement>(null);
   const activeItem = NAV_ITEMS.find((item) => item.id === activeTab) ?? NAV_ITEMS[0];
   const ActiveIcon = activeItem.icon;
+
+  // Each destination starts at its heading, not halfway down the previous page.
+  // Run before paint so switching sections doesn't show a scroll jump.
+  useLayoutEffect(() => {
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  }, [activeTab, isOpen]);
 
   useEffect(() => {
     onUnreadCountChange?.(notifications.unreadCount);
@@ -400,7 +263,7 @@ const InkPersonalHubComponent = ({
           })}
         </nav>
 
-        <main className="ik-hub-content custom-scrollbar">
+        <main ref={contentRef} className="ik-hub-content custom-scrollbar">
           {activeTab === 'profile' && <HubProfile onNavigate={navigate} />}
           {activeTab === 'friends' && (
             <div className={`ik-hub-page ik-hub-friends-page ${messengerStyles.page}`}>
@@ -408,8 +271,8 @@ const InkPersonalHubComponent = ({
               <FriendsMessenger currentLobbyCode={currentLobbyCode} onJoinFriend={onJoinLobby} onAcceptGameInvitation={onAcceptInvitation} onDeclineGameInvitation={onDeclineInvitation} />
             </div>
           )}
-          {activeTab === 'progress' && <HubProgress />}
-          {activeTab === 'appearance' && <HubAppearance playerId={playerId} playerName={playerName} />}
+          {activeTab === 'progress' && <div className="ik-hub-page ik-hub-progress-page"><BubbleProgress /></div>}
+          {activeTab === 'appearance' && <div className="ik-hub-page ik-hub-appearance-page"><BubbleAppearance playerId={playerId} playerName={playerName} /></div>}
           {activeTab === 'notifications' && <HubNotifications {...notifications} onNavigate={navigate} onOpenSocial={openSocial} />}
           {activeTab === 'settings' && (
             <div className="ik-hub-page ik-hub-settings-page">

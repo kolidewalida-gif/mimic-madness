@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useRef, type CSSProperties } from 'react';
+import { memo, useState, useEffect, useRef, type CSSProperties, type ElementType } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   User,
@@ -23,6 +23,8 @@ import { rarityStyle } from '@/lib/rarity';
 import { useGlobalPlayerAvatar } from '@/hooks/useGlobalPlayerAvatar';
 import { cn } from '@/lib/utils';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
+import { BubbleProfileDashboard, Empty, Orb } from '@/components/personal-hub/BubblePlayerUI';
+import bubblePlayer from '@/components/personal-hub/BubblePlayer.module.css';
 
 const GRAFFITI_TEXT_SHADOW =
   'none';
@@ -157,6 +159,7 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
      NOT CONNECTED
   ========================================================= */
   if (!user && !isLoading) {
+    if (variant === 'hub') return <div className={bubblePlayer.page}><section className={`${bubblePlayer.card} ${bubblePlayer.empty}`}><Orb icon={User} tone="mint" /><h3>Garde une place pour tes exploits.</h3><p className={bubblePlayer.note}>Connecte-toi pour retrouver ton profil, ta collection et tes amis à chaque partie.</p><button type="button" className={bubblePlayer.button} onClick={() => void signInWithGoogle()}><LogIn aria-hidden="true" />Connexion Google</button></section></div>;
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -223,6 +226,7 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
      LOADING
   ========================================================= */
   if (isLoading) {
+    if (variant === 'hub') return <div className={bubblePlayer.page} role="status"><Empty title="On prépare ta bulle…" copy="Ton profil arrive dans un instant." /></div>;
     return (
       <div
         className="ink-profile-sidebar ink-profile-sidebar--loading w-full rounded-3xl overflow-hidden"
@@ -250,28 +254,9 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
      CONNECTED — HUB DASHBOARD
   ========================================================= */
   if (variant === 'hub') {
-    const performanceStats = [
-      { icon: Gamepad2, label: 'Parties jouées', value: stats?.games_played || 0, color: '#66d9ff' },
-      { icon: Trophy, label: 'Victoires', value: stats?.games_won || 0, color: '#ffd45f' },
-      { icon: Flame, label: 'Série actuelle', value: stats?.current_streak || 0, color: '#ff7c9f' },
-      { icon: Target, label: 'Meilleure série', value: stats?.best_streak || 0, color: '#65e6bd' },
-    ];
-
-    return (
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="ink-profile-sidebar ink-profile-dashboard"
-        aria-label="Tableau de bord du profil"
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp"
-          onChange={handleAvatarUpload}
-          className="hidden"
-        />
-
+    return <>
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleAvatarUpload} className="hidden" />
+      <BubbleProfileDashboard stats={stats} identity={
         <section className="ink-profile-dashboard-identity" aria-labelledby="ink-profile-display-name">
           <div className="ink-profile-dashboard-avatar-wrap">
             <Avatar className="ink-profile-dashboard-avatar">
@@ -378,40 +363,8 @@ const InkProfileSidebarComponent = ({ variant = 'default' }: InkProfileSidebarPr
             <span>Déconnexion</span>
           </button>
         </section>
-
-        <div className="ink-profile-dashboard-performance">
-          <article className="ink-profile-score-card">
-            <div
-              className="ink-profile-score-ring"
-              style={{ background: `conic-gradient(#ff6fa8 ${winRate * 3.6}deg, rgba(255,255,255,0.07) 0deg)` }}
-              role="img"
-              aria-label={`Taux de victoire : ${winRate}%`}
-            >
-              <span><strong>{winRate}%</strong><small>victoires</small></span>
-            </div>
-            <div>
-              <span>Performance</span>
-              <h5>{winRate >= 60 ? 'En pleine forme' : winRate >= 35 ? 'Belle progression' : 'La série commence ici'}</h5>
-              <p>{stats?.games_played ? `${stats.games_won || 0} victoire${(stats.games_won || 0) > 1 ? 's' : ''} sur ${stats.games_played} partie${stats.games_played > 1 ? 's' : ''}.` : 'Joue ta première partie pour lancer tes statistiques.'}</p>
-            </div>
-          </article>
-
-          <section className="ink-profile-level-overview" aria-label="Progression de niveau">
-            <header><span>Progression</span><strong>Prochain palier</strong></header>
-            <LevelProgressBar />
-          </section>
-        </div>
-
-        <div className="ink-profile-metric-grid" aria-label="Statistiques de jeu">
-          {performanceStats.map(({ icon: Icon, label, value, color }) => (
-            <article key={label} className="ink-profile-metric" style={{ '--profile-metric-color': color } as CSSProperties}>
-              <span><Icon aria-hidden="true" /></span>
-              <div><strong>{value}</strong><small>{label}</small></div>
-            </article>
-          ))}
-        </div>
-      </motion.section>
-    );
+      } />
+    </>;
   }
 
   /* =========================================================
@@ -766,7 +719,7 @@ const InkStatCard = ({
   glow,
   tilt = 0,
 }: {
-  icon: any;
+  icon: ElementType;
   label: string;
   value: number;
   color: string;
