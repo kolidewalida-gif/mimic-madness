@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Loader2, Mic, RotateCcw, TriangleAlert } from 'lucide-react';
 import { MIMIC, MIMIC_SPECTRUM, mglow } from './mimicTheme';
+import { createMicrophoneAudioContext, microphoneConstraints } from '@/lib/microphoneCapture';
 
 type MicState = 'idle' | 'requesting' | 'listening' | 'ready' | 'error';
 
@@ -35,10 +36,10 @@ export const MimicMicCheck = ({ onReadyChange }: MimicMicCheckProps) => {
     heardAtRef.current = null;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: microphoneConstraints(),
         video: false,
       });
-      const context = new AudioContext();
+      const context = createMicrophoneAudioContext();
       const analyser = context.createAnalyser();
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.75;

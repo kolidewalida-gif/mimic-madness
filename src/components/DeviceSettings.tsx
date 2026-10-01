@@ -86,10 +86,10 @@ const AudioSettings = () => {
           </div>
           {devices.error && <p className={styles.error} role="alert">{devices.error}</p>}
           <div className={styles.filterHeading}><ShieldCheck aria-hidden="true" /><strong>Moins de bruit, plus de toi.</strong></div>
-          <BubbleToggle label="Filtre du navigateur" copy="Atténue les petits bruits pendant le test micro."
+          <BubbleToggle label="Filtre du navigateur" copy="Atténue le bruit pendant le test et les enregistrements."
             enabled={test.noiseSuppressionEnabled} onClick={test.toggleNoiseSuppression} />
-          <BubbleToggle label="Isolation avancée" copy={noise.error ? 'Indisponible sur cet appareil.' : !noise.isReady ? 'Préparation du filtre…' : 'RNNoise · traitement local, sans envoi de ta voix.'}
-            enabled={noise.isEnabled} disabled={!noise.isReady || !!noise.error} onClick={noise.toggle} icon={Sparkles} />
+          <BubbleToggle label="Isolation avancée" copy={noise.error ? 'Indisponible sur cet appareil.' : !noise.isReady ? 'Préparation du filtre…' : 'Option pour les pièces bruyantes · désactive-la si ta voix est trop atténuée.'}
+            enabled={noise.isEnabled} disabled={!noise.isReady || !!noise.error} onClick={() => { test.stopTest(); noise.toggle(); }} icon={Sparkles} />
         </section>
       </div>
     </div>

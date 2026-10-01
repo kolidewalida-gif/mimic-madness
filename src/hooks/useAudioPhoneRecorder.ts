@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { processStreamWithNoiseReduction } from '@/hooks/useNoiseReduction';
+import { createMicrophoneAudioContext, microphoneConstraints, microphoneRecorderOptions } from '@/lib/microphoneCapture';
 
 type RecorderStatus = 'idle' | 'starting' | 'recording' | 'stopping';
 
@@ -15,6 +16,7 @@ interface RecordingSession {
   chunks: Blob[];
   timerRaf: number | null;
   meterRaf: number | null;
+  deadline: ReturnType<typeof setTimeout> | null;
   startedAt: number;
   released: boolean;
 }
@@ -38,15 +40,6 @@ const stopStreamTracks = (...streams: Array<MediaStream | null | undefined>) => 
   }
 };
 
-const chooseMimeType = () => {
-  const candidates = [
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/mp4',
-    'audio/ogg',
-  ];
-  return candidates.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) ?? '';
-};
 
 /**
  * Owns one Audio Phone microphone take from permission request to preview.
@@ -78,6 +71,7 @@ export const useAudioPhoneRecorder = ({
   ), []);
 
   const cancelSessionRafs = useCallback((session: RecordingSession) => {
+    if (session.deadline !== null) { clearTimeout(session.deadline); session.deadline = null; }
     if (session.timerRaf !== null) {
       cancelAnimationFrame(session.timerRaf);
       session.timerRaf = null;
@@ -220,6 +214,7 @@ export const useAudioPhoneRecorder = ({
       chunks: [],
       timerRaf: null,
       meterRaf: null,
+      deadline: null,
       startedAt: 0,
       released: false,
     };
@@ -227,7 +222,7 @@ export const useAudioPhoneRecorder = ({
     if (mountedRef.current) setStatus('starting');
 
     try {
-      const mediaRequest = navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRequest = navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() });
       // `getUserMedia` cannot be aborted everywhere. Stop a stream that arrives
       // after a phrase change or unmount before it can light the microphone.
       void mediaRequest.then(
@@ -259,7 +254,7 @@ export const useAudioPhoneRecorder = ({
       session.processedStream = processed.stream;
       session.noiseReductionCleanup = processed.cleanup;
 
-      const audioContext = new AudioContext();
+      const audioContext = createMicrophoneAudioContext();
       session.audioContext = audioContext;
       const source = audioContext.createMediaStreamSource(processed.stream);
       const analyser = audioContext.createAnalyser();
@@ -268,10 +263,9 @@ export const useAudioPhoneRecorder = ({
       session.source = source;
       session.analyser = analyser;
 
-      const selectedMimeType = chooseMimeType();
-      const recorder = new MediaRecorder(processed.stream, {
-        mimeType: selectedMimeType || undefined,
-      });
+      const options = microphoneRecorderOptions();
+      const selectedMimeType = options.mimeType;
+      const recorder = new MediaRecorder(processed.stream, options);
       session.recorder = recorder;
 
       recorder.ondataavailable = (event) => {
@@ -316,6 +310,9 @@ export const useAudioPhoneRecorder = ({
       setAudioLevel(0);
       setStatus('recording');
       session.startedAt = performance.now();
+      // RAF can stop in a background tab; the recording still needs a deadline.
+      session.deadline = setTimeout(() => requestStop(session), maxSeconds * 1000);
+      let lastClock = -Infinity;
 
       const tick = () => {
         if (!isSessionActive(session) || recorder.state !== 'recording') {
@@ -323,7 +320,7 @@ export const useAudioPhoneRecorder = ({
           return;
         }
         const elapsed = (performance.now() - session.startedAt) / 1000;
-        setRecordingTime(Math.min(elapsed, maxSeconds));
+        if (elapsed - lastClock >= .1) { lastClock = elapsed; setRecordingTime(Math.min(elapsed, maxSeconds)); }
         if (elapsed >= maxSeconds) {
           requestStop(session);
           return;
@@ -332,15 +329,20 @@ export const useAudioPhoneRecorder = ({
       };
       session.timerRaf = requestAnimationFrame(tick);
 
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      let lastMeter = 0;
       const updateLevel = () => {
         if (!isSessionActive(session) || recorder.state !== 'recording' || !session.analyser) {
           session.meterRaf = null;
           return;
         }
-        const data = new Uint8Array(session.analyser.frequencyBinCount);
-        session.analyser.getByteFrequencyData(data);
-        const average = data.reduce((sum, value) => sum + value, 0) / data.length;
-        setAudioLevel(average / 255);
+        const now = performance.now();
+        if (now - lastMeter >= 50) {
+          lastMeter = now;
+          session.analyser.getByteFrequencyData(data);
+          const average = data.reduce((sum, value) => sum + value, 0) / data.length;
+          setAudioLevel(average / 255);
+        }
         session.meterRaf = requestAnimationFrame(updateLevel);
       };
       session.meterRaf = requestAnimationFrame(updateLevel);

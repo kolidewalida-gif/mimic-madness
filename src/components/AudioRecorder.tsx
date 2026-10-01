@@ -25,6 +25,8 @@ import { diagnose } from "@/lib/diagnostics";
 import { cn } from "@/lib/utils";
 import { bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
 import recorderBubble from '@/components/imitation/BubbleRecorder.module.css';
+import { createMicrophoneAudioContext, microphoneConstraints, microphoneRecorderOptions } from '@/lib/microphoneCapture';
+import { processStreamWithNoiseReduction } from '@/hooks/useNoiseReduction';
 
 /**
  * Trim leading silence from an audio blob. Decodes to PCM, finds the first
@@ -375,6 +377,10 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   const activeSessionRef = useRef<RecordingSession | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const rawStreamRef = useRef<MediaStream | null>(null);
+  const cleanStreamRef = useRef<MediaStream | null>(null);
+  const noiseCleanupRef = useRef<(() => void) | null>(null);
+  const meterBufferRef = useRef<Uint8Array<ArrayBuffer>>(new Uint8Array(128));
+  const meterTimeRef = useRef(0);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const filterDisposeRef = useRef<(() => void) | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -468,12 +474,14 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
 
     const filtered = recordingStreamRef.current;
     recordingStreamRef.current = null;
-    if (filtered && filtered !== rawStreamRef.current) {
+    if (filtered && filtered !== rawStreamRef.current && filtered !== cleanStreamRef.current) {
       stopStreamTracks(filtered);
     }
   }, []);
 
   const releaseAudioResources = useCallback((recorder?: MediaRecorder | null) => {
+    noiseCleanupRef.current?.();
+    noiseCleanupRef.current = null;
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -489,10 +497,12 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
 
     stopStreamTracks(
       rawStreamRef.current,
+      cleanStreamRef.current,
       recordingStreamRef.current,
       recorder?.stream,
     );
     rawStreamRef.current = null;
+    cleanStreamRef.current = null;
     recordingStreamRef.current = null;
     analyserRef.current = null;
 
@@ -546,10 +556,14 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
       return;
     }
 
-    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-    analyserRef.current.getByteFrequencyData(dataArray);
-    const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-    setAudioLevel(Math.min(100, (average / 255) * 100));
+    const now = performance.now();
+    if (now - meterTimeRef.current >= 50) {
+      meterTimeRef.current = now;
+      const dataArray = meterBufferRef.current;
+      analyserRef.current.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+      setAudioLevel(Math.min(100, (average / 255) * 100));
+    }
     animationFrameRef.current = requestAnimationFrame(() => updateAudioLevel(session, recorder));
   };
 
@@ -564,11 +578,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
 
     try {
       const mediaRequest = navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
+        audio: microphoneConstraints(),
       });
       void mediaRequest.then(
         (lateStream) => {
@@ -598,15 +608,22 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
         return;
       }
       rawStreamRef.current = mediaStream;
-
-      const audioContext = new AudioContext();
+      const processed = await processStreamWithNoiseReduction(mediaStream, { signal: session.controller.signal });
+      if (!isSessionActive(session)) {
+        processed.cleanup();
+        stopStreamTracks(mediaStream, processed.stream);
+        return;
+      }
+      cleanStreamRef.current = processed.stream;
+      noiseCleanupRef.current = processed.cleanup;
+      const audioContext = createMicrophoneAudioContext();
       audioContextRef.current = audioContext;
       const analyser = audioContext.createAnalyser();
       analyserRef.current = analyser;
-      audioContext.createMediaStreamSource(mediaStream).connect(analyser);
+      audioContext.createMediaStreamSource(processed.stream).connect(analyser);
       analyser.fftSize = 256;
 
-      startSegment(session, mediaStream, selectedFilters);
+      startSegment(session, processed.stream, selectedFilters);
     } catch (error: unknown) {
       clearGetUserMediaTimeout();
       if (!isSessionActive(session)) return;
@@ -666,10 +683,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
       filterDisposeRef.current = filtered.dispose;
       recordingStreamRef.current = filtered.stream;
 
-      let options: MediaRecorderOptions = { mimeType: 'audio/webm;codecs=opus' };
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'audio/webm' };
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'audio/ogg;codecs=opus' };
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) options = {};
+      const options = microphoneRecorderOptions();
 
       const recorder = new MediaRecorder(filtered.stream, options);
       const chunks: Blob[] = [];
@@ -872,7 +886,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   /** Ouvre un nouveau segment, avec la voix choisie entre-temps. */
   const resumeRecording = () => {
     const session = activeSessionRef.current;
-    const mediaStream = rawStreamRef.current;
+    const mediaStream = cleanStreamRef.current || rawStreamRef.current;
     if (!session || !isSessionActive(session) || !mediaStream) return;
     if (mediaRecorderRef.current) return;
 

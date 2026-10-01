@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { createMicrophoneAudioContext, microphoneConstraints } from '@/lib/microphoneCapture';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Trophy, LogOut, Volume2, VolumeX, Loader2, Play, Music2, RotateCcw, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -218,10 +219,10 @@ export const MimicGameScreen = ({ currentPlayer, players, lobbyId, onEndGame }: 
     analyzerRef.current = new MimicAnalyzer();
     analyzerRef.current.reset();
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() });
       if (!mountedRef.current) { stream.getTracks().forEach((t) => t.stop()); return; }
       micStreamRef.current = stream;
-      const ctx = new AudioContext();
+      const ctx = createMicrophoneAudioContext();
       audioCtxRef.current = ctx;
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();

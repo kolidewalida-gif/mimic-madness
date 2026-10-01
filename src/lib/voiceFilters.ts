@@ -15,6 +15,8 @@
  *     après l'arrêt, avant de décider de l'envoyer.
  */
 
+import { createMicrophoneAudioContext } from './microphoneCapture';
+
 export type VoiceFilterId =
   | 'none'
   | 'robot'
@@ -190,7 +192,7 @@ export const applyVoiceFilters = (
     return { stream: inputStream, dispose: () => {} };
   }
 
-  const context = new AudioContext();
+  const context = createMicrophoneAudioContext();
   const source = context.createMediaStreamSource(inputStream);
   const destination = context.createMediaStreamDestination();
 

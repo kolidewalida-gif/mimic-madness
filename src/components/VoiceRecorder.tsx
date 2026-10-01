@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Mic, MicOff, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMediaDevices } from "@/hooks/useMediaDevices";
+import { createMicrophoneAudioContext, microphoneConstraints, microphoneRecorderOptions } from '@/lib/microphoneCapture';
 
 interface VoiceRecorderProps {
   onRecordingStart?: () => void;
@@ -57,16 +58,7 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
       }
 
       // Use selected audio device if available
-      const audioConstraints: MediaTrackConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      };
-
-      // Add device ID if a specific device is selected
-      if (selectedAudioId) {
-        audioConstraints.deviceId = { exact: selectedAudioId };
-      }
+      const audioConstraints = microphoneConstraints({ deviceId: selectedAudioId });
 
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: audioConstraints
@@ -75,14 +67,14 @@ export const VoiceRecorder = ({ onRecordingStart, onRecordingStop }: VoiceRecord
       setPermissionDenied(false);
       
       // Set up audio context for visualization
-      audioContextRef.current = new AudioContext();
+      audioContextRef.current = createMicrophoneAudioContext();
       analyserRef.current = audioContextRef.current.createAnalyser();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
       analyserRef.current.fftSize = 256;
 
       // Start recording
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current = new MediaRecorder(stream, microphoneRecorderOptions());
       mediaRecorderRef.current.start();
 
       setIsRecording(true);

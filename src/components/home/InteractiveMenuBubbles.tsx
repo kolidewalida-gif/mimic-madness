@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { playMenuBubblePop } from '@/lib/menuBubbleSound';
+import { animateMenuBubbles } from '@/lib/menuBubbleMotion';
 import s from './InteractiveMenuBubbles.module.css';
 
 const BUBBLES = [
-  { x: 8, y: 24, size: 150, duration: 13, dx: 26, dy: -36 },
-  { x: 86, y: 17, size: 82, duration: 11, dx: -22, dy: 32 },
-  { x: 22, y: 73, size: 62, duration: 9, dx: -18, dy: -28 },
-  { x: 94, y: 62, size: 168, duration: 15, dx: -30, dy: -40 },
-  { x: 4, y: 85, size: 44, duration: 10, dx: 17, dy: -24 },
-  { x: 75, y: 81, size: 52, duration: 12, dx: 20, dy: -31 },
-  { x: 29, y: 13, size: 44, duration: 14, dx: -19, dy: 26 },
-  { x: 70, y: 38, size: 46, duration: 10, dx: 23, dy: -20 },
-  { x: 16, y: 55, size: 56, duration: 12, dx: -24, dy: 26 },
+  { x: 8, y: 24, size: 150 },
+  { x: 86, y: 17, size: 82 },
+  { x: 22, y: 73, size: 62 },
+  { x: 94, y: 62, size: 168 },
+  { x: 4, y: 85, size: 44 },
+  { x: 75, y: 81, size: 52 },
+  { x: 29, y: 13, size: 44 },
+  { x: 70, y: 38, size: 46 },
+  { x: 16, y: 55, size: 56 },
 ] as const;
 
 const DROPS = Array.from({ length: 8 }, (_, index) => {
@@ -19,7 +20,7 @@ const DROPS = Array.from({ length: 8 }, (_, index) => {
   return { '--dx': `${Math.cos(angle) * 62}px`, '--dy': `${Math.sin(angle) * 62}px`, '--angle': `${index * 45}deg` } as CSSProperties;
 });
 
-/** CSS does the floating; React only updates on a pop/respawn, never each frame. */
+/** Compositor-driven wandering; React only updates interaction state. */
 export function InteractiveMenuBubbles({ active = true }: { active?: boolean }) {
   const [hidden, setHidden] = useState(() => document.visibilityState === 'hidden');
   const [popped, setPopped] = useState<Record<number, boolean>>({});
@@ -30,7 +31,13 @@ export function InteractiveMenuBubbles({ active = true }: { active?: boolean }) 
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const lastSound = useRef(-Infinity);
+  const field = useRef<HTMLDivElement | null>(null);
   const running = active && !hidden;
+
+  useEffect(() => {
+    if (!field.current) return;
+    return animateMenuBubbles(field.current, buttons.current.flatMap(button => button?.parentElement ? [button.parentElement] : []));
+  }, []);
 
   useEffect(() => {
     const visibility = () => {
@@ -61,7 +68,9 @@ export function InteractiveMenuBubbles({ active = true }: { active?: boolean }) 
     // Clicking several bubbles stays responsive without stacking loud transients.
     if (now - lastSound.current >= 70) {
       lastSound.current = now;
-      playMenuBubblePop(bubble.size, bubble.x / 100, (generation[index] || 0) + index);
+      const rect = buttons.current[index]?.getBoundingClientRect();
+      const pan = rect && rect.width ? (rect.left + rect.width / 2) / window.innerWidth : bubble.x / 100;
+      playMenuBubblePop(bubble.size, pan, (generation[index] || 0) + index);
     }
     timers.current.set(index, setTimeout(() => {
       locks.current.delete(index); timers.current.delete(index);
@@ -78,9 +87,9 @@ export function InteractiveMenuBubbles({ active = true }: { active?: boolean }) 
     setFocusIndex(next); buttons.current[next]?.focus();
   };
 
-  return <div className={s.field} role="group" aria-label="Bulles à éclater" aria-hidden={!running || undefined} data-paused={!running}>
+  return <div ref={field} className={s.field} role="group" aria-label="Bulles à éclater" aria-hidden={!running || undefined} data-paused={!running}>
     {BUBBLES.map((bubble, index) => <div className={s.slot} key={index} data-popped={Boolean(popped[index])} data-pressed={pressedIndex === index}
-      style={{ '--x': `${bubble.x}%`, '--y': `${bubble.y}%`, '--size': `${bubble.size}px`, '--duration': `${bubble.duration}s`, '--delay': `${-index * 1.7}s`, '--drift-x': `${bubble.dx}px`, '--drift-y': `${bubble.dy}px` } as CSSProperties}>
+      style={{ '--x': `${bubble.x}%`, '--y': `${bubble.y}%`, '--size': `${bubble.size}px` } as CSSProperties}>
       <button type="button" className={s.bubble} ref={element => { buttons.current[index] = element; }}
         aria-label={`Éclater la bulle ${index + 1}`} aria-disabled={Boolean(popped[index]) || !running}
         aria-description="Entrée ou espace pour éclater. Flèches pour changer de bulle."

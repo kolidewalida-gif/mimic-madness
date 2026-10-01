@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Video, StopCircle, Save, Trash2, Play } from "lucide-react";
 import { videoStorage, VideoClip } from "@/lib/videoStorageSupabase";
 import { VideoTrimEditor } from "@/components/VideoTrimEditor";
+import { microphoneConstraints } from '@/lib/microphoneCapture';
 
 interface VideoRecorderProps {
   playerId: string;
@@ -65,11 +66,7 @@ export const VideoRecorder = ({
           height: { ideal: 720 },
           facingMode: "user"
         },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
+        audio: microphoneConstraints()
       });
 
       setStream(mediaStream);

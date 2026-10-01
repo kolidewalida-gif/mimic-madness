@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Rnnoise, type DenoiseState } from '@shiguredo/rnnoise-wasm';
+import { useState, useEffect, useCallback } from 'react';
+import { createMicrophoneAudioContext } from '@/lib/microphoneCapture';
 
 /**
  * Real-time microphone noise reduction using RNNoise (WebAssembly).
@@ -18,32 +18,46 @@ import { Rnnoise, type DenoiseState } from '@shiguredo/rnnoise-wasm';
  * Notes:
  * - RNNoise expects 48kHz audio. We force AudioContext sampleRate to 48000.
  * - One frame = 480 samples = 10ms at 48kHz.
- * - Processing latency: ~10ms (one frame).
- * - Wasm is ~85KB gzipped, lazy-loaded on first use.
+ * - A dedicated worker runs WASM, with a fixed 40ms worklet buffer.
+ * - Late processing falls back to buffered microphone audio, not silence.
  */
 
-const RNNOISE_SCALE = 32768; // 16-bit PCM range
 const STORAGE_KEY = 'mimic-master:noise-reduction-enabled';
 
-let rnnoisePromise: Promise<Rnnoise> | null = null;
-
-const getRnnoise = (): Promise<Rnnoise> => {
-  if (!rnnoisePromise) {
-    rnnoisePromise = Rnnoise.load().catch((err) => {
-      rnnoisePromise = null;
-      throw err;
-    });
+let preloadPromise: Promise<void> | null = null;
+const getNoiseReductionReady = (): Promise<void> => {
+  if (!preloadPromise) {
+    preloadPromise = new Promise<void>((resolve, reject) => {
+      if (typeof Worker === 'undefined' || typeof AudioWorkletNode === 'undefined') {
+        reject(new Error('Isolation avancée indisponible dans ce navigateur.'));
+        return;
+      }
+      const worker = new Worker(new URL('../lib/rnnoise.worker.ts', import.meta.url), { type: 'module' });
+      const timeout = setTimeout(() => finish(new Error('Préparation du filtre trop longue.')), 6000);
+      const finish = (error?: Error) => {
+        clearTimeout(timeout); worker.terminate();
+        worker.onmessage = null; worker.onerror = null;
+        if (error) reject(error); else resolve();
+      };
+      worker.onmessage = event => {
+        if (event.data.type === 'ready') finish();
+        else if (event.data.type === 'error') finish(new Error('Isolation avancée indisponible.'));
+      };
+      worker.onerror = () => finish(new Error('Isolation avancée indisponible.'));
+    }).catch(error => { preloadPromise = null; throw error; });
   }
-  return rnnoisePromise;
+  return preloadPromise;
 };
 
 /** Read the user preference synchronously (used outside React too) */
 export const isNoiseReductionEnabled = (): boolean => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === null ? true : stored === 'true';
+    // Native browser processing is the default. Double denoising can suppress
+    // quiet/character voices; advanced isolation remains an explicit choice.
+    return stored === 'true';
   } catch {
-    return true;
+    return false;
   }
 };
 
@@ -106,98 +120,78 @@ export const processStreamWithNoiseReduction = async (
   stream: MediaStream,
   options: { force?: boolean; signal?: AbortSignal } = {},
 ): Promise<ProcessStreamResult> => {
-  // Respect user preference unless forced.
-  if (!options.force && !isNoiseReductionEnabled()) {
+  if ((!options.force && !isNoiseReductionEnabled()) || options.signal?.aborted || typeof Worker === 'undefined' || typeof AudioWorkletNode === 'undefined') {
     return { stream, cleanup: () => {} };
   }
-
   const signal = options.signal;
-  let denoiseState: DenoiseState | null = null;
   let ctx: AudioContext | null = null;
+  let worker: Worker | null = null;
   let source: MediaStreamAudioSourceNode | null = null;
-  let workletNode: AudioWorkletNode | null = null;
+  let worklet: AudioWorkletNode | null = null;
   let destination: MediaStreamAudioDestinationNode | null = null;
+  let setupTimer: ReturnType<typeof setTimeout> | undefined;
   let released = false;
-
-  // Install teardown before the first await. AudioWorklet.addModule cannot be
-  // cancelled by browsers, but closing its context immediately prevents an
-  // abandoned Audio Phone session from retaining the RNNoise graph.
   const cleanup = () => {
     if (released) return;
     released = true;
     signal?.removeEventListener('abort', cleanup);
-
-    if (workletNode) workletNode.port.onmessage = null;
-    try { workletNode?.disconnect(); } catch {}
+    clearTimeout(setupTimer);
+    worker?.terminate();
+    worker = null;
+    if (worklet) worklet.onprocessorerror = null;
+    try { worklet?.disconnect(); } catch {}
     try { source?.disconnect(); } catch {}
     try { destination?.disconnect(); } catch {}
-    try { denoiseState?.destroy(); } catch {}
-
-    workletNode = null;
-    source = null;
-    destination = null;
-    denoiseState = null;
-
-    const context = ctx;
-    ctx = null;
-    if (context && context.state !== 'closed') {
-      try { void context.close().catch(() => undefined); } catch {}
-    }
+    destination?.stream.getTracks().forEach(track => track.stop());
+    if (ctx && ctx.state !== 'closed') void ctx.close().catch(() => undefined);
+    worklet = null; source = null; destination = null; ctx = null;
   };
-
-  if (signal?.aborted) {
-    return { stream, cleanup: () => {} };
-  }
   signal?.addEventListener('abort', cleanup, { once: true });
-
   try {
-    const rnnoise = await awaitWithAbort(getRnnoise(), signal);
-    if (released || signal?.aborted) return { stream, cleanup: () => {} };
-
-    const currentDenoiseState = rnnoise.createDenoiseState();
-    denoiseState = currentDenoiseState;
-
-    // Force 48kHz for RNNoise compatibility.
-    const context = new AudioContext({ sampleRate: 48000 });
-    ctx = context;
-    await awaitWithAbort(context.audioWorklet.addModule('/rnnoise-worklet.js'), signal);
-    if (released || signal?.aborted) return { stream, cleanup: () => {} };
-
-    const currentSource = context.createMediaStreamSource(stream);
-    source = currentSource;
-    const currentWorkletNode = new AudioWorkletNode(context, 'rnnoise-processor');
-    workletNode = currentWorkletNode;
-
-    currentWorkletNode.port.onmessage = (event) => {
-      if (event.data.type !== 'frame') return;
-      const frame: Float32Array = event.data.data;
-
-      // Convert Float32 [-1, 1] to 16-bit PCM range.
-      const scaled = new Float32Array(frame.length);
-      for (let i = 0; i < frame.length; i++) {
-        scaled[i] = frame[i] * RNNOISE_SCALE;
-      }
-
-      try {
-        currentDenoiseState.processFrame(scaled);
-      } catch (err) {
-        console.warn('[NoiseReduction] processFrame failed:', err);
-      }
-
-      // Convert back to Float32.
-      const output = new Float32Array(frame.length);
-      for (let i = 0; i < frame.length; i++) {
-        output[i] = scaled[i] / RNNOISE_SCALE;
-      }
-
-      currentWorkletNode.port.postMessage({ type: 'frame', data: output });
+    ctx = createMicrophoneAudioContext(48000);
+    // Some engines/devices ignore the requested rate. Do not feed RNNoise 44.1kHz.
+    if ((ctx.sampleRate && ctx.sampleRate !== 48000) || !ctx.audioWorklet || typeof Worker === 'undefined') {
+      cleanup();
+      return { stream, cleanup: () => {} };
+    }
+    worker = new Worker(new URL('../lib/rnnoise.worker.ts', import.meta.url), { type: 'module' });
+    const currentWorker = worker;
+    const ready = new Promise<void>((resolve, reject) => {
+      setupTimer = setTimeout(() => reject(new Error('Noise reduction initialization timed out')), 6000);
+      currentWorker.onmessage = event => {
+        if (event.data.type === 'ready') resolve();
+        else if (event.data.type === 'error') reject(new Error('Noise reduction unavailable'));
+      };
+      currentWorker.onerror = () => reject(new Error('Noise reduction worker unavailable'));
+    });
+    await awaitWithAbort(Promise.all([ctx.audioWorklet.addModule('/rnnoise-worklet.js'), ready]), signal);
+    clearTimeout(setupTimer);
+    if (released || signal?.aborted) { cleanup(); return { stream, cleanup: () => {} }; }
+    source = ctx.createMediaStreamSource(stream);
+    worklet = new AudioWorkletNode(ctx, 'rnnoise-processor', {
+      numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
+      channelCount: 1, channelCountMode: 'explicit',
+    });
+    destination = ctx.createMediaStreamDestination();
+    const currentSource = source;
+    const currentWorklet = worklet;
+    const currentDestination = destination;
+    let bypassed = false;
+    const bypass = () => {
+      if (released || bypassed) return;
+      bypassed = true;
+      // Preserve the recorder's destination stream if a processor/worker dies.
+      currentSource.disconnect();
+      currentWorklet.disconnect();
+      currentSource.connect(currentDestination);
+      currentWorker.terminate();
     };
-
-    const currentDestination = context.createMediaStreamDestination();
-    destination = currentDestination;
-    currentSource.connect(currentWorkletNode);
-    currentWorkletNode.connect(currentDestination);
-
+    currentWorklet.onprocessorerror = bypass;
+    currentWorker.onerror = bypass;
+    currentWorker.onmessage = null;
+    currentWorker.postMessage({ type: 'connect', port: currentWorklet.port }, [currentWorklet.port]);
+    currentSource.connect(currentWorklet);
+    currentWorklet.connect(currentDestination);
     return { stream: currentDestination.stream, cleanup };
   } catch (err) {
     cleanup();
@@ -229,7 +223,7 @@ export const useNoiseReduction = (): UseNoiseReductionResult => {
   // Pre-load wasm on mount
   useEffect(() => {
     let cancelled = false;
-    getRnnoise()
+    getNoiseReductionReady()
       .then(() => {
         if (!cancelled) setIsReady(true);
       })

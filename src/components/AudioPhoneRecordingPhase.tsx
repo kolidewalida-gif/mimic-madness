@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, memo } from "react";
+import { createMicrophoneAudioContext, microphoneConstraints } from '@/lib/microphoneCapture';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,17 +90,13 @@ export const AudioPhoneRecordingPhase = memo(({
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        }
+        audio: microphoneConstraints()
       });
 
       streamRef.current = stream;
 
       // Setup audio analysis
-      audioContextRef.current = new AudioContext();
+      audioContextRef.current = createMicrophoneAudioContext();
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
       

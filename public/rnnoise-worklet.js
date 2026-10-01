@@ -1,89 +1,62 @@
-/**
- * RNNoise AudioWorklet processor.
- *
- * Receives raw audio samples at the AudioContext sample rate, buffers them
- * into 480-sample frames (RNNoise's frame size at 48kHz), and forwards
- * them to the main thread for denoising. The denoised samples come back
- * via port message and are output to the audio destination.
- *
- * Note: RNNoise is hard-coded to 48kHz. The AudioContext should match.
- */
-
-const FRAME_SIZE = 480; // RNNoise frame size at 48kHz
+/** 48kHz / 480-sample RNNoise frames. Fixed 40ms buffer, never an expanding queue. */
+const FRAME_SIZE = 480;
+const DELAY = FRAME_SIZE * 4;
 
 class RnnoiseProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
-
-    // Input buffer: accumulates samples until we have 480
     this.inputBuffer = new Float32Array(FRAME_SIZE);
-    this.inputBufferIndex = 0;
-
-    // Output queue: frames returned from main thread, waiting to be played
-    this.outputQueue = [];
-    this.outputBuffer = null;
-    this.outputBufferIndex = 0;
-
-    // Bypass mode: pass-through if denoising is disabled
+    this.dry = new Float32Array(DELAY);
+    this.samples = 0;
+    this.inputIndex = 0;
+    this.pending = 0;
+    this.frames = new Map();
+    this.wet = 0;
+    this.lastWet = 0;
     this.bypass = false;
-
-    this.port.onmessage = (event) => {
-      const { type, data } = event.data;
-      if (type === 'frame' && data) {
-        // Denoised frame returned from main thread
-        this.outputQueue.push(data);
-      } else if (type === 'bypass') {
-        this.bypass = Boolean(data);
+    this.port.onmessage = ({ data: message }) => {
+      if (message.type === 'bypass') this.bypass = Boolean(message.data);
+      if (message.type !== 'frame') return;
+      this.pending = Math.max(0, this.pending - 1);
+      const firstUnplayed = Math.floor(Math.max(0, this.samples - DELAY) / FRAME_SIZE);
+      if (message.id >= firstUnplayed && message.data?.length === FRAME_SIZE && this.frames.size < 8) {
+        this.frames.set(message.id, message.data);
       }
     };
   }
 
   process(inputs, outputs) {
-    const input = inputs[0];
-    const output = outputs[0];
-
-    if (!input || !input[0] || !output || !output[0]) {
-      return true;
-    }
-
-    const inputChannel = input[0];
-    const outputChannel = output[0];
-
-    // Bypass: just copy input to output
-    if (this.bypass) {
-      outputChannel.set(inputChannel);
-      return true;
-    }
-
-    for (let i = 0; i < inputChannel.length; i++) {
-      // Accumulate input samples into the frame buffer
-      this.inputBuffer[this.inputBufferIndex++] = inputChannel[i];
-
-      // Frame full → send to main thread for denoising
-      if (this.inputBufferIndex >= FRAME_SIZE) {
-        this.port.postMessage({
-          type: 'frame',
-          data: this.inputBuffer.slice(),
-        });
-        this.inputBufferIndex = 0;
+    const input = inputs[0]?.[0];
+    const output = outputs[0]?.[0];
+    if (!output) return true;
+    for (let i = 0; i < output.length; i++) {
+      const sample = input?.[i] || 0;
+      const ringIndex = this.samples % DELAY;
+      const dry = this.dry[ringIndex];
+      this.dry[ringIndex] = sample;
+      this.inputBuffer[this.inputIndex++] = sample;
+      if (this.inputIndex === FRAME_SIZE) {
+        // Backpressure caps worker messages and memory even under CPU load.
+        if (!this.bypass && this.pending < 6) {
+          const data = this.inputBuffer.slice();
+          this.port.postMessage({ type: 'frame', id: Math.floor(this.samples / FRAME_SIZE), data }, [data.buffer]);
+          this.pending++;
+        }
+        this.inputIndex = 0;
       }
-
-      // Output: pull from queue if available
-      if (!this.outputBuffer || this.outputBufferIndex >= FRAME_SIZE) {
-        this.outputBuffer = this.outputQueue.shift();
-        this.outputBufferIndex = 0;
-      }
-
-      if (this.outputBuffer) {
-        outputChannel[i] = this.outputBuffer[this.outputBufferIndex++];
-      } else {
-        // No denoised frame ready yet → output silence (initial latency ~10ms)
-        outputChannel[i] = 0;
-      }
+      const playSample = this.samples - DELAY;
+      const id = Math.floor(playSample / FRAME_SIZE);
+      const offset = playSample % FRAME_SIZE;
+      const frame = playSample >= 0 ? this.frames.get(id) : undefined;
+      const target = frame && !this.bypass ? 1 : 0;
+      // Crossfade to aligned dry audio on underruns, never insert silence.
+      this.wet += Math.max(-1 / 240, Math.min(1 / 240, target - this.wet));
+      if (frame) this.lastWet = frame[offset];
+      output[i] = dry + (this.lastWet - dry) * this.wet;
+      if (offset === FRAME_SIZE - 1) this.frames.delete(id);
+      this.samples++;
     }
-
     return true;
   }
 }
-
 registerProcessor('rnnoise-processor', RnnoiseProcessor);

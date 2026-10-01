@@ -18,6 +18,8 @@ let addModule: ReturnType<typeof vi.fn>;
 
 class FakeNoiseContext {
   static instances: FakeNoiseContext[] = [];
+  static rate = 48000;
+  sampleRate = FakeNoiseContext.rate;
 
   state: AudioContextState = 'running';
   readonly source = { connect: vi.fn(), disconnect: vi.fn() };
@@ -49,9 +51,23 @@ class FakeWorkletNode {
   };
   connect = vi.fn();
   disconnect = vi.fn();
+  onprocessorerror: (() => void) | null = null;
 
   constructor() {
     FakeWorkletNode.instances.push(this);
+  }
+}
+
+class FakeNoiseWorker {
+  static instances: FakeNoiseWorker[] = [];
+  static readyMessage = 'ready';
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onerror: (() => void) | null = null;
+  terminate = vi.fn();
+  postMessage = vi.fn();
+  constructor() {
+    FakeNoiseWorker.instances.push(this);
+    queueMicrotask(() => this.onmessage?.({ data: { type: FakeNoiseWorker.readyMessage } } as MessageEvent));
   }
 }
 
@@ -73,6 +89,10 @@ describe('RNNoise cleanup for Audio Phone sessions', () => {
     vi.clearAllMocks();
     FakeNoiseContext.instances = [];
     FakeWorkletNode.instances = [];
+    FakeNoiseWorker.instances = [];
+    FakeNoiseWorker.readyMessage = 'ready';
+    FakeNoiseContext.rate = 48000;
+    localStorage.clear();
     addModule = vi.fn().mockResolvedValue(undefined);
     rnnoiseMocks.createDenoiseState.mockReturnValue({
       destroy: rnnoiseMocks.destroy,
@@ -83,9 +103,11 @@ describe('RNNoise cleanup for Audio Phone sessions', () => {
     });
     vi.stubGlobal('AudioContext', FakeNoiseContext as unknown as typeof AudioContext);
     vi.stubGlobal('AudioWorkletNode', FakeWorkletNode as unknown as typeof AudioWorkletNode);
+    vi.stubGlobal('Worker', FakeNoiseWorker);
   });
 
   afterEach(() => {
+    localStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -108,7 +130,7 @@ describe('RNNoise cleanup for Audio Phone sessions', () => {
 
     expect(result.stream).toBe(rawStream);
     expect(context.close).toHaveBeenCalledOnce();
-    expect(rnnoiseMocks.destroy).toHaveBeenCalledOnce();
+    expect(FakeNoiseWorker.instances[0].terminate).toHaveBeenCalledOnce();
     expect(context.createMediaStreamSource).not.toHaveBeenCalled();
 
     pendingModule.resolve();
@@ -126,7 +148,7 @@ describe('RNNoise cleanup for Audio Phone sessions', () => {
 
     expect(result.stream).toBe(rawStream);
     expect(context.close).toHaveBeenCalledOnce();
-    expect(rnnoiseMocks.destroy).toHaveBeenCalledOnce();
+    expect(FakeNoiseWorker.instances[0].terminate).toHaveBeenCalledOnce();
     expect(warn).toHaveBeenCalledWith(
       '[NoiseReduction] Setup failed, using original stream:',
       expect.any(Error),
@@ -141,7 +163,10 @@ describe('RNNoise cleanup for Audio Phone sessions', () => {
     const worklet = FakeWorkletNode.instances[0];
 
     expect(result.stream).toBe(context.destination.stream);
-    expect(worklet.port.onmessage).toBeTypeOf('function');
+    expect(FakeNoiseWorker.instances[0].postMessage).toHaveBeenCalledWith(
+      { type: 'connect', port: worklet.port }, [worklet.port],
+    );
+    expect(rnnoiseMocks.processFrame).not.toHaveBeenCalled();
 
     result.cleanup();
     result.cleanup();
@@ -150,7 +175,45 @@ describe('RNNoise cleanup for Audio Phone sessions', () => {
     expect(worklet.disconnect).toHaveBeenCalledOnce();
     expect(context.source.disconnect).toHaveBeenCalledOnce();
     expect(context.destination.disconnect).toHaveBeenCalledOnce();
-    expect(rnnoiseMocks.destroy).toHaveBeenCalledOnce();
+    expect(FakeNoiseWorker.instances[0].terminate).toHaveBeenCalledOnce();
     expect(context.close).toHaveBeenCalledOnce();
+  });
+
+  it('privilégie le filtre natif par défaut et conserve un choix avancé explicite', async () => {
+    const { isNoiseReductionEnabled } = await import('@/hooks/useNoiseReduction');
+    expect(isNoiseReductionEnabled()).toBe(false);
+    localStorage.setItem('mimic-master:noise-reduction-enabled', 'true');
+    expect(isNoiseReductionEnabled()).toBe(true);
+  });
+
+  it('préserve le flux enregistré si le processeur ou le worker tombe en panne', async () => {
+    const { processStreamWithNoiseReduction } = await import('@/hooks/useNoiseReduction');
+    const result = await processStreamWithNoiseReduction(rawStream, { force: true });
+    const context = FakeNoiseContext.instances[0];
+    FakeWorkletNode.instances[0].onprocessorerror?.();
+    FakeNoiseWorker.instances[0].onerror?.();
+    expect(context.source.connect).toHaveBeenLastCalledWith(context.destination);
+    expect(result.stream).toBe(context.destination.stream);
+    expect(context.source.disconnect).toHaveBeenCalledOnce();
+    result.cleanup();
+  });
+
+  it('n’applique jamais un filtre 48kHz à un contexte 44.1kHz', async () => {
+    FakeNoiseContext.rate = 44100;
+    const { processStreamWithNoiseReduction } = await import('@/hooks/useNoiseReduction');
+    const result = await processStreamWithNoiseReduction(rawStream, { force: true });
+    expect(result.stream).toBe(rawStream);
+    expect(FakeNoiseWorker.instances).toHaveLength(0);
+    expect(FakeNoiseContext.instances[0].close).toHaveBeenCalledOnce();
+  });
+
+  it('retombe sur le micro natif si le module d’isolation ne démarre pas', async () => {
+    FakeNoiseWorker.readyMessage = 'error';
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { processStreamWithNoiseReduction } = await import('@/hooks/useNoiseReduction');
+    const result = await processStreamWithNoiseReduction(rawStream, { force: true });
+    expect(result.stream).toBe(rawStream);
+    expect(FakeNoiseWorker.instances[0].terminate).toHaveBeenCalledOnce();
+    expect(FakeNoiseContext.instances[0].close).toHaveBeenCalledOnce();
   });
 });

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getPreferredMicrophone, setPreferredMicrophone, microphoneConstraints } from '@/lib/microphoneCapture';
 
 export interface MediaDeviceInfo {
   deviceId: string;
@@ -9,7 +10,7 @@ export interface MediaDeviceInfo {
 export const useMediaDevices = ({ requestPermissionOnMount = true }: { requestPermissionOnMount?: boolean } = {}) => {
   const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([]);
   const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([]);
-  const [selectedAudioId, setSelectedAudioId] = useState<string>('');
+  const [selectedAudioId, setSelectedAudioId] = useState<string>(getPreferredMicrophone);
   const [selectedVideoId, setSelectedVideoId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +60,13 @@ export const useMediaDevices = ({ requestPermissionOnMount = true }: { requestPe
       setVideoInputs(videoDevices);
 
       // Set default audio device
-      setSelectedAudioId(current => audioDevices.some(device => device.deviceId === current) ? current : audioDevices[0]?.deviceId || '');
+      setSelectedAudioId(current => {
+        // Before permission Safari may expose empty IDs; don't erase a saved choice.
+        if (!audioDevices.some(device => device.deviceId)) return current;
+        const next = audioDevices.some(device => device.deviceId === current) ? current : audioDevices[0]?.deviceId || '';
+        setPreferredMicrophone(next);
+        return next;
+      });
       setSelectedVideoId(current => videoDevices.some(device => device.deviceId === current) ? current : videoDevices[0]?.deviceId || '');
 
       setError(null);
@@ -84,9 +91,7 @@ export const useMediaDevices = ({ requestPermissionOnMount = true }: { requestPe
 
       const audioConstraints = constraints?.audio !== undefined
         ? constraints.audio
-        : selectedAudioId
-          ? { deviceId: { exact: selectedAudioId } }
-          : true;
+        : microphoneConstraints({ deviceId: selectedAudioId });
 
       // Default to NO video unless explicitly requested
       const videoConstraints = constraints?.video !== undefined
@@ -119,13 +124,14 @@ export const useMediaDevices = ({ requestPermissionOnMount = true }: { requestPe
 
   // Change audio input
   const changeAudioInput = async (deviceId: string) => {
+    setPreferredMicrophone(deviceId);
     setSelectedAudioId(deviceId);
     if (stream) {
       // Preserve current video state (if any), but never re-request the camera
       // implicitly when only audio was active.
       const hasVideoTrack = stream.getVideoTracks().length > 0;
       await getMediaStream({
-        audio: { deviceId: { exact: deviceId } },
+        audio: microphoneConstraints({ deviceId }),
         video: hasVideoTrack
           ? selectedVideoId
             ? { deviceId: { exact: selectedVideoId } }
@@ -140,7 +146,7 @@ export const useMediaDevices = ({ requestPermissionOnMount = true }: { requestPe
     setSelectedVideoId(deviceId);
     if (stream && stream.getVideoTracks().length > 0) {
       await getMediaStream({
-        audio: selectedAudioId ? { deviceId: { exact: selectedAudioId } } : true,
+        audio: microphoneConstraints({ deviceId: selectedAudioId }),
         video: { deviceId: { exact: deviceId } },
       });
     }

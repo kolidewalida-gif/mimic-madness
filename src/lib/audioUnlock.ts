@@ -35,7 +35,7 @@ const resumeAll = (): void => {
       contexts.delete(context);
       continue;
     }
-    if (context.state === 'suspended') {
+    if (context.state === 'suspended' || String(context.state) === 'interrupted') {
       void context.resume().catch(() => {
         // Refusé : le prochain geste retentera. Rien à signaler ici.
       });
@@ -67,7 +67,7 @@ const startListening = (): void => {
 export const registerAudioContext = (context: AudioContext): AudioContext => {
   contexts.add(context);
   startListening();
-  if (context.state === 'suspended') {
+  if (context.state === 'suspended' || String(context.state) === 'interrupted') {
     void context.resume().catch(() => {
       // Hors geste : la reprise se fera au prochain événement enregistré.
     });
