@@ -1,0 +1,51 @@
+.overlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: grid; place-items: center; padding: 24px;
+  background: radial-gradient(ellipse at 50% 45%, #45295cf2, #1c0c2df5 75%);
+  color: #fff4ff; font-family: 'Outfit', sans-serif;
+  isolation: isolate; overflow: hidden;
+}
+.scene { --orb-top: #e5ccff; --orb-bottom: #b78ada; --orb-edge: #76538e; position: relative; width: min(100%, 600px); text-align: center; }
+.scene[data-tone='peach'] { --orb-top: #ffdfb1; --orb-bottom: #f1b279; --orb-edge: #a6724d; }
+.scene[data-tone='mint'] { --orb-top: #ceffec; --orb-bottom: #7cd9c1; --orb-edge: #408b7e; }
+.heading { position: relative; z-index: 2; }
+.tag { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border: 1px solid #ffffff29; border-radius: 100px; color: #c5f6e7; background: #ffffff09; font-size: 12px; font-weight: 650; }
+.tag svg { width: 12px; height: 12px; fill: currentColor; }
+.heading h2 { margin: 17px 0 0; font-size: clamp(21px, 4vw, 32px); line-height: 1.2; font-weight: 800; letter-spacing: -.7px; }
+.stage { position: relative; height: 330px; margin-top: 16px; display: grid; place-items: center; }
+.orb {
+  position: absolute; display: grid; place-items: center; width: 260px; height: 260px;
+  border: 2px solid #ffffff65; border-radius: 46% 48% 45% 49%;
+  background: radial-gradient(ellipse at 30% 12%, #ffffffd9, transparent 36%), linear-gradient(155deg, var(--orb-top) 20%, var(--orb-bottom) 80%);
+  box-shadow: inset 0 5px 2px #ffffff7a, inset -9px -15px 22px #4d225b24, 0 9px 0 var(--orb-edge), 0 14px 0 #1c0b2d, 0 23px 35px #15092160;
+}
+.orb::before { content: ''; position: absolute; left: 29px; top: 26px; width: 65px; height: 22px; border-radius: 50%; background: #ffffff8c; transform: rotate(-36deg); }
+.number { position: relative; font-size: 170px; font-weight: 900; line-height: 1; letter-spacing: -8px; padding-right: 8px; color: #fff9ff; -webkit-text-stroke: 2px #422854; text-shadow: 0 3px 0 #422854, 0 6px 0 #422854, 0 9px 0 #422854, 0 12px 0 #422854, 0 17px 12px #42285435; }
+.shadow { position: absolute; bottom: 8px; width: 195px; height: 24px; background: #13091c75; border-radius: 50%; }
+.bubbleOne, .bubbleTwo, .bubbleThree { position: absolute; border-radius: 50%; border: 1px solid #ffffff35; background: radial-gradient(ellipse at 29% 20%, #ffffff70, #dab4ff13 40%, #b78ada0c 70%); box-shadow: inset 0 -5px 12px #bca0ff20; }
+.bubbleOne { width: 64px; height: 64px; left: 9%; top: 54%; }
+.bubbleTwo { width: 39px; height: 39px; right: 13%; top: 17%; }
+.bubbleThree { width: 22px; height: 22px; right: 10%; bottom: 18%; }
+.sparkOne, .sparkTwo { position: absolute; color: #ffe0a1; font-size: 37px; }
+.sparkOne { left: 16%; top: 12%; transform: rotate(-13deg); }
+.sparkTwo { right: 16%; bottom: 27%; font-size: 24px; transform: rotate(12deg); }
+.steps { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 18px 0 0; }
+.steps span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; border: 1px solid #ffffff29; background: #ffffff0a; color: #bea5cc; font-weight: 800; font-size: 14px; transition: background .2s, color .2s, transform .2s; }
+.steps .current { color: #382144; background: #fff0b7; border-color: #fff6d7; box-shadow: 0 3px 0 #a2864d; transform: translateY(-2px); }
+.steps .done { color: #acedd6; background: #8bddbf1a; border-color: #8bddbf45; }
+.note { margin: 22px 0 0; font-size: 13px; line-height: 1.5; color: #d6c2e5; }
+.announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 480px), (max-height: 600px) {
+  .stage { height: 250px; margin-top: 8px; }
+  .orb { width: 200px; height: 200px; }
+  .number { font-size: 130px; }
+  .bubbleOne { width: 40px; height: 40px; left: 0; }
+  .bubbleTwo { right: 0; width: 28px; height: 28px; }
+  .bubbleThree { right: 3%; }
+  .sparkOne { left: 5%; font-size: 25px; }
+  .sparkTwo { right: 3%; }
+  .shadow { width: 150px; height: 18px; }
+  .steps { margin-top: 12px; }
+  .note { margin-top: 18px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .steps span { transition: none; } }

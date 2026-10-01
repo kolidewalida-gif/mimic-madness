@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Play } from 'lucide-react';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import styles from './imitation/BubbleCountdown.module.css';
 
 interface CountdownOverlayProps {
   isActive: boolean;
@@ -11,9 +13,6 @@ interface CountdownOverlayProps {
   completeAt?: number;
 }
 
-/* Trois secondes, trois teintes : on chauffe vers le départ. */
-const COLORS = ['var(--ik-cyan, #34d399)', 'var(--ik-yellow, #f59e0b)', 'var(--ik-pink, #ef4444)'];
-
 export const CountdownOverlay = ({
   isActive,
   onComplete,
@@ -23,110 +22,79 @@ export const CountdownOverlay = ({
 }: CountdownOverlayProps) => {
   const [count, setCount] = useState(duration);
   const [isVisible, setIsVisible] = useState(false);
-  const [started, setStarted] = useState(false);
-  const [tick, setTick] = useState(0);
-  /** Dernière seconde annoncée, pour ne réagir qu'aux vrais changements. */
-  const lastCountRef = useRef<number | null>(null);
+  const reducedMotion = useReducedMotion();
   const onCompleteRef = useRef(onComplete);
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
-  /*
-   * Un seul point de vérité : la seconde restante, relevée sur l'échéance.
-   *
-   * La version précédente déclenchait `setTick` et le son *à l'intérieur* de
-   * l'updater de `setCount`. Un updater doit être pur : React le rejoue, donc le
-   * compteur changeait de clé plusieurs fois par seconde et le grand chiffre
-   * restait bloqué en animation d'entrée — l'écran affichait le voile sans
-   * jamais montrer le décompte. La comparaison passe maintenant par une réf,
-   * hors du rendu.
-   */
   useEffect(() => {
     if (!isActive) {
       setIsVisible(false);
-      setStarted(false);
-      lastCountRef.current = null;
       return;
     }
 
-    let completed = false;
+    // The animation never controls playback: all clients follow the server deadline.
     const deadline = completeAt ?? Date.now() + duration * 1000;
-    const remainingSeconds = () => Math.max(
-      1,
-      Math.min(duration, Math.ceil((deadline - Date.now()) / 1000)),
-    );
-
-    lastCountRef.current = remainingSeconds();
-    setCount(lastCountRef.current);
-    setTick(0);
-    setIsVisible(true);
-    setStarted(true);
-    playSoundEffect('countdown', 0.5);
-
+    let completed = false;
+    let announced: number | null = null;
     const update = () => {
       if (completed) return;
-      if (deadline - Date.now() <= 0) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
         completed = true;
-        playSoundEffect('start', 0.6);
         setIsVisible(false);
+        playSoundEffect('start', 0.6);
         onCompleteRef.current();
         return;
       }
-
-      const nextCount = remainingSeconds();
-      if (lastCountRef.current === nextCount) return;
-      lastCountRef.current = nextCount;
-      setCount(nextCount);
-      setTick((value) => value + 1);
+      const next = Math.min(duration, Math.ceil(remaining / 1000));
+      if (next === announced) return;
+      announced = next;
+      setCount(next);
+      setIsVisible(true);
       playSoundEffect('countdown', 0.5);
     };
 
-    const timer = setInterval(update, 100);
-    return () => {
-      completed = true;
-      clearInterval(timer);
-    };
+    update();
+    const timer = setInterval(update, 50);
+    return () => { completed = true; clearInterval(timer); };
   }, [completeAt, duration, isActive]);
 
-  if (!isVisible) return null;
-
-  /* La dernière seconde prend la teinte la plus chaude, quelle que soit la durée. */
-  const color = COLORS[Math.min(Math.max(duration - count, 0), COLORS.length - 1)];
-
-  /*
-   * Un seul bloc, un seul chiffre.
-   *
-   * L'ancien décompte empilait un voile flouté, une tache animée en boucle, des
-   * coins graffiti, un anneau pulsant, une pastille emoji qui répétait le
-   * chiffre et huit particules relancées à chaque seconde. Tout cela repeignait
-   * le plein écran en continu, et le chiffre lui-même passait inaperçu. Ne reste
-   * que ce qui porte l'information : le titre, le chiffre, les secondes.
-   */
+  const tone = count === 1 ? 'mint' : count === 2 ? 'peach' : 'lavender';
   return (
-    <div className="ik-countdown" role="status" aria-live="assertive">
-      <div className="ik-countdown-card">
-        <p className="ik-countdown-title">{title}</p>
-
-        <div className="ik-countdown-figure" style={{ ['--ik-countdown-tint' as string]: color }}>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={count}
-              className="ik-countdown-number"
-              initial={{ scale: 0.72, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.18, opacity: 0 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-            >
-              {count}
-            </motion.span>
-          </AnimatePresence>
+    <AnimatePresence>
+      {isVisible && <motion.div
+        className={styles.overlay}
+        initial={reducedMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: reducedMotion ? 0 : 0.16 }}
+      >
+        <div className={styles.scene} data-tone={tone}>
+          <div className={styles.heading}>
+            <span className={styles.tag}><Play aria-hidden="true" /> Tout le monde ensemble</span>
+            <h2>{title}</h2>
+          </div>
+          <div className={styles.stage} aria-hidden="true">
+            <i className={styles.bubbleOne} /><i className={styles.bubbleTwo} /><i className={styles.bubbleThree} />
+            <span className={styles.sparkOne}>✦</span><span className={styles.sparkTwo}>✦</span>
+            <div className={styles.shadow} />
+            <AnimatePresence initial={false}>
+              <motion.div key={count} className={styles.orb}
+                initial={reducedMotion ? false : { y: 35, scale: 0.78, opacity: 0, rotate: -7 }}
+                animate={{ y: 0, scale: 1, opacity: 1, rotate: 0 }}
+                exit={reducedMotion ? { opacity: 0 } : { y: -22, scale: 1.08, opacity: 0 }}
+                transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 20, opacity: { duration: 0.14 } }}
+              ><span className={styles.number}>{count}</span></motion.div>
+            </AnimatePresence>
+          </div>
+          <div className={styles.steps} aria-hidden="true">
+            {Array.from({ length: duration }, (_, i) => duration - i).map(value =>
+              <span key={value} className={value === count ? styles.current : value > count ? styles.done : undefined}>{value}</span>,
+            )}
+          </div>
+          <p className={styles.note}>Ouvre grand les oreilles. Le jury, c’est vous !</p>
+          <span className={styles.announcement} role="status" aria-live="assertive" aria-atomic="true">{title} {count}</span>
         </div>
-
-        <div className="ik-countdown-ticks" aria-hidden="true">
-          {Array.from({ length: duration }).map((_, i) => (
-            <span key={i} className={started && i >= count ? 'is-done' : undefined} />
-          ))}
-        </div>
-      </div>
-    </div>
+      </motion.div>}
+    </AnimatePresence>
   );
 };
