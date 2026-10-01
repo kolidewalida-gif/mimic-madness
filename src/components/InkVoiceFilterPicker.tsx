@@ -23,10 +23,11 @@ interface InkVoiceFilterPickerProps {
   disabled?: boolean;
   compact?: boolean;
   bubble?: boolean;
+  strip?: boolean;
 }
 
 const InkVoiceFilterPickerComponent = ({
-  value, onChange, disabled = false, compact = false, bubble = false,
+  value, onChange, disabled = false, compact = false, bubble = false, strip = false,
 }: InkVoiceFilterPickerProps) => {
   // Autotune termine toujours la chaîne : le rang affiché reste ainsi fidèle
   // au pipeline réel (effets directs, puis correction du blob).
@@ -71,7 +72,7 @@ const InkVoiceFilterPickerComponent = ({
   const semitones = combinedSemitones(selected);
 
   return (
-    <div className={cn('space-y-2', compact && 'space-y-1.5')}>
+    <div className={cn('space-y-2', compact && 'space-y-1.5', strip && bubbleStyles.strip)}>
       {!compact && (
         <div className="flex items-baseline justify-between gap-2">
           <h4

@@ -36,7 +36,8 @@ import {
 } from "@/lib/imitationReadiness";
 import { resolveResumePosition } from "@/lib/challengePlayback";
 import { diagnose } from "@/lib/diagnostics";
-import { BubbleHeading, BubblePanel, BubblePlayers, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import { BubbleHeading, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import studio from '@/components/imitation/ImitationStudio.module.css';
 import { InkModal } from '@/components/menu/InkOverlay';
 
 interface Player {
@@ -638,46 +639,50 @@ export const ImitationPhase = ({
             ? 'Préparation de l’écoute'
             : 'Prêt à enregistrer';
 
-  if (isInkBeta) return <>
-    <BubbleHeading label={`Ta prise · Manche ${roundNumber}`} title={<>À toi de <em>voler la vedette.</em></>}
+  if (isInkBeta) return <section className={studio.root} aria-label="Ton studio d’imitation">
+    <BubbleHeading label={`Ta prise · Manche ${roundNumber}`} title={hasSubmitted ? <>Ta prise est <em>dans la boîte.</em></> : hasRecorded ? <>Écoute <em>ta version.</em></> : <>À toi de <em>jouer.</em></>}
       aside={<button type="button" className={bubble.secondary} onClick={() => setShowSettings(true)} aria-label="Ouvrir les réglages audio" aria-haspopup="dialog" aria-expanded={showSettings}><Settings />Mon micro</button>}>
-      {teammate ? `Fais équipe avec ${teammate.name}. Vos deux voix seront réunies pour le vote.` : 'Lance la prise, joue ta meilleure voix, puis écoute avant d’envoyer.'}
+      {hasSubmitted ? 'Ta prise est envoyée. On attend les autres joueurs.' : hasRecorded ? 'Réécoute ta voix avec la vidéo. Ajuste le son, puis envoie.' : teammate ? `Avec ${teammate.name}, faites votre version du défi.` : 'Regarde le défi. Choisis ta voix. Fais ta version.'}
     </BubbleHeading>
-    <div className={bubble.split}>
-      <BubblePanel title={`La référence de ${currentChallenge.playerName}`} eyebrow="Ton repère pendant la prise"
-        aside={<span className={`${bubble.pill} ${isRecording ? bubble.live : ''}`}>{isRecording && <i />}{isRecording ? 'REC · ta voix est capturée' : 'À regarder / à réécouter'}</span>}>
-        <div className={bubble.video}><VideoPreview clipId={currentChallenge.id} className="w-full aspect-video" videoRef={challengeVideoRef} /></div>
+    <div className={studio.workbench}>
+      <header className={studio.screenHeader}>
+        <div><span>{hasRecorded ? 'Ton imitation' : 'Le défi à imiter'}</span><h2>{hasRecorded ? `La version de ${currentPlayer.name}` : `La référence de ${currentChallenge.playerName}`}</h2></div>
+        <span className={`${bubble.pill} ${isRecording ? bubble.live : ''}`} role="status">{isRecording && <i />}{isRecording ? 'REC · micro ouvert' : imitationStatus}</span>
+      </header>
+      <div className={studio.screen}>
+        {hasRecorded && recordedClipId ? <VideoWithAudioOverlay className={studio.media} videoElementRef={challengeVideoRef} videoClipId={currentChallenge.id} audioClipId={recordedClipId} includeOriginalAudio={includeOriginalAudio} originalAudioVolume={originalAudioVolume} /> : <VideoPreview clipId={currentChallenge.id} className={studio.media} videoRef={challengeVideoRef} />}
+      </div>
         {rhythmoTrack && <div className="mt-4">
           <div className={bubble.reviewTools}><strong>Les paroles au bon moment</strong><button type="button" className={bubble.secondary} aria-expanded={showRhythmo} onClick={() => setShowRhythmo(value => !value)}>{showRhythmo ? 'Masquer' : 'Afficher'}</button></div>
           {showRhythmo && <><RhythmoBand track={rhythmoTrack} videoRef={challengeVideoRef} leadSeconds={rhythmoLeadSeconds} accent="#b8f3df" />
             <label className={bubble.footActions}>Avance des paroles · {rhythmoLeadSeconds.toFixed(1)} s<input type="range" aria-label="Avance de la bande rythmo" min="0" max={MAX_RHYTHMO_LEAD_SECONDS} step="0.1" value={rhythmoLeadSeconds}
               onChange={event => { const lead = clampRhythmoLeadSeconds(Number(event.target.value)); setRhythmoLeadSeconds(lead); saveRhythmoLeadSeconds(lead); }} /></label></>}
         </div>}
-        <p className={bubble.note}>La référence repart avec ton enregistrement. Un casque évite de reprendre son son dans le micro.</p>
-      </BubblePanel>
-      <BubblePanel title={hasRecorded ? 'Alors, cette prise ?' : 'Le micro est à toi.'} eyebrow={imitationStatus}>
+      <section className={studio.console} aria-label={hasRecorded ? 'Valider ton imitation' : 'Enregistrer ton imitation'}>
         {!hasRecorded ? <AudioRecorder key={uploadKey} playerId={currentPlayer.id} playerName={currentPlayer.name}
           onAudioSaved={handleVideoSaved} lobbyId={lobbyId} roundNumber={roundNumber} onRecordingStart={handleRecordingStart} onRecordingStop={handleRecordingStop}
-          onRecordingPause={handleRecordingPause} onRecordingResume={handleRecordingResume} onStateChange={setRecorderState} showVoiceFilters variant={variant} /> : <>
-          {recordedClipId && <div className={bubble.video}><VideoWithAudioOverlay videoClipId={currentChallenge.id} audioClipId={recordedClipId} includeOriginalAudio={includeOriginalAudio} originalAudioVolume={originalAudioVolume} /></div>}
-          <div className={bubble.reviewTools}><strong><Check className="inline h-4 w-4 mr-1" />Prise enregistrée</strong><button type="button" className={bubble.secondary} onClick={handleRetry} disabled={hasSubmitted}><RotateCcw />Recommencer</button></div>
-          <div className={bubble.mix}><div><Label htmlFor="bubble-original-audio"><strong>Garder le son original</strong></Label><p>{includeOriginalAudio ? 'Il accompagne ta voix.' : 'On entend uniquement ton imitation.'}</p></div>
+          onRecordingPause={handleRecordingPause} onRecordingResume={handleRecordingResume} onStateChange={setRecorderState} showVoiceFilters variant={variant} layout="studio" /> : <div className={studio.review}>
+          <div className={studio.reviewIntro}><strong><Check />{hasSubmitted ? 'Prise envoyée' : 'Ça te plaît ?'}</strong><span>{hasSubmitted ? 'Le vote arrive quand la bande est prête.' : 'Écoute, ajuste le son, puis envoie.'}</span></div>
+          <div className={studio.mix}><div><Label htmlFor="bubble-original-audio"><strong>Son original</strong></Label><p>{includeOriginalAudio ? 'Avec ta voix' : 'Ta voix uniquement'}</p></div>
             <Switch id="bubble-original-audio" checked={includeOriginalAudio} onCheckedChange={setIncludeOriginalAudio} disabled={hasSubmitted} /></div>
-          {includeOriginalAudio && <VolumeSlider value={originalAudioVolume} onChange={setOriginalAudioVolume} disabled={hasSubmitted} label="Volume du son original" />}
-          <button type="button" className={bubble.primary} onClick={handleSubmit} disabled={hasSubmitted || isSubmitting}>
+          <div className={studio.reviewActions}><button type="button" className={bubble.secondary} onClick={handleRetry} disabled={hasSubmitted || isSubmitting}><RotateCcw />Refaire</button><button type="button" className={bubble.primary} onClick={handleSubmit} disabled={hasSubmitted || isSubmitting}>
             {isSubmitting ? <Loader2 className="animate-spin" /> : <Check />}{hasSubmitted ? 'C’est envoyé !' : isSubmitting ? 'Envoi sécurisé…' : 'Envoyer cette prise'}
-          </button>
-        </>}
-        <div className={bubble.footActions}><span>{readyPlayers.length}/{players.length} prises déposées</span>{currentPlayer.isHost && readyPlayers.length < players.length &&
-          <button type="button" className={bubble.secondary} onClick={handleForceAdvance} disabled={isForceAdvancing} title="Ignorer les joueurs bloqués et passer au vote">{isForceAdvancing ? 'Synchronisation…' : 'Passer au vote'}</button>}</div>
-      </BubblePanel>
+          </button></div>
+          {includeOriginalAudio && <div className={studio.volume}><VolumeSlider value={originalAudioVolume} onChange={setOriginalAudioVolume} disabled={hasSubmitted} label="Volume du son original" /></div>}
+        </div>}
+      </section>
     </div>
     {teammate && <TeammateStatusPanel currentPlayerId={currentPlayer.id} currentPlayerName={currentPlayer.name} teammate={teammate} lobbyId={lobbyId} roundNumber={roundNumber} isReady={hasSubmitted} teammateReady={teammateReady} />}
-    <BubblePlayers players={players} ready={readyPlayers} self={currentPlayer.id} label="Les prises de la bande" />
+    <footer className={studio.session}>
+      <div><strong>La bande</strong><small>{readyPlayers.length}/{players.length} prises déposées</small></div>
+      <ul aria-label="Les prises de la bande">{players.map(player => <li key={player.id} className={readyPlayers.includes(player.id) ? studio.ready : undefined}><PlayerAvatar playerId={player.id} playerName={player.name} size="sm" showTitle={false} /><span>{player.id === currentPlayer.id ? 'Toi' : player.name}</span>{readyPlayers.includes(player.id) && <Check aria-label="Prise déposée" />}</li>)}</ul>
+      {currentPlayer.isHost && readyPlayers.length < players.length && <button type="button" className={bubble.secondary} onClick={handleForceAdvance} disabled={isForceAdvancing} title="Ignorer les joueurs bloqués et passer au vote">{isForceAdvancing ? 'Synchronisation…' : 'Passer au vote'}</button>}
+    </footer>
+    <p className={studio.tip}>Un casque, ta meilleure voix, et c’est parti. Tu peux mettre en pause ou refaire ta prise.</p>
     <InkModal isOpen={showSettings} onClose={closeSettings} title="Ton son, ta voix" subtitle="Réglages de l’imitation" size="wide" lockBody className={bubble.settingsDialog}>
       <DeviceSettings showPreview={false} />
     </InkModal>
-  </>;
+  </section>;
 
   return (
     <div

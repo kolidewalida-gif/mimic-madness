@@ -117,7 +117,11 @@ const flushMicrotasks = async () => {
   });
 };
 
-describe.each(['default', 'inkBeta'] as const)('AudioRecorder lifecycle cleanup · %s', (variant) => {
+describe.each([
+  { variant: 'default', layout: 'default' },
+  { variant: 'inkBeta', layout: 'default' },
+  { variant: 'inkBeta', layout: 'studio' },
+] as const)('AudioRecorder lifecycle cleanup · $variant / $layout', ({ variant, layout }) => {
   let trackStop: ReturnType<typeof vi.fn>;
   let stream: MediaStream;
   let getUserMedia: ReturnType<typeof vi.fn>;
@@ -174,7 +178,7 @@ describe.each(['default', 'inkBeta'] as const)('AudioRecorder lifecycle cleanup 
     }));
     const onAudioSaved = vi.fn();
     const view = render(
-      <AudioRecorder variant={variant} playerId="p1" playerName="Joueur" onAudioSaved={onAudioSaved} />,
+      <AudioRecorder variant={variant} layout={layout} playerId="p1" playerName="Joueur" onAudioSaved={onAudioSaved} />,
     );
 
     fireEvent.click(view.container.querySelector('button') as HTMLButtonElement);
@@ -197,6 +201,7 @@ describe.each(['default', 'inkBeta'] as const)('AudioRecorder lifecycle cleanup 
     const view = render(
       <AudioRecorder
         variant={variant}
+        layout={layout}
         playerId="p1"
         playerName="Joueur"
         onRecordingStart={onRecordingStart}
@@ -235,7 +240,7 @@ describe.each(['default', 'inkBeta'] as const)('AudioRecorder lifecycle cleanup 
     const onRecordingStop = vi.fn();
     const onAudioSaved = vi.fn();
     const view = render(
-      <AudioRecorder variant={variant} playerId="p1" playerName="Joueur"
+      <AudioRecorder variant={variant} layout={layout} playerId="p1" playerName="Joueur"
         onRecordingStop={onRecordingStop} onAudioSaved={onAudioSaved} />,
     );
 
@@ -271,7 +276,7 @@ describe.each(['default', 'inkBeta'] as const)('AudioRecorder lifecycle cleanup 
     const onRecordingResume = vi.fn();
     const onRecordingStart = vi.fn();
     const view = render(
-      <AudioRecorder variant={variant} playerId="p1" playerName="Joueur"
+      <AudioRecorder variant={variant} layout={layout} playerId="p1" playerName="Joueur"
         onRecordingStart={onRecordingStart}
         onRecordingPause={onRecordingPause} onRecordingResume={onRecordingResume} />,
     );
@@ -314,7 +319,7 @@ describe.each(['default', 'inkBeta'] as const)('AudioRecorder lifecycle cleanup 
   });
 
   it('assemble les deux segments à l’arrêt final', async () => {
-    const view = render(<AudioRecorder variant={variant} playerId="p1" playerName="Joueur" />);
+    const view = render(<AudioRecorder variant={variant} layout={layout} playerId="p1" playerName="Joueur" />);
 
     fireEvent.click(view.container.querySelector('button') as HTMLButtonElement);
     await waitFor(() => expect(FakeMediaRecorder.instances).toHaveLength(1));

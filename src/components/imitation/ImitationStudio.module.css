@@ -1,0 +1,30 @@
+.root{container:imitation-console / inline-size;color:var(--bg-copy);width:100%;min-width:0}
+.root>header{margin:3px 2px 12px;gap:14px}
+.root>header>div>span{display:block;line-height:1.4}
+.root>header h1{font-size:30px;letter-spacing:-1px;margin:4px 0 5px}
+.root>header p{font-size:12px;line-height:1.45}
+.root>header button{min-height:38px;padding:8px 14px;font-size:11px}
+.workbench{border:2px solid var(--bg-edge);border-radius:30px;background:var(--bg-panel);box-shadow:inset 0 3px 0 #ffffff30,0 6px 0 #251334,0 9px 0 #13091e50;overflow:hidden}
+.screenHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 22px 12px}
+.screenHeader>div>span{display:block;line-height:1.5;font-size:9px;color:var(--bg-muted)}
+.screenHeader h2{font-weight:850;font-size:16px;letter-spacing:-.2px;margin-top:2px}
+.screenHeader>span{font-size:10px;padding:7px 10px;white-space:nowrap}
+.screen{background:radial-gradient(ellipse at 50% 50%,#46334f,#190f23 75%);border-block:1px solid var(--bg-line);position:relative}
+.media{width:100%;height:clamp(200px,calc(100dvh - 500px),480px)}
+.media video{object-fit:contain!important;border-radius:0!important;background:transparent!important}
+.console{padding:12px 22px 14px;min-width:0}
+.session{display:flex;align-items:center;gap:18px;margin:17px 2px 0;min-width:0;padding:9px 15px;border:1px solid var(--bg-line);border-radius:23px;background:#c8abde09}
+.session>div{flex-shrink:0}.session>div>strong{display:block;font-size:11px;font-weight:850}.session>div>small{display:block;font-size:9px;color:var(--bg-muted);margin-top:3px}
+.session ul{display:flex;align-items:center;gap:15px;list-style:none;margin:0;padding:0;min-width:0;flex:1;overflow-x:auto;scrollbar-width:thin}
+.session li{display:flex;align-items:center;gap:6px;flex-shrink:0;font-size:10px;color:var(--bg-muted)}
+.session li>div,.session li>div>div{width:28px!important;height:28px!important;min-width:28px!important}.session li img{object-fit:cover}
+.session li svg{width:12px;height:12px;color:var(--bg-mint)}.session .ready{color:var(--bg-mint)}
+.session>button{font-size:10px;min-height:30px;white-space:nowrap;padding:5px 10px;box-shadow:none}
+.tip{font-size:10px;line-height:1.5;color:var(--bg-muted);text-align:center;margin-top:11px}
+.review{display:grid;grid-template-columns:minmax(150px,1fr) minmax(180px,1fr) minmax(270px,1.5fr);align-items:center;gap:18px;min-height:112px}
+.reviewIntro strong{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:850}.reviewIntro svg{width:17px;color:var(--bg-mint)}.reviewIntro span{display:block;font-size:11px;line-height:1.6;color:var(--bg-muted);margin-top:7px}
+.mix{display:flex;align-items:center;gap:14px;justify-content:space-between;padding:14px;border:1px solid var(--bg-line);border-radius:20px;background:var(--bg-inset)}.mix strong{font-size:12px}.mix p{font-size:10px;color:var(--bg-muted);margin-top:3px}
+.reviewActions{display:flex;align-items:center;gap:9px}.reviewActions>button{min-height:46px;font-size:12px;padding:8px 13px}.reviewActions>button:first-child{flex-shrink:0}.reviewActions svg{width:17px}.volume{grid-column:2/-1;max-width:420px}
+@container imitation-console (max-width:760px){.console{padding:16px}.review{grid-template-columns:1fr 1fr;gap:12px}.reviewActions{grid-column:1/-1}.volume{grid-column:1/-1}.session{gap:10px;padding-inline:10px}.session ul{gap:10px}.session li span{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+@media(max-width:600px){.root>header h1{font-size:25px}.root>header p{font-size:11px}.root>header button{font-size:0;padding:8px 11px}.root>header button svg{width:17px}.screenHeader{padding:12px 16px}.screenHeader h2{font-size:14px}.screenHeader>span{max-width:145px;white-space:normal;text-align:right;font-size:9px}.media{height:clamp(200px,35dvh,330px)}.workbench{border-radius:25px}.session{flex-wrap:wrap}.session ul{order:3;flex-basis:100%;padding-top:4px}.session>button{margin-left:auto}.tip{font-size:9px}}
+@media(min-width:801px) and (max-height:650px){.root>header{margin-bottom:10px}.root>header h1{font-size:26px}.media{height:200px}.screenHeader{padding-block:9px}.console{padding-block:12px}.session{margin-top:12px}.tip{margin-top:8px}}

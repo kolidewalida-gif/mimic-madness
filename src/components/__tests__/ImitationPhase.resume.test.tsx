@@ -42,7 +42,7 @@ vi.mock('@/components/TeammateStatusPanel', () => ({
 }));
 vi.mock('@/components/DeviceSettings', () => ({ DeviceSettings: () => null }));
 vi.mock('@/components/PlayerAvatar', () => ({ PlayerAvatar: () => null }));
-vi.mock('@/components/VideoWithAudioOverlay', () => ({ VideoWithAudioOverlay: () => null }));
+vi.mock('@/components/VideoWithAudioOverlay', () => ({ VideoWithAudioOverlay: ({ videoElementRef }: { videoElementRef?: { current: HTMLVideoElement | null } }) => <video data-testid="video-imitation" ref={element => { if (videoElementRef) videoElementRef.current = element; }} /> }));
 vi.mock('@/components/VolumeSlider', () => ({ VolumeSlider: () => null }));
 vi.mock('@/components/rhythmo/RhythmoBand', () => ({ RhythmoBand: () => null }));
 vi.mock('@/components/ui/label', () => ({ Label: () => null }));
@@ -66,15 +66,18 @@ vi.mock('@/components/AudioRecorder', () => ({
     onRecordingStart,
     onRecordingPause,
     onRecordingResume,
+    onAudioSaved,
   }: {
     onRecordingStart?: () => void;
     onRecordingPause?: () => void;
     onRecordingResume?: () => void;
+    onAudioSaved?: (clip: { id: string }) => void;
   }) => (
     <div>
       <button type="button" onClick={onRecordingStart}>demarrer</button>
       <button type="button" onClick={onRecordingPause}>suspendre</button>
       <button type="button" onClick={onRecordingResume}>relancer</button>
+      <button type="button" onClick={() => onAudioSaved?.({ id: 'saved-take' })}>verifier</button>
     </div>
   ),
 }));
@@ -117,6 +120,24 @@ describe.each(['default', 'inkBeta'] as const)('reprise après changement de voi
   });
 
   afterEach(() => cleanup());
+
+  if (variant === 'inkBeta') it('uses one studio player through recording, review and retry', async () => {
+    const view = renderPhase(variant);
+    await act(async () => { await Promise.resolve(); });
+    expect(view.container.querySelectorAll('video')).toHaveLength(1);
+    expect(view.getByRole('region', { name: 'Enregistrer ton imitation' })).toBeTruthy();
+    fireEvent.click(view.getByText('verifier'));
+    expect(view.queryByTestId('video-defi')).toBeNull();
+    expect(view.getByTestId('video-imitation')).toBeTruthy();
+    expect(view.container.querySelectorAll('video')).toHaveLength(1);
+    expect(view.getByRole('region', { name: 'Valider ton imitation' })).toBeTruthy();
+    expect(view.getByRole('button', { name: 'Envoyer cette prise' })).toBeTruthy();
+    fireEvent.click(view.getByRole('button', { name: 'Refaire' }));
+    await act(async () => { await Promise.resolve(); });
+    expect(view.queryByTestId('video-imitation')).toBeNull();
+    expect(view.getByTestId('video-defi')).toBeTruthy();
+    expect(view.container.querySelectorAll('video')).toHaveLength(1);
+  });
 
   it('ne rembobine pas la vidéo à imiter', async () => {
     const view = renderPhase(variant);

@@ -22,6 +22,7 @@ describe('Imitation chat', () => {
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   it('starts tucked in the header without treating history as unread', () => {
     render(mount());
+    expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 1599px)');
     expect(screen.getByRole('button', { name: 'Chat' }).getAttribute('aria-expanded')).toBe('false');
     expect(screen.queryByRole('log')).toBeNull();
     expect(screen.queryByText('1')).toBeNull();
@@ -127,5 +128,18 @@ describe('Imitation chat', () => {
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Chat' }));
+  });
+  it('keeps the studio mounted and the draft intact when the temporary chat closes', () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const mounts = vi.fn(); const unmounts = vi.fn();
+    const Phase = () => { useEffect(() => { mounts(); return unmounts; }, []); return <video data-testid="reference" />; };
+    render(mount('imitation', <Phase />));
+    const video = screen.getByTestId('reference');
+    open();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'On se retrouve au vote' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer le chat' }));
+    expect(screen.getByTestId('reference')).toBe(video);
+    expect(mounts).toHaveBeenCalledTimes(1); expect(unmounts).not.toHaveBeenCalled();
+    open(); expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('On se retrouve au vote');
   });
 });

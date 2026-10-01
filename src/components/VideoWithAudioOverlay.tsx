@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
+import { useState, useRef, useEffect, useImperativeHandle, useCallback, forwardRef, type MutableRefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw, AlertCircle, RefreshCcw } from "lucide-react";
 import { videoStorage, type VideoClip } from "@/lib/videoStorageSupabase";
@@ -7,6 +7,8 @@ interface VideoWithAudioOverlayProps {
   videoClipId: string;
   audioClipId: string;
   className?: string;
+  /** Exposes the same playing element to synchronized lyrics in the studio. */
+  videoElementRef?: MutableRefObject<HTMLVideoElement | null>;
   externalControl?: boolean;
   isPlayingExternal?: boolean;
   /** Authoritative elapsed position when external playback starts or resyncs. */
@@ -34,6 +36,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
   videoClipId,
   audioClipId,
   className = "",
+  videoElementRef,
   externalControl = false,
   isPlayingExternal = false,
   playbackPositionSeconds = 0,
@@ -59,6 +62,10 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const attachVideo = useCallback((element: HTMLVideoElement | null) => {
+    videoRef.current = element;
+    if (videoElementRef) videoElementRef.current = element;
+  }, [videoElementRef]);
   const hasPlaybackStartedRef = useRef(false);
   const mediaIdentityRef = useRef("");
   const forceRefreshRef = useRef(false);
@@ -409,7 +416,7 @@ export const VideoWithAudioOverlay = forwardRef<VideoWithAudioOverlayRef, VideoW
       <div className="video-audio-overlay-frame relative h-full min-h-0 w-full aspect-video overflow-hidden rounded-lg bg-black/60">
         {videoUrl ? (
           <video
-            ref={videoRef}
+            ref={attachVideo}
             src={videoUrl}
             poster={posterUrl ?? undefined}
             className="h-full w-full object-cover"

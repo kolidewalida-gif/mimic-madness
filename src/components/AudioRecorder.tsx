@@ -237,6 +237,8 @@ interface AudioRecorderProps {
   showVoiceFilters?: boolean;
   /** Applies the dedicated Ink Beta stage composition without changing recorder behaviour. */
   variant?: 'default' | 'inkBeta';
+  /** Horizontal console under the reference video; does not change capture behaviour. */
+  layout?: 'default' | 'studio';
   /** Reports presentation state so the parent stepper mirrors the recorder without driving it. */
   onStateChange?: (state: AudioRecorderState) => void;
 }
@@ -351,6 +353,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
   onRecordingResume,
   showVoiceFilters = false,
   variant = 'default',
+  layout = 'default',
   onStateChange,
 }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -970,14 +973,14 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     pauseIntentRef.current = false;
   };
 
-  if (isInkBeta) return <div className={recorderBubble.root} data-state={recorderState}>
+  if (isInkBeta) return <div className={cn(recorderBubble.root, layout === 'studio' && recorderBubble.studio)} data-state={recorderState}>
     {recorderState === 'idle' && <div className={recorderBubble.micStage}>
       <button type="button" className={recorderBubble.mic} onClick={startRecording} aria-label="Commencer l’enregistrement de ton imitation"><Mic /></button>
-      <strong>Appuie, et entre en scène.</strong><p>La vidéo repart avec toi. Tu pourras mettre en pause ou refaire ta prise.</p>
+      <strong>{layout === 'studio' ? 'Lance ta prise' : 'Appuie, et entre en scène.'}</strong><p>{layout === 'studio' ? 'La vidéo et ton micro partent ensemble.' : 'La vidéo repart avec toi. Tu pourras mettre en pause ou refaire ta prise.'}</p>
     </div>}
     {(recorderState === 'idle' || recorderState === 'paused') && showVoiceFilters && <div className={recorderBubble.filters}>
       <div className={recorderBubble.filterLabel}><strong>Quelle voix aujourd’hui ?</strong><small>Jusqu’à 3 effets</small></div>
-      <InkVoiceFilterPicker value={voiceFilters} onChange={setVoiceFilters} compact bubble />
+      <InkVoiceFilterPicker value={voiceFilters} onChange={setVoiceFilters} compact bubble strip={layout === 'studio'} />
     </div>}
     {recorderState === 'live' && <>
       <div className={`${recorderBubble.micStage} ${recorderBubble.recording}`}><span className={recorderBubble.mic}><Mic /></span><strong>La scène est à toi !</strong>

@@ -27,7 +27,7 @@ export const BubbleGameHeader = ({ phase, round, tools }: { phase: BubblePhase; 
 };
 
 export const BubbleGameStage = ({ phase, round, tools, children, sidebar }: { phase: BubblePhase; round?: number; tools?: ReactNode; children: ReactNode; sidebar?: ReactNode }) =>
-  <div className={`ik-root ${styles.root}`}>
+  <div className={`ik-root ${styles.root}`} data-game-phase={phase}>
     <div className="ik-party-bg" aria-hidden="true" /><div className="ik-party-dots" aria-hidden="true" />
     <div className={styles.decor} aria-hidden="true"><i /><i /><i /><i /></div>
     <BubbleGameHeader phase={phase} round={round} tools={tools} />

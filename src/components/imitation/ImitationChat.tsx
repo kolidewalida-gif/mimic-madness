@@ -34,7 +34,7 @@ function Message({ message, own, grouped, quiet }: { message: ChatMessage; own: 
 export function ImitationChat({ lobbyId, playerId, playerName, players, phase, children }: Props) {
   const { messages, allMessages, isLoading, isSending, sendMessage } = useLobbyChat(lobbyId, playerId, playerName);
   const [open, setOpen] = useState(false);
-  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 1199px)').matches);
+  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 1599px)').matches);
   const [draft, setDraft] = useState('');
   const [picker, setPicker] = useState<'gif' | 'sound' | null>(null);
   const [search, setSearch] = useState('');
@@ -53,7 +53,7 @@ export function ImitationChat({ lobbyId, playerId, playerName, players, phase, c
   const gifs = useMemo(() => search.trim() ? searchGifs(search) : category === 'all' ? CHAT_GIFS : CHAT_GIFS.filter(gif => gif.category === category), [search, category]);
 
   useEffect(() => {
-    const media = window.matchMedia('(max-width: 1199px)');
+    const media = window.matchMedia('(max-width: 1599px)');
     const update = () => setCompact(media.matches);
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
