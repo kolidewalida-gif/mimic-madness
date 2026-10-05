@@ -282,3 +282,138 @@
   :global(body.inkbeta-mode) .root.root :global(.ik-primary-action) { min-height: 65px; }
   :global(body.inkbeta-mode) .root.root :global(.ik-start-hint) { margin-top: 10px; }
 }
+
+/* ==========================================================================
+   Touche 8-bit (légère) — mêmes règles que l'accueil (voir InkHomeBubble).
+   Police pixel sur ce qui se presse, se copie ou s'étiquette : barre d'outils,
+   code du salon, actions, compteur, pastille « Toi ». Les titres et les textes
+   de lecture gardent la police Bubble. Polices et variables :
+   src/styles/pixel-accent.css. Bloc placé en dernier : il reprend aussi les
+   tailles des règles « écran bas » et « grand écran » plus haut.
+   ========================================================================== */
+
+/* Icônes : bouts carrés et angles vifs plutôt qu'arrondis. */
+:global(body.inkbeta-mode) .root.root :is(:global(.ik-tool), :global(.ik-secondary-action), :global(.ik-primary-action)) svg {
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+/* Barre d'outils : libellés en pixel, badge carré cranté. */
+:global(body.inkbeta-mode) .root.root :global(.ik-tool) > span {
+  font-family: var(--mm-pixel-ui);
+  font-size: 20px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+:global(body.inkbeta-mode) .root.root :global(.ik-tool-badge) {
+  top: -9px;
+  right: -7px;
+  min-width: 20px;
+  height: auto;
+  padding: 4px 3px 3px;
+  border: 0;
+  border-radius: 0;
+  font-family: var(--mm-pixel-head);
+  font-size: 8px;
+  font-weight: 400;
+  box-shadow: 0 -2px 0 var(--ik-edge), 0 2px 0 var(--ik-edge), -2px 0 0 var(--ik-edge), 2px 0 0 var(--ik-edge);
+}
+
+/* Ticket du code : le code en grand pixel, les micro-libellés en 8 px. */
+:global(body.inkbeta-mode) .root.root :global(.ik-lobby-code) strong {
+  font-family: var(--mm-pixel-ui);
+  font-size: 40px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .1em;
+  line-height: 1;
+}
+:global(body.inkbeta-mode) .root.root :global(.ik-lobby-code) :is(small, :global(.ik-lobby-code-action)) {
+  font-family: var(--mm-pixel-head);
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: .08em;
+}
+
+/* Compteur de joueurs, comme un score. */
+:global(body.inkbeta-mode) .root.root :global(.ik-lobby-count) strong {
+  font-family: var(--mm-pixel-ui);
+  font-size: 30px;
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1;
+}
+:global(body.inkbeta-mode) .root.root :global(.ik-lobby-count) span {
+  font-family: var(--mm-pixel-ui);
+  font-size: 20px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .04em;
+  line-height: 1;
+}
+
+/* Pastille « Toi » : même cadre cranté que l'étiquette « C'est toi ! » de l'accueil. */
+:global(body.inkbeta-mode) .root.root :global(.ik-seat.is-self) :global(.ik-seat-meta) {
+  padding: 5px 7px 4px;
+  border-radius: 0;
+  font-family: var(--mm-pixel-head);
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: .06em;
+  line-height: 1;
+  text-transform: uppercase;
+  box-shadow: 0 -2px 0 #286454, 0 2px 0 #286454, -2px 0 0 #286454, 2px 0 0 #286454;
+}
+
+/* Lancer la partie : 20 px partout, 30 px quand la colonne est assez large
+   (« LANCER LA PARTIE » fait 200 px à 30 px, 133 px à 20 px). */
+:global(body.inkbeta-mode) .root.root :global(.ik-primary-action) {
+  font-family: var(--mm-pixel-ui);
+  font-size: 20px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .05em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* Partager le lien : le bouton est trop étroit sous 1100 px, il garde alors la police Bubble. */
+@media (min-width: 1101px) {
+  :global(body.inkbeta-mode) .root.root :global(.ik-secondary-action) {
+    font-family: var(--mm-pixel-ui);
+    font-size: 20px;
+    font-weight: 400;
+    font-synthesis: none;
+    letter-spacing: .05em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+}
+@media (min-width: 1101px) and (min-height: 851px) {
+  :global(body.inkbeta-mode) .root.root :global(.ik-primary-action) { font-size: 30px; }
+}
+@media (min-width: 1101px) and (max-height: 850px) {
+  :global(body.inkbeta-mode) .root.root :global(.ik-lobby-code) strong { font-size: 30px; }
+}
+
+/* Fenêtre d'invitation : même code et même action que dans le salon. */
+.inviteCode strong {
+  font-family: var(--mm-pixel-ui);
+  font-size: 50px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .1em;
+  line-height: 1;
+}
+.inviteShare {
+  font-family: var(--mm-pixel-ui);
+  font-size: 20px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .05em;
+  line-height: 1;
+  text-transform: uppercase;
+}

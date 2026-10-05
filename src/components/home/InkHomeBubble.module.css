@@ -222,3 +222,202 @@
 @media (min-width: 601px) and (max-height: 850px) { .avatarBubble { width: 176px; height: 176px; } }
 @media (min-width: 601px) and (max-height: 780px) { .avatarBubble { width: 150px; height: 150px; } }
 @media (prefers-reduced-motion: reduce) { .avatarArrow, .avatarEdit { transition: none; } }
+
+/* ==========================================================================
+   Touche 8-bit (légère)
+   --------------------------------------------------------------------------
+   Le design Bubble ne bouge pas : mêmes volumes, mêmes couleurs, mêmes bulles.
+   On y ajoute seulement des détails « console » :
+   - police pixel sur les libellés courts et les boutons d'action ;
+   - cadres aux coins crantés (bordure faite de quatre ombres pleines) ;
+   - une étincelle en sprite qui clignote par paliers ;
+   - points de fond carrés plutôt que ronds.
+   Polices et variables : src/styles/pixel-accent.css. Jersey 10 est dessinée
+   sur une grille de 10 px : on reste sur 20 / 30 / 50 px pour des pixels nets.
+   Bloc placé en dernier : il reprend aussi les tailles des règles mobiles et
+   « écran bas » plus haut.
+   ========================================================================== */
+
+/* La légende « Micro prêt · talent facultatif » doit rester masquée (voir plus
+   haut) : la règle globale du thème lui redonnait un affichage et elle venait
+   recouvrir l'étiquette « C'est toi ! » pour un joueur non connecté. */
+:global(body.inkbeta-mode) .avatarSlot :global(.ik-mascot-caption) { display: none; }
+
+/* Points de fond : petits carrés nets au lieu de ronds flous. */
+:global(body.inkbeta-mode) .root :global(.ik-party-dots) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='2' height='2' fill='%233d035d' fill-opacity='.55'/%3E%3C/svg%3E");
+  background-size: 8px 8px;
+}
+
+/* Icônes : bouts carrés et angles vifs plutôt qu'arrondis. */
+.tool svg,
+.actionIcon svg,
+.actionArrow {
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+/* Barre du haut : libellés en pixel, pastille de notification crantée. */
+.toolLabel,
+.profileName {
+  font-family: var(--mm-pixel-ui);
+  font-size: 20px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .06em;
+  line-height: 1;
+}
+.toolLabel { text-transform: uppercase; }
+.notificationBadge {
+  top: -9px;
+  right: -7px;
+  min-width: 20px;
+  padding: 4px 3px 3px;
+  border: 0;
+  border-radius: 0;
+  font-family: var(--mm-pixel-head);
+  font-size: 8px;
+  font-weight: 400;
+  line-height: 1;
+  text-align: center;
+  box-shadow: 0 -2px 0 #35204f, 0 2px 0 #35204f, -2px 0 0 #35204f, 2px 0 0 #35204f;
+}
+
+/* Avatar : l'étincelle devient un sprite à deux images, l'étiquette un cadre
+   cranté. Les deux restent droits quand la bulle oscille (contre-rotation de
+   mm-upright-*), sinon leurs arêtes pixel se mettraient à baver. */
+.avatarSpark {
+  top: 8px;
+  right: -30px;
+  width: 38px;
+  height: 38px;
+  background: url('../../assets/pixel/sparkle.svg') 0 0 / 76px 38px no-repeat;
+  transform: none;
+  animation:
+    mm-upright-spark 6s ease-in-out .7s infinite,
+    mm-twinkle 1.6s steps(1, end) infinite;
+}
+.avatarTag {
+  padding: 6px 11px 4px;
+  border: 0;
+  border-radius: 0;
+  font-family: var(--mm-pixel-ui);
+  font-size: 20px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .06em;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  box-shadow: 0 -2px 0 #4c2f65, 0 4px 0 #4c2f65, -2px 0 0 #4c2f65, 2px 0 0 #4c2f65;
+  animation: mm-upright-tag 6s ease-in-out .7s infinite;
+}
+
+/* Carte de jeu : étiquette, pseudo et boutons d'action en pixel. */
+.fieldLabel {
+  font-family: var(--mm-pixel-ui);
+  font-size: 20px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.nameField input {
+  font-family: var(--mm-pixel-ui);
+  font-size: 30px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .04em;
+}
+.nameField input::placeholder { font-weight: 400; }
+.createButton,
+.joinButton {
+  font-family: var(--mm-pixel-ui);
+  font-size: 30px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .05em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* Pied de page : la pastille « Ink Beta » prend un cadre cranté. */
+.footerBrand b {
+  padding: 5px 7px 4px;
+  border-radius: 0;
+  font-family: var(--mm-pixel-head);
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: .06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* Fenêtre « Rejoindre » : titre, code et actions en pixel. */
+:global(body.inkbeta-mode) .joinModal :global(.ink-panel-title) {
+  font-family: var(--mm-pixel-ui);
+  font-size: 30px;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .05em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.joinForm .codeLabel {
+  font-family: var(--mm-pixel-ui);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.joinForm .codeField input {
+  font-family: var(--mm-pixel-ui);
+  font-size: 50px;
+  font-weight: 400;
+  letter-spacing: .3em;
+  text-indent: .3em;
+}
+.joinForm .submitButton,
+.joinForm .cancelButton {
+  font-family: var(--mm-pixel-ui);
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: .05em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.joinForm .submitButton { font-size: 30px; }
+.joinForm .cancelButton { font-size: 20px; }
+
+@media (max-width: 600px) {
+  /* Petit écran : les boutons d'action descendent à 20 px pour tenir en largeur. */
+  .createButton,
+  .joinButton,
+  .joinForm .submitButton { font-size: 20px; }
+  .avatarSpark { right: -22px; }
+}
+
+/* Mode économie : seul le clignotement s'arrête. La bulle oscille toujours,
+   l'étincelle doit donc continuer à se contre-tourner. */
+:global(html.low-power) .avatarSpark { animation: mm-upright-spark 6s ease-in-out .7s infinite; }
+/* Mouvement réduit : la bulle ne bouge plus, donc plus de contre-rotation non
+   plus. L'étincelle se fige sur la grande image. */
+@media (prefers-reduced-motion: reduce) {
+  .avatarSpark,
+  :global(html.low-power) .avatarSpark,
+  .avatarTag { animation: none; }
+}
+
+@keyframes mm-twinkle {
+  0% { background-position: 0 0; }
+  50% { background-position: -38px 0; }
+}
+@keyframes mm-upright-spark {
+  0%, 100% { transform: rotate(2deg); }
+  50% { transform: rotate(-2deg); }
+}
+@keyframes mm-upright-tag {
+  0%, 100% { transform: translateX(-50%) rotate(2deg); }
+  50% { transform: translateX(-50%) rotate(-2deg); }
+}

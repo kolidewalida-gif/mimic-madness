@@ -1,0 +1,34 @@
+/*
+ * Touche 8-bit des menus Bubble : polices pixel partagées.
+ *
+ * Les menus gardent leurs volumes, leurs couleurs et leurs bulles ; seuls les
+ * libellés courts et quelques détails prennent un accent « console ».
+ *
+ * Polices (SIL OFL 1.1, textes de licence dans src/assets/fonts/pixel) :
+ *  - Jersey 10 : libellés et boutons. Dessinée sur une grille de 10 px, donc
+ *    20 px et 30 px tombent sur des pixels entiers (pas de flou).
+ *  - Press Start 2P : micro-étiquettes décoratives. Grille de 8 px : 8 ou 16 px.
+ *
+ * Une seule graisse (400) pour les deux : ne jamais y demander de gras, le
+ * navigateur le simulerait en barbouillant les pixels.
+ */
+@font-face {
+  font-family: 'Jersey 10';
+  src: url('../assets/fonts/pixel/jersey-10-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('../assets/fonts/pixel/press-start-2p-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --mm-pixel-ui: 'Jersey 10', 'Arial Narrow', Impact, sans-serif;
+  --mm-pixel-head: 'Press Start 2P', 'Jersey 10', ui-monospace, 'Courier New', monospace;
+}

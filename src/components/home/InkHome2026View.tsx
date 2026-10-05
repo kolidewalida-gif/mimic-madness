@@ -189,7 +189,7 @@ export const InkHome2026View = ({
         <section className={styles.scene}>
           <h2 id="mm-home3-tagline" className="sr-only">Prêt à jouer ?</h2>
           <div className={styles.avatarBubble}>
-            <span className={styles.avatarSpark} aria-hidden="true">✦</span>
+            <span className={styles.avatarSpark} aria-hidden="true" />
             <div className={styles.avatarSlot}>{avatarPicker}</div>
             <span className={styles.avatarTag}>C’est toi !</span>
           </div>
