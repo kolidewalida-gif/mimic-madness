@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, Users, X, Loader2, Send, CheckCircle2, Search, Sparkles } from 'lucide-react';
+import { UserPlus, Users, X, Loader2, Send, CheckCircle2, Check, Copy, Share2, Search, Sparkles } from 'lucide-react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { playSample } from '@/lib/sfx/samples';
 import { useInkMode } from '@/hooks/useInkMode';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import inviteStyles from '@/components/lobby/LobbyInvite.module.css';
 
 interface Player {
   id: string;
@@ -38,6 +39,11 @@ interface LobbyInvitePanelProps {
   inlineMode?: boolean;
   /** Render the dedicated Ink Beta invitation browser. */
   isInkBeta?: boolean;
+  /** Ink Beta : actions de partage du salon, fournies par l'écran du salon. */
+  onCopyCode?: () => void;
+  onShareLink?: () => void;
+  codeCopied?: boolean;
+  linkShared?: boolean;
 }
 
 /* ============================================================
@@ -54,6 +60,10 @@ const LobbyInvitePanelComponent = ({
   isHost,
   inlineMode = false,
   isInkBeta = false,
+  onCopyCode,
+  onShareLink,
+  codeCopied = false,
+  linkShared = false,
 }: LobbyInvitePanelProps) => {
   const { isInkMode } = useInkMode();
   const { user, profile } = useAuth();
@@ -65,6 +75,7 @@ const LobbyInvitePanelComponent = ({
   const [showInvitePanel, setShowInvitePanel] = useState(false);
   const [invitedFriends, setInvitedFriends] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!showInvitePanel) {
@@ -82,8 +93,13 @@ const LobbyInvitePanelComponent = ({
     }
     // Envoi d'invitation : son dédié, distinct d'un message de chat.
     if (!playSample('inviteSent', 0.45)) playSound('messageSend', 0.4);
-    await sendInvitation(friendUserId, lobbyCode, profile.display_name);
-    setInvitedFriends((prev) => new Set(prev).add(friendUserId));
+    setSendingId(friendUserId);
+    try {
+      await sendInvitation(friendUserId, lobbyCode, profile.display_name);
+      setInvitedFriends((prev) => new Set(prev).add(friendUserId));
+    } finally {
+      setSendingId(null);
+    }
   };
 
   const togglePanel = () => {
@@ -296,106 +312,92 @@ const LobbyInvitePanelComponent = ({
         );
       }
 
+      /* Présentation Bubble : le code et le lien d'abord (pour ceux qui ne sont
+         pas dans la liste), puis les amis, regroupés par présence. */
+      const presenceGroups: Array<{
+        key: 'online' | 'playing' | 'offline';
+        label: string;
+        friends: typeof availableFriends;
+      }> = [
+        { key: 'online', label: 'En ligne', friends: [] },
+        { key: 'playing', label: 'En partie', friends: [] },
+        { key: 'offline', label: 'Hors ligne', friends: [] },
+      ];
+      availableFriends.forEach((friend) => {
+        const status = getUserStatus(friend.user_id);
+        presenceGroups[status.lobbyCode ? 1 : status.online ? 0 : 2].friends.push(friend);
+      });
+
       return (
-        <div className="ik-invite-browser">
-          <aside className="ik-invite-brief">
-            <div>
-              <span className="ik-invite-kicker">Ton salon</span>
-              <h3>La prochaine partie commence ici.</h3>
-              <p>
-                Choisis les amis qui rejoignent la troupe. Leur invitation reste
-                disponible pendant deux minutes.
-              </p>
-            </div>
+        <div className={inviteStyles.root}>
+          <section className={inviteStyles.share} aria-label="Code et lien du salon">
+            {onCopyCode ? (
+              <button
+                type="button"
+                onClick={onCopyCode}
+                className={cn(inviteStyles.ticket, 'menu-focus')}
+                aria-label={`Copier le code du salon ${lobbyCode}`}
+              >
+                <small>Code du salon</small>
+                <strong>{lobbyCode}</strong>
+                <span>
+                  {codeCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                  {codeCopied ? 'Copié !' : 'Copier le code'}
+                </span>
+              </button>
+            ) : (
+              <div className={inviteStyles.ticket} role="group" aria-label={`Code du salon ${lobbyCode}`}>
+                <small>Code du salon</small>
+                <strong>{lobbyCode}</strong>
+              </div>
+            )}
 
-            <div className="ik-invite-code" aria-label={`Code du salon ${lobbyCode}`}>
-              <span>Code du salon</span>
-              <strong>{lobbyCode}</strong>
+            <div className={inviteStyles.shareText}>
+              <p>Un ami n’est pas dans ta liste ? Donne-lui le code ou envoie-lui le lien.</p>
+              {onShareLink && (
+                <button type="button" onClick={onShareLink} className={cn(inviteStyles.link, 'menu-focus')}>
+                  {linkShared ? <Check aria-hidden="true" /> : <Share2 aria-hidden="true" />}
+                  {linkShared ? 'Lien copié !' : 'Partager le lien'}
+                </button>
+              )}
             </div>
+          </section>
 
-            <div className="ik-invite-capacity">
+          <section className={inviteStyles.friends} aria-labelledby="lobby-invite-friends-title">
+            <header className={inviteStyles.head}>
               <div>
-                <span>Déjà là</span>
-                <strong>{players.length}</strong>
+                <h3 id="lobby-invite-friends-title">Tes amis</h3>
+                <p>Une invitation reste valable 2 minutes, même pour un ami hors ligne.</p>
               </div>
-              <div>
-                <span>Places libres</span>
-                <strong>{emptySlots}</strong>
-              </div>
-            </div>
-
-            <div className="ik-invite-capacity-track" aria-hidden="true">
-              <span
-                style={{
-                  width: `${Math.min(100, (players.length / maxPlayers) * 100)}%`,
-                }}
-              />
-            </div>
-
-            <div className="ik-invite-crew">
-              <div className="ik-invite-crew-stack" aria-hidden="true">
-                {players.slice(0, 4).map((player, index) => (
-                  <span
-                    key={player.id}
-                    className={cn('ik-invite-crew-avatar', player.isHost && 'is-host')}
-                    style={{ zIndex: 5 - index }}
-                  >
-                    {player.name.charAt(0).toUpperCase()}
-                  </span>
-                ))}
-                {players.length > 4 && (
-                  <span className="ik-invite-crew-avatar is-more">
-                    +{players.length - 4}
-                  </span>
-                )}
-              </div>
-              <p>
-                {players.length === 1
-                  ? 'Tu attends encore ta troupe.'
-                  : `${players.length} joueurs sont prêts.`}
-              </p>
-            </div>
-          </aside>
-
-          <section className="ik-invite-directory" aria-label="Liste des amis à inviter">
-            <header className="ik-invite-directory-head">
-              <div>
-                <span className="ik-invite-kicker">Carnet d'amis</span>
-                <h3>Qui rejoint la troupe&nbsp;?</h3>
-                <p>En ligne, en partie ou hors ligne : tu peux prévenir tout le monde.</p>
-              </div>
-              <span className="ik-invite-count" aria-label={`${availableFriends.length} amis disponibles`}>
+              <span className={inviteStyles.count} aria-label={`${availableFriends.length} amis disponibles`}>
                 {availableFriends.length}
               </span>
             </header>
 
-            <label className="ik-invite-search">
+            <label className={inviteStyles.search}>
               <Search aria-hidden="true" />
-              <span className="sr-only">Rechercher un ami</span>
-              <Input
+              <input
+                type="search"
                 aria-label="Rechercher un ami"
                 placeholder="Rechercher par pseudo…"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
+                autoComplete="off"
               />
             </label>
 
-            <div
-              className="ik-invite-friends game-scroll custom-scrollbar"
-              role="list"
-              aria-live="polite"
-            >
+            <div className={cn(inviteStyles.scroll, 'custom-scrollbar')} aria-live="polite">
               {friendsLoading ? (
-                <div className="ik-invite-state" role="status">
-                  <span className="ik-invite-state-icon">
+                <div className={inviteStyles.state} role="status">
+                  <span className={inviteStyles.stateIcon}>
                     <Loader2 className="animate-spin" aria-hidden="true" />
                   </span>
                   <strong>On ouvre ton carnet…</strong>
                   <p>Un instant, tes amis arrivent.</p>
                 </div>
               ) : availableFriends.length === 0 ? (
-                <div className="ik-invite-state">
-                  <span className="ik-invite-state-icon">
+                <div className={inviteStyles.state}>
+                  <span className={inviteStyles.stateIcon}>
                     {searchQuery ? <Search aria-hidden="true" /> : <Users aria-hidden="true" />}
                   </span>
                   <strong>{searchQuery ? 'Personne sous ce pseudo.' : 'Ta liste est encore vide.'}</strong>
@@ -406,84 +408,67 @@ const LobbyInvitePanelComponent = ({
                   </p>
                 </div>
               ) : (
-                availableFriends.map((friend, index) => {
-                  const status = getUserStatus(friend.user_id);
-                  const isOnline = status.online;
-                  const isInvited = invitedFriends.has(friend.user_id);
-                  const isInGame = !!status.lobbyCode;
-                  const statusLabel = isInGame
-                    ? 'En partie'
-                    : isOnline
-                      ? 'En ligne'
-                      : 'Hors ligne';
+                presenceGroups
+                  .filter((group) => group.friends.length > 0)
+                  .map((group) => (
+                    <section key={group.key} className={inviteStyles.group} aria-label={group.label}>
+                      <h4 className={inviteStyles.groupTitle}>
+                        {group.label}
+                        <span>{group.friends.length}</span>
+                      </h4>
+                      <ul className={inviteStyles.list}>
+                        {group.friends.map((friend) => {
+                          const name = friend.display_name || 'Joueur';
+                          const isInvited = invitedFriends.has(friend.user_id);
+                          const isSending = sendingId === friend.user_id;
 
-                  return (
-                    <motion.article
-                      key={friend.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: Math.min(index * 0.035, 0.2) }}
-                      className={cn(
-                        'ik-invite-friend',
-                        isInGame ? 'is-playing' : isOnline ? 'is-online' : 'is-offline',
-                      )}
-                      role="listitem"
-                    >
-                      <div className="ik-invite-friend-avatar">
-                        <Avatar className="ik-invite-avatar">
-                          <AvatarImage src={friend.avatar_url || undefined} />
-                          <AvatarFallback className="ik-invite-avatar-fallback">
-                            {friend.display_name?.charAt(0)?.toUpperCase() || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="ik-invite-presence-dot" aria-hidden="true" />
-                      </div>
+                          return (
+                            <li key={friend.id} className={inviteStyles.friend} data-presence={group.key}>
+                              <span className={inviteStyles.avatarWrap}>
+                                <Avatar className={inviteStyles.avatar}>
+                                  <AvatarImage src={friend.avatar_url || undefined} alt="" />
+                                  <AvatarFallback className={inviteStyles.fallback}>
+                                    {(friend.display_name?.charAt(0) || '?').toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className={inviteStyles.dot} aria-hidden="true" />
+                              </span>
 
-                      <div className="ik-invite-friend-copy">
-                        <strong title={friend.display_name || 'Joueur'}>
-                          {friend.display_name || 'Joueur'}
-                        </strong>
-                        <span>
-                          <i aria-hidden="true" />
-                          {statusLabel}
-                        </span>
-                      </div>
+                              <span className={inviteStyles.who}>
+                                <strong title={name}>{name}</strong>
+                                <small>{group.label}</small>
+                              </span>
 
-                      <motion.button
-                        type="button"
-                        whileHover={!isInvited ? { y: -2 } : undefined}
-                        whileTap={!isInvited ? { y: 2 } : undefined}
-                        disabled={isInvited || invitationLoading}
-                        onClick={() =>
-                          handleInvite(friend.user_id, friend.display_name || 'Joueur')
-                        }
-                        className={cn('ik-invite-send menu-focus', isInvited && 'is-sent')}
-                        aria-label={
-                          isInvited
-                            ? `Invitation envoyée à ${friend.display_name || 'Joueur'}`
-                            : `Inviter ${friend.display_name || 'Joueur'}`
-                        }
-                      >
-                        {isInvited ? (
-                          <>
-                            <CheckCircle2 aria-hidden="true" />
-                            <span>Envoyé</span>
-                          </>
-                        ) : invitationLoading ? (
-                          <>
-                            <Loader2 className="animate-spin" aria-hidden="true" />
-                            <span>Envoi…</span>
-                          </>
-                        ) : (
-                          <>
-                            <Send aria-hidden="true" />
-                            <span>Inviter</span>
-                          </>
-                        )}
-                      </motion.button>
-                    </motion.article>
-                  );
-                })
+                              <button
+                                type="button"
+                                disabled={isInvited || invitationLoading}
+                                onClick={() => handleInvite(friend.user_id, name)}
+                                className={cn(inviteStyles.send, isInvited && inviteStyles.sent, 'menu-focus')}
+                                aria-label={isInvited ? `Invitation envoyée à ${name}` : `Inviter ${name}`}
+                              >
+                                {isInvited ? (
+                                  <>
+                                    <CheckCircle2 aria-hidden="true" />
+                                    <span>Envoyé</span>
+                                  </>
+                                ) : isSending ? (
+                                  <>
+                                    <Loader2 className="animate-spin" aria-hidden="true" />
+                                    <span>Envoi…</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send aria-hidden="true" />
+                                    <span>Inviter</span>
+                                  </>
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  ))
               )}
             </div>
           </section>

@@ -406,9 +406,9 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
       {/* ============== INVITE PANEL ============== */}
       <InkModal
         className={isInkBeta ? cn(
-          'ik-party-overlay ik-lobby-overlay ik-invite-overlay',
+          'ik-party-overlay ik-lobby-overlay',
           lobbyStyles.inviteDialog,
-          (!isHost || !user) && lobbyStyles.shareDialog,
+          (!isHost || !user) ? cn('ik-invite-overlay', lobbyStyles.shareDialog) : lobbyStyles.friendsDialog,
         ) : undefined}
         isOpen={showInvitePanel}
         onClose={() => setShowInvitePanel(false)}
@@ -441,6 +441,10 @@ export const InkLobbyScreen = (props: InkLobbyScreenProps) => {
             isHost={isHost}
             inlineMode
             isInkBeta={isInkBeta}
+            onCopyCode={handleCopyCode}
+            onShareLink={handleShareLink}
+            codeCopied={codeCopied}
+            linkShared={linkShared}
           />
         )}
       </InkModal>

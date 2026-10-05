@@ -399,21 +399,6 @@
   :global(body.inkbeta-mode) .root.root :global(.ik-lobby-code) strong { font-size: 30px; }
 }
 
-/* Fenêtre d'invitation : même code et même action que dans le salon. */
-.inviteCode strong {
-  font-family: var(--mm-pixel-ui);
-  font-size: 50px;
-  font-weight: 400;
-  font-synthesis: none;
-  letter-spacing: .1em;
-  line-height: 1;
-}
-.inviteShare {
-  font-family: var(--mm-pixel-ui);
-  font-size: 20px;
-  font-weight: 400;
-  font-synthesis: none;
-  letter-spacing: .05em;
-  line-height: 1;
-  text-transform: uppercase;
-}
+/* Invitation d'amis (hôte connecté) : une seule colonne, plus étroite que
+   l'ancien navigateur à deux zones. Le contenu est dans LobbyInvite.module.css. */
+:global(body.inkbeta-mode) .friendsDialog.friendsDialog.friendsDialog.friendsDialog.friendsDialog { width: min(100% - 28px, 600px); max-width: 600px; }
