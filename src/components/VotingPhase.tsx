@@ -43,6 +43,7 @@ import { masterAvailability } from '@/lib/mimicMaster';
 import { useMimicMaster } from '@/hooks/useMimicMaster';
 import { MimicMasterButton } from '@/components/imitation/MimicMaster';
 import { BubbleHeading, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import { VideoStage, videoStageStyles as stageStyles } from '@/components/imitation/VideoStage';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { DuoVotingBoard, duoStyles as duo } from '@/components/imitation/BubbleDuos';
 interface Player {
@@ -924,30 +925,31 @@ export const VotingPhase = ({
 
   if (isInkBeta) return <>
     <CountdownOverlay isActive={showCountdown} onComplete={handleCountdownComplete} duration={3} title="La vidéo commence dans…" completeAt={countdownCompleteAt ?? undefined} />
-    <BubbleHeading label={`Imitation ${currentIndex + 1} sur ${displayLength}`} title="Le jury, c’est vous.">Regarde la prise, écoute la voix, puis donne ton verdict.</BubbleHeading>
-    <div className={bubble.split}>
-      <BubblePanel title="La prise à juger" eyebrow="À l’écran" aside={<span className={bubble.stamp}><ThumbsUp /> Les votes</span>}>
-        <div className={bubble.video}>
-          {gameMode === '2v2' && currentTeamImitation && currentTeamAudio[0] ? <TeamVideoOverlay ref={teamVideoRef} videoClipId={challengeVideoClipId} audioClipId1={currentTeamAudio[0]} audioClipId2={currentTeamAudio[1] || null} className="w-full" externalControl isPlayingExternal={isPlayingSynced} playbackPositionSeconds={playbackPositionSeconds} includeOriginalAudio={currentTeamImitation.includeOriginalAudio} originalAudioVolume={currentTeamImitation.originalAudioVolume} /> : currentImitation?.clipId ?
-          <VideoWithAudioOverlay ref={videoRef} videoClipId={challengeVideoClipId} audioClipId={currentImitation.clipId} className="w-full" externalControl isPlayingExternal={isPlayingSynced} playbackPositionSeconds={playbackPositionSeconds} includeOriginalAudio={currentImitation.includeOriginalAudio} originalAudioVolume={currentImitation.originalAudioVolume} onPlayStateChange={playing => { if (!playing && isPlayingSynced && currentPlayer.isHost) void mutateSession('pause'); }} /> : <div className={bubble.waiting}>Aucun audio disponible</div>}
-        </div>
-        {!isPlaybackAuthoritative && <p className={bubble.note}>Synchronisation de lecture approximative : l’horodatage serveur n’est pas encore disponible.</p>}
-        {currentPlayer.isHost && <button type="button" className={`${bubble.mintButton} ${bubble.votePlayback}`} onClick={handleTogglePlay} disabled={!votingSessionId || !isSessionSynchronized || pendingPlay || showCountdown || !currentHasAudio || isSessionActionPending}>{isSessionActionPending ? <Loader2 className="animate-spin" /> : isPlayingSynced ? <Pause /> : <Play />}{isSessionActionPending ? 'Synchronisation…' : isPlayingSynced ? 'Pause' : 'Lancer pour tous'}</button>}
-      </BubblePanel>
-      <BubblePanel title={isOwnVideo ? 'C’est votre moment !' : 'Alors, convaincu ?'} eyebrow="Le verdict">
-        <div className={bubble.identity}>
-          {gameMode === '2v2' && currentTeamImitation ? <><div className={bubble.identityAvatars}>{currentTeamImitation.players.map(player => <PlayerAvatar key={player.id} playerId={player.id} playerName={player.name} size="lg" showTitle={false} />)}</div><strong>Équipe {currentTeamImitation.teamNumber}</strong><small>{currentTeamImitation.players.map(player => player.name).join(' + ')}</small></> : currentImitation && <><PlayerAvatar playerId={currentImitation.playerId} playerName={currentImitation.playerName} size="xl" showTitle={false} /><strong>{currentImitation.playerName}</strong></>}
-        </div>
-        {voteAvailability.kind === 'votable' && !hasVotedCurrent && <div className={bubble.voteButtons}><button type="button" onClick={event => handleVote('dislike', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsDown /> Bof</button><button type="button" onClick={event => handleVote('like', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsUp /> Top !</button></div>}
-        {isVotePending && <p className={bubble.note} role="status">Enregistrement du vote…</p>}
-        {hasVotedCurrent && <p className={bubble.note} role="status">Vote enregistré ! {currentPlayer.isHost ? '' : 'En attente de l’hôte.'}</p>}
-        {isOwnVideo && <p className={bubble.note}>Vous ne pouvez pas voter pour vous-même.{!currentPlayer.isHost && ' En attente de l’hôte.'}</p>}
-        {voteAvailability.kind === 'no-audio' && <p className={bubble.note}>Aucun audio à juger — {currentPlayer.isHost ? 'passe à la suivante' : 'en attente de l’hôte'}.</p>}
-        {masterButton}
-        {currentPlayer.isHost && <button type="button" className={bubble.yellowButton} onClick={handleNext} disabled={!votingSessionId || !isSessionSynchronized || isSessionActionPending}>{isSessionActionPending ? 'Passage…' : 'Suivant'}<ChevronRight /></button>}
-        <div className={bubble.dots} aria-label={`Imitation ${currentIndex + 1} sur ${displayLength}`}>{Array.from({ length: displayLength }, (_, i) => <i key={i} className={i === currentIndex ? bubble.activeDot : undefined} />)}</div>
-      </BubblePanel>
-    </div>
+    <VideoStage
+      label="Le vote"
+      media={gameMode === '2v2' && currentTeamImitation && currentTeamAudio[0] ? <TeamVideoOverlay ref={teamVideoRef} videoClipId={challengeVideoClipId} audioClipId1={currentTeamAudio[0]} audioClipId2={currentTeamAudio[1] || null} className="h-full w-full" externalControl isPlayingExternal={isPlayingSynced} playbackPositionSeconds={playbackPositionSeconds} includeOriginalAudio={currentTeamImitation.includeOriginalAudio} originalAudioVolume={currentTeamImitation.originalAudioVolume} /> : currentImitation?.clipId ?
+        <VideoWithAudioOverlay ref={videoRef} videoClipId={challengeVideoClipId} audioClipId={currentImitation.clipId} className="h-full w-full" externalControl isPlayingExternal={isPlayingSynced} playbackPositionSeconds={playbackPositionSeconds} includeOriginalAudio={currentImitation.includeOriginalAudio} originalAudioVolume={currentImitation.originalAudioVolume} onPlayStateChange={playing => { if (!playing && isPlayingSynced && currentPlayer.isHost) void mutateSession('pause'); }} /> : <div className={bubble.waiting}>Aucun audio disponible</div>}
+      chip={<><span>À l’écran</span><strong>La prise à juger</strong></>}
+      status={<span className={stageStyles.statusPill}><ThumbsUp aria-hidden="true" />Les votes</span>}
+      kicker={`Imitation ${currentIndex + 1} sur ${displayLength}`}
+      title="Le jury, c’est vous."
+      lead="Regarde la prise, écoute la voix, puis donne ton verdict."
+    >
+      {!isPlaybackAuthoritative && <p className={bubble.note}>Synchronisation de lecture approximative : l’horodatage serveur n’est pas encore disponible.</p>}
+      {currentPlayer.isHost && <button type="button" className={`${bubble.mintButton} ${bubble.votePlayback}`} onClick={handleTogglePlay} disabled={!votingSessionId || !isSessionSynchronized || pendingPlay || showCountdown || !currentHasAudio || isSessionActionPending}>{isSessionActionPending ? <Loader2 className="animate-spin" /> : isPlayingSynced ? <Pause /> : <Play />}{isSessionActionPending ? 'Synchronisation…' : isPlayingSynced ? 'Pause' : 'Lancer pour tous'}</button>}
+      <div className={stageStyles.verdictTitle}><small>Le verdict</small><strong>{isOwnVideo ? 'C’est votre moment !' : 'Alors, convaincu ?'}</strong></div>
+      <div className={bubble.identity}>
+        {gameMode === '2v2' && currentTeamImitation ? <><div className={bubble.identityAvatars}>{currentTeamImitation.players.map(player => <PlayerAvatar key={player.id} playerId={player.id} playerName={player.name} size="lg" showTitle={false} />)}</div><strong>Équipe {currentTeamImitation.teamNumber}</strong><small>{currentTeamImitation.players.map(player => player.name).join(' + ')}</small></> : currentImitation && <><PlayerAvatar playerId={currentImitation.playerId} playerName={currentImitation.playerName} size="xl" showTitle={false} /><strong>{currentImitation.playerName}</strong></>}
+      </div>
+      {voteAvailability.kind === 'votable' && !hasVotedCurrent && <div className={bubble.voteButtons}><button type="button" onClick={event => handleVote('dislike', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsDown /> Bof</button><button type="button" onClick={event => handleVote('like', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsUp /> Top !</button></div>}
+      {isVotePending && <p className={bubble.note} role="status">Enregistrement du vote…</p>}
+      {hasVotedCurrent && <p className={bubble.note} role="status">Vote enregistré ! {currentPlayer.isHost ? '' : 'En attente de l’hôte.'}</p>}
+      {isOwnVideo && <p className={bubble.note}>Vous ne pouvez pas voter pour vous-même.{!currentPlayer.isHost && ' En attente de l’hôte.'}</p>}
+      {voteAvailability.kind === 'no-audio' && <p className={bubble.note}>Aucun audio à juger — {currentPlayer.isHost ? 'passe à la suivante' : 'en attente de l’hôte'}.</p>}
+      {masterButton}
+      {currentPlayer.isHost && <button type="button" className={bubble.yellowButton} onClick={handleNext} disabled={!votingSessionId || !isSessionSynchronized || isSessionActionPending}>{isSessionActionPending ? 'Passage…' : 'Suivant'}<ChevronRight /></button>}
+      <div className={bubble.dots} aria-label={`Imitation ${currentIndex + 1} sur ${displayLength}`}>{Array.from({ length: displayLength }, (_, i) => <i key={i} className={i === currentIndex ? bubble.activeDot : undefined} />)}</div>
+    </VideoStage>
   </>;
 
   return (
