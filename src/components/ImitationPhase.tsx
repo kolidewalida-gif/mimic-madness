@@ -660,7 +660,6 @@ export const ImitationPhase = ({
           ? <DuoLineup teams={teams} self={currentPlayer.id} ready={readyPlayers} step="imitation" />
           : <StagePlayers players={players} ready={readyPlayers} self={currentPlayer.id} unit="prises déposées" listLabel="Les prises de la bande" readyLabel="Prise déposée" />}
         {currentPlayer.isHost && readyPlayers.length < players.length && <div className={stageStyles.hostTools}><button type="button" className={bubble.secondary} onClick={handleForceAdvance} disabled={isForceAdvancing} title="Ignorer les joueurs bloqués et passer au vote">{isForceAdvancing ? 'Synchronisation…' : 'Passer au vote'}</button></div>}
-        <p className={stageStyles.tip}>Un casque, ta meilleure voix, et c’est parti. Tu peux mettre en pause ou refaire ta prise.</p>
       </>}
     >
       {teammate && <TeammateStatusPanel variant="inkBeta" teamNumber={teams.find(team => team.players.some(player => player.id === currentPlayer.id))?.teamNumber} currentPlayerId={currentPlayer.id} currentPlayerName={currentPlayer.name} teammate={teammate} lobbyId={lobbyId} roundNumber={roundNumber} isReady={hasSubmitted} teammateReady={teammateReady} />}

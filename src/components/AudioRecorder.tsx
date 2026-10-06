@@ -989,8 +989,13 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
 
   if (isInkBeta) return <div className={cn(recorderBubble.root, layout === 'studio' && recorderBubble.studio)} data-state={recorderState}>
     {recorderState === 'idle' && <div className={recorderBubble.micStage}>
-      <button type="button" className={recorderBubble.mic} onClick={startRecording} aria-label="Commencer l’enregistrement de ton imitation"><Mic /></button>
-      <strong>{layout === 'studio' ? 'Lance ta prise' : 'Appuie, et entre en scène.'}</strong><p>{layout === 'studio' ? 'La vidéo et ton micro partent ensemble.' : 'La vidéo repart avec toi. Tu pourras mettre en pause ou refaire ta prise.'}</p>
+      <button type="button" className={recorderBubble.mic} onClick={startRecording} aria-label="Commencer l’enregistrement de ton imitation">
+        <span className={recorderBubble.micIcon}><Mic /></span>
+        <span className={recorderBubble.micCopy}>
+          <strong>{layout === 'studio' ? 'Lance ta prise' : 'Appuie, et entre en scène.'}</strong>
+          <small>{layout === 'studio' ? 'La vidéo et ton micro partent ensemble.' : 'La vidéo repart avec toi. Tu pourras mettre en pause ou refaire ta prise.'}</small>
+        </span>
+      </button>
     </div>}
     {(recorderState === 'idle' || recorderState === 'paused') && showVoiceFilters && <div className={recorderBubble.filters}>
       <div className={recorderBubble.filterLabel}><strong>Quelle voix aujourd’hui ?</strong><small>Jusqu’à 3 effets</small></div>

@@ -1,0 +1,199 @@
+/* ==========================================================================
+   Carte d'une prise (podium et replays de duos)
+   --------------------------------------------------------------------------
+   La vidéo en haut, qui ensuite, puis le score. Les variables --pl-* viennent
+   de la coque Imitation ; les valeurs de repli servent ailleurs.
+   ========================================================================== */
+
+.card {
+  --accent: var(--result-accent, #ffd45e);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pl-ink, #f7f0fc);
+  border: 1px solid var(--pl-line, #ffffff14);
+  border-radius: 22px;
+  background: var(--pl-surface, #161021);
+  box-shadow: var(--pl-shadow, 0 22px 44px -22px #000c);
+}
+
+.winner {
+  border-color: var(--pl-amber, #ffcd57);
+  box-shadow:
+    0 0 0 1px var(--pl-amber, #ffcd57),
+    0 30px 70px -30px color-mix(in srgb, var(--pl-amber, #ffcd57) 60%, transparent);
+}
+
+/* ---- Vidéo -------------------------------------------------------------- */
+
+.media {
+  position: relative;
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, #2b1d40, #07040c 78%);
+}
+.media :global(.video-audio-overlay),
+.media :global(.video-audio-overlay-frame) { width: 100%; height: 100%; }
+.media video { object-fit: contain; }
+
+.state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  color: #ffffffdb;
+  text-align: center;
+}
+.state strong { font-size: 15px; font-weight: 750; letter-spacing: -.01em; }
+.state small { max-width: 24rem; color: #ffffff94; font-size: 12px; line-height: 1.45; }
+.stateIcon { width: 32px; height: 32px; color: var(--pl-amber, #ffcd57); }
+.orb {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  color: var(--pl-accent-ink, #052a20);
+  border-radius: 50%;
+  background: var(--pl-accent, #74efcb);
+  box-shadow: 0 14px 30px -10px color-mix(in srgb, var(--pl-accent, #74efcb) 70%, transparent);
+}
+.orb svg { width: 24px; height: 24px; margin-left: 3px; }
+.mediaAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 7px 14px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid #ffffff38;
+  border-radius: 999px;
+  background: #ffffff14;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+.mediaAction:hover { background: #ffffff26; }
+.mediaAction svg { width: 15px; height: 15px; }
+
+.crown {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 9px;
+  color: #2b1a00;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  background: var(--pl-amber, #ffcd57);
+  pointer-events: none;
+}
+.crown svg { width: 14px; height: 14px; }
+
+/* ---- Infos -------------------------------------------------------------- */
+
+.info { display: grid; flex: 1; gap: 14px; padding: 16px 18px 16px; }
+
+.identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.avatar { position: relative; flex-shrink: 0; }
+.rank {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  color: #140a22;
+  font-size: 12px;
+  font-weight: 800;
+  border: 2px solid var(--pl-surface, #161021);
+  border-radius: 999px;
+  background: var(--accent);
+}
+.who { min-width: 0; flex: 1; }
+.kicker { display: block; color: var(--pl-ink-3, #9a8bb0); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.winner .kicker { color: var(--pl-amber-text, #ffd978); }
+.who h3 { margin: 2px 0 0; overflow: hidden; font-size: 20px; font-weight: 800; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
+.winner .who h3 { font-size: 26px; }
+
+.points { flex-shrink: 0; font-size: 24px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.points small { margin-left: 3px; color: var(--pl-ink-3, #9a8bb0); font-size: 12px; font-weight: 700; letter-spacing: 0; }
+.positive { color: var(--pl-accent-text, #74efcb); }
+.negative { color: #ff7d95; }
+
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.votes { display: flex; align-items: center; gap: 8px; }
+.votes span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--pl-line, #ffffff14);
+  border-radius: 999px;
+  background: var(--pl-raised, #1f1730);
+}
+.votes svg { width: 14px; height: 14px; }
+.like { color: var(--pl-accent-text, #74efcb); }
+.dislike { color: #ff8da3; }
+
+.tools { display: flex; gap: 8px; margin-left: auto; }
+.tool {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--pl-ink, #f7f0fc);
+  border: 1px solid var(--pl-line-2, #ffffff2b);
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color .15s;
+}
+.tool:hover:not(:disabled) { background: var(--pl-raised, #1f1730); }
+.tool:disabled { opacity: .5; cursor: default; }
+.tool svg { width: 16px; height: 16px; }
+.share { color: var(--pl-amber-text, #ffd978); border-color: color-mix(in srgb, var(--pl-amber, #ffcd57) 45%, transparent); }
+
+/* Le gagnant tient dans la hauteur de l'écran : sa vidéo se laisse letterboxer. */
+.winner .media { aspect-ratio: auto; height: clamp(260px, calc(100dvh - 500px), 560px); }
+
+/* Places suivantes : vidéo à gauche, infos à droite, pour que le podium tienne. */
+@media (min-width: 801px) {
+  .side { display: grid; grid-template-columns: minmax(150px, 44%) minmax(0, 1fr); }
+  .side .media { aspect-ratio: auto; min-height: 130px; }
+  .side .info { align-content: center; gap: 12px; padding: 14px 16px; }
+  .side .who h3 { font-size: 18px; }
+  .side .points { font-size: 20px; }
+  .side .state { gap: 8px; padding: 10px; }
+  .side .stateIcon { width: 26px; height: 26px; }
+  .side .orb { width: 44px; height: 44px; }
+  .side .orb svg { width: 20px; height: 20px; }
+  .side .mediaAction { min-height: 34px; padding: 5px 11px; font-size: 12px; }
+}
+
+/* Un seul joueur : la carte s'étale, vidéo à gauche, infos à droite. */
+@media (min-width: 981px) {
+  .solo { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+  .solo .info { align-content: center; padding: 24px; }
+  .solo .media { aspect-ratio: auto; min-height: 320px; }
+}
+
+@media (prefers-reduced-motion: reduce) { .tool { transition: none; } }

@@ -1,8 +1,8 @@
 import { memo, type CSSProperties } from "react";
-import { motion } from "framer-motion";
 import {
   AlertCircle,
   Check,
+  Crown,
   Download,
   Loader2,
   Play,
@@ -15,6 +15,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
 import { cn } from "@/lib/utils";
 import type { VideoClip } from "@/lib/videoStorageSupabase";
+import styles from "./ResultsPlayerCard.module.css";
 
 export interface ResultsPlayerResult {
   playerId: string;
@@ -50,15 +51,17 @@ interface ResultsPlayerCardProps {
   presentation?: 'ranked' | 'teamReplay';
 }
 
-const FONT = "'Outfit', sans-serif";
-const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
-
 const requestLabel = (state: ResultsClipState) => {
   if (state.status === "missing") return "Rechercher à nouveau";
   if (state.status === "error") return "Réessayer";
   return "Voir l’imitation";
 };
 
+/**
+ * Une prise de la manche : la vidéo d'abord, puis qui, puis le score.
+ * Le gagnant est plus grand, cerclé d'or. Mise en page portée par
+ * ResultsPlayerCard.module.css (valeurs de repli si la coque n'est pas là).
+ */
 export const ResultsPlayerCard = memo(function ResultsPlayerCard({
   result,
   rank,
@@ -77,145 +80,119 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
   onShare,
   presentation = 'ranked',
 }: ResultsPlayerCardProps) {
-  const scoreColor = result.score > 0
-    ? "#34d399"
-    : result.score < 0
-      ? "#ef4444"
-      : "rgba(255,255,255,0.58)";
-  const cardStyle = {
-    "--ik-result-accent": color,
-    borderColor: isWinner ? color : "var(--ink-line)",
-  } as CSSProperties;
+  const scoreTone = result.score > 0 ? styles.positive : result.score < 0 ? styles.negative : undefined;
+  const cardStyle = { "--result-accent": color } as CSSProperties;
 
   return (
     <article
-      className={cn(
-        "ik-results-player-card relative min-w-0 overflow-hidden rounded-3xl border-4 bg-black/30",
-        isWinner && "is-winner",
-        isSolo && "is-solo",
-      )}
+      className={cn(styles.card, isWinner && styles.winner, isSolo && styles.solo, presentation === 'ranked' && !isWinner && !isSolo && styles.side)}
       style={cardStyle}
       aria-label={presentation === 'teamReplay' ? `Prise de ${result.playerName}` : `${rank}${rank === 1 ? "er" : "e"} : ${result.playerName}, ${result.score} points`}
     >
-      <div className="ik-results-player-media relative aspect-video overflow-hidden bg-black/50">
+      <div className={styles.media}>
         {clipState.status === "ready" ? (
           <VideoWithAudioOverlay
             videoClipId={challengeVideoClipId}
             audioClipId={clipState.clip.id}
-            className="ik-results-player-video h-full w-full"
+            className="h-full w-full"
           />
         ) : (
-          <div className="ik-results-media-state absolute inset-0 flex flex-col items-center justify-center gap-3 p-5 text-center">
+          <div className={styles.state}>
             {clipState.status === "loading" ? (
               <>
-                <Loader2 className="h-9 w-9 animate-spin text-[var(--ink-accent-text)]" aria-hidden="true" />
+                <Loader2 className={cn(styles.stateIcon, "animate-spin")} aria-hidden="true" />
                 <strong>Préparation de l’imitation…</strong>
               </>
             ) : clipState.status === "missing" ? (
               <>
-                <AlertCircle className="h-9 w-9 text-amber-300" aria-hidden="true" />
+                <AlertCircle className={styles.stateIcon} aria-hidden="true" />
                 <strong>Imitation introuvable</strong>
                 <small>Le dépôt peut encore être en cours de synchronisation.</small>
               </>
             ) : clipState.status === "error" ? (
               <>
-                <AlertCircle className="h-9 w-9 text-rose-300" aria-hidden="true" />
+                <AlertCircle className={styles.stateIcon} aria-hidden="true" />
                 <strong>Impossible de charger l’imitation</strong>
                 <small>La carte reste en place. Tu peux relancer uniquement ce média.</small>
               </>
             ) : (
               <>
-                <span className="ik-results-play-orb" aria-hidden="true">
+                <span className={styles.orb} aria-hidden="true">
                   <Play />
                 </span>
-                <strong>Découvrir l’imitation</strong>
               </>
             )}
 
             {clipState.status !== "loading" && (
-              <button
-                type="button"
-                className="ik-results-media-action menu-focus"
-                onClick={() => onRequestClip(result.playerId)}
-              >
+              <button type="button" className={styles.mediaAction} onClick={() => onRequestClip(result.playerId)}>
                 {(clipState.status === "missing" || clipState.status === "error") && <RefreshCcw aria-hidden="true" />}
                 {requestLabel(clipState)}
               </button>
             )}
           </div>
         )}
+        {presentation === 'ranked' && isWinner && (
+          <span className={styles.crown}><Crown aria-hidden="true" />Gagnant</span>
+        )}
       </div>
 
-      <div className="ik-results-player-info">
-        <div className="ik-results-player-identity">
-          <div className="ik-results-avatar-wrap">
+      <div className={styles.info}>
+        <div className={styles.identity}>
+          <div className={styles.avatar}>
             <PlayerAvatar
               playerId={result.playerId}
               playerName={result.playerName}
               size={isWinner ? "xl" : "lg"}
               showTitle={false}
             />
-            {presentation === 'ranked' && <span className="ik-results-rank" aria-label={`Rang ${rank}`}>{rank}</span>}
+            {presentation === 'ranked' && <span className={styles.rank} aria-label={`Rang ${rank}`}>{rank}</span>}
           </div>
-          <div className="min-w-0">
-            <span className="ik-results-player-kicker">
+          <div className={styles.who}>
+            <span className={styles.kicker}>
               {presentation === 'teamReplay' ? 'Prise individuelle du duo' : isWinner ? "Gagnant de la manche" : `Place ${rank}`}
             </span>
-            <h3 style={{ fontFamily: FONT, textShadow: SHADOW_SM }}>
-              {isCurrentPlayer ? "Toi" : result.playerName}
-            </h3>
+            <h3>{isCurrentPlayer ? "Toi" : result.playerName}</h3>
           </div>
+          {presentation === 'ranked' && (
+            <strong className={cn(styles.points, scoreTone)}>
+              {result.score > 0 ? "+" : ""}{result.score}<small>pts</small>
+            </strong>
+          )}
         </div>
 
-        {presentation === 'ranked' && <div className="ik-results-scoreboard" aria-label={`${result.likes} avis positifs, ${result.dislikes} avis négatifs`}>
-          <span className="is-like"><ThumbsUp aria-hidden="true" />{result.likes}</span>
-          <span className="is-dislike"><ThumbsDown aria-hidden="true" />{result.dislikes}</span>
-          <strong style={{ color: scoreColor }}>
-            {result.score > 0 ? "+" : ""}{result.score} pts
-          </strong>
-        </div>}
-
-        <div className="ik-results-card-actions">
-          {clipState.status !== "ready" && clipState.status !== "loading" && (
-            <motion.button
-              type="button"
-              onClick={() => onRequestClip(result.playerId)}
-              whileHover={{ y: -1 }}
-              whileTap={{ y: 1 }}
-              className="ik-results-card-main menu-focus"
-            >
-              {clipState.status === "idle" ? <Play aria-hidden="true" /> : <RefreshCcw aria-hidden="true" />}
-              {requestLabel(clipState)}
-            </motion.button>
+        <div className={styles.footer}>
+          {presentation === 'ranked' && (
+            <div className={styles.votes} aria-label={`${result.likes} avis positifs, ${result.dislikes} avis négatifs`}>
+              <span className={styles.like}><ThumbsUp aria-hidden="true" />{result.likes}</span>
+              <span className={styles.dislike}><ThumbsDown aria-hidden="true" />{result.dislikes}</span>
+            </div>
           )}
-          <motion.button
-            type="button"
-            onClick={() => onDownload(result.playerId, result.playerName)}
-            disabled={isDownloading}
-            whileHover={{ y: -1 }}
-            whileTap={{ y: 1 }}
-            className="ik-results-card-tool menu-focus"
-            aria-label={`Télécharger l’imitation de ${result.playerName}`}
-          >
-            {isDownloading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Download aria-hidden="true" />}
-          </motion.button>
-          {canShare && (
-            <motion.button
+          <div className={styles.tools}>
+            <button
               type="button"
-              onClick={() => onShare(result.playerId, result.playerName)}
-              disabled={isSharing}
-              whileHover={{ y: -1 }}
-              whileTap={{ y: 1 }}
-              className="ik-results-card-tool is-share menu-focus"
-              aria-label={`Partager l’imitation de ${result.playerName}`}
+              onClick={() => onDownload(result.playerId, result.playerName)}
+              disabled={isDownloading}
+              className={styles.tool}
+              aria-label={`Télécharger l’imitation de ${result.playerName}`}
             >
-              {isSharing
-                ? <Loader2 className="animate-spin" aria-hidden="true" />
-                : hasShared
-                  ? <Check aria-hidden="true" />
-                  : <Share2 aria-hidden="true" />}
-            </motion.button>
-          )}
+              {isDownloading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Download aria-hidden="true" />}
+            </button>
+            {canShare && (
+              <button
+                type="button"
+                onClick={() => onShare(result.playerId, result.playerName)}
+                disabled={isSharing}
+                className={cn(styles.tool, styles.share)}
+                aria-label={`Partager l’imitation de ${result.playerName}`}
+              >
+                {isSharing
+                  ? <Loader2 className="animate-spin" aria-hidden="true" />
+                  : hasShared
+                    ? <Check aria-hidden="true" />
+                    : <Share2 aria-hidden="true" />}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </article>

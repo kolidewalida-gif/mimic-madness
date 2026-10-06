@@ -934,21 +934,27 @@ export const VotingPhase = ({
       kicker={`Imitation ${currentIndex + 1} sur ${displayLength}`}
       title="Le jury, c’est vous."
       lead="Regarde la prise, écoute la voix, puis donne ton verdict."
+      action={<>
+        {voteAvailability.kind === 'votable' && !hasVotedCurrent && <div className={bubble.voteButtons}><button type="button" onClick={event => handleVote('dislike', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsDown />Bof</button><button type="button" onClick={event => handleVote('like', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsUp />Top !</button></div>}
+        {isVotePending && <p className={stageStyles.hint} role="status">Enregistrement du vote…</p>}
+        {hasVotedCurrent && <p className={stageStyles.hint} role="status">Vote enregistré ! {currentPlayer.isHost ? '' : 'En attente de l’hôte.'}</p>}
+        {isOwnVideo && <p className={stageStyles.hint}>Vous ne pouvez pas voter pour vous-même.{!currentPlayer.isHost && ' En attente de l’hôte.'}</p>}
+        {voteAvailability.kind === 'no-audio' && <p className={stageStyles.hint}>Aucun audio à juger — {currentPlayer.isHost ? 'passe à la suivante' : 'en attente de l’hôte'}.</p>}
+        {currentPlayer.isHost && <div className={stageStyles.hostRow}>
+          <button type="button" className={bubble.mintButton} onClick={handleTogglePlay} disabled={!votingSessionId || !isSessionSynchronized || pendingPlay || showCountdown || !currentHasAudio || isSessionActionPending}>{isSessionActionPending ? <Loader2 className="animate-spin" /> : isPlayingSynced ? <Pause /> : <Play />}{isSessionActionPending ? 'Synchronisation…' : isPlayingSynced ? 'Pause' : 'Lancer pour tous'}</button>
+          <button type="button" className={bubble.yellowButton} onClick={handleNext} disabled={!votingSessionId || !isSessionSynchronized || isSessionActionPending}>{isSessionActionPending ? 'Passage…' : 'Suivant'}<ChevronRight /></button>
+        </div>}
+      </>}
+      footer={<div className={bubble.dots} aria-label={`Imitation ${currentIndex + 1} sur ${displayLength}`}>{Array.from({ length: displayLength }, (_, i) => <i key={i} className={i === currentIndex ? bubble.activeDot : undefined} />)}</div>}
     >
-      {!isPlaybackAuthoritative && <p className={bubble.note}>Synchronisation de lecture approximative : l’horodatage serveur n’est pas encore disponible.</p>}
-      {currentPlayer.isHost && <button type="button" className={`${bubble.mintButton} ${bubble.votePlayback}`} onClick={handleTogglePlay} disabled={!votingSessionId || !isSessionSynchronized || pendingPlay || showCountdown || !currentHasAudio || isSessionActionPending}>{isSessionActionPending ? <Loader2 className="animate-spin" /> : isPlayingSynced ? <Pause /> : <Play />}{isSessionActionPending ? 'Synchronisation…' : isPlayingSynced ? 'Pause' : 'Lancer pour tous'}</button>}
-      <div className={stageStyles.verdictTitle}><small>Le verdict</small><strong>{isOwnVideo ? 'C’est votre moment !' : 'Alors, convaincu ?'}</strong></div>
-      <div className={bubble.identity}>
-        {gameMode === '2v2' && currentTeamImitation ? <><div className={bubble.identityAvatars}>{currentTeamImitation.players.map(player => <PlayerAvatar key={player.id} playerId={player.id} playerName={player.name} size="lg" showTitle={false} />)}</div><strong>Équipe {currentTeamImitation.teamNumber}</strong><small>{currentTeamImitation.players.map(player => player.name).join(' + ')}</small></> : currentImitation && <><PlayerAvatar playerId={currentImitation.playerId} playerName={currentImitation.playerName} size="xl" showTitle={false} /><strong>{currentImitation.playerName}</strong></>}
+      {!isPlaybackAuthoritative && <p className={stageStyles.hint}>Synchronisation de lecture approximative : l’horodatage serveur n’est pas encore disponible.</p>}
+      <div className={stageStyles.judgeRow}>
+        <div className={bubble.identity}>
+          {gameMode === '2v2' && currentTeamImitation ? <><div className={bubble.identityAvatars}>{currentTeamImitation.players.map(player => <PlayerAvatar key={player.id} playerId={player.id} playerName={player.name} size="lg" showTitle={false} />)}</div><div><strong>Équipe {currentTeamImitation.teamNumber}</strong><small>{currentTeamImitation.players.map(player => player.name).join(' + ')}</small></div></> : currentImitation && <><PlayerAvatar playerId={currentImitation.playerId} playerName={currentImitation.playerName} size="lg" showTitle={false} /><div><strong>{currentImitation.playerName}</strong><small>{isOwnVideo ? 'C’est toi' : 'À juger'}</small></div></>}
+        </div>
+        {masterButton}
       </div>
-      {voteAvailability.kind === 'votable' && !hasVotedCurrent && <div className={bubble.voteButtons}><button type="button" onClick={event => handleVote('dislike', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsDown /> Bof</button><button type="button" onClick={event => handleVote('like', event)} disabled={!votingSessionId || !isSessionSynchronized || isVotePending}><ThumbsUp /> Top !</button></div>}
-      {isVotePending && <p className={bubble.note} role="status">Enregistrement du vote…</p>}
-      {hasVotedCurrent && <p className={bubble.note} role="status">Vote enregistré ! {currentPlayer.isHost ? '' : 'En attente de l’hôte.'}</p>}
-      {isOwnVideo && <p className={bubble.note}>Vous ne pouvez pas voter pour vous-même.{!currentPlayer.isHost && ' En attente de l’hôte.'}</p>}
-      {voteAvailability.kind === 'no-audio' && <p className={bubble.note}>Aucun audio à juger — {currentPlayer.isHost ? 'passe à la suivante' : 'en attente de l’hôte'}.</p>}
-      {masterButton}
-      {currentPlayer.isHost && <button type="button" className={bubble.yellowButton} onClick={handleNext} disabled={!votingSessionId || !isSessionSynchronized || isSessionActionPending}>{isSessionActionPending ? 'Passage…' : 'Suivant'}<ChevronRight /></button>}
-      <div className={bubble.dots} aria-label={`Imitation ${currentIndex + 1} sur ${displayLength}`}>{Array.from({ length: displayLength }, (_, i) => <i key={i} className={i === currentIndex ? bubble.activeDot : undefined} />)}</div>
+      <div className={stageStyles.verdictTitle}><small>Le verdict</small><strong>{isOwnVideo ? 'C’est votre moment !' : 'Alors, convaincu ?'}</strong></div>
     </VideoStage>
   </>;
 

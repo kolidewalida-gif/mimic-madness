@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
 import { LobbyChat } from "@/components/LobbyChat";
+import { ImitationChat } from "@/components/imitation/ImitationChat";
 import { InkBetaCount } from "@/components/game-beta/InkBetaGameLayout";
 import { BubbleGameHeader, BubbleHeading, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
 import { cn } from "@/lib/utils";
@@ -1030,8 +1031,9 @@ export const VideoSubmissionScreen = ({
     }
   };
 
-  return (
+  const renderScreen = (chat: { button: ReactNode; panel: ReactNode } | null) => (
     <div
+      data-game-phase={isInkBeta ? 'preparation' : undefined}
       className={cn(
         'relative flex flex-col overflow-hidden text-white',
         isInkBeta
@@ -1039,14 +1041,8 @@ export const VideoSubmissionScreen = ({
           : 'h-[100dvh] bg-[#0a0510]',
       )}
     >
-      {/* BACKGROUND */}
-      {isInkBeta ? (
-        <>
-          <div className="ik-party-bg" aria-hidden="true" />
-          <div className="ik-party-rays" aria-hidden="true" />
-          <div className="ik-party-dots" aria-hidden="true" />
-        </>
-      ) : (
+      {/* BACKGROUND — la coque Imitation (BubbleGame.module.css) peint son propre fond. */}
+      {isInkBeta ? null : (
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#0a0510] to-[#160a26]" />
         <div
@@ -1068,7 +1064,8 @@ export const VideoSubmissionScreen = ({
 
       {/* Barre de marque beta : mêmes repères que le menu et le lobby. */}
       {isInkBeta && (
-        <BubbleGameHeader phase="preparation" tools={
+        <BubbleGameHeader phase="preparation" tools={<>
+              {chat?.button}
               <button
                 type="button"
                 onClick={onBackToLobby}
@@ -1079,9 +1076,10 @@ export const VideoSubmissionScreen = ({
                 <ArrowLeft aria-hidden="true" />
                 <span>Lobby</span>
               </button>
-        } />
+        </>} />
       )}
 
+      <div className={isInkBeta ? bubble.workspace : 'contents'}>
       {/* SCROLLABLE CONTENT — internal scroll so zoom / small viewports never
           clip the lobby button or the action area at the bottom. */}
       <div
@@ -1307,7 +1305,7 @@ export const VideoSubmissionScreen = ({
                   {savedClips.length > 0 && (
                     <div className="space-y-1">
                       <CircularGallery
-                        height={300}
+                        height={250}
                         initialIndex={0}
                         items={savedClips.map((clip) => ({
                           common: clip.name,
@@ -1709,13 +1707,18 @@ export const VideoSubmissionScreen = ({
         </div>
       </div>
 
-      {/* Floating chat */}
-      <LobbyChat
-        variant={isInkBeta ? 'inkBeta' : 'default'}
-        lobbyId={lobbyId}
-        playerId={currentPlayer.id}
-        playerName={currentPlayer.name}
-      />
+      {chat?.panel && <div className={bubble.sidebar}>{chat.panel}</div>}
+      </div>
+
+      {/* Chat : la beta partage celui des autres écrans du jeu (bouton dans la barre du haut). */}
+      {!isInkBeta && (
+        <LobbyChat
+          variant="default"
+          lobbyId={lobbyId}
+          playerId={currentPlayer.id}
+          playerName={currentPlayer.name}
+        />
+      )}
 
       {/* Feuille globale héritée : elle repeint la barre de défilement de tout
           le site. La beta a la sienne, on ne la lui superpose pas. */}
@@ -1728,6 +1731,20 @@ export const VideoSubmissionScreen = ({
       `}</style>
       )}
     </div>
+  );
+
+  if (!isInkBeta) return renderScreen(null);
+  return (
+    <ImitationChat
+      lobbyId={lobbyId}
+      playerId={currentPlayer.id}
+      playerName={currentPlayer.name}
+      players={players}
+      phase="preparation"
+      contextLabel="Un mot à la bande pendant la préparation"
+    >
+      {renderScreen}
+    </ImitationChat>
   );
 };
 

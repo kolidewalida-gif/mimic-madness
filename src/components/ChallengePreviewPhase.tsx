@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VideoPreview } from "@/components/VideoPreview";
-import { Play, Check, Users, Eye, Mic, Loader2, Sparkles, Crown, Zap } from "lucide-react";
+import { Play, Check, Users, Eye, Mic, Loader2, Sparkles, Crown, Zap, AudioLines, Music } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { markPreviewSeen } from "@/lib/imitationSyncClient";
 import { canLeavePreviewPhase, previewSeenPlayerIds } from "@/lib/imitationReadiness";
@@ -24,6 +24,13 @@ interface ChallengePreviewPhaseProps {
   gameMode?: 'normal' | '2v2' | 'quiz';
   teams?: Team[];
 }
+
+/** Les trois choses à repérer avant d'entrer en scène. */
+const PREVIEW_CUES = [
+  { Icon: AudioLines, title: 'La voix', copy: 'Ton, accent, petits tics.' },
+  { Icon: Music, title: 'Le rythme', copy: 'Pauses et reprises.' },
+  { Icon: Sparkles, title: 'Ta version', copy: 'Surprends la bande.' },
+];
 
 const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
 const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
@@ -168,18 +175,18 @@ export const ChallengePreviewPhase = ({
       title={isDuo ? <>Un défi. <em>Deux voix.</em></> : <>Ça, c’est <em>ton défi.</em></>}
       lead={isDuo ? 'Même vidéo pour tous. Chacun prépare sa voix, puis vos deux prises seront réunies pour le vote.' : 'Une voix, un rythme, une attitude. Regarde bien : dans un instant, c’est toi la vedette.'}
       footer={isDuo ? <DuoLineup teams={teams} ready={readyPlayers} self={currentPlayer.id} /> : <StagePlayers players={players} ready={readyPlayers} self={currentPlayer.id} />}
+      action={<>
+        <button type="button" className={`${bubble.primary} ${bubble.yellow}`} disabled={isReady || isReadyPending} onClick={handleReady}>
+          {isReadyPending ? <Loader2 className="animate-spin" /> : isReady ? <Check /> : <Mic />}{isReady ? 'Prêt pour ma prise !' : isReadyPending ? 'Validation…' : 'J’ai vu, je suis prêt !'}
+        </button>
+        <p className={stageStyles.hint}>{isReady ? 'Ta validation est enregistrée. La partie reprend quand la bande est prête.' : 'Tu peux revoir la vidéo autant que tu veux.'}</p>
+      </>}
     >
-      <div>
-        <div className={stageStyles.tipsTitle}><small>Avant d’entrer en scène</small><strong>{isDuo ? 'Accordez vos idées.' : 'Repère le petit truc.'}</strong></div>
-        <ol className={stageStyles.tips}>
-          {[['La voix','Le ton, l’accent, les petits tics… tout compte.'],['Le rythme','Écoute les pauses et le moment où ça repart.'],['Ta version','Pas besoin d’être parfait : surprends la bande !']].map(([title, copy], index) =>
-            <li key={title}><span>{index + 1}</span><div><strong>{title}</strong><p>{copy}</p></div></li>)}
-        </ol>
-      </div>
-      <button type="button" className={`${bubble.primary} ${bubble.yellow}`} disabled={isReady || isReadyPending} onClick={handleReady}>
-        {isReadyPending ? <Loader2 className="animate-spin" /> : isReady ? <Check /> : <Mic />}{isReady ? 'Prêt pour ma prise !' : isReadyPending ? 'Validation…' : 'J’ai vu, je suis prêt !'}
-      </button>
-      <p className={bubble.note}>{isReady ? 'Ta validation est enregistrée. La partie reprend quand la bande est prête.' : 'Tu peux revoir la vidéo autant que tu veux.'}</p>
+      <div className={stageStyles.verdictTitle}><small>Avant d’entrer en scène</small><strong>{isDuo ? 'Accordez vos idées.' : 'Repère le petit truc.'}</strong></div>
+      <ul className={stageStyles.cues}>
+        {PREVIEW_CUES.map(({ Icon, title, copy }) =>
+          <li key={title}><span><Icon aria-hidden="true" /></span><div><strong>{title}</strong><p>{copy}</p></div></li>)}
+      </ul>
     </VideoStage>;
   }
 

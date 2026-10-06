@@ -1,7 +1,87 @@
-.bank{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.filter{position:relative;min-width:0;min-height:68px;display:flex;align-items:center;flex-direction:column;justify-content:center;gap:6px;border:2px solid #aa86c440;border-radius:24px;color:var(--bg-copy,#f8efff);background:#c4a4df15;box-shadow:inset 0 2px 0 #ffffff15,0 3px 0 #1d102a44}.filter[aria-pressed=true]{background:linear-gradient(#d0ffec,#8cdecb);border-color:#43275d;color:#39234e;box-shadow:inset 0 2px 0 #ffffff90,0 4px 0 #3e9181}.filter[aria-disabled=true]{opacity:.4}.filter > span:nth-child(2){font-family:var(--ik-body)!important;font-size:10px!important;color:inherit!important;text-shadow:none!important;white-space:normal}.filter > div{width:18px;height:18px;background:#ffe196!important;color:#39234e!important;border:1px solid #43275d!important;border-radius:50%}.filter > div *{color:#39234e!important}.filter > span:first-child{font-size:23px}.description{font-size:11px!important;background:none!important;border:0!important;color:var(--bg-muted,#c8b1db)!important}.description *{text-shadow:none!important}
-.expand{display:block;margin:12px auto 0;padding:8px 12px;background:none;border:0;border-radius:20px;color:var(--bg-muted,#cab4db);font-size:11px;font-weight:800;text-decoration:underline;text-underline-offset:3px;min-height:36px}
-.strip .bank{grid-template-columns:repeat(8,minmax(0,1fr));gap:7px;padding:3px 3px 5px}
-.strip .filter{min-height:56px;gap:4px;border-radius:17px}.strip .filter>span:first-child{font-size:20px}.strip .filter>span:nth-child(2){font-size:9px!important;line-height:1.15}
-.strip .expand{margin:4px 0 0 auto;min-height:25px;padding:3px 6px;font-size:10px}
-.strip .description{padding:4px!important;margin:2px 0 0!important;display:flex;flex-wrap:wrap;gap:5px 12px}.strip .description p{padding:0;font-size:9px}.strip .description>div>div{font-size:10px}
-@container imitation-console (max-width:760px){.strip .bank{grid-template-columns:repeat(4,minmax(0,1fr))}.strip .filter{min-height:48px;gap:3px}.strip .filter>span:first-child{font-size:17px}}
+/* Sélecteur de voix (phase « Ta prise ») — puces compactes, 4 par ligne. */
+
+.bank { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+
+.filter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 62px;
+  padding: 8px 4px;
+  color: var(--pl-ink);
+  border: 1px solid var(--pl-line);
+  border-radius: 14px;
+  background: var(--pl-raised);
+  transition: background-color .15s, border-color .15s;
+}
+.filter:not([aria-disabled='true']):hover { background: var(--pl-hover); }
+.filter[aria-pressed='true'] {
+  border-color: var(--pl-accent);
+  background: color-mix(in srgb, var(--pl-accent) 16%, var(--pl-raised));
+  box-shadow: inset 0 0 0 1px var(--pl-accent);
+}
+.filter[aria-disabled='true'] { opacity: .4; }
+.filter > span:first-child { font-size: 21px; line-height: 1; }
+.filter > span:nth-child(2) {
+  color: inherit !important;
+  font-family: var(--ik-body) !important;
+  font-size: 11px !important;
+  font-weight: 650;
+  line-height: 1.15;
+  text-shadow: none !important;
+  white-space: normal;
+}
+/* Pastille d'ordre des effets cumulés */
+.filter > div {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  color: #2b1a00 !important;
+  border: 2px solid var(--pl-surface) !important;
+  border-radius: 50%;
+  background: var(--pl-amber) !important;
+}
+.filter > div * { color: #2b1a00 !important; }
+
+.description {
+  padding: 10px 12px !important;
+  color: var(--pl-ink-2) !important;
+  font-size: 12px !important;
+  border: 1px solid var(--pl-line) !important;
+  border-radius: 14px !important;
+  background: var(--pl-raised) !important;
+}
+.description * { text-shadow: none !important; }
+
+.expand {
+  display: block;
+  min-height: 34px;
+  margin: 2px auto 0;
+  padding: 6px 10px;
+  color: var(--pl-ink-2);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+}
+.expand:hover { color: var(--pl-ink); }
+
+/* Variante « bandeau » (console) : même grille, en plus serré. */
+.strip .bank { gap: 7px; }
+.strip .filter { min-height: 58px; }
+.strip .description { display: flex; flex-wrap: wrap; gap: 5px 12px; margin: 2px 0 0 !important; }
+.strip .description p { padding: 0; font-size: 11px; }
+
+@container console (min-width: 560px) {
+  .strip .bank { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .filter { transition: none; } }

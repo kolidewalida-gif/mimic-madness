@@ -536,7 +536,7 @@ export const ResultsPhase = ({
   </>;
 
   if (isInkBeta) return <>
-    <BubbleHeading label={`Les résultats · manche ${roundNumber}`} title={isResultsSynchronized && winnerLabel ? <>{winnerLabel}<em>, quelle prise !</em></> : 'On compte les votes…'} aside={<span className={bubble.stamp}><Trophy aria-hidden="true" /></span>}>{isResultsSynchronized ? 'Le verdict de la bande. Revois les prises ou partage ton meilleur moment.' : 'Synchronisation des votes…'}</BubbleHeading>
+    <BubbleHeading label={`Les résultats · manche ${roundNumber}`} title={isResultsSynchronized && winnerLabel ? <>{winnerLabel}<em>, quelle prise !</em></> : 'On compte les votes…'} aside={currentPlayer.isHost ? <div className={bubble.resultActions}><button type="button" className={bubble.secondary} onClick={onEndGame}>Terminer</button><button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onNextRound} disabled={isRoundReconnecting}>Manche suivante <ArrowRight aria-hidden="true" /></button></div> : <span className={bubble.stamp}><Trophy aria-hidden="true" /></span>}>{isResultsSynchronized ? 'Le verdict de la bande. Revois les prises ou partage ton meilleur moment.' : 'Synchronisation des votes…'}</BubbleHeading>
     {gameMode === '2v2' && teamResults.length > 0 && <BubblePanel title="Le classement des équipes"><ol className={bubble.scoreList}>{teamResults.map((team, index) => <li key={team.teamNumber}><span>{index + 1}</span><Swords aria-hidden="true" /><span><strong>Équipe {team.teamNumber}</strong><br />{team.playerNames.join(' & ')}</span><span>{team.likes} 👍 · {team.dislikes} 👎</span><strong>{team.score > 0 ? '+' : ''}{team.score}</strong></li>)}</ol></BubblePanel>}
     <div className={bubble.resultGrid}>{podium.map((result, index) => {
       const clipState = playerClips[result.playerId] ?? IDLE_CLIP_STATE;
@@ -546,7 +546,7 @@ export const ResultsPhase = ({
     {masterRecap}
     <RoundBreakAd gameMode={gameMode} instanceKey={`${gameMode}:${roundNumber}`} />
     {isRoundReconnecting && <p className={bubble.note} role="status">Reconnexion à la manche… Le classement reste affiché.</p>}
-    {currentPlayer.isHost ? <div className={bubble.resultActions}><button type="button" className={bubble.secondary} onClick={onEndGame}>Terminer</button><button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onNextRound} disabled={isRoundReconnecting}>Manche suivante <ArrowRight aria-hidden="true" /></button></div> : <p className={bubble.note}>L’hôte prépare la suite. Encore une ?</p>}
+    {!currentPlayer.isHost && <p className={bubble.note}>L’hôte prépare la suite. Encore une ?</p>}
   </>;
 
   return (

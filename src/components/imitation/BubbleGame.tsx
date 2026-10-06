@@ -1,4 +1,4 @@
-import { Check, ChevronRight, Clapperboard, Crown, Eye, Mic, Sparkles, ThumbsUp, Trophy, Users } from 'lucide-react';
+import { Check, Clapperboard, Crown, Eye, Mic, Sparkles, ThumbsUp, Trophy, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { InkBetaLogo } from '@/components/InkBetaBrand';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
@@ -20,7 +20,7 @@ export const BubbleGameHeader = ({ phase, round, tools, teamMode = false }: { ph
     {phase === 'preparation' ? <span className={styles.prepPill}><Clapperboard /> On prépare la scène</span> :
       <ol className={styles.steps} aria-label="Étapes de la manche">{STEPS.map(({ id, label, icon: Icon }, index) =>
         <li key={id} className={cn(index === current && styles.current, index < current && styles.complete)} aria-current={index === current ? 'step' : undefined}>
-          <span>{index < current ? <Check /> : <Icon />}</span><strong>{teamMode && id === 'imitation' ? 'Vos prises' : teamMode && id === 'results' ? 'Les duos' : label}</strong>{index < 3 && <ChevronRight className={styles.chevron} />}
+          <span>{index < current ? <Check /> : <Icon />}</span><strong>{teamMode && id === 'imitation' ? 'Vos prises' : teamMode && id === 'results' ? 'Les duos' : label}</strong>
         </li>)}</ol>}
     <div className={styles.tools}>{round && <span className={styles.round}>Manche <strong>{String(round).padStart(2, '0')}</strong></span>}{tools}</div>
   </header>;
@@ -32,8 +32,6 @@ const usesVideoStage = (phase: BubblePhase, teamMode: boolean) =>
 
 export const BubbleGameStage = ({ phase, round, tools, children, sidebar, teamMode = false }: { phase: BubblePhase; round?: number; tools?: ReactNode; children: ReactNode; sidebar?: ReactNode; teamMode?: boolean }) =>
   <div className={`ik-root ${styles.root}`} data-game-phase={phase} data-team-mode={teamMode || undefined} data-stage={usesVideoStage(phase, teamMode) || undefined}>
-    <div className="ik-party-bg" aria-hidden="true" /><div className="ik-party-dots" aria-hidden="true" />
-    <div className={styles.decor} aria-hidden="true"><i /><i /><i /><i /></div>
     <BubbleGameHeader phase={phase} round={round} tools={tools} teamMode={teamMode} />
     <div className={cn(styles.workspace, sidebar && styles.withChat)}>
       <main className={`${styles.main} custom-scrollbar`}><div className={styles.content}>{children}</div></main>

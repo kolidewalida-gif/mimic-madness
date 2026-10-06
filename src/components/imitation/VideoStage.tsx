@@ -9,9 +9,9 @@ import styles from './VideoStage.module.css';
 /**
  * Scène vidéo du mode Imitation.
  *
- * La vidéo prend toute la hauteur disponible ; les commandes vivent dans un
- * rail compact à côté (sous la vidéo sur mobile). Ce composant ne fait que de
- * la mise en page : les lecteurs (`VideoPreview`, `VideoWithAudioOverlay`…),
+ * La vidéo prend toute la place disponible, à son vrai format ; les commandes
+ * vivent dans une console à côté (sous la vidéo sur mobile). Ce composant ne
+ * fait que de la mise en page : les lecteurs (`VideoPreview`, `VideoWithAudioOverlay`…),
  * leurs refs et leur synchronisation restent ceux de la phase qui l'utilise.
  */
 
@@ -56,30 +56,34 @@ interface VideoStageProps {
   kicker?: ReactNode;
   title: ReactNode;
   lead?: ReactNode;
-  /** À droite du titre, dans le rail. */
+  /** À droite du titre, dans la console. */
   aside?: ReactNode;
-  /** Commandes de la phase, dans le rail. */
+  /** Corps de la console : consignes, enregistreur… */
   children?: ReactNode;
-  /** Bas du rail (la bande, les duos…). */
+  /** Action principale de la phase, toujours épinglée en bas du corps. */
+  action?: ReactNode;
+  /** Bas de la console (la bande, les duos…). */
   footer?: ReactNode;
   className?: string;
 }
 
 export const VideoStage = ({
-  label, media, chip, status, kicker, title, lead, aside, children, footer, className,
+  label, media, chip, status, kicker, title, lead, aside, children, action, footer, className,
 }: VideoStageProps) => {
   const screen = useRef<HTMLDivElement>(null);
   useVideoShape(screen);
 
   return (
     <section className={cn(styles.stage, className)} aria-label={label}>
-      <div className={styles.screen} ref={screen}>
-        <div className={styles.media}>{media}</div>
-        {chip && <div className={styles.chip}>{chip}</div>}
-        {status && <div className={styles.status}>{status}</div>}
+      <div className={styles.cell}>
+        <div className={styles.screen} ref={screen}>
+          <div className={styles.media}>{media}</div>
+          {chip && <div className={styles.chip}>{chip}</div>}
+          {status && <div className={styles.status}>{status}</div>}
+        </div>
       </div>
 
-      <div className={styles.rail}>
+      <div className={styles.deck}>
         <header className={styles.heading}>
           <div>
             {kicker && <span>{kicker}</span>}
@@ -89,6 +93,7 @@ export const VideoStage = ({
           {aside}
         </header>
         {children && <div className={styles.body}>{children}</div>}
+        {action && <div className={styles.action}>{action}</div>}
         {footer && <div className={styles.footer}>{footer}</div>}
       </div>
     </section>
