@@ -22,7 +22,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 
 import styles from './InkHomeBubble.module.css';
-import { InteractiveMenuBubbles } from './InteractiveMenuBubbles';
 
 interface RecentLobbyEntry {
   code: string;
@@ -354,7 +353,6 @@ export const InkHome2026View = ({
           </div>
         </form>
       </InkModal>
-      <InteractiveMenuBubbles active={!showJoin && !isPersonalHubOpen && !isSocialOpen} />
     </div>
   );
 };
