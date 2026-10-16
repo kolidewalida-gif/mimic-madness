@@ -219,3 +219,242 @@
   .look { padding-top: 22px; }
 }
 @media (prefers-reduced-motion: reduce) { .page *, .page *::before, .page *::after { animation: none !important; transition: none !important; } }
+
+/* ==========================================================================
+   Showtime : Mon espace, Progression, Apparence
+   --------------------------------------------------------------------------
+   Plus de verre ni de reflets : des cartes à l'encre (3 px), des ombres pleines,
+   des pastilles d'icône inclinées, Bangers pour les titres. Variables --sh-*
+   dans src/styles/showtime-tokens.css. Bloc placé en dernier.
+   ========================================================================== */
+
+:global(body.inkbeta-mode) .page {
+  --bp-text: var(--sh-text);
+  --bp-muted: var(--sh-text-2);
+  --bp-edge: var(--sh-ink);
+  --bp-card: linear-gradient(162deg, var(--sh-card), var(--sh-card-2));
+  --bp-well: color-mix(in srgb, var(--sh-ink) 8%, transparent);
+  --bp-depth: var(--sh-ink);
+  --bp-line: color-mix(in srgb, var(--sh-ink) 24%, transparent);
+  font-family: var(--sh-ui);
+}
+:global(body.inkbeta-mode) .page :is(button, input):focus-visible { outline: 3px solid var(--sh-go); outline-offset: 3px; box-shadow: 0 0 0 6px var(--sh-ink); }
+
+:global(body.inkbeta-mode) .heading h2 {
+  font-family: var(--sh-display);
+  font-size: clamp(34px, 5cqi, 54px);
+  font-weight: 400;
+  letter-spacing: .04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+:global(body.inkbeta-mode) .heading p { font-size: 14px; font-weight: 700; }
+:global(body.inkbeta-mode) .eyebrow { font-weight: 900; letter-spacing: .14em; }
+
+:global(body.inkbeta-mode) .orb {
+  width: 64px;
+  height: 64px;
+  border: 3px solid var(--sh-ink);
+  border-radius: 20px;
+  color: var(--sh-ink);
+  background: var(--sh-go);
+  box-shadow: inset 0 -5px 0 #0000001c, 0 5px 0 var(--sh-ink);
+  transform: rotate(-6deg);
+}
+:global(body.inkbeta-mode) .orb svg { transform: rotate(6deg); }
+:global(body.inkbeta-mode) .mint { background: var(--sh-ok); box-shadow: inset 0 -5px 0 #0000001c, 0 5px 0 var(--sh-ink); }
+:global(body.inkbeta-mode) .pink { background: var(--sh-pink); box-shadow: inset 0 -5px 0 #0000001c, 0 5px 0 var(--sh-ink); }
+
+:global(body.inkbeta-mode) .card {
+  border: 3px solid var(--sh-ink);
+  border-radius: 26px;
+  background: var(--bp-card);
+  box-shadow: var(--sh-gloss), var(--sh-lift-2);
+}
+:global(body.inkbeta-mode) .sectionTitle h3,
+:global(body.inkbeta-mode) .toolbar h3 {
+  font-family: var(--sh-display);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: .04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+:global(body.inkbeta-mode) .level h3,
+:global(body.inkbeta-mode) .performance h3,
+:global(body.inkbeta-mode) .mission h4,
+:global(body.inkbeta-mode) .titleCard h4,
+:global(body.inkbeta-mode) .look h3 {
+  font-family: var(--sh-display);
+  font-weight: 400;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+:global(body.inkbeta-mode) .level h3,
+:global(body.inkbeta-mode) .performance h3 { font-size: 26px; }
+:global(body.inkbeta-mode) .mission h4,
+:global(body.inkbeta-mode) .titleCard h4 { font-size: 24px; }
+:global(body.inkbeta-mode) .look h3 { font-size: 38px; }
+:global(body.inkbeta-mode) .streak strong,
+:global(body.inkbeta-mode) .levelFooter strong { font-family: var(--sh-display); font-weight: 400; letter-spacing: .04em; }
+:global(body.inkbeta-mode) .streak strong { font-size: 34px; }
+:global(body.inkbeta-mode) .count {
+  min-width: 34px;
+  height: 34px;
+  border: 3px solid var(--sh-ink);
+  background: var(--sh-go);
+  color: var(--sh-ink);
+  font-weight: 900;
+}
+
+:global(body.inkbeta-mode) .button {
+  min-height: 46px;
+  border: 3px solid var(--sh-ink);
+  border-radius: 16px;
+  color: var(--sh-ink);
+  font-family: var(--sh-ui);
+  font-size: 13px;
+  font-weight: 900;
+  background: linear-gradient(180deg, var(--sh-ok-2) 0%, var(--sh-ok) 46%);
+  box-shadow: inset 0 -4px 0 #0000001c, inset 0 2px 0 #ffffffa8, 0 4px 0 var(--sh-ok-deep), 0 6px 0 var(--sh-ink);
+  transition: transform .2s var(--sh-spring), box-shadow .2s var(--sh-spring);
+}
+:global(body.inkbeta-mode) .yellow {
+  background: linear-gradient(180deg, var(--sh-go-2) 0%, var(--sh-go) 46%);
+  box-shadow: inset 0 -4px 0 #0000001c, inset 0 2px 0 #ffffffa8, 0 4px 0 var(--sh-go-deep), 0 6px 0 var(--sh-ink);
+}
+:global(body.inkbeta-mode) .quiet { color: var(--sh-text); background: var(--sh-card); border-color: var(--sh-ink); box-shadow: 0 3px 0 var(--sh-ink); }
+:global(body.inkbeta-mode) .button:hover:not(:disabled) { transform: translateY(-3px) rotate(-.6deg); }
+:global(body.inkbeta-mode) .button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--sh-ink); }
+
+:global(body.inkbeta-mode) .meter {
+  height: 18px;
+  border: 3px solid var(--sh-ink);
+  border-radius: 999px;
+  background: var(--sh-well);
+  box-shadow: inset 0 3px 0 #2b144214;
+}
+:global(body.inkbeta-mode) .meter > span {
+  background: var(--sh-ok);
+  box-shadow: inset 0 -4px 0 #0000001c;
+  border-right: 3px solid var(--sh-ink);
+}
+:global(body.inkbeta-mode) .levelBadge {
+  border: 3px solid var(--sh-ink);
+  border-radius: 24px;
+  color: var(--sh-ink);
+  background: var(--sh-go);
+  box-shadow: inset 0 -6px 0 #0000001c, 0 5px 0 var(--sh-go-deep), 0 8px 0 var(--sh-ink);
+  font-family: var(--sh-display);
+  font-weight: 400;
+}
+:global(body.inkbeta-mode) .scoreRing { box-shadow: 0 0 0 3px var(--sh-ink), 0 5px 0 3px var(--sh-ink); }
+:global(body.inkbeta-mode) .metric {
+  border: 3px solid var(--sh-ink);
+  border-radius: 18px;
+  background: var(--sh-card);
+  box-shadow: var(--sh-lift-1);
+}
+:global(body.inkbeta-mode) .metric strong { font-family: var(--sh-display); font-size: 30px; font-weight: 400; letter-spacing: .04em; }
+
+:global(body.inkbeta-mode) .tabs {
+  gap: 8px;
+  padding: 6px;
+  border: 3px solid var(--sh-ink);
+  border-radius: 20px;
+  background: var(--sh-card);
+  box-shadow: var(--sh-lift-1);
+}
+:global(body.inkbeta-mode) .tabs button { border-radius: 14px; color: var(--sh-text-2); font-weight: 900; }
+:global(body.inkbeta-mode) .tabs button[aria-selected=true],
+:global(body.inkbeta-mode) .tabs button[aria-pressed=true] {
+  color: var(--sh-ink);
+  border: 3px solid var(--sh-ink);
+  background: linear-gradient(180deg, var(--sh-go-2) 0%, var(--sh-go) 46%);
+  box-shadow: inset 0 -3px 0 #0000001c, 0 3px 0 var(--sh-ink);
+}
+:global(body.inkbeta-mode) .rewardStamp {
+  border: 3px solid var(--sh-ink);
+  border-radius: 14px;
+  color: var(--sh-ink);
+  background: var(--sh-go);
+  box-shadow: 0 4px 0 var(--sh-ink);
+  transform: rotate(4deg);
+}
+:global(body.inkbeta-mode) .rewardStamp strong { font-family: var(--sh-display); font-size: 28px; font-weight: 400; letter-spacing: .04em; }
+
+/* Apparence : la carte joueur */
+:global(body.inkbeta-mode) .lookStage::before {
+  border: 3px solid var(--sh-ink);
+  border-radius: 50%;
+  background: var(--sh-lilac);
+  box-shadow: 0 6px 0 var(--sh-ink);
+  transform: rotate(-4deg);
+}
+:global(body.inkbeta-mode) .lookStage::after { content: none; }
+:global(body.inkbeta-mode) .avatar.avatar {
+  border: 4px solid var(--sh-ink);
+  background: var(--sh-card-2);
+  box-shadow: 0 6px 0 var(--sh-ink);
+  color: var(--sh-ink);
+}
+:global(body.inkbeta-mode) .nameplate {
+  padding: 7px 16px 5px;
+  border: 3px solid var(--sh-ink);
+  border-radius: 12px;
+  color: var(--sh-ink);
+  background: var(--sh-go);
+  box-shadow: 0 3px 0 var(--sh-ink);
+  transform: rotate(-3deg);
+}
+:global(body.inkbeta-mode) .loadout > div {
+  border: 3px solid var(--sh-ink);
+  border-radius: 14px;
+  background: var(--sh-card);
+}
+:global(body.inkbeta-mode) .equipped { outline: 4px solid var(--sh-ok); outline-offset: 3px; }
+:global(body.inkbeta-mode) .status {
+  border: 3px solid var(--sh-ink);
+  color: var(--sh-ink);
+  background: var(--sh-ok);
+}
+:global(body.inkbeta-mode) .inlineNotice {
+  border: 3px dashed var(--sh-ink);
+  border-radius: 16px;
+  color: var(--sh-text-2);
+  font-weight: 700;
+}
+
+/* Mon espace : le passeport (les règles historiques sont en !important) */
+:global(body.inkbeta-mode) .passport :global(.ink-profile-dashboard-avatar) {
+  border: 4px solid var(--sh-ink) !important;
+  box-shadow: 0 6px 0 var(--sh-ink) !important;
+}
+:global(body.inkbeta-mode) .passport :global(.ink-profile-dashboard-camera) {
+  border: 3px solid var(--sh-ink) !important;
+  color: var(--sh-ink) !important;
+  background: var(--sh-go) !important;
+  box-shadow: 0 3px 0 var(--sh-ink) !important;
+}
+:global(body.inkbeta-mode) .passport :global(.ink-profile-dashboard-name-row) h4 {
+  font-family: var(--sh-display) !important;
+  font-size: clamp(34px, 5cqi, 48px) !important;
+  font-weight: 400 !important;
+  letter-spacing: .04em;
+  text-transform: uppercase !important;
+}
+:global(body.inkbeta-mode) .passport :global(.ink-profile-dashboard-title-row) > span {
+  border: 3px solid var(--sh-ink) !important;
+  color: var(--sh-ink) !important;
+  background: var(--sh-go) !important;
+  border-radius: 10px;
+}
+:global(body.inkbeta-mode) .passport :global(.ink-profile-dashboard-input) {
+  border: 3px solid var(--sh-ink) !important;
+  border-radius: 14px;
+  background: var(--sh-input) !important;
+}
+:global(body.inkbeta-mode) .passport :global(.ink-profile-dashboard-editor) button {
+  border: 3px solid var(--sh-ink) !important;
+  background: var(--sh-ok) !important;
+}

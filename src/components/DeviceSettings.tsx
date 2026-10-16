@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 import styles from '@/components/settings/BubbleSettings.module.css';
+import '@/styles/showtime-tokens.css';
 
 interface DeviceSettingsProps {
   onClose?: () => void;

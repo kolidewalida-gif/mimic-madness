@@ -5,6 +5,7 @@ import { useBackgroundMusic, type MusicMood, type MusicTrack } from '@/hooks/use
 import { coverFor, MOOD_LABEL, titleOf } from '@/lib/musicCovers';
 import { cn } from '@/lib/utils';
 import styles from './BubbleMusicPlayer.module.css';
+import '@/styles/showtime-tokens.css';
 
 const time = (seconds: number) => Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds / 60) + ':' + String(Math.floor(seconds % 60)).padStart(2, '0') : '0:00';
 const RecordArt = ({ track, playing = false, small = false }: { track: MusicTrack | null; playing?: boolean; small?: boolean }) => (

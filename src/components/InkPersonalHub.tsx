@@ -31,6 +31,7 @@ import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 import type { PersonalHubTab } from '@/components/personal-hub/types';
 import bubbleHub from '@/components/settings/BubbleHub.module.css';
+import '@/styles/showtime-tokens.css';
 import { BubbleProfilePage } from '@/components/personal-hub/BubblePlayerUI';
 import { BubbleProgress } from '@/components/personal-hub/BubbleProgress';
 import { BubbleAppearance } from '@/components/personal-hub/BubbleAppearance';
