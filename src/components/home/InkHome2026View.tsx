@@ -198,6 +198,7 @@ export const InkHome2026View = ({
             event.preventDefault();
             if (nameReady) onCreate();
           }}>
+            <span className={styles.cardSticker} aria-hidden="true">Prêt à jouer ?</span>
             <label htmlFor="mm-home3-name" className={styles.fieldLabel}>Ton pseudo</label>
             <div className={`${styles.nameField}${nameReady ? ` ${styles.nameFieldReady}` : ''}`}>
               <User aria-hidden="true" />
