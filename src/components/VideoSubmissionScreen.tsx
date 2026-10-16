@@ -30,7 +30,7 @@ import { SubmissionStatus } from "@/components/SubmissionStatus";
 import { LobbyChat } from "@/components/LobbyChat";
 import { ImitationChat } from "@/components/imitation/ImitationChat";
 import { InkBetaCount } from "@/components/game-beta/InkBetaGameLayout";
-import { BubbleGameHeader, BubbleHeading, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import { BubbleBackdrop, BubbleGameHeader, BubbleHeading, BubblePanel, bubbleGameStyles as bubble, useStageLife } from '@/components/imitation/BubbleGame';
 import { cn } from "@/lib/utils";
 import { CircularGallery } from "@/components/ui/circular-gallery";
 import {
@@ -203,6 +203,8 @@ export const VideoSubmissionScreen = ({
   variant = 'default',
 }: VideoSubmissionScreenProps) => {
   const isInkBeta = variant === 'inkBeta';
+  // Plateau vivant (parallaxe légère, tic au survol) : même coque que les phases de jeu.
+  const stageLife = useStageLife();
   const [savedClips, setSavedClips] = useState<VideoClip[]>([]);
   const [selectedClips, setSelectedClips] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1033,6 +1035,7 @@ export const VideoSubmissionScreen = ({
 
   const renderScreen = (chat: { button: ReactNode; panel: ReactNode } | null) => (
     <div
+      ref={isInkBeta ? stageLife : undefined}
       data-game-phase={isInkBeta ? 'preparation' : undefined}
       className={cn(
         'relative flex flex-col overflow-hidden text-white',
@@ -1042,7 +1045,7 @@ export const VideoSubmissionScreen = ({
       )}
     >
       {/* BACKGROUND — la coque Imitation (BubbleGame.module.css) peint son propre fond. */}
-      {isInkBeta ? null : (
+      {isInkBeta ? <BubbleBackdrop phase="preparation" /> : (
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#0a0510] to-[#160a26]" />
         <div

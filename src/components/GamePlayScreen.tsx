@@ -6,7 +6,7 @@ import { ImitationPhase } from "@/components/ImitationPhase";
 import { VotingPhase } from "@/components/VotingPhase";
 import { ResultsPhase } from "@/components/ResultsPhase";
 import { LobbyChat } from "@/components/LobbyChat";
-import { BubbleGameStage, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import { BubbleGameStage, BubbleHold, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
 import { ImitationChat } from '@/components/imitation/ImitationChat';
 import { AlertTriangle, ArrowLeft, RefreshCcw, Swords, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -667,7 +667,21 @@ export const GamePlayScreen = ({
   };
 
   const renderInitializationState = () => {
-    if (isInkBeta) return <BubbleGameStage phase="preview" round={roundNumber} tools={<button type="button" className={bubble.secondary} onClick={onEndGame}><ArrowLeft />Quitter</button>}><BubblePanel><div className={bubble.waiting} role="status">{initializationError ? <AlertTriangle /> : <RefreshCcw className="animate-spin" />}<h2>{initializationError ? 'Manche indisponible' : 'La scène se prépare…'}</h2><p>{initializationError || 'Synchronisation de la manche…'}</p>{initializationError ? <button type="button" className={bubble.primary} onClick={() => { durableRoundRef.current = null; setDurableRound(null); setRoundSynchronization(false); setInitializationError(null); setIsInitializingRound(true); setRetryKey(value => value + 1); }}>Réessayer</button> : !currentPlayer.isHost && <p>L’hôte prépare le défi. Tu rejoindras la scène automatiquement.</p>}</div></BubblePanel></BubbleGameStage>;
+    if (isInkBeta) {
+      const retryRound = () => {
+        durableRoundRef.current = null;
+        setDurableRound(null);
+        setRoundSynchronization(false);
+        setInitializationError(null);
+        setIsInitializingRound(true);
+        setRetryKey(value => value + 1);
+      };
+      return <BubbleGameStage phase="preview" round={roundNumber} quiet tools={<button type="button" className={bubble.secondary} onClick={onEndGame}><ArrowLeft aria-hidden="true" />Quitter</button>}>
+        {initializationError
+          ? <BubbleHold title="Manche indisponible" icon={<AlertTriangle aria-hidden="true" />} action={<button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={retryRound}><RefreshCcw aria-hidden="true" />Réessayer</button>}>{initializationError}</BubbleHold>
+          : <BubbleHold title="La scène se prépare…">{currentPlayer.isHost ? 'Synchronisation de la manche…' : 'L’hôte prépare le défi. Tu rejoins la scène automatiquement.'}</BubbleHold>}
+      </BubbleGameStage>;
+    }
     if (initializationError && !currentChallenge) {
       return (
         <div className="min-h-screen animated-bg flex items-center justify-center p-6">

@@ -112,14 +112,26 @@ export const SubmissionStatus = ({
   // si la soumission est validée (évite le faux blocage "Clip manquant").
   const canStartGame = allPlayersSubmitted;
 
-  if (variant === 'inkBeta') return <div>
-    {isLoading ? <div className={bubble.waiting} role="status"><Clock /><p>On vérifie les défis…</p></div> : <>
-      <ul className={bubble.submissions}>{players.map(player => { const ready = hasSubmission(player.id); const playable = hasPlayableClip(player.id); return <li key={player.id}><PlayerAvatar playerId={player.id} playerName={player.name} size="sm" showTitle={false} /><span><strong>{player.name}</strong><small>{ready ? `${getSubmissionCount(player.id)} défi(s) soumis` : 'Choisit ses vidéos…'}</small></span><span className={ready && playable ? bubble.submitted : undefined}>{ready && playable ? <><CheckCircle />Prêt !</> : ready ? <><AlertTriangle />À vérifier</> : <Clock />}</span></li>; })}</ul>
-      {!everyPlayerHasClip && <p className={bubble.note}>Les vidéos sont vérifiées au fil des envois. Une soumission validée suffit pour lancer la partie.</p>}
-      {canStartGame && isHost && <button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onStartGame}><Rocket />Lancer la partie</button>}
-      {!allPlayersSubmitted && <p className={bubble.note}>{players.filter(player => hasSubmission(player.id)).length}/{players.length} joueurs prêts</p>}
-    </>}
-  </div>;
+  /*
+   * Beta : l'état du groupe et l'action d'abord (compteur, « Lancer la
+   * partie »), le détail par joueur ensuite. Sur un petit écran, l'hôte voit
+   * son bouton sans faire défiler la liste.
+   */
+  if (variant === 'inkBeta') {
+    const readyCount = players.filter(player => hasSubmission(player.id)).length;
+    return <div className={bubble.troupe}>
+      {isLoading ? <div className={bubble.waiting} role="status"><Clock /><p>On vérifie les défis…</p></div> : <>
+        <div className={bubble.troupeHead} data-complete={allPlayersSubmitted || undefined}>
+          <p className={bubble.troupeCount}><strong key={readyCount}>{readyCount}</strong><span>/{players.length}</span><small>joueurs prêts</small></p>
+          {canStartGame && isHost
+            ? <button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onStartGame}><Rocket aria-hidden="true" />Lancer la partie</button>
+            : <p className={bubble.troupeHint}>{allPlayersSubmitted ? 'Tout le monde est prêt. L’hôte lance la partie.' : isHost ? 'Tu lances dès que chacun a envoyé ses défis.' : 'La partie démarre quand l’hôte la lance.'}</p>}
+        </div>
+        <ul className={bubble.submissions}>{players.map(player => { const ready = hasSubmission(player.id); const playable = hasPlayableClip(player.id); return <li key={player.id}><PlayerAvatar playerId={player.id} playerName={player.name} size="sm" showTitle={false} /><span><strong>{player.name}</strong><small>{ready ? `${getSubmissionCount(player.id)} défi(s) soumis` : 'Choisit ses vidéos…'}</small></span><span className={ready && playable ? bubble.submitted : undefined}>{ready && playable ? <><CheckCircle aria-hidden="true" />Prêt !</> : ready ? <><AlertTriangle aria-hidden="true" />À vérifier</> : <><Clock aria-hidden="true" /><span className={bubble.srOnly}>En préparation</span></>}</span></li>; })}</ul>
+        {!everyPlayerHasClip && <p className={bubble.note}>Les vidéos sont vérifiées au fil des envois. Une soumission validée suffit pour lancer la partie.</p>}
+      </>}
+    </div>;
+  }
 
   if (isLoading) {
     return (

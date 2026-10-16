@@ -4,18 +4,20 @@
    ses propres couleurs et ne dépend pas des variables --pl-*.
    ========================================================================== */
 
+/* Dans la coque, le tiroir prend les couleurs du plateau (--sh-*) ; rendu en
+   feuille hors coque, il garde ses valeurs sombres de repli. */
 .panel {
-  --c-surface: #161021;
-  --c-raised: #211733;
-  --c-hover: #2c2040;
-  --c-line: #ffffff17;
-  --c-line-2: #ffffff2b;
-  --c-ink: #f7f0fc;
-  --c-ink-2: #c3b4d5;
-  --c-ink-3: #9a8bb0;
-  --c-accent: #74efcb;
-  --c-accent-ink: #052a20;
-  --c-amber: #ffcd57;
+  --c-surface: var(--sh-card, #161021);
+  --c-raised: var(--sh-well, #211733);
+  --c-hover: var(--sh-card-2, #2c2040);
+  --c-line: color-mix(in srgb, var(--sh-text, #f7f0fc) 14%, transparent);
+  --c-line-2: color-mix(in srgb, var(--sh-text, #f7f0fc) 26%, transparent);
+  --c-ink: var(--sh-text, #f7f0fc);
+  --c-ink-2: var(--sh-text-2, #c3b4d5);
+  --c-ink-3: var(--sh-text-3, #9a8bb0);
+  --c-accent: var(--sh-ok, #74efcb);
+  --c-accent-ink: var(--sh-ink, #052a20);
+  --c-amber: var(--sh-go, #ffcd57);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -24,12 +26,14 @@
   height: 100%;
   overflow: hidden;
   color: var(--c-ink);
-  font-family: var(--ik-body, sans-serif);
-  border: 1px solid var(--c-line-2);
-  border-radius: 24px;
-  background: var(--c-surface);
-  box-shadow: inset 0 1px 0 #ffffff12, 0 30px 70px -24px #000d;
-  animation: arrive .22s cubic-bezier(.2, .8, .2, 1);
+  font-family: var(--sh-ui, var(--ik-body, sans-serif));
+  border: 3px solid var(--sh-ink, #ffffff2b);
+  border-radius: 30px;
+  background:
+    radial-gradient(120% 50% at 14% -6%, var(--sh-card-sheen, transparent), transparent 62%),
+    linear-gradient(165deg, var(--c-surface), var(--sh-card-2, var(--c-surface)));
+  box-shadow: var(--sh-gloss, inset 0 1px 0 #ffffff12), var(--sh-lift-2, 0 30px 70px -24px #000d);
+  animation: arrive .32s cubic-bezier(.34, 1.56, .64, 1);
 }
 .panel button { cursor: pointer; }
 .panel button:disabled { opacity: .45; cursor: default; }
@@ -60,7 +64,7 @@
 /* ---- En-tête ------------------------------------------------------------- */
 
 .header { display: flex; flex-shrink: 0; align-items: center; gap: 12px; padding: 18px 18px 14px; }
-.header h2 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+.header h2 { margin: 0; font: 400 25px/1 var(--sh-display, var(--ik-body, sans-serif)); letter-spacing: .04em; text-transform: uppercase; }
 .header small { display: block; margin-top: 3px; color: var(--c-ink-3); font-size: 12px; }
 .icon { display: grid; place-items: center; width: 40px; height: 40px; color: var(--c-accent-ink); border-radius: 13px; background: var(--c-accent); }
 .header > button {

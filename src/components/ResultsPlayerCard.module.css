@@ -1,199 +1,303 @@
 /* ==========================================================================
-   Carte d'une prise (podium et replays de duos)
-   --------------------------------------------------------------------------
-   La vidéo en haut, qui ensuite, puis le score. Les variables --pl-* viennent
-   de la coque Imitation ; les valeurs de repli servent ailleurs.
+   Une prise du podium.
+   - .winner : la grande carte dorée, la prise en grand, la couronne ;
+   - .side   : les places suivantes, la prise en vignette à gauche ;
+   - .replay : la prise individuelle d'un duo.
+   Les cartes arrivent comme des cartes distribuées (--deal = leur tour).
+   Les variables --sh-* viennent de la coque (BubbleGame.module.css).
    ========================================================================== */
 
 .card {
-  --accent: var(--result-accent, #ffd45e);
+  --result-accent: var(--sh-gold, #ffc531);
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  overflow: hidden;
-  color: var(--pl-ink, #f7f0fc);
-  border: 1px solid var(--pl-line, #ffffff14);
-  border-radius: 22px;
-  background: var(--pl-surface, #161021);
-  box-shadow: var(--pl-shadow, 0 22px 44px -22px #000c);
+  color: var(--sh-text, #2b1442);
+  border: 3px solid var(--sh-ink, #2b1442);
+  border-radius: 30px;
+  background:
+    radial-gradient(120% 70% at 14% -6%, var(--sh-card-sheen, #fff), transparent 62%),
+    linear-gradient(165deg, var(--sh-card, #fdf6ff), var(--sh-card-2, #e8d6fb));
+  box-shadow: var(--sh-gloss, inset 0 3px 0 #fff), var(--sh-lift-2, 0 6px 0 #2b1442);
+  animation: deal .7s var(--sh-spring, ease) var(--deal, 0ms) backwards;
 }
 
-.winner {
-  border-color: var(--pl-amber, #ffcd57);
-  box-shadow:
-    0 0 0 1px var(--pl-amber, #ffcd57),
-    0 30px 70px -30px color-mix(in srgb, var(--pl-amber, #ffcd57) 60%, transparent);
-}
-
-/* ---- Vidéo -------------------------------------------------------------- */
+/* ---- Le média --------------------------------------------------------------- */
 
 .media {
   position: relative;
-  flex: 0 0 auto;
   aspect-ratio: 16 / 9;
+  margin: 12px 12px 0;
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 40%, #2b1d40, #07040c 78%);
+  border: 3px solid var(--sh-ink, #2b1442);
+  border-radius: 20px;
+  background: var(--sh-picture, #07030c);
 }
-.media :global(.video-audio-overlay),
-.media :global(.video-audio-overlay-frame) { width: 100%; height: 100%; }
-.media video { object-fit: contain; }
+.media > * { width: 100%; height: 100%; }
+.media video { object-fit: contain !important; }
+.media :global(.video-audio-overlay-frame) { aspect-ratio: auto !important; border-radius: 0 !important; background: transparent !important; }
 
+/* Lecteur de prise : le gros bouton lecture et la barre deviennent des objets du jeu. */
+.media :global(.video-audio-overlay-frame) > button { background: #00000038 !important; }
+.media :global(.video-audio-overlay-frame) > button > span {
+  width: 78px !important;
+  height: 78px !important;
+  border: 4px solid var(--sh-ink, #2b1442);
+  background: var(--sh-go, #ffd23f) !important;
+  box-shadow: inset 0 3px 0 #ffffffa0, 0 6px 0 var(--sh-ink, #2b1442);
+  transition: transform .25s var(--sh-spring, ease);
+}
+.media :global(.video-audio-overlay-frame) > button:hover > span { transform: scale(1.08) rotate(-5deg); }
+.media :global(.video-audio-overlay-frame) > button svg { color: var(--sh-ink, #2b1442) !important; fill: currentColor; }
+.media :global(.inset-x-0) button {
+  min-height: 36px;
+  color: #fff !important;
+  font-weight: 800 !important;
+  border: 2px solid #ffffffb3 !important;
+  border-radius: 999px !important;
+  background: #ffffff1f !important;
+  transition: transform .2s var(--sh-spring, ease), background .2s;
+}
+.media :global(.inset-x-0) button:hover:not(:disabled) { background: #ffffff3d !important; transform: translateY(-1px); }
 .state {
-  position: absolute;
-  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 16px;
-  color: #ffffffdb;
+  gap: 8px;
+  height: 100%;
+  padding: 14px;
+  color: #fff;
   text-align: center;
+  background:
+    radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--result-accent) 30%, transparent), transparent 65%),
+    #120a1d;
 }
-.state strong { font-size: 15px; font-weight: 750; letter-spacing: -.01em; }
-.state small { max-width: 24rem; color: #ffffff94; font-size: 12px; line-height: 1.45; }
-.stateIcon { width: 32px; height: 32px; color: var(--pl-amber, #ffcd57); }
+.state strong { font-size: 14px; font-weight: 800; }
+.state small { max-width: 280px; color: #ffffffb3; font-size: 12px; line-height: 1.4; }
+.stateIcon { width: 30px; height: 30px; color: var(--result-accent); }
 .orb {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  color: var(--pl-accent-ink, #052a20);
+  width: 64px;
+  height: 64px;
+  color: var(--sh-ink, #2b1442);
+  border: 3px solid var(--sh-ink, #2b1442);
   border-radius: 50%;
-  background: var(--pl-accent, #74efcb);
-  box-shadow: 0 14px 30px -10px color-mix(in srgb, var(--pl-accent, #74efcb) 70%, transparent);
+  background: var(--result-accent);
+  box-shadow: inset 0 3px 0 #ffffff80, 0 4px 0 var(--sh-ink, #2b1442);
 }
-.orb svg { width: 24px; height: 24px; margin-left: 3px; }
+.orb svg { width: 26px; height: 26px; margin-left: 3px; fill: currentColor; }
 .mediaAction {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
-  padding: 7px 14px;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  border: 1px solid #ffffff38;
+  min-height: 40px;
+  padding: 0 16px;
+  color: var(--sh-ink, #2b1442);
+  font: 800 13px/1 var(--sh-ui, 'Outfit', sans-serif);
+  border: 2px solid var(--sh-ink, #2b1442);
   border-radius: 999px;
-  background: #ffffff14;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--sh-ink, #2b1442);
   cursor: pointer;
-  backdrop-filter: blur(8px);
+  transition: transform .2s var(--sh-spring, ease);
 }
-.mediaAction:hover { background: #ffffff26; }
+.mediaAction:hover { transform: translateY(-2px); }
 .mediaAction svg { width: 15px; height: 15px; }
 
+.media > .crown { width: auto; height: auto; }
 .crown {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 3;
+  top: 10px;
+  left: 10px;
+  z-index: 4;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px 6px 9px;
-  color: #2b1a00;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: .04em;
+  padding: 7px 14px 6px 10px;
+  color: var(--sh-ink, #2b1442);
+  font: 400 19px/1 var(--sh-display, 'Bangers', sans-serif);
+  letter-spacing: .06em;
   text-transform: uppercase;
+  border: 3px solid var(--sh-ink, #2b1442);
   border-radius: 999px;
-  background: var(--pl-amber, #ffcd57);
+  background: var(--sh-gold, #ffc531);
+  box-shadow: inset 0 3px 0 #ffffff90, 0 4px 0 var(--sh-ink, #2b1442);
+  transform: rotate(-5deg);
   pointer-events: none;
+  animation: crown-drop .7s var(--sh-spring, ease) calc(var(--deal, 0ms) + 380ms) backwards;
 }
-.crown svg { width: 14px; height: 14px; }
+.crown svg { width: 18px; height: 18px; fill: #fff3c4; }
 
-/* ---- Infos -------------------------------------------------------------- */
+/* ---- Qui, combien --------------------------------------------------------------- */
 
-.info { display: grid; flex: 1; gap: 14px; padding: 16px 18px 16px; }
-
-.identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.info { display: grid; gap: 14px; padding: 16px 18px 18px; }
+.identity { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .avatar { position: relative; flex-shrink: 0; }
+.avatar :global(.rounded-full.overflow-hidden) { width: 58px !important; height: 58px !important; border: 3px solid var(--sh-ink, #2b1442) !important; box-shadow: none !important; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
 .rank {
   position: absolute;
-  right: -5px;
-  bottom: -4px;
+  right: -8px;
+  bottom: -6px;
   display: grid;
   place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 5px;
-  color: #140a22;
-  font-size: 12px;
-  font-weight: 800;
-  border: 2px solid var(--pl-surface, #161021);
-  border-radius: 999px;
-  background: var(--accent);
+  width: 28px;
+  height: 28px;
+  color: var(--sh-ink, #2b1442);
+  font: 400 17px/1 var(--sh-display, 'Bangers', sans-serif);
+  border: 2px solid var(--sh-ink, #2b1442);
+  border-radius: 50%;
+  background: var(--result-accent);
+  box-shadow: 0 2px 0 var(--sh-ink, #2b1442);
 }
-.who { min-width: 0; flex: 1; }
-.kicker { display: block; color: var(--pl-ink-3, #9a8bb0); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.winner .kicker { color: var(--pl-amber-text, #ffd978); }
-.who h3 { margin: 2px 0 0; overflow: hidden; font-size: 20px; font-weight: 800; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
-.winner .who h3 { font-size: 26px; }
+.who { flex: 1; min-width: 0; }
+.kicker { display: block; color: var(--sh-text-3, #775c93); font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.who h3 {
+  margin: 3px 0 0;
+  overflow: hidden;
+  font: 400 28px/1 var(--sh-display, 'Bangers', sans-serif);
+  letter-spacing: .03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+.points {
+  flex-shrink: 0;
+  font: 400 34px/1 var(--sh-display, 'Bangers', sans-serif);
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.points small { margin-left: 4px; font-size: .5em; letter-spacing: .08em; }
+.positive { color: var(--sh-ok-deep, #148f79); }
+.negative { color: var(--sh-rec, #ff3f6f); }
 
-.points { flex-shrink: 0; font-size: 24px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.points small { margin-left: 3px; color: var(--pl-ink-3, #9a8bb0); font-size: 12px; font-weight: 700; letter-spacing: 0; }
-.positive { color: var(--pl-accent-text, #74efcb); }
-.negative { color: #ff7d95; }
-
-.footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.votes { display: flex; align-items: center; gap: 8px; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.votes { display: flex; gap: 8px; }
 .votes span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 11px;
-  font-size: 13px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  border: 1px solid var(--pl-line, #ffffff14);
+  padding: 6px 12px;
+  font: 400 18px/1 var(--sh-display, 'Bangers', sans-serif);
+  letter-spacing: .04em;
+  border: 2px solid var(--sh-ink, #2b1442);
   border-radius: 999px;
-  background: var(--pl-raised, #1f1730);
+  box-shadow: 0 2px 0 var(--sh-ink, #2b1442);
 }
-.votes svg { width: 14px; height: 14px; }
-.like { color: var(--pl-accent-text, #74efcb); }
-.dislike { color: #ff8da3; }
-
+.votes svg { width: 15px; height: 15px; }
+.like { color: var(--sh-ink, #2b1442); background: var(--sh-ok, #52efd0); }
+.dislike { color: var(--sh-ink, #2b1442); background: var(--sh-lilac, #c7b3ff); }
 .tools { display: flex; gap: 8px; margin-left: auto; }
 .tool {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  color: var(--pl-ink, #f7f0fc);
-  border: 1px solid var(--pl-line-2, #ffffff2b);
-  border-radius: 12px;
-  background: transparent;
+  width: 44px;
+  height: 44px;
+  color: var(--sh-text, #2b1442);
+  border: 3px solid var(--sh-ink, #2b1442);
+  border-radius: 50%;
+  background: var(--sh-card, #fff);
+  box-shadow: 0 3px 0 var(--sh-ink, #2b1442);
   cursor: pointer;
-  transition: background-color .15s;
+  transition: transform .2s var(--sh-spring, ease), box-shadow .2s;
 }
-.tool:hover:not(:disabled) { background: var(--pl-raised, #1f1730); }
-.tool:disabled { opacity: .5; cursor: default; }
-.tool svg { width: 16px; height: 16px; }
-.share { color: var(--pl-amber-text, #ffd978); border-color: color-mix(in srgb, var(--pl-amber, #ffcd57) 45%, transparent); }
+.tool:hover:not(:disabled) { transform: translateY(-2px) rotate(-6deg); box-shadow: 0 5px 0 var(--sh-ink, #2b1442); }
+.tool:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--sh-ink, #2b1442); }
+.tool:disabled { opacity: .5; cursor: not-allowed; }
+.tool svg { width: 18px; height: 18px; }
+.share { color: var(--sh-ink, #2b1442); background: var(--sh-go, #ffd23f); }
 
-/* Le gagnant tient dans la hauteur de l'écran : sa vidéo se laisse letterboxer. */
-.winner .media { aspect-ratio: auto; height: clamp(260px, calc(100dvh - 500px), 560px); }
+/* ---- La grande carte dorée ----------------------------------------------------- */
 
-/* Places suivantes : vidéo à gauche, infos à droite, pour que le podium tienne. */
-@media (min-width: 801px) {
-  .side { display: grid; grid-template-columns: minmax(150px, 44%) minmax(0, 1fr); }
-  .side .media { aspect-ratio: auto; min-height: 130px; }
-  .side .info { align-content: center; gap: 12px; padding: 14px 16px; }
-  .side .who h3 { font-size: 18px; }
-  .side .points { font-size: 20px; }
-  .side .state { gap: 8px; padding: 10px; }
-  .side .stateIcon { width: 26px; height: 26px; }
-  .side .orb { width: 44px; height: 44px; }
-  .side .orb svg { width: 20px; height: 20px; }
-  .side .mediaAction { min-height: 34px; padding: 5px 11px; font-size: 12px; }
+.winner {
+  border-width: 4px;
+  background:
+    radial-gradient(120% 70% at 14% -6%, #fffbe6, transparent 60%),
+    linear-gradient(160deg, #fff1c2, #ffd36e);
+  box-shadow: inset 0 4px 0 #ffffffb0, var(--sh-lift-3, 0 9px 0 #2b1442), 0 0 80px -10px color-mix(in srgb, var(--sh-gold, #ffc531) 60%, transparent);
+  --sh-text: #3a2410;
+  --sh-text-3: #7a5320;
+  color: #3a2410;
+}
+:global(body.inkbeta-dark) .winner {
+  background:
+    radial-gradient(120% 70% at 14% -6%, #8a6528, transparent 60%),
+    linear-gradient(160deg, #5c4120, #35213f);
+  --sh-text: #fff2d6;
+  --sh-text-3: #f2cf8e;
+  color: #fff2d6;
+}
+.winner .media { margin: 14px 14px 0; border-width: 4px; border-radius: 24px; box-shadow: 0 0 0 4px var(--sh-gold, #ffc531); }
+.winner .info { gap: 16px; padding: 20px 24px 22px; }
+.winner .avatar :global(.rounded-full.overflow-hidden) { width: 78px !important; height: 78px !important; }
+.winner .who h3 { font-size: clamp(36px, 3.4vw, 54px); }
+.winner .points { font-size: clamp(44px, 4vw, 64px); color: #3a2410; text-shadow: 0 3px 0 var(--sh-gold, #ffc531); }
+:global(body.inkbeta-dark) .winner .points { color: var(--sh-gold, #ffc531); text-shadow: 0 3px 0 #000; }
+.winner .points.negative { color: var(--sh-rec, #ff3f6f); }
+.winner .rank { width: 34px; height: 34px; font-size: 21px; background: var(--sh-gold, #ffc531); }
+
+/* ---- Places suivantes ------------------------------------------------------------ */
+
+.side { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); align-items: center; }
+.side .media { margin: 10px 0 10px 10px; border-radius: 16px; }
+.side .state { gap: 6px; padding: 8px; }
+.side .state small { display: none; }
+.side .orb { width: 44px; height: 44px; }
+.side .orb svg { width: 18px; height: 18px; }
+.side .mediaAction { min-height: 32px; padding: 0 12px; font-size: 12px; }
+.side .info { gap: 10px; padding: 12px 16px; }
+.side .avatar :global(.rounded-full.overflow-hidden) { width: 48px !important; height: 48px !important; }
+.side .who h3 { font-size: 24px; }
+.side .points { font-size: 30px; }
+.side .tool { width: 40px; height: 40px; }
+
+.replay .info { padding: 14px 16px 16px; }
+
+/* ---- Confettis : une seule pluie, quand le gagnant arrive -------------------------- */
+
+.confetti { position: absolute; inset: -24px 0 auto; z-index: 6; height: 0; pointer-events: none; }
+.confetti i {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: 11px;
+  height: 17px;
+  border: 2px solid var(--sh-ink, #2b1442);
+  border-radius: 3px;
+  background: var(--tone);
+  opacity: 0;
+  animation: confetti 2.8s cubic-bezier(.2, .7, .4, 1) calc(var(--deal, 0ms) + 500ms + var(--delay)) forwards;
+}
+.confetti i:nth-child(3n) { width: 14px; height: 14px; border-radius: 50%; }
+
+@keyframes deal {
+  0% { opacity: 0; transform: translateY(60px) rotate(6deg) scale(.92); }
+  60% { opacity: 1; transform: translateY(-6px) rotate(-1deg) scale(1.01); }
+  100% { transform: none; }
+}
+@keyframes crown-drop { 0% { opacity: 0; transform: translateY(-50px) rotate(-30deg) scale(1.4); } 60% { opacity: 1; transform: translateY(4px) rotate(-3deg); } 100% { transform: rotate(-5deg); } }
+@keyframes confetti {
+  0% { opacity: 0; transform: translate(0, -10px) rotate(0); }
+  8% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--drift), 460px) rotate(var(--turn)); }
 }
 
-/* Un seul joueur : la carte s'étale, vidéo à gauche, infos à droite. */
-@media (min-width: 981px) {
-  .solo { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
-  .solo .info { align-content: center; padding: 24px; }
-  .solo .media { aspect-ratio: auto; min-height: 320px; }
+@media (max-width: 1000px) {
+  .side { grid-template-columns: minmax(130px, 170px) minmax(0, 1fr); }
 }
-
-@media (prefers-reduced-motion: reduce) { .tool { transition: none; } }
+@media (max-width: 560px) {
+  .side { grid-template-columns: 1fr; }
+  .side .media { margin: 10px 10px 0; }
+  .identity { flex-wrap: wrap; }
+  .winner .who h3 { font-size: 34px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card, .crown { animation: none; }
+  .confetti { display: none; }
+  .tool, .mediaAction { transition: none; }
+}

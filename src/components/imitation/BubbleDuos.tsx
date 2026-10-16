@@ -58,7 +58,7 @@ export const DuoVotingBoard = ({ team, self, index, total, video, controls, verd
       <div className={s.video}>{video}</div><footer>{controls}<p><Headphones /> Deux voix, une imitation.</p></footer>
     </section>
     <section className={s.jury} aria-label="Ton verdict sur le duo">
-      <span className={s.juryIcon}><ThumbsUp /></span><small>Le jury, c’est vous</small><h2>Alors, ce duo ?</h2><p>Écoute les deux voix, puis donne ton verdict sur l’équipe.</p>
+      <span className={s.juryIcon}><ThumbsUp /></span><small>Le jury, c’est vous</small><h2>Alors, ce duo ?</h2><p>Deux voix, un seul verdict. À vous de trancher.</p>
       {verdict}<div className={s.voteNavigation}>{navigation}</div>
     </section>
   </div>;

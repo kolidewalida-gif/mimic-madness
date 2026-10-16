@@ -11,7 +11,8 @@ import { useMultiplePlayerAvatars } from "@/hooks/useGlobalPlayerAvatar";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useToast } from "@/hooks/use-toast";
 import { bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
-import { StagePlayers, VideoStage, videoStageStyles as stageStyles } from '@/components/imitation/VideoStage';
+import { StageBadge, StageBench, StageTag, VideoStage, videoStageStyles as stageStyles } from '@/components/imitation/VideoStage';
+import { showSfx } from '@/components/imitation/showSfx';
 import { DuoLineup } from '@/components/imitation/BubbleDuos';
 import type { Team } from '@/lib/teamsLogic';
 
@@ -27,9 +28,9 @@ interface ChallengePreviewPhaseProps {
 
 /** Les trois choses à repérer avant d'entrer en scène. */
 const PREVIEW_CUES = [
-  { Icon: AudioLines, title: 'La voix', copy: 'Ton, accent, petits tics.' },
-  { Icon: Music, title: 'Le rythme', copy: 'Pauses et reprises.' },
-  { Icon: Sparkles, title: 'Ta version', copy: 'Surprends la bande.' },
+  { Icon: AudioLines, title: 'La voix', copy: 'Le ton, l’accent, les tics.' },
+  { Icon: Music, title: 'Le rythme', copy: 'Où elle respire, où elle traîne.' },
+  { Icon: Sparkles, title: 'Ta touche', copy: 'Le détail qui fera rire.' },
 ];
 
 const SHADOW = "2px 2px 0 var(--ink-line), -1.5px -1.5px 0 var(--ink-line), 1.5px -1.5px 0 var(--ink-line), -1.5px 1.5px 0 var(--ink-line)";
@@ -165,27 +166,44 @@ export const ChallengePreviewPhase = ({
     }
   };
 
+  // Le tampon « PRÊT ! » claque au moment où le joueur valide, pas au rechargement.
+  const wasReadyRef = useRef(isReady);
+  useEffect(() => {
+    if (isInkBeta && isReady && !wasReadyRef.current) showSfx('stamp');
+    wasReadyRef.current = isReady;
+  }, [isInkBeta, isReady]);
+
   if (isInkBeta) {
     const isDuo = gameMode === '2v2';
+    const readyCount = readyPlayers.filter(id => players.some(player => player.id === id)).length;
+    const waitingFor = players.length - readyCount;
     return <VideoStage
       label={isDuo ? 'Le défi des duos' : 'Le défi'}
       media={<VideoPreview clipId={currentChallenge.id} className="h-full w-full" />}
-      chip={<><span>Le modèle à imiter</span><strong>Proposé par {currentChallenge.playerName}</strong></>}
+      chip={<StageTag who={{ id: currentChallenge.playerId, name: currentChallenge.playerName }} label="Le défi de" title={currentChallenge.playerName} />}
+      status={isReady
+        ? <StageBadge tone="ok" icon={<Check aria-hidden="true" />}>Prêt</StageBadge>
+        : <StageBadge icon={<Eye aria-hidden="true" />}>À revoir sans limite</StageBadge>}
+      stripLabel="Le modèle"
       kicker={`${isDuo ? 'Le défi des duos' : 'Le défi'} · Manche ${roundNumber}`}
-      title={isDuo ? <>Un défi. <em>Deux voix.</em></> : <>Ça, c’est <em>ton défi.</em></>}
-      lead={isDuo ? 'Même vidéo pour tous. Chacun prépare sa voix, puis vos deux prises seront réunies pour le vote.' : 'Une voix, un rythme, une attitude. Regarde bien : dans un instant, c’est toi la vedette.'}
-      footer={isDuo ? <DuoLineup teams={teams} ready={readyPlayers} self={currentPlayer.id} /> : <StagePlayers players={players} ready={readyPlayers} self={currentPlayer.id} />}
-      action={<>
-        <button type="button" className={`${bubble.primary} ${bubble.yellow}`} disabled={isReady || isReadyPending} onClick={handleReady}>
-          {isReadyPending ? <Loader2 className="animate-spin" /> : isReady ? <Check /> : <Mic />}{isReady ? 'Prêt pour ma prise !' : isReadyPending ? 'Validation…' : 'J’ai vu, je suis prêt !'}
-        </button>
-        <p className={stageStyles.hint}>{isReady ? 'Ta validation est enregistrée. La partie reprend quand la bande est prête.' : 'Tu peux revoir la vidéo autant que tu veux.'}</p>
-      </>}
+      title={isReady ? <>Prêt à <em>briller.</em></> : <>Imite <em>ça !</em></>}
+      lead={isReady
+        ? waitingFor > 0 ? `On attend encore ${waitingFor} joueur${waitingFor > 1 ? 's' : ''}. La prise démarre dès que tout le monde est prêt.` : 'Toute la bande est prête. Ça démarre !'
+        : isDuo ? 'Même vidéo pour tout le monde. Chacun sa voix, mais le score se partage à deux.' : 'Mate-la autant de fois que tu veux. Une fois lancé, il n’y a plus de filet.'}
+      aside={isReady ? <img className={stageStyles.readyStamp} src={`${import.meta.env.BASE_URL}lobby/pret-stamp.png`} alt="" /> : undefined}
+      bench={isDuo
+        ? <DuoLineup teams={teams} ready={readyPlayers} self={currentPlayer.id} />
+        : <StageBench players={players} ready={readyPlayers} self={currentPlayer.id} />}
+      benchSize={isDuo ? 'wide' : 'slim'}
+      action={<button type="button" className={cn(bubble.primary, !isReady && bubble.yellow)} disabled={isReady || isReadyPending} onClick={handleReady}>
+        {isReadyPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : isReady ? <Check aria-hidden="true" /> : <Mic aria-hidden="true" />}
+        {isReady ? 'Prêt pour ma prise !' : isReadyPending ? 'Validation…' : 'J’ai vu, je suis prêt !'}
+      </button>}
+      footer={<p className={stageStyles.hint}>{isReady ? 'Tu peux encore revoir la vidéo en attendant.' : 'Écoute le son, pas les mots.'}</p>}
     >
-      <div className={stageStyles.verdictTitle}><small>Avant d’entrer en scène</small><strong>{isDuo ? 'Accordez vos idées.' : 'Repère le petit truc.'}</strong></div>
-      <ul className={stageStyles.cues}>
+      <ul className={stageStyles.cues} aria-label="À repérer">
         {PREVIEW_CUES.map(({ Icon, title, copy }) =>
-          <li key={title}><span><Icon aria-hidden="true" /></span><div><strong>{title}</strong><p>{copy}</p></div></li>)}
+          <li key={title}><span><Icon aria-hidden="true" /></span><strong>{title}</strong><small>{copy}</small></li>)}
       </ul>
     </VideoStage>;
   }

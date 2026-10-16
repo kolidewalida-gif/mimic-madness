@@ -1,4 +1,4 @@
-/* Sélecteur de voix (phase « Ta prise ») — puces compactes, 4 par ligne. */
+/* Le choix de la voix : des jetons à appuyer, quatre par ligne. */
 
 .bank { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 
@@ -8,80 +8,94 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
-  min-height: 62px;
-  padding: 8px 4px;
-  color: var(--pl-ink);
-  border: 1px solid var(--pl-line);
-  border-radius: 14px;
-  background: var(--pl-raised);
-  transition: background-color .15s, border-color .15s;
+  min-height: 66px;
+  padding: 8px 4px 7px;
+  color: var(--sh-text);
+  border: 2px solid color-mix(in srgb, var(--sh-ink) 30%, transparent);
+  border-radius: 18px;
+  background: var(--sh-well);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--sh-ink) 30%, transparent);
+  cursor: pointer;
+  transition: transform .22s var(--sh-spring), box-shadow .22s, background-color .2s, border-color .2s;
 }
-.filter:not([aria-disabled='true']):hover { background: var(--pl-hover); }
+.filter:not([aria-disabled='true']):hover { transform: translateY(-3px) rotate(-2deg); box-shadow: 0 6px 0 color-mix(in srgb, var(--sh-ink) 30%, transparent); }
+.filter:not([aria-disabled='true']):hover > span:first-child { transform: scale(1.2) rotate(8deg); }
 .filter[aria-pressed='true'] {
-  border-color: var(--pl-accent);
-  background: color-mix(in srgb, var(--pl-accent) 16%, var(--pl-raised));
-  box-shadow: inset 0 0 0 1px var(--pl-accent);
+  border: 3px solid var(--sh-ink);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--sh-phase) 55%, #fff), var(--sh-phase) 70%);
+  box-shadow: inset 0 3px 0 #ffffff80, 0 4px 0 var(--sh-ink);
+  transform: translateY(-1px);
 }
-.filter[aria-disabled='true'] { opacity: .4; }
-.filter > span:first-child { font-size: 21px; line-height: 1; }
+.filter[aria-pressed='true'] > span:nth-child(2) { color: var(--sh-ink) !important; }
+.filter[aria-disabled='true'] { cursor: not-allowed; opacity: .4; }
+.filter > span:first-child { display: grid; font-size: 23px; line-height: 1; transition: transform .3s var(--sh-spring); }
+.filter > span:first-child svg { width: 24px; height: 24px; color: var(--sh-text); }
+.filter[aria-pressed='true'] > span:first-child svg { color: var(--sh-ink); }
 .filter > span:nth-child(2) {
+  max-width: 100%;
+  overflow: hidden;
   color: inherit !important;
-  font-family: var(--ik-body) !important;
+  font-family: var(--sh-ui) !important;
   font-size: 11px !important;
-  font-weight: 650;
+  font-weight: 800;
   line-height: 1.15;
+  text-overflow: ellipsis;
   text-shadow: none !important;
-  white-space: normal;
+  white-space: nowrap;
 }
-/* Pastille d'ordre des effets cumulés */
+/* Rang de l'effet dans le cumul */
 .filter > div {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  color: #2b1a00 !important;
-  border: 2px solid var(--pl-surface) !important;
+  top: -8px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  color: var(--sh-ink) !important;
+  border: 2px solid var(--sh-ink) !important;
   border-radius: 50%;
-  background: var(--pl-amber) !important;
+  background: var(--sh-go) !important;
+  box-shadow: 0 2px 0 var(--sh-ink);
+  animation: rank-in .4s var(--sh-spring) backwards;
 }
-.filter > div * { color: #2b1a00 !important; }
+.filter > div * { color: var(--sh-ink) !important; font-family: var(--sh-ui) !important; font-weight: 900 !important; text-shadow: none !important; }
 
 .description {
   padding: 10px 12px !important;
-  color: var(--pl-ink-2) !important;
+  color: var(--sh-text-2) !important;
   font-size: 12px !important;
-  border: 1px solid var(--pl-line) !important;
-  border-radius: 14px !important;
-  background: var(--pl-raised) !important;
+  border: 2px dashed color-mix(in srgb, var(--sh-ink) 26%, transparent) !important;
+  border-radius: 16px !important;
+  background: transparent !important;
 }
-.description * { text-shadow: none !important; }
+.description * { color: inherit !important; text-shadow: none !important; }
 
 .expand {
   display: block;
   min-height: 34px;
   margin: 2px auto 0;
-  padding: 6px 10px;
-  color: var(--pl-ink-2);
+  padding: 6px 12px;
+  color: var(--sh-text-2);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   text-decoration: underline;
   text-underline-offset: 3px;
   border: 0;
   border-radius: 10px;
   background: none;
+  cursor: pointer;
 }
-.expand:hover { color: var(--pl-ink); }
+.expand:hover { color: var(--sh-text); }
 
-/* Variante « bandeau » (console) : même grille, en plus serré. */
-.strip .bank { gap: 7px; }
-.strip .filter { min-height: 58px; }
+.strip .bank { gap: 8px; }
 .strip .description { display: flex; flex-wrap: wrap; gap: 5px 12px; margin: 2px 0 0 !important; }
 .strip .description p { padding: 0; font-size: 11px; }
 
-@container console (min-width: 560px) {
-  .strip .bank { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+@keyframes rank-in { 0% { transform: scale(0) rotate(-45deg); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .filter, .filter > span:first-child { transition: none; }
+  .filter:hover, .filter:hover > span:first-child { transform: none; }
 }
-@media (prefers-reduced-motion: reduce) { .filter { transition: none; } }

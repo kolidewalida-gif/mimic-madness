@@ -987,38 +987,72 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
     pauseIntentRef.current = false;
   };
 
-  if (isInkBeta) return <div className={cn(recorderBubble.root, layout === 'studio' && recorderBubble.studio)} data-state={recorderState}>
-    {recorderState === 'idle' && <div className={recorderBubble.micStage}>
-      <button type="button" className={recorderBubble.mic} onClick={startRecording} aria-label="Commencer l’enregistrement de ton imitation">
-        <span className={recorderBubble.micIcon}><Mic /></span>
-        <span className={recorderBubble.micCopy}>
-          <strong>{layout === 'studio' ? 'Lance ta prise' : 'Appuie, et entre en scène.'}</strong>
-          <small>{layout === 'studio' ? 'La vidéo et ton micro partent ensemble.' : 'La vidéo repart avec toi. Tu pourras mettre en pause ou refaire ta prise.'}</small>
-        </span>
-      </button>
-    </div>}
-    {(recorderState === 'idle' || recorderState === 'paused') && showVoiceFilters && <div className={recorderBubble.filters}>
-      <div className={recorderBubble.filterLabel}><strong>Quelle voix aujourd’hui ?</strong><small>Jusqu’à 3 effets</small></div>
+  /*
+   * Beta : un état, un geste. Le gros bouton GO reste le premier bouton du
+   * composant (les tests et le clavier y arrivent d'abord) ; la voix se choisit
+   * juste dessous, avant de lancer ou pendant une pause.
+   */
+  if (isInkBeta) {
+    const voicePicker = showVoiceFilters && <div className={recorderBubble.filters}>
+      <div className={recorderBubble.filterLabel}><strong>{recorderState === 'paused' ? 'Change de voix' : 'Ta voix'}</strong><small>Jusqu’à 3 effets</small></div>
       <InkVoiceFilterPicker value={voiceFilters} onChange={setVoiceFilters} compact bubble strip={layout === 'studio'} />
-    </div>}
-    {recorderState === 'live' && <>
-      <div className={`${recorderBubble.micStage} ${recorderBubble.recording}`}><span className={recorderBubble.mic}><Mic /></span><strong>La scène est à toi !</strong>
-        <div className={recorderBubble.meter} role="meter" aria-label="Niveau du microphone" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(audioLevel)}>{AUDIO_METER_WEIGHTS.map((weight,index)=><i key={index} style={{height:Math.max(5,audioLevel*.35*weight)}} />)}</div>
-      </div>
-      <div className={recorderBubble.voice}><span>{activeVoice.emoji}</span><strong>{activeVoice.label}</strong><small>Segment {segmentFilters.length + 1}</small></div>
-      <div className={recorderBubble.actions}><button type="button" className={bubble.secondary} onClick={pauseRecording}><PauseCircle />Pause</button><button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={stopRecording}><StopCircle />Terminer</button></div>
-    </>}
-    {recorderState === 'paused' && <><div className={recorderBubble.state}><PauseCircle /><h3>Une petite pause.</h3><p>Change de voix si tu veux. Les morceaux déjà enregistrés restent intacts.</p></div>
-      <div className={recorderBubble.voice}><span>{pendingVoice.emoji}</span><strong>Prochaine voix : {pendingVoice.label}</strong></div>
-      <div className={recorderBubble.actions}><button type="button" className={bubble.secondary} disabled={isLoading} onClick={stopRecording}><StopCircle />Terminer</button><button type="button" className={bubble.primary} disabled={isLoading} onClick={resumeRecording}><PlayCircle />Reprendre</button></div>
-    </>}
-    {recorderState === 'processing' && <div className={recorderBubble.state} role="status"><Loader2 className="animate-spin" /><h3>On prépare ta prise.</h3><p>Les segments et les effets sont assemblés pour l’écoute.</p></div>}
-    {recordedBlob && previewUrl && <><div className={recorderBubble.state}><h3>On garde celle-là ?</h3><p>Écoute ta voix avant de valider.</p></div>
-      <div className={recorderBubble.preview}><strong>Ton imitation</strong><audio src={previewUrl} controls aria-label="Écouter ton imitation" /></div>
-      <div className={recorderBubble.actions}><button type="button" className={bubble.secondary} disabled={isLoading} onClick={handleClear}><RotateCcw />Recommencer</button><button type="button" className={bubble.primary} disabled={isLoading} onClick={handleSaveClip}>{isLoading ? <Loader2 className="animate-spin" /> : <Save />}{isLoading ? 'Envoi…' : 'Valider'}</button></div>
-    </>}
-    {segmentFilters.length > 0 && <div className={recorderBubble.segments}><SegmentList filters={segmentFilters} /></div>}
-  </div>;
+    </div>;
+    return <div className={cn(recorderBubble.root, layout === 'studio' && recorderBubble.studio)} data-state={recorderState}>
+      {recorderState === 'idle' && <>
+        <div className={recorderBubble.launch}>
+          <button type="button" className={recorderBubble.go} onClick={startRecording} aria-label="Commencer l’enregistrement de ton imitation">
+            <span className={recorderBubble.goAura} aria-hidden="true" />
+            <span className={recorderBubble.goFace} aria-hidden="true"><Mic /><strong>GO</strong></span>
+          </button>
+          <div className={recorderBubble.launchCopy}>
+            <strong>{layout === 'studio' ? 'Lance ta prise' : 'Entre en scène'}</strong>
+            <small>{layout === 'studio' ? 'La vidéo démarre avec toi.' : 'La vidéo repart avec toi. Pause et reprise possibles.'}</small>
+            <span className={recorderBubble.voiceNow} style={{ '--voice': pendingVoice.color } as React.CSSProperties}><b aria-hidden="true">{pendingVoice.emoji}</b>{pendingVoice.label}</span>
+          </div>
+        </div>
+        {voicePicker}
+      </>}
+      {recorderState === 'live' && <>
+        <div className={recorderBubble.live}>
+          <span className={recorderBubble.liveMic} aria-hidden="true"><Mic /></span>
+          <div className={recorderBubble.liveCopy}><strong>Micro ouvert</strong><small><b aria-hidden="true">{activeVoice.emoji}</b> {activeVoice.label} · segment {segmentFilters.length + 1}</small></div>
+          <div className={recorderBubble.meter} role="meter" aria-label="Niveau du microphone" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(audioLevel)}>
+            {AUDIO_METER_WEIGHTS.map((weight, index) => <i key={index} style={{ transform: `scaleY(${Math.max(0.12, Math.min(1, (audioLevel / 100) * 1.6 * weight))})` }} />)}
+          </div>
+        </div>
+        <div className={recorderBubble.actions}>
+          <button type="button" className={bubble.secondary} onClick={pauseRecording}><PauseCircle aria-hidden="true" />Pause</button>
+          <button type="button" className={`${bubble.primary} ${bubble.rec}`} onClick={stopRecording}><StopCircle aria-hidden="true" />Terminer</button>
+        </div>
+      </>}
+      {recorderState === 'paused' && <>
+        <div className={recorderBubble.state}>
+          <PauseCircle aria-hidden="true" />
+          <div><strong>En pause</strong><small>Prochaine voix : {pendingVoice.emoji} {pendingVoice.label}. Tes segments restent intacts.</small></div>
+        </div>
+        {voicePicker}
+        <div className={recorderBubble.actions}>
+          <button type="button" className={bubble.secondary} disabled={isLoading} onClick={stopRecording}><StopCircle aria-hidden="true" />Terminer</button>
+          <button type="button" className={`${bubble.primary} ${bubble.rec}`} disabled={isLoading} onClick={resumeRecording}><PlayCircle aria-hidden="true" />Reprendre</button>
+        </div>
+      </>}
+      {recorderState === 'processing' && <div className={recorderBubble.state} role="status">
+        <Loader2 className="animate-spin" aria-hidden="true" />
+        <div><strong>On mixe ta prise</strong><small>Segments et effets assemblés pour l’écoute.</small></div>
+      </div>}
+      {recordedBlob && previewUrl && <>
+        <div className={recorderBubble.preview}>
+          <strong>Ta voix, seule</strong>
+          <audio src={previewUrl} controls aria-label="Écouter ton imitation" />
+        </div>
+        <div className={recorderBubble.actions}>
+          <button type="button" className={bubble.secondary} disabled={isLoading} onClick={handleClear}><RotateCcw aria-hidden="true" />Recommencer</button>
+          <button type="button" className={`${bubble.primary} ${bubble.yellow}`} disabled={isLoading} onClick={handleSaveClip}>{isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Save aria-hidden="true" />}{isLoading ? 'Envoi…' : 'Valider'}</button>
+        </div>
+      </>}
+      {segmentFilters.length > 0 && <div className={recorderBubble.segments}><SegmentList filters={segmentFilters} /></div>}
+    </div>;
+  }
 
   return (
     <Card
@@ -1037,7 +1071,7 @@ export const AudioRecorder = React.forwardRef<AudioRecorderHandle, AudioRecorder
             <h3 className="text-xl font-semibold text-gradient">
               {isInkBeta ? 'Prépare ton imitation' : 'Enregistrer votre imitation'}
             </h3>
-            {isInkBeta && <p>Choisis ta voix, puis lance une prise synchronisée avec la référence.</p>}
+            {isInkBeta && <p>Choisis ta voix et lance la prise : la référence démarre en même temps que toi.</p>}
           </div>
         </div>
 

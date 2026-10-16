@@ -91,7 +91,7 @@ export const CountdownOverlay = ({
               <span key={value} className={value === count ? styles.current : value > count ? styles.done : undefined}>{value}</span>,
             )}
           </div>
-          <p className={styles.note}>Ouvre grand les oreilles. Le jury, c’est vous !</p>
+          <p className={styles.note}>Oreilles grandes ouvertes : c’est vous qui allez juger.</p>
           <span className={styles.announcement} role="status" aria-live="assertive" aria-atomic="true">{title} {count}</span>
         </div>
       </motion.div>}

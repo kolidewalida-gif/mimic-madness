@@ -1,4 +1,4 @@
-import { memo, type CSSProperties } from "react";
+import { memo, useEffect, type CSSProperties } from "react";
 import {
   AlertCircle,
   Check,
@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VideoWithAudioOverlay } from "@/components/VideoWithAudioOverlay";
+import { showSfx } from "@/components/imitation/showSfx";
+import { useCountUp } from "@/components/imitation/useCountUp";
+import { formatMasterPoints } from "@/lib/mimicMaster";
 import { cn } from "@/lib/utils";
 import type { VideoClip } from "@/lib/videoStorageSupabase";
 import styles from "./ResultsPlayerCard.module.css";
@@ -57,10 +60,23 @@ const requestLabel = (state: ResultsClipState) => {
   return "Voir l’imitation";
 };
 
+/** Confettis dessinés une fois pour toutes : position, délai, rotation, couleur. */
+const CONFETTI = Array.from({ length: 18 }, (_, index) => ({
+  x: `${(index * 37) % 100}%`,
+  delay: `${(index % 6) * 90}ms`,
+  turn: `${(index % 2 ? 1 : -1) * (220 + (index * 47) % 260)}deg`,
+  drift: `${((index * 53) % 60) - 30}px`,
+  tone: ['var(--sh-go, #ffd23f)', 'var(--sh-ok, #52efd0)', 'var(--sh-rec, #ff3f6f)', 'var(--sh-lilac, #c7b3ff)'][index % 4],
+}));
+
 /**
- * Une prise de la manche : la vidéo d'abord, puis qui, puis le score.
- * Le gagnant est plus grand, cerclé d'or. Mise en page portée par
- * ResultsPlayerCard.module.css (valeurs de repli si la coque n'est pas là).
+ * Une prise de la manche.
+ *
+ * - gagnant : la grande carte dorée, sa prise à l'écran, la couronne, le score
+ *   qui monte, quelques confettis ;
+ * - places suivantes : des cartes en ligne, la prise en vignette ;
+ * - `teamReplay` : la prise individuelle d'un duo, sans rang ni points (le
+ *   classement des duos est ailleurs).
  */
 export const ResultsPlayerCard = memo(function ResultsPlayerCard({
   result,
@@ -80,12 +96,22 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
   onShare,
   presentation = 'ranked',
 }: ResultsPlayerCardProps) {
+  const ranked = presentation === 'ranked';
+  const hero = ranked && (isWinner || isSolo);
+  const shown = useCountUp(result.score, { enabled: hero, delay: 650, onTick: () => showSfx('score') });
   const scoreTone = result.score > 0 ? styles.positive : result.score < 0 ? styles.negative : undefined;
-  const cardStyle = { "--result-accent": color } as CSSProperties;
+  const cardStyle = { "--result-accent": color, "--deal": `${Math.min(rank, 6) * 110}ms` } as CSSProperties;
+
+  // La victoire s'entend une fois, quand la grande carte arrive.
+  useEffect(() => {
+    if (!hero || !isWinner) return undefined;
+    const timer = window.setTimeout(() => showSfx('win'), 420);
+    return () => window.clearTimeout(timer);
+  }, [hero, isWinner]);
 
   return (
     <article
-      className={cn(styles.card, isWinner && styles.winner, isSolo && styles.solo, presentation === 'ranked' && !isWinner && !isSolo && styles.side)}
+      className={cn(styles.card, hero && styles.winner, isSolo && styles.solo, ranked && !hero && styles.side, !ranked && styles.replay)}
       style={cardStyle}
       aria-label={presentation === 'teamReplay' ? `Prise de ${result.playerName}` : `${rank}${rank === 1 ? "er" : "e"} : ${result.playerName}, ${result.score} points`}
     >
@@ -116,11 +142,7 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
                 <small>La carte reste en place. Tu peux relancer uniquement ce média.</small>
               </>
             ) : (
-              <>
-                <span className={styles.orb} aria-hidden="true">
-                  <Play />
-                </span>
-              </>
+              <span className={styles.orb} aria-hidden="true"><Play /></span>
             )}
 
             {clipState.status !== "loading" && (
@@ -131,7 +153,7 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
             )}
           </div>
         )}
-        {presentation === 'ranked' && isWinner && (
+        {ranked && isWinner && (
           <span className={styles.crown}><Crown aria-hidden="true" />Gagnant</span>
         )}
       </div>
@@ -142,10 +164,10 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
             <PlayerAvatar
               playerId={result.playerId}
               playerName={result.playerName}
-              size={isWinner ? "xl" : "lg"}
+              size={hero ? "xl" : "lg"}
               showTitle={false}
             />
-            {presentation === 'ranked' && <span className={styles.rank} aria-label={`Rang ${rank}`}>{rank}</span>}
+            {ranked && <span className={styles.rank} aria-label={`Rang ${rank}`}>{rank}</span>}
           </div>
           <div className={styles.who}>
             <span className={styles.kicker}>
@@ -153,15 +175,15 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
             </span>
             <h3>{isCurrentPlayer ? "Toi" : result.playerName}</h3>
           </div>
-          {presentation === 'ranked' && (
+          {ranked && (
             <strong className={cn(styles.points, scoreTone)}>
-              {result.score > 0 ? "+" : ""}{result.score}<small>pts</small>
+              {formatMasterPoints(hero ? Math.round(shown * 10) / 10 : result.score)}<small>pts</small>
             </strong>
           )}
         </div>
 
         <div className={styles.footer}>
-          {presentation === 'ranked' && (
+          {ranked && (
             <div className={styles.votes} aria-label={`${result.likes} avis positifs, ${result.dislikes} avis négatifs`}>
               <span className={styles.like}><ThumbsUp aria-hidden="true" />{result.likes}</span>
               <span className={styles.dislike}><ThumbsDown aria-hidden="true" />{result.dislikes}</span>
@@ -174,6 +196,7 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
               disabled={isDownloading}
               className={styles.tool}
               aria-label={`Télécharger l’imitation de ${result.playerName}`}
+              title="Télécharger"
             >
               {isDownloading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Download aria-hidden="true" />}
             </button>
@@ -184,6 +207,7 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
                 disabled={isSharing}
                 className={cn(styles.tool, styles.share)}
                 aria-label={`Partager l’imitation de ${result.playerName}`}
+                title="Partager"
               >
                 {isSharing
                   ? <Loader2 className="animate-spin" aria-hidden="true" />
@@ -195,6 +219,12 @@ export const ResultsPlayerCard = memo(function ResultsPlayerCard({
           </div>
         </div>
       </div>
+
+      {hero && isWinner && (
+        <span className={styles.confetti} aria-hidden="true">
+          {CONFETTI.map((piece, index) => <i key={index} style={{ '--x': piece.x, '--delay': piece.delay, '--turn': piece.turn, '--drift': piece.drift, '--tone': piece.tone } as CSSProperties} />)}
+        </span>
+      )}
     </article>
   );
 });

@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VictoryAnimation } from "@/components/VictoryAnimation";
 import { ResultsPlayerCard, type ResultsClipState, type ResultsPlayerResult } from "@/components/ResultsPlayerCard";
 import { RoundBreakAd } from "@/components/RoundBreakAd";
 import {
-  Trophy, ThumbsUp, ThumbsDown, ArrowRight, Sparkles, Swords,
+  Trophy, ThumbsUp, ThumbsDown, ArrowRight, Sparkles, Swords, Clock,
 } from "lucide-react";
 import { juice } from "@/lib/juice";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,10 +16,11 @@ import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useSocialFeed } from "@/hooks/useSocialFeed";
 import { useAuth } from "@/hooks/useAuth";
 import { equalJitterBackoff } from "@/lib/syncState";
-import { BubbleHeading, BubblePanel, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import { BubbleHeading, BubbleHold, bubbleGameStyles as bubble } from '@/components/imitation/BubbleGame';
+import podiumStyles from '@/components/imitation/Podium.module.css';
 import { DuoReplays, DuoScoreboard } from '@/components/imitation/BubbleDuos';
 import { readMimicMasters } from '@/lib/mimicMasterClient';
-import { scoreMimicMasters, type MasterScore } from '@/lib/mimicMaster';
+import { formatMasterPoints, scoreMimicMasters, type MasterScore } from '@/lib/mimicMaster';
 import { MimicMasterRecap } from '@/components/imitation/MimicMaster';
 
 interface Player {
@@ -519,35 +520,62 @@ export const ResultsPhase = ({
   const rest = results.slice(3);
   const podiumColor = ["#fbbf24", "#d1d5db", "#f97316"];
 
-  if (isInkBeta && gameMode === '2v2') return <>
-    <BubbleHeading label={`Les résultats des duos · Manche ${roundNumber}`} title={isResultsSynchronized ? <>Vos duos ont fait <em>le show.</em></> : 'On compte les votes…'} aside={<span className={bubble.stamp}><Trophy aria-hidden="true" /></span>}>Deux prises, un résultat commun. Découvrez le classement de vos équipes.</BubbleHeading>
-    <DuoScoreboard teams={teams} scores={teamResults} self={currentPlayer.id} certified={isResultsSynchronized} />
-    {isResultsSynchronized && <DuoReplays teams={teams} scores={teamResults} renderPlayer={player => {
-      const index = results.findIndex(result => result.playerId === player.id);
-      const result = results[index];
-      if (!result) return <p className={bubble.note}>La prise de {player.name} n’est pas disponible.</p>;
-      const clipState = playerClips[result.playerId] ?? IDLE_CLIP_STATE;
-      return <ResultsPlayerCard presentation="teamReplay" key={result.playerId} result={result} rank={index + 1} color="#b5f1dc" isWinner={false} isSolo={false} isCurrentPlayer={result.playerId === currentPlayer.id} challengeVideoClipId={challengeVideoClipId} clipState={clipState} isDownloading={downloadingPlayer === result.playerId} isSharing={sharingPlayer === result.playerId} canShare={result.playerId === currentPlayer.id && Boolean(authUser)} hasShared={clipState.status === 'ready' && sharedClipIds.has(clipState.clip.id)} onRequestClip={requestPlayerClip} onDownload={handleDownloadImitation} onShare={handleShareImitation} />;
-    }} />}
-    {masterRecap}
-    <RoundBreakAd gameMode={gameMode} instanceKey={`${gameMode}:${roundNumber}`} />
-    {isRoundReconnecting && <p className={bubble.note} role="status">Reconnexion à la manche… Le classement reste affiché.</p>}
-    {currentPlayer.isHost ? <div className={bubble.resultActions}><button type="button" className={bubble.secondary} onClick={onEndGame}>Terminer</button><button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onNextRound} disabled={isRoundReconnecting}>Manche suivante <ArrowRight aria-hidden="true" /></button></div> : <p className={bubble.note}>L’hôte prépare la suite. Prêts pour le prochain défi ?</p>}
-  </>;
+  if (isInkBeta) {
+    const hostActions = currentPlayer.isHost
+      ? <div className={podiumStyles.actions}>
+        <button type="button" className={bubble.secondary} onClick={onEndGame}>Terminer</button>
+        <button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onNextRound} disabled={isRoundReconnecting}>Manche suivante <ArrowRight aria-hidden="true" /></button>
+      </div>
+      : <span className={podiumStyles.waiting}><Clock aria-hidden="true" />L’hôte prépare la suite</span>;
+    const footer = <>
+      {masterRecap}
+      <RoundBreakAd gameMode={gameMode} instanceKey={`${gameMode}:${roundNumber}`} />
+      {isRoundReconnecting && <p className={podiumStyles.note} role="status">Reconnexion à la manche… Le classement reste affiché.</p>}
+      {!currentPlayer.isHost && <p className={podiumStyles.note}>{gameMode === '2v2' ? 'Prêts pour le prochain défi ?' : 'Encore une ? L’hôte lance la prochaine manche.'}</p>}
+    </>;
 
-  if (isInkBeta) return <>
-    <BubbleHeading label={`Les résultats · manche ${roundNumber}`} title={isResultsSynchronized && winnerLabel ? <>{winnerLabel}<em>, quelle prise !</em></> : 'On compte les votes…'} aside={currentPlayer.isHost ? <div className={bubble.resultActions}><button type="button" className={bubble.secondary} onClick={onEndGame}>Terminer</button><button type="button" className={`${bubble.primary} ${bubble.yellow}`} onClick={onNextRound} disabled={isRoundReconnecting}>Manche suivante <ArrowRight aria-hidden="true" /></button></div> : <span className={bubble.stamp}><Trophy aria-hidden="true" /></span>}>{isResultsSynchronized ? 'Le verdict de la bande. Revois les prises ou partage ton meilleur moment.' : 'Synchronisation des votes…'}</BubbleHeading>
-    {gameMode === '2v2' && teamResults.length > 0 && <BubblePanel title="Le classement des équipes"><ol className={bubble.scoreList}>{teamResults.map((team, index) => <li key={team.teamNumber}><span>{index + 1}</span><Swords aria-hidden="true" /><span><strong>Équipe {team.teamNumber}</strong><br />{team.playerNames.join(' & ')}</span><span>{team.likes} 👍 · {team.dislikes} 👎</span><strong>{team.score > 0 ? '+' : ''}{team.score}</strong></li>)}</ol></BubblePanel>}
-    <div className={bubble.resultGrid}>{podium.map((result, index) => {
+    if (gameMode === '2v2') return <div className={podiumStyles.root}>
+      <BubbleHeading label={`Les duos · Manche ${roundNumber}`} title={isResultsSynchronized && winnerLabel ? <><em>{winnerLabel}</em> en tête !</> : 'On compte les votes…'} aside={hostActions}>Deux prises, un résultat commun. Le classement de vos équipes.</BubbleHeading>
+      <DuoScoreboard teams={teams} scores={teamResults} self={currentPlayer.id} certified={isResultsSynchronized} />
+      {isResultsSynchronized && <DuoReplays teams={teams} scores={teamResults} renderPlayer={player => {
+        const index = results.findIndex(result => result.playerId === player.id);
+        const result = results[index];
+        if (!result) return <p className={bubble.note}>La prise de {player.name} n’est pas disponible.</p>;
+        const clipState = playerClips[result.playerId] ?? IDLE_CLIP_STATE;
+        return <ResultsPlayerCard presentation="teamReplay" key={result.playerId} result={result} rank={index + 1} color="#52efd0" isWinner={false} isSolo={false} isCurrentPlayer={result.playerId === currentPlayer.id} challengeVideoClipId={challengeVideoClipId} clipState={clipState} isDownloading={downloadingPlayer === result.playerId} isSharing={sharingPlayer === result.playerId} canShare={result.playerId === currentPlayer.id && Boolean(authUser)} hasShared={clipState.status === 'ready' && sharedClipIds.has(clipState.clip.id)} onRequestClip={requestPlayerClip} onDownload={handleDownloadImitation} onShare={handleShareImitation} />;
+      }} />}
+      {footer}
+    </div>;
+
+    const renderCard = (result: PlayerResult, index: number) => {
       const clipState = playerClips[result.playerId] ?? IDLE_CLIP_STATE;
       return <ResultsPlayerCard key={result.playerId} result={result} rank={index + 1} color={podiumColor[index]} isWinner={index === 0} isSolo={podium.length === 1} isCurrentPlayer={result.playerId === currentPlayer.id} challengeVideoClipId={challengeVideoClipId} clipState={clipState} isDownloading={downloadingPlayer === result.playerId} isSharing={sharingPlayer === result.playerId} canShare={result.playerId === currentPlayer.id && Boolean(authUser)} hasShared={clipState.status === 'ready' && sharedClipIds.has(clipState.clip.id)} onRequestClip={requestPlayerClip} onDownload={handleDownloadImitation} onShare={handleShareImitation} />;
-    })}</div>
-    {rest.length > 0 && <ol className={bubble.scoreList} aria-label="La suite du classement">{rest.map((result, i) => <li key={result.playerId}><span>{i + 4}</span><PlayerAvatar playerId={result.playerId} playerName={result.playerName} size="sm" showTitle={false} /><span>{result.playerName}{result.playerId === currentPlayer.id && ' · toi'}</span><span>{result.likes} 👍 · {result.dislikes} 👎</span><strong>{result.score > 0 ? '+' : ''}{result.score}</strong></li>)}</ol>}
-    {masterRecap}
-    <RoundBreakAd gameMode={gameMode} instanceKey={`${gameMode}:${roundNumber}`} />
-    {isRoundReconnecting && <p className={bubble.note} role="status">Reconnexion à la manche… Le classement reste affiché.</p>}
-    {!currentPlayer.isHost && <p className={bubble.note}>L’hôte prépare la suite. Encore une ?</p>}
-  </>;
+    };
+    return <div className={podiumStyles.root}>
+      <BubbleHeading label={`Le podium · Manche ${roundNumber}`} title={isResultsSynchronized && winnerLabel ? <><em>{winnerLabel}</em> remporte la manche !</> : 'On compte les votes…'} aside={hostActions}>
+        {isResultsSynchronized ? 'Le verdict de la bande. Revois les prises, partage ton meilleur moment.' : 'Synchronisation des votes…'}
+      </BubbleHeading>
+      {!isResultsSynchronized || podium.length === 0
+        ? <BubbleHold title="On compte les votes…">Le podium arrive dans un instant.</BubbleHold>
+        : <div className={podiumStyles.layout}>
+          {renderCard(podium[0], 0)}
+          {(podium.length > 1 || rest.length > 0) && <div className={podiumStyles.ranking}>
+            <h2 className={podiumStyles.rankingTitle}>Le classement</h2>
+            {podium.slice(1).map((result, offset) => renderCard(result, offset + 1))}
+            {rest.length > 0 && <ol className={podiumStyles.rows} aria-label="La suite du classement" start={4}>
+              {rest.map((result, i) => <li key={result.playerId} className={podiumStyles.row} data-self={result.playerId === currentPlayer.id || undefined} style={{ '--deal': `${(i + 3) * 110}ms` } as React.CSSProperties}>
+                <span className={podiumStyles.rank}>{i + 4}</span>
+                <span className={podiumStyles.face}><PlayerAvatar playerId={result.playerId} playerName={result.playerName} size="sm" showTitle={false} /></span>
+                <strong className={podiumStyles.name}>{result.playerName}{result.playerId === currentPlayer.id && <small>toi</small>}</strong>
+                <span className={podiumStyles.votes} aria-label={`${result.likes} avis positifs, ${result.dislikes} avis négatifs`}><ThumbsUp aria-hidden="true" />{result.likes}<ThumbsDown aria-hidden="true" />{result.dislikes}</span>
+                <strong className={podiumStyles.score} data-tone={result.score > 0 ? 'up' : result.score < 0 ? 'down' : undefined}>{formatMasterPoints(result.score)}</strong>
+              </li>)}
+            </ol>}
+          </div>}
+        </div>}
+      {footer}
+    </div>;
+  }
 
   return (
     <div

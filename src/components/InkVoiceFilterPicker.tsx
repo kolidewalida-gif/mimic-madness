@@ -1,6 +1,9 @@
 import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles } from 'lucide-react';
+import {
+  Activity, Anchor, AudioLines, Bot, Check, Megaphone, Mic, Music2, Phone, Radio,
+  Repeat, Rocket, Skull, Sparkle, Sparkles, Users, Waves, Wind, type LucideIcon,
+} from 'lucide-react';
 import {
   MAX_STACKED_FILTERS,
   VOICE_FILTERS,
@@ -12,6 +15,13 @@ import {
 import { playInkSound } from '@/hooks/useInkSoundEffects';
 import { cn } from '@/lib/utils';
 import bubbleStyles from '@/components/imitation/BubbleVoiceFilters.module.css';
+
+/** Un pictogramme par effet pour le plateau « bulle » (pas d'emoji dans la DA). */
+const VOICE_GLYPHS: Partial<Record<VoiceFilterId, LucideIcon>> = {
+  none: Mic, robot: Bot, autotune: Music2, helium: Wind, deep: Anchor, echo: Repeat,
+  underwater: Waves, megaphone: Megaphone, telephone: Phone, chorus: Users, tremolo: Activity,
+  vibrato: AudioLines, alien: Rocket, radio: Radio, monstre: Skull, lutin: Sparkle,
+};
 
 const SHADOW_SM = "1.5px 1.5px 0 var(--ink-line), -1px -1px 0 var(--ink-line), 1px -1px 0 var(--ink-line), -1px 1px 0 var(--ink-line)";
 const FONT = "'Outfit', sans-serif";
@@ -129,7 +139,12 @@ const InkVoiceFilterPickerComponent = ({
               aria-pressed={active}
               aria-disabled={blocked}
             >
-              <span className="text-xl leading-none">{filter.emoji}</span>
+              {(() => {
+                const Glyph = bubble ? VOICE_GLYPHS[filter.id as VoiceFilterId] : undefined;
+                return Glyph
+                  ? <span aria-hidden="true"><Glyph strokeWidth={2.4} /></span>
+                  : <span className="text-xl leading-none">{filter.emoji}</span>;
+              })()}
               <span
                 className="text-[10px] font-black text-white truncate w-full text-center leading-tight"
                 style={{ fontFamily: FONT, textShadow: active ? SHADOW_SM : 'none' }}
@@ -198,13 +213,13 @@ const InkVoiceFilterPickerComponent = ({
 
           {selected.includes('autotune') && (
             <p className="text-[10px] text-pink-300/80 pl-5" style={{ fontFamily: FONT }}>
-              🎶 Autotune finalise la hauteur après les autres effets
+              Autotune finalise la hauteur après les autres effets
             </p>
           )}
 
           {semitones !== 0 && (
             <p className="text-[10px] text-white/55 pl-5" style={{ fontFamily: FONT }}>
-              ⚡ Hauteur {semitones > 0 ? `+${semitones}` : semitones} demi-tons, appliquée
+              Hauteur {semitones > 0 ? `+${semitones}` : semitones} demi-tons, appliquée
               après l'enregistrement
             </p>
           )}

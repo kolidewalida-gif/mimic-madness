@@ -1,0 +1,89 @@
+/* ==========================================================================
+   Le podium : la grande carte du gagnant, puis le reste du classement.
+   Les variables --sh-* viennent de la coque (BubbleGame.module.css).
+   ========================================================================== */
+
+.root { display: grid; padding-bottom: 12px; }
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.22fr) minmax(320px, .95fr);
+  align-items: start;
+  gap: 28px;
+}
+.layout:has(> :only-child) { grid-template-columns: minmax(0, 860px); justify-content: center; }
+
+.ranking { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.rankingTitle {
+  margin: 0 0 -4px 6px;
+  color: var(--sh-on-stage);
+  font: 400 24px/1 var(--sh-display);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  text-shadow: var(--sh-outline), 0 3px 0 var(--sh-ink);
+}
+
+.rows { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.row {
+  display: grid;
+  grid-template-columns: 36px 46px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px 9px 12px;
+  color: var(--sh-text);
+  border: 3px solid var(--sh-ink);
+  border-radius: 22px;
+  background: var(--sh-card);
+  box-shadow: var(--sh-gloss), 0 4px 0 var(--sh-ink);
+  animation: row-in .55s var(--sh-spring) var(--deal, 0ms) backwards;
+}
+.row[data-self] { box-shadow: var(--sh-gloss), 0 0 0 3px var(--sh-go), 0 4px 0 var(--sh-ink); }
+.rank { color: var(--sh-text-3); font: 400 26px/1 var(--sh-display); text-align: center; }
+.face :global(.rounded-full.overflow-hidden) { width: 46px !important; height: 46px !important; border: 2px solid var(--sh-ink) !important; box-shadow: none !important; }
+.face img { width: 100%; height: 100%; object-fit: cover; }
+.name { overflow: hidden; font: 400 22px/1 var(--sh-display); letter-spacing: .04em; text-overflow: ellipsis; white-space: nowrap; text-transform: uppercase; }
+.name small { margin-left: 6px; padding: 2px 7px 1px; color: var(--sh-ink); font: 850 10px/1 var(--sh-ui); letter-spacing: .1em; vertical-align: 3px; border-radius: 999px; background: var(--sh-go); }
+.votes { display: inline-flex; align-items: center; gap: 5px; color: var(--sh-text-3); font-size: 13px; font-weight: 800; white-space: nowrap; }
+.votes svg { width: 15px; height: 15px; }
+.votes svg + svg, .votes svg ~ svg { margin-left: 8px; }
+.score { font: 400 26px/1 var(--sh-display); letter-spacing: .03em; }
+.score[data-tone='up'] { color: var(--sh-ok-deep); }
+.score[data-tone='down'] { color: var(--sh-rec); }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; }
+.actions > button:last-child { min-width: 250px; }
+.waiting {
+  --tilt: 2deg;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px 11px 14px;
+  color: var(--sh-ink);
+  font: 400 19px/1 var(--sh-display);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  border: 3px solid var(--sh-ink);
+  border-radius: 999px;
+  background: var(--sh-go);
+  box-shadow: var(--sh-gloss), 0 4px 0 var(--sh-ink);
+  transform: rotate(var(--tilt));
+}
+.waiting svg { width: 20px; height: 20px; animation: spin 3s linear infinite; }
+.note { margin: 18px 0 0; color: var(--sh-on-stage-2); font-size: 13px; font-weight: 700; text-align: center; }
+
+@keyframes row-in { 0% { opacity: 0; transform: translateX(50px) rotate(3deg); } 70% { opacity: 1; transform: translateX(-4px); } 100% { transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 800px) {
+  .actions { justify-content: stretch; width: 100%; }
+  .actions > button { flex: 1; }
+  .actions > button:last-child { min-width: 0; }
+  .row { grid-template-columns: 30px 40px minmax(0, 1fr) auto; }
+  .votes { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .row, .waiting svg { animation: none; }
+}
